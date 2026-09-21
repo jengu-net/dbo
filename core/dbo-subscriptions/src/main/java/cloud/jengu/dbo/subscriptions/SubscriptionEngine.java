@@ -19,6 +19,9 @@ import dev.dbos.transact.workflow.Queue;
 import dev.dbos.transact.workflow.StepOptions;
 import dev.dbos.transact.workflow.Workflow;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import javax.sql.DataSource;
 import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
@@ -63,6 +66,36 @@ public final class SubscriptionEngine implements AutoCloseable {
     private static final String STEP = "post";
 
     private final DataSource ds;
+    private static final Logger LOG = LoggerFactory.getLogger("dbo.subscriptions");
+
+    /**
+     * How many passes may fail before it is said again.
+     *
+     * <p>The first failure is said at once and then this often, because the
+     * two things worth knowing are that it started and that it is still
+     * going. Every pass would be a line a second per tenant, which is the
+     * shape of logging this store does not do; silence was the other
+     * extreme and is what this replaces.
+     */
+    private static final int SAY_IT_AGAIN_EVERY = 60;
+
+    /** Consecutive failed passes, for deciding whether this one is worth saying. */
+    private int failedPasses;
+
+    /**
+     * Whether a failure this far into a run of them is worth a line.
+     *
+     * <p>Its own method so the cadence can be held to by a test without one
+     * standing up a database, a feed and a logging provider to read one
+     * string. What a test of the emission would need is a JVM-wide slf4j
+     * provider, and a test-only provider that became this suite's binding
+     * once cost it two hours of blocked threads — so the rule is tested here
+     * and the binding is what the container tests are for.
+     */
+    static boolean worthSaying(int consecutiveFailures) {
+        return consecutiveFailures == 1 || consecutiveFailures % SAY_IT_AGAIN_EVERY == 0;
+    }
+
     private final String domain;
     private final ObjectStore store;
     private final ChangeFeed feed;
@@ -331,13 +364,37 @@ public final class SubscriptionEngine implements AutoCloseable {
         dispatcherThread = Thread.ofVirtual().name("dbo-subscriptions-" + domain).start(() -> {
             while (running) {
                 try {
-                    if (dispatchOnce(200) == 0) {
+                    int dispatched = dispatchOnce(200);
+                    if (failedPasses > 0) {
+                        // Once, and only where it had said something: a
+                        // recovery nobody was told to worry about is noise.
+                        LOG.info("subscription dispatch recovered: domain={} afterPasses={}",
+                                domain, failedPasses);
+                        failedPasses = 0;
+                    }
+                    if (dispatched == 0) {
                         Thread.sleep(pollMillis);
                     }
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                     return;
                 } catch (RuntimeException e) {
+                    // Said, rather than swallowed. Every failure in here was
+                    // caught identically and silently, so a tenant polling a
+                    // domain that does not exist and a tenant whose feed has
+                    // genuinely broken looked exactly alike: nothing in the
+                    // log, nothing counted, and the only trace a failed
+                    // statement in the database's own log once a second.
+                    //
+                    // The first of those two is fixed where it belongs — the
+                    // dispatcher now starts only where the registrations say
+                    // records land in this domain — and this is the other
+                    // half: whatever is left is real, so it says so.
+                    failedPasses++;
+                    if (worthSaying(failedPasses)) {
+                        LOG.warn("subscription dispatch failed: domain={} consecutivePasses={} {}",
+                                domain, failedPasses, e.toString());
+                    }
                     try {
                         Thread.sleep(pollMillis);
                     } catch (InterruptedException ie) {

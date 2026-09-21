@@ -31,7 +31,16 @@ dependencies {
     // runtime instead of a private one per bundle. compileOnly because
     // it resolves from the slf4j-api bundle at runtime.
     compileOnly("org.slf4j:slf4j-api:2.0.18")
+
+    // One rule is held here: how often a dispatch that keeps failing says so.
+    // It needs no database, no feed and no logging provider, which is the
+    // point — a test that stood a provider up would be a JVM-wide slf4j
+    // binding, and that cost this suite two hours once.
+    testImplementation("org.junit.jupiter:junit-jupiter:5.11.4")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
+
+tasks.test { useJUnitPlatform() }
 
 // bnd COMPUTES Import-Package from this bundle's bytecode and from what
 // rides in lib/. The hand-written part is policy — what is private, what may

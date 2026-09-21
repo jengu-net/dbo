@@ -1,4 +1,4 @@
-**Open. A tenant's kind is re-derived at every call site instead of being declared.**
+**Open. A tenant's kind is re-derived at every call site instead of being declared. The first consumer is done ahead of the kind: the dispatcher starts from what the registrations say, and a dispatch that keeps failing now says so instead of being swallowed.**
 
 # Tenant kinds
 
@@ -196,7 +196,25 @@ found by hand.
 
 ## First consumer
 
-The dispatcher. It starts only where the profile says the tenant holds records
-in the face domain, and the poll loop says something when it fails repeatedly
-rather than swallowing every failure identically — so the next genuine feed
-failure is not silent.
+The dispatcher, and it is done — ahead of the kind rather than because of it,
+which is worth saying plainly.
+
+It starts only where the tenant holds records in the face domain, and that is
+read from the REGISTRATIONS rather than from a kind: the registrations already
+carry the domain each type lands in, so it stops guessing and stays right for a
+kind of tenant nobody has invented yet. A kind would have been a second way to
+answer a question the types already answer.
+
+The poll loop no longer swallows. It counts consecutive failures, says the
+first at once, repeats every sixtieth while it lasts, and says once when it
+recovers. Both extremes are defects: silence is what this replaces, and a line
+per pass is a line a second per tenant.
+
+The cadence is unit-tested and the emission is not, deliberately. A test of the
+emission needs a JVM-wide slf4j provider, and a test-only provider that became
+this suite's binding once cost it two hours of blocked threads — so the rule is
+held by a test and the binding is what the container tests are for.
+
+**What this does NOT do is the item.** The kind is still re-derived at the
+other call sites, and the two costs below it — a tenant conscripted into being
+a zone by somebody else's file, and the rest — are untouched.
