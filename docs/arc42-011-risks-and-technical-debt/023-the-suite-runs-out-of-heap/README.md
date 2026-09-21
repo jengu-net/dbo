@@ -1,0 +1,128 @@
+**Open. Four tenants in three classes have died as `OutOfMemoryError: Java heap
+space`, across two documentation-only changes — one of which is the change that
+filed this. Two such changes ran minutes apart against the same commit and one
+passed, which is the failure rate rather than a guess at it. Next: find what a
+tenant costs while it is alive.**
+
+# The suite runs out of heap
+
+## What happened
+
+A pull request carrying documentation, one working-rule line and a deleted item
+failed the build:
+
+```
+TenantRuntimeIT > everyTenantAnswersTerminologyFromItsOwnStore FAILED
+  bring-up FAILED for: [terms5]
+  {terms5=java.lang.OutOfMemoryError: Java heap space}; serving=[terms4, teine]
+
+ZoneIT > initializationError FAILED
+  bring-up FAILED for: [haigla, kliinik]
+  {kliinik=OutOfMemoryError, haigla=OutOfMemoryError}; serving=[ee]
+```
+
+Nothing in that change can reach a tenant's bring-up. What it met is the
+machine.
+
+## Two runs, same base, opposite answers
+
+The measurement nobody had taken is what the filing itself produced. Two
+documentation-only pull requests ran within an hour of each other against the
+same `main`:
+
+| what it carried | `build` | outcome |
+|---|---|---|
+| two item findings and a deleted item | 44m 03s | passed |
+| **this item** | 37m 28s | `at-once-3` died of heap exhaustion |
+
+Same base, same kind of change, minutes apart, opposite results. That is the
+non-deterministic failure this document describes, observed under conditions
+somebody controlled rather than inferred from a red build somebody remembers.
+
+**The change that files this could not be merged because of what it files.**
+That is the strongest sentence available about how much the ceiling costs, and
+it is put here rather than left as an anecdote, because the obvious response —
+re-run until it passes — erases exactly the signal worth keeping. It was
+re-run once, deliberately, and only after this was written down.
+
+**Four tenants, three classes, two runs.** `terms5` in
+`TenantRuntimeIT`; `haigla` and `kliinik` in `ZoneIT`; `at-once-3` in
+`SeveralTenantsDeclaredAtOnceComeUpTogetherIT`. None of the three classes was
+touched by either change.
+
+## Why it is filed now rather than earlier
+
+**It was already known and had no item.** The risks list records it: a class
+that brings four tenants up at once "has died as Java heap exhaustion inside
+one of them, on a change that touched documentation only… It has no item
+because it has not been reproduced deliberately."
+
+**It has stopped being one class's problem.** Two more classes have now failed
+the same way in one run, and the second is `ZoneIT` — which was fixed today for
+a different reason and is not a class that brings up a crowd.
+
+**And it is now legible, which it was not this morning.** The failure names the
+tenant and the reason. Before the wait was changed to say what it knows, the
+same exhaustion arrived as "declared but not serving after 20 passes" with an
+empty trouble ledger — a tenant that simply never appeared, with nothing to
+search for.
+
+## What is known about the dials
+
+`gradle.properties` carries the two, with their reasoning:
+
+- `dboTestHeap=2g` — a floor rather than a default. Clearing it does not give
+  "the default": each module keeps its own minimum, because Gradle's own heap
+  dies inside HAPI as a null-message fault that names nothing.
+- `dboTestParallelism=1` — one fork. The suite is already refusing to run test
+  classes in parallel, which is how much room there is.
+
+CI passes no test flags: it runs `./verify`, which reads that file, so a
+laptop and the workflow cannot disagree about what the check is.
+
+## What is not known, which is most of it
+
+**What a tenant costs while it is alive.** Nobody has measured one. The known
+expensive act is bring-up — a face expanded into a tenant's tables — and face
+images made that cheaper. What is unmeasured is the resident cost of a tenant
+that has finished coming up and is merely being served: the pools it holds, the
+validation view it keeps, the definitions it carries.
+
+**Whether the ceiling moved today or the load did.** Two changes this session
+are candidates and neither has been measured against it. The wait now holds for
+four minutes rather than giving up after twenty passes, so tenants that would
+have been abandoned early now stay alive and overlap with more neighbours. And
+the cast added a member to the shared world.
+
+**Whether raising the heap is a fix or a postponement.** Two gigabytes is a
+floor somebody chose. Four would pass tomorrow and say nothing about why a
+suite of fifty-odd classes needs it.
+
+## What to do
+
+1. Measure one tenant, resident, after bring-up. The memory baseline exists and
+   records a number for a world; this needs the number for a tenant, so that
+   "how many fit" stops being a thing the suite discovers by dying.
+2. Say whether the four-minute wait raised the peak. It is one change and it is
+   reversible, and an honest answer is worth more than the wait.
+3. Count what is alive at the peak. The runtime knows its tenants; the suite
+   does not say how many it is holding at once, and a number nobody prints is a
+   number nobody manages.
+4. Then decide about the dial, with the measurement in hand. Raising it before
+   that is buying quiet.
+
+## Why it matters beyond a red build
+
+Three items are waiting on the same constraint from different directions.
+[Item 019](../019-the-build-repeats-itself/README.md) found that the container
+suites are the forty minutes and no cache reaches them.
+[Item 003](../003-tests-move-down-the-ladder/README.md) moves classes onto a
+shared world so fewer tenants exist at once, and
+[item 002](../002-sample-application/README.md) is the application those stories
+would run against. Each of them is, underneath, a way of holding fewer tenants
+alive — and none of them can be judged without knowing what one costs.
+
+The temporary rule about not proving a bring-up on the shared runtime is the
+same constraint again, written as a working rule because it was cheaper to
+obey it than to measure it. This item is the measurement that rule is standing
+in for.

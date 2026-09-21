@@ -42,6 +42,7 @@ is deliberately not being done, and the commands that prove it.
 | [017 The quality goals are not declared](017-quality-goals-are-not-declared/README.md) | Open. There are twelve goals, not eleven, and the twelfth had no row in the quality tree. Next: declare them as Quality classifications. |
 | [021 Asking the store a question](021-asking-the-store/README.md) | Open. A product building a screen has no vocabulary for asking this store anything; the in-JVM binding is already on the whiteboard and hands back an engine handle. Carries the guide's chapter list. |
 | [022 A payload moves through the store quadratically](022-a-payload-moves-quadratically/README.md) | Open. 96 KiB in 42 seconds, 400 KiB in 632. Measured once while building something else, and invisible to every suite because every other document is a few hundred bytes. Next: find where the square is. |
+| [023 The suite runs out of heap](023-the-suite-runs-out-of-heap/README.md) | Open. Four tenants in three classes, across two documentation-only changes — one of them this item's own, which could not be merged because of what it files. The ceiling is the binding constraint on items 002, 003 and 019, and nobody has measured what a tenant costs. |
 | [020 The insurer will not come up beside the zone](020-the-insurer-will-not-come-up-beside-the-zone/README.md) | Fixed. A projection hands one canonical down one dependency under two ids; the stream read the second as a stale claim of its own and threw. The apply path now asks whether the content is identical first. Kept until CI has run it a few times. |
 | [019 The build repeats work whose inputs did not change](019-the-build-repeats-itself/README.md) | Open. CI has said what the cache is worth: a docs-only pull request went 44 to 37 minutes, one touching sources went to 45. The remaining forty minutes is the container suites, which no cache can reach. Next: items 002 and 003. |
 | [018 The insurer's copy does not arrive](018-the-insurers-copy-does-not-arrive/README.md) | Open. Slow, not stopped: the carrier is a projection tenant that spends twenty-eight seconds reading a face through the chain. The pin now carries the launcher that reads the images setting, and the three waits now print how close they came. Next: read those numbers off a build run. |
@@ -69,8 +70,9 @@ is deliberately not being done, and the commands that prove it.
   is not by itself a regression.**
   `SeveralTenantsDeclaredAtOnceComeUpTogetherIT` brings four tenants up at
   once and has died as Java heap exhaustion inside one of them, on a change
-  that touched documentation only. It has no item because it has not been
-  reproduced deliberately. The guide's terminology step has now failed twice
+  that touched documentation only. It is no longer one class's problem —
+  two more failed the same way in one run — and it is now
+  [item 023](023-the-suite-runs-out-of-heap/README.md). The guide's terminology step has now failed twice
   on one commit and is [item 018](018-the-insurers-copy-does-not-arrive/README.md).
 - What is built, as against what is promised, is read from the
   [requirement catalogue](../arc42-006-runtime/req-catalogue.md) and the
