@@ -1,10 +1,17 @@
-**Open. The eleven quality goals are matched to requirement areas by reading. Next: declare them as Quality classifications.**
+**Open. There are twelve goals, not eleven — the twelfth had no row in the quality tree at all, which is this item's own argument arriving by accident. They are matched to areas by reading. Next: declare them as Quality classifications.**
 
 # The quality goals are not declared
 
 [The quality tree](../../arc42-010-quality-requirements/README.md) maps each
 goal to the areas that carry it, and the mapping lives in a table a person
-wrote. The promise model already has the classification this wants: a
+wrote.
+
+How well that goes is already on the record. The introduction lists twelve
+goals; the table had eleven rows, and the missing one was the last — operational
+honesty, which is strict search, an honest CapabilityStatement and an entry per
+boundary crossing. It has a row now. Nothing could have noticed it was gone,
+because a table is a list somebody keeps in step by hand, and this item is
+about not doing that. The promise model already has the classification this wants: a
 **Quality** is the technical view of a promise, it declares the promises that
 fulfil it, and coverage is folded from their statuses rather than asserted.
 

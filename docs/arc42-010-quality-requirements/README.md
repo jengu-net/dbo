@@ -26,6 +26,7 @@ day.
 | FHIR-version plurality | Several versions are served at once, and the engine holds no version knowledge | `VER`, `SHAPE`, and the [conformance reports](../conformance/README.md) |
 | Performance as a first-class property | Measured on reference hardware, on the production serving path | [Evidence](../evidence/README.md), and the run in [item 015](../arc42-011-risks-and-technical-debt/015-the-comparative-load-test/README.md) |
 | Embeddability | The store boots inside a host's own JVM, and the suite runs against it | `CONT` |
+| Operational honesty | An unrecognised search parameter is refused rather than answered more broadly, the CapabilityStatement is generated from what is actually served, and every boundary crossing leaves an entry | `SRCH`, `POL`, and the [conformance reports](../conformance/README.md) |
 
 ## What is measured rather than asserted
 
@@ -40,6 +41,13 @@ day.
   their citations, so what it calls proven is proven by a test that ran.
 
 ## What is not judged yet
+
+**The twelfth goal was missing from this table until somebody counted.**
+Operational honesty is the last of the twelve in the introduction and had no
+row here, so the chapter that exists to say how each goal is judged was silent
+about one of them — and nothing could notice, because a table is a list
+somebody keeps in step by hand. That is the argument for the section below
+stated better than the section states it.
 
 The goals above are matched to areas by reading, not by declaration. The
 promise model carries a Quality classification for exactly this — the
