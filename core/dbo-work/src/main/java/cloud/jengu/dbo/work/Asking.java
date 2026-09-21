@@ -71,6 +71,21 @@ public final class Asking {
         return new Records(store, watching, type, java.util.List.of(), java.util.List.of());
     }
 
+    /**
+     * What was done here, and by whom.
+     *
+     * <p>Answered from the same handle as everything else because a tenant's
+     * engine registers its records, its runs and its trail together: what
+     * this deployment did about a tenant belongs in that tenant's own store,
+     * queryable and versioned and dropped with it.
+     *
+     * <p>Reading the trail is itself an act the trail records, which is the
+     * property that makes it worth reading.
+     */
+    public Trail trail() {
+        return new Trail(store, watching, java.util.List.of(), java.util.List.of());
+    }
+
     /** What this tenant has been asked to do, and what became of it. */
     public Work work() {
         return new Work(store, watching, java.util.List.of(), java.util.List.of());
@@ -330,6 +345,117 @@ public final class Asking {
             long began = System.nanoTime();
             long many = store.count(asked());
             watching.asked(new Watching.Asked("records.count", named, many,
+                    java.time.Duration.ofNanos(System.nanoTime() - began)));
+            return many;
+        }
+    }
+
+    /**
+     * The trail, narrowed by the questions somebody actually asks of it.
+     *
+     * <p>"Somebody looked her up" is not an answer anybody can act on.
+     * "Somebody looked her up for treatment, at 03:14, under this run" is,
+     * and each of those is a narrowing here.
+     */
+    public static final class Trail {
+
+        /** The engine's own name for an entry. */
+        private static final String TYPE = "AuditEntry";
+
+        private final ObjectStore store;
+        private final Watching watching;
+        private final java.util.List<java.util.function.Consumer<Criteria>> narrowings;
+        private final java.util.List<String> named;
+
+        private Trail(ObjectStore store, Watching watching,
+                java.util.List<java.util.function.Consumer<Criteria>> narrowings,
+                java.util.List<String> named) {
+            this.store = store;
+            this.watching = watching;
+            this.narrowings = narrowings;
+            this.named = named;
+        }
+
+        private Trail also(String name, java.util.function.Consumer<Criteria> narrowing) {
+            java.util.List<java.util.function.Consumer<Criteria>> all =
+                    new java.util.ArrayList<>(narrowings);
+            all.add(narrowing);
+            java.util.List<String> names = new java.util.ArrayList<>(named);
+            names.add(name);
+            return new Trail(store, watching, java.util.List.copyOf(all),
+                    java.util.List.copyOf(names));
+        }
+
+        private Criteria asked() {
+            Criteria criteria = Criteria.of(TYPE);
+            narrowings.forEach(narrowing -> narrowing.accept(criteria));
+            return criteria;
+        }
+
+        /** What happened to one record. */
+        public Trail about(String type, String id) {
+            return also("about", criteria -> criteria
+                    .eq("targetType", EnvelopeValue.of(type))
+                    .eq("targetId", EnvelopeValue.of(id)));
+        }
+
+        /**
+         * What one actor did.
+         *
+         * <p>The actor is stamped from the validated token rather than from
+         * what the caller said about itself, which is what makes this
+         * question answerable rather than merely askable.
+         */
+        public Trail by(String actor) {
+            return also("by", criteria -> criteria.eq("actor", EnvelopeValue.of(actor)));
+        }
+
+        /** What happened under one run, which is how a journey reads back. */
+        public Trail underRun(String run) {
+            return also("underRun", criteria -> criteria.eq("run", EnvelopeValue.of(run)));
+        }
+
+        /** One kind of act — created, read, changed, gone. */
+        public Trail of(String interaction) {
+            return also("of", criteria ->
+                    criteria.eq("interaction", EnvelopeValue.of(interaction)));
+        }
+
+        /**
+         * Which appliance it happened on.
+         *
+         * <p>Only a replicated entry carries one: an entry this store wrote
+         * happened here. An operator asking "on which bench" of a cloud
+         * holding four appliances' trails cannot answer it from the actor.
+         */
+        public Trail at(String appliance) {
+            return also("at", criteria ->
+                    criteria.eq("appliance", EnvelopeValue.of(appliance)));
+        }
+
+        /** Since when, which is half of every question asked of a trail. */
+        public Trail since(java.time.Instant when) {
+            return also("since", criteria ->
+                    criteria.lastUpdated(Criteria.RangeOp.GE, when));
+        }
+
+        /** The answer, walked as it is produced. Close it. */
+        public Stream<cloud.jengu.dbo.core.api.StoredObject> stream() {
+            long began = System.nanoTime();
+            java.util.concurrent.atomic.AtomicLong produced =
+                    new java.util.concurrent.atomic.AtomicLong();
+            return Answered.pagedBy(store::page, asked())
+                    .peek(entry -> produced.incrementAndGet())
+                    .onClose(() -> watching.asked(new Watching.Asked("trail.stream", named,
+                            produced.get(),
+                            java.time.Duration.ofNanos(System.nanoTime() - began))));
+        }
+
+        /** How many, without fetching them. */
+        public long count() {
+            long began = System.nanoTime();
+            long many = store.count(asked());
+            watching.asked(new Watching.Asked("trail.count", named, many,
                     java.time.Duration.ofNanos(System.nanoTime() - began)));
             return many;
         }

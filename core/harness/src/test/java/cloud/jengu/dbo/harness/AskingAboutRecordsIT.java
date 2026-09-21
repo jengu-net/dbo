@@ -94,6 +94,41 @@ class AskingAboutRecordsIT {
     }
 
     @Test
+    @DisplayName("the trail answers what happened to one record, and narrowing it is the "
+            + "store's work")
+    void theTrailAnswersAboutOneRecord() {
+        // Its own record, so what the trail says about it is this class's
+        // doing and not the suite's. The shape this runs on keeps a full
+        // trail, which is why there is anything to read at all.
+        String id = tenant.store().create(("{\"resourceType\":\"Observation\","
+                + "\"status\":\"final\","
+                + "\"code\":{\"coding\":[{\"system\":\"" + SYSTEM + "\","
+                + "\"code\":\"" + MINE + "-trailed\"}]},"
+                + "\"subject\":{\"display\":\"nobody\"}}")).id();
+
+        Asking.Trail aboutIt = asking.trail().about("Observation", id);
+
+        assertTrue(aboutIt.count() >= 1,
+                "the write left nothing on the trail, so nothing here is answerable");
+
+        try (Stream<StoredObject> entries = aboutIt.stream()) {
+            List<String> said = entries
+                    .map(entry -> new String(entry.payload(),
+                            java.nio.charset.StandardCharsets.UTF_8))
+                    .toList();
+            assertTrue(said.stream().allMatch(entry -> entry.contains(id)),
+                    "an entry about another record came back: " + said);
+            assertTrue(said.stream().anyMatch(entry -> entry.contains("interaction")),
+                    "an entry does not say what kind of act it was: " + said);
+        }
+
+        // Narrowed further, and the narrowing is the store's: what happened
+        // under one kind of act, as against everything that has happened.
+        assertTrue(aboutIt.of("create").count() <= aboutIt.count(),
+                "narrowing to one kind of act widened the answer");
+    }
+
+    @Test
     @DisplayName("the joins are declared, refuse by name, and say what is decided first")
     void theJoinsRefuseByName() {
         Asking.Records mine = asking.records("Observation").whereCoded("code", SYSTEM, MINE);

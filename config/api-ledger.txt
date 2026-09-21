@@ -3921,6 +3921,7 @@ cloud.jengu.dbo.terminology.TerminologyStore.ValueSetCompose           version()
 cloud.jengu.dbo.work.Asking                                            at(cloud.jengu.dbo.core.api.ObjectStore):cloud.jengu.dbo.work.Asking
 cloud.jengu.dbo.work.Asking                                            class
 cloud.jengu.dbo.work.Asking                                            records(String):cloud.jengu.dbo.work.Asking.Records
+cloud.jengu.dbo.work.Asking                                            trail():cloud.jengu.dbo.work.Asking.Trail
 cloud.jengu.dbo.work.Asking                                            watching(cloud.jengu.dbo.work.Watching):cloud.jengu.dbo.work.Asking
 cloud.jengu.dbo.work.Asking                                            work():cloud.jengu.dbo.work.Asking.Work
 cloud.jengu.dbo.work.Asking.Records                                    class
@@ -3932,6 +3933,15 @@ cloud.jengu.dbo.work.Asking.Records                                    stream():
 cloud.jengu.dbo.work.Asking.Records                                    where(String,String):cloud.jengu.dbo.work.Asking.Records
 cloud.jengu.dbo.work.Asking.Records                                    whereCoded(String,String,String):cloud.jengu.dbo.work.Asking.Records
 cloud.jengu.dbo.work.Asking.Records                                    whereNot(String,String):cloud.jengu.dbo.work.Asking.Records
+cloud.jengu.dbo.work.Asking.Trail                                      about(String,String):cloud.jengu.dbo.work.Asking.Trail
+cloud.jengu.dbo.work.Asking.Trail                                      at(String):cloud.jengu.dbo.work.Asking.Trail
+cloud.jengu.dbo.work.Asking.Trail                                      by(String):cloud.jengu.dbo.work.Asking.Trail
+cloud.jengu.dbo.work.Asking.Trail                                      class
+cloud.jengu.dbo.work.Asking.Trail                                      count():long
+cloud.jengu.dbo.work.Asking.Trail                                      of(String):cloud.jengu.dbo.work.Asking.Trail
+cloud.jengu.dbo.work.Asking.Trail                                      since(Instant):cloud.jengu.dbo.work.Asking.Trail
+cloud.jengu.dbo.work.Asking.Trail                                      stream():Stream
+cloud.jengu.dbo.work.Asking.Trail                                      underRun(String):cloud.jengu.dbo.work.Asking.Trail
 cloud.jengu.dbo.work.Asking.Work                                       by(String):cloud.jengu.dbo.work.Asking.Work
 cloud.jengu.dbo.work.Asking.Work                                       class
 cloud.jengu.dbo.work.Asking.Work                                       correlated(String):cloud.jengu.dbo.work.Asking.Work
