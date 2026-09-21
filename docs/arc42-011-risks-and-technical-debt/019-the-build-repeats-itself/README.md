@@ -1,4 +1,4 @@
-**Open. The cache is on and the container-driving tests are kept out of it, each saying why where it is configured. Measured: three module test tasks 342s cold and 28s after a clean. Next: watch a documentation-only pull request in CI, and revisit the parallelism dials.**
+**Open. The cache is on, and CI has now said what it is worth: a documentation-only pull request went from forty-four minutes to thirty-seven, and one touching sources went to forty-five. The cache can only ever return the part CI barely spends time on. Next: the forty minutes is the container suites, and they are items 002 and 003.**
 
 # The build repeats work whose inputs did not change
 
@@ -58,6 +58,34 @@ what a fresh checkout looks like:
 The element module carries the four-minute comparison of every definition of
 every carried face, and it is one of the tasks restored.
 
+## And what it bought in CI, which is the number that mattered
+
+The `build` job, on four consecutive pull requests:
+
+| Commit | What it changed | `build` |
+|---|---|---|
+| `59f08275` | before the cache | 43m 38s |
+| `f22a5800` | the cache, first run — writing it | 43m 36s |
+| `2197097d` | a harness source | 45m 25s |
+| `41cdfa8a` | documentation only | **37m 09s** |
+
+So the cache does work between runners, and it is worth about six and a half
+minutes — fifteen per cent — on the kind of change this item was written
+about. On a change that touches sources it is worth nothing, which is not a
+disappointment: recompiling is what a source change is for.
+
+**The honest reading is that the lever is somewhere else.** Six minutes is
+the whole of what the non-container build costs, so restoring all of it can
+never return more than that. The other thirty-seven minutes is five test
+tasks that drive Docker, and they are excluded on purpose and correctly.
+Nothing about caching can reach them.
+
+What can is fewer and shorter container suites: one world serving more of
+the proofs, which is item 003, on an application that runs the stories, which
+is item 002. This item should not be read as the answer to the forty
+minutes. It is the answer to paying the forty minutes for a paragraph, and
+that part now costs thirty-seven.
+
 ## What is kept out, and why it says so
 
 The tests that drive Docker are not cacheable, and each says it where it is
@@ -92,9 +120,14 @@ it is still worth giving them inputs so they can be skipped.
    container, which are named and excluded rather than left to chance.
 3. Widen by evidence, never by default. A task joins the set when somebody
    can say what its inputs are.
-4. Revisit `dboTestParallelism` and `org.gradle.parallel` separately and
+4. ~~Watch a documentation-only pull request in CI.~~ Done: 37m 09s against
+   43m 38s. See the table above.
+5. Revisit `dboTestParallelism` and `org.gradle.parallel` separately and
    with their own measurement. They are memory decisions today and may be
-   the right ones; nothing here has measured them.
+   the right ones; nothing here has measured them. This is now the only
+   dial left in this item that could move the container suites, and the
+   reason to be careful is the same as it always was: what this machine
+   cannot carry is tenants alive at once.
 
 ## What this is not
 
