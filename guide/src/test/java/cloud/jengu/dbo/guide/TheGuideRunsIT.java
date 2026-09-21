@@ -285,11 +285,24 @@ class TheGuideRunsIT {
         return got.lastLine();
     }
 
-    /** Polls a condition the guide waits on, rather than sleeping a guessed amount. */
-    private boolean waitFor(int attempts, Waiting condition) throws Exception {
+    /**
+     * Polls a condition the guide waits on, rather than sleeping a guessed
+     * amount, and says afterwards how close it came.
+     *
+     * <p>The line it prints is the point. A wait that passes tells you
+     * nothing about whether it nearly did not, and one of these waits expired
+     * twice on a loaded runner while the same wait on an idle one passed —
+     * which was a surprise only because no run had ever recorded that it was
+     * at ninety of its hundred and twenty attempts. Now every run does, on
+     * the way past, and a wait drifting toward its limit is visible before it
+     * crosses it rather than afterwards.
+     */
+    private boolean waitFor(int attempts, String what, Waiting condition) throws Exception {
         for (int attempt = 0; attempt < attempts; attempt++) {
             try {
                 if (condition.met()) {
+                    System.out.println("waited for " + what + ": met at attempt "
+                            + (attempt + 1) + " of " + attempts + " (~" + (attempt * 5) + "s)");
                     return true;
                 }
             } catch (RuntimeException notYet) {
@@ -297,6 +310,8 @@ class TheGuideRunsIT {
             }
             TimeUnit.SECONDS.sleep(5);
         }
+        System.out.println("waited for " + what + ": expired after all " + attempts
+                + " attempts (~" + (attempts * 5) + "s)");
         return false;
     }
 
@@ -1105,7 +1120,7 @@ class TheGuideRunsIT {
             // once the stream is running a change propagates in a second or two.
             // The wait is for the first one, and it is the reason this step sits
             // where it does rather than beside the zone's own chapter.
-            assertTrue(waitFor(120, () ->
+            assertTrue(waitFor(120, "the zone's code system at the hospital", () ->
                             entries(ask("HOSPITAL", "/CodeSystem?url=urn:rl:wards")) == 1),
                     "the zone's terminology never reached the hospital");
             assertTrue(snippets.run("zone-reaches-hospital").text().contains("Spell Damage"),
@@ -1116,7 +1131,7 @@ class TheGuideRunsIT {
             // it. The insurer below declared only the first and has only the
             // first, which is what makes this an arrival rather than
             // everything arriving regardless.
-            assertTrue(waitFor(120, () ->
+            assertTrue(waitFor(120, "the zone's value set at the hospital", () ->
                             entries(ask("HOSPITAL", "/ValueSet?url=urn:rl:wards:vs")) == 1),
                     "the hospital declared the zone's value sets and did not get them");
         }
@@ -1129,8 +1144,8 @@ class TheGuideRunsIT {
             // The insurer's copy travels further than the hospital's: the zone
             // speaks R5 and the insurer R4, so it arrives through the projection.
             // Waiting for the hospital was not waiting for this.
-            if (!waitFor(120, () ->
-                    entries(ask("INSURER", "/CodeSystem?url=urn:rl:wards")) == 1)) {
+            if (!waitFor(120, "the zone's code system at the insurer, through the projection",
+                    () -> entries(ask("INSURER", "/CodeSystem?url=urn:rl:wards")) == 1)) {
                 throw new AssertionError("the zone's terminology never reached the insurer.\n"
                         + whatThoseTenMinutesLeft());
             }
