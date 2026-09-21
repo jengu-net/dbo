@@ -418,7 +418,23 @@ public final class Activator implements BundleActivator {
                                 // captured instance off the whiteboard, the
                                 // way it already takes the store.
                                 ctx.registerService(cloud.jengu.dbo.sync.Lanes.class,
-                                        runtime.replication(), props)));
+                                        runtime.replication(), props),
+                                // The questions a product asks this tenant.
+                                //
+                                // Beside the store rather than instead of it:
+                                // the store is what the engine's own callers
+                                // need and this is what somebody building a
+                                // screen needs, and handing the second an
+                                // engine handle is how a worklist ends up
+                                // composing criteria. Registered here because
+                                // a vocabulary reachable only by whoever can
+                                // already reach the engine is a vocabulary for
+                                // nobody: a bundle beside this one takes it
+                                // off the whiteboard, and so does a host that
+                                // embedded the framework.
+                                ctx.registerService(cloud.jengu.dbo.work.Asking.class,
+                                        cloud.jengu.dbo.work.Asking.at(runtime.engine()),
+                                        props)));
                         if (runtime.engine() instanceof cloud.jengu.dbo.policy.PolicyObjectStore p) {
                             // §15.1: module engines contribute custom audit
                             // events through this per-tenant recorder surface
