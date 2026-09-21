@@ -28,7 +28,7 @@ import java.util.stream.Stream;
  * discard most of it. Where the store cannot narrow, this says so rather than
  * pretending.
  */
-public final class Asking {
+public final class Asking implements Questions {
 
     private final ObjectStore store;
     private final Watching watching;
@@ -56,6 +56,7 @@ public final class Asking {
      * back, how long it took. What it is for is counting and timing, and
      * neither needs the values.
      */
+    @Override
     public Asking watching(Watching watching) {
         return new Asking(store, watching);
     }
@@ -70,6 +71,7 @@ public final class Asking {
      * is is a disclosure with a purpose and a run behind it, and it is not
      * here.
      */
+    @Override
     public Records records(String type) {
         return new Records(store, watching, type, java.util.List.of(), java.util.List.of());
     }
@@ -85,11 +87,13 @@ public final class Asking {
      * <p>Reading the trail is itself an act the trail records, which is the
      * property that makes it worth reading.
      */
+    @Override
     public Trail trail() {
         return new Trail(store, watching, java.util.List.of(), java.util.List.of());
     }
 
     /** What this tenant has been asked to do, and what became of it. */
+    @Override
     public Work work() {
         return new Work(store, watching, java.util.List.of(), java.util.List.of());
     }
@@ -109,7 +113,7 @@ public final class Asking {
      * twice. A test asserts exactly that, because it is invisible until
      * somebody asks two questions of one subject.
      */
-    public static final class Work {
+    public static final class Work implements Questions.Work {
 
         private final ObjectStore store;
         private final Watching watching;
@@ -233,7 +237,7 @@ public final class Asking {
      * the wire to discard most of it, so the answer to that is enough
      * {@code where} that nobody reaches for it.
      */
-    public static final class Records {
+    public static final class Records implements Questions.Records {
 
         private final ObjectStore store;
         private final Watching watching;
@@ -360,7 +364,7 @@ public final class Asking {
      * "Somebody looked her up for treatment, at 03:14, under this run" is,
      * and each of those is a narrowing here.
      */
-    public static final class Trail {
+    public static final class Trail implements Questions.Trail {
 
         /** The engine's own name for an entry. */
         private static final String TYPE = "AuditEntry";
