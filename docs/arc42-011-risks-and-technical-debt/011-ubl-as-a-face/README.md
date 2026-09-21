@@ -190,6 +190,23 @@ unexpressible data; or state plainly that this face holds invoices and does not
 attest to their signatures. The choice belongs to whoever first has a tenant that
 needs one, and it is written here so that it is made rather than discovered.
 
+**Half of the first way out is already a promise the store keeps.** Which
+representation is authoritative for a type — the payload as received, or the
+normalised form — is declared by its personality and never implicit. So a face
+CAN say that a signed invoice's truth is the bytes that arrived, and the store
+will hold them that way; it does not need a new mechanism to express it, and the
+opaque-extras shape is a second answer to a question the first one already
+answers.
+
+That narrows the call rather than making it. What is left to decide is what
+declaring it costs here: a type whose truth is the received bytes is a type
+whose projections are derived from a form the store may not re-emit byte for
+byte, so search, validation and conversion all read from something that is no
+longer the authority. Whether that is a sound arrangement for a document type
+or a quiet contradiction is the question — and it is a smaller and more
+answerable one than choosing between two mechanisms, one of which turns out to
+exist.
+
 **Order normalisation is not being fought.** UBL's schema sequences are ordered,
 so coming back in model order makes a stored document schema-valid whatever
 arrived. It is a gift everywhere except under a signature, which is the previous
