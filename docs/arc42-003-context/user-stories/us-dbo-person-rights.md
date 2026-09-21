@@ -21,30 +21,29 @@
 
 ## The scene
 
-Ines's platform holds a request desk where patients ask for things. What it
-does not hold is a second copy of anybody's identity, and what it must never
-become is a system where the person who can write the most can also see the
-most.
+Ines's platform holds a request desk where patients ask for things. It holds
+no second copy of anybody's identity, and it must never become a system where
+the person who can write the most can also see the most.
 
 ## Reading her is not the same as writing her
 
 The clinic's own application credential may write every type there is. It
 reads Liis back without her name, and with her birth date generalised to the
-year rather than removed.
+year.
 
-Generalised rather than absent is deliberate. A reader who may not identify
+Generalising it rather than removing it is deliberate. A reader who may not identify
 her may still legitimately need to know roughly when she was born, and a
 store that answers "nothing" to that has made every such reader ask somebody
 who can see everything.
 
-The strict mode is the **default**, not something a surface opts into. A door
-that has not thought about disclosure cannot leak by saying nothing.
+The strict mode is the **default**. A door that has not thought about
+disclosure cannot leak by saying nothing.
 
 ## Looking somebody up is an act with a reason
 
-Searching for Liis by her national identifier is not a query, it is an
-identification. The store refuses it until the caller states a purpose, and
-names the codes that would work rather than simply saying no.
+Searching for Liis by her national identifier is an identification. The store
+refuses it until the caller states a purpose, and names the codes that would
+work.
 
 That refusal is what makes the trail worth reading afterwards. "Somebody
 looked her up" is not an answer anybody can act on; "somebody looked her up
@@ -54,8 +53,7 @@ for treatment, at 03:14, with this credential" is.
 
 The application credential that may write every type in the clinic **cannot**
 erase anybody. Destroying the key that makes a person legible is the most
-consequential thing this store does, and it is not something a broad write
-grant should quietly include.
+consequential thing this store does, and a broad write grant leaves it out.
 
 Asking with no credential at all is refused before anything is looked up, so
 the request desk cannot be used to find out whether somebody is a patient
@@ -63,9 +61,9 @@ here.
 
 ## It is asked for and answered like any other work
 
-The request comes back as a run, keyed by the person. Asking twice is the same
-request rather than a second erasure — which matters, because the second ask
-usually comes from somebody who did not see the answer to the first.
+The request comes back as a run, keyed by the person. Asking twice finds the
+same request — which matters, because the second ask usually comes from
+somebody who did not see the answer to the first.
 
 The run has milestones it can stop at, so a half-finished erasure says how far
 it got instead of leaving somebody to guess.

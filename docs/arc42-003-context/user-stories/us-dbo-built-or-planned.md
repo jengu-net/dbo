@@ -11,8 +11,8 @@
 ## The scene
 
 Every other story here is somebody using the store. This one is somebody
-deciding to, and what they meet first is not a surface but a claim: *this
-store does the following*. A builder who cannot check that claim is being
+deciding to, and what they meet first is a claim: *this store does the
+following*. A builder who cannot check that claim is being
 asked to take a document's word for a system's behaviour, which is the
 position this catalogue exists to end.
 
@@ -23,18 +23,16 @@ Ines comes with three questions and gets them answered from one place.
 A promise is declared exactly once, in code, and its code is derived from the
 name of the constant. There is no list of requirement numbers maintained
 beside the requirements: renaming the constant renames the code, and a
-citation that outlives its declaration fails the build rather than pointing
-at nothing.
+citation that outlives its declaration fails the build.
 
 So the first thing Ines can rely on is that the catalogue cannot contain a
 promise nothing declares, and cannot lose one that something does.
 
 ## What is proven is what a test says, not what a page says
 
-A promise's status is computed rather than written. A promise some test cites
-reads PROVEN; one that exists and nothing cites reads PLANNED; a gap declared
-as a gap reads as a gap and counts against coverage rather than being absent
-from it.
+A promise's status is computed. A promise some test cites reads PROVEN; one
+that exists and nothing cites reads PLANNED; a gap declared as a gap reads as
+a gap and counts against coverage.
 
 That is the distinction Ines is actually buying. A feature list cannot tell
 her which entries are aspirations, because the same sentence describes both.
@@ -43,8 +41,7 @@ Here the difference is mechanical: somebody wrote a test, or nobody did.
 The citation is typed — a test cites through its product's own enum-typed
 annotation — and the index of citation sites is built during the product's
 own compilation. A proof site that is renamed or deleted cannot leave a
-promise reading proven, because the index is rebuilt from the sources that
-compile.
+promise reading proven: the index is rebuilt from the sources that compile.
 
 ## The page she reads is generated from the model
 

@@ -15,8 +15,8 @@
 
 ## The scene
 
-The clinic carries its own profile. It is ordinary content, not
-configuration, so revising it is a write rather than a release.
+The clinic carries its own profile: ordinary content, so revising it is a
+write rather than a release.
 
 ## What it was validated under, and what it claims
 
@@ -26,8 +26,8 @@ conversion moves an object's shape and never its identity.
 
 Those are two different facts and the store keeps them apart. Echoing the
 served document back does not accumulate a second stamp: the stamp is derived
-on accept, not carried by the caller, so a client that politely returns what
-it was given does not slowly grow the record.
+on accept, so a client that politely returns what it was given does not slowly
+grow the record.
 
 ## The pack moves
 
@@ -39,10 +39,9 @@ did.
 
 ## What that makes possible
 
-Stock is countable per profile and version, which is what makes a migration a
-plan rather than a hope. It is findable by version bound, so "what do I still
-have below the current major" is a query rather than a scan somebody writes
-by hand. And it is convertible in place, resumably, as an ordinary operation.
+Stock is countable per profile and version, which is what makes a migration
+plannable. It is findable by version bound, so "what do I still have below the
+current major" is a query rather than a scan somebody writes by hand. And it is convertible in place, resumably, as an ordinary operation.
 
 Two axes are deliberately never conflated. The storage format the bytes are
 held in is one thing; the pack version an object was validated under is
@@ -53,8 +52,8 @@ changes no bytes.
 
 A shape whose version has no leading integer is refused **when the shape
 arrives**. Only a major is breaking-with-converter, so a version nothing can
-order would stamp stock no bound could ever match — and that is discovered
-mid-migration rather than at the door.
+order would stamp stock no bound could ever match, and nothing would say so
+until a migration was halfway through.
 
 Data stamped above what the tenant understands can be stored and cannot be
 read. Every arrival path converges at serving, so one rule covers all of them

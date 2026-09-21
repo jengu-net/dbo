@@ -4,7 +4,7 @@
 > able to ask *before* they sign anything: **can I get everything out,
 > and can somebody else read it without asking you?**
 >
-> The answer here is one mechanism rather than two. Backup and export are
+> The answer here is one mechanism. Backup and export are
 > the same operation, so the thing that runs nightly is the thing that
 > leaves. An escape route exercised only on the day somebody leaves is an
 > escape route nobody has tested, and it will be tested for the first
@@ -18,7 +18,7 @@
 
 The clinic's estate is a patient, an observation, and everything the store
 derived from them. What leaves has to be all of it, and what arrives has to be
-usable rather than a pile of documents nobody can find.
+usable.
 
 ## Everything leaves as one sealed file
 
@@ -40,8 +40,8 @@ every projection is derived from the payload and rebuilt on the way in.
 That is the difference between a move and a dump. An archive whose contents
 cannot be found again is a compliance artefact rather than portability.
 
-History is restored by a choice the operator makes rather than by whatever the
-archive happened to contain. A portable restore starts fresh: the new store
+History is restored by a choice the operator makes. A portable restore starts
+fresh: the new store
 does not pretend to have witnessed edits it never saw, which is a different
 claim from a backup restored into the store that made it.
 
