@@ -1,4 +1,4 @@
-**Open. The epic closed and a second face exists; one slice remains.**
+**Open. The epic closed and a second face exists; one slice remains, and it is still theoretical. The contract's silent answer is that one payload is one object, which the second face shares — so what was expected to make the question testable does not reach it.**
 
 # The face contract
 
@@ -49,8 +49,28 @@ are two questions, and a tenant can now say the second per recipient;
 [who may act](../../arc42-008-crosscutting/who-may-act/README.md) holds it.
 
 **[issue 112](https://github.com/jengu-net/dbo/issues/112) is open**, and it is the last one: what counts as *one object* is a
-face decision the contract has no place for. It is not blocked on anything
-here — the second face is what made it testable rather than theoretical.
+face decision the contract has no place for.
+
+**The contract is not silent so much as decided.** `Payloads` opens by saying
+what it is for — "reading, checking and writing ONE object's payload" — and
+`read(String typeName, byte[] payload)` is handed the type rather than asked
+for it. So the answer is already given twice over: a payload is exactly one
+object, and the caller knows which type it is before the face sees it. That is
+the shape of a domain where the standard draws the boundary and the address
+carries the type, which FHIR does.
+
+**The second face does not probe it**, which corrects what this item said
+here. Gadgets are FHIR-shaped in precisely this respect: one payload, one
+object, a type the caller supplies. `GadgetFace` costs three capabilities and
+eight methods and never has to decide where to cut, so the silence went on
+being unmeasured while the second face made everything else measurable.
+
+What would probe it is a face whose natural unit is a file of interlinked
+instances — a building model where only rooted entities carry an identifier, a
+grid topology with no document boundary, a tabular submission that is either
+one dataset or a hundred thousand rows. Until one of those exists, the slice
+stays theoretical, and the decision to make is which of those to build rather
+than how to phrase the capability.
 
 **[issue 110](https://github.com/jengu-net/dbo/issues/110) is done.** The spec field is called `face`, its old name is refused
 rather than honoured, and the operator's schema no longer enumerates three
