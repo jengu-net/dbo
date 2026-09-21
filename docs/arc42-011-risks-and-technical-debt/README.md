@@ -25,7 +25,7 @@ is deliberately not being done, and the commands that prove it.
 
 | Item | State |
 |---|---|
-| [001 The documentation tree is moved to match its map](001-documentation-shape/README.md) | Open. Next: write the runtime chapter's scenarios and create the quality-requirements chapter. |
+| [001 The documentation tree is moved to match its map](001-documentation-shape/README.md) | Open. The context chapter is done. Next: the worked deployment, which is a hand-written site page rather than the guide world's compose file. |
 | [002 The sample application](002-sample-application/README.md) | Open. The module owns its sources and the world's specs, and two runners join it. Next: the actor surface, so a story's steps are calls and the promises come as consequences. |
 | [003 Own-world tests move down the ladder](003-tests-move-down-the-ladder/README.md) | Open. The cast has started and one class has moved onto it: delegation runs on the hospital. Four families read against it since, each resisting for a named reason. Next: the shapes kept apart only by what the sample world declares. |
 | [004 The guide runs three times in CI](004-the-guide-runs-three-times/README.md) | Open. Next: port the one step the shell harness still covers. |
