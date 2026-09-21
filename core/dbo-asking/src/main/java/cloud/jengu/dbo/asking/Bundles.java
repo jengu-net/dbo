@@ -58,11 +58,21 @@ final class Bundles {
         return null;
     }
 
-    /** What a count answered, or -1 where it said nothing. */
+    /**
+     * What a count answered.
+     *
+     * <p>Refuses when the answer carries no total, rather than handing back a
+     * number meaning "there was no number". A tenant that refused the search,
+     * or answered something other than a count bundle, is not an answer of
+     * minus one — and a caller that put minus one on a screen would be shown a
+     * wrong answer that looked right, which is the failure this store refuses
+     * everywhere else.
+     */
     static long total(String bundle) {
         int at = bundle.indexOf("\"total\"");
         if (at < 0) {
-            return -1;
+            throw new IllegalStateException("the tenant did not answer with a count: "
+                    + bundle.substring(0, Math.min(400, bundle.length())));
         }
         int from = bundle.indexOf(':', at) + 1;
         int to = from;

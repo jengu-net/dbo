@@ -106,6 +106,24 @@ class OneVocabularyTwoBindingsIT {
     }
 
     @Test
+    @DisplayName("a count the tenant will not answer is refused, rather than handed back as "
+            + "a number meaning there was no number")
+    void aCountThatCannotBeAnsweredRefuses() {
+        // The defect this exists for: the reader turned "no total in the
+        // answer" into minus one, and a caller would have put minus one on a
+        // screen with nothing saying anything had gone wrong. A wrong answer
+        // that looks right is the failure this store refuses everywhere else.
+        IllegalStateException refused = assertThrows(IllegalStateException.class,
+                () -> fromAcross.records("NoSuchTypeHere").count());
+
+        assertTrue(refused.getMessage().contains("could not be answered by"),
+                "the refusal did not say that the count failed: " + refused.getMessage());
+        assertTrue(refused.getMessage().contains("NoSuchTypeHere"),
+                "the refusal did not say what was asked, which is the useful half: "
+                        + refused.getMessage());
+    }
+
+    @Test
     @DisplayName("a question the surface cannot narrow is refused there and answered here, "
             + "and the refusal says which")
     void whereTheBindingsHonestlyDiffer() {

@@ -157,8 +157,17 @@ public final class Across implements Questions {
         long count() {
             long began = System.nanoTime();
             String separator = search.isEmpty() ? "?" : "&";
-            long many = Bundles.total(door.get("/" + type + query() + separator
-                    + "_summary=count"));
+            String asking = "/" + type + query() + separator + "_summary=count";
+            long many;
+            try {
+                many = Bundles.total(door.get(asking));
+            } catch (IllegalStateException notACount) {
+                // Named, because the useful half is what was asked. A count
+                // that cannot be answered is a question this tenant does not
+                // serve, and the caller needs the search to see why.
+                throw new IllegalStateException(vocabulary + ".count could not be answered by "
+                        + asking + ": " + notACount.getMessage(), notACount);
+            }
             watching.asked(new Watching.Asked(vocabulary + ".count", named, many,
                     java.time.Duration.ofNanos(System.nanoTime() - began)));
             return many;
