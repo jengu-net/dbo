@@ -48,7 +48,7 @@ map is the rule and the disagreement is an item in
 | `arc42-009-architecture-decisions` | Numbered records with a status and a "reflected in" line naming the page that states the result. History only; cited from nowhere. |
 | `arc42-010-quality-requirements` | The quality tree as Quality classifications, the conformance reports, the evidence. |
 | `arc42-011-risks-and-technical-debt` | Numbered items, each a directory with a README whose first line is its state. The chapter README lists every item with that line. A resolved item is deleted; the commit or the decision record is its record. |
-| `guide/` | The sample application's story, chapter by chapter: declaring a tenant, writing a step service, a participant joining from outside, and on. A chapter includes the sample's source. HTTP appears only in the external participant's chapter. |
+| `guide/` | The sample application's story, chapter by chapter: declaring a tenant, writing a step service, a participant joining from outside, and on. A chapter includes the sample's source. The sample reaches the store the way a product does — over its surface, holding a token — and what is shown in-JVM is what only runs there: a lifecycle listener, an observer, an embedded boot. |
 | `using-dbo.md` | The sample application's README: what the store provided and the sample did not write. |
 | The site's landing page | The pitch, in full. There is no Why section. |
 
