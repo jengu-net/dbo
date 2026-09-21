@@ -33,7 +33,7 @@ is deliberately not being done, and the commands that prove it.
 | [007 The face contract](007-the-face-contract/README.md) | Open. The epic closed and a second face exists; one slice remains. |
 | [008 IHE profiles](008-ihe-profiles/README.md) | Not scheduled. Analysis only: no profiled surface is served and no issue is filed. |
 | [009 The step-scoped API](009-the-step-scoped-api/README.md) | Open. The store promises that reaching data means performing a step, and a plain read still bypasses it. |
-| [010 Tenant kinds](010-tenant-kinds/README.md) | Open. A tenant's kind is re-derived at every call site instead of being declared. |
+| [010 Tenant kinds](010-tenant-kinds/README.md) | Open. A tenant's kind is re-derived at every call site instead of being declared. The first consumer is done: the dispatcher reads the registrations, and a failing dispatch says so. |
 | [011 UBL as a face](011-ubl-as-a-face/README.md) | Open. Three spikes are green and in the tree; nothing is built. |
 | [012 Work without a poll](012-work-without-a-poll/README.md) | Open. The third binding the issue asks for exists; what remains is what the issue was really about. |
 | [013 A neutral IFC repository](013-a-neutral-ifc-repository/README.md) | Not scheduled. Recorded so the reasoning exists before somebody needs it. |
