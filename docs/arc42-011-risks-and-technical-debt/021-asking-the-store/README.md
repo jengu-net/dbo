@@ -256,6 +256,72 @@ is the JDK's, so a host outside the framework needs only the element type
 exported rather than a collection type of ours. The packaging question above
 gets smaller, not larger.
 
+## Joining by reference, declared and not built
+
+FHIR joins, and so does this store already: `ElementSearch` compiles a chained
+parameter — `subject.family=Potter` — into `Criteria.chained`, and `_include`
+is gathered before a page is framed. `_revinclude` was looked for and not
+found; whether the reverse direction is missing from the surface or only from
+the place that was read is an open question rather than a claim.
+
+Three shapes, and they are three rather than one:
+
+```java
+// Narrow by something about the referenced record. Still `where`.
+hogwarts.records("Observation").where("subject.family", "Potter")
+
+// Bring the referenced records along. The element type changes so the
+// stream stays homogeneous instead of becoming a mixed bundle.
+try (Stream<Match> ward = hogwarts.records("Observation")
+        .where("subject", "Patient/" + id)
+        .including("subject")
+        .stream()) {
+    ward.forEach(m -> screen.add(m.record(), m.included("subject")));
+}
+
+// Find by what points at you.
+hogwarts.records("Patient").havingAny("Observation", "subject")
+```
+
+**The shape is declared now and refuses at first.** Following links is a bigger
+subject than the rest of this item and solving it here would hold up a
+vocabulary that is useful without it. So `including` and `havingAny` exist,
+compile, and refuse — which is worth doing only under three conditions, because
+a method that is published and dies on first use is this repository's
+characteristic defect wearing a hat.
+
+- **It refuses by name**, citing this item, rather than raising a bare
+  unsupported-operation that reads like a bug somebody should fix in place.
+- **A test proves the refusal.** Otherwise it cannot be seen to start
+  half-working, and removing it later is not a visible change.
+- **The chapter says so**, because a guide showing a method that throws is
+  teaching a lie about what the store does.
+
+The one thing declaring it early buys is the vocabulary: chained narrowing is
+`where`, includes change the element type, and the reverse direction has a
+name. Somebody arriving later cannot fold all three into one method without
+first deleting these.
+
+**What has to be settled before it is built**, written down now while the
+reasons are fresh:
+
+1. **Deduplication across a page.** FHIR dedups included resources per bundle.
+   A stream of matches each carrying its own includes repeats the shared
+   referent — one patient across fifty observations, over the wire. Either it
+   is carried once per page and the caller sees repeats across pages, or the
+   stream owns a resolver that caches. Decided, not discovered.
+2. **N+1.** The obvious API is a lazy `follow` per element, which is one round
+   trip per row over the surface and looks fine on a laptop against a warm
+   database. If it exists at all it should be hard to reach.
+3. **An include is not a widening.** If it can return a record the caller could
+   not have asked for directly, the join has enlarged what they may see.
+4. **The membrane needs no special case.** A followed reference to a person
+   comes back without identifying elements exactly as a direct read does:
+   asking is not unsealing, through a join either.
+5. **A reference out of the store is kept and not followed.** Such references
+   are preserved and proven to be; there is no cross-tenant read, so following
+   one is refused rather than attempted.
+
 ## Three things a query vocabulary must not become
 
 **A cross-tenant read.** The registry keys these services by tenant and the
@@ -341,7 +407,10 @@ what it should produce when it gets there.
    asking one question, which is the only thing that proves the types travel.
 5. The observer seam, off by default.
 6. The guide chapter, replacing `search.md` in the reading order.
-7. Filtered dependencies, separately and last: the four questions first, the
+7. Joins, which is its own subject: the five questions above first, the
+   feature after. Until then the three methods refuse by name, with a test
+   holding them to it.
+8. Filtered dependencies, separately and last: the four questions first, the
    feature after.
 
 ## What this is not
