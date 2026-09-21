@@ -30,9 +30,9 @@ declares the dependency and the types it wants, and the runtime wires the
 stream at bring-up.
 
 A type the clinic did not declare brings nothing, however much of it the zone
-holds. That is the point of a declaration being a bound rather than a hint: a
-clinic that took whatever its upstream happened to have would eventually hold
-somebody else's whole catalogue.
+holds. That is the point of a declaration being a bound: a clinic that took whatever
+its upstream happened to have would eventually hold somebody else's whole
+catalogue.
 
 Dependencies are against the **direct** upstream only. Chains compose hop by
 hop, so nobody inherits a transitive relationship they did not agree to.
@@ -43,10 +43,9 @@ The appliance is not a second tenant. Same code, same declarations, same face;
 only the local settings differ.
 
 What a run produced on the appliance travels with that run, and lands on the
-cloud **filed under the appliance that made it** rather than merged into the
-cloud's own records of the same type. The run comes too, mirrored beside the
-cloud's rather than on top of them, because the side that authored a run is
-the only side that advances it.
+cloud **filed under the appliance that made it**. The run comes too, mirrored
+beside the cloud's, because the side that authored a run is the only side that
+advances it.
 
 That asymmetry is not tidiness. Across a link that is merely slow, "the
 deadline passed" and "the checkpoint is in flight" can both be true, and a
@@ -55,8 +54,8 @@ peer acting on the first has the work done twice.
 ## Reconnecting is ordinary
 
 A batch sent twice applies once. An appliance that loses its connection,
-reconnects and repeats itself is the normal case rather than an error, so the
-lane absorbs the repeat instead of refusing it.
+reconnects and repeats itself is the normal case, so the lane absorbs the
+repeat.
 
 A peer resuming a cursor that a different lane instance issued is refused
 rather than replayed. An appliance restored from last week's copy looks
