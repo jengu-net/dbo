@@ -1,7 +1,7 @@
 package cloud.jengu.dbo.harness;
 
 import cloud.jengu.dbo.core.api.StoredObject;
-import cloud.jengu.dbo.work.Asking;
+import cloud.jengu.dbo.asking.Asking;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;

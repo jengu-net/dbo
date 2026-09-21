@@ -1,4 +1,4 @@
-package cloud.jengu.dbo.work;
+package cloud.jengu.dbo.asking;
 
 import java.time.Duration;
 import java.util.List;
