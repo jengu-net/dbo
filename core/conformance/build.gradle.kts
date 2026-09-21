@@ -26,6 +26,10 @@ dependencies {
 
 tasks.test {
     useJUnitPlatform()
+    // Never from the cache. What a container held is an input this cannot
+    // declare, so a restored pass would say a suite succeeded against a world
+    // nobody can describe. The cache is for work whose inputs are on disk.
+    outputs.cacheIf { false }
     // The R5 validator loads the FHIR core NPM package eagerly, and on a
     // default heap it does not finish: the failure surfaces as HAPI-2330 with
     // a null message, three frames above an OutOfMemoryError nobody sees. The

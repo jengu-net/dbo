@@ -35,6 +35,10 @@ dependencies {
 
 tasks.test {
     useJUnitPlatform()
+    // Never from the cache. What a container held is an input this cannot
+    // declare, so a restored pass would say a suite succeeded against a world
+    // nobody can describe. The cache is for work whose inputs are on disk.
+    outputs.cacheIf { false }
     // The world is a container set, so there is nothing to parallelise within
     // a class and everything to lose by racing two of them for port 8090.
     maxParallelForks = 1
