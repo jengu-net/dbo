@@ -1,4 +1,6 @@
-**Open again, with a different question. The worklist is empty and the ledger is honest, but moving classes onto one runtime made the suite slower before it made it faster: what this machine cannot carry is tenants alive at once. Next: name the shared tenants after the parts they play, so a story's worth of steps runs on a cast several stories share.**
+**Open. The cast has started: one clinic added, one definition, and `SharedTenants.cast` brings the sample's own specs up in this suite's JVM. Next: move classes off the single-use shapes onto it.**
+
+<!-- The worklist is empty and the ledger is honest, but moving classes onto one runtime made the suite slower before it made it faster: what this machine cannot carry is tenants alive at once. Next: name the shared tenants after the parts they play, so a story's worth of steps runs on a cast several stories share. -->
 
 
 # Own-world tests move down the ladder
@@ -86,6 +88,16 @@ in [how the migration is run](how-it-is-run.md), which moved here from
    known: a type declares one handling per tenant, so replication needs its
    own upstream and downstream; a relation is declared at creation; and some
    tenants prove something by being poor.
+
+   Started. `st-jerome` is a private clinic that keys nobody by a national
+   number and takes the hospital's encounters, which fills five of the six
+   combinations the suite wanted and the cast did not have; the sixth is a
+   mirrored code system, which is a mechanism rather than a part and has not
+   earned a sentence in the guide. `SharedTenants.cast` brings a member up
+   from the sample's own spec file, with its upstreams first, so a tenant is
+   defined once and the guide's container and this suite read the same
+   definition. What remains is moving classes off the single-use shapes onto
+   the cast.
 
 6. The old fourth step, kept because it is what was actually done:
    re-read the entries whose reason is `sweep`. That reason used to say a

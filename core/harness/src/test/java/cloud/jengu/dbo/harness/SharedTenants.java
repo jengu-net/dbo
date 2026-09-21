@@ -442,6 +442,96 @@ public final class SharedTenants {
         }
     }
 
+    /**
+     * A member of the sample world's cast, brought up from the SAME spec file
+     * the guide's world mounts.
+     *
+     * <p>One definition, two worlds. The guide brings these up in a container
+     * and reads them over HTTP; this brings the same files up in this JVM and
+     * reads them through the store's own API. A tenant that exists twice is a
+     * tenant that can differ, and the difference always turns up as a
+     * difference between what the guide says and what the suite proves.
+     *
+     * <p>A cast member is named for the part it plays — a hospital, an
+     * insurer, a clinic that keys nobody by a national number — which is what
+     * makes it reusable: the next test wanting a hospital can recognise one.
+     * A shape is named for its mechanism and fifteen of the first
+     * twenty-three were used by a single class.
+     *
+     * <p>Brought up with what it depends on, in order, because a tenant whose
+     * upstream is not serving does not come up.
+     */
+    public static synchronized Tenant cast(Cast member) {
+        for (Cast needed : member.chain()) {
+            String code = needed.code();
+            UP.computeIfAbsent(code, unused -> {
+                try {
+                    Files.copy(WORLD.resolve(code + ".json"), directory.resolve(code + ".json"));
+                    UntilServed.scan(MANAGER, code);
+                    return new Tenant(code);
+                } catch (Exception e) {
+                    throw new IllegalStateException("cast member " + code
+                            + " did not come up from " + WORLD.resolve(code + ".json"), e);
+                }
+            });
+        }
+        return UP.get(member.code());
+    }
+
+    /** Where the sample keeps the world both the guide and this suite use. */
+    private static final Path WORLD =
+            Path.of(System.getProperty("dbo.sample.world", "../../sample/world/tenants"));
+
+    /**
+     * The parts the sample world's tenants play, and what each needs serving
+     * before it.
+     *
+     * <p>The codes are the sample's, spelled out here so the check that reads
+     * this suite for two classes opening one tenant code can find them.
+     */
+    public enum Cast {
+
+        /** The R5 face root: the version's definitions as records. */
+        R5_ROOT("fhir-r5"),
+
+        /** The R4 face root, for the insurer a release behind. */
+        R4_ROOT("fhir-r4"),
+
+        /** The zone: what a jurisdiction publishes to the tenants under it. */
+        ZONE("rl"),
+
+        /** The hospital: people keyed by their national number, behind the membrane. */
+        HOSPITAL("hogwarts", R5_ROOT, ZONE),
+
+        /** The insurer, a release behind, taking the zone through a projection. */
+        INSURER("gringotts", R4_ROOT, ZONE),
+
+        /** The clinic that keys nobody by a national number, and takes the hospital's encounters. */
+        CLINIC("st-jerome", R5_ROOT, ZONE, HOSPITAL);
+
+        private final String code;
+        private final Cast[] upstream;
+
+        Cast(String code, Cast... upstream) {
+            this.code = code;
+            this.upstream = upstream;
+        }
+
+        public String code() {
+            return code;
+        }
+
+        /** This member and everything it needs serving first, upstream first. */
+        java.util.List<Cast> chain() {
+            java.util.LinkedHashSet<Cast> order = new java.util.LinkedHashSet<>();
+            for (Cast up : upstream) {
+                order.addAll(up.chain());
+            }
+            order.add(this);
+            return java.util.List.copyOf(order);
+        }
+    }
+
     /** The tenant of this shape, brought up on first ask and shared after it. */
     public static synchronized Tenant of(Shape shape) {
         return of(shape, 1);

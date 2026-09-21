@@ -250,6 +250,12 @@ val promiseCitations by tasks.registering(JavaExec::class) {
     classpath = sourceSets["test"].runtimeClasspath
     mainClass.set("cloud.jengu.dbo.harness.PromiseCitations")
     systemProperty("dbo.repo.root", rootProject.projectDir.absolutePath)
+    // The sample's world, which the guide's container mounts and this suite
+    // brings up in its own JVM. One definition, so a tenant the guide shows
+    // and a tenant the suite proves against cannot drift apart.
+    systemProperty("dbo.sample.world",
+        rootProject.file("sample/world/tenants").absolutePath)
+    inputs.dir(rootProject.file("sample/world/tenants"))
     args(rootProject.file("config/promise-citations.txt").absolutePath)
 }
 

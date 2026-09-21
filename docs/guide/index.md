@@ -65,8 +65,8 @@ together](how-it-fits.md) sets it out.
 
 ## The tenants in the examples
 
-Six of them, the same six throughout, so a name in one chapter means the same
-thing in the next.
+Seven of them, the same seven throughout, so a name in one chapter means the
+same thing in the next.
 
 | Tenant | Face | What it is |
 |---|---|---|
@@ -76,6 +76,13 @@ thing in the next.
 | `fhir-r4` | R4 | a face root, holding the R4 definitions as records |
 | `hogwarts` | R5 | a hospital |
 | `gringotts` | R4 | an insurer, deliberately a release behind |
+| `st-jerome` | R5 | a private clinic that keeps its own records under its own ids, and takes the hospital's encounters |
+
+The clinic keys nobody by a national number. Not every organisation is
+entitled to one, and a store that only worked for those that are would be a
+store for hospitals — so one tenant in the world holds people under ids it
+assigned itself, and takes what it needs of the hospital's encounters rather
+than the people in them.
 
 The insurer is a version behind on purpose. A payer sitting on the older
 release is what actually happens, and it makes conversion, identity across

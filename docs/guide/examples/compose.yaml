@@ -2,9 +2,10 @@
 #
 #   docker compose -f docs/guide/examples/compose.yaml up -d
 #
-# Six tenants come up: the managing tenant, the zone, two face roots, a
-# hospital and an insurer. The guide's examples run against them, and
-# examples/check.sh runs the guide's examples.
+# Seven tenants come up: the managing tenant, the zone, two face roots, a
+# hospital, an insurer and a clinic that keys nobody by a national number.
+# The guide's examples run against them, and examples/check.sh runs the
+# guide's examples.
 #
 # This is the quickstart's compose file with one difference — the world it
 # mounts — and it keeps the quickstart's pinned image on purpose, so there is
@@ -50,7 +51,8 @@ services:
       # data is invented and would not be anywhere else.
       DBO_AUTH_KEK: "ZGJvLWd1aWRlLXdvcmxkLW5vdC1hLXNlY3JldC1rZXk="
       DBO_BOOTSTRAP_SECRETS: "mom=mom-secret,rl=rl-secret,fhir-r5=r5-secret,\
-fhir-r4=r4-secret,hogwarts=hogwarts-secret,gringotts=gringotts-secret"
+fhir-r4=r4-secret,hogwarts=hogwarts-secret,gringotts=gringotts-secret,\
+st-jerome=jerome-secret"
 
       DBO_TENANT_DIR: /etc/dbo/tenants
 
