@@ -71,6 +71,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * the seam belongs to the runtime, and wiring it is exactly what could be
  * left undone. So a courier claims a run over its own lane and then releases
  * it, which is the store making a run claimable the way it really does.
+ *
+ * <p><b>A world of its own, and the substrate is why.</b> A wake-up travels
+ * on the stream, and the stream door is opened by giving the runtime a
+ * substrate before a tenant is served. That is the runtime's configuration:
+ * handing one to the shared runtime would open a door on every tenant
+ * serving there, and could not open it on the ones that came up first.
  */
 @Tag("integration")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)

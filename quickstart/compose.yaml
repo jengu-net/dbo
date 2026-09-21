@@ -77,6 +77,11 @@ clinic=clinic-secret"
       # That is worth trying — it is the whole provisioning model, visible.
       DBO_TENANT_DIR: /etc/dbo/tenants
 
+      # Where this node keeps face images. A face is the same answer for
+      # every tenant on it, so the first tenant cuts it and the rest load it
+      # rather than expanding the whole version again.
+      DBO_FACE_IMAGES: /var/lib/dbo/faces
+
       # The tenant this deployment's own history lives in, deliberately NOT
       # inside the directory above: the scan loop that retracts undeclared
       # tenants must not be able to retract the thing recording retractions.
@@ -89,6 +94,11 @@ clinic=clinic-secret"
       # The distribution defaults to JSON, one line per event, because
       # something is usually parsing it. Here a person is reading it.
       DBO_LOG_FORMAT: text
+    tmpfs:
+      # The same rule as the database above: nothing outlives `down`. An
+      # image is a cache with a release stamp on it, so throwing it away
+      # costs the next start the expansion it would have paid anyway.
+      - /var/lib/dbo/faces
     volumes:
       - ./tenants:/etc/dbo/tenants:ro
       - ./management:/etc/dbo/management:ro

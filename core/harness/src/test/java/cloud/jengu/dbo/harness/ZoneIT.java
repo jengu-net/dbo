@@ -52,6 +52,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * tenant; the tenant chooses its broker, may restrict what it accepts, and
  * the per-zone hub's sessions ACCUMULATE ceremonies. The fee proof is
  * per-broker counters across four logins.
+ *
+ * <p><b>A world of its own, and the brokers are why.</b> The runtime is built
+ * holding the secrets of two brokers, which is custody a deployment has and a
+ * tenant cannot be given afterwards. Its reason used to read sweep, from when
+ * that word covered calling a scan; what it actually needs is a deployment
+ * configured with a zone hub and its brokers.
  */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)

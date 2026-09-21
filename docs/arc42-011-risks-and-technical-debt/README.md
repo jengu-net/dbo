@@ -26,8 +26,8 @@ is deliberately not being done, and the commands that prove it.
 | Item | State |
 |---|---|
 | [001 The documentation tree is moved to match its map](001-documentation-shape/README.md) | Open. Next: write the runtime chapter's scenarios and create the quality-requirements chapter. |
-| [002 The sample application](002-sample-application/README.md) | Open. The module owns its sources and the world's specs, and its runner performs a run end to end. Next: the external participant, from its own process. |
-| [003 Own-world tests move down the ladder](003-tests-move-down-the-ladder/README.md) | Open. 44 harness classes build a runtime of their own and are undecided. Next: classify them into rungs. |
+| [002 The sample application](002-sample-application/README.md) | Open. The module owns its sources and the world's specs, and two runners join it. Next: the actor surface, so a story's steps are calls and the promises come as consequences. |
+| [003 Own-world tests move down the ladder](003-tests-move-down-the-ladder/README.md) | Open. The cast has started: one clinic, one definition, read by both the guide's container and this suite. Next: move classes off the single-use shapes. |
 | [004 The guide runs three times in CI](004-the-guide-runs-three-times/README.md) | Open. Next: port the one step the shell harness still covers. |
 | [006 The specification is cut to the house style](006-the-specification-in-house-style/README.md) | Open. Next: run the prose reviewer over the user stories, the highest count. |
 | [007 The face contract](007-the-face-contract/README.md) | Open. The epic closed and a second face exists; one slice remains. |
@@ -40,8 +40,10 @@ is deliberately not being done, and the commands that prove it.
 | [014 The Karaf console](014-the-karaf-console/README.md) | Not scheduled. A proposal for seeing inside a running node: development and operator tooling, never production. |
 | [015 The comparative load test](015-the-comparative-load-test/README.md) | Not scheduled. The bench runner carries the discipline; a second and third target, an ingest workload and resource sampling are missing. |
 | [016 Where a neutral store earns its keep](016-where-a-neutral-store-earns-its-keep/README.md) | Not scheduled. A test for recognising the domains this engine's shape fits. |
-| [018 A claim that answers five hundred](018-a-claim-that-answers-five-hundred/README.md) | Open. An outside participant is offered a run of the step it introduced and cannot take it; three layers say nothing about why. |
 | [017 The quality goals are not declared](017-quality-goals-are-not-declared/README.md) | Open. The eleven quality goals are matched to requirement areas by reading. Next: declare them as Quality classifications. |
+| [020 The insurer will not come up beside the zone](020-the-insurer-will-not-come-up-beside-the-zone/README.md) | Open. The sample world's insurer fails bring-up in the harness on the engine's own audit vocabulary being claimed twice, and comes up fine in the container. Next: reproduce it small. |
+| [019 The build repeats work whose inputs did not change](019-the-build-repeats-itself/README.md) | Open. The build cache is off and some tasks do not declare what they read, so a documentation-only change pays the whole suite. Next: declare the inputs. |
+| [018 The insurer's copy does not arrive](018-the-insurers-copy-does-not-arrive/README.md) | Open. The guide's insurer terminology step fails in the job that also runs the suite, and passes in the job that runs nothing else. Next: find out whether the projection is slow or stopped. |
 
 ## Risks
 
@@ -53,15 +55,13 @@ is deliberately not being done, and the commands that prove it.
   hand, and a guide step asserting behaviour newer than the pin fails for a
   reason unrelated to the step. Item 004 carries the question of who moves
   it.
-- **The suite fails non-deterministically in two known places, so a red
-  build is not by itself a regression.**
+- **The suite fails non-deterministically in one known place, so a red build
+  is not by itself a regression.**
   `SeveralTenantsDeclaredAtOnceComeUpTogetherIT` brings four tenants up at
   once and has died as Java heap exhaustion inside one of them, on a change
-  that touched documentation only. The guide's terminology step, which
-  asserts which vocabularies the insurer declared, has failed against the
-  pinned image on a commit that had already passed it. Neither has an item
-  because neither has been reproduced deliberately, and a failure that
-  repeats on the same commit is a defect rather than a flake.
+  that touched documentation only. It has no item because it has not been
+  reproduced deliberately. The guide's terminology step has now failed twice
+  on one commit and is [item 018](018-the-insurers-copy-does-not-arrive/README.md).
 - What is built, as against what is promised, is read from the
   [requirement catalogue](../arc42-006-runtime/req-catalogue.md) and the
   tests it cites. The page that used to answer that in prose was typed by

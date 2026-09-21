@@ -95,6 +95,12 @@ by a participant that brings its own. One id means one definition: two different
 definitions of the same id is a collision, refused by name, while two identical
 ones are a fleet and perfectly ordinary.
 
+The grant is what an executor is measured against, and the introducer is
+measured too. A participant performing the step it brought is not overriding
+anything, so its executor is declared at the **baseline** — it is the rule for
+that step. One declared at an organisation is asking to vary somebody else's
+step, and a step that did not open itself to that is refused by name.
+
 ## How work reaches whoever does it
 
 **Nothing is pushed.** A **participant** — a service, an on-site appliance, a

@@ -38,6 +38,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * <p>Both halves are asserted here, because the fix runs an obvious risk: the
  * cure for "identical content is not an override" must not become "an upstream
  * copy always wins".
+ *
+ * <p><b>A world of its own, and the round is why.</b> What it asserts is the
+ * state a sync round leaves behind, and a round is a pass over every tenant
+ * the runtime holds. On a shared one it would carry every other class's
+ * tenants through a sync they did not ask for, and the shadowed events this
+ * reads would be a list everybody writes to.
  */
 @Tag("integration")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)

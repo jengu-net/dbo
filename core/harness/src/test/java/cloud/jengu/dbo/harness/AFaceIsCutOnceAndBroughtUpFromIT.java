@@ -48,6 +48,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * second is the one that matters. Nothing about a wrong image fails on its
  * own — the rows load, the tenant serves, and it answers from a specification
  * or an expander that is not this one.
+ *
+ * <p><b>A world of its own, and the image is why.</b> It cuts a face to bytes
+ * and brings a tenant up from them, which needs a runtime told where images
+ * are kept and a bring-up this class timed. Neither is a tenant's: the shared
+ * runtime keeps no images, and its tenants came up before this class asked
+ * anything.
  */
 @Tag("integration")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)

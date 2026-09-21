@@ -52,6 +52,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * journey's joins, including the legs proven elsewhere — that the core carries
  * no framework, that imports are computed, that a cold start is fast. A story
  * leans on those; it does not re-prove them here.
+ *
+ * <p><b>A world of its own, and the opening is why.</b> The story starts with
+ * a store that is running and no clinic in it, and the first thing it proves
+ * is that a spec file is the whole of opening one. A tenant that was already
+ * there before the story began would make its first step a formality.
  */
 @Tag("integration")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)

@@ -8,7 +8,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
 /** One step, performed. This is the whole of what an integrator writes. */
-public final class AssayStep implements StepService {
+public final class AdmitStep implements StepService {
 
     @Override
     public String step() {
@@ -24,7 +24,7 @@ public final class AssayStep implements StepService {
 
         // Long work says how far it has got. The counts extend the claim —
         // they are evidence of progress, not a heartbeat.
-        work.progress().milestone("measured", Map.of("read", 1L));
+        work.progress().milestone("identified", Map.of("read", 1L));
 
         if (admitted.isBlank()) {
             // Returning failed and throwing are the same thing: the run is

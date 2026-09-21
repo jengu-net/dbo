@@ -1,4 +1,7 @@
-**Open. 44 harness classes build a runtime of their own and are undecided. Next: classify them into rungs.**
+**Open. The cast has started: one clinic added, one definition, and `SharedTenants.cast` brings the sample's own specs up in this suite's JVM. Next: move classes off the single-use shapes onto it.**
+
+<!-- The worklist is empty and the ledger is honest, but moving classes onto one runtime made the suite slower before it made it faster: what this machine cannot carry is tenants alive at once. Next: name the shared tenants after the parts they play, so a story's worth of steps runs on a cast several stories share. -->
+
 
 # Own-world tests move down the ladder
 
@@ -71,5 +74,46 @@ in [how the migration is run](how-it-is-run.md), which moved here from
    reasons to keep a runtime. Record the result as the worklist here.
 2. Move them, one or a few per change, re-recording the ledger each time so
    the allowance falls.
-3. Give the classes that keep a runtime their reason in the ledger, so
-   undecided reaches zero and this item is deleted.
+3. ~~Give the classes that keep a runtime their reason in the ledger, so
+   undecided reaches zero.~~ Done: every entry carries one.
+4. ~~Re-read the entries whose reason is `sweep`.~~ Done; see below.
+5. Name the tenants after their parts. Fifteen of the first twenty-three
+   shapes were used by one class, because each was named for its mechanism
+   and so could not be recognised by the next test that wanted the same
+   thing. Eighteen of the twenty-three declare nothing but `operational`
+   types, which is to say they are one kind of tenant under different names.
+   A cast — a hospital, an insurer, a zone, a face root — is what the guide
+   world already has and what lets a story's worth of steps share tenants
+   with the story beside it. What genuinely resists a cast is small and
+   known: a type declares one handling per tenant, so replication needs its
+   own upstream and downstream; a relation is declared at creation; and some
+   tenants prove something by being poor.
+
+   Started. `st-jerome` is a private clinic that keys nobody by a national
+   number and takes the hospital's encounters, which fills five of the six
+   combinations the suite wanted and the cast did not have; the sixth is a
+   mirrored code system, which is a mechanism rather than a part and has not
+   earned a sentence in the guide. `SharedTenants.cast` brings a member up
+   from the sample's own spec file, with its upstreams first, so a tenant is
+   defined once and the guide's container and this suite read the same
+   definition. What remains is moving classes off the single-use shapes onto
+   the cast.
+
+6. The old fourth step, kept because it is what was actually done:
+   re-read the entries whose reason is `sweep`. That reason used to say a
+   class needs its own runtime when it RUNS a deployment-wide pass, which is
+   wrong — the scan loop runs them continuously, and a class that needs the
+   effect on its own tenant can run one on the shared runtime. It now says a
+   class needs one when its CLAIM is about the pass: the number it returned,
+   or the troubles it left. Thirteen entries were recorded under the old
+   wording and some of them will move. This item is deleted when they have
+   been read.
+
+   All thirteen are read. Eleven make a claim the old wording did not
+   capture and stay: two assert the set a scan returned, six read the
+   troubles or the states a scan left, one asserts the count a shapes round
+   returned, one drives a fleet of runtimes rather than a runtime, and one
+   takes a tenant away. One was recorded under the wrong reason
+   altogether — `ZoneIT` holds two brokers' secrets, which is a deployment's
+   custody and not a sweep. Two only called a round and have moved:
+   `MetaSaysTheEnginesFactsIT` and `OneTenantInTwoPlacesIT`.

@@ -34,6 +34,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * <p>Held here by a tenant whose provisioning does not return until this test
  * says so: while the scan is stuck inside that bring-up, content written
  * upstream still has to reach the tenant that streams it.
+ *
+ * <p><b>A world of its own, and the stuck bring-up is why.</b> It holds one
+ * tenant's bring-up open on purpose and asserts that the streams keep
+ * moving meanwhile. On a shared runtime that would hold every other class's
+ * bring-up open too, and what it proves is precisely that nothing else is
+ * waiting.
  */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class AStreamKeepsMovingWhileATenantComesUpIT {

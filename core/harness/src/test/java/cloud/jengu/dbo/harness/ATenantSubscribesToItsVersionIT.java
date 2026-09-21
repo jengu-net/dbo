@@ -32,6 +32,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * <p>No reconciler runs in this test. That is the proof: the only way the
  * subscriber can hold its version's definitions the instant it is served is
  * for bring-up to have drained the face chain before publishing it.
+ *
+ * <p><b>A world of its own, and bring-up is why.</b> The claim is about what
+ * is true at the instant a tenant is served — that it already holds its
+ * version — and about the trouble a tenant that cannot get one is left in.
+ * Both are read off a runtime while it is bringing tenants up, which on a
+ * shared one is a thing that finished before this class started.
  */
 @Tag("integration")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)

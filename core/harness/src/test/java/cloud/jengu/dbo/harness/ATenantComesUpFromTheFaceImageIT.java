@@ -43,6 +43,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * matched against, and leaving the stream at a known position. An image that
  * gets the rows right and those wrong produces a tenant that serves correctly
  * today and either re-reads its whole face or misses the next change.
+ *
+ * <p><b>A world of its own, and the two routes are why.</b> It brings the
+ * same tenant up twice — once through the chain, once from an image cut
+ * earlier — and compares what each cost and what each left behind. Both
+ * bring-ups are the subject, and the runtime has to be told where images are
+ * kept before either happens.
  */
 @Tag("integration")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)

@@ -29,21 +29,19 @@ vocabulary of verbs about work, and nothing else.
     that caused it.
 
 So a runner cannot browse. It can be given work, and it can answer about the
-work it was given. Asking for some looks like this:
+work it was given.
 
-```bash
---8<-- "docs/guide/examples/snippets/lane-poll.sh"
+This is the whole of what you wire to join one — the hospital's own runner,
+compiled and run by the suite behind this guide:
+
+```java
+--8<-- "sample/src/main/java/cloud/jengu/dbo/sample/Admissions.java"
 ```
 
-```json
-{"result":[]}
-```
-
-No work waiting, which is the honest answer in a world where nothing has been
-handed to a runner. Note what the request had to say: **which participant is
-asking**, and **which executor is working**. Neither is a claim about what it
-may have — the entitlement comes from the credential, upstream, and is never
-something the caller states.
+Note what the identity says: **which participant is asking**, and **which
+executor is working**. Neither is a claim about what it may have. The
+entitlement comes from the credential, upstream, and is never something the
+caller states.
 
 ## Wherever it runs, it is the same lane
 
@@ -61,6 +59,38 @@ That is what makes one embeddable runner enough. The same bundle runs inside
 the platform's container, on a separate machine, or in a pod scaled per step —
 no orchestrator, no transport of its own, no access to the tenant's database —
 stateless across whichever tenants' lanes it is handed.
+
+## Joining with a step of its own
+
+The runner above performs a step the hospital installed. The other case is a
+party that is not the hospital at all — a laboratory, a courier, a national
+service — joining the process with a **capability the tenant never had**.
+
+The step service carries one method more:
+
+```java
+--8<-- "sample/participant/src/main/java/cloud/jengu/dbo/sample/participant/Assay.java"
+```
+
+That `declaration()` is what turns joining into bringing.
+
+The process around it holds nothing the hospital's runner does not:
+
+```java
+--8<-- "sample/participant/src/main/java/cloud/jengu/dbo/sample/participant/Laboratory.java"
+```
+
+The one thing the source cannot tell you is where a run of that step is
+authored. **On the face, not at the step door.** The tenant's step door is built from the
+tenant's own spec, so it offers the work the tenant says it does. A document
+posted to the face is checked against the composed catalogue — the installed
+steps *and* the ones participants introduced — which is where a capability
+that arrived over a link is found. [Reaching data through a run](runs.md) is
+that door.
+
+And the hospital authors it, not the laboratory. Bringing a step grants its
+introducer nothing, so the same document from the laboratory's own credential
+is refused on scope.
 
 ## The vocabulary
 
@@ -112,7 +142,8 @@ that is usually the other way round:
 
 And introducing a step grants its introducer nothing. A participant that
 brings a step declaration with it is bound by that declaration exactly as
-anybody else is.
+anybody else is — which is why the laboratory above declares itself at the
+baseline.
 
 ## What arrives with the work
 

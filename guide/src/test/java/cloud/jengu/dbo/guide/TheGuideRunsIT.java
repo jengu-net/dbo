@@ -19,6 +19,7 @@ import java.nio.file.Path;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -225,6 +226,45 @@ class TheGuideRunsIT {
         return Integer.parseInt(code);
     }
 
+    /** A status and a body together, for the steps that need both. */
+    private record Body(String code, String text) {}
+
+    /**
+     * A post to an absolute url under a bearer of this test's own making.
+     *
+     * <p>The helpers above address a tenant by the credential a chapter
+     * published. The external participant holds neither — it is another
+     * organisation with its own client — so this one takes the url and the
+     * token it was given.
+     */
+    private static Body post(String url, String bearer, String contentType, String body)
+            throws Exception {
+        Process curl = new ProcessBuilder("curl", "-s", "-w", "\n%{http_code}",
+                "-X", "POST", "-H", "Authorization: Bearer " + bearer,
+                "-H", "Content-Type: " + contentType, "-d", body, url).start();
+        String answered = new String(curl.getInputStream().readAllBytes(),
+                java.nio.charset.StandardCharsets.UTF_8);
+        curl.waitFor();
+        int split = answered.lastIndexOf('\n');
+        return new Body(answered.substring(split + 1).strip(), answered.substring(0, split + 1));
+    }
+
+    /** The same, reading. */
+    private static String read(String url, String bearer) throws Exception {
+        Process curl = new ProcessBuilder("curl", "-s",
+                "-H", "Authorization: Bearer " + bearer, url).start();
+        String body = new String(curl.getInputStream().readAllBytes(),
+                java.nio.charset.StandardCharsets.UTF_8);
+        curl.waitFor();
+        return body;
+    }
+
+    /** The id a written document came back with. */
+    private static String idOf(String document) {
+        int at = document.indexOf("\"id\":\"");
+        return at < 0 ? "" : document.substring(at + 6, document.indexOf('"', at + 6));
+    }
+
     /**
      * A credential for a tenant the chapters do not hand one out for.
      *
@@ -233,8 +273,14 @@ class TheGuideRunsIT {
      * spelling of the token exchange is a second thing to keep true.
      */
     private String credentialFor(String tenant, String secret) throws Exception {
+        return credentialFor(tenant, secret, "tenant-bootstrap");
+    }
+
+    /** The same, for a client that is not the tenant's own bootstrap one. */
+    private String credentialFor(String tenant, String secret, String client) throws Exception {
         Snippets.Ran got = snippets.sh(
-                "source docs/guide/examples/snippets/token.sh; token " + tenant + " " + secret);
+                "source docs/guide/examples/snippets/token.sh; token " + tenant + " " + secret
+                        + " " + client);
         assertEquals(0, got.status(), "no credential for " + tenant + ": " + got.err());
         return got.lastLine();
     }
@@ -1834,9 +1880,14 @@ class TheGuideRunsIT {
     }
 
     /**
-     * A runner asking for work and being told what it may have, and a lane
-     * refusing out loud rather than answering an unusable request with an empty
-     * list.
+     * A lane refusing out loud rather than answering an unusable request with
+     * an empty list.
+     *
+     * <p>Asking it for work is no longer a step here. The chapter shows the
+     * runner that does the asking, and a published command that spelt the poll
+     * out by hand was a second way to say what the class beside it already
+     * says. What has no other spelling is what a refusal looks like on the
+     * wire.
      */
     @Nested
     @Order(17)
@@ -1846,15 +1897,7 @@ class TheGuideRunsIT {
 
         @Test
         @Order(1)
-        @DisplayName("a runner asks the lane for work, and is told what it may have")
-        void aRunnerAsksTheLaneForWork() throws Exception {
-            assertTrue(snippets.run("lane-poll").text().contains("result"),
-                    "the lane did not answer a poll");
-        }
-
-        @Test
-        @Order(2)
-        @DisplayName("and a refusal on the lane says why, rather than going quiet")
+        @DisplayName("a refusal on the lane says why, rather than going quiet")
         void aRefusalOnTheLaneSaysWhy() throws Exception {
             // A lane that answered an unusable request with an empty list would be
             // indistinguishable from one with no work, which is the failure mode
@@ -1926,6 +1969,175 @@ class TheGuideRunsIT {
     }
 
     /**
+     * Somebody who is not the hospital, joining one of its processes with a
+     * capability the hospital never installed.
+     *
+     * <p>The two doors that mint a run are what this story is about. The
+     * tenant's step door is built from the tenant's own spec, so it offers
+     * the work the tenant says it does and nothing else. The face's run
+     * document is checked against the COMPOSED catalogue — the installed
+     * steps plus the ones linked participants introduced — which is the door
+     * a capability that arrived over a link is authored at.
+     */
+    @Nested
+    @Order(19)
+    @DisplayName("a laboratory joining with a step of its own")
+    @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+    class ALaboratoryJoins {
+
+        /**
+         * Static because what each step here leaves for the next is a fact
+         * about the world, not about the object that found it.
+         */
+        private static String specimen;
+
+        private static String run;
+
+        /** The hospital's own credential, minted where it is used. */
+        private String hospital() throws Exception {
+            return credentialFor("hogwarts", "hogwarts-secret");
+        }
+
+        /** The laboratory's, which is a different organisation's client. */
+        private String laboratory() throws Exception {
+            return credentialFor("hogwarts", "meristem-secret", "meristem-lab");
+        }
+
+        /**
+         * The same, as a lane wants it. The lane asks for a token when it
+         * needs one and has nowhere to put a checked exception.
+         */
+        private String laboratoryQuietly() {
+            try {
+                return laboratory();
+            } catch (Exception unreachable) {
+                throw new IllegalStateException("no credential for the laboratory", unreachable);
+            }
+        }
+
+        @Test
+        @Order(1)
+        @DisplayName("the laboratory holds a credential of its own, and the hospital's step "
+                + "door offers no step it can do")
+        void theLaboratoryHoldsACredentialOfItsOwn() throws Exception {
+            // Its own client, because it is its own organisation. What the
+            // hospital grants it is the work scope and nothing else.
+            assertEquals("200", post("http://localhost:8090/t/hogwarts/oidc/admin/clients",
+                    hospital(), "application/json",
+                    "{\"client_id\":\"meristem-lab\",\"secret\":\"meristem-secret\","
+                            + "\"scope\":[\"work\"]}").code(),
+                    "the laboratory's client was not created");
+            assertTrue(laboratory().startsWith("ey"), "no token for the laboratory");
+
+            // The door the chapters author runs at is built from the tenant's
+            // spec, so it offers the hospital's own step and says so by name.
+            Body refused = post("http://localhost:8090/t/hogwarts/step/"
+                            + "hogwarts.admission.assay", laboratory(), "application/json",
+                    "{\"inputs\":{\"specimen\":\"Observation/none\"}}");
+            assertTrue(refused.text().contains("offers no step"),
+                    "the tenant's step door did not refuse a step the tenant never installed: "
+                            + refused.text());
+        }
+
+        @Test
+        @Order(2)
+        @DisplayName("it joins, and the capability it brought is in the catalogue the face "
+                + "checks a run against")
+        @Proving({DboPromises.PROC_STEPS_ARRIVE_BY_INTRODUCTION,
+            DboPromises.PROC_INTRODUCTION_GRANTS_NOTHING,
+            DboPromises.PROC_WORK_IS_AUTHORED_ON_THE_SURFACE})
+        void itJoinsBringingItsOwnCapability() throws Exception {
+            // A cycle declares candidacy, and a service that carries its own
+            // declaration introduces it in the same breath. Nothing else is
+            // done to make the hospital aware of it.
+            try (cloud.jengu.dbo.sample.participant.Laboratory lab =
+                    new cloud.jengu.dbo.sample.participant.Laboratory(
+                    java.net.URI.create("http://localhost:8090/t/hogwarts/"),
+                    "hogwarts", this::laboratoryQuietly)) {
+                lab.cycle();
+            }
+
+            // A specimen for it to work over, written by the hospital.
+            Body written = post("http://localhost:8090/t/hogwarts/fhir/Observation",
+                    hospital(), "application/fhir+json",
+                    "{\"resourceType\":\"Observation\",\"status\":\"final\","
+                            + "\"code\":{\"text\":\"a sample taken on admission\"}}");
+            specimen = idOf(written.text());
+            assertFalse(specimen.isBlank(), "the specimen was not written: "
+                    + written.code() + " " + written.text());
+
+            // The other door: a Task naming the step, its own name for the
+            // run, and a reference per declared slot. The step is one no
+            // module installed here, and the run is authored anyway.
+            //
+            // By the hospital. Bringing a capability granted the laboratory
+            // nothing — it may perform this step and it may not author work
+            // in the tenant, and the same document from its own credential is
+            // refused on scope.
+            String document = taskDocument();
+            Body notTheLaboratorys = post("http://localhost:8090/t/hogwarts/fhir/Task",
+                    laboratory(), "application/fhir+json", document);
+            assertEquals("403", notTheLaboratorys.code(),
+                    "introducing a step let its introducer author work with it: "
+                            + notTheLaboratorys.code() + " " + notTheLaboratorys.text());
+
+            Body authored = post("http://localhost:8090/t/hogwarts/fhir/Task",
+                    hospital(), "application/fhir+json", document);
+            assertTrue(authored.code().startsWith("2"),
+                    "the face refused a run of the step the laboratory introduced: "
+                            + authored.code() + " " + authored.text());
+            run = idOf(authored.text());
+            assertFalse(run.isBlank(), "the authored run came back without an id: "
+                    + authored.text());
+        }
+
+        /** The run, as the face's door takes it. */
+        private String taskDocument() {
+            return 
+                    "{\"resourceType\":\"Task\",\"intent\":\"order\","
+                            + "\"status\":\"requested\","
+                            + "\"identifier\":[{\"system\":\"urn:dbo:run\","
+                            + "\"value\":\"annas-assay\"}],"
+                            + "\"code\":{\"coding\":["
+                            + "{\"system\":\"urn:dbo:process\","
+                            + "\"code\":\"hogwarts.admission\"},"
+                            + "{\"system\":\"urn:dbo:step\",\"code\":\"assay\"}]},"
+                            + "\"input\":[{\"type\":{\"coding\":[{"
+                            + "\"system\":\"urn:dbo:run:input\","
+                            + "\"code\":\"specimen\"}]},"
+                            + "\"valueReference\":{\"reference\":\"Observation/"
+                            + specimen + "\"}}]}";
+        }
+
+        @Test
+        @Order(3)
+        @DisplayName("and performs it, from outside")
+        @Proving(DboPromises.PROC_INPUTS_ARRIVE_WITH_THE_WORK)
+        void andPerformsItFromOutside() throws Exception {
+            int performed = 0;
+            try (cloud.jengu.dbo.sample.participant.Laboratory lab =
+                    new cloud.jengu.dbo.sample.participant.Laboratory(
+                    java.net.URI.create("http://localhost:8090/t/hogwarts/"),
+                    "hogwarts", this::laboratoryQuietly)) {
+                // An offer is a read of a feed, so this asks a few times
+                // rather than assuming the first pass sees what was just
+                // written.
+                for (int attempt = 0; attempt < 15 && performed == 0; attempt++) {
+                    performed = lab.cycle();
+                    if (performed == 0) {
+                        TimeUnit.SECONDS.sleep(1);
+                    }
+                }
+            }
+            assertTrue(performed > 0, "the laboratory was offered nothing it could perform");
+
+            String task = read("http://localhost:8090/t/hogwarts/fhir/Task/" + run, hospital());
+            assertTrue(task.contains("\"status\":\"completed\""),
+                    "the run the laboratory performed is not closed: " + task);
+        }
+    }
+
+    /**
      * What an operator holding the database sees where the identifying
      * elements would be, and the two refusals that keep it that way: a name
      * search, and an identifying lookup with no stated reason.
@@ -1935,7 +2147,7 @@ class TheGuideRunsIT {
      * different and false statement.
      */
     @Nested
-    @Order(19)
+    @Order(20)
     @DisplayName("the membrane")
     @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
     class TheMembrane {
@@ -2020,7 +2232,7 @@ class TheGuideRunsIT {
      * here.
      */
     @Nested
-    @Order(20)
+    @Order(21)
     @DisplayName("the directory at the door")
     @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
     class TheDirectoryAtTheDoor {
@@ -2183,7 +2395,7 @@ class TheGuideRunsIT {
      * still available to a later story, because there is no later story.
      */
     @Nested
-    @Order(21)
+    @Order(22)
     @DisplayName("being forgotten")
     @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
     class BeingForgotten {

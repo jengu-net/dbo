@@ -45,6 +45,24 @@ final class SuiteDatabases {
     }
 
     /**
+     * Drops one tenant's database without closing the provisioner it came
+     * from, for the shared runtime: its provisioner outlives every class and
+     * closing it would take the suite's own world with it.
+     */
+    static void drop(LocalDatabasePerTenantProvisioner provisioner, String code) {
+        if (provisioner == null || code == null) {
+            return;
+        }
+        DROPPING.submit(() -> {
+            try {
+                provisioner.deprovision(code);
+            } catch (RuntimeException couldNotDrop) {
+                System.out.println("suite cleanup: " + code + " stayed: " + couldNotDrop);
+            }
+        });
+    }
+
+    /**
      * Closes the provisioner and drops what it made, the dropping in the
      * background.
      *

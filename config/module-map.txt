@@ -24,7 +24,7 @@ core:dbo-policy              core:dbo-core core:dbo-rest core:dbo-work
 core:dbo-postgres            core:dbo-core
 core:dbo-promises            promise
 core:dbo-rest                core:dbo-core core:dbo-fhir-common
-core:dbo-runner              core:dbo-core core:dbo-telemetry core:dbo-work
+core:dbo-runner              core:dbo-core core:dbo-promises core:dbo-telemetry core:dbo-work promise
 core:dbo-scim                core:dbo-auth core:dbo-core core:dbo-pdi
 core:dbo-step-probe          core:dbo-runner
 core:dbo-stream              core:dbo-core core:dbo-runner core:dbo-work
@@ -38,6 +38,7 @@ core:dbo-test-model          core:dbo-core
 core:dbo-verify              core:dbo-maintenance
 core:dbo-work                core:dbo-core core:dbo-promises promise
 core:harness                 core:dbo-auth core:dbo-core core:dbo-definitions core:dbo-fhir-element core:dbo-fhir-r4 core:dbo-fhir-r5 core:dbo-fleet core:dbo-maintenance core:dbo-operator core:dbo-pdi core:dbo-policy core:dbo-postgres core:dbo-promises core:dbo-rest core:dbo-runner core:dbo-stream core:dbo-subscriptions core:dbo-sync core:dbo-telemetry-otlp core:dbo-tenant core:dbo-tenant-k8s core:dbo-terminology core:dbo-test-model core:dbo-work karaf:commands promise
-guide                        core:dbo-promises promise sample
+guide                        core:dbo-promises promise sample sample:participant
 karaf:commands               core:dbo-core core:dbo-promises core:dbo-work promise
 sample                       core:dbo-runner core:dbo-tenant core:dbo-work
+sample:participant           core:dbo-runner core:dbo-work

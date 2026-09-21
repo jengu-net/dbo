@@ -2,22 +2,16 @@ package cloud.jengu.dbo.harness;
 
 import cloud.jengu.dbo.promises.DboPromises;
 import cloud.jengu.dbo.promises.Proving;
-import cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner;
-import cloud.jengu.dbo.tenant.TenantRuntimeManager;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
-import org.testcontainers.containers.PostgreSQLContainer;
-
 import java.net.URI;
 import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -41,6 +35,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * therefore a resource claiming it is accepted — rather than any particular
  * mechanism reaching it, so a fix that moves the signal from the feed to the
  * sync engine keeps it passing.
+ *
+ * <p>On the shared runtime, as two shapes: a zone that publishes and a reader
+ * that declares it. The rounds it drives are what the scan loop drives
+ * anyway, and nothing here asserts what a round returned — only what this
+ * class's own tenant does with the two profiles this class wrote.
  */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class AReplicatedProfileCanBeValidatedAgainstIT {
@@ -82,48 +81,35 @@ class AReplicatedProfileCanBeValidatedAgainstIT {
              "subject":{"display":"somebody"},
              "meta":{"profile":["%s"]}}""".formatted(BEHIND);
 
-    static PostgreSQLContainer<?> postgres;
-    static Path dir;
-    static LocalDatabasePerTenantProvisioner provisioner;
-    static TenantRuntimeManager manager;
     static final HttpClient HTTP = HttpClient.newHttpClient();
+
+    static SharedTenants.Tenant zone;
+    static SharedTenants.Tenant reader;
+    static String onZone;
+    static String onReader;
 
     @BeforeAll
     void up() throws Exception {
-        postgres = SharedPostgres.get();
-        dir = Files.createTempDirectory("dbo-replicated-shape");
-        provisioner = new LocalDatabasePerTenantProvisioner(
-                SharedPostgres.urlFor("AReplicatedProfileCanBeValidatedAgainstIT"),
-                postgres.getUsername(), postgres.getPassword());
-        manager = new TenantRuntimeManager(dir, provisioner, "127.0.0.1", 0, null);
+        // In this order: the reader declares a dependency on the zone, so the
+        // zone has to be serving before it.
+        zone = SharedTenants.of(SharedTenants.Shape.R4_SHAPE_ZONE);
+        reader = SharedTenants.of(SharedTenants.Shape.R4_SHAPE_READER);
+        onZone = zone.token("shape-zone-writer", "system/*.write", "system/*.read");
+        onReader = reader.token("shape-reader-writer", "system/*.write", "system/*.read");
 
         // The zone publishes the profile, exactly as a platform zone does.
-        Files.writeString(dir.resolve("shape-zone.json"), """
-                {"code":"shape-zone","face":"r4","types":[
-                  {"name":"StructureDefinition","identity":"canonical","handling":"operational"},
-                  {"name":"Observation","identity":"internal","handling":"operational"}]}""");
-        UntilServed.scan(manager, "shape-zone");
-        assertEquals(201, post("shape-zone", "/StructureDefinition", PROFILE).statusCode());
-
-        // And a tenant that takes its shapes from the zone rather than
-        // authoring them: StructureDefinition is somebody else's publication
-        // here, which is what "replicated" says.
-        Files.writeString(dir.resolve("shape-reader.json"), """
-                {"code":"shape-reader","face":"r4","types":[
-                  {"name":"StructureDefinition","identity":"canonical","handling":"replicated"},
-                  {"name":"Observation","identity":"internal","handling":"operational"}],
-                 "dependencies":[{"name":"shape-zone","types":["StructureDefinition"]}]}""");
-        UntilServed.scan(manager, "shape-zone", "shape-reader");
+        assertEquals(201, post(zone, onZone, "/StructureDefinition", PROFILE).statusCode());
     }
 
+    /**
+     * Given back. A tenant one class uses is a database the whole
+     * suite carries until the run ends, and the saving on this rung is
+     * the runtime rather than the tenant.
+     */
     @AfterAll
     void down() {
-        if (manager != null) {
-            manager.close();
-        }
-        if (provisioner != null) {
-            SuiteDatabases.retire(provisioner);
-        }
+        SharedTenants.retire(reader);
+        SharedTenants.retire(zone);
     }
 
     @Test
@@ -134,8 +120,8 @@ class AReplicatedProfileCanBeValidatedAgainstIT {
         long deadline = System.currentTimeMillis() + Eventually.PATIENCE.toMillis();
         boolean here = false;
         while (!here && System.currentTimeMillis() < deadline) {
-            manager.syncRound();
-            here = get("shape-reader", "/StructureDefinition?url="
+            reader.syncOnce();
+            here = get(reader, "/StructureDefinition?url="
                     + URLEncoder.encode(CANONICAL, StandardCharsets.UTF_8)
                     + "&_summary=count").body().contains("\"total\":1");
             if (!here) {
@@ -145,25 +131,28 @@ class AReplicatedProfileCanBeValidatedAgainstIT {
         assertTrue(here, "the profile never replicated at all, so this proves nothing yet");
 
         // Everything the runtime does about arriving shapes, run to quiescence.
-        manager.shapesRound();
-        manager.shapesRound();
+        SharedTenants.manager().shapesRound();
+        SharedTenants.manager().shapesRound();
 
-        HttpResponse<String> claimed = post("shape-reader", "/Observation", CLAIMING);
+        HttpResponse<String> claimed = post(reader, onReader, "/Observation", CLAIMING);
         assertEquals(201, claimed.statusCode(),
                 "the tenant holds the profile and refuses what claims it: " + claimed.body());
     }
 
-    private static HttpResponse<String> post(String tenant, String path, String body)
-            throws Exception {
-        return HTTP.send(HttpRequest.newBuilder(URI.create(manager.baseUrl(tenant) + path))
+    private static HttpResponse<String> post(SharedTenants.Tenant tenant, String bearer,
+            String path, String body) throws Exception {
+        return HTTP.send(HttpRequest.newBuilder(URI.create(tenant.fhir() + path))
                         .header("Content-Type", "application/fhir+json")
+                        .header("Authorization", "Bearer " + bearer)
                         .POST(HttpRequest.BodyPublishers.ofString(body)).build(),
                 HttpResponse.BodyHandlers.ofString());
     }
 
-    private static HttpResponse<String> get(String tenant, String path) throws Exception {
-        return HTTP.send(HttpRequest.newBuilder(URI.create(manager.baseUrl(tenant) + path))
-                .GET().build(), HttpResponse.BodyHandlers.ofString());
+    private static HttpResponse<String> get(SharedTenants.Tenant tenant, String path)
+            throws Exception {
+        return HTTP.send(HttpRequest.newBuilder(URI.create(tenant.fhir() + path))
+                .header("Authorization", "Bearer " + onReader).GET().build(),
+                HttpResponse.BodyHandlers.ofString());
     }
 
     /**
@@ -178,12 +167,13 @@ class AReplicatedProfileCanBeValidatedAgainstIT {
     void aProfileTheTenantHoldsIsValidatedAgainstHoweverItArrived() throws Exception {
         // Behind the facade, so nothing rebuilds and nothing is notified —
         // which is the situation every path that is not the facade produces.
-        manager.runtime("shape-reader").orElseThrow().engine().put(
+        reader.engine().put(
                 new cloud.jengu.dbo.core.api.PutRequest("StructureDefinition", null, null,
                         BEHIND_THE_FACADE.getBytes(StandardCharsets.UTF_8)),
                 cloud.jengu.dbo.core.api.Handling.Authority.SOURCE_TENANT);
 
-        HttpResponse<String> claimed = post("shape-reader", "/Observation", CLAIMING_BEHIND);
+        HttpResponse<String> claimed = post(reader, onReader, "/Observation",
+                CLAIMING_BEHIND);
 
         assertEquals(201, claimed.statusCode(),
                 "the tenant holds this profile and refused what claims it: " + claimed.body());

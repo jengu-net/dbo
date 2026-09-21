@@ -38,6 +38,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * It is not a contrived shortcut: it is the same call
  * {@code ContentSyncEngine} makes when a zone's profile lands in a tenant that
  * inherits it.
+ *
+ * <p><b>A world of its own, and the count is why.</b> It does not only run a
+ * shapes round; it asserts the NUMBER the round returns — one view rebuilt,
+ * then none — which is a count over every tenant the runtime holds. On a
+ * shared runtime that number is everybody's, and the claim would be about a
+ * deployment this class did not write.
  */
 @Tag("integration")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)

@@ -270,6 +270,14 @@ public enum DboPromises implements Promise {
             + "participant that confused them would back off from work it is entitled to "
             + "and lose the claim it was holding when the deadline passed."),
 
+    PROC_A_FAULT_THE_CALLER_IS_NOT_TOLD_IS_STILL_RECORDED("A lane verb that could not "
+            + "complete tells the caller that and no more — the caller is another party "
+            + "and the cause is this deployment's business — and records the cause on this "
+            + "side, at error, beside the verb it was asked for. Both halves are the "
+            + "promise: a fault said in full to a stranger is a disclosure, and one said "
+            + "to nobody at all leaves the cause in no place anybody can reach, which is "
+            + "an outage whose diagnosis costs a reproduction."),
+
     PROC_A_HOST_HOLDS_A_LANE_WHEREVER_IT_IS("A host that reaches the store over HTTP "
             + "obtains the same lane as one that holds the store in-process: the tenant "
             + "serves the participation verbs on its own private surface, guarded by its "

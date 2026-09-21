@@ -12,9 +12,13 @@
 #   container   — it needs the OSGi container or the distribution
 #   tampering   — it alters what the store holds behind its back
 #   first boot  — it needs a runtime nothing has touched
-#   sweep       — it runs a deployment-wide pass (shapesRound,
-#                 syncRound, scanOnce), which would visit every
-#                 tenant a shared runtime holds
+#   sweep       — it makes a CLAIM about a deployment-wide pass
+#                 (shapesRound, syncRound, scanOnce): the number
+#                 it returned, or the troubles it left. Merely
+#                 CALLING one is not a reason — the scan loop
+#                 calls them continuously anyway, and a class
+#                 that only needs the effect on its own tenant
+#                 can run one on the shared runtime
 #   whole plane — it asserts about an entire substrate, not about
 #                 its own tenant, so a shared one would make the
 #                 claim about every other class's work too
@@ -28,48 +32,42 @@
 # The number of UNDECIDED entries may only fall. Regeneration lowers the
 # allowance to the actual count; the build fails above it.
 #
-# undecided-allowed: 26
-ABlobIsTenantDataIT                                      UNDECIDED
-AChangeCanBeAskedAboutBeforeItIsMadeIT                   UNDECIDED
-ADefinitionIsExpandedWhenItArrivesIT                     UNDECIDED
-ADefinitionMovesOnItsOwnFeedIT                           UNDECIDED
-ADeploymentPresentsItsOwnCredentialIT                    UNDECIDED
-ADeploymentRecordsWhatItWasToldToServeIT                 UNDECIDED
-AFaceIsCutOnceAndBroughtUpFromIT                         UNDECIDED
-AFaceRootHoldsItsVersionAsRecordsIT                      UNDECIDED
-AHostHoldsALaneByInstallingABundleIT                     UNDECIDED
-ALaneOverTheStreamIsIndistinguishableIT                  UNDECIDED
+# undecided-allowed: 0
+ABlobIsTenantDataIT                                      lifecycle
+AChangeCanBeAskedAboutBeforeItIsMadeIT                   deployment
+ADefinitionIsExpandedWhenItArrivesIT                     first boot
+ADeploymentPresentsItsOwnCredentialIT                    deployment
+ADeploymentRecordsWhatItWasToldToServeIT                 sweep
+AFaceIsCutOnceAndBroughtUpFromIT                         deployment
+AFaceRootHoldsItsVersionAsRecordsIT                      lifecycle
+AHostHoldsALaneByInstallingABundleIT                     container
+ALaneOverTheStreamIsIndistinguishableIT                  deployment
 ALargePayloadTravelsByReferenceIT                        whole plane
-APartnerFollowsWorkIT                                    UNDECIDED
-AReplicatedProfileCanBeValidatedAgainstIT                UNDECIDED
-AShutdownIsQuietIT                                       UNDECIDED
+AShutdownIsQuietIT                                       lifecycle
 AStoreWithoutSuperuserStillMountsIT                      sweep
-AStreamKeepsMovingWhileATenantComesUpIT                  UNDECIDED
-AStreamLaneIsToldItHasWorkIT                             UNDECIDED
+AStreamKeepsMovingWhileATenantComesUpIT                  lifecycle
+AStreamLaneIsToldItHasWorkIT                             deployment
 ATenantAuthorsItsOwnSearchParameterIT                    sweep
-ATenantComesUpFromTheFaceImageIT                         UNDECIDED
+ATenantComesUpFromTheFaceImageIT                         deployment
 ATenantDeclaredDifferentlyIsNoticedIT                    sweep
-ATenantGoingAwayIsNotOneThatFailedIT                     UNDECIDED
-ATenantOpensAndItsPeopleGetInIT                          UNDECIDED
-ATenantSubscribesToItsVersionIT                          UNDECIDED
+ATenantGoingAwayIsNotOneThatFailedIT                     lifecycle
+ATenantOpensAndItsPeopleGetInIT                          lifecycle
+ATenantSubscribesToItsVersionIT                          lifecycle
 ATenantThatIsNotUpSaysWhyIT                              sweep
 AZoneReachesAnotherFaceThroughOneProjectionIT            sweep
 AnOperatorReadsAndSteersTheFleetIT                       sweep
-EachTypeStreamsAtItsOwnGrainIT                           UNDECIDED
-EngineVocabularyDoesNotCollideWithItselfIT               UNDECIDED
-FaceRefusalIT                                            UNDECIDED
+EngineVocabularyDoesNotCollideWithItselfIT               sweep
+FaceRefusalIT                                            deployment
 FederatedAuthIT                                          deployment
 HumanAuthIT                                              deployment
 MandatoryStepsClassifyIncidentsIT                        sweep
-MetaSaysTheEnginesFactsIT                                sweep
 NothingReadableLandsInTheSubstrateIT                     whole plane
-OneTenantInTwoPlacesIT                                   sweep
 OperatorIT                                               sweep
-ProfilesArrivingOutOfBandTakeEffectIT                    UNDECIDED
-ScimProvisioningIT                                       UNDECIDED
-SeveralTenantsDeclaredAtOnceComeUpTogetherIT             UNDECIDED
+ProfilesArrivingOutOfBandTakeEffectIT                    sweep
+ScimNeedsTheMembraneIT                                   sweep
+SeveralTenantsDeclaredAtOnceComeUpTogetherIT             lifecycle
 SpecDeclaredSyncIT                                       sweep
 TenantRuntimeIT                                          sweep
 ThePlaintextInFlightLeavesNoTraceIT                      deployment
-WhatTheLoadedSpecificationCostsIT                        UNDECIDED
-ZoneIT                                                   sweep
+WhatTheLoadedSpecificationCostsIT                        first boot
+ZoneIT                                                   deployment

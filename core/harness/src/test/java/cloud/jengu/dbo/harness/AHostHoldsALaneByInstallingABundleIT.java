@@ -77,6 +77,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * standing in-memory one so the whiteboard can be proved with no store within
  * reach; left on here it would answer first and the carrier under test would
  * never be asked.
+ *
+ * <p><b>A world of its own, and the container is why.</b> It launches an OSGi
+ * framework and installs the bundle set into it, which is the whole subject:
+ * the claim is that installing a bundle is all a host does. The shared
+ * runtime is a plain JVM, and putting a framework inside it would be running
+ * a second deployment beside the one everybody else is using.
  */
 @Tag("integration")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)

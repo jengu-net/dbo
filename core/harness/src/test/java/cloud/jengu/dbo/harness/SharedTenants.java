@@ -73,13 +73,6 @@ public final class SharedTenants {
                  {"name":"StructureDefinition","identity":"canonical","handling":"operational"}]"""
                 .formatted(EID), "r4", "", "full"),
 
-        /** r4 behind the isolation membrane, with the person types a directory writes. */
-        R4_ISOLATED("sharedr4isolated", """
-                [{"name":"Patient","identity":"identifier","systems":["%s"],
-                  "handling":"operational"},
-                 {"name":"Person","identity":"internal","handling":"operational"},
-                 {"name":"Practitioner","identity":"internal","handling":"operational"}]"""
-                .formatted(EID), "r4", ",\"pdi\":true", "full"),
 
         /** r5, for anything that has to be served beside r4 rather than instead of it. */
         R5("sharedr5", """
@@ -127,12 +120,11 @@ public final class SharedTenants {
         /**
          * r4 behind the membrane, with the person keyed by their number.
          *
-         * <p>Distinct from {@link #R4_ISOLATED} by which record is keyed how:
-         * there the Patient carries the identifier and the Person is
-         * internal, here it is the other way round. That is not a detail two
-         * shapes can split the difference on — a type declares one identity
-         * class — so the family of classes asking about a person behind the
-         * membrane gets its own.
+         * <p>The Person carries the identifier and the Patient is internal,
+         * which is the other way round from the hospital in the cast. That is
+         * not a detail two tenants can split the difference on — a type
+         * declares one identity class — so the family of classes asking about
+         * a person behind the membrane gets its own.
          */
         R4_PDI_PERSON("sharedr4pdiperson", """
                 [{"name":"Person","identity":"identifier","systems":["%s"],
@@ -189,6 +181,91 @@ public final class SharedTenants {
                  {"name":"ValueSet","identity":"canonical","handling":"operational"},
                  {"name":"Device","identity":"identifier","systems":["%s"],
                   "handling":"projected-config"}]""".formatted(BENCHES), "r4", "", "none"),
+
+
+        /** r4 as a national zone publishing canonical content, for the clinic below. */
+        R4_TWO_PLACES_ZONE("sharedr4twoplaceszone", """
+                [{"name":"CodeSystem","identity":"canonical","handling":"operational"},
+                 {"name":"ValueSet","identity":"canonical","handling":"operational"}]""",
+                "r4", "", "none"),
+
+        /**
+         * r4 taking ONE type from that zone, which is the point: it declares
+         * CodeSystem and not ValueSet, so what does not arrive is what it did
+         * not ask for.
+         */
+        R4_TWO_PLACES_CLINIC("sharedr4twoplacesclinic", """
+                [{"name":"CodeSystem","identity":"canonical","handling":"operational"},
+                 {"name":"ValueSet","identity":"canonical","handling":"operational"}]""",
+                "r4", ",\"dependencies\":[{\"name\":\"sharedr4twoplaceszone\","
+                        + "\"types\":[\"CodeSystem\"]}]", "none"),
+
+        /** r4 publishing a mirrored vocabulary, for the receiver below. */
+        R4_MIRROR_SOURCE("sharedr4mirrorsource", """
+                [{"name":"Patient","identity":"internal","handling":"operational"},
+                 {"name":"CodeSystem","identity":"canonical","handling":"mirrored"}]""",
+                "r4", "", "none"),
+
+        /** r4 taking that vocabulary from the source above. */
+        R4_MIRROR_RECEIVER("sharedr4mirrorreceiver", """
+                [{"name":"Patient","identity":"internal","handling":"operational"},
+                 {"name":"CodeSystem","identity":"canonical","handling":"mirrored"}]""",
+                "r4", ",\"dependencies\":[{\"name\":\"sharedr4mirrorsource\","
+                        + "\"types\":[\"CodeSystem\"]}]", "none"),
+
+        /** r4 that manages other tenants: a partner, for the one below. */
+        R4_PARTNER("sharedr4partner", """
+                [{"name":"Basic","identity":"internal","handling":"operational"}]""",
+                "r4", "", "none"),
+
+        /**
+         * r4 managed by the partner above, with its trail on.
+         *
+         * <p>The relation is declared when the tenant is created and is the
+         * only thing that makes its work visible outside it, so it cannot be
+         * something a class turns on afterwards — it is the shape.
+         */
+        R4_MANAGED("sharedr4managed", """
+                [{"name":"Basic","identity":"internal","handling":"operational"}]""",
+                "r4", ",\"managedBy\":\"sharedr4partner\"", "writes"),
+
+        /** r4 publishing shapes, for the reader below to take them from. */
+        R4_SHAPE_ZONE("sharedr4shapezone", """
+                [{"name":"StructureDefinition","identity":"canonical","handling":"operational"},
+                 {"name":"Observation","identity":"internal","handling":"operational"}]""",
+                "r4", "", "none"),
+
+        /**
+         * r4 taking its shapes from the zone above rather than authoring
+         * them, which is what replicated says.
+         */
+        R4_SHAPE_READER("sharedr4shapereader", """
+                [{"name":"StructureDefinition","identity":"canonical","handling":"replicated"},
+                 {"name":"Observation","identity":"internal","handling":"operational"}]""",
+                "r4", ",\"dependencies\":[{\"name\":\"sharedr4shapezone\","
+                        + "\"types\":[\"StructureDefinition\"]}]", "none"),
+
+        /**
+         * r4 publishing a vocabulary and a clinical record side by side, for
+         * the dependant below to take both from.
+         */
+        R4_GRAIN_UPSTREAM("sharedr4grainupstream", """
+                [{"name":"CodeSystem","identity":"canonical","handling":"operational"},
+                 {"name":"Encounter","identity":"internal","handling":"operational"}]""",
+                "r4", "", "none"),
+
+        /**
+         * r4 taking both of those types from the upstream above.
+         *
+         * <p>A dependency names the tenant it is on, so this shape names that
+         * one — which is why the two are declared together and why asking for
+         * this one means asking for that one first.
+         */
+        R4_GRAIN_DEPENDANT("sharedr4graindependant", """
+                [{"name":"CodeSystem","identity":"canonical","handling":"replicated"},
+                 {"name":"Encounter","identity":"internal","handling":"replicated"}]""",
+                "r4", ",\"dependencies\":[{\"name\":\"sharedr4grainupstream\","
+                        + "\"types\":[\"CodeSystem\",\"Encounter\"]}]", "none"),
 
         /**
          * r6, for what has to be served on the version after the one
@@ -301,6 +378,9 @@ public final class SharedTenants {
     /** What the zone shape's projected type is keyed by. */
     public static final String BENCHES = "https://shared.test/benches";
 
+    /** What an identity provider keys the people it provisions by. */
+    public static final String STAFF_IDS = "urn:shared.test:idp:external-id";
+
     private static final HttpClient HTTP = HttpClient.newHttpClient();
     /** Keyed by tenant CODE rather than by shape, since a shape can have several. */
     private static final Map<String, Tenant> UP = new ConcurrentHashMap<>();
@@ -336,6 +416,96 @@ public final class SharedTenants {
             return manager;
         } catch (Exception e) {
             throw new IllegalStateException("the shared runtime did not start", e);
+        }
+    }
+
+    /**
+     * A member of the sample world's cast, brought up from the SAME spec file
+     * the guide's world mounts.
+     *
+     * <p>One definition, two worlds. The guide brings these up in a container
+     * and reads them over HTTP; this brings the same files up in this JVM and
+     * reads them through the store's own API. A tenant that exists twice is a
+     * tenant that can differ, and the difference always turns up as a
+     * difference between what the guide says and what the suite proves.
+     *
+     * <p>A cast member is named for the part it plays — a hospital, an
+     * insurer, a clinic that keys nobody by a national number — which is what
+     * makes it reusable: the next test wanting a hospital can recognise one.
+     * A shape is named for its mechanism and fifteen of the first
+     * twenty-three were used by a single class.
+     *
+     * <p>Brought up with what it depends on, in order, because a tenant whose
+     * upstream is not serving does not come up.
+     */
+    public static synchronized Tenant cast(Cast member) {
+        for (Cast needed : member.chain()) {
+            String code = needed.code();
+            UP.computeIfAbsent(code, unused -> {
+                try {
+                    Files.copy(WORLD.resolve(code + ".json"), directory.resolve(code + ".json"));
+                    UntilServed.scan(MANAGER, code);
+                    return new Tenant(code);
+                } catch (Exception e) {
+                    throw new IllegalStateException("cast member " + code
+                            + " did not come up from " + WORLD.resolve(code + ".json"), e);
+                }
+            });
+        }
+        return UP.get(member.code());
+    }
+
+    /** Where the sample keeps the world both the guide and this suite use. */
+    private static final Path WORLD =
+            Path.of(System.getProperty("dbo.sample.world", "../../sample/world/tenants"));
+
+    /**
+     * The parts the sample world's tenants play, and what each needs serving
+     * before it.
+     *
+     * <p>The codes are the sample's, spelled out here so the check that reads
+     * this suite for two classes opening one tenant code can find them.
+     */
+    public enum Cast {
+
+        /** The R5 face root: the version's definitions as records. */
+        R5_ROOT("fhir-r5"),
+
+        /** The R4 face root, for the insurer a release behind. */
+        R4_ROOT("fhir-r4"),
+
+        /** The zone: what a jurisdiction publishes to the tenants under it. */
+        ZONE("rl"),
+
+        /** The hospital: people keyed by their national number, behind the membrane. */
+        HOSPITAL("hogwarts", R5_ROOT, ZONE),
+
+        /** The insurer, a release behind, taking the zone through a projection. */
+        INSURER("gringotts", R4_ROOT, ZONE),
+
+        /** The clinic that keys nobody by a national number, and takes the hospital's encounters. */
+        CLINIC("st-jerome", R5_ROOT, ZONE, HOSPITAL);
+
+        private final String code;
+        private final Cast[] upstream;
+
+        Cast(String code, Cast... upstream) {
+            this.code = code;
+            this.upstream = upstream;
+        }
+
+        public String code() {
+            return code;
+        }
+
+        /** This member and everything it needs serving first, upstream first. */
+        java.util.List<Cast> chain() {
+            java.util.LinkedHashSet<Cast> order = new java.util.LinkedHashSet<>();
+            for (Cast up : upstream) {
+                order.addAll(up.chain());
+            }
+            order.add(this);
+            return java.util.List.copyOf(order);
         }
     }
 
@@ -385,6 +555,38 @@ public final class SharedTenants {
         });
     }
 
+    /**
+     * Gives a tenant back: the declaration is withdrawn, the runtime takes it
+     * down on the next scan, and the database is dropped in the background.
+     *
+     * <p><b>For a shape one class uses.</b> The saving on this rung of the
+     * ladder is the RUNTIME — thirty-four seconds of it — and never the
+     * tenant, which is a database on a server the whole suite shares. A class
+     * that takes one and does not give it back leaves the world one bigger
+     * for every class that follows it, and a suite that shares a runtime ends
+     * up holding forty-six databases at once. That is sharing a world and
+     * hoarding a tenant.
+     *
+     * <p>A shape several classes take is NOT retired: giving that one back
+     * would make the next class rebuild what it came here to reuse.
+     */
+    public static synchronized void retire(Tenant tenant) {
+        if (tenant == null || UP.remove(tenant.code()) == null) {
+            return;
+        }
+        try {
+            Files.deleteIfExists(directory.resolve(tenant.code() + ".json"));
+            // The runtime retracts what nobody declares any more, so the scan
+            // is what takes the surfaces down. Dropping the database under a
+            // serving tenant would be the other order.
+            MANAGER.scanOnce();
+        } catch (Exception couldNotWithdraw) {
+            throw new IllegalStateException(
+                    "could not withdraw " + tenant.code(), couldNotWithdraw);
+        }
+        SuiteDatabases.drop(PROVISIONER, tenant.code());
+    }
+
     /** One shared tenant, and everything a test needs to reach it. */
     public record Tenant(String code) {
 
@@ -422,6 +624,34 @@ public final class SharedTenants {
 
         public ChangeFeed feed() {
             return MANAGER.runtime(code).orElseThrow().feed();
+        }
+
+        /**
+         * One sync round over THIS tenant's streams, drained.
+         *
+         * <p>The manager's own round sweeps every tenant the runtime holds,
+         * which on a shared runtime is every other class's as well. A class
+         * waiting for its own copy to arrive calls it in a loop, so the cost
+         * is the whole world once per poll — which is how a suite that got
+         * faster by sharing tenants got slower again. This drains only what
+         * this tenant subscribes to.
+         */
+        public int syncOnce() {
+            int carried = 0;
+            for (cloud.jengu.dbo.sync.ContentSyncEngine stream : MANAGER.streamsOf(code)) {
+                int events;
+                do {
+                    events = stream.syncOnce(500);
+                    carried += events;
+                } while (events > 0);
+                stream.pass(500);
+            }
+            return carried;
+        }
+
+        /** The other feed: what the face gave this tenant, apart from its records. */
+        public ChangeFeed definitionsFeed() {
+            return MANAGER.runtime(code).orElseThrow().definitionsFeed();
         }
 
         /**

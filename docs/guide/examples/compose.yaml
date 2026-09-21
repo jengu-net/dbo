@@ -2,9 +2,10 @@
 #
 #   docker compose -f docs/guide/examples/compose.yaml up -d
 #
-# Six tenants come up: the managing tenant, the zone, two face roots, a
-# hospital and an insurer. The guide's examples run against them, and
-# examples/check.sh runs the guide's examples.
+# Seven tenants come up: the managing tenant, the zone, two face roots, a
+# hospital, an insurer and a clinic that keys nobody by a national number.
+# The guide's examples run against them, and examples/check.sh runs the
+# guide's examples.
 #
 # This is the quickstart's compose file with one difference — the world it
 # mounts — and it keeps the quickstart's pinned image on purpose, so there is
@@ -50,9 +51,18 @@ services:
       # data is invented and would not be anywhere else.
       DBO_AUTH_KEK: "ZGJvLWd1aWRlLXdvcmxkLW5vdC1hLXNlY3JldC1rZXk="
       DBO_BOOTSTRAP_SECRETS: "mom=mom-secret,rl=rl-secret,fhir-r5=r5-secret,\
-fhir-r4=r4-secret,hogwarts=hogwarts-secret,gringotts=gringotts-secret"
+fhir-r4=r4-secret,hogwarts=hogwarts-secret,gringotts=gringotts-secret,\
+st-jerome=jerome-secret"
 
       DBO_TENANT_DIR: /etc/dbo/tenants
+
+      # Where this node keeps face images. A face is the same answer for every
+      # tenant on it — the whole of what a version publishes, expanded — so
+      # the first tenant on one cuts it and the rest load it. Unset, every
+      # tenant expands the version again, correctly and for half a minute
+      # each. It is an operator's disk, which is why the store does not take
+      # one without being asked.
+      DBO_FACE_IMAGES: /var/lib/dbo/faces
 
       # The managing tenant sits outside the scanned directory deliberately:
       # the loop that retracts undeclared tenants must not be able to retract
@@ -64,6 +74,11 @@ fhir-r4=r4-secret,hogwarts=hogwarts-secret,gringotts=gringotts-secret"
       DBO_ADMIN_PASSWORD: guide
 
       DBO_LOG_FORMAT: text
+    tmpfs:
+      # The images are a cache with a release stamp on them, so a world that
+      # is thrown away between runs keeps them exactly as long as it keeps
+      # its database.
+      - /var/lib/dbo/faces
     volumes:
       - ../../../sample/world/tenants:/etc/dbo/tenants:ro
       - ../../../sample/world:/etc/dbo/management:ro

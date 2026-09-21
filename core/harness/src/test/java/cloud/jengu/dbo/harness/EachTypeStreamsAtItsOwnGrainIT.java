@@ -2,8 +2,6 @@ package cloud.jengu.dbo.harness;
 
 import cloud.jengu.dbo.promises.DboPromises;
 import cloud.jengu.dbo.promises.Proving;
-import cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner;
-import cloud.jengu.dbo.tenant.TenantRuntimeManager;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
@@ -13,14 +11,10 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestMethodOrder;
-import org.testcontainers.containers.PostgreSQLContainer;
-
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.nio.file.Files;
-import java.nio.file.Path;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -44,55 +38,61 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * resource has no such split and must NOT be put through that — it travels as
  * itself. One dependency declaring both is what shows the engine choosing per
  * type rather than per stream.
+ *
+ * <p>On the shared runtime, as two shapes: an upstream and the dependant that
+ * declares it. Running a sync round here is what the scan loop does anyway,
+ * and every assertion is scoped to the vocabulary and the encounter this
+ * class wrote — the round's own count is never the subject.
  */
 @Tag("integration")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class EachTypeStreamsAtItsOwnGrainIT {
 
-    private static final String UPSTREAM = "grain-ee";
-    private static final String DEPENDANT = "grain-haigla";
-
-    static PostgreSQLContainer<?> postgres;
-    static Path dir;
-    static LocalDatabasePerTenantProvisioner provisioner;
-    static TenantRuntimeManager manager;
+    static SharedTenants.Tenant upstream;
+    static SharedTenants.Tenant dependant;
     static final HttpClient http = HttpClient.newHttpClient();
+    /** A token is its tenant's, so each of the two has one. */
+    static String onUpstream;
+
+    static String onDependant;
     static String encounterId;
 
+    /** A canonical of this class's own, on a tenant other classes may share. */
+    private static final String VOCABULARY = "https://shared.test/cs/grain-teenused";
+
     @BeforeAll
-    void up() throws Exception {
-        postgres = SharedPostgres.get();
-        dir = Files.createTempDirectory("dbo-grain-tenants");
-        provisioner = new LocalDatabasePerTenantProvisioner(
-                SharedPostgres.urlFor("EachTypeStreamsAtItsOwnGrainIT"),
-                postgres.getUsername(), postgres.getPassword());
-        manager = new TenantRuntimeManager(dir, provisioner, "127.0.0.1", 0, null);
+    void up() {
+        // In this order: a dependency names the tenant it is on, so the
+        // upstream has to be serving before the dependant that declares it.
+        upstream = SharedTenants.of(SharedTenants.Shape.R4_GRAIN_UPSTREAM);
+        dependant = SharedTenants.of(SharedTenants.Shape.R4_GRAIN_DEPENDANT);
+        onUpstream = upstream.token("grain-writer", "system/*.write", "system/*.read");
+        onDependant = dependant.token("grain-reader", "system/*.read");
     }
 
+    /**
+     * Given back. A tenant one class uses is a database the whole
+     * suite carries until the run ends, and the saving on this rung is
+     * the runtime rather than the tenant.
+     */
     @AfterAll
     void down() {
-        manager.close();
-        SuiteDatabases.retire(provisioner);
+        SharedTenants.retire(dependant);
+        SharedTenants.retire(upstream);
     }
 
     @Test
     @Order(1)
     @DisplayName("an upstream publishes a vocabulary and a clinical record side by side")
     void theUpstreamHoldsBothKinds() throws Exception {
-        Files.writeString(dir.resolve(UPSTREAM + ".json"), """
-                {"code":"%s","face":"r4","types":[
-                  {"name":"CodeSystem","identity":"canonical","handling":"operational"},
-                  {"name":"Encounter","identity":"internal","handling":"operational"}]}"""
-                .formatted(UPSTREAM));
-        UntilServed.scan(manager, UPSTREAM);
-
-        assertEquals(201, post(manager.baseUrl(UPSTREAM) + "/CodeSystem", """
-                {"resourceType":"CodeSystem","url":"https://ee.ee/cs/teenused",
+        assertEquals(201, post(upstream.fhir() + "/CodeSystem", """
+                {"resourceType":"CodeSystem","url":"%s",
                  "status":"active","content":"complete",
-                 "concept":[{"code":"vastuvott","display":"Vastuvott"}]}""").statusCode());
+                 "concept":[{"code":"vastuvott","display":"Vastuvott"}]}"""
+                .formatted(VOCABULARY)).statusCode());
 
-        HttpResponse<String> encounter = post(manager.baseUrl(UPSTREAM) + "/Encounter", """
+        HttpResponse<String> encounter = post(upstream.fhir() + "/Encounter", """
                 {"resourceType":"Encounter","status":"finished",
                  "class":{"code":"AMB"}}""");
         assertEquals(201, encounter.statusCode(), encounter.body());
@@ -105,20 +105,12 @@ class EachTypeStreamsAtItsOwnGrainIT {
     @DisplayName("one dependency declaring both delivers each at its own grain")
     @Proving(DboPromises.SYNC_ANY_TYPE)
     void bothArriveAndOnlyOneIsReassembled() throws Exception {
-        Files.writeString(dir.resolve(DEPENDANT + ".json"), """
-                {"code":"%s","face":"r4","types":[
-                  {"name":"CodeSystem","identity":"canonical","handling":"replicated"},
-                  {"name":"Encounter","identity":"internal","handling":"replicated"}],
-                 "dependencies":[{"name":"%s","types":["CodeSystem","Encounter"]}]}"""
-                .formatted(DEPENDANT, UPSTREAM));
-        UntilServed.scan(manager, DEPENDANT);
-
         // The vocabulary's grain is the whole thing: arriving is not enough,
         // the dependant has to be able to ANSWER from it, which it can only do
         // if the concepts were carried and taken apart on arrival.
         String lookup = await("the vocabulary must be answerable, not merely present", () -> {
-            HttpResponse<String> answer = get(manager.baseUrl(DEPENDANT)
-                    + "/CodeSystem/$lookup?system=https://ee.ee/cs/teenused&code=vastuvott");
+            HttpResponse<String> answer = get(dependant.fhir()
+                    + "/CodeSystem/$lookup?system=" + VOCABULARY + "&code=vastuvott");
             return answer.statusCode() == 200 ? answer.body() : null;
         });
         assertTrue(lookup.contains("Vastuvott"), lookup);
@@ -128,7 +120,7 @@ class EachTypeStreamsAtItsOwnGrainIT {
         String copied = await("a non-terminology type must stream too, or a dependency "
                 + "is a terminology feature wearing a general name", () -> {
                     HttpResponse<String> copy =
-                            get(manager.baseUrl(DEPENDANT) + "/Encounter/" + encounterId);
+                            get(dependant.fhir() + "/Encounter/" + encounterId);
                     return copy.statusCode() == 200 ? copy.body() : null;
                 });
         assertTrue(copied.contains("\"status\":\"finished\"") && copied.contains("AMB"),
@@ -145,7 +137,7 @@ class EachTypeStreamsAtItsOwnGrainIT {
         // The suite's one number for a wait on the feed (see Eventually).
         long deadline = System.currentTimeMillis() + Eventually.PATIENCE.toMillis();
         while (System.currentTimeMillis() < deadline) {
-            manager.syncRound();
+            dependant.syncOnce();
             String answer = probe.get();
             if (answer != null) {
                 return answer;
@@ -158,12 +150,15 @@ class EachTypeStreamsAtItsOwnGrainIT {
     private static HttpResponse<String> post(String url, String body) throws Exception {
         return http.send(HttpRequest.newBuilder(URI.create(url))
                         .header("Content-Type", "application/fhir+json")
+                        .header("Authorization", "Bearer " + onUpstream)
                         .POST(HttpRequest.BodyPublishers.ofString(body)).build(),
                 HttpResponse.BodyHandlers.ofString());
     }
 
+    /** Every read here is of the dependant, which holds its own credential. */
     private static HttpResponse<String> get(String url) throws Exception {
-        return http.send(HttpRequest.newBuilder(URI.create(url)).GET().build(),
+        return http.send(HttpRequest.newBuilder(URI.create(url))
+                        .header("Authorization", "Bearer " + onDependant).GET().build(),
                 HttpResponse.BodyHandlers.ofString());
     }
 }

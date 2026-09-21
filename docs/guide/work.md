@@ -91,7 +91,7 @@ of what it is allowed to be:
 The hospital's is deliberately the smallest one that can exist — one slot, one
 type:
 
-```json
+```json title="sample/world/tenants/hogwarts.json"
 "steps": [
   { "code": "hogwarts.admission.admit", "slots": { "patient": "Patient" } }
 ]
@@ -215,26 +215,29 @@ Refusing to start would be the tidier-looking choice and the worse one. A
 tenant that will not serve because one step is missing has converted a
 degradation into an outage.
 
-## What is reachable today
+## Where each of these is reached
 
-Being exact about this, because the section describes more than the HTTP
-surface currently exposes.
+Being exact about this, because the chapter describes two surfaces and reads
+as if it described one.
 
-Over HTTP, a tenant serves the step surface: declare steps in the spec, start a
-run, and work inside its context. That is [Reaching data through a
-run](runs.md), and every command there is executed against the sample world.
+Work is authored on the tenant's own surface and *performed* over the
+participation lane. Claiming, reporting milestones, closing, reopening,
+executors and their resolution are all the lane's, by a runner that joins the
+tenant: [Runners](runners.md) is that mechanism, and [Performing
+work](performing-work.md) is what you write to go on one.
 
-Everything else in this chapter — claiming work, reporting milestones, closing,
-reopening, executors and their resolution — is reached over the **participation
-lane** rather than the FHIR surface, by a runner that joins the tenant.
-[Runners](runners.md) is that mechanism. The distinction is not cosmetic: work
-is authored on the tenant's own surface and *performed* over the lane.
+Authoring has **two doors**, and which one answers decides which steps are on
+offer. The tenant's step surface is built from the tenant's own spec, so it
+offers the work the tenant says it does; that is [Reaching data through a
+run](runs.md). A document posted to the *face* is checked against the composed
+catalogue — the installed steps and the ones linked participants introduced —
+which is where a capability that arrived over a link is found.
 
-A document posted to that surface naming a declared step **becomes a run**,
-minted through the same door every run comes through, and refused by name where
-its rules are not met: an unknown step, an undeclared slot, a declared slot left
-unfilled, a key already used. What is stored is the run, and it reads back as
-the same document as it advances.
+Either way a document naming a declared step **becomes a run**, minted through
+the same door every run comes through, and refused by name where its rules are
+not met: an unknown step, an undeclared slot, a declared slot left unfilled, a
+key already used. What is stored is the run, and it reads back as the same
+document as it advances.
 
 ## What you would otherwise have written
 

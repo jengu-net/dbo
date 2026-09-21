@@ -33,6 +33,15 @@ val dboTenantTestOutput = project(":core:dbo-tenant")
         .extensions.getByType(SourceSetContainer::class.java)
         .getByName("test").output
 
+// The runner module's own: what a lane answers and what it records when a
+// verb could not complete is decided without a store, so it is proven there.
+// Same trap as the ones above — the index lives in that module's test output,
+// and a testImplementation on the main jar never pulls it in.
+evaluationDependsOn(":core:dbo-runner")
+val dboRunnerTestOutput = project(":core:dbo-runner")
+        .extensions.getByType(SourceSetContainer::class.java)
+        .getByName("test").output
+
 // The guide suite's citation index.
 //
 // It is compiled elsewhere and never RUN from here — a Test task scans its own
@@ -53,6 +62,14 @@ val karafCommandsTestOutput = project(":karaf:commands")
 
 dependencies {
     testRuntimeOnly(guideTestOutput)
+    // Its CLASSES only, and the distinction is load-bearing. What is wanted
+    // is the META-INF/promise/proofs index the processor writes beside them.
+    // Its resources also carry a META-INF/services entry naming that module's
+    // recording slf4j provider, and a provider on this classpath becomes the
+    // binding for the whole harness JVM — every log line in the suite through
+    // a recorder written for two tests. That cost 108 threads contending on
+    // one list and turned a forty-minute suite into a two-hour one.
+    testRuntimeOnly(dboRunnerTestOutput.classesDirs)
     testImplementation(karafCommandsTestOutput)
     testImplementation(project(":core:dbo-core"))
     testImplementation(project(":core:dbo-promises"))
@@ -141,11 +158,24 @@ val distTest = tasks.register<Test>("distTest") {
 val memoryTest = tasks.register<Test>("memoryTest") {
     description = "What a tenant costs to hold, measured in a JVM that holds nothing else."
     group = "verification"
+    // Images on, because a tenant that comes up any other way is not the
+    // tenant a deployment holds: it expands the whole of a version instead of
+    // loading rows somebody already expanded. The figures below it are about
+    // what is RESIDENT rather than what bring-up cost, so this is not
+    // expected to move them much — and if it does, that is the measurement
+    // doing its job rather than a reason to leave it measuring the old path.
+    systemProperty("dbo.face.images",
+            layout.buildDirectory.dir("face-images").get().asFile.absolutePath)
     testClassesDirs = sourceSets.test.get().output.classesDirs
     classpath = sourceSets.test.get().runtimeClasspath
     filter.includeTestsMatching("*WhatTheLoadedSpecificationCostsIT")
     // Its own process per class, and no other class in it.
     forkEvery = 1
+    // Forwarded, because the flag is read inside the test JVM and a -D on the
+    // gradle command line stops at the daemon. Recording silently did nothing
+    // and the baseline stayed as it was, which is the quietest way for a
+    // ratchet to become a decoration.
+    System.getProperty("dbo.memory.record")?.let { systemProperty("dbo.memory.record", it) }
     maxHeapSize = "2g"
 }
 tasks.test {
@@ -233,6 +263,12 @@ val promiseCitations by tasks.registering(JavaExec::class) {
     classpath = sourceSets["test"].runtimeClasspath
     mainClass.set("cloud.jengu.dbo.harness.PromiseCitations")
     systemProperty("dbo.repo.root", rootProject.projectDir.absolutePath)
+    // The sample's world, which the guide's container mounts and this suite
+    // brings up in its own JVM. One definition, so a tenant the guide shows
+    // and a tenant the suite proves against cannot drift apart.
+    systemProperty("dbo.sample.world",
+        rootProject.file("sample/world/tenants").absolutePath)
+    inputs.dir(rootProject.file("sample/world/tenants"))
     args(rootProject.file("config/promise-citations.txt").absolutePath)
 }
 

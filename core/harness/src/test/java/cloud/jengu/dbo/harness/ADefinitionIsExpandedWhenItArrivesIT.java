@@ -33,6 +33,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * cost the most. What is asserted is that the rows are there, that they say
  * what the definition says, and that a second bring-up writes nothing —
  * bringing up reads.
+ *
+ * <p><b>A world of its own, and the second bring-up is why.</b> The claim is
+ * that expansion is paid on arrival and not again, which it proves by
+ * counting the rows, bringing the tenant up a second time, and counting
+ * again. Both boots have to be this class's: on a shared runtime the second
+ * one brings up nothing, so the count would be unchanged for a reason that
+ * has nothing to do with the claim.
  */
 @Tag("integration")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)

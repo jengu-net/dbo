@@ -29,6 +29,7 @@
       "handling": "operational" },
     { "name": "PractitionerRole", "identity": "internal", "handling": "operational" },
     { "name": "Patient", "identity": "identifier", "systems": ["urn:rl:nid"], "handling": "operational" },
+    { "name": "Encounter", "identity": "internal", "handling": "operational" },
     { "name": "Observation", "identity": "internal", "handling": "operational" }
   ]
 }
