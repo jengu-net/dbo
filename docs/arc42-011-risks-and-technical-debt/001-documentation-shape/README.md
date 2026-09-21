@@ -1,4 +1,4 @@
-**Open. The context chapter is done — the landscape is drawn and every story cites its constant and projects its joins. Two disagreements are left and one of them had no step: the worked deployment is a hand-written site page, not the guide world's compose file. Next: move it.**
+**Open. The context chapter is done, and so is the worked deployment: it is a chapter now, built on the guide world's compose file. One disagreement is left and it waits on item 002 — the guide is shell commands, and the map says it is the sample application's story.**
 
 # The documentation tree is moved to match its map
 
@@ -15,11 +15,14 @@ building. This item is deleted when the list is empty.
   opens on the landscape — four bands, and the relationship that matters most
   being the one that skips a band — and each story is a `DboStories` constant
   whose joins table is projected from it rather than written.
-- `arc42-007-deployment` has its diagrams; the worked deployment is a
-  hand-written site page rather than the guide world's compose file. It is
-  `site/pages/technical/a-worked-deployment.md`: two hundred lines describing
-  five tenants of three kinds, in prose, beside a world whose compose file
-  declares exactly that and is run by three CI jobs.
+- ~~`arc42-007-deployment` has its diagrams; the worked deployment is a
+  hand-written site page rather than the guide world's compose file.~~ Closed.
+  It is `arc42-007-deployment/a-worked-deployment.md`, and it opens on the
+  compose file itself. The world turned out to be richer than the page that
+  described one: seven tenants rather than five, three organisations rather
+  than two, and two face roots — so the sentence about a second face root
+  being another version stopped being hypothetical and became the insurer,
+  a release behind, taking the zone through a projection.
 - `docs/guide/` is written as shell commands a reader runs against the
   world. The map says it is the sample application's story, and there is no
   sample application.
@@ -28,24 +31,19 @@ building. This item is deleted when the list is empty.
 
 ## The steps, in order
 
-1. Move the worked deployment into `arc42-007-deployment`, built on the guide
-   world's compose file rather than describing a deployment of its own. What
-   the page argues — two separations that are not the same one, five tenants
-   of three kinds — is what that world already IS, so the prose stops being a
-   second description that can drift and becomes commentary on an included
-   file that three CI jobs run. The site page becomes a pointer, because a
-   reader arriving at the site still needs to be taken there.
+1. ~~Move the worked deployment into `arc42-007-deployment`, built on the
+   guide world's compose file rather than describing a deployment of its
+   own.~~ Done. The site page is gone rather than made a pointer — a page
+   whose whole content is "it is over there" is a third thing to keep in
+   step — and the technical index links into the chapter instead.
 2. Rewrite the guide one chapter at a time as the sample application's
    story, each chapter including the sample's source and replacing one
    shell chapter when it lands. The sample itself is
    [item 002](../002-sample-application/README.md); this step waits for it.
 
-Step 2 is the largest and depends on nothing above it; it is last so that
-the sample is written against a tree that holds still.
-
-Step 1 had no step at all until now — the disagreement was listed and
-nothing said what to do about it, which is how a list of disagreements
-quietly becomes a list of observations.
+Step 2 is the largest and is now the only one. It waits on
+[item 002](../002-sample-application/README.md) rather than on anything here,
+so this item is finished when that one is.
 
 ## How a step lands
 

@@ -7,5 +7,4 @@ nav:
   - quickstart-karaf.md
   - environment.md
   - scaling.md
-  - a-worked-deployment.md
   - performance.md
