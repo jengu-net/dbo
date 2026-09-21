@@ -1,4 +1,4 @@
-**Open. The cast has started: one clinic added, one definition, and `SharedTenants.cast` brings the sample's own specs up in this suite's JVM. Next: move classes off the single-use shapes onto it.**
+**Open. The cast has started and the first class has moved onto it: delegation now runs on the hospital. Next: read the remaining fourteen single-use shapes against what a cast can hold.**
 
 <!-- The worklist is empty and the ledger is honest, but moving classes onto one runtime made the suite slower before it made it faster: what this machine cannot carry is tenants alive at once. Next: name the shared tenants after the parts they play, so a story's worth of steps runs on a cast several stories share. -->
 
@@ -96,8 +96,38 @@ in [how the migration is run](how-it-is-run.md), which moved here from
    earned a sentence in the guide. `SharedTenants.cast` brings a member up
    from the sample's own spec file, with its upstreams first, so a tenant is
    defined once and the guide's container and this suite read the same
-   definition. What remains is moving classes off the single-use shapes onto
-   the cast.
+   definition.
+
+   The first class has moved. `DelegationIT` had a shape of its own —
+   people keyed by a login, the role that joins them, an encounter to write
+   and the trail on — which is the hospital, spelled differently. It now
+   asks for the hospital, keys its person by the national number the
+   hospital already keys people by, and writes its encounter on r5. Seven
+   tests, all green, and green again beside the two classes already on that
+   tenant. One shape and one database left the suite.
+
+   Reading the other fourteen single-use shapes against the cast gives a
+   sharper version of the sentence above about what resists. Ten of them are
+   a pair or half a pair — a mirror, a grain, a managed tenant, a zone with a
+   type projected rather than written, a clinic asking for fewer types than
+   its zone publishes — and each names its counterpart at creation, which a
+   cast member cannot do for a single class. Three are a tenant the cast
+   has no version or no extractor for: r6, a ValueSet whose envelope is
+   computed in the database, and a tenant that authors profiles without
+   being a face root. The fourteenth is subscriptions, which no cast member
+   declares.
+
+   That last group is the one worth looking at again, because it is the only
+   one where the obstacle is what the sample world happens to declare rather
+   than what a tenant can be. Adding a type to a cast member is adding it to
+   the guide's world, so it is a sentence in the guide before it is a line in
+   a spec — which is the right order and the reason it is not done here.
+
+   One tempting move was read and refused: the profile-replication pair
+   looks like the face root and the hospital, which already stand in exactly
+   that relation. They do not, because the hospital takes that root as a
+   FACE, and a face is cut once and cached — a profile written to the root
+   afterwards would arrive by a path the test is not about, or not at all.
 
 6. The old fourth step, kept because it is what was actually done:
    re-read the entries whose reason is `sweep`. That reason used to say a

@@ -149,25 +149,6 @@ public final class SharedTenants {
                 "r4", "", "none"),
 
         /**
-         * r4 where people act in their own name and in each other's: the
-         * person, the capacity they hold, the role that says so, and
-         * something to write with it.
-         *
-         * <p>Its trail is on, because who acted on whose behalf is the whole
-         * of what this family of classes asks — so a class sharing it reads
-         * the trail scoped to the record it just wrote, never a page of it.
-         */
-        R4_DELEGATION("sharedr4delegation", """
-                [{"name":"Patient","identity":"internal","handling":"operational"},
-                 {"name":"Person","identity":"identifier","systems":["%s"],
-                  "handling":"operational"},
-                 {"name":"Practitioner","identity":"identifier","systems":["%s"],
-                  "handling":"operational"},
-                 {"name":"PractitionerRole","identity":"internal","handling":"operational"},
-                 {"name":"Encounter","identity":"internal","handling":"operational"}]"""
-                .formatted(LOGINS, LOGINS), "r4", "", "writes"),
-
-        /**
          * r4 as a zone: vocabularies it publishes, and a configured type
          * projected rather than written.
          *
