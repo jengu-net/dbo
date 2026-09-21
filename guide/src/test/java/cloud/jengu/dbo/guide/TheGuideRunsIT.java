@@ -1129,9 +1129,11 @@ class TheGuideRunsIT {
             // The insurer's copy travels further than the hospital's: the zone
             // speaks R5 and the insurer R4, so it arrives through the projection.
             // Waiting for the hospital was not waiting for this.
-            assertTrue(waitFor(120, () ->
-                            entries(ask("INSURER", "/CodeSystem?url=urn:rl:wards")) == 1),
-                    "the zone's terminology never reached the insurer");
+            if (!waitFor(120, () ->
+                    entries(ask("INSURER", "/CodeSystem?url=urn:rl:wards")) == 1)) {
+                throw new AssertionError("the zone's terminology never reached the insurer.\n"
+                        + whatThoseTenMinutesLeft());
+            }
             String held = snippets.run("zone-partial-at-insurer").text();
             assertTrue(held.contains("Spell Damage"),
                     "the insurer declared CodeSystem from the zone and did not get it: " + held);
@@ -2484,6 +2486,62 @@ class TheGuideRunsIT {
         Process probe = new ProcessBuilder("curl", "-sf", "-o", "/dev/null",
                 "http://localhost:8090/t/" + tenant + "/fhir/metadata").start();
         return probe.waitFor() == 0;
+    }
+
+    /**
+     * What the projection had done when the wait gave up.
+     *
+     * <p>The wait is a hundred and twenty tries five seconds apart — ten
+     * minutes — and when it expired the suite said only that a copy had not
+     * arrived. Nothing read the insurer afterwards, because the two steps
+     * that follow read the hospital, so there was no evidence about whether
+     * the copy landed a minute later or never. Slow and stopped want opposite
+     * answers and looked identical.
+     *
+     * <p>So this reads once more, waits a further minute and reads again, and
+     * asks the world the two questions that separate them: whether the
+     * upstream half of the journey arrived at the hospital, which takes the
+     * same content directly, and whether the projection tenant that carries
+     * it to a face it was not written in is serving at all.
+     */
+    private String whatThoseTenMinutesLeft() throws Exception {
+        StringBuilder said = new StringBuilder();
+        String atExpiry = ask("INSURER", "/CodeSystem?url=urn:rl:wards");
+        said.append("  at the insurer, when the wait expired: ")
+                .append(entries(atExpiry)).append(" entries\n");
+        said.append("  at the hospital, which takes it directly: ")
+                .append(entries(ask("HOSPITAL", "/CodeSystem?url=urn:rl:wards")))
+                .append(" entries — so the zone published it\n");
+
+        TimeUnit.SECONDS.sleep(60);
+        int later = entries(ask("INSURER", "/CodeSystem?url=urn:rl:wards"));
+        said.append("  at the insurer, a minute after that: ").append(later)
+                .append(later > 0 ? " — SLOW: it arrived after the wait, and the wait is "
+                        + "the number that is wrong\n"
+                        : " — STOPPED: it has not arrived, and the projection is the "
+                                + "subject rather than the wait\n");
+
+        // The projection tenant is the runtime's own, made when a tenant on
+        // one face declares a zone written in another. It is not asked for a
+        // capability statement here: a tenant the runtime made for itself
+        // need not mount a face, so a probe that came back empty would say
+        // nothing. What the world said about it is the evidence.
+        said.append("  what the world said about the projection:\n")
+                .append(logSaying("projection|rl-on-r4|shadow|dead"));
+        return said.toString();
+    }
+
+    /** The lines of the world's log matching a pattern, for a failure to carry. */
+    private static String logSaying(String pattern) throws Exception {
+        Process logs = new ProcessBuilder("docker", "compose", "-f", COMPOSE.toString(),
+                "logs", "--tail", "400", "dbo").redirectErrorStream(true).start();
+        String all = new String(logs.getInputStream().readAllBytes(),
+                java.nio.charset.StandardCharsets.UTF_8);
+        logs.waitFor();
+        String matched = all.lines()
+                .filter(line -> line.matches(".*(" + pattern + ").*"))
+                .reduce("", (one, two) -> one + "    " + two + "\n");
+        return matched.isBlank() ? "    (the world said nothing about it)\n" : matched;
     }
 
     private static void compose(String... arguments) throws Exception {
