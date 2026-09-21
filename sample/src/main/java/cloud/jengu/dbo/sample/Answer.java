@@ -24,6 +24,25 @@ public record Answer(int status, String body, String at, String etag) {
         return at.substring(at.lastIndexOf('/') + 1);
     }
 
+    /**
+     * One field of what it said, for the answers that are a small object
+     * rather than a resource.
+     *
+     * <p>Deliberately shallow and deliberately not a JSON library. This
+     * module is example code an integrator reads, and a dependency added so
+     * that a sample could pretty-print would be the sample teaching a habit
+     * it does not need. A story that wants to take an answer apart properly
+     * should be asserting about a record instead.
+     */
+    public String field(String name) {
+        int at = body.indexOf("\"" + name + "\"");
+        if (at < 0) {
+            throw new IllegalStateException("no " + name + " in " + body);
+        }
+        int from = body.indexOf('"', body.indexOf(':', at)) + 1;
+        return body.substring(from, body.indexOf('"', from));
+    }
+
     /** Whether the store did it. */
     public boolean ok() {
         return status >= 200 && status < 300;

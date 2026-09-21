@@ -2467,6 +2467,65 @@ class TheGuideRunsIT {
             assertFalse(held.body().contains("Bagshot"),
                     "her name came back to a credential not entitled to it: " + held.body());
         }
+
+        /**
+         * The second half of the vocabulary: starting work.
+         *
+         * <p>It carries the porter's credential rather than minting one,
+         * because that is what an integrator's process does — somebody signed
+         * in elsewhere and handed it the result — and because the scenes above
+         * have already proven that this credential is the one a worker holds.
+         * Guessing at a grant here is exactly how the last step to be ported
+         * went wrong six times.
+         */
+        @Test
+        @Order(2)
+        @DisplayName("a run is started through the surface, and it comes back named twice "
+                + "and placed somewhere the caller did not choose")
+        @Proving({DboPromises.PROC_RUN_HAS_A_RECORD,
+                DboPromises.PROC_WORK_IS_AUTHORED_ON_THE_SURFACE,
+                DboPromises.PROC_A_RUN_ANSWERS_ONLY_FOR_ITS_INPUTS})
+        void startingWorkThroughTheSurface() {
+            cloud.jengu.dbo.sample.Surface hospital =
+                    new cloud.jengu.dbo.sample.TheWorld(java.net.URI.create("http://localhost:8090"))
+                            .hospital()
+                            .carrying(snippets.recall("PORTER"));
+
+            cloud.jengu.dbo.sample.Answer started = hospital.startRun(
+                    "hogwarts.admission.admit",
+                    "{\"patient\":\"Patient/" + snippets.recall("id") + "\"}");
+
+            assertTrue(started.ok(), "the porter could not start the admission: "
+                    + started.status() + " " + started.body());
+
+            // Named twice, and the two names answer different questions: one
+            // addresses the context, the other is what the rest of the work
+            // model is asked by. Neither was supplied.
+            assertFalse(started.field("run").isBlank(), "the run came back without an id");
+            assertFalse(started.field("key").isBlank(), "the run came back without a key");
+
+            // And placed. The context is a path, so a caller resolves it
+            // against the host it is already talking to rather than being told
+            // where the store keeps things.
+            assertTrue(started.field("context").startsWith("/"),
+                    "the context was not a path to resolve: " + started.field("context"));
+
+            // And the same credential cannot turn round and browse the record
+            // it just made. A worker holds work and not `system/*`, so the
+            // run is a record without this being a way to read records.
+            //
+            // The scene first asserted the opposite — that the run reads back
+            // as a Task through the ordinary door — and met a 403 saying
+            // insufficient scope. The run IS a record; this actor is not
+            // entitled to it as one, which is the step-scoped API doing its
+            // job and a test assuming that starting work confers a reader.
+            cloud.jengu.dbo.sample.Answer asATask =
+                    hospital.read("Task", started.field("run"));
+            assertEquals(403, asATask.status(),
+                    "the porter's credential read a record directly: " + asATask.body());
+            assertTrue(asATask.body().contains("insufficient scope"),
+                    "the refusal did not say what was insufficient: " + asATask.body());
+        }
     }
 
     @Nested

@@ -65,6 +65,36 @@ public final class Surface {
         return this;
     }
 
+    /**
+     * Carry a credential somebody else obtained.
+     *
+     * <p>An integrator does not always mint its own. A process acting for a
+     * person carries that person's token; a worker carries the one its
+     * enrolment got it. Both are somebody signing in somewhere else and
+     * handing this the result, which is a different act from {@link #signIn}
+     * and is why it is a different method rather than a second constructor.
+     */
+    public Surface carrying(String token) {
+        this.bearer = token;
+        return this;
+    }
+
+    /**
+     * Start a run of a step, with what it needs to begin.
+     *
+     * <p>This is the tenant's own step surface — a door that is not the FHIR
+     * one, because starting work is not writing a record. What comes back
+     * names the run twice and says where its context is, and the caller
+     * supplied none of that.
+     *
+     * @param step   the step's code, as whoever performs it declared it
+     * @param inputs the slots it declared, as a JSON object
+     */
+    public Answer startRun(String step, String inputs) {
+        return send("POST", base.resolve("/t/" + tenant + "/step/" + step),
+                "application/json", "{\"inputs\":" + inputs + "}");
+    }
+
     /** The token this door is holding, for the parts that need to carry it. */
     public String token() {
         if (bearer == null) {
