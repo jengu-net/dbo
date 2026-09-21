@@ -309,6 +309,8 @@ cloud.jengu.dbo.core.TypeRegistry                                      replace(c
 cloud.jengu.dbo.core.TypeRegistry                                      require(String):cloud.jengu.dbo.core.api.TypeRegistration
 cloud.jengu.dbo.core.UuidV7                                            class
 cloud.jengu.dbo.core.UuidV7                                            newId():String
+cloud.jengu.dbo.core.api.Answered                                      class
+cloud.jengu.dbo.core.api.Answered                                      pagedBy(BiFunction,cloud.jengu.dbo.core.api.Criteria):Stream
 cloud.jengu.dbo.core.api.Audience                                      class
 cloud.jengu.dbo.core.api.Audience                                      clear():void
 cloud.jengu.dbo.core.api.Audience                                      named():String

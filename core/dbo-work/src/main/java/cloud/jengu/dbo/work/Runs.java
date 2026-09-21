@@ -486,10 +486,18 @@ public final class Runs {
                 null, because, null)));
     }
 
-    /** Claims that have lapsed, so somebody can take them again. */
+    /**
+     * Claims that have lapsed, so somebody can take them again.
+     *
+     * <p>Walked a page at a time rather than selected whole. What is asked
+     * for is every run an automation is holding and what comes back is the
+     * few whose deadline has passed, so selecting them all held a tenant's
+     * entire outstanding workload in memory to find a handful.
+     */
     public List<Run> lapsed(java.time.Instant now) {
-        return store.select(Criteria.of(WorkModel.TYPE)
-                        .eq("holder", EnvelopeValue.of(Holder.AUTOMATION.wire()))).stream()
+        return cloud.jengu.dbo.core.api.Answered.pagedBy(store::page,
+                        Criteria.of(WorkModel.TYPE)
+                                .eq("holder", EnvelopeValue.of(Holder.AUTOMATION.wire())))
                 .map(Run::of)
                 .filter(run -> run.assignment() != null && run.assignment().until() != null
                         && !run.assignment().until().isAfter(now))
