@@ -260,9 +260,29 @@ gets smaller, not larger.
 
 FHIR joins, and so does this store already: `ElementSearch` compiles a chained
 parameter — `subject.family=Potter` — into `Criteria.chained`, and `_include`
-is gathered before a page is framed. `_revinclude` was looked for and not
-found; whether the reverse direction is missing from the surface or only from
-the place that was read is an open question rather than a claim.
+is gathered before a page is framed.
+
+**The reverse direction is not missing, it is scheduled**, and that turns out to
+be the stronger fact. `_revinclude` is declared out of scope in every version's
+[conformance report](../../conformance/README.md) — *"Tier 2. `_include` is
+supported."* — so a client asking what this tenant serves is told the truth
+about it, which is the honest CapabilityStatement doing its job rather than a
+gap in it.
+
+Search here is tiered on measured usage rather than on the standard's surface
+area, and the reverse direction sits in the second tier: the features with a
+waiting consumer, beside `_has`, richer chaining and `$everything`. What
+justifies that tier is deleting a workaround — the gaps force client-side Java
+post-filtering, and the two examples named for it are audit queries and lab
+worklists.
+
+Which are two of the screens at the top of this page. So the tiering and this
+item argue for each other, and the reverse shape below is a name for something
+already decided on.
+
+Worth noticing that the reverse shape has **two** FHIR features behind it, not
+one: `havingAny` below is `_has`, and bringing the pointing records along is
+`_revinclude`. Both are tier two, for the same reason.
 
 Three shapes, and they are three rather than one:
 
@@ -279,7 +299,8 @@ try (Stream<Match> ward = hogwarts.records("Observation")
     ward.forEach(m -> screen.add(m.record(), m.included("subject")));
 }
 
-// Find by what points at you.
+// Find by what points at you — `_has`, with `_revinclude` behind it if the
+// pointing records are wanted rather than just the matches.
 hogwarts.records("Patient").havingAny("Observation", "subject")
 ```
 
