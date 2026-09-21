@@ -55,6 +55,15 @@ is deliberately not being done, and the commands that prove it.
   hand, and a guide step asserting behaviour newer than the pin fails for a
   reason unrelated to the step. Item 004 carries the question of who moves
   it.
+- **A test that scans once and then uses what it declared is a flake waiting
+  for a loaded runner.** A pass is one reconciliation, not a promise that it
+  finished, so the tenant answers 404 — which is what a tenant nobody
+  declared answers, so the class dies in its setup naming neither. `ZoneIT`
+  did exactly this and is fixed; the door is `UntilServed.scan`, which waits
+  and which fails loudly with the runtime's own reason. Around twenty other
+  calls to `scanOnce` remain and are NOT all this mistake: a test about the
+  scan itself asserts what one pass returned, correctly. Which are which is
+  read, not grepped.
 - **The suite fails non-deterministically in one known place, so a red build
   is not by itself a regression.**
   `SeveralTenantsDeclaredAtOnceComeUpTogetherIT` brings four tenants up at
