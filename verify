@@ -20,21 +20,12 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
-# The conformance report is not in here, and the exclusion is the point. It is
-# a REPORT: it passes as long as it managed to observe the server, nothing
-# ratchets the markdown it writes, and it cost ten minutes of a forty-minute
-# check to regenerate three versions of observations. A proof suite that waits
-# for a report is one people run less often.
-#
-#   ./gradlew :core:conformance:test     # regenerate it, when the face moved
-#
-# CI runs it as a job of its own, beside this one rather than inside it.
 echo "=== phase 1/3: build (without the distribution test) ==="
 # The guide suite is out of this phase because build runs it against the
 # PINNED image, which cannot prove anything this tree changed. Phase 3 runs
 # it against a server built from this tree; the pinned run has a job of its
 # own in CI, where it guards the published commands rather than the code.
-./gradlew build -x :core:harness:distTest -x :guide:test -x :core:conformance:test "$@"
+./gradlew build -x :core:harness:distTest -x :guide:test "$@"
 
 # The whole point of the split; see above.
 ./gradlew --stop
