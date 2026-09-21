@@ -117,6 +117,49 @@ class AskingWhatNeedsSomebodyIT {
     }
 
     @Test
+    @DisplayName("nobody is watching until somebody asks to, and then they see the shape of "
+            + "the question and never what it was about")
+    void theSeamCarriesNamesAndNeverValues() {
+        java.util.List<cloud.jengu.dbo.work.Watching.Asked> seen =
+                new java.util.concurrent.CopyOnWriteArrayList<>();
+
+        // Off by default: this one is asked with nobody watching.
+        asking.work().correlated(CASE).count();
+        assertTrue(seen.isEmpty(), "something was reported to a watcher nobody attached");
+
+        cloud.jengu.dbo.work.Asking watched = asking.watching(seen::add);
+
+        // A count reports at once; there is nothing to walk.
+        assertEquals(3, watched.work().correlated(CASE).count());
+        assertEquals(1, seen.size(), "a count did not report");
+        assertEquals("work.count", seen.get(0).question());
+        assertEquals(List.of("correlated"), seen.get(0).narrowedBy());
+        assertEquals(3, seen.get(0).members());
+
+        // A stream reports at the CLOSE, with what it actually produced —
+        // which for a caller who stopped early is not what matched.
+        try (Stream<Run> some = watched.work().correlated(CASE).open().stream()) {
+            assertEquals(1, some.limit(1).count());
+        }
+        cloud.jengu.dbo.work.Watching.Asked walked = seen.get(seen.size() - 1);
+        assertEquals("work.stream", walked.question());
+        assertEquals(List.of("correlated", "open"), walked.narrowedBy());
+        assertEquals(1, walked.members(),
+                "the walk reported what matched rather than what the caller took");
+
+        // The assertion this seam exists for. The case is an invented id
+        // here; in a real screen the same narrowing is a person's number,
+        // and a watcher wired to a log would write it down.
+        for (cloud.jengu.dbo.work.Watching.Asked asked : seen) {
+            assertTrue(asked.narrowedBy().stream().noneMatch(name -> name.contains(CASE)),
+                    "a narrowing's VALUE reached the watcher: " + asked);
+            assertTrue(!asked.toString().contains(CASE),
+                    "what was asked about is recoverable from what the watcher was told: "
+                            + asked);
+        }
+    }
+
+    @Test
     @DisplayName("and a stranger's work is not in the answer")
     void aStrangersWorkIsNotInTheAnswer() {
         Run elsewhere = runs.correlated(

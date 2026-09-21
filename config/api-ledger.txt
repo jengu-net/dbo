@@ -3920,6 +3920,7 @@ cloud.jengu.dbo.terminology.TerminologyStore.ValueSetCompose           url():Str
 cloud.jengu.dbo.terminology.TerminologyStore.ValueSetCompose           version():String
 cloud.jengu.dbo.work.Asking                                            at(cloud.jengu.dbo.core.api.ObjectStore):cloud.jengu.dbo.work.Asking
 cloud.jengu.dbo.work.Asking                                            class
+cloud.jengu.dbo.work.Asking                                            watching(cloud.jengu.dbo.work.Watching):cloud.jengu.dbo.work.Asking
 cloud.jengu.dbo.work.Asking                                            work():cloud.jengu.dbo.work.Asking.Work
 cloud.jengu.dbo.work.Asking.Work                                       by(String):cloud.jengu.dbo.work.Asking.Work
 cloud.jengu.dbo.work.Asking.Work                                       class
@@ -4334,6 +4335,18 @@ cloud.jengu.dbo.work.Trackables                                        observedB
 cloud.jengu.dbo.work.Trackables                                        reports(cloud.jengu.dbo.work.Trackable):void
 cloud.jengu.dbo.work.Trackables                                        routes(String,List):int
 cloud.jengu.dbo.work.Trackables                                        subtree(String):List
+cloud.jengu.dbo.work.Watching                                          NOBODY:cloud.jengu.dbo.work.Watching
+cloud.jengu.dbo.work.Watching                                          asked(cloud.jengu.dbo.work.Watching.Asked):void
+cloud.jengu.dbo.work.Watching                                          interface
+cloud.jengu.dbo.work.Watching.Asked                                    equals(Object):boolean
+cloud.jengu.dbo.work.Watching.Asked                                    hashCode():int
+cloud.jengu.dbo.work.Watching.Asked                                    members():long
+cloud.jengu.dbo.work.Watching.Asked                                    narrowedBy():List
+cloud.jengu.dbo.work.Watching.Asked                                    new(String,List,long,Duration)
+cloud.jengu.dbo.work.Watching.Asked                                    question():String
+cloud.jengu.dbo.work.Watching.Asked                                    record
+cloud.jengu.dbo.work.Watching.Asked                                    toString():String
+cloud.jengu.dbo.work.Watching.Asked                                    took():Duration
 cloud.jengu.dbo.work.Work                                              correlation():String
 cloud.jengu.dbo.work.Work                                              equals(Object):boolean
 cloud.jengu.dbo.work.Work                                              hashCode():int
