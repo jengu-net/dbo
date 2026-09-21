@@ -528,22 +528,71 @@ class TheGuideRunsIT {
                     "a version that is not a number was not answered as not found");
         }
 
-        // NOT PORTED: "a write made against a version that has moved is refused".
-        //
-        // check.sh still covers it, so nothing is uncovered — but it does not
-        // belong here until it is understood. Run by hand, the sequence behaves
-        // exactly as the chapter says: create gives W/"1", an update gives W/"2",
-        // and a PUT carrying If-Match W/"1" is refused with 412. Run through this
-        // class, with the record verifiably at W/"2" first, the same snippet
-        // answers 200 twice.
-        //
-        // Six attempts went into that gap and three of them were spent on my own
-        // mistakes rather than on the difference: an unchecked setup that PUT to
-        // an empty id, an assertion written from a guess about the snippet's
-        // output, and a guard I added and then deleted in a later edit of the same
-        // block. The step is left out deliberately rather than papered over with
-        // an assertion loose enough to pass, which is the failure this whole port
-        // is most able to cause.
+        /**
+         * A write made against a version that has moved is refused.
+         *
+         * <p>This was the one step the shell harness still covered alone, and
+         * what kept it there was a failure that looked like the store
+         * answering wrongly: the snippet printed 200 twice where the chapter
+         * says 412 then 200.
+         *
+         * <p>It was the harness, not the store. {@link Snippets#sh} hands the
+         * known values TO a script and does not read back what the script
+         * sets, so a setup that captured the new record's id into a shell
+         * variable captured it into a process that then exited. The snippet
+         * ran next with {@code $stale} unset and put to {@code /Patient/} —
+         * the collection, not a record — which the store answers as an upsert
+         * by identifier, twice, with the precondition never consulted because
+         * a collection has no version to precondition on.
+         *
+         * <p>So the id crosses back through Java, which is the only thing here
+         * that outlives a snippet.
+         */
+        @Test
+        @Order(8)
+        @DisplayName("a write made against a version that has moved is refused")
+        @Proving(DboPromises.CORE_VERSIONED_HISTORY)
+        void aWriteAgainstAMovedVersionIsRefused() throws Exception {
+            String stale = snippets.sh("""
+                    curl -sf -X POST -H "Authorization: Bearer $HOSPITAL" "$HOGWARTS/Patient" \
+                        -H 'Content-Type: application/fhir+json' \
+                        -d '{"resourceType":"Patient",
+                             "identifier":[{"system":"urn:rl:nid","value":"RL-0008"}],
+                             "name":[{"family":"Prewett"}]}' \
+                      | python3 -c 'import sys,json;print(json.load(sys.stdin)["id"])'
+                    """).text();
+            assertTrue(stale.matches("[0-9a-f-]{36}"),
+                    "the setup did not capture a record id, so the snippet below would "
+                            + "address the collection instead: " + stale);
+            snippets.remember("stale", stale);
+
+            // Somebody else gets there first, which is the case this exists for.
+            //
+            // Its answer is READ, not discarded. `sh` does not check the exit
+            // status of what it runs, so a curl that met a refusal would leave
+            // the record where it was and say nothing — which is the shape of
+            // the mistake that kept this step unported, arriving one assertion
+            // later as something else.
+            String moved = snippets.sh("""
+                    curl -s -w '\\n%{http_code}' -X PUT -H "Authorization: Bearer $HOSPITAL" \\
+                        "$HOGWARTS/Patient/$stale" -H 'Content-Type: application/fhir+json' \\
+                        -d "{\\"resourceType\\":\\"Patient\\",\\"id\\":\\"$stale\\",
+                             \\"identifier\\":[{\\"system\\":\\"urn:rl:nid\\",\\"value\\":\\"RL-0008\\"}],
+                             \\"name\\":[{\\"family\\":\\"Prewett\\",\\"given\\":[\\"Molly\\"]}]}"
+                    """).text();
+            assertTrue(moved.endsWith("200"),
+                    "the update that is supposed to move the record on was not taken: " + moved);
+            // Checked, not assumed: the whole step is about which version the
+            // record is at.
+            assertTrue(header("HOSPITAL", "/Patient/" + stale, "etag").contains("W/\"2\""),
+                    "the record did not move on: "
+                            + header("HOSPITAL", "/Patient/" + stale, "etag"));
+
+            assertEquals(java.util.List.of("412", "200"),
+                    java.util.List.of(snippets.run("stale-write").text().split("\n")),
+                    "the chapter says a write against the version that has moved is refused "
+                            + "and one against the version it is at is taken");
+        }
 
     }
 

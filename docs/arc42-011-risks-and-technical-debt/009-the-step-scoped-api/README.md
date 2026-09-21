@@ -132,7 +132,8 @@ the same commands run in `docs/guide/examples/check.sh`:
 
 ```
 ./gradlew :guide:test --tests '*WorkAndHowFarARunReaches*'
-./docs/guide/examples/check-tree.sh
+DBO_GUIDE_COMPOSE="$(docs/guide/examples/tree-world.sh /tmp/tree.yaml)" \
+    ./gradlew :guide:test
 ```
 
 The pin moves with the chapter, in both compose files, because a chapter

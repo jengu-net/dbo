@@ -28,7 +28,7 @@ is deliberately not being done, and the commands that prove it.
 | [001 The documentation tree is moved to match its map](001-documentation-shape/README.md) | Open. Next: write the runtime chapter's scenarios and create the quality-requirements chapter. |
 | [002 The sample application](002-sample-application/README.md) | Open. The module owns its sources and the world's specs, and two runners join it. Next: the actor surface, so a story's steps are calls and the promises come as consequences. |
 | [003 Own-world tests move down the ladder](003-tests-move-down-the-ladder/README.md) | Open. The cast has started and one class has moved onto it: delegation runs on the hospital. Four families read against it since, each resisting for a named reason. Next: the shapes kept apart only by what the sample world declares. |
-| [004 The guide runs three times in CI](004-the-guide-runs-three-times/README.md) | Open. Next: port the one step the shell harness still covers. |
+| [004 The guide runs three times in CI](004-the-guide-runs-three-times/README.md) | Open. The step is ported and the shell harness is gone from CI: the tree run is the JUnit suite now. Next: whether the pinned shell run earns its place, which item 002 forces. |
 | [006 The specification is cut to the house style](006-the-specification-in-house-style/README.md) | Open. Next: run the prose reviewer over the user stories, the highest count. |
 | [007 The face contract](007-the-face-contract/README.md) | Open. The epic closed and a second face exists; one slice remains. |
 | [008 IHE profiles](008-ihe-profiles/README.md) | Not scheduled. Analysis only: no profiled surface is served and no issue is filed. |

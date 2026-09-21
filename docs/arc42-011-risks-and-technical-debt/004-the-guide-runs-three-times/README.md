@@ -1,18 +1,35 @@
-**Open. The guide runs three times per CI run. Next: port the one step the shell harness still covers.**
+**Open. The step is ported and the shell harness is gone from CI: the tree run is the JUnit suite now. The guide still comes up three times, and what is left is deciding whether the pinned shell run earns its place. Next: item 002.**
 
 # The guide runs three times in CI
 
-A CI run drives the guide world three times: `guide-as-tests` against the
-pinned image, `guide-on-tree` as the shell harness against a server built
-from the tree, and the third phase of `./verify`, which runs the JUnit
-suite against the tree.
+A CI run drives the guide world three times: `quickstart` runs the published
+commands as a shell script against the pinned image, `guide-on-tree` runs the
+JUnit suite against a server built from the tree, and `guide-as-tests` runs
+the same suite against the pinned image. `./verify`'s third phase is the tree
+run again, locally.
 
-The shell run exists because one step is deliberately not ported to JUnit.
-Once it is, the shell run has nothing the verify phase lacks. The
-pinned-image run proves the published commands against the image a reader
-pulls; when the guide becomes the sample application's story
-([item 002](../002-sample-application/README.md)), what it proves has to be
-decided again.
+**The step is ported and the shell harness is out of the tree run.** What
+kept it there was one step — a write against a version that has moved —
+which read as the store answering wrongly and was the harness: `Snippets.sh`
+hands the known values TO a script and never reads back what the script sets,
+so a setup capturing the new record's id captured it into a process that then
+exited, and the snippet put to the collection instead of the record, which is
+an upsert and has no version to precondition on. The id crosses back through
+Java now.
+
+**Deleting the tree job outright would have cost coverage**, which the item
+did not notice: the `build` job does not run the guide, so `guide-on-tree` is
+the ONLY place in CI the guide meets the code under review. Removing it would
+leave the guide proven against the pinned image alone — exactly the failure
+the job exists to prevent. So it runs the JUnit suite instead of the shell
+one, through `DBO_GUIDE_COMPOSE`, which is the door `tree-world.sh` was
+written for.
+
+That leaves `quickstart` as the last shell run, against the pinned image. It
+proves the published commands work as a reader pastes them, which the suite
+approximates by sourcing the same snippets — so whether it still earns a
+third bring-up is a real question, and it is the same question item 002 forces
+anyway.
 
 Nobody is named to move the pin. The compose file names one image, a person
 changes it, and until they do a guide step asserting behaviour newer than
@@ -20,8 +37,12 @@ the pin fails for a reason unrelated to the step.
 
 ## Steps
 
-1. Port the remaining shell step and remove `guide-on-tree` and
-   `check-tree.sh`.
+1. ~~Port the remaining shell step and remove `guide-on-tree` and
+   `check-tree.sh`.~~ Done, with one change: `check-tree.sh` is gone and
+   `guide-on-tree` stays, running the JUnit suite against the tree. It is the
+   only CI job that tests the guide against the code under review.
 2. Say who moves the pin and when, in the documentation rule, or move it
    from the build on a release.
-3. When item 002 lands, decide whether the pinned run stays.
+3. When item 002 lands, decide whether the pinned runs stay — both of them,
+   and `quickstart`'s shell script first, since the suite now covers every
+   step it does.
