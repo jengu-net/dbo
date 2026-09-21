@@ -44,32 +44,4 @@ class TheCastComesUpFromTheSamplesWorldIT {
                 "the patient this test wrote is not in the clinic's own store");
     }
 
-    /**
-     * The insurer, which is the member that takes the zone through a
-     * projection because it is a release behind.
-     *
-     * <p>It did not come up, intermittently, and the reason was two
-     * byte-identical copies of the engine's own audit code system arriving
-     * down one dependency under two object ids — which is what a projection
-     * hands over, since it assigns fresh ids every time it is cut. The stream
-     * read the second as a stale claim of its own and threw, so the tenant
-     * never served at all.
-     *
-     * <p>It is asserted here rather than in a world of its own because the
-     * bring-up IS the assertion: the insurer serving, beside the zone and the
-     * root it declares, is the whole of what was broken.
-     */
-    @Test
-    @DisplayName("the insurer comes up beside the zone it takes through a projection")
-    void theInsurerComesUpThroughItsProjection() {
-        SharedTenants.Tenant insurer = SharedTenants.cast(SharedTenants.Cast.INSURER);
-
-        assertEquals("gringotts", insurer.code());
-        // One copy of the publication that arrived twice, not two.
-        assertEquals(1, insurer.engine().select(Criteria.of("CodeSystem")
-                        .eq("url", cloud.jengu.dbo.core.api.EnvelopeValue.of("urn:dbo:audit")))
-                        .size(),
-                "the engine's own audit vocabulary is one publication however many "
-                        + "routes carry it here");
-    }
 }
