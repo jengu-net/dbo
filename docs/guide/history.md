@@ -24,11 +24,15 @@ originally written.
 
 ## Any version reads by its number
 
-The bundle gives you all of them; this gives you one:
+The bundle gives you all of them; this gives you one. Here is the whole of
+what an integrator writes to read a past version and to change a record
+without losing somebody else's change:
 
-```bash
---8<-- "docs/guide/examples/snippets/vread.sh"
+```java title="sample/src/main/java/cloud/jengu/dbo/sample/Amending.java"
+--8<-- "sample/src/main/java/cloud/jengu/dbo/sample/Amending.java"
 ```
+
+`asItWas` on version 1, and then on a version that never existed:
 
 ```json
 {"resourceType":"Patient","identifier":[{"system":"urn:rl:nid","value":"RL-0001"}],
@@ -48,11 +52,8 @@ make a conditional update built on a stale read look safe.
 
 ## A deletion is a version too
 
-Create a record, delete it, and ask for the version that did the deleting:
-
-```bash
---8<-- "docs/guide/examples/snippets/vread-gone.sh"
-```
+Create a record, delete it, and ask `asItWas` for the version that did the
+deleting, then for the one before it:
 
 ```
 204
@@ -70,12 +71,9 @@ a typo from a history, which is most of what it came to ask.
 
 ## Two writers, one record
 
-Now the part the versions are for. Read a record at version 1, take your time
+Now the part the versions are for, and the reason `amend` takes the answer you
+read rather than a version number you typed. Read a record, take your time
 deciding, and write back — while somebody else has already changed it:
-
-```bash
---8<-- "docs/guide/examples/snippets/stale-write.sh"
-```
 
 ```
 412

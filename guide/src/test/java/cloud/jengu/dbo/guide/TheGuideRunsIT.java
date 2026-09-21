@@ -2590,6 +2590,125 @@ class TheGuideRunsIT {
             assertTrue(asATask.body().contains("insufficient scope"),
                     "the refusal did not say what was insufficient: " + asATask.body());
         }
+
+        /**
+         * The Records chapter, run rather than described.
+         *
+         * <p>The chapter includes `Intake` and `Publishing` whole. These are
+         * the outcomes it prints beside them, so a chapter that says 409 and a
+         * store that says something else cannot both survive a build.
+         */
+        @Test
+        @Order(3)
+        @DisplayName("a second copy of a person is refused, a message about her is taken, "
+                + "and a definition written twice is one record")
+        @Proving({DboPromises.CORE_DECLARED_IDENTITY, DboPromises.CORE_NO_IMPLICIT_MERGE,
+                DboPromises.CORE_IDENTITY_KEYED_CONDITIONALS})
+        void theRecordsChapter() {
+            cloud.jengu.dbo.sample.TheWorld world =
+                    new cloud.jengu.dbo.sample.TheWorld(java.net.URI.create("http://localhost:8090"));
+            cloud.jengu.dbo.sample.Intake intake = new cloud.jengu.dbo.sample.Intake(
+                    world.hospital().signIn("tenant-bootstrap", "hogwarts-secret"));
+
+            // Somebody nobody has admitted before.
+            cloud.jengu.dbo.sample.Answer first = intake.admit("RL-0077", "Lovegood", "Luna");
+            assertTrue(first.ok(), "she could not be admitted at all: "
+                    + first.status() + " " + first.body());
+
+            // And again, which the chapter says is 409.
+            assertEquals(409, intake.admit("RL-0077", "Lovegood", "Luna").status(),
+                    "a second record for one identity was not refused");
+
+            // A message about her, naming only the number, which the chapter
+            // says is 200 and one record at the next version.
+            cloud.jengu.dbo.sample.Answer message =
+                    intake.whatTheMessageSays("RL-0077", "Lovegood", "Luna");
+            assertEquals(200, message.status(),
+                    "writing against her identity did not take: " + message.body());
+
+            // The other identity class, in the zone: the same verb, twice,
+            // and one record — which the chapter says is 201 and 201.
+            cloud.jengu.dbo.sample.Publishing publishing = new cloud.jengu.dbo.sample.Publishing(
+                    world.zone().signIn("tenant-bootstrap", "rl-secret"));
+            String canonical = "urn:rl:records-chapter";
+            assertEquals(201, publishing.publish(canonical, "one", "One").status(),
+                    "the zone could not publish its vocabulary");
+            assertEquals(201, publishing.publish(canonical, "one", "One", "two", "Two").status(),
+                    "publishing it again was not accepted as the same definition moving on");
+
+            cloud.jengu.dbo.sample.Answer held = world.zone()
+                    .signIn("tenant-bootstrap", "rl-secret")
+                    .search("CodeSystem", "url=" + canonical + "&_summary=count");
+            assertTrue(held.body().contains("\"total\":1"),
+                    "a definition written twice is one record: " + held.body());
+        }
+
+        /**
+         * The History chapter, run rather than described.
+         *
+         * <p>Its subtlest claim is the one asserted last, and it is the reason
+         * the chapter's `amend` takes the answer you read rather than a number
+         * you typed: a version read carries THAT version's validator. If a
+         * stale read handed back the current one, a conditional write built on
+         * it would look current and succeed, which is exactly the accident the
+         * mechanism exists to prevent.
+         */
+        @Test
+        @Order(4)
+        @DisplayName("a past version reads as it was, a deletion is a version, and a change "
+                + "decided on a stale read is refused")
+        @Proving({DboPromises.CORE_VERSIONED_HISTORY, DboPromises.CORE_READ_YOUR_WRITES})
+        void theHistoryChapter() {
+            cloud.jengu.dbo.sample.TheWorld world =
+                    new cloud.jengu.dbo.sample.TheWorld(java.net.URI.create("http://localhost:8090"));
+            cloud.jengu.dbo.sample.Surface hospital =
+                    world.hospital().signIn("tenant-bootstrap", "hogwarts-secret");
+            cloud.jengu.dbo.sample.Amending amending =
+                    new cloud.jengu.dbo.sample.Amending(hospital);
+            cloud.jengu.dbo.sample.Intake intake = new cloud.jengu.dbo.sample.Intake(hospital);
+
+            String id = intake.admit("RL-0078", "Diggory", "Cedric").id();
+
+            // Any version reads by its number; one that never existed is told
+            // so rather than answered with the nearest thing.
+            assertTrue(amending.asItWas("Patient", id, 1).ok(),
+                    "the version this record was written at does not read");
+            assertEquals(404, amending.asItWas("Patient", id, 99).status(),
+                    "a version that never existed was not answered as not found");
+
+            // A deletion is a version too: 410 for the one that did it, and
+            // the versions before it still read.
+            String doomed = intake.admit("RL-0079", "Fleeting", "Frank").id();
+            assertEquals(204, hospital.forget("Patient", doomed).status(),
+                    "the record would not go");
+            assertEquals(410, amending.asItWas("Patient", doomed, 2).status(),
+                    "the store invented a document for the moment a record stopped "
+                            + "having one, instead of saying it is gone");
+            assertEquals(200, amending.asItWas("Patient", doomed, 1).status(),
+                    "a deletion took the history with it, so it was an erasure");
+
+            // Two writers, one record. What is read first is what the change
+            // is decided on; somebody else moves the record on meanwhile.
+            cloud.jengu.dbo.sample.Answer whatWeRead = hospital.read("Patient", id);
+            intake.whatTheMessageSays("RL-0078", "Diggory", "Ced");
+
+            assertEquals(412, amending.amend("Patient", id, whatWeRead, """
+                    {"resourceType":"Patient","id":"%s",
+                     "identifier":[{"system":"urn:rl:nid","value":"RL-0078"}],
+                     "name":[{"family":"Diggory","given":["Cedric"]}]}""".formatted(id)).status(),
+                    "a change decided on a version that has moved was not refused, so the "
+                            + "other writer's change is gone and nobody was told");
+
+            // And the subtle half: a PAST version's read carries that
+            // version's validator, not the record's current one. Were it
+            // otherwise, the refusal above would have been a success.
+            cloud.jengu.dbo.sample.Answer past = amending.asItWas("Patient", id, 1);
+            cloud.jengu.dbo.sample.Answer now = hospital.read("Patient", id);
+            assertTrue(past.etag() != null && !past.etag().equals(now.etag()),
+                    "a stale read handed back the current version's validator, so a "
+                            + "conditional write built on it would look safe: past="
+                            + past.etag() + " now=" + now.etag());
+        }
     }
 
     @Nested

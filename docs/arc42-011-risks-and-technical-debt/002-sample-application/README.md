@@ -1,4 +1,4 @@
-**Open. The module owns its sources and the world's specs, its runner performs a run end to end, and a second module joins from outside with a step of its own. Next: the actor surface — the few things an external actor does — so a story's steps are calls on it and the promises come along as consequences.**
+**Open. The actor surface exists and two scenes run over it, each having caught an assumption an in-JVM scene would have let stand. The map said HTTP belonged only in the participant's chapter; that is changed, on this evidence. Next: the guide's chapters, one at a time, over the surface.**
 
 # The sample application
 
@@ -14,7 +14,8 @@ product would.
 - It declares a tenant and its types, writes a step service, registers it,
   and receives work over a lane.
 - A second, smaller module is an external participant: another process that
-  joins a step somebody else runs, and is the one place HTTP appears.
+  joins a step somebody else runs, over a lane rather than the store's
+  surface.
 - Its stories are its tests, run against the tree world by the third verify
   phase, and each story cites the promises it proves.
 - A guide chapter includes a region of the sample's source. A chapter that
@@ -64,6 +65,21 @@ a runner here, an outside participant there — rather than one object that
 does everything. The point of the module is to look like the code somebody
 writes.
 
+**It reaches the store the way a product does.** Over the surface, holding a
+token, because an integrator of a multi-tenant store is across a network from
+it — and because a scene that reached the store in-JVM could take shortcuts no
+product has. The map said HTTP belonged only in the participant's chapter and
+has been changed, on the evidence: the first two scenes written over the
+surface each caught an assumption an in-JVM scene would have let stand. One
+asserted that a read returns what a write sent, and the hospital holds its
+people behind the membrane, so it does not. The other asserted that starting
+work confers a reader, and a worker holds `work` and not `system/*`, so it
+does not. Both are the store keeping a promise and a test assuming otherwise,
+which is the drift this whole approach exists to catch.
+
+What stays in-JVM is what only runs there: a lifecycle listener, an observer,
+an embedded boot. Those are things a host does, not things an actor does.
+
 ## Steps
 
 1. ~~The module.~~ `sample/` holds the sources and the tenant specs the
@@ -82,10 +98,13 @@ writes.
    performs it. The same document from the laboratory's own credential is
    refused, which is what an introduction granting nothing looks like from
    the outside.
-4. The actor surface. One small assembling object that holds the world's
-   addresses and hands out the parts, and a method per thing an external
-   actor does — no method for anything the store does in reaction. A story
-   test reads as the scene it is named after.
+4. ~~The actor surface.~~ Done. `TheWorld` holds the world's addresses and
+   hands out the parts; `Surface` is one tenant's front door in an actor's
+   vocabulary — sign in, carry somebody's token, write, read, search, change,
+   forget, start a run — with no method for anything the store does in
+   reaction. `Answer` is carried whole, because half of what a story asserts
+   is a refusal. Two scenes use it and both earned their keep on the first
+   day; they are the evidence for the paragraph above.
 5. Each further chapter of the guide, in the order item 001 gives, over that
    surface.
 6. Promises move onto it as the stories grow, one story at a time, and a
