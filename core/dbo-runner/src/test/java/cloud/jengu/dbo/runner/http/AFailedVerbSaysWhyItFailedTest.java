@@ -34,7 +34,7 @@ class AFailedVerbSaysWhyItFailedTest {
     @DisplayName("a verb that throws answers 500, and the cause is in this side's log")
     @Proving(DboPromises.PROC_A_FAULT_THE_CALLER_IS_NOT_TOLD_IS_STILL_RECORDED)
     void aVerbThatThrowsLeavesItsCauseInTheLog() throws Exception {
-        RecordingLogs.EVENTS.clear();
+        RecordingLogs.clear();
 
         // A lane that fails the way the ones that matter fail: not a refusal
         // and not a malformed ask, which have their own answers, but
@@ -80,7 +80,7 @@ class AFailedVerbSaysWhyItFailedTest {
             server.stop(0);
         }
 
-        String logged = String.join("\n", RecordingLogs.EVENTS);
+        String logged = String.join("\n", RecordingLogs.events());
         assertTrue(logged.contains("ERROR"), "a 500 was answered and nothing was logged");
         assertTrue(logged.contains("unreachable"),
                 "the log holds the answer the caller already had, and not the cause: " + logged);

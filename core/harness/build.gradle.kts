@@ -62,7 +62,14 @@ val karafCommandsTestOutput = project(":karaf:commands")
 
 dependencies {
     testRuntimeOnly(guideTestOutput)
-    testRuntimeOnly(dboRunnerTestOutput)
+    // Its CLASSES only, and the distinction is load-bearing. What is wanted
+    // is the META-INF/promise/proofs index the processor writes beside them.
+    // Its resources also carry a META-INF/services entry naming that module's
+    // recording slf4j provider, and a provider on this classpath becomes the
+    // binding for the whole harness JVM — every log line in the suite through
+    // a recorder written for two tests. That cost 108 threads contending on
+    // one list and turned a forty-minute suite into a two-hour one.
+    testRuntimeOnly(dboRunnerTestOutput.classesDirs)
     testImplementation(karafCommandsTestOutput)
     testImplementation(project(":core:dbo-core"))
     testImplementation(project(":core:dbo-promises"))

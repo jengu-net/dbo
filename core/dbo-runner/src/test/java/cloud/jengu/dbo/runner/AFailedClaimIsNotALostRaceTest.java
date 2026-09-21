@@ -27,7 +27,7 @@ class AFailedClaimIsNotALostRaceTest {
     @DisplayName("a claim that fails says why, and the cycle goes on to the next run")
     @Proving(DboPromises.PROC_A_FAULT_THE_CALLER_IS_NOT_TOLD_IS_STILL_RECORDED)
     void aFailedClaimSaysWhyAndTheCycleGoesOn() {
-        RecordingLogs.EVENTS.clear();
+        RecordingLogs.clear();
 
         ProvingLane offered = ProvingLane.offering("a.process.step")
                 .with("thing", "Basic", "{\"resourceType\":\"Basic\"}").lane();
@@ -59,7 +59,7 @@ class AFailedClaimIsNotALostRaceTest {
                 .attach(unreachable);
 
         assertEquals(0, runner.cycle(), "a run nobody could claim was reported as performed");
-        String logged = String.join("\n", RecordingLogs.EVENTS);
+        String logged = String.join("\n", RecordingLogs.events());
         assertTrue(logged.contains("claim failed"),
                 "the claim failed and the cycle said nothing: " + logged);
         assertTrue(logged.contains("500"),

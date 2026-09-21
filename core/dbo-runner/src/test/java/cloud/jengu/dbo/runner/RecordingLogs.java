@@ -12,7 +12,7 @@ import org.slf4j.spi.MDCAdapter;
 import org.slf4j.spi.SLF4JServiceProvider;
 
 import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
  * The binding these tests run against: every event, kept.
@@ -23,8 +23,24 @@ import java.util.concurrent.CopyOnWriteArrayList;
  */
 public final class RecordingLogs implements SLF4JServiceProvider {
 
-    /** Every event any logger in this module recorded, as "LEVEL message | throwable". */
-    public static final List<String> EVENTS = new CopyOnWriteArrayList<>();
+    /**
+     * Every event any logger in this module recorded, as "LEVEL message |
+     * throwable".
+     *
+     * <p>A queue rather than a copy-on-write list: this is written from every
+     * thread that logs, and a structure that copies itself on each add turns
+     * a busy run quadratic.
+     */
+    private static final ConcurrentLinkedQueue<String> RECORDED = new ConcurrentLinkedQueue<>();
+
+    /** What has been recorded so far. */
+    public static List<String> events() {
+        return List.copyOf(RECORDED);
+    }
+
+    public static void clear() {
+        RECORDED.clear();
+    }
 
     private final IMarkerFactory markers = new BasicMarkerFactory();
     private final MDCAdapter mdc = new BasicMDCAdapter();
@@ -41,8 +57,8 @@ public final class RecordingLogs implements SLF4JServiceProvider {
             @Override
             protected void handleNormalizedLoggingCall(Level level, Marker marker, String message,
                     Object[] arguments, Throwable thrown) {
-                EVENTS.add(level + " " + message + " " + java.util.Arrays.toString(arguments)
-                        + " | " + thrown);
+                RECORDED.add(level + " " + message + " "
+                        + java.util.Arrays.toString(arguments) + " | " + thrown);
             }
 
             @Override
