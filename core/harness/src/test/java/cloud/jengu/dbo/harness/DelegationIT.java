@@ -3,7 +3,6 @@ package cloud.jengu.dbo.harness;
 import cloud.jengu.dbo.auth.TenantAuthority;
 import cloud.jengu.dbo.promises.DboPromises;
 import cloud.jengu.dbo.promises.Proving;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
@@ -40,7 +39,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class DelegationIT {
 
-    static final String EID = SharedTenants.LOGINS;
+    /** What the hospital keys its people by: the national number. */
+    static final String EID = "urn:rl:nid";
     static final String REDIRECT = "http://127.0.0.1/cb";
     static final String ENGINE_SECRET = "engine-salajane-32-taht";
 
@@ -56,10 +56,14 @@ class DelegationIT {
 
     @BeforeAll
     void up() throws Exception {
-        // Shared. The person, the capacity and the role below are this
-        // class's own records, named by an identifier value of its own, and
-        // the trail is read scoped to the encounter this class just wrote.
-        tenant = SharedTenants.of(SharedTenants.Shape.R4_DELEGATION);
+        // The hospital, because that is the part this asks about: people
+        // who act in their own name and in each other's, inside an
+        // organisation that keys them by their national number and keeps a
+        // trail of what they wrote. The person, the capacity and the role
+        // below are this class's own records, named by a number nothing else
+        // in the suite uses, and the trail is read scoped to the encounter
+        // this class just wrote.
+        tenant = SharedTenants.cast(SharedTenants.Cast.HOSPITAL);
 
         String service = serviceToken();
         practitionerId = idOf(fhirPost("/Practitioner", service, """
@@ -89,15 +93,6 @@ class DelegationIT {
         authority.ensureClient("engine", ENGINE_SECRET, List.of());
 
         humanToken = loginForToken();
-    }
-
-    /**
-     * Given back. This shape is one class's, so holding it to the end of
-     * the run would be a database the whole suite carries for nobody.
-     */
-    @AfterAll
-    void down() {
-        SharedTenants.retire(tenant);
     }
 
     private String base() {
@@ -180,7 +175,8 @@ class DelegationIT {
 
         // the delegated token can write Encounters but not read (attenuated away)
         HttpResponse<String> written = fhirPost("/Encounter", actToken,
-                "{\"resourceType\":\"Encounter\",\"status\":\"planned\",\"class\":{\"code\":\"AMB\"}}");
+                "{\"resourceType\":\"Encounter\",\"status\":\"planned\","
+                        + "\"class\":[{\"coding\":[{\"code\":\"AMB\"}]}]}");
         assertEquals(201, written.statusCode());
         String encounterId = idOf(written);
         assertEquals(403, http.send(HttpRequest.newBuilder(
@@ -283,7 +279,8 @@ class DelegationIT {
                         + "&delegation_id=" + delegationId), "access_token");
         assertTrue(claimsOf(actToken).contains("\"act\":{\"sub\":\"engine\"}"));
         assertEquals(201, fhirPost("/Encounter", actToken,
-                "{\"resourceType\":\"Encounter\",\"status\":\"planned\",\"class\":{\"code\":\"AMB\"}}")
+                "{\"resourceType\":\"Encounter\",\"status\":\"planned\","
+                        + "\"class\":[{\"coding\":[{\"code\":\"AMB\"}]}]}")
                 .statusCode());
 
         // widen the human's grant — the delegation must NOT widen with it
