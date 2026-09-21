@@ -2396,6 +2396,79 @@ class TheGuideRunsIT {
      * that reason. A promise proven here cannot assume anything it erases is
      * still available to a later story, because there is no later story.
      */
+    /**
+     * The same store, reached the way a product reaches it: through the
+     * sample's own surface rather than through a published command.
+     *
+     * <p>Every scene above runs the chapters' curl, which is what proves the
+     * chapters. This one runs the module those chapters are about — the
+     * code an integrator writes — and it exists to show the shape the rest
+     * of the stories are moving to: what an actor DOES is a call, and what
+     * the store did about it is read afterwards.
+     *
+     * <p>Nothing here invokes a consequence. Nobody asks for a version to be
+     * kept or a trail entry to be written. Somebody admits a patient, and
+     * those are true or they are not.
+     */
+    @Nested
+    @Order(21)
+    @DisplayName("the surface an integrator writes against")
+    @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+    class TheSurfaceAnIntegratorWritesAgainst {
+
+        @Test
+        @Order(1)
+        @DisplayName("somebody is admitted through the sample's own surface, and the store's "
+                + "answer carries what nobody asked for")
+        @Proving({DboPromises.CORE_VERSIONED_HISTORY, DboPromises.CORE_READ_YOUR_WRITES,
+                DboPromises.PDI_STRUCTURAL_VAULT})
+        void admittingSomebodyThroughTheSurface() {
+            cloud.jengu.dbo.sample.TheWorld world =
+                    new cloud.jengu.dbo.sample.TheWorld(java.net.URI.create("http://localhost:8090"));
+
+            // What an actor does: sign in, write a record. Two sentences.
+            cloud.jengu.dbo.sample.Surface hospital = world.hospital()
+                    .signIn("tenant-bootstrap", "hogwarts-secret");
+            cloud.jengu.dbo.sample.Answer admitted = hospital.write("Patient", """
+                    {"resourceType":"Patient",
+                     "identifier":[{"system":"urn:rl:nid","value":"RL-0042"}],
+                     "name":[{"family":"Bagshot","given":["Bathilda"]}]}""");
+
+            assertTrue(admitted.ok(), "the hospital would not admit her: "
+                    + admitted.status() + " " + admitted.body());
+
+            // And what nobody asked for, read from what the store did. A
+            // version it was never told to keep, and an address it assigned.
+            assertEquals("W/\"1\"", admitted.etag(),
+                    "the store did not say which version this is");
+            String id = admitted.id();
+
+            // Read your writes: the record answers immediately, at the
+            // version the write said it was at.
+            cloud.jengu.dbo.sample.Answer held = hospital.read("Patient", id);
+            assertTrue(held.ok(), "the record the store just made did not answer: "
+                    + held.status());
+            assertTrue(held.body().contains("\"versionId\":\"1\""),
+                    "the record answered without saying which version it is: " + held.body());
+
+            // And what comes back does NOT carry her name, which is the other
+            // half of the same idea and the half that surprises.
+            //
+            // The hospital holds its people behind the membrane. This scene
+            // signed in as the tenant's own service credential, which is
+            // entitled to write a record and not entitled to unseal the person
+            // in it — so the read answers the record without the identifying
+            // elements rather than refusing, and nobody had to ask for that
+            // either.
+            //
+            // The first version of this scene asserted her family name came
+            // back and failed, which is the store keeping a promise and a test
+            // assuming a read returns what a write sent.
+            assertFalse(held.body().contains("Bagshot"),
+                    "her name came back to a credential not entitled to it: " + held.body());
+        }
+    }
+
     @Nested
     @Order(22)
     @DisplayName("being forgotten")
