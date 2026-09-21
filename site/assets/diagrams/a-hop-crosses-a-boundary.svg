@@ -1,0 +1,93 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-435.88 -159.5 871.76 319" width="871.76" height="319" class="lini lini-scope-43aea669" role="img" aria-labelledby="a-hop-crosses-a-boundary-title a-hop-crosses-a-boundary-desc">
+  <title id="a-hop-crosses-a-boundary-title">A hop crosses a boundary, and is recorded three times</title>
+  <desc id="a-hop-crosses-a-boundary-desc">A process running in the platform plane asks the sending tenant to perform its half. The tenant does the work and sends the content directly to the receiving tenant's ingress, which takes it; only a reference goes back to the platform. The platform then records the hop itself: the participants, the process it belongs to and the hashes of what moved, never the content. Three records are written in three stores: the sender's egress and the receiver's ingress in each tenant's own trail, and the coordination in the platform's.</desc>
+  <style>
+    @layer lini.defaults {
+      :root, .lini-scope-43aea669 { color-scheme: light dark; --lini-accent: #a8641b; --lini-accent-soft: #f6efe4; --lini-fg: light-dark(black, #e8e8ea); --lini-fill: light-dark(white, #26262b); --lini-font-weight: 500; --lini-link-font-weight: 400; --lini-seal: #14532d; --lini-seal-soft: #e7f0e9; --lini-stroke: #444444; --lini-text-color: var(--lini-fg); }
+      .lini-scope-43aea669[data-theme="dark"], [data-theme="dark"] .lini-scope-43aea669 { color-scheme: dark; }
+      .lini-scope-43aea669[data-theme="light"], [data-theme="light"] .lini-scope-43aea669 { color-scheme: light; }
+    }
+    .lini-scope-43aea669 { font-family: "Google Sans"; font-size: 13px; font-weight: var(--lini-font-weight); color: var(--lini-text-color); }
+    .lini-scope-43aea669 .lini-block { fill: none; stroke: none; stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-43aea669 .lini-path { stroke-dasharray: none; }
+    .lini-scope-43aea669 .lini-line { fill: none; stroke: var(--lini-stroke); stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-43aea669 .lini-text { fill: currentColor; stroke: none; text-anchor: middle; }
+    .lini-scope-43aea669 .lini-box { fill: var(--lini-fill); stroke: var(--lini-stroke); stroke-width: 2; }
+    .lini-scope-43aea669 .lini-note { fill: var(--lini-fill); stroke: var(--lini-stroke); }
+    .lini-scope-43aea669 .lini-face { fill: var(--lini-accent-soft); stroke: var(--lini-accent); }
+    .lini-scope-43aea669 .lini-engine { fill: var(--lini-seal-soft); stroke: var(--lini-seal); }
+    .lini-scope-43aea669 .lini-link { fill: none; stroke: var(--lini-stroke); stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-43aea669 .lini-link-dashed { stroke-dasharray: 7,5.5; }
+    .lini-scope-43aea669 .lini-sequence-message { fill: currentColor; stroke: none; text-anchor: middle; font-size: 13px; font-weight: normal; }
+    .lini-scope-43aea669 .lini-marker { fill: var(--lini-stroke); stroke: none; }
+  </style>
+  <defs/>
+  <g class="lini-scene">
+    <g class="lini-node lini-line" style="stroke: var(--lini-seal)" transform="translate(0,0)">
+      <line x1="-207.613" y1="-84.5" x2="-207.613" y2="139.5"/>
+    </g>
+    <g class="lini-node lini-line" style="stroke: var(--lini-accent)" transform="translate(0,0)">
+      <line x1="-4.8555" y1="-84.5" x2="-4.8555" y2="139.5"/>
+    </g>
+    <g class="lini-node lini-line" style="stroke: var(--lini-accent)" transform="translate(0,0)">
+      <line x1="202.7575" y1="-84.5" x2="202.7575" y2="139.5"/>
+    </g>
+    <g class="lini-node lini-block" style="fill: var(--lini-accent-soft); stroke: var(--lini-accent)" transform="translate(-4.8555,-10.5)">
+      <rect x="-5" y="-51" width="10" height="102" rx="0" ry="0"/>
+    </g>
+    <g class="lini-node lini-block" style="fill: var(--lini-accent-soft); stroke: var(--lini-accent)" transform="translate(202.7575,8.5)">
+      <rect x="-5" y="-10" width="10" height="20" rx="0" ry="0"/>
+    </g>
+    <g class="lini-node lini-engine lini-box lini-block" data-id="platform" transform="translate(-207.613,-112)">
+      <rect x="-76.9465" y="-26.5" width="153.893" height="53" rx="8" ry="8"/>
+      <text class="lini-text" x="0" y="0" dy="0.358em">The platform plane</text>
+    </g>
+    <g class="lini-node lini-face lini-box lini-block" data-id="sender" transform="translate(-4.8555,-112)">
+      <rect x="-77.811" y="-26.5" width="155.622" height="53" rx="8" ry="8"/>
+      <text class="lini-text" x="0" y="0" dy="0.358em">The sending tenant</text>
+    </g>
+    <g class="lini-node lini-face lini-box lini-block" data-id="receiver" transform="translate(202.7575,-112)">
+      <rect x="-81.802" y="-26.5" width="163.604" height="53" rx="8" ry="8"/>
+      <text class="lini-text" x="0" y="0" dy="0.358em">The receiving tenant</text>
+    </g>
+    <g class="lini-node lini-note lini-path" style="stroke-width: 2; font-size: 13px" transform="translate(98.951,104)">
+      <path d="M -316.92900000000003 -13.5 L 307.749 -13.5 L 316.92900000000003 -4.3199999999999985 L 316.92900000000003 13.5 L -316.92900000000003 13.5 Z"/>
+      <g class="lini-node lini-path" style="fill: var(--lini-stroke); stroke: none; stroke-width: 0" transform="translate(0,0)">
+        <path d="M 307.749 -13.5 L 316.92900000000003 -4.3199999999999985 L 307.749 -4.3199999999999985 Z"/>
+      </g>
+      <text class="lini-text" x="0" y="0" dy="0.358em">Three records, in three stores: the sender&apos;s egress, the receiver&apos;s ingress, the platform&apos;s coordination.</text>
+    </g>
+  </g>
+  <g class="lini-links">
+    <g class="lini-link" data-from="platform" data-to="sender">
+      <path d="M -207.613 -62.5 L -14.3555 -62.5"/>
+      <polygon class="lini-marker lini-marker-arrow" points="-10.3555,-62.5 -19.3555,-58 -19.3555,-67"/>
+      <text class="lini-sequence-message" x="-106.2343" y="-74" dy="0.358em">perform your half</text>
+    </g>
+    <g class="lini-link" data-from="sender" data-to="sender">
+      <path d="M 1.1445 -40.5 L 9.1445 -40.5 A 8 8 0 0 1 17.1445 -32.5 L 17.1445 -32.5 A 8 8 0 0 1 9.1445 -24.5 L 4.6445 -24.5"/>
+      <polygon class="lini-marker lini-marker-arrow" points="0.6445,-24.5 9.6445,-29 9.6445,-20"/>
+      <text class="lini-sequence-message" x="44.1665" y="-52" dy="0.358em">do the work</text>
+    </g>
+    <g class="lini-link" data-from="sender" data-to="receiver">
+      <path d="M 1.1445 -2.5 L 193.2575 -2.5"/>
+      <polygon class="lini-marker lini-marker-arrow" points="197.2575,-2.5 188.2575,2 188.2575,-7"/>
+      <text class="lini-sequence-message" x="98.951" y="-14" dy="0.358em">the content, to its ingress</text>
+    </g>
+    <g class="lini-link lini-link-dashed" data-from="receiver" data-to="sender">
+      <path d="M 196.7575 19.5 L 4.6445 19.5"/>
+      <polygon class="lini-marker lini-marker-arrow" points="0.6445,19.5 9.6445,15 9.6445,24"/>
+      <text class="lini-sequence-message" x="98.951" y="8" dy="0.358em">taken</text>
+    </g>
+    <g class="lini-link lini-link-dashed" data-from="sender" data-to="platform">
+      <path d="M -10.8555 41.5 L -204.113 41.5"/>
+      <polygon class="lini-marker lini-marker-arrow" points="-208.113,41.5 -199.113,37 -199.113,46"/>
+      <text class="lini-sequence-message" x="-106.2343" y="30" dy="0.358em">a reference, never the content</text>
+    </g>
+    <g class="lini-link" data-from="platform" data-to="platform">
+      <path d="M -207.613 63.5 L -199.613 63.5 A 8 8 0 0 1 -191.613 71.5 L -191.613 71.5 A 8 8 0 0 1 -199.613 79.5 L -204.113 79.5"/>
+      <polygon class="lini-marker lini-marker-arrow" points="-208.113,79.5 -199.113,75 -199.113,84"/>
+      <text class="lini-sequence-message" x="-60.2465" y="52" dy="0.358em">record the hop: who, which process, the hashes</text>
+    </g>
+  </g>
+</svg>

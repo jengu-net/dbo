@@ -24,6 +24,21 @@ is almost all terminology, and it is paid once per database rather than once
 per use. [Tenant provisioning](../arc42-007-deployment/tenant-provisioning.md)
 is the same life from the operator's side.
 
+## A person signs in
+
+--8<-- "assets/diagrams/a-person-signs-in.svg"
+
+<p class="diagram-caption">The tenant's own authority resolves the person and
+a role whose period has not ended, and the token names the capacity. The face
+checks that capacity against the same records.</p>
+
+The roles are records in the tenant's store, so there is no second directory
+to keep in step and revoking access is ending a period on one of them. The
+token is minted by the tenant that will honour it, so a token from any other
+tenant fails at signature verification before a claim is read.
+[Who may act](../arc42-008-crosscutting/who-may-act/README.md) holds the two
+doors into that trust root.
+
 ## A write arrives
 
 --8<-- "assets/diagrams/a-write-arrives.svg"
@@ -54,6 +69,21 @@ is a wrong result set rather than a compatibility feature.
 [Finding things](../arc42-008-crosscutting/finding-things/README.md) says
 what is declared.
 
+## A record is read at another version
+
+--8<-- "assets/diagrams/a-record-is-read-at-another-version.svg"
+
+<p class="diagram-caption">The face reads the stored bytes, which carry the
+version they were written under, and the converter chain answers as the older
+version says it, or refuses by name.</p>
+
+The bytes are never rewritten, so a version is a lens rather than a
+migration, and one deployment serves R4 to one tenant and R5 to another. A
+conversion that cannot carry an element refuses and says which element,
+because a silently dropped one is a record that reads as complete and is not.
+[The FHIR face](../arc42-008-crosscutting/the-fhir-face/README.md) is what a
+client sees of this.
+
 ## A consumer catches up
 
 --8<-- "assets/diagrams/a-consumer-catches-up.svg"
@@ -82,6 +112,22 @@ released and another participant takes the run, which is why a transient
 failure must not read as a refusal.
 [Processes and work](../arc42-008-crosscutting/processes-and-work/README.md)
 holds the model.
+
+## A hop crosses a boundary
+
+--8<-- "assets/diagrams/a-hop-crosses-a-boundary.svg"
+
+<p class="diagram-caption">The platform plane asks the sending tenant to
+perform its half. The content goes tenant to tenant, and only a reference
+comes back to the platform.</p>
+
+The content never enters the coordinating plane, so what that plane holds is
+who acted, which process it belongs to and hashes of what moved. Three trails
+record the one hop — the sender's egress, the receiver's ingress and the
+platform's coordination — so a hop that skipped its own entry is visible from
+the other side.
+[Processes and work](../arc42-008-crosscutting/processes-and-work/README.md)
+defines the entries it leaves.
 
 ## A zone declares, and a tenant narrows
 

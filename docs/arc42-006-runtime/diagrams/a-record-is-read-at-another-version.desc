@@ -1,0 +1,8 @@
+A record is read at a version it was not written under
+A client of an older FHIR version asks its tenant's face for a record. The
+face reads the stored bytes, which are exactly what was written and carry the
+version they were written under, and hands them to the converter chain. If
+every element has a place in the older version, the client gets the record as
+that version says it. If one does not, the read is refused and the refusal
+names the element that did not fit. The stored bytes are never rewritten
+either way.

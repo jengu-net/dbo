@@ -1,0 +1,130 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-527.8795 -210.5 1055.759 421" width="1055.759" height="421" class="lini lini-scope-dad65e75" role="img" aria-labelledby="a-record-is-read-at-another-version-title a-record-is-read-at-another-version-desc">
+  <title id="a-record-is-read-at-another-version-title">A record is read at a version it was not written under</title>
+  <desc id="a-record-is-read-at-another-version-desc">A client of an older FHIR version asks its tenant's face for a record. The face reads the stored bytes, which are exactly what was written and carry the version they were written under, and hands them to the converter chain. If every element has a place in the older version, the client gets the record as that version says it. If one does not, the read is refused and the refusal names the element that did not fit. The stored bytes are never rewritten either way.</desc>
+  <style>
+    @layer lini.defaults {
+      :root, .lini-scope-dad65e75 { color-scheme: light dark; --lini-accent: #a8641b; --lini-accent-soft: #f6efe4; --lini-bg: #fbfaf8; --lini-faint: #8695a3; --lini-fg: light-dark(black, #e8e8ea); --lini-fill: light-dark(white, #26262b); --lini-font-weight: 500; --lini-group-stroke: light-dark(rgba(0, 0, 0, 0.4), rgba(255, 255, 255, 0.4)); --lini-link-font-weight: 400; --lini-seal: #14532d; --lini-seal-soft: #e7f0e9; --lini-stroke: #444444; --lini-text-color: var(--lini-fg); }
+      .lini-scope-dad65e75[data-theme="dark"], [data-theme="dark"] .lini-scope-dad65e75 { color-scheme: dark; }
+      .lini-scope-dad65e75[data-theme="light"], [data-theme="light"] .lini-scope-dad65e75 { color-scheme: light; }
+    }
+    .lini-scope-dad65e75 { font-family: "Google Sans"; font-size: 13px; font-weight: var(--lini-font-weight); color: var(--lini-text-color); }
+    .lini-scope-dad65e75 .lini-block { fill: none; stroke: none; stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-dad65e75 .lini-cyl { fill: var(--lini-fill); stroke: var(--lini-stroke); stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-dad65e75 .lini-path { stroke-dasharray: none; }
+    .lini-scope-dad65e75 .lini-line { fill: none; stroke: var(--lini-stroke); stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-dad65e75 .lini-text { fill: currentColor; stroke: none; text-anchor: middle; }
+    .lini-scope-dad65e75 .lini-sequence-tab { font-size: 12px; font-weight: 600; }
+    .lini-scope-dad65e75 .lini-sequence-guard { font-size: 11px; font-weight: normal; }
+    .lini-scope-dad65e75 .lini-box { fill: var(--lini-fill); stroke: var(--lini-stroke); stroke-width: 2; }
+    .lini-scope-dad65e75 .lini-note { fill: var(--lini-fill); stroke: var(--lini-stroke); }
+    .lini-scope-dad65e75 .lini-outside { fill: var(--lini-bg); stroke: var(--lini-faint); }
+    .lini-scope-dad65e75 .lini-face { fill: var(--lini-accent-soft); stroke: var(--lini-accent); }
+    .lini-scope-dad65e75 .lini-engine { fill: var(--lini-seal-soft); stroke: var(--lini-seal); }
+    .lini-scope-dad65e75 .lini-link { fill: none; stroke: var(--lini-stroke); stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-dad65e75 .lini-link-dashed { stroke-dasharray: 7,5.5; }
+    .lini-scope-dad65e75 .lini-sequence-message { fill: currentColor; stroke: none; text-anchor: middle; font-size: 13px; font-weight: normal; }
+    .lini-scope-dad65e75 .lini-marker { fill: var(--lini-stroke); stroke: none; }
+  </style>
+  <defs/>
+  <g class="lini-scene">
+    <g class="lini-node lini-block" style="stroke: var(--lini-group-stroke); stroke-width: 1; stroke-dasharray: 5,4" transform="translate(-99.0485,52.5)">
+      <rect x="-256.759" y="-77.5" width="513.518" height="155" rx="4" ry="4"/>
+    </g>
+    <g class="lini-node lini-line" style="stroke: var(--lini-group-stroke); stroke-width: 1; stroke-dasharray: 5,4" transform="translate(0,0)">
+      <line x1="-356.3075" y1="52.5" x2="158.2105" y2="52.5"/>
+    </g>
+    <g class="lini-node lini-line" style="stroke: var(--lini-faint)" transform="translate(0,0)">
+      <line x1="-332.3075" y1="-135.5" x2="-332.3075" y2="190.5"/>
+    </g>
+    <g class="lini-node lini-line" style="stroke: var(--lini-accent)" transform="translate(0,0)">
+      <line x1="-107.2485" y1="-135.5" x2="-107.2485" y2="190.5"/>
+    </g>
+    <g class="lini-node lini-line" style="stroke: var(--lini-seal)" transform="translate(0,0)">
+      <line x1="134.2105" y1="-135.5" x2="134.2105" y2="190.5"/>
+    </g>
+    <g class="lini-node lini-line" style="stroke: var(--lini-seal)" transform="translate(0,0)">
+      <line x1="348.8435" y1="-135.5" x2="348.8435" y2="190.5"/>
+    </g>
+    <g class="lini-node lini-block" style="fill: var(--lini-accent-soft); stroke: var(--lini-accent)" transform="translate(-107.2485,-42.5)">
+      <rect x="-5" y="-70" width="10" height="140" rx="0" ry="0"/>
+    </g>
+    <g class="lini-node lini-block" style="fill: var(--lini-seal-soft); stroke: var(--lini-seal)" transform="translate(348.8435,-80.5)">
+      <rect x="-5" y="-10" width="10" height="20" rx="0" ry="0"/>
+    </g>
+    <g class="lini-node lini-block" style="fill: var(--lini-seal-soft); stroke: var(--lini-seal)" transform="translate(134.2105,-20.5)">
+      <rect x="-5" y="-26" width="10" height="52" rx="0" ry="0"/>
+    </g>
+    <g class="lini-node lini-outside lini-box lini-block" data-id="caller" transform="translate(-332.3075,-163)">
+      <rect x="-102.979" y="-26.5" width="205.958" height="53" rx="8" ry="8"/>
+      <text class="lini-text" x="0" y="0" dy="0.358em">A client of the older version</text>
+    </g>
+    <g class="lini-node lini-face lini-box lini-block" data-id="face" transform="translate(-107.2485,-163)">
+      <rect x="-74.08" y="-26.5" width="148.16" height="53" rx="8" ry="8"/>
+      <text class="lini-text" x="0" y="0" dy="0.358em">That tenant&apos;s face</text>
+    </g>
+    <g class="lini-node lini-engine lini-box lini-block" data-id="converter" transform="translate(134.2105,-163)">
+      <rect x="-80.19" y="-26.5" width="160.38" height="53" rx="8" ry="8"/>
+      <text class="lini-text" x="0" y="0" dy="0.358em">The converter chain</text>
+    </g>
+    <g class="lini-node lini-cyl" data-id="db" style="fill: var(--lini-seal-soft); stroke: var(--lini-seal)" transform="translate(348.8435,-163)">
+      <path d="M -86.443 -21.2 L -86.443 21.2 A 86.443 5.3 0 0 0 86.443 21.2 L 86.443 -21.2 A 86.443 5.3 0 0 0 -86.443 -21.2 Z"/>
+      <ellipse cx="0" cy="-21.2" rx="86.443" ry="5.3"/>
+      <text class="lini-text" x="0" y="1.65" dy="0.358em">The tenant&apos;s database</text>
+    </g>
+    <g class="lini-node lini-path" style="fill: var(--lini-fill); stroke: var(--lini-group-stroke); stroke-width: 1" transform="translate(0,0)">
+      <path d="M -351.80749999999995 -25 L -327.02349999999996 -25 L -327.02349999999996 -15.719999999999999 L -333.7435 -9 L -355.80749999999995 -9 L -355.80749999999995 -21 A 4 4 0 0 1 -351.80749999999995 -25 Z"/>
+    </g>
+    <text class="lini-text lini-sequence-tab" x="-343.0955" y="-17" dy="0.358em">alt</text>
+    <text class="lini-text lini-sequence-guard" x="-197.0375" y="-16.5" dy="0.358em">[every element has a place in the older version]</text>
+    <text class="lini-text lini-sequence-guard" x="-316.9895" y="64.5" dy="0.358em">[one does not]</text>
+    <g class="lini-node lini-note lini-path" style="stroke-width: 2; font-size: 13px" transform="translate(241.527,155)">
+      <path d="M -266.3525 -13.5 L 257.1725 -13.5 L 266.3525 -4.3199999999999985 L 266.3525 13.5 L -266.3525 13.5 Z"/>
+      <g class="lini-node lini-path" style="fill: var(--lini-stroke); stroke: none; stroke-width: 0" transform="translate(0,0)">
+        <path d="M 257.1725 -13.5 L 266.3525 -4.3199999999999985 L 257.1725 -4.3199999999999985 Z"/>
+      </g>
+      <text class="lini-text" x="0" y="0" dy="0.358em">Stored bytes never change. A version is a lens, and a refusal is honest about its limits.</text>
+    </g>
+  </g>
+  <g class="lini-links">
+    <g class="lini-link" data-from="caller" data-to="face">
+      <path d="M -332.3075 -113.5 L -116.7485 -113.5"/>
+      <polygon class="lini-marker lini-marker-arrow" points="-112.7485,-113.5 -121.7485,-109 -121.7485,-118"/>
+      <text class="lini-sequence-message" x="-219.778" y="-125" dy="0.358em">read the record</text>
+    </g>
+    <g class="lini-link" data-from="face" data-to="db">
+      <path d="M -101.2485 -91.5 L 339.3435 -91.5"/>
+      <polygon class="lini-marker lini-marker-arrow" points="343.3435,-91.5 334.3435,-87 334.3435,-96"/>
+      <text class="lini-sequence-message" x="120.7975" y="-103" dy="0.358em">the bytes as they were written</text>
+    </g>
+    <g class="lini-link lini-link-dashed" data-from="db" data-to="face">
+      <path d="M 342.8435 -69.5 L -97.7485 -69.5"/>
+      <polygon class="lini-marker lini-marker-arrow" points="-101.7485,-69.5 -92.7485,-74 -92.7485,-65"/>
+      <text class="lini-sequence-message" x="120.7975" y="-81" dy="0.358em">the payload, and the version it was written under</text>
+    </g>
+    <g class="lini-link" data-from="face" data-to="converter">
+      <path d="M -101.2485 -47.5 L 124.7105 -47.5"/>
+      <polygon class="lini-marker lini-marker-arrow" points="128.7105,-47.5 119.7105,-43 119.7105,-52"/>
+      <text class="lini-sequence-message" x="13.481" y="-59" dy="0.358em">convert to the version this face speaks</text>
+    </g>
+    <g class="lini-link lini-link-dashed" data-from="converter" data-to="face">
+      <path d="M 128.2105 6.5 L -97.7485 6.5"/>
+      <polygon class="lini-marker lini-marker-arrow" points="-101.7485,6.5 -92.7485,2 -92.7485,11"/>
+      <text class="lini-sequence-message" x="13.481" y="-5" dy="0.358em">the record, as this version says it</text>
+    </g>
+    <g class="lini-link lini-link-dashed" data-from="face" data-to="caller">
+      <path d="M -113.2485 28.5 L -328.8075 28.5"/>
+      <polygon class="lini-marker lini-marker-arrow" points="-332.8075,28.5 -323.8075,24 -323.8075,33"/>
+      <text class="lini-sequence-message" x="-219.778" y="17" dy="0.358em">200</text>
+    </g>
+    <g class="lini-link lini-link-dashed" data-from="converter" data-to="face">
+      <path d="M 134.2105 84.5 L -103.7485 84.5"/>
+      <polygon class="lini-marker lini-marker-arrow" points="-107.7485,84.5 -98.7485,80 -98.7485,89"/>
+      <text class="lini-sequence-message" x="13.481" y="73" dy="0.358em">refused, naming the element</text>
+    </g>
+    <g class="lini-link lini-link-dashed" data-from="face" data-to="caller">
+      <path d="M -107.2485 106.5 L -328.8075 106.5"/>
+      <polygon class="lini-marker lini-marker-arrow" points="-332.8075,106.5 -323.8075,102 -323.8075,111"/>
+      <text class="lini-sequence-message" x="-219.778" y="95" dy="0.358em">the refusal, naming what did not fit</text>
+    </g>
+  </g>
+</svg>

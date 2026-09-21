@@ -1,0 +1,117 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-441.353 -165.5 882.706 331" width="882.706" height="331" class="lini lini-scope-69365ed8" role="img" aria-labelledby="a-person-signs-in-title a-person-signs-in-desc">
+  <title id="a-person-signs-in-title">A person signs in, and the store works out what they may do</title>
+  <desc id="a-person-signs-in-desc">A clinician signs in at the tenant's own authority. The authority reads the tenant's records to find the person and a role whose period has not ended, and issues a token naming the capacity it resolved. The clinician then presents that token to the face, which checks what the capacity allows against the same records and answers with that and no more. Revoking access is ending a period on the role record; there is no second user directory to change.</desc>
+  <style>
+    @layer lini.defaults {
+      :root, .lini-scope-69365ed8 { color-scheme: light dark; --lini-accent: #a8641b; --lini-accent-soft: #f6efe4; --lini-bg: #fbfaf8; --lini-faint: #8695a3; --lini-fg: light-dark(black, #e8e8ea); --lini-fill: light-dark(white, #26262b); --lini-font-weight: 500; --lini-link-font-weight: 400; --lini-seal: #14532d; --lini-seal-soft: #e7f0e9; --lini-stroke: #444444; --lini-text-color: var(--lini-fg); }
+      .lini-scope-69365ed8[data-theme="dark"], [data-theme="dark"] .lini-scope-69365ed8 { color-scheme: dark; }
+      .lini-scope-69365ed8[data-theme="light"], [data-theme="light"] .lini-scope-69365ed8 { color-scheme: light; }
+    }
+    .lini-scope-69365ed8 { font-family: "Google Sans"; font-size: 13px; font-weight: var(--lini-font-weight); color: var(--lini-text-color); }
+    .lini-scope-69365ed8 .lini-block { fill: none; stroke: none; stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-69365ed8 .lini-path { stroke-dasharray: none; }
+    .lini-scope-69365ed8 .lini-line { fill: none; stroke: var(--lini-stroke); stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-69365ed8 .lini-text { fill: currentColor; stroke: none; text-anchor: middle; }
+    .lini-scope-69365ed8 .lini-box { fill: var(--lini-fill); stroke: var(--lini-stroke); stroke-width: 2; }
+    .lini-scope-69365ed8 .lini-note { fill: var(--lini-fill); stroke: var(--lini-stroke); }
+    .lini-scope-69365ed8 .lini-outside { fill: var(--lini-bg); stroke: var(--lini-faint); }
+    .lini-scope-69365ed8 .lini-face { fill: var(--lini-accent-soft); stroke: var(--lini-accent); }
+    .lini-scope-69365ed8 .lini-engine { fill: var(--lini-seal-soft); stroke: var(--lini-seal); }
+    .lini-scope-69365ed8 .lini-link { fill: none; stroke: var(--lini-stroke); stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-69365ed8 .lini-link-dashed { stroke-dasharray: 7,5.5; }
+    .lini-scope-69365ed8 .lini-sequence-message { fill: currentColor; stroke: none; text-anchor: middle; font-size: 13px; font-weight: normal; }
+    .lini-scope-69365ed8 .lini-marker { fill: var(--lini-stroke); stroke: none; }
+  </style>
+  <defs/>
+  <g class="lini-scene">
+    <g class="lini-node lini-line" style="stroke: var(--lini-faint)" transform="translate(0,0)">
+      <line x1="-370.011" y1="-90.5" x2="-370.011" y2="145.5"/>
+    </g>
+    <g class="lini-node lini-line" style="stroke: var(--lini-accent)" transform="translate(0,0)">
+      <line x1="-125.367" y1="-90.5" x2="-125.367" y2="145.5"/>
+    </g>
+    <g class="lini-node lini-line" style="stroke: var(--lini-seal)" transform="translate(0,0)">
+      <line x1="146.954" y1="-90.5" x2="146.954" y2="145.5"/>
+    </g>
+    <g class="lini-node lini-line" style="stroke: var(--lini-accent)" transform="translate(0,0)">
+      <line x1="348.626" y1="-90.5" x2="348.626" y2="145.5"/>
+    </g>
+    <g class="lini-node lini-block" style="fill: var(--lini-accent-soft); stroke: var(--lini-accent)" transform="translate(-125.367,-35.5)">
+      <rect x="-5" y="-32" width="10" height="64" rx="0" ry="0"/>
+    </g>
+    <g class="lini-node lini-block" style="fill: var(--lini-seal-soft); stroke: var(--lini-seal)" transform="translate(146.954,-35.5)">
+      <rect x="-5" y="-10" width="10" height="20" rx="0" ry="0"/>
+    </g>
+    <g class="lini-node lini-block" style="fill: var(--lini-accent-soft); stroke: var(--lini-accent)" transform="translate(348.626,52.5)">
+      <rect x="-5" y="-32" width="10" height="64" rx="0" ry="0"/>
+    </g>
+    <g class="lini-node lini-block" style="fill: var(--lini-seal-soft); stroke: var(--lini-seal)" transform="translate(146.954,52.5)">
+      <rect x="-5" y="-10" width="10" height="20" rx="0" ry="0"/>
+    </g>
+    <g class="lini-node lini-outside lini-box lini-block" data-id="person" transform="translate(-370.011,-118)">
+      <rect x="-50.342" y="-26.5" width="100.684" height="53" rx="8" ry="8"/>
+      <text class="lini-text" x="0" y="0" dy="0.358em">A clinician</text>
+    </g>
+    <g class="lini-node lini-face lini-box lini-block" data-id="authority" transform="translate(-125.367,-118)">
+      <rect x="-100.47" y="-26.5" width="200.94" height="53" rx="8" ry="8"/>
+      <text class="lini-text" x="0" y="0" dy="0.358em">The tenant&apos;s own authority</text>
+    </g>
+    <g class="lini-node lini-engine lini-box lini-block" data-id="records" transform="translate(146.954,-118)">
+      <rect x="-81.945" y="-26.5" width="163.89" height="53" rx="8" ry="8"/>
+      <text class="lini-text" x="0" y="0" dy="0.358em">The tenant&apos;s records</text>
+    </g>
+    <g class="lini-node lini-face lini-box lini-block" data-id="face" transform="translate(348.626,-118)">
+      <rect x="-71.727" y="-26.5" width="143.454" height="53" rx="8" ry="8"/>
+      <text class="lini-text" x="0" y="0" dy="0.358em">The tenant&apos;s face</text>
+    </g>
+    <g class="lini-node lini-note lini-path" style="stroke-width: 2; font-size: 13px" transform="translate(10.7935,110)">
+      <path d="M -219.01299999999998 -13.5 L 209.83299999999997 -13.5 L 219.01299999999998 -4.3199999999999985 L 219.01299999999998 13.5 L -219.01299999999998 13.5 Z"/>
+      <g class="lini-node lini-path" style="fill: var(--lini-stroke); stroke: none; stroke-width: 0" transform="translate(0,0)">
+        <path d="M 209.83299999999997 -13.5 L 219.01299999999998 -4.3199999999999985 L 209.83299999999997 -4.3199999999999985 Z"/>
+      </g>
+      <text class="lini-text" x="0" y="0" dy="0.358em">Revoking is ending a period on the role record. Nothing else changes.</text>
+    </g>
+  </g>
+  <g class="lini-links">
+    <g class="lini-link" data-from="person" data-to="authority">
+      <path d="M -370.011 -68.5 L -134.867 -68.5"/>
+      <polygon class="lini-marker lini-marker-arrow" points="-130.867,-68.5 -139.867,-64 -139.867,-73"/>
+      <text class="lini-sequence-message" x="-247.689" y="-80" dy="0.358em">sign in</text>
+    </g>
+    <g class="lini-link" data-from="authority" data-to="records">
+      <path d="M -119.367 -46.5 L 137.454 -46.5"/>
+      <polygon class="lini-marker lini-marker-arrow" points="141.454,-46.5 132.454,-42 132.454,-51"/>
+      <text class="lini-sequence-message" x="10.7935" y="-58" dy="0.358em">which person is this, and what role is active?</text>
+    </g>
+    <g class="lini-link lini-link-dashed" data-from="records" data-to="authority">
+      <path d="M 140.954 -24.5 L -115.867 -24.5"/>
+      <polygon class="lini-marker lini-marker-arrow" points="-119.867,-24.5 -110.867,-29 -110.867,-20"/>
+      <text class="lini-sequence-message" x="10.7935" y="-36" dy="0.358em">the person, and a role that has not ended</text>
+    </g>
+    <g class="lini-link lini-link-dashed" data-from="authority" data-to="person">
+      <path d="M -131.367 -2.5 L -366.511 -2.5"/>
+      <polygon class="lini-marker lini-marker-arrow" points="-370.511,-2.5 -361.511,-7 -361.511,2"/>
+      <text class="lini-sequence-message" x="-247.689" y="-14" dy="0.358em">a token naming the capacity it resolved</text>
+    </g>
+    <g class="lini-link" data-from="person" data-to="face">
+      <path d="M -370.011 19.5 L 339.126 19.5"/>
+      <polygon class="lini-marker lini-marker-arrow" points="343.126,19.5 334.126,24 334.126,15"/>
+      <text class="lini-sequence-message" x="-10.6925" y="8" dy="0.358em">a read, presenting the token</text>
+    </g>
+    <g class="lini-link" data-from="face" data-to="records">
+      <path d="M 342.626 41.5 L 156.454 41.5"/>
+      <polygon class="lini-marker lini-marker-arrow" points="152.454,41.5 161.454,37 161.454,46"/>
+      <text class="lini-sequence-message" x="247.79" y="30" dy="0.358em">what the capacity allows</text>
+    </g>
+    <g class="lini-link lini-link-dashed" data-from="records" data-to="face">
+      <path d="M 152.954 63.5 L 339.126 63.5"/>
+      <polygon class="lini-marker lini-marker-arrow" points="343.126,63.5 334.126,68 334.126,59"/>
+      <text class="lini-sequence-message" x="247.79" y="52" dy="0.358em">this and no more</text>
+    </g>
+    <g class="lini-link lini-link-dashed" data-from="face" data-to="person">
+      <path d="M 342.626 85.5 L -366.511 85.5"/>
+      <polygon class="lini-marker lini-marker-arrow" points="-370.511,85.5 -361.511,81 -361.511,90"/>
+      <text class="lini-sequence-message" x="-10.6925" y="74" dy="0.358em">the answer</text>
+    </g>
+  </g>
+</svg>
