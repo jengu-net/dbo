@@ -1,4 +1,4 @@
-**Open. The cast has started and the first class has moved onto it: delegation now runs on the hospital. Next: read the remaining fourteen single-use shapes against what a cast can hold.**
+**Open. The cast has started and one class has moved onto it: delegation runs on the hospital. Four families have been read against it since and each resists for a reason that can be named. Next: the shapes that are close to a cast member and kept apart only by what the sample world declares.**
 
 <!-- The worklist is empty and the ledger is honest, but moving classes onto one runtime made the suite slower before it made it faster: what this machine cannot carry is tenants alive at once. Next: name the shared tenants after the parts they play, so a story's worth of steps runs on a cast several stories share. -->
 
@@ -128,6 +128,38 @@ in [how the migration is run](how-it-is-run.md), which moved here from
    that relation. They do not, because the hospital takes that root as a
    FACE, and a face is cut once and cached — a profile written to the root
    afterwards would arrive by a path the test is not about, or not at all.
+
+   Three families with more than one class were then read the same way, and
+   all three resist for reasons worth writing down rather than rediscovering.
+
+   **The clinic in two places** takes one type from a zone that publishes
+   two, and proves it by asserting the other type is EMPTY in the clinic.
+   The cast has that relation already — the insurer takes only code systems
+   from the zone — but the insurer's value sets are replicated from its face
+   root and are therefore never empty. An emptiness assertion is the one
+   thing a shared tenant cannot carry, which is the shared-world rule's
+   opening sentence arriving from a new direction.
+
+   **The people behind the membrane** want patients and capacities with no
+   national number, because what they are about is a human the store holds
+   without one. The hospital keys both by that number. A type declares one
+   identity class per tenant, so this is not a flag to turn off: the two
+   tenants are different tenants, and the clinic that keys nobody is r5 with
+   its membrane down.
+
+   **The three identifier-keyed classes** each AUTHOR canonical content — a
+   profile, a code system, a value set handed over in bulk. Every cast member
+   but a face root takes its canonical types by replication, and one of the
+   three counts value sets besides. Authorship and replication are the same
+   type declared two ways, which is the same wall as above.
+
+   What that leaves is the shapes kept apart from a cast member only by what
+   the sample world happens to declare: subscriptions, and a face root with
+   an ordinary record or two beside its definitions. Both are a change to the
+   guide's world, which is a sentence in the guide before it is a line in a
+   spec, and neither has earned one yet. That is the next thing to weigh, and
+   it is a smaller prize than it looks — the second is one tenant, and the
+   expensive one.
 
 6. The old fourth step, kept because it is what was actually done:
    re-read the entries whose reason is `sweep`. That reason used to say a
