@@ -29,6 +29,10 @@ description: Adding, moving or editing a page under docs/, guide/ or site/pages/
   file it names; an untyped copy drifts silently.
 - MUST update the docs index when a document is added, moved or removed.
 - MUST run `./gradlew site` after editing and fix what `--strict` reports.
+- MUST move the guide's pinned image, in the same change, when adding or
+  changing a guide step that asserts behaviour the pinned image does not
+  have — and MUST check the tag exists on the registry rather than reading
+  it off the commit log.
 
 ---
 
