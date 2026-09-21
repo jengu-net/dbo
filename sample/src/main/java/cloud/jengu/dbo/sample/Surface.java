@@ -139,6 +139,31 @@ public final class Surface {
         return fhir("PUT", "/" + type + "?" + query, json);
     }
 
+    /**
+     * One version of it, by the number the store gave that version.
+     *
+     * <p>What comes back is the record AS IT WAS, and it carries that
+     * version's own validator rather than the record's current one — which is
+     * what makes {@link #changeIfStillAt} safe to build on a past read.
+     */
+    public Answer readVersion(String type, String id, int version) {
+        return fhir("GET", "/" + type + "/" + id + "/_history/" + version, null);
+    }
+
+    /**
+     * Change it only if it is still where you last looked.
+     *
+     * <p>The validator says <i>I read this version and my change assumes that
+     * is still true</i>. If somebody else has moved the record on, the write
+     * is refused rather than quietly replacing their change with one that
+     * never saw it. Which is the point: it turns a silent loss into an error
+     * at the moment somebody can still do something about it.
+     */
+    public Answer changeIfStillAt(String type, String id, String validator, String json) {
+        return send("PUT", address("/t/" + tenant + "/fhir", "/" + type + "/" + id),
+                "application/fhir+json", json, "If-Match", validator);
+    }
+
     /** Ask for one to be gone. */
     public Answer forget(String type, String id) {
         return fhir("DELETE", "/" + type + "/" + id, null);
@@ -178,6 +203,11 @@ public final class Surface {
     }
 
     private Answer send(String method, URI uri, String contentType, String body) {
+        return send(method, uri, contentType, body, null, null);
+    }
+
+    private Answer send(String method, URI uri, String contentType, String body,
+            String header, String headerValue) {
         HttpRequest.Builder request = HttpRequest.newBuilder(uri)
                 .method(method, body == null
                         ? HttpRequest.BodyPublishers.noBody()
@@ -187,6 +217,9 @@ public final class Surface {
         }
         if (bearer != null) {
             request.header("Authorization", "Bearer " + bearer);
+        }
+        if (header != null) {
+            request.header(header, headerValue);
         }
         try {
             HttpResponse<String> answer = HTTP.send(request.build(),

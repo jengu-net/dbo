@@ -2642,6 +2642,73 @@ class TheGuideRunsIT {
             assertTrue(held.body().contains("\"total\":1"),
                     "a definition written twice is one record: " + held.body());
         }
+
+        /**
+         * The History chapter, run rather than described.
+         *
+         * <p>Its subtlest claim is the one asserted last, and it is the reason
+         * the chapter's `amend` takes the answer you read rather than a number
+         * you typed: a version read carries THAT version's validator. If a
+         * stale read handed back the current one, a conditional write built on
+         * it would look current and succeed, which is exactly the accident the
+         * mechanism exists to prevent.
+         */
+        @Test
+        @Order(4)
+        @DisplayName("a past version reads as it was, a deletion is a version, and a change "
+                + "decided on a stale read is refused")
+        @Proving({DboPromises.CORE_VERSIONED_HISTORY, DboPromises.CORE_READ_YOUR_WRITES})
+        void theHistoryChapter() {
+            cloud.jengu.dbo.sample.TheWorld world =
+                    new cloud.jengu.dbo.sample.TheWorld(java.net.URI.create("http://localhost:8090"));
+            cloud.jengu.dbo.sample.Surface hospital =
+                    world.hospital().signIn("tenant-bootstrap", "hogwarts-secret");
+            cloud.jengu.dbo.sample.Amending amending =
+                    new cloud.jengu.dbo.sample.Amending(hospital);
+            cloud.jengu.dbo.sample.Intake intake = new cloud.jengu.dbo.sample.Intake(hospital);
+
+            String id = intake.admit("RL-0078", "Diggory", "Cedric").id();
+
+            // Any version reads by its number; one that never existed is told
+            // so rather than answered with the nearest thing.
+            assertTrue(amending.asItWas("Patient", id, 1).ok(),
+                    "the version this record was written at does not read");
+            assertEquals(404, amending.asItWas("Patient", id, 99).status(),
+                    "a version that never existed was not answered as not found");
+
+            // A deletion is a version too: 410 for the one that did it, and
+            // the versions before it still read.
+            String doomed = intake.admit("RL-0079", "Fleeting", "Frank").id();
+            assertEquals(204, hospital.forget("Patient", doomed).status(),
+                    "the record would not go");
+            assertEquals(410, amending.asItWas("Patient", doomed, 2).status(),
+                    "the store invented a document for the moment a record stopped "
+                            + "having one, instead of saying it is gone");
+            assertEquals(200, amending.asItWas("Patient", doomed, 1).status(),
+                    "a deletion took the history with it, so it was an erasure");
+
+            // Two writers, one record. What is read first is what the change
+            // is decided on; somebody else moves the record on meanwhile.
+            cloud.jengu.dbo.sample.Answer whatWeRead = hospital.read("Patient", id);
+            intake.whatTheMessageSays("RL-0078", "Diggory", "Ced");
+
+            assertEquals(412, amending.amend("Patient", id, whatWeRead, """
+                    {"resourceType":"Patient","id":"%s",
+                     "identifier":[{"system":"urn:rl:nid","value":"RL-0078"}],
+                     "name":[{"family":"Diggory","given":["Cedric"]}]}""".formatted(id)).status(),
+                    "a change decided on a version that has moved was not refused, so the "
+                            + "other writer's change is gone and nobody was told");
+
+            // And the subtle half: a PAST version's read carries that
+            // version's validator, not the record's current one. Were it
+            // otherwise, the refusal above would have been a success.
+            cloud.jengu.dbo.sample.Answer past = amending.asItWas("Patient", id, 1);
+            cloud.jengu.dbo.sample.Answer now = hospital.read("Patient", id);
+            assertTrue(past.etag() != null && !past.etag().equals(now.etag()),
+                    "a stale read handed back the current version's validator, so a "
+                            + "conditional write built on it would look safe: past="
+                            + past.etag() + " now=" + now.etag());
+        }
     }
 
     @Nested
