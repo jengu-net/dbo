@@ -36,12 +36,15 @@ choose one yourself.
 
 ## A second copy of a person is refused
 
-Harry is already in the hospital's store from the quick start. Create him again,
-with the same national identifier:
+This is what the hospital's own software does when somebody arrives, and when a
+message about them arrives instead. It is the whole of the intake path:
 
-```bash
---8<-- "docs/guide/examples/snippets/duplicate-identity.sh"
+```java title="sample/src/main/java/cloud/jengu/dbo/sample/Intake.java"
+--8<-- "sample/src/main/java/cloud/jengu/dbo/sample/Intake.java"
 ```
+
+Harry is already in the hospital's store from the quick start. Admit him again,
+with the same national identifier, and `admit` answers:
 
 ```
 409
@@ -60,11 +63,7 @@ made anyway.
 
 If your system knows the national identifier and not the store's id — which is
 the normal case when a message arrives from somewhere else — write against the
-identity directly:
-
-```bash
---8<-- "docs/guide/examples/snippets/conditional-update.sh"
-```
+identity directly. That is `whatTheMessageSays` above, and it answers:
 
 ```
 200
@@ -85,11 +84,14 @@ this record are stopped from silently losing each other's work.
 ## A definition is identified by its url
 
 Identity behaves differently for definitions, and the difference is the point
-of having classes at all. The zone holds code systems, identified canonically:
+of having classes at all. The zone holds code systems, identified canonically,
+and this is what its software writes:
 
-```bash
---8<-- "docs/guide/examples/snippets/canonical.sh"
+```java title="sample/src/main/java/cloud/jengu/dbo/sample/Publishing.java"
+--8<-- "sample/src/main/java/cloud/jengu/dbo/sample/Publishing.java"
 ```
+
+Publish the houses twice, the second time with a house the first did not have:
 
 ```
 201

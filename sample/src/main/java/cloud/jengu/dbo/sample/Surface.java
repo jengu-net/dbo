@@ -123,6 +123,22 @@ public final class Surface {
         return fhir("PUT", "/" + type + "/" + id, json);
     }
 
+    /**
+     * Change the record matching a search, whoever it turns out to be.
+     *
+     * <p>What an integration writes when a message arrives naming somebody by
+     * a number rather than by the store's id, which is the ordinary case. The
+     * store either finds the one record that identity belongs to and moves it
+     * on, or there is none and it makes it — so the upstream system never has
+     * to know whether this person is already here, and there is no lookup to
+     * race with the write.
+     *
+     * @param query what a reader would type after the {@code ?}
+     */
+    public Answer changeWhere(String type, String query, String json) {
+        return fhir("PUT", "/" + type + "?" + query, json);
+    }
+
     /** Ask for one to be gone. */
     public Answer forget(String type, String id) {
         return fhir("DELETE", "/" + type + "/" + id, null);
@@ -130,8 +146,35 @@ public final class Surface {
 
     /** Anything else the surface serves, for a scene this vocabulary has not reached yet. */
     public Answer fhir(String method, String pathAndQuery, String json) {
-        return send(method, base.resolve("/t/" + tenant + "/fhir" + pathAndQuery),
+        return send(method, address("/t/" + tenant + "/fhir", pathAndQuery),
                 "application/fhir+json", json);
+    }
+
+    /**
+     * A path and a search, as a URI a client may actually send.
+     *
+     * <p>The search syntax a reader knows is not URI syntax. A token is
+     * written {@code system|value} everywhere FHIR is discussed, and a
+     * vertical bar is not legal in a URI query — so a caller handing this
+     * what the specification taught them gets an {@code IllegalArgumentException}
+     * from the URI parser, about a character, three frames below the call.
+     *
+     * <p>Encoding it here rather than in the caller is the difference between
+     * a sample somebody can copy and a sample that teaches people to write
+     * {@code %7C} in their own code. The multi-argument constructor encodes
+     * each component for its own position, which is what {@code URI.create}
+     * on an assembled string cannot do.
+     */
+    private URI address(String path, String pathAndQuery) {
+        int ask = pathAndQuery.indexOf('?');
+        String wholePath = path + (ask < 0 ? pathAndQuery : pathAndQuery.substring(0, ask));
+        String query = ask < 0 ? null : pathAndQuery.substring(ask + 1);
+        try {
+            return new URI(base.getScheme(), base.getAuthority(), wholePath, query, null);
+        } catch (java.net.URISyntaxException notAnAddress) {
+            throw new IllegalArgumentException(path + pathAndQuery + " is not an address",
+                    notAnAddress);
+        }
     }
 
     private Answer send(String method, URI uri, String contentType, String body) {

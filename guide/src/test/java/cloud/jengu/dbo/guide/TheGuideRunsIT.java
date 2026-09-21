@@ -2590,6 +2590,58 @@ class TheGuideRunsIT {
             assertTrue(asATask.body().contains("insufficient scope"),
                     "the refusal did not say what was insufficient: " + asATask.body());
         }
+
+        /**
+         * The Records chapter, run rather than described.
+         *
+         * <p>The chapter includes `Intake` and `Publishing` whole. These are
+         * the outcomes it prints beside them, so a chapter that says 409 and a
+         * store that says something else cannot both survive a build.
+         */
+        @Test
+        @Order(3)
+        @DisplayName("a second copy of a person is refused, a message about her is taken, "
+                + "and a definition written twice is one record")
+        @Proving({DboPromises.CORE_DECLARED_IDENTITY, DboPromises.CORE_NO_IMPLICIT_MERGE,
+                DboPromises.CORE_IDENTITY_KEYED_CONDITIONALS})
+        void theRecordsChapter() {
+            cloud.jengu.dbo.sample.TheWorld world =
+                    new cloud.jengu.dbo.sample.TheWorld(java.net.URI.create("http://localhost:8090"));
+            cloud.jengu.dbo.sample.Intake intake = new cloud.jengu.dbo.sample.Intake(
+                    world.hospital().signIn("tenant-bootstrap", "hogwarts-secret"));
+
+            // Somebody nobody has admitted before.
+            cloud.jengu.dbo.sample.Answer first = intake.admit("RL-0077", "Lovegood", "Luna");
+            assertTrue(first.ok(), "she could not be admitted at all: "
+                    + first.status() + " " + first.body());
+
+            // And again, which the chapter says is 409.
+            assertEquals(409, intake.admit("RL-0077", "Lovegood", "Luna").status(),
+                    "a second record for one identity was not refused");
+
+            // A message about her, naming only the number, which the chapter
+            // says is 200 and one record at the next version.
+            cloud.jengu.dbo.sample.Answer message =
+                    intake.whatTheMessageSays("RL-0077", "Lovegood", "Luna");
+            assertEquals(200, message.status(),
+                    "writing against her identity did not take: " + message.body());
+
+            // The other identity class, in the zone: the same verb, twice,
+            // and one record — which the chapter says is 201 and 201.
+            cloud.jengu.dbo.sample.Publishing publishing = new cloud.jengu.dbo.sample.Publishing(
+                    world.zone().signIn("tenant-bootstrap", "rl-secret"));
+            String canonical = "urn:rl:records-chapter";
+            assertEquals(201, publishing.publish(canonical, "one", "One").status(),
+                    "the zone could not publish its vocabulary");
+            assertEquals(201, publishing.publish(canonical, "one", "One", "two", "Two").status(),
+                    "publishing it again was not accepted as the same definition moving on");
+
+            cloud.jengu.dbo.sample.Answer held = world.zone()
+                    .signIn("tenant-bootstrap", "rl-secret")
+                    .search("CodeSystem", "url=" + canonical + "&_summary=count");
+            assertTrue(held.body().contains("\"total\":1"),
+                    "a definition written twice is one record: " + held.body());
+        }
     }
 
     @Nested
