@@ -147,24 +147,30 @@ lifecycle callback and a product in another building write the same code.
 methods rather than searches anybody composes.
 
 ```java
-Page<Run> waiting   = hogwarts.work().open().page(20);
-Page<Run> mine      = hogwarts.work().open().heldBy(me).page(20);
-Page<Run> stuck     = hogwarts.work().lapsed().page(20);
-Page<Run> refused   = hogwarts.work().fellThrough().since(yesterday).page(20);
+try (Stream<Run> waiting = hogwarts.work().open().stream()) {
+    waiting.limit(20).forEach(screen::add);
+}
 
-Journey journey     = hogwarts.work().journeyOf(runKey);   // milestones, in order
-List<Run> covered   = hogwarts.work().correlated(correlation);
+try (Stream<Run> stuck = hogwarts.work().lapsed().stream()) { ... }
+try (Stream<Run> refused = hogwarts.work().fellThrough().since(yesterday).stream()) { ... }
+
+Journey journey = hogwarts.work().journeyOf(runKey);   // milestones, in order
 ```
 
 **A screen of records**, which is the half that made this item wider than its
 first draft. A ward list is `Observation` and `Device`, and it is still asking.
 
 ```java
-Page<Stored> ward = hogwarts.records("Observation")
+try (Stream<Stored> ward = hogwarts.records("Observation")
         .where("subject", "Patient/" + id)
         .newestFirst()
-        .page(50);
+        .stream()) {
+    ward.limit(50).forEach(screen::add);
+}
 
+// NOT stream().count(). A count is asked for without fetching anything,
+// which is a question the store answers directly and a terminal operation
+// would answer by dragging every row across to be counted here.
 long active = hogwarts.records("Device").where("status", "active").count();
 ```
 
@@ -178,19 +184,37 @@ unless somebody asks for one:
 Person person = hogwarts.identify(pseudonym, Purpose.of("treatment"), run);
 ```
 
-**Paging is the store's cursor, not an offset the caller keeps**, so a record
-written between two fetches cannot be handed over twice:
+**Nothing is buffered and paging does not appear.** The store already writes a
+page as it is produced — memory is one member rather than one page, and a
+reader sees the first byte before the last row is read — so a vocabulary
+handing back pages would be buffering on top of something that deliberately
+does not. The stream follows the cursor as it is consumed, which is also what
+keeps the store's promise that a record written between two fetches is not
+handed over twice: the cursor is still doing the work, the caller has simply
+stopped having to hold it.
 
-```java
-Page<Stored> first  = hogwarts.records("Patient").page(50);
-Page<Stored> second = first.next();     // empty when there is no next
-```
+Three things that follow, and each is a way to get this wrong:
+
+**It is closed, and it is a resource.** A stream that is walked away from
+leaves whatever is behind it open. Every example here is try-with-resources for
+that reason, and the vocabulary should make an unclosed stream hard rather than
+possible.
+
+**Narrowing is the store's job, not the stream's.** `where` runs where the
+records are; `stream().filter(...)` runs here, after everything has crossed the
+wire. Both compile and one of them drags a tenant through a socket, so the
+vocabulary has to offer enough `where` that nobody reaches for `filter`.
+
+**A terminal operation is not a question.** `stream().count()` fetches
+everything to count it; `count()` asks. Same for "is there any", which is a
+question and not `findFirst().isPresent()` over a stream nobody closed.
 
 **The trail**, which today is `AuditEvent` over FHIR:
 
 ```java
-Page<Entry> whoRead = hogwarts.trail().about(recordId).since(march).page(100);
-Page<Entry> byRun   = hogwarts.trail().underRun(runKey).page(100);
+try (Stream<Entry> whoRead = hogwarts.trail().about(recordId).since(march).stream()) {
+    whoRead.forEach(report::add);
+}
 ```
 
 **The observer seam**, off unless the integrator asks:
@@ -222,6 +246,15 @@ argument anywhere above: one instance is one tenant, so a fleet-wide view holds
 several and asks each, which is the walk the deployment chapter describes. And
 there is no `where(Criteria)` — the vocabulary is the point, and a door that
 took the engine's own criteria would be `ObjectStore` with a longer name.
+
+There is also no `List<...>` anywhere, which is the same decision seen from the
+other side: a method returning a list has decided how much to hold before the
+caller has said what they want.
+
+One small thing falls out of streams that is worth having: `java.util.stream`
+is the JDK's, so a host outside the framework needs only the element type
+exported rather than a collection type of ours. The packaging question above
+gets smaller, not larger.
 
 ## Three things a query vocabulary must not become
 
