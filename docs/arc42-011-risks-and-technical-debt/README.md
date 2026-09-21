@@ -43,7 +43,7 @@ is deliberately not being done, and the commands that prove it.
 | [017 The quality goals are not declared](017-quality-goals-are-not-declared/README.md) | Open. The eleven quality goals are matched to requirement areas by reading. Next: declare them as Quality classifications. |
 | [020 The insurer will not come up beside the zone](020-the-insurer-will-not-come-up-beside-the-zone/README.md) | Fixed. A projection hands one canonical down one dependency under two ids; the stream read the second as a stale claim of its own and threw. The apply path now asks whether the content is identical first. Kept until CI has run it a few times. |
 | [019 The build repeats work whose inputs did not change](019-the-build-repeats-itself/README.md) | Open. CI has said what the cache is worth: a docs-only pull request went 44 to 37 minutes, one touching sources went to 45. The remaining forty minutes is the container suites, which no cache can reach. Next: items 002 and 003. |
-| [018 The insurer's copy does not arrive](018-the-insurers-copy-does-not-arrive/README.md) | Open. Slow, not stopped: the carrier is a projection tenant that spends twenty-eight seconds reading a face through the chain. Next: move the pin, which has face images. |
+| [018 The insurer's copy does not arrive](018-the-insurers-copy-does-not-arrive/README.md) | Open. Slow, not stopped: the carrier is a projection tenant that spends twenty-eight seconds reading a face through the chain. The pin now carries the launcher that reads the images setting, and the three waits now print how close they came. Next: read those numbers off a build run. |
 
 ## Risks
 
