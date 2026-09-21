@@ -1,4 +1,4 @@
-**Open. Next: redo the context chapter with the three-level landscape.**
+**Open. The context chapter is done, and so is the worked deployment: it is a chapter now, built on the guide world's compose file. One disagreement is left and it waits on item 002 — the guide is shell commands, and the map says it is the sample application's story.**
 
 # The documentation tree is moved to match its map
 
@@ -10,10 +10,19 @@ building. This item is deleted when the list is empty.
 
 ## Where the tree disagrees
 
-- `arc42-003-context` has a README and user stories, and no three-level
-  landscape; the stories do not cite Story constants.
-- `arc42-007-deployment` has its diagrams; the worked deployment is a
-  hand-written site page rather than the guide world's compose file.
+- ~~`arc42-003-context` has a README and user stories, and no three-level
+  landscape; the stories do not cite Story constants.~~ Closed. The chapter
+  opens on the landscape — four bands, and the relationship that matters most
+  being the one that skips a band — and each story is a `DboStories` constant
+  whose joins table is projected from it rather than written.
+- ~~`arc42-007-deployment` has its diagrams; the worked deployment is a
+  hand-written site page rather than the guide world's compose file.~~ Closed.
+  It is `arc42-007-deployment/a-worked-deployment.md`, and it opens on the
+  compose file itself. The world turned out to be richer than the page that
+  described one: seven tenants rather than five, three organisations rather
+  than two, and two face roots — so the sentence about a second face root
+  being another version stopped being hypothetical and became the insurer,
+  a release behind, taking the zone through a projection.
 - `docs/guide/` is written as shell commands a reader runs against the
   world. The map says it is the sample application's story, and there is no
   sample application.
@@ -22,13 +31,19 @@ building. This item is deleted when the list is empty.
 
 ## The steps, in order
 
-1. Rewrite the guide one chapter at a time as the sample application's
+1. ~~Move the worked deployment into `arc42-007-deployment`, built on the
+   guide world's compose file rather than describing a deployment of its
+   own.~~ Done. The site page is gone rather than made a pointer — a page
+   whose whole content is "it is over there" is a third thing to keep in
+   step — and the technical index links into the chapter instead.
+2. Rewrite the guide one chapter at a time as the sample application's
    story, each chapter including the sample's source and replacing one
    shell chapter when it lands. The sample itself is
    [item 002](../002-sample-application/README.md); this step waits for it.
 
-Step 1 is the largest and depends on nothing above it; it is last so that
-the sample is written against a tree that holds still.
+Step 2 is the largest and is now the only one. It waits on
+[item 002](../002-sample-application/README.md) rather than on anything here,
+so this item is finished when that one is.
 
 ## How a step lands
 

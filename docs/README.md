@@ -36,7 +36,9 @@ Structured per [arc42](https://arc42.org/).
   tenant's bring-up assembles
 - [arc42-006-runtime](arc42-006-runtime/README.md) — [REQ catalogue](arc42-006-runtime/req-catalogue.md)
 - [arc42-007-deployment](arc42-007-deployment/README.md) — scaling/routing (§5),
-  [tenant provisioning](arc42-007-deployment/tenant-provisioning.md) (§4)
+  [tenant provisioning](arc42-007-deployment/tenant-provisioning.md) (§4),
+  [a worked deployment](arc42-007-deployment/a-worked-deployment.md) — the
+  guide world's compose file, and what each party can reach
 - [arc42-008-crosscutting](arc42-008-crosscutting/) —
   [engine and faces](arc42-008-crosscutting/engine-and-faces/README.md) (§1) and
   [the payload seam](arc42-008-crosscutting/the-payload-seam/README.md) (how data
