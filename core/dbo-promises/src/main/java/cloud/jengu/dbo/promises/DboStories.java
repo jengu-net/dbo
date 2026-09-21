@@ -90,7 +90,44 @@ public enum DboStories implements Story {
                     DboPromises.PROC_TRACE_JOIN,
                     DboPromises.POL_TRAVEL_AND_ACCESS_ARE_DIFFERENT_ENTRIES,
                     DboPromises.POL_A_RUNS_TRAIL_IS_CHAINED_FROM_THE_TASK,
-                    DboPromises.WF_HOPS_AUDITED)),
+                    DboPromises.WF_HOPS_AUDITED,
+                    // Fitted here rather than left in no story: what the run reaches, what
+                    // wakes a runner, and what a fault leaves behind.
+                    DboPromises.PROC_A_RUN_ANSWERS_ONLY_FOR_ITS_INPUTS,
+                    DboPromises.PROC_A_RUN_CONTEXT_ENDS_WITH_ITS_RUN,
+                    DboPromises.PROC_A_WAKE_UP_IS_NOT_HOW_WORK_ARRIVES,
+                    DboPromises.PROC_A_FAULT_THE_CALLER_IS_NOT_TOLD_IS_STILL_RECORDED,
+                    DboPromises.PROC_CATALOGUE_IN_STORE,
+                    DboPromises.PROC_DOMAIN_CODE_FILTER,
+                    DboPromises.PROC_ONE_PARENT_NEVER_ACROSS_A_BOUNDARY,
+                    DboPromises.PROC_IDENTITY_IS_REASSEMBLED_AT_THE_TENANT,
+                    DboPromises.PROC_AUTOMATION_IS_A_DECLARED_SWITCH,
+                    DboPromises.WF_PLATFORM_COORDINATED_HOPS
+            )),
+
+    BUILT_OR_PLANNED("A builder deciding whether to build on this store asks what it "
+            + "actually does, and tells what is carried by a test from what is only "
+            + "intended — from one table generated out of the model rather than typed "
+            + "beside it.",
+            List.of(
+                    // What is promised is a constant, and its code is the
+                    // constant's name.
+                    DboPromises.PRM_NAME_IS_THE_CODE,
+                    DboPromises.PRM_GAP_IS_FIRST_CLASS,
+                    DboPromises.PRM_REGISTERED_AT_COMPILE_TIME,
+                    DboPromises.PRM_CATALOGUE_READ_WHOLE,
+                    DboPromises.PRM_AREAS_MERGE_BY_CODE,
+                    // What is proven is what a test says, and the index of
+                    // citations is built by the compile that owns them.
+                    DboPromises.PRM_CITATION_IS_TYPED,
+                    DboPromises.PRM_PROOFS_INDEXED_AT_COMPILE_TIME,
+                    DboPromises.PRM_STATUS_IS_DERIVED,
+                    DboPromises.PRM_COVERAGE_IS_A_FOLD,
+                    DboPromises.PRM_DOWN_LINKS_ONLY,
+                    DboPromises.PRM_A_STORY_IS_CITED_NOT_CLAIMED,
+                    // And the page she reads is projected from the model.
+                    DboPromises.PRM_PROJECTION_IS_GENERATED,
+                    DboPromises.PRM_COVERAGE_ON_THE_RESULTS_PAGE)),
 
     FLEET_HEALTH("An operator reads a whole deployment from outside every container — what "
             + "each node serves and knows how to do, who is present, what sits behind them — "
@@ -117,7 +154,31 @@ public enum DboStories implements Story {
                     // And undoing a judgement, which is its own authority.
                     DboPromises.PROC_SUPERVISION_IS_ITS_OWN_ENTITLEMENT,
                     DboPromises.PROC_CLOSED_CAN_BE_REOPENED,
-                    DboPromises.TEN_A_PARTNER_MANAGES_TENANTS)),
+                    DboPromises.TEN_A_PARTNER_MANAGES_TENANTS,
+                    // Fitted here rather than left in no story: what an operator reads and
+                    // steers about the declarations themselves.
+                    DboPromises.TEN_SERVED_FROM_WHAT_WAS_APPLIED,
+                    DboPromises.TEN_A_REFUSED_DECLARATION_IS_SAID_ONCE,
+                    DboPromises.TEN_A_STALE_INDEX_IS_REMEMBERED_UNTIL_IT_IS_REBUILT,
+                    DboPromises.TEN_AN_ACTIVITY_DECLARES_WHERE_IT_APPLIES,
+                    DboPromises.TEN_A_DECLARED_SET_IS_APPLIED_AS_ONE_PASS,
+                    DboPromises.TEN_APPLYING_IS_ASKED_FOR_AND_RECORDED,
+                    DboPromises.TEN_A_CHANGE_IS_NOT_A_RETRACTION,
+                    DboPromises.TEN_A_REDECLARATION_IS_NOTICED,
+                    DboPromises.TEN_A_DECLARATION_IS_A_RECORD,
+                    DboPromises.TEN_A_DECLARATION_NAMES_ITS_REFERENT,
+                    DboPromises.TEN_A_CHANGE_CAN_BE_CLASSIFIED_WITHOUT_APPLYING,
+                    DboPromises.TEN_FAIRNESS_QUOTAS,
+                    DboPromises.PROC_CONFIG_WITHDRAWAL_IS_DECLARED,
+                    DboPromises.PROC_CONFIG_READ_FROM_A_SOURCE,
+                    DboPromises.PROC_CONFIG_APPLIES_AS_A_SWEEP,
+                    DboPromises.SCAL_DURABLE_ASSIGNMENT,
+                    DboPromises.SCAL_SINGLE_WRITER_TENANT,
+                    DboPromises.SCAL_TRANSPARENT_ROUTING,
+                    DboPromises.SCAL_TWO_HOP_LOCALITY,
+                    DboPromises.SCAL_NO_SHARED_STATE_BROKER,
+                    DboPromises.OPS_MIGRATION_AS_DEPLOYMENT
+            )),
 
     TENANT_OPENING("A tenant is stood up inside somebody else's JVM, with a database and an "
             + "authority of its own, and the people who will work in it get in.",
@@ -161,7 +222,21 @@ public enum DboStories implements Story {
                     DboPromises.AUTH_FIRST_SECRET_BY_ONE_TIME_GRANT,
                     DboPromises.AUTH_SELF_SERVICE_CHANGE,
                     DboPromises.AUTH_RECOVERY_IS_AN_OPERATOR_ACT,
-                    DboPromises.AUTH_DEACTIVATION_RETIRES_CREDENTIALS)),
+                    DboPromises.AUTH_DEACTIVATION_RETIRES_CREDENTIALS,
+                    // Fitted here rather than left in no story: what standing one up costs
+                    // and what it is given to stand on.
+                    DboPromises.TEN_COMING_UP_AND_KEEPING_UP_ARE_NOT_ONE_QUEUE,
+                    DboPromises.TEN_DECLARED_TOGETHER_COME_UP_TOGETHER,
+                    DboPromises.TEN_SHARED_TIER_ISOLATION,
+                    DboPromises.TEN_A_TENANT_COMES_UP_FROM_THE_FACE_IMAGE,
+                    DboPromises.TEN_A_TYPE_DECLARES_ITS_DOMAIN,
+                    DboPromises.VER_AN_IMAGE_IS_CUT_ONLY_WHEN_COMPLETE,
+                    DboPromises.VER_AN_IMAGE_FROM_ANOTHER_RELEASE_IS_REFUSED,
+                    DboPromises.AUTH_PRIVATE_SURFACE,
+                    DboPromises.AUTH_A_ZONE_IS_ITS_OWN_BROKER,
+                    DboPromises.AUTH_BOOTSTRAP_SECRET_IS_CUSTODY,
+                    DboPromises.AUTH_GRANTS_ARE_READABLE_TO_CONVERGE
+            )),
 
     CLINICAL_RECORD("Care is recorded in the tenant opened before it, and can be found again "
             + "and accounted for: one patient however many times they arrive, meaning checked "
@@ -223,7 +298,19 @@ public enum DboStories implements Story {
                     DboPromises.EVT_TRANSACTIONAL_OUTBOX,
                     DboPromises.EVT_FHIR_SUBSCRIPTIONS,
                     DboPromises.EVT_DURABLE_DELIVERY,
-                    DboPromises.EVT_IN_PROCESS_SURFACE)),
+                    DboPromises.EVT_IN_PROCESS_SURFACE,
+                    // Fitted here rather than left in no story: how the record is found
+                    // again, and what it may be made of.
+                    DboPromises.TEN_A_FEED_SAYS_WHAT_CHANGED_NOT_WHAT_IT_SAYS,
+                    DboPromises.SRCH_A_REINDEX_HOLDS_NO_TRANSACTION_WHILE_IT_EXTRACTS,
+                    DboPromises.SRCH_THE_ENVELOPE_IS_EXTRACTED_WHERE_THE_BYTES_ARE,
+                    DboPromises.SRCH_THE_DATABASE_ENVELOPE_LOSES_NOTHING_BEFORE_IT_IS_USED,
+                    DboPromises.SRCH_A_PARAMETER_IS_COMPILED_WHEN_IT_ARRIVES,
+                    DboPromises.SRCH_SEVERAL_VALUES_MEAN_ANY_OF_THEM,
+                    DboPromises.OPS_TENANT_BLOBS_ARE_TENANT_DATA,
+                    DboPromises.OPS_TENANT_BLOB_STORAGE,
+                    DboPromises.EVT_A_TENANT_DELIVERS
+            )),
 
     PERSON_RIGHTS("What a person can ask for about the care recorded in the story before "
             + "this one, and what erasure means when identifying data was encrypted under a "
@@ -256,7 +343,14 @@ public enum DboStories implements Story {
                     DboPromises.PDI_SHRED_LEDGER,
                     DboPromises.POL_ERASURE_COMPATIBLE,
                     DboPromises.SCIM_DEPROVISION_IS_A_STATE,
-                    DboPromises.TEN_ERASURE_BY_DROP)),
+                    DboPromises.TEN_ERASURE_BY_DROP,
+                    // Fitted here rather than left in no story: what a purpose is for, and
+                    // what a pseudonym answers.
+                    DboPromises.AUTH_PURPOSE_IS_STATED_PER_REQUEST,
+                    DboPromises.PDI_PSEUDONYM_RESOLVED_BY_SCAN,
+                    DboPromises.PDI_A_REFUSAL_ANSWERS_AS_A_REFUSAL,
+                    DboPromises.PDI_AN_ID_THE_STORE_NEVER_ASSIGNED_IS_NOT_A_FAULT
+            )),
 
     TWO_PLACES("One tenant in two places, and content that belongs somewhere else: canonical "
             + "definitions travelling by type because none of them is about anybody, and "
@@ -284,7 +378,15 @@ public enum DboStories implements Story {
                     DboPromises.PROC_LANE_APPLY_IS_REPLAY_AND_REORDER_SAFE,
                     DboPromises.PROC_LANE_EPOCH,
                     DboPromises.FEED_PUSH_ACK_RESUME,
-                    DboPromises.FEED_IDEMPOTENT_DELIVERY)),
+                    DboPromises.FEED_IDEMPOTENT_DELIVERY,
+                    // Fitted here rather than left in no story: what a zone hands to a
+                    // face it was not written in.
+                    DboPromises.TEN_WHAT_A_TENANT_CARES_ABOUT_IS_EDITABLE,
+                    DboPromises.ZONE_AN_UNSERVABLE_ZONE_IS_SAID_AT_BRING_UP,
+                    DboPromises.ZONE_WHAT_CONVERSION_CANNOT_CARRY_IS_REFUSED_BY_NAME,
+                    DboPromises.ZONE_A_ZONE_IS_SERVED_TO_A_FACE_THROUGH_ONE_PROJECTION,
+                    DboPromises.FEED_LEAN_WIRE_OPTION
+            )),
 
     STANDARD_MOVES("Data outlives the shapes it was written under: what an object was "
             + "validated under is a fact of the accept event, and everything a migration "
@@ -326,7 +428,17 @@ public enum DboStories implements Story {
                     DboPromises.VER_BALLOT_RECORDED_PER_VERSION,
                     DboPromises.VER_BALLOT_SERVED_AS_AUTHORED,
                     DboPromises.CORE_UPGRADE_ON_READ,
-                    DboPromises.CORE_IDENTITY_SURVIVES_CONVERSION)),
+                    DboPromises.CORE_IDENTITY_SURVIVES_CONVERSION,
+                    // Fitted here rather than left in no story: where the definitions
+                    // live, and what a face will not read.
+                    DboPromises.VER_FACE_ROOT_HOLDS_THE_VERSION_AS_RECORDS,
+                    DboPromises.VER_CONVERSION_RUNS_BOTH_WAYS,
+                    DboPromises.VER_DEFINITIONS_LIVE_IN_A_SCHEMA_OF_THEIR_OWN,
+                    DboPromises.VER_WHAT_THIS_FACE_CANNOT_READ_IS_REFUSED,
+                    DboPromises.SHAPE_HELD_IS_ANSWERED_HOWEVER_IT_ARRIVED,
+                    DboPromises.SHAPE_RESHAPE_TAKES_THE_SEARCH_NARROWING,
+                    DboPromises.FEED_DEFINITIONS_MOVE_ON_A_FEED_OF_THEIR_OWN
+            )),
 
     VENDOR_CHANGE("A provider leaves and takes everything with them, in a sealed archive the "
             + "party operating the store cannot read and somebody else can verify without "
@@ -346,7 +458,11 @@ public enum DboStories implements Story {
                     DboPromises.MNT_ACCEPTED_ROOT_RECORDED,
                     // And what the receiving store rebuilds on the way in.
                     DboPromises.CORE_REINDEX_IS_AN_OPERATION,
-                    DboPromises.POL_POLICY_REPLAY_ON_RESTORE));
+                    DboPromises.POL_POLICY_REPLAY_ON_RESTORE,
+                    // Fitted here rather than left in no story: what makes a thing handed
+                    // over on its own.
+                    DboPromises.CORE_A_SEPARABLE_DOMAIN_HAS_A_SCHEMA_OF_ITS_OWN
+            ));
 
     private final String title;
     private final List<Promise> promises;

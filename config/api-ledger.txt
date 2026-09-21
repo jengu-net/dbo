@@ -2762,6 +2762,7 @@ cloud.jengu.dbo.promises.DboPromises                                   enum
 cloud.jengu.dbo.promises.DboPromises                                   text():String
 cloud.jengu.dbo.promises.DboPromises                                   valueOf(String):cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   values():cloud.jengu.dbo.promises.DboPromises[]
+cloud.jengu.dbo.promises.DboStories                                    BUILT_OR_PLANNED:cloud.jengu.dbo.promises.DboStories
 cloud.jengu.dbo.promises.DboStories                                    CLINICAL_RECORD:cloud.jengu.dbo.promises.DboStories
 cloud.jengu.dbo.promises.DboStories                                    EDGE_ROUNDTRIP:cloud.jengu.dbo.promises.DboStories
 cloud.jengu.dbo.promises.DboStories                                    FLEET_HEALTH:cloud.jengu.dbo.promises.DboStories

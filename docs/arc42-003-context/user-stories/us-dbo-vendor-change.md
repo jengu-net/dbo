@@ -74,8 +74,9 @@ citations say it is.
 | `REQ-DBO-MNT-ACCEPTED-ROOT-RECORDED` | A destination records the root it accepted and the two keys that signed it, in the tenant's own audit trail, so what was imported and what both parties said it was stays answerable without the archive. | PROVEN |
 | `REQ-DBO-CORE-REINDEX-IS-AN-OPERATION` | Changing how objects are indexed is a background operation, never a data migration. | PROVEN |
 | `REQ-DBO-POL-POLICY-REPLAY-ON-RESTORE` | Before a restored tenant serves, the machinery re-applies the shred ledger and the retention sweep — an archive cannot resurrect what policy required gone; archives carry removeAfter themselves. | PROVEN |
+| `REQ-DBO-CORE-A-SEPARABLE-DOMAIN-HAS-A-SCHEMA-OF-ITS-OWN` | A domain that is handed over on its own — dumped, restored, granted on, dropped — lives in a schema of its own rather than sharing the schemas every other domain is told apart inside by a prefix, because a schema is the unit the database moves. Everything that names its tables finds them there: the store, its history, its feed, the retention sweep and the backup, whose sweep discovers a domain by looking for its tables and would otherwise carry every domain except the one made portable, silently. | PROVEN |
 
-Coverage: {PROVEN=12} — a leg marked PLANNED cites a promise that exists and is not yet cited by any test.
+Coverage: {PROVEN=13} — a leg marked PLANNED cites a promise that exists and is not yet cited by any test.
 <!-- story:end -->
 
 ## What the store cannot do yet
