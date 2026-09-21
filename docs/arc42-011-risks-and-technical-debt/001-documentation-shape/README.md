@@ -42,7 +42,7 @@ building. This item is deleted when the list is empty.
    [item 002](../002-sample-application/README.md); this step waits for it.
 
    **Which chapters there should be is
-   [item 021](../021-the-platforms-own-entities/README.md).** The Core group is
+   [item 021](../021-asking-the-store/README.md).** The Core group is
    organised by store feature and the map says the guide is a story, and those
    are different things — the first chapter where they part company is
    `search.md`, which walks a query surface FHIR documents. Converting a
