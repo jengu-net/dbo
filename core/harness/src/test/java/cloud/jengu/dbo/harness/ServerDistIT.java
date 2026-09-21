@@ -95,6 +95,7 @@ class ServerDistIT {
         operator.ensureCrd();
 
         specDir = Files.createTempDirectory("dbo-dist-specs");
+        faceImages = Files.createTempDirectory("dbo-dist-faces");
         serverLog = Files.createTempFile("dbo-dist", ".log");
         byte[] kek = new byte[32];
         new java.security.SecureRandom().nextBytes(kek);
@@ -120,6 +121,9 @@ class ServerDistIT {
         }
     }
 
+    /** Where the started distribution keeps its face images, as an operator's disk. */
+    private Path faceImages;
+
     private void startServer() throws Exception {
         startServer(true);
     }
@@ -136,6 +140,12 @@ class ServerDistIT {
         pb.environment().put("DBO_K8S_NAMESPACE", NS);
         pb.environment().put("KUBECONFIG", kubeconfig.toString());
         pb.environment().put("DBO_JAVA_OPTS", "-Xmx2g");
+        // The setting a deployment uses, through the launcher that ships. It
+        // was the missing one: the runtime read `dbo.face.images` and nothing
+        // outside a test could ask for it, so every tenant expanded the whole
+        // version again. Set here so the distribution's own test is what
+        // notices if the way in disappears.
+        pb.environment().put("DBO_FACE_IMAGES", faceImages.toString());
         pb.environment().put("PATH",
                 System.getProperty("java.home") + "/bin:" + pb.environment().getOrDefault("PATH", ""));
         pb.redirectErrorStream(true);
