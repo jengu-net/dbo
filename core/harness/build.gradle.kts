@@ -158,11 +158,24 @@ val distTest = tasks.register<Test>("distTest") {
 val memoryTest = tasks.register<Test>("memoryTest") {
     description = "What a tenant costs to hold, measured in a JVM that holds nothing else."
     group = "verification"
+    // Images on, because a tenant that comes up any other way is not the
+    // tenant a deployment holds: it expands the whole of a version instead of
+    // loading rows somebody already expanded. The figures below it are about
+    // what is RESIDENT rather than what bring-up cost, so this is not
+    // expected to move them much — and if it does, that is the measurement
+    // doing its job rather than a reason to leave it measuring the old path.
+    systemProperty("dbo.face.images",
+            layout.buildDirectory.dir("face-images").get().asFile.absolutePath)
     testClassesDirs = sourceSets.test.get().output.classesDirs
     classpath = sourceSets.test.get().runtimeClasspath
     filter.includeTestsMatching("*WhatTheLoadedSpecificationCostsIT")
     // Its own process per class, and no other class in it.
     forkEvery = 1
+    // Forwarded, because the flag is read inside the test JVM and a -D on the
+    // gradle command line stops at the daemon. Recording silently did nothing
+    // and the baseline stayed as it was, which is the quietest way for a
+    // ratchet to become a decoration.
+    System.getProperty("dbo.memory.record")?.let { systemProperty("dbo.memory.record", it) }
     maxHeapSize = "2g"
 }
 tasks.test {

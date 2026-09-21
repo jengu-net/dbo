@@ -230,6 +230,13 @@ class WhatTheLoadedSpecificationCostsIT {
             # A rise of more than thirty per cent fails, because that is a
             # design change rather than the collector wandering. Re-record when
             # somebody has said why.
+            #
+            # A recorded number is the HIGH observation, not the last one. The
+            # validator pool has measured 21 MB and 36 MB on consecutive runs
+            # of the same commit — how much of the pool a forced collection
+            # happens to have reclaimed — and recording a low reading makes
+            # the next ordinary run fail. So after re-recording, check the
+            # numbers against a second run and keep the larger.
             """;
 
     private static String asLines(Map<String, Long> numbers) {
