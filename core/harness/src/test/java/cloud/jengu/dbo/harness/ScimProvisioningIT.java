@@ -27,20 +27,34 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * tenant's own Person/Practitioner records behind the membrane, and the
  * by-system enumeration a list needs never leaves the store.
  *
- * <p>On a shared runtime: the directory block is the shape's, and every
- * assertion here is about the one person this class provisioned. What cannot
- * be shared is the tenant that must not come up at all, which is
- * {@link ScimNeedsTheMembraneIT}.
+ * <p>On the world's own hospital, which is the tenant here that has a
+ * directory — and, for the half about a tenant that declares none, on the
+ * shape twelve other classes already share. Two shapes existed for those parts and were used by this class
+ * alone; a cast member is recognisable, so the next test wanting a directory
+ * will find one. Every assertion is about the person this class provisioned,
+ * never about how many people work there. What cannot be shared is the
+ * tenant that must not come up at all, which is {@link ScimNeedsTheMembraneIT}.
  */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class ScimProvisioningIT {
 
-    private static final String SYSTEM = SharedTenants.STAFF_IDS;
+    /** What the hospital's own declaration says its directory keys people by. */
+    private static final String SYSTEM = "urn:rl:staff-directory";
 
+    /** The hospital, which is the tenant in this world that has a directory. */
     static SharedTenants.Tenant staffed;
 
-    /** Behind the membrane like the one above, and with no directory block. */
+    /**
+     * A tenant that declares no directory, which is all this half needs.
+     *
+     * <p>The insurer would have read better and does not come up here:
+     * asking for it on the shared runtime fails on the engine's own audit
+     * vocabulary being claimed twice, which is
+     * item 020 in risks and technical debt, "the insurer will not come up
+     * beside the zone".
+     * So this takes the shape twelve classes already share.
+     */
     static SharedTenants.Tenant unstaffed;
 
     static final HttpClient http = HttpClient.newHttpClient();
@@ -49,22 +63,12 @@ class ScimProvisioningIT {
 
     @BeforeAll
     void up() {
-        staffed = SharedTenants.of(SharedTenants.Shape.R4_SCIM);
-        unstaffed = SharedTenants.of(SharedTenants.Shape.R4_ISOLATED);
+        staffed = SharedTenants.cast(SharedTenants.Cast.HOSPITAL);
+        unstaffed = SharedTenants.of(SharedTenants.Shape.R4_INTERNAL);
         staffed.authority().ensureRoleGrant("clinician", List.of("system/*.read"));
         scimToken = staffed.token("okta-scim", "scim");
     }
 
-    /**
-     * Given back. A tenant one class uses is a database the whole
-     * suite carries until the run ends, and the saving on this rung is
-     * the runtime rather than the tenant.
-     */
-    @AfterAll
-    void down() {
-        SharedTenants.retire(staffed);
-        SharedTenants.retire(unstaffed);
-    }
 
     @Test
     @Order(1)
@@ -95,7 +99,9 @@ class ScimProvisioningIT {
 
         HttpResponse<String> list = scim("GET", "/Users", null);
         assertEquals(200, list.statusCode());
-        assertTrue(list.body().contains("\"totalResults\":1"), list.body());
+        // Not a count. The hospital is the world's, and a class that asserted
+        // how many people work there would be asserting about every class
+        // that ever provisions one.
         assertTrue(list.body().contains("Sprout"),
                 "a purposed SCIM read serves the disclosed name: " + list.body());
 

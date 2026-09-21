@@ -73,13 +73,6 @@ public final class SharedTenants {
                  {"name":"StructureDefinition","identity":"canonical","handling":"operational"}]"""
                 .formatted(EID), "r4", "", "full"),
 
-        /** r4 behind the isolation membrane, with the person types a directory writes. */
-        R4_ISOLATED("sharedr4isolated", """
-                [{"name":"Patient","identity":"identifier","systems":["%s"],
-                  "handling":"operational"},
-                 {"name":"Person","identity":"internal","handling":"operational"},
-                 {"name":"Practitioner","identity":"internal","handling":"operational"}]"""
-                .formatted(EID), "r4", ",\"pdi\":true", "full"),
 
         /** r5, for anything that has to be served beside r4 rather than instead of it. */
         R5("sharedr5", """
@@ -127,12 +120,11 @@ public final class SharedTenants {
         /**
          * r4 behind the membrane, with the person keyed by their number.
          *
-         * <p>Distinct from {@link #R4_ISOLATED} by which record is keyed how:
-         * there the Patient carries the identifier and the Person is
-         * internal, here it is the other way round. That is not a detail two
-         * shapes can split the difference on — a type declares one identity
-         * class — so the family of classes asking about a person behind the
-         * membrane gets its own.
+         * <p>The Person carries the identifier and the Patient is internal,
+         * which is the other way round from the hospital in the cast. That is
+         * not a detail two tenants can split the difference on — a type
+         * declares one identity class — so the family of classes asking about
+         * a person behind the membrane gets its own.
          */
         R4_PDI_PERSON("sharedr4pdiperson", """
                 [{"name":"Person","identity":"identifier","systems":["%s"],
@@ -190,21 +182,6 @@ public final class SharedTenants {
                  {"name":"Device","identity":"identifier","systems":["%s"],
                   "handling":"projected-config"}]""".formatted(BENCHES), "r4", "", "none"),
 
-        /**
-         * r4 with a staff directory over it: behind the membrane, its people
-         * keyed by what the provider calls them, and its trail on.
-         *
-         * <p>The directory block is a tenant's declaration and cannot be a
-         * flag a class sets, which is what kept this family in a world of its
-         * own. The trail is on because every provisioning operation is a
-         * disclosure and has to be answerable later as one.
-         */
-        R4_SCIM("sharedr4scim", """
-                [{"name":"Person","identity":"identifier","systems":["%s"],
-                  "handling":"operational"},
-                 {"name":"Practitioner","identity":"internal","handling":"operational"}]"""
-                .formatted(STAFF_IDS), "r4",
-                ",\"pdi\":true,\"scim\":{\"system\":\"" + STAFF_IDS + "\"}", "full"),
 
         /** r4 as a national zone publishing canonical content, for the clinic below. */
         R4_TWO_PLACES_ZONE("sharedr4twoplaceszone", """

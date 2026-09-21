@@ -41,6 +41,7 @@ is deliberately not being done, and the commands that prove it.
 | [015 The comparative load test](015-the-comparative-load-test/README.md) | Not scheduled. The bench runner carries the discipline; a second and third target, an ingest workload and resource sampling are missing. |
 | [016 Where a neutral store earns its keep](016-where-a-neutral-store-earns-its-keep/README.md) | Not scheduled. A test for recognising the domains this engine's shape fits. |
 | [017 The quality goals are not declared](017-quality-goals-are-not-declared/README.md) | Open. The eleven quality goals are matched to requirement areas by reading. Next: declare them as Quality classifications. |
+| [020 The insurer will not come up beside the zone](020-the-insurer-will-not-come-up-beside-the-zone/README.md) | Open. The sample world's insurer fails bring-up in the harness on the engine's own audit vocabulary being claimed twice, and comes up fine in the container. Next: reproduce it small. |
 | [019 The build repeats work whose inputs did not change](019-the-build-repeats-itself/README.md) | Open. The build cache is off and some tasks do not declare what they read, so a documentation-only change pays the whole suite. Next: declare the inputs. |
 | [018 The insurer's copy does not arrive](018-the-insurers-copy-does-not-arrive/README.md) | Open. The guide's insurer terminology step fails in the job that also runs the suite, and passes in the job that runs nothing else. Next: find out whether the projection is slow or stopped. |
 
