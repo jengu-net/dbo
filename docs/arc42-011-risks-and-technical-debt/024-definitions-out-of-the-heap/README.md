@@ -388,9 +388,26 @@ converted feed only once the run that made it finished.
    needs first is which conversions are definitions and which are records,
    because that decides whether one step serves both. Nothing synchronous waits
    on a converter today, which is the fact the whole idea rests on.
-5. **Write the three rules**, which is small, self-contained, and closes most
-   of the divergence baseline — the remaining gap between what the database
-   says and what the toolchain says.
+5. **Write the three rules.** Two are written, one of them is proven, and the
+   baseline did not move — which is the useful part.
+
+   A uuid is lowercase now and a canonical carries a scheme, both in
+   `dbo.admits` where the primitive forms already live.
+   `TheFaceSqlShipsWithTheReleaseIT` holds the second to it: a `baseDefinition`
+   of `StructureDefinition/Patient` is refused and the absolute form is not.
+
+   **And the divergence baseline is unchanged at ten.** It counts a document
+   rather than a finding — a document diverges when one side found something
+   and the other found nothing at all — so a rule appears there only by
+   flipping a document, and these flipped none. Not one of the ten carries a
+   relative value on an element typed `canonical`. The baseline's own note
+   attributes eighteen findings to the absolute-url rule, so those are
+   somewhere this did not reach: a `uri`, a `url`, or an element the expansion
+   marks unenforceable.
+
+   What the run earned anyway is that `onlyTheDatabase` stayed at zero across
+   258 documents, so neither rule over-refuses. Finding where those eighteen
+   are wants the findings rather than the tally, and that is the next step.
 6. **Snapshot into the cut**: generate it where the image is made and carry it,
    so `cacheProfile` has nothing to build.
 7. **`_elements` from the rows**, which removes the last reader of the element
