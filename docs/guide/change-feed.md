@@ -103,6 +103,47 @@ decision is what the third stage of the hand-rolled version was reaching for:
 And a consumer that has caught up looks exactly like one that has nothing to
 do, because it is the same thing. Absence is not inferred from silence.
 
+## A page of an answer is held the same way
+
+A cursor is not only a feed's. The same primitive holds a page of a search, so
+a record written between two fetches is not handed to you twice.
+
+```bash
+--8<-- "docs/guide/examples/snippets/first-page.sh"
+```
+
+The bundle comes back with a `next` link carrying a `_cursor`:
+
+```
+next -> .../Patient?_count=2&_cursor=djF8a3xNakF5Tmkwd09TMHhObFF3T1Rvek5Eb3hPUzQzTkRFek5ESmF8MDF
+```
+
+The cursor is opaque. You are not meant to read it, take it apart, or construct
+one — and because you cannot, what it encodes is free to change without
+breaking anybody holding one.
+
+Now the part that earns it. Write a record *between* fetching page one and page
+two, then follow the cursor:
+
+```bash
+--8<-- "docs/guide/examples/snippets/next-page.sh"
+```
+
+Page two contains nothing page one already gave you. That is asserted on every
+build, by creating a record between the two fetches and failing if any id
+appears twice.
+
+With offsets it would be a different story: *skip 2, take 2* counts from the
+start of a result set that has just grown, so a row slides across the boundary
+and the caller sees it twice. The usual fix is for every caller to deduplicate
+on identity and carry the duplicate window around in application code. Here
+that work is designed out rather than worked around.
+
+**One wrinkle worth knowing.** The `next` link is built from the address the
+node was told to bind to. This world binds to everything, so the link says
+`0.0.0.0` and the example points it at the host you are on. A deployment that
+names itself properly produces links a client can follow as given.
+
 ## How an application reads it
 
 Inside the container, by registering an observer against the stream it wants:

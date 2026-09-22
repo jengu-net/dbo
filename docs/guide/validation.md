@@ -140,7 +140,7 @@ at all:
 `422`, and nothing was written. The refusal names the element, and it names the
 sanctioned alternative rather than leaving you to find it.
 
-This is the same stance as [Search](search.md)'s refusal of an unknown search
+This is the same stance as [the face](the-face.md)'s refusal of an unknown search
 parameter, and for the same reason. A field the store cannot read is a field it
 cannot validate and cannot search — so keeping it would hand the next reader a
 document containing something the store never checked and cannot find. An

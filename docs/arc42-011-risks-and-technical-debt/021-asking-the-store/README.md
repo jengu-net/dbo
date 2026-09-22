@@ -427,13 +427,16 @@ what it should produce when it gets there.
    thing that proves the caller cannot tell, and a host outside the framework
    asking one question, which is the only thing that proves the types travel.
 5. The observer seam, off by default.
-6. The guide chapter. **Half done**: `asking.md` exists, at the end of the Work
-   section, over a `TheWard` the sample compiles — so a chapter cannot show a
-   call that no longer exists. What is not done is the replacing:
-   `search.md` is still in the reading order, and the three claims of its that
-   survive — an unrecognised parameter refused rather than answered more
-   broadly, a CapabilityStatement generated from what is served, a page held by
-   a cursor — have to reach the stories that meet them before it goes.
+6. ~~The guide chapter, replacing `search.md` in the reading order.~~ Done.
+   `asking.md` reads over a `TheWard` the sample compiles, so a chapter cannot
+   show a call that no longer exists. `search.md` is gone, and its three
+   surviving claims went where a story meets each: the capability statement and
+   the refusal of an unknown parameter to [the face](../../guide/the-face.md),
+   which is the chapter about what a tenant declares and what its refusals say;
+   the cursor that holds a page to
+   [the change feed](../../guide/change-feed.md), beside the durable cursors it
+   is the same primitive as; and counting without fetching to the asking
+   chapter, where a screen's first number is asked for.
 7. Joins, which is its own subject: the five questions above first, the
    feature after. Until then the three methods refuse by name, with a test
    holding them to it.

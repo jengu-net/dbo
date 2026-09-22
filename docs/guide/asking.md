@@ -80,6 +80,24 @@ thousand, having transferred all of them.
 Inside the deployment the same question is ordinary, because the run's envelope
 carries it.
 
+## A number without the rows
+
+`outstanding()` above asks how many without fetching any, and over the surface
+that is one request the tenant answers with a total and no entries:
+
+```bash
+--8<-- "docs/guide/examples/snippets/count.sh"
+```
+
+```json
+{"resourceType":"Bundle","type":"searchset","total":1}
+```
+
+A number beside a filter is the first thing a screen shows, and paying for the
+rows to produce it is what makes a dashboard slow. The vocabulary refuses a
+count the tenant will not answer rather than handing back a number meaning
+there was no number.
+
 ## Following links is declared and not built
 
 `including` and `havingAny` exist, compile, and refuse by name. Joining by
