@@ -1,10 +1,9 @@
-**Open. Four tenants in three classes have died as `OutOfMemoryError: Java heap
-space`, across two documentation-only changes — one of which is the change that
-filed this. Two such changes ran minutes apart against the same commit and one
-passed, which is the failure rate rather than a guess at it. Three more builds
-have died since, so the dial is 3g — the first move this file's own rule allows,
-and it buys room rather than answering anything. Next: find what a tenant costs
-while it is alive.**
+**Open. Four tenants in three classes, across two documentation-only changes
+— one of them this item's own. What a tenant costs IS measured: 226 MB for a
+face's first, 11 MB for the next on it. The floor is attributed now — twelve
+classes keep 1755 MB and seventy more keep 477, against a 2 GB heap. Nothing is
+being left unclosed: the floor is the FHIR definition corpus, loaded once per
+face and resident by design. Next: whether one JVM holds three faces.**
 
 # The suite runs out of heap
 
@@ -73,12 +72,9 @@ search for.
 
 `gradle.properties` carries the two, with their reasoning:
 
-- `dboTestHeap=3g` — a floor rather than a default. Clearing it does not give
+- `dboTestHeap=2g` — a floor rather than a default. Clearing it does not give
   "the default": each module keeps its own minimum, because Gradle's own heap
-  dies inside HAPI as a null-message fault that names nothing. It was 2g until
-  three builds in a row died inside it, on changes that cannot reach a tenant.
-  The file's own rule is that a dial moves when a run there shows it should,
-  and three did.
+  dies inside HAPI as a null-message fault that names nothing.
 - `dboTestParallelism=1` — one fork. The suite is already refusing to run test
   classes in parallel, which is how much room there is.
 
@@ -109,12 +105,10 @@ records what was resident when it started: "measured alone that read 23 MB and
 inside the suite **1.3 GB**, which is a fact about the suite and not about a
 tenant."
 
-Against the two-gigabyte heap it had, that left about seven hundred megabytes,
-and three faces at 226 MB is six hundred and seventy-eight. That was the
-ceiling, in numbers this repository already held: not a crowd of tenants, but a
-suite whose floor had risen until the faces no longer fit above it. The dial is
-3g now, which buys a gigabyte of room and answers none of that — what gives the
-megabytes back rather than renting them is holding fewer faces in one JVM.
+Against a two-gigabyte heap that leaves about seven hundred megabytes, and
+three faces at 226 MB is six hundred and seventy-eight. That is the ceiling,
+in numbers this repository already held: not a crowd of tenants, but a suite
+whose floor has risen until the faces no longer fit above it.
 
 It also says why the failures look the way they do. The class that fails most
 brings four tenants up **at once**, and the ones that failed tonight were
@@ -166,6 +160,46 @@ dispatcher and a checkpointing run are threads, pools and engines rather than
 faces, and several hundred megabytes surviving the class that made them is not
 explained by anything in the baseline.
 
+### And what it is made of
+
+`-Ddbo.heap.histogram=true` asks the JVM for its own `GC.class_histogram` at the
+end of a run and writes `build/heap-histogram.txt`. Narrowed to the two classes
+the list accused, 904 MB were live at the end, and the top of it is not a
+thread, a pool or a connection:
+
+```
+  num     #instances         #bytes  class name
+    1:       3660386      449485360  [B
+    2:       3629356       87104544  java.lang.String
+    3:       1126342       63075152  org.hl7.fhir.r5.model.StringType
+    8:         92807       17818944  org.hl7.fhir.r5.model.ElementDefinition
+```
+
+Ninety-two thousand `ElementDefinition`s and 1.1 million `StringType`s are a
+StructureDefinition corpus. Counted by name, `org.hl7.fhir.*` types hold 233 MB;
+the byte arrays and strings above them are what those objects are made of, so
+the real share is larger than 233 and the histogram cannot say by how much. It
+reports what a type's own instances weigh, never what they keep alive.
+
+**So the hypothesis was wrong, and it was worth being wrong out loud.** Neither
+class is holding a dispatcher or an engine it failed to close.
+`MilestonesOnTheCheckpointIT` ends by validating a Bundle on r4, r5 and r6 in
+one loop, through `R4FhirVersion.INSTANCE` and `R5FhirVersion.INSTANCE` —
+singletons, so what they load is resident for the life of the JVM by design.
+Its 206 MB reproduce when it is the only other class in the run, so this is not
+an artefact of what ran before it.
+
+**And it agrees with what a tenant costs.** 226 MB for a face's first tenant and
+11 MB for the next on it was always the shape of a cost paid once per face and
+shared by every tenant on it. The 226 is the definitions; the 11 is the tenant.
+Three faces resident in one JVM is most of a gigabyte before a single tenant is
+served, which is the floor this item has been walking around.
+
+**What it does not answer.** The largest single entry is 449 MB of byte arrays,
+and nothing here says whose they are. Definition source, payloads and driver
+buffers all look like `[B`. That is the next thing worth knowing, and it needs
+retained sizes rather than shallow ones.
+
 **And one is a caution about item 003.** `DelegationIT` keeps 124 MB, and it is
 the first class moved onto the shared cast. The shared world's tenants are
 never dropped by design, so a class moving down the ladder transfers its
@@ -187,22 +221,27 @@ suite of fifty-odd classes needs it.
 
 ## What to do
 
-1. Measure one tenant, resident, after bring-up. The memory baseline exists and
-   records a number for a world; this needs the number for a tenant, so that
-   "how many fit" stops being a thing the suite discovers by dying.
-2. Say whether the four-minute wait raised the peak. It is one change and it is
-   reversible, and an honest answer is worth more than the wait.
-3. ~~Attribute the floor.~~ Done, and the instrument is kept:
+1. ~~Measure one tenant, resident, after bring-up.~~ Done: 226 MB for a face's
+   first, 11 MB for the next on it.
+2. ~~Attribute the floor.~~ Done, and the instrument is kept:
    `WhatTheSuiteLeavesBehind` records the floor after each class when asked
    with `-Ddbo.heap.attribute=true`. It writes after every class rather than at
    the end, because the suite it measures is the one that dies.
-4. Read the top three. A subscription dispatcher, a checkpointing run and a
-   delegation class keeping hundreds of megabytes after they finish is the
-   fixable third of this, and none of it is explained by what a tenant costs.
-5. Then the tail, which is the other quarter and is nobody's fault in
-   particular.
-4. Then decide about the dial, with the measurement in hand. Raising it before
-   that is buying quiet.
+3. ~~Read the top of the list.~~ Done, and the answer was no. It is not
+   something left unclosed; it is the definition corpus, once per face, held on
+   purpose.
+4. Say whose the 449 MB of byte arrays are. Shallow sizes cannot, so this wants
+   a heap dump read for retained size rather than another histogram.
+5. Decide how many faces one JVM holds. This is now the question the floor
+   actually poses, and it is a suite-shape decision rather than a defect:
+   splitting the run by face buys back a face's definitions, at the cost of a
+   second JVM's startup.
+6. Say whether the four-minute wait raised the peak. It is one change and it is
+   reversible, and an honest answer is worth more than the wait.
+7. Then the tail — seventy classes at seven megabytes each — which is the other
+   quarter and is nobody's fault in particular.
+8. Then decide about the dial, with all of that in hand. Raising it before that
+   is buying quiet.
 
 ## Why it matters beyond a red build
 

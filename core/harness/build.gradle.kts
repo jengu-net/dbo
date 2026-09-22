@@ -198,6 +198,7 @@ tasks.test {
     // command line stops at the daemon, and a measurement that silently does
     // nothing is worse than one nobody asked for.
     System.getProperty("dbo.heap.attribute")?.let { systemProperty("dbo.heap.attribute", it) }
+    System.getProperty("dbo.heap.histogram")?.let { systemProperty("dbo.heap.histogram", it) }
     filter.excludeTestsMatching("*ServerDistIT")
     filter.excludeTestsMatching("*WhatTheLoadedSpecificationCostsIT")
     shouldRunAfter(distTest)
