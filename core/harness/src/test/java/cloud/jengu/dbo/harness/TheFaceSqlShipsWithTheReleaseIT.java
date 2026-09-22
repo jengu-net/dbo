@@ -337,6 +337,43 @@ class TheFaceSqlShipsWithTheReleaseIT {
     }
 
     @Test
+    @DisplayName("the walk reaches what the snapshot enumerates and no further, so a datatype's "
+            + "insides are checked where a profile constrains them and nowhere else")
+    @Proving(DboPromises.VAL_TIER_ONE_IS_ANSWERED_IN_THE_DATABASE)
+    void theWalkReachesWhatWasExpanded() throws Exception {
+        // Found by writing a rule that fires at a document's root and not
+        // inside one. Every check in dbo.validate reads the same walk, and the
+        // walk is driven by definition_element rows down their parent chain —
+        // so it reaches exactly as far as the expansion did, and the expansion
+        // follows the profile's own snapshot.
+        //
+        // A snapshot names an element of a complex type and stops: it says
+        // StructureDefinition.snapshot.element is an ElementDefinition without
+        // saying what an ElementDefinition holds. So nothing below that is
+        // walked, and the identifier inside an element's example value — which
+        // the toolchain reports on, because it has the datatype's own
+        // definition — is somewhere no check here can see.
+        List<String> insideADatatype = query(
+                "SELECT path FROM definitions.definition_element"
+                + " WHERE canonical = '" + SHAPE + "'"
+                + "   AND path LIKE 'StructureDefinition.snapshot.element.%'");
+        assertEquals(List.of(), insideADatatype,
+                "the snapshot enumerates an ElementDefinition's own children, so this test is "
+                        + "describing a reach the expansion no longer has: " + insideADatatype);
+
+        // And where a profile DOES constrain a datatype's child, the row is
+        // there and the check reads it — which is why the fixed system on this
+        // tenant's own patient profile is answered at all.
+        List<String> pinned = query(
+                "SELECT path FROM definitions.definition_element"
+                + " WHERE canonical = '" + PROFILE + "'"
+                + "   AND path LIKE 'Patient.identifier%' ORDER BY path");
+        assertFalse(pinned.isEmpty(),
+                "a profile pinned an identifier's system and the expansion has no row under "
+                        + "Patient.identifier at all");
+    }
+
+    @Test
     @DisplayName("a write is shown to both, the toolchain's verdict is the one used, and what "
             + "they made of it is counted")
     @Proving(DboPromises.VAL_THE_DATABASE_ANSWER_IS_ADVISORY_UNTIL_IT_IS_NOT)
