@@ -327,8 +327,11 @@ public final class FhirHttpServer implements AutoCloseable {
             switch (method) {
                 case "GET" -> {
                     if (segments.length == 1) {
-                        respond(exchange, 404, store.operationOutcome("not-supported",
-                                "runs are read by id; the trail is searched by run"));
+                        // It answered 404 here, and a vocabulary for asking
+                        // about work had a binding that could not ask: every
+                        // question about a run had to be a read by id, so
+                        // "what is outstanding" had no form on the surface.
+                        respond(exchange, 200, workSurface.search(query, baseUrl()));
                     } else {
                         var rendered = workSurface.read(segments[1]);
                         if (rendered.isPresent()) {
@@ -755,7 +758,9 @@ public final class FhirHttpServer implements AutoCloseable {
             parameters.put("AuditEvent", auditSurface.searchParameters());
         }
         if (workSurface != null) {
-            parameters.put("Task", java.util.Set.of());
+            // What the surface honours, from the surface itself, so the
+            // statement cannot say more than the filtering does.
+            parameters.put("Task", workSurface.searchParameters());
         }
         return parameters;
     }

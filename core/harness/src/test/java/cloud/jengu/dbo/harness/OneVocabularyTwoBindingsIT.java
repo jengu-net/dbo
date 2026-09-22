@@ -15,6 +15,14 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.ArrayList;
+import cloud.jengu.dbo.core.process.StepDeclaration;
+import cloud.jengu.dbo.core.process.Steps;
+import cloud.jengu.dbo.work.Executor;
+import cloud.jengu.dbo.work.Holder;
+import cloud.jengu.dbo.work.Run;
+import cloud.jengu.dbo.work.Runs;
+import cloud.jengu.dbo.work.WorkModel;
+import cloud.jengu.dbo.work.Scope;
 import java.util.List;
 import java.util.stream.Stream;
 
@@ -34,6 +42,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @Tag("integration")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class OneVocabularyTwoBindingsIT {
+
+    private static final String PROCESS = "two-bindings.example";
+    private static final String STEP = "two-bindings.example.weigh";
+    private static final String CASE = "two-bindings-" + java.util.UUID.randomUUID();
 
     private static final String SYSTEM = "urn:two-bindings:test";
     private static final String MINE = "two-bindings-" + java.util.UUID.randomUUID();
@@ -62,6 +74,22 @@ class OneVocabularyTwoBindingsIT {
                         failed);
             }
         });
+
+        // Three runs of one case, so the questions about WORK have something
+        // to be asked about: one a person has to look at, one an automation is
+        // holding, one finished with.
+        Runs runs = new Runs(tenant.engine(), Steps.of(
+                StepDeclaration.of(STEP, "1", WorkModel.DOMAIN)));
+        runs.held(runs.correlated(runs.pipeline(PROCESS, STEP, CASE + "/a",
+                List.of(WorkModel.DOMAIN)), CASE), Holder.PERSON);
+        runs.claim(runs.correlated(runs.pipeline(PROCESS, STEP, CASE + "/b",
+                        List.of(WorkModel.DOMAIN)), CASE),
+                new Executor("weigher", "1", "example", Scope.BASELINE),
+                java.time.Instant.now().plusSeconds(600));
+        runs.closed(runs.claim(runs.correlated(runs.pipeline(PROCESS, STEP, CASE + "/c",
+                        List.of(WorkModel.DOMAIN)), CASE),
+                new Executor("weigher", "1", "example", Scope.BASELINE),
+                java.time.Instant.now().plusSeconds(600)).orElseThrow());
 
         for (String state : List.of("final", "final", "preliminary")) {
             tenant.store().create(("{\"resourceType\":\"Observation\",\"status\":\"" + state
@@ -148,6 +176,40 @@ class OneVocabularyTwoBindingsIT {
         assertTrue(refused.getMessage().contains("NoSuchTypeHere"),
                 "the refusal did not say what was asked, which is the useful half: "
                         + refused.getMessage());
+    }
+
+    @Test
+    @DisplayName("the same work is counted from inside the deployment and from across a "
+            + "network, which the surface could not answer at all until it served a run search")
+    void bothBindingsCountTheSameWork() {
+        assertEquals(2, fromInside.work().correlated(CASE).open().count(),
+                "the store's own answer is wrong");
+        assertEquals(fromInside.work().correlated(CASE).open().count(),
+                fromAcross.work().correlated(CASE).open().count(),
+                "the two bindings disagree about how much work is open, so a caller CAN tell "
+                        + "which one it is holding");
+    }
+
+    @Test
+    @DisplayName("walking work across the wire is not answerable yet, and says so rather than "
+            + "handing back runs it could not read")
+    void walkingWorkAcrossIsNotAnswerableYet() {
+        // The surface serves a run search now, and what comes back is a Task —
+        // the face's rendering of a run, not the run. Run.of reads the store's
+        // own form, so the walk cannot complete until the rendering is
+        // reversible. Counting is unaffected, because a count is a number.
+        //
+        // Held here so the gap is a failing expectation rather than a surprise
+        // in somebody's screen: the day the translation lands, this test is
+        // what says so.
+        assertThrows(RuntimeException.class,
+                () -> {
+                    try (Stream<Run> walking = fromAcross.work().correlated(CASE).open().stream()) {
+                        walking.forEach(run -> { });
+                    }
+                },
+                "walking work across the wire now works, so this test should become the "
+                        + "parity assertion it is standing in for");
     }
 
     @Test

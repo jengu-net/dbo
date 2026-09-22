@@ -46,6 +46,83 @@ final class WorkProjection implements WorkSurface {
         return runs.byId(id).map(this::rendered);
     }
 
+    /**
+     * What is outstanding, whose it is, what step it is of — asked of the
+     * tenant rather than read one run at a time.
+     *
+     * <p>The narrowings are the ones the store already answers about a run,
+     * which is why they are these three: a run's holder, its step and the key
+     * it was correlated under are envelope facts, and everything else a run's
+     * document carries belongs to the step that wrote it.
+     */
+    @Override
+    public String search(java.util.Map<String, String> query, String baseUrl) {
+        // Refused, never ignored. A parameter quietly dropped answers 200 with
+        // every run in the tenant, which a caller cannot tell from the answer
+        // they asked for (REQ-DBO-SRCH-HONEST-CAPABILITY).
+        for (String parameter : query.keySet()) {
+            if (!searchParameters().contains(parameter)
+                    && !"_count".equals(parameter) && !"_summary".equals(parameter)) {
+                throw new cloud.jengu.dbo.fhir.common.UnknownSearchParameterException(
+                        WorkModel.TYPE, parameter);
+            }
+        }
+        boolean countOnly = false;
+        if (query.get("_summary") != null) {
+            if (!"count".equals(query.get("_summary"))) {
+                throw new cloud.jengu.dbo.fhir.common.UnknownSearchParameterException(
+                        WorkModel.TYPE, "_summary=" + query.get("_summary"));
+            }
+            countOnly = true;
+        }
+        cloud.jengu.dbo.core.api.Criteria criteria =
+                cloud.jengu.dbo.core.api.Criteria.of(WorkModel.TYPE)
+                        .limit(cloud.jengu.dbo.fhir.common.ResultParameters
+                                .count(query.get("_count"), WorkModel.TYPE, 100, 10_000));
+        if (query.get("owner") != null) {
+            // A comma is any of them, which is how "everything still owed by
+            // somebody" is said without a negation the surface does not take.
+            criteria.anyOf("holder", java.util.Arrays.stream(query.get("owner").split(","))
+                    .map(String::trim).filter(one -> !one.isEmpty())
+                    .map(cloud.jengu.dbo.core.api.EnvelopeValue::of).toList());
+        }
+        if (query.get("code") != null) {
+            criteria.eq("step", cloud.jengu.dbo.core.api.EnvelopeValue.of(query.get("code")));
+        }
+        if (query.get("identifier") != null) {
+            criteria.eq("correlation",
+                    cloud.jengu.dbo.core.api.EnvelopeValue.of(query.get("identifier")));
+        }
+
+        long total = store.count(criteria);
+        List<StoredObject> found = countOnly ? List.of() : store.select(criteria);
+        cloud.jengu.dbo.core.face.PayloadFraming framing =
+                face.require(cloud.jengu.dbo.core.face.PayloadFraming.class);
+        cloud.jengu.dbo.core.face.PayloadFraming.Frame frame = framing.frame("searchset",
+                new cloud.jengu.dbo.core.face.PayloadFraming.Facts(
+                        total, baseUrl + "/" + WorkModel.TYPE, null));
+        java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream(512);
+        try {
+            out.write(frame.prologue());
+            for (int i = 0; i < found.size(); i++) {
+                if (i > 0) {
+                    out.write(frame.separator());
+                }
+                StoredObject one = found.get(i);
+                framing.member(new cloud.jengu.dbo.core.face.PayloadFraming.Member(
+                        WorkModel.TYPE, one.id(), one.versionId(),
+                        rendered(Run.of(one)).getBytes(java.nio.charset.StandardCharsets.UTF_8),
+                        baseUrl + "/" + WorkModel.TYPE + "/" + one.id(),
+                        cloud.jengu.dbo.core.face.PayloadFraming.Member.MATCHED), out);
+            }
+            out.write(frame.epilogue());
+        } catch (java.io.IOException cannotWrite) {
+            throw new java.io.UncheckedIOException("a page of runs could not be written",
+                    cannotWrite);
+        }
+        return out.toString(java.nio.charset.StandardCharsets.UTF_8);
+    }
+
     @Override
     public Authored create(String document) {
         RecordProjection projection = face.require(RecordProjection.class);
