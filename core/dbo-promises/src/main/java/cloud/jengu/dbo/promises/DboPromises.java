@@ -1644,16 +1644,17 @@ public enum DboPromises implements Promise {
             + "than recorded at no assurance. It is per identity, not per subject: two "
             + "identities on one subject say nothing about each other."),
 
+    // The recital of the other six identification promises is gone: this one
+    // said what they say, in their words, and a promise that restates its
+    // neighbours has no status of its own to lose. What is left is the part
+    // only this promise makes — that the surface exists, and that its scope
+    // is not the resource grammar's.
     IDN_IDENTIFICATION_IS_REACHABLE(
-            "A tenant identifies somebody through a door of its own: claims are presented "
-            + "and resolve to candidates rather than to an answer, a claim nobody verified "
-            + "is evidence for a person to weigh and never a match to act on, no candidate "
-            + "at all is an ordinary answer rather than a failure, a decision is recorded "
-            + "and shown to whoever meets the same near-match next, a binding says how "
-            + "strongly it was made and can be withdrawn without touching the care, and a "
-            + "subject who declared anonymity is refused rather than bound. The door "
-            + "carries its own scope, outside the resource grammar: a grant over the "
-            + "store's resources does not reach the act that de-anonymises somebody."),
+            "A tenant identifies somebody through a door of its own, reachable as a "
+            + "surface rather than assembled by each caller out of the promises below. "
+            + "The door carries its own scope, outside the resource grammar: a grant "
+            + "over the store's resources does not reach the act that de-anonymises "
+            + "somebody."),
 
     IDN_WHAT_A_RECIPIENT_SEES_IS_DECLARED(
             "What may leave and what this particular recipient may see are different "

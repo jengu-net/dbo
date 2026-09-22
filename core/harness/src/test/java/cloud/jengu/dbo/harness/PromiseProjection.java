@@ -33,6 +33,9 @@ public final class PromiseProjection {
     static final String BEGIN = "<!-- promise:begin — generated from the promise catalogue;"
             + " do not edit. Regenerate: ./gradlew :core:harness:promiseProjection -->";
     static final String END = "<!-- promise:end -->";
+    static final String QUALITY_BEGIN = "<!-- quality:begin — generated from the promise"
+            + " catalogue; do not edit. Regenerate: ./gradlew :core:harness:promiseProjection -->";
+    static final String QUALITY_END = "<!-- quality:end -->";
     static final String STORY_BEGIN = "<!-- story:begin — generated from the promise catalogue;"
             + " do not edit. Regenerate: ./gradlew :core:harness:promiseProjection -->";
     static final String STORY_END = "<!-- story:end -->";
@@ -40,7 +43,10 @@ public final class PromiseProjection {
     private PromiseProjection() {
     }
 
-    /** args: {@code report <out.md>} | {@code project <req-catalogue.md>}. */
+    /**
+     * args: {@code report <out.md>} |
+     * {@code project <req-catalogue.md> [<stories dir> [<quality tree.md>]]}.
+     */
     public static void main(String[] args) throws Exception {
         ClassLoader loader = PromiseProjection.class.getClassLoader();
         Registry.Model model = Registry.load(loader).model(Proofs.load(loader));
@@ -55,6 +61,11 @@ public final class PromiseProjection {
                 Path catalogue = Path.of(args[1]);
                 Files.writeString(catalogue, projected(model, Files.readString(catalogue)));
                 System.out.println("promise projection refreshed: " + catalogue);
+                if (args.length > 3) {
+                    Path tree = Path.of(args[3]);
+                    Files.writeString(tree, projectedQualities(model, Files.readString(tree)));
+                    System.out.println("quality projection refreshed: " + tree);
+                }
                 if (args.length > 2) {
                     Path stories = Path.of(args[2]);
                     for (cloud.jengu.dbo.promise.Story story : stories(model)) {
@@ -79,6 +90,67 @@ public final class PromiseProjection {
         }
         return catalogueFile.substring(0, begin) + BEGIN + "\n" + block(model)
                 + catalogueFile.substring(end);
+    }
+
+    /** The quality tree with its generated block replaced. */
+    static String projectedQualities(Registry.Model model, String treeFile) {
+        int begin = treeFile.indexOf(QUALITY_BEGIN);
+        int end = treeFile.indexOf(QUALITY_END);
+        if (begin < 0 || end < 0) {
+            throw new IllegalStateException("the quality chapter carries no quality markers — "
+                    + "the generated tree has nowhere to live");
+        }
+        return treeFile.substring(0, begin) + QUALITY_BEGIN + "\n" + qualityBlock(model)
+                + treeFile.substring(end);
+    }
+
+    /**
+     * The tree: one row per goal, with where its answer is read and what its
+     * promises currently fold to.
+     *
+     * <p>The areas are derived from the promises rather than named again. The
+     * table this replaced carried them by hand and had lost a whole goal's row
+     * before anybody counted, which is the argument for generating it.
+     */
+    static String qualityBlock(Registry.Model model) {
+        StringBuilder out = new StringBuilder(
+                "\n| Goal | Where the answer is read | Coverage |\n|---|---|---|\n");
+        for (cloud.jengu.dbo.promise.Classified quality : model.classifications()) {
+            if (!(quality instanceof cloud.jengu.dbo.promise.Quality)) {
+                continue;
+            }
+            java.util.SortedSet<String> areas = new java.util.TreeSet<>();
+            for (Promise promise : quality.promises()) {
+                if (!promise.gap()) {
+                    areas.add(areaOf(model.codeOf(promise)));
+                }
+            }
+            Map<cloud.jengu.dbo.promise.PromiseStatus, Long> coverage = model.coverage(quality);
+            long total = coverage.values().stream().mapToLong(Long::longValue).sum();
+            long proven = coverage.getOrDefault(cloud.jengu.dbo.promise.PromiseStatus.PROVEN, 0L)
+                    + coverage.getOrDefault(cloud.jengu.dbo.promise.PromiseStatus.ASSURED, 0L);
+            long gaps = coverage.getOrDefault(cloud.jengu.dbo.promise.PromiseStatus.GAP, 0L);
+            out.append("| ").append(quality.title())
+                    .append(" | ").append(String.join(", ", areas.stream()
+                            .map(a -> "`" + a + "`").toList()))
+                    .append(" | ").append(proven).append('/').append(total);
+            if (gaps > 0) {
+                out.append(" — ").append(gaps)
+                        .append(gaps == 1 ? " gap" : " gaps");
+            }
+            out.append(" |\n");
+        }
+        return out.append('\n').toString();
+    }
+
+    /** The area a promise's code names: the segment after the namespace. */
+    private static String areaOf(String code) {
+        String[] parts = code.split("-");
+        if (parts.length < 3) {
+            throw new IllegalStateException(code + " names no area — a promise code is "
+                    + "namespace, area and name");
+        }
+        return parts[2];
     }
 
     /** Every story the catalogue declares, in declaration order. */
@@ -219,6 +291,21 @@ public final class PromiseProjection {
         // the rendered document not mention them.
         java.util.List<String> homeless = new java.util.ArrayList<>();
         for (Promise promise : model.promises()) {
+            // A gap has no area to belong to and never did. Its code is
+            // synthetic and carries the DECLARING catalogue's namespace, so it
+            // matches no REQ-DBO area prefix and this check called every one of
+            // them homeless — which made Promise.gap unusable anywhere, in a
+            // model whose own PRM-GAP-IS-FIRST-CLASS says unstated ground is
+            // named rather than silent. It is placed below by gapsFor, through
+            // the classification that declares it.
+            if (promise.gap()) {
+                // Still refused when it has nowhere to go, or the silent
+                // omission this check exists to stop simply moves to gaps.
+                if (firstSectionOf(model, promise, sections) == null) {
+                    homeless.add(model.codeOf(promise));
+                }
+                continue;
+            }
             String code = model.codeOf(promise);
             if (sections.keySet().stream().noneMatch(p -> code.startsWith("REQ-DBO-" + p + "-"))) {
                 homeless.add(code);
@@ -248,22 +335,53 @@ public final class PromiseProjection {
             out.append('\n').append(section.getValue())
                     .append("\n| REQ | Promise | Status | Proven by |\n|---|---|---|---|\n")
                     .append(tables.getOrDefault(section.getKey(), new StringBuilder()));
-            gapsFor(model, section.getKey(), out);
+            gapsFor(model, section.getKey(), sections, out);
         }
         return out.append('\n').toString();
     }
 
+    /**
+     * Where a gap is rendered: the section of the FIRST named promise its
+     * declarer lists. Null when the declarer names nothing with a section,
+     * which is a gap with no home and is refused above rather than dropped
+     * here.
+     *
+     * <p>The declarer's own order, not this file's. Walking the section list
+     * instead would file a gap under whichever of the declarer's areas happens
+     * to be printed earliest, which for a quality declaring scaling promises
+     * and one container promise put a missing performance figure under
+     * container and embedding.
+     */
+    private static String firstSectionOf(Registry.Model model, Promise gap,
+            Map<String, String> sections) {
+        for (cloud.jengu.dbo.promise.Classified declarer : model.declaring(gap)) {
+            for (Promise declared : declarer.promises()) {
+                if (declared.gap() || !(declared instanceof DboPromises named)) {
+                    continue;
+                }
+                for (String prefix : sections.keySet()) {
+                    if (named.code().startsWith("REQ-DBO-" + prefix + "-")) {
+                        return prefix;
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
     /** Gaps declared by classifications whose promises live in this section. */
-    private static void gapsFor(Registry.Model model, String prefix, StringBuilder out) {
+    private static void gapsFor(Registry.Model model, String prefix, Map<String, String> sections,
+            StringBuilder out) {
         for (Promise promise : model.promises()) {
             if (!promise.gap()) {
                 continue;
             }
-            boolean besideThisSection = model.declaring(promise).stream()
-                    .flatMap(c -> c.promises().stream())
-                    .anyMatch(p -> !p.gap() && (p instanceof DboPromises named)
-                            && named.code().startsWith("REQ-DBO-" + prefix + "-"));
-            if (besideThisSection) {
+            // The FIRST section its declarer touches, not every one. A
+            // classification that crosses areas — a quality does so by
+            // definition — would otherwise have its gap rendered once per area,
+            // and a catalogue that lists the same hole four times is telling a
+            // reader there are four.
+            if (prefix.equals(firstSectionOf(model, promise, sections))) {
                 out.append("| ").append(model.codeOf(promise))
                         .append(" | *gap: ").append(promise.text())
                         .append("* | GAP |  |\n");

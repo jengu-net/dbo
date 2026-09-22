@@ -1,5 +1,6 @@
 package cloud.jengu.dbo.harness;
 
+import cloud.jengu.dbo.fhir.element.ElementVersion;
 import cloud.jengu.dbo.promises.DboPromises;
 import cloud.jengu.dbo.promises.Proving;
 import cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner;
@@ -60,6 +61,22 @@ class WhatTheLoadedSpecificationCostsIT {
     /** A step change rather than drift: allocation wanders, designs do not. */
     private static final double TOLERANCE = 1.30;
 
+    /**
+     * Below this, a ratio says nothing.
+     *
+     * <p>A thirty per cent tolerance on a number in the hundreds is a design
+     * change. On a number in the single digits it is the collector: a tenant
+     * serving from the face base read 3 MB, then 4, then 7 on a runner, and the
+     * third of those failed a build that had nothing to do with it. This class
+     * already says a threshold that fights the collector fails on Tuesdays, and
+     * that is what a Tuesday looks like.
+     *
+     * <p>The numbers this exists to protect are the hundreds — what a face
+     * costs and what a second one costs. A small line is still recorded,
+     * because it is how the large ones are read.
+     */
+    private static final long WORTH_RATCHETING = 20;
+
     static PostgreSQLContainer<?> postgres;
     static Path dir;
     static LocalDatabasePerTenantProvisioner provisioner;
@@ -115,6 +132,31 @@ class WhatTheLoadedSpecificationCostsIT {
         write("malu-kaks");
         long twoTenants = heapInUse();
 
+        // The OTHER way a version becomes a context, which nothing here had
+        // ever measured. A tenant with no version root takes the carried
+        // packages — every scenario above — and one that has a root in its
+        // store takes a base built from the records instead, shared per face.
+        // The whole of "moving this into the database will cut dbo's memory"
+        // is the difference between those two numbers, and until now the
+        // second one existed only as a sentence in a javadoc.
+        long basesBefore = ElementVersion.baseBuilds();
+        long contextsBefore = ElementVersion.contextBuilds();
+        serveARoot("malu-juur");
+        long aRoot = heapInUse();
+        serveOnTheFace("malu-baasil", "malu-juur");
+        write("malu-baasil");
+        long onTheBase = heapInUse();
+        System.out.println("MEASURED bases built " + (ElementVersion.baseBuilds() - basesBefore)
+                + ", carried contexts built " + (ElementVersion.contextBuilds() - contextsBefore));
+
+        // A SECOND FACE, which is the number that decides whether this store
+        // can serve many versions at once. Everything above measures what
+        // another tenant costs; this measures what another VERSION costs, and
+        // a deployment serving three faces pays it twice over before a tenant
+        // exists. The target is that it stops being a number at all.
+        serveOn("malu-teine-nagu", "r5");
+        long aSecondFace = heapInUse();
+
         Map<String, Long> now = new LinkedHashMap<>();
         // Deltas only, and the absolute floor deliberately not among them.
         // This runs inside a suite that shares one JVM, so what is resident
@@ -126,6 +168,9 @@ class WhatTheLoadedSpecificationCostsIT {
         now.put("theFirstValidatedWrite", mb(afterAWrite - oneTenant));
         now.put("theRestOfTheValidatorPool", mb(afterThePool - afterAWrite));
         now.put("aSecondTenantOnTheSameFace", mb(twoTenants - afterThePool));
+        now.put("aFaceRootHoldingTheVersionAsRecords", mb(aRoot - twoTenants));
+        now.put("aTenantServingFromTheFaceBase", mb(onTheBase - aRoot));
+        now.put("aSecondFaceServed", mb(aSecondFace - onTheBase));
 
         String rendered = PREAMBLE + asLines(now);
         if (Boolean.getBoolean("dbo.memory.record")) {
@@ -140,7 +185,7 @@ class WhatTheLoadedSpecificationCostsIT {
         StringBuilder moved = new StringBuilder();
         now.forEach((what, mb) -> {
             Long was = recorded.get(what);
-            if (was != null && was > 0 && mb > was * TOLERANCE) {
+            if (was != null && was >= WORTH_RATCHETING && mb > was * TOLERANCE) {
                 moved.append(String.format("%n  %s: %d MB recorded, %d MB now", what, was, mb));
             }
         });
@@ -157,6 +202,45 @@ class WhatTheLoadedSpecificationCostsIT {
                  "types":[
                   {"name":"Patient","identity":"internal","handling":"operational"}]}"""
                 .formatted(code));
+        UntilServed.scan(manager, code);
+    }
+
+    /** The same as {@link #serve}, on whichever face is named. */
+    private void serveOn(String code, String face) throws Exception {
+        Files.writeString(dir.resolve(code + ".json"), """
+                {"code":"%s","face":"%s","audit":{"level":"none"},
+                 "types":[
+                  {"name":"Patient","identity":"internal","handling":"operational"}]}"""
+                .formatted(code, face));
+        UntilServed.scan(manager, code);
+    }
+
+    /** A tenant that holds the version as records, so the face has a base. */
+    private void serveARoot(String code) throws Exception {
+        Files.writeString(dir.resolve(code + ".json"), """
+                {"code":"%s","face":"r4","faceRoot":true,"audit":{"level":"none"},
+                 "types":[
+                  {"name":"StructureDefinition","identity":"canonical","handling":"operational"},
+                  {"name":"SearchParameter","identity":"canonical","handling":"operational"},
+                  {"name":"ValueSet","identity":"canonical","handling":"operational"},
+                  {"name":"CodeSystem","identity":"canonical","handling":"operational"}]}"""
+                .formatted(code));
+        UntilServed.scan(manager, code);
+    }
+
+    /** A tenant that takes its face from that root rather than from packages. */
+    private void serveOnTheFace(String code, String root) throws Exception {
+        Files.writeString(dir.resolve(code + ".json"), """
+                {"code":"%s","face":"r4","audit":{"level":"none"},
+                 "dependencies":[{"name":"%s","face":true,
+                   "types":["StructureDefinition","SearchParameter","ValueSet","CodeSystem"]}],
+                 "types":[
+                  {"name":"StructureDefinition","identity":"canonical","handling":"replicated"},
+                  {"name":"SearchParameter","identity":"canonical","handling":"replicated"},
+                  {"name":"ValueSet","identity":"canonical","handling":"replicated"},
+                  {"name":"CodeSystem","identity":"canonical","handling":"replicated"},
+                  {"name":"Patient","identity":"internal","handling":"operational"}]}"""
+                .formatted(code, root));
         UntilServed.scan(manager, code);
     }
 

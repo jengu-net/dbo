@@ -140,6 +140,16 @@ class PromiseCatalogueTest {
         assertEquals(PromiseProjection.projected(model(), onDisk), onDisk,
                 "req-catalogue.md's generated block differs from the model — run "
                         + "./gradlew :core:harness:promiseProjection instead of editing");
+        // The quality tree is projected the same way and goes stale for one
+        // more reason than the others: its rows carry coverage, so a promise
+        // merely gaining a citation moves it. A hand-kept version of this
+        // table had lost a whole goal's row before anybody counted.
+        java.nio.file.Path tree = java.nio.file.Path.of("../..",
+                "docs/arc42-010-quality-requirements/README.md").toAbsolutePath().normalize();
+        String chapter = java.nio.file.Files.readString(tree);
+        assertEquals(PromiseProjection.projectedQualities(model(), chapter), chapter,
+                "the quality tree's generated block differs from the model — run "
+                        + "./gradlew :core:harness:promiseProjection instead of editing");
         // The stories' joins are projected the same way, and go stale the
         // same way: a promise renamed, retired or newly proven changes what
         // a story may say about itself.

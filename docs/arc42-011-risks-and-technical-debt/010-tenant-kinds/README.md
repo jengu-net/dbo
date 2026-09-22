@@ -1,4 +1,9 @@
-**Open. A tenant's kind is re-derived at every call site instead of being declared. The first consumer is done ahead of the kind: the dispatcher starts from what the registrations say, and a dispatch that keeps failing now says so instead of being swallowed.**
+**Open. A tenant's kind is re-derived at every call site instead of being
+declared. Two pieces are done ahead of the kind: the dispatcher starts from
+what the registrations say and a failing dispatch says so, and the custom
+resource is now checked against the whole spec rather than its root — proven
+by deleting the nested key that was found by hand, which the widened check
+names.**
 
 # Tenant kinds
 
@@ -71,8 +76,9 @@ what they point at.
 `dependencies[].face` was read by the spec parser and absent from
 `tenantregistration-crd.yaml`. An undeclared key is pruned rather than refused,
 so such a tenant registers, comes up, and is not on the face chain it named.
-The ratchet that guards this reads the spec's **root** only, so a nested key is
-invisible to it. Fixed, but the check is still root-only.
+The ratchet that guards this read the spec's **root** only, so a nested key was
+invisible to it. Both are fixed: the key is declared, and the check now reads
+the whole tree as paths.
 
 The shape is the same in all three: behaviour depends on a declaration that
 nothing checks, and the failure is quiet.
@@ -190,9 +196,25 @@ compares a kind string literal**. That is greppable, it is the same shape as
 the branding check, and it is what stops the nine derivations growing back
 under a new spelling.
 
-Widening the custom-resource check from the spec's root to the whole tree is a
-second, smaller one. It would have caught `dependencies[].face`, which was
-found by hand.
+~~Widening the custom-resource check from the spec's root to the whole tree is a
+second, smaller one.~~ Done, and it caught more than the widening.
+
+The obvious version of it does not work. Collecting every key the parser reads
+off any object and comparing the names against every name the schema declares
+looks like the widening and is not: `face` is a root field as well as a
+dependency's, so the schema satisfies the name at the root and the nested key
+stays invisible. Tried, and the deletion it exists to catch passed.
+
+So a read is a path now. The parser's nested objects are bound to the keys they
+were read out of — three shapes, a mapped stream, an enhanced for and an
+assignment — and the schema is walked as paths too, so `Json.bool(d, "face")`
+is `dependencies.face` and is looked for under the dependency rather than
+anywhere. A read off an object the test cannot bind fails by name instead of
+being skipped: a reader that quietly ignores what it cannot follow reproduces
+the silence it is here to end.
+
+Proven by making the failure. Deleting `face` from the dependency's properties
+fails with `[dependencies.face]`, and restoring it passes.
 
 ## First consumer
 

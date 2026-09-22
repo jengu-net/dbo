@@ -47,7 +47,7 @@ The narrowing rule is the one from the claim pattern, applied to jurisdiction:
 the outer party declares the set, the inner one chooses within it and may
 narrow, never widen. A hospital may accept everything the country allows. A
 registry may accept one broker and one identifier system, and that is its
-decision to make downward, not upward.
+decision to make.
 
 Because zone declarations are themselves records, they move on the same feed
 as everything else — so a tenant holding a copy of its zone's declarations is

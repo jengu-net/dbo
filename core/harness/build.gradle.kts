@@ -198,6 +198,7 @@ tasks.test {
     // command line stops at the daemon, and a measurement that silently does
     // nothing is worse than one nobody asked for.
     System.getProperty("dbo.heap.attribute")?.let { systemProperty("dbo.heap.attribute", it) }
+    System.getProperty("dbo.heap.histogram")?.let { systemProperty("dbo.heap.histogram", it) }
     filter.excludeTestsMatching("*ServerDistIT")
     filter.excludeTestsMatching("*WhatTheLoadedSpecificationCostsIT")
     shouldRunAfter(distTest)
@@ -339,12 +340,13 @@ val storyCoverage by tasks.registering(JavaExec::class) {
 
 val promiseProjection by tasks.registering(JavaExec::class) {
     group = "documentation"
-    description = "Rewrites the generated block in docs/arc42-006-runtime/req-catalogue.md."
+    description = "Rewrites the generated blocks: the requirement catalogue, the stories' joins and the quality tree."
     dependsOn(tasks.named("testClasses"))
     classpath = sourceSets["test"].runtimeClasspath
     mainClass.set("cloud.jengu.dbo.harness.PromiseProjection")
     args("project", rootProject.file("docs/arc42-006-runtime/req-catalogue.md").absolutePath,
-        rootProject.file("docs/arc42-003-context/user-stories").absolutePath)
+        rootProject.file("docs/arc42-003-context/user-stories").absolutePath,
+        rootProject.file("docs/arc42-010-quality-requirements/README.md").absolutePath)
 }
 tasks.withType<Test>().configureEach {
     // Faces are cut once and brought up from, here as in production. One

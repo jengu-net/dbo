@@ -11,6 +11,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 /**
  * What is still resident after each test class, so the suite's floor has an
@@ -35,12 +36,32 @@ import java.util.List;
  * <pre>
  *   ./gradlew :core:harness:test -Ddbo.heap.attribute=true
  *   cat core/harness/build/heap-after-each-class.txt
+ *
+ *   # and, narrowed to what that accused, what the floor is made of:
+ *   ./gradlew :core:harness:test --tests "*MilestonesOnTheCheckpointIT" \
+ *       -Ddbo.heap.attribute=true -Ddbo.heap.histogram=true
+ *   head -30 core/harness/build/heap-histogram.txt
  * </pre>
  */
 public final class WhatTheSuiteLeavesBehind implements TestExecutionListener {
 
     private static final boolean ASKED_FOR =
             Boolean.getBoolean("dbo.heap.attribute");
+
+    /**
+     * What the floor is MADE of, once it is known whose it is.
+     *
+     * <p>The per-class reading says which class the floor rose after. It
+     * cannot say what rose: a class that brings up a face's first tenant and
+     * one that leaks a pool look identical from outside. A histogram of what
+     * is live at the end names the types, which separates a definition cache
+     * held on purpose from a thread nobody stopped.
+     *
+     * <p>Separate from the per-class flag because it is only worth taking on a
+     * run narrowed to the classes under suspicion, and because it shells out.
+     */
+    private static final boolean HISTOGRAM =
+            Boolean.getBoolean("dbo.heap.histogram");
 
     /** Class, and what was still in the heap when it finished. */
     private record Left(String className, long mb, long deltaMb) {}
@@ -78,6 +99,46 @@ public final class WhatTheSuiteLeavesBehind implements TestExecutionListener {
     @Override
     public void testPlanExecutionFinished(TestPlan plan) {
         write();
+        histogram();
+    }
+
+    /**
+     * What is live at the end, by type, from the JVM's own tooling.
+     *
+     * <p>{@code GC.class_histogram} collects first and reports shallow sizes:
+     * it is what each type's own instances weigh, not what they keep alive. A
+     * definition cache shows up as the arrays it is made of rather than as the
+     * cache, so this names the material and the reader still has to say whose
+     * it is. That is enough to tell a validator's tables from a thread pool,
+     * which is the question the per-class reading cannot answer.
+     */
+    private void histogram() {
+        if (!ASKED_FOR || !HISTOGRAM) {
+            return;
+        }
+        Path jcmd = Path.of(System.getProperty("java.home"), "bin", "jcmd");
+        Path where = Path.of("build", "heap-histogram.txt");
+        try {
+            Files.createDirectories(where.getParent());
+            Process asked = new ProcessBuilder(jcmd.toString(),
+                    String.valueOf(ProcessHandle.current().pid()),
+                    "GC.class_histogram")
+                    .redirectErrorStream(true)
+                    .redirectOutput(where.toFile())
+                    .start();
+            if (!asked.waitFor(2, TimeUnit.MINUTES)) {
+                asked.destroyForcibly();
+                throw new IllegalStateException("the histogram did not finish in two minutes");
+            }
+        } catch (IOException | InterruptedException cannotAsk) {
+            if (cannotAsk instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+            }
+            // Loud, not swallowed: a measurement that silently did not happen
+            // is the failure this whole listener exists to stop being possible.
+            throw new IllegalStateException("could not take the heap histogram with "
+                    + jcmd + " — is this a JDK?", cannotAsk);
+        }
     }
 
     private void write() {

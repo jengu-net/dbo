@@ -1,10 +1,15 @@
-**Open. Four tenants in three classes have died as `OutOfMemoryError: Java heap
-space`, across two documentation-only changes — one of which is the change that
-filed this. Two such changes ran minutes apart against the same commit and one
-passed, which is the failure rate rather than a guess at it. Three more builds
-have died since, so the dial is 3g — the first move this file's own rule allows,
-and it buys room rather than answering anything. Next: find what a tenant costs
-while it is alive.**
+**Open. Seven tenants in four classes now, across three documentation-only changes
+— one of them this item's own. What a tenant costs IS measured: 226 MB for a
+face's first, 11 MB for the next on it. The floor is attributed now — twelve
+classes keep 1755 MB and seventy more keep 477, against the 2 GB heap it had
+when that was taken — the dial is 3g now, which bought room and answered
+nothing. Nothing is
+being left unclosed: the floor is the FHIR definition corpus, loaded once per
+face and resident by design — the model objects, their strings, and those
+strings' arrays, which together are over half the live heap. It is the
+toolchain's `SimpleWorkerContext`, one per version — the store's own definitions
+have been in a database schema since before this was filed. Next: what still
+needs that context.**
 
 # The suite runs out of heap
 
@@ -51,6 +56,47 @@ re-run once, deliberately, and only after this was written down.
 `TenantRuntimeIT`; `haigla` and `kliinik` in `ZoneIT`; `at-once-3` in
 `SeveralTenantsDeclaredAtOnceComeUpTogetherIT`. None of the three classes was
 touched by either change.
+
+**And a third change, carrying this item's own instrument, died the same way.**
+The change that attributed the floor — documentation, a test listener and an
+editor's preview config, nothing that can reach a tenant — failed at 25m53s:
+
+```
+TenantRuntimeIT > everyTenantAnswersTerminologyFromItsOwnStore FAILED
+  bring-up FAILED for: [terms5]
+  {terms5=java.lang.OutOfMemoryError: Java heap space}; serving=[teine, terms4]
+```
+
+**It is the same tenant, in the same test, with the same two neighbours
+already serving.** Twice now, and that is not what a heap running out at random
+looks like. `terms5` is a terminology tenant on the R5 face, and R5's first
+tenant is the 226 MB this item measured — the definition corpus, not the
+tenant. Whichever run leaves that corpus unloaded until `TenantRuntimeIT` asks
+for it is the run where 226 MB has to be found at a floor of about 1.6 GB, and
+`terms4` and `teine` are already up because they are on faces somebody paid for
+earlier. So the coin flip has a shape: it is whether this tenant is the one
+that pays for a face.
+
+**A fourth run refuted the general form of that.** The next build died in
+`SeveralTenantsDeclaredAtOnceComeUpTogetherIT`, with `at-once-2` out of heap
+where three of its four siblings came up. All four are declared `"face":"r4"`,
+and r4's definitions are long resident by the time that class runs — so nothing
+there was paying for a face. The 11 MB a later tenant on a loaded face costs is
+not what ran out.
+
+So the shape holds for the pair of `terms5` failures and does not generalise.
+What generalises is duller and worse: the floor is high enough that any
+additional demand can tip it, and which demand happens to be the one that tips
+it is not predictable from the demand. Four runs, three distinct classes, two
+distinct causes of the last megabyte.
+
+**Checked rather than argued, as far as it can be without another red run.**
+`terms5` is declared `"face":"r5"` in the test itself and `terms4` is `r4`,
+which is why one of the pair dies and the other does not: r4's definitions are
+long resident by the time this class runs, and r5's need not be. And in the run
+that produced the attribution above — a run that passed — `TenantRuntimeIT` is
+not among the twelve classes keeping 40 MB or more. It paid nothing that time,
+which is what a class that found the corpus already loaded looks like.
 
 ## Why it is filed now rather than earlier
 
@@ -166,6 +212,95 @@ dispatcher and a checkpointing run are threads, pools and engines rather than
 faces, and several hundred megabytes surviving the class that made them is not
 explained by anything in the baseline.
 
+### And what it is made of
+
+`-Ddbo.heap.histogram=true` asks the JVM for its own `GC.class_histogram` at the
+end of a run and writes `build/heap-histogram.txt`. Narrowed to the two classes
+the list accused, 904 MB were live at the end, and the top of it is not a
+thread, a pool or a connection:
+
+```
+  num     #instances         #bytes  class name
+    1:       3660386      449485360  [B
+    2:       3629356       87104544  java.lang.String
+    3:       1126342       63075152  org.hl7.fhir.r5.model.StringType
+    8:         92807       17818944  org.hl7.fhir.r5.model.ElementDefinition
+```
+
+Ninety-two thousand `ElementDefinition`s and 1.1 million `StringType`s are a
+StructureDefinition corpus. Counted by name, `org.hl7.fhir.*` types hold 233 MB;
+the byte arrays and strings above them are what those objects are made of, so
+the real share is larger than 233 and the histogram cannot say by how much. It
+reports what a type's own instances weigh, never what they keep alive.
+
+**So the hypothesis was wrong, and it was worth being wrong out loud.** Neither
+class is holding a dispatcher or an engine it failed to close.
+`MilestonesOnTheCheckpointIT` ends by validating a Bundle on r4, r5 and r6 in
+one loop, through `R4FhirVersion.INSTANCE` and `R5FhirVersion.INSTANCE` —
+singletons, so what they load is resident for the life of the JVM by design.
+Its 206 MB reproduce when it is the only other class in the run, so this is not
+an artefact of what ran before it.
+
+**And it agrees with what a tenant costs.** 226 MB for a face's first tenant and
+11 MB for the next on it was always the shape of a cost paid once per face and
+shared by every tenant on it. The 226 is the definitions; the 11 is the tenant.
+Three faces resident in one JVM is most of a gigabyte before a single tenant is
+served, which is the floor this item has been walking around.
+
+### Whose the byte arrays are
+
+The largest single entry is the byte arrays, and the item expected that to need
+a heap dump read for retained size. It did not. Two histograms, one of the pair
+of classes and one of the subscription class alone, answer it by counting:
+
+| | two classes | subscription alone |
+|---|---|---|
+| live | 904 MB | 702 MB |
+| `[B` | 428.7 MB, 3,660,386 | 300.5 MB, 3,085,823 |
+| `java.lang.String` | 83.1 MB, 3,629,356 | 70.0 MB, 3,058,830 |
+| byte arrays per String | **1.009** | **1.009** |
+
+**One each, to within a percent, in both.** A String on this JDK holds its
+characters in a byte array, so the biggest line in the histogram is not a
+second owner competing with the definitions — it is what the Strings are made
+of. Together they are 57% and 53% of the live heap.
+
+And the Strings are the corpus. The FHIR primitive wrappers each hold exactly
+one: 2.09 million of them in the narrower run against 3.06 million Strings, so
+**69% of every String alive is a `StringType`, `CodeType`, `UriType`, `IdType`
+or `MarkdownType` in a definition**, before counting the strings inside
+`ElementDefinition` and its components.
+
+So the floor has one owner and three shapes: the model objects, their strings,
+and those strings' arrays. Shallow sizes could answer it after all — not by
+adding the columns up, which is what shallow sizes cannot do, but by noticing
+that the counts line up one to one.
+
+### And the corpus is the toolchain's, not the store's
+
+The store's definitions are already in the database. Every definition a tenant
+holds, its history and every row derived from one live in a schema of their
+own, and the face's own SQL functions read what a definition says from that
+schema and nowhere else — declared as
+`REQ-DBO-VER-DEFINITIONS-LIVE-IN-A-SCHEMA-OF-THEIR-OWN` and proven. That was
+the decision this measurement keeps arriving at from the other side.
+
+What is resident is HAPI's `SimpleWorkerContext`, and `TenantContext` says its
+shape without knowing what it weighs:
+
+> The shared `SimpleWorkerContext` is one per version and takes seconds to
+> build; a tenant cannot have its own. What a tenant has is a copy — the copy
+> constructor shares the loaded definition managers, ~100ms.
+
+**One per version, copied per tenant.** That is the 226 MB and the 11 MB
+exactly: the first tenant on a face builds the version's context, and every
+tenant after it takes a copy that shares the loaded managers. The numbers were
+measured before this was read, and they describe the same object.
+
+So the megabytes are the toolchain's model of the definitions, held for
+validation and snapshotting, rather than the store's copy of them. The store's
+copy is in Postgres and is read with SQL.
+
 **And one is a caution about item 003.** `DelegationIT` keeps 124 MB, and it is
 the first class moved onto the shared cast. The shared world's tenants are
 never dropped by design, so a class moving down the ladder transfers its
@@ -187,22 +322,32 @@ suite of fifty-odd classes needs it.
 
 ## What to do
 
-1. Measure one tenant, resident, after bring-up. The memory baseline exists and
-   records a number for a world; this needs the number for a tenant, so that
-   "how many fit" stops being a thing the suite discovers by dying.
-2. Say whether the four-minute wait raised the peak. It is one change and it is
-   reversible, and an honest answer is worth more than the wait.
-3. ~~Attribute the floor.~~ Done, and the instrument is kept:
+1. ~~Measure one tenant, resident, after bring-up.~~ Done: 226 MB for a face's
+   first, 11 MB for the next on it.
+2. ~~Attribute the floor.~~ Done, and the instrument is kept:
    `WhatTheSuiteLeavesBehind` records the floor after each class when asked
    with `-Ddbo.heap.attribute=true`. It writes after every class rather than at
    the end, because the suite it measures is the one that dies.
-4. Read the top three. A subscription dispatcher, a checkpointing run and a
-   delegation class keeping hundreds of megabytes after they finish is the
-   fixable third of this, and none of it is explained by what a tenant costs.
-5. Then the tail, which is the other quarter and is nobody's fault in
-   particular.
-4. Then decide about the dial, with the measurement in hand. Raising it before
-   that is buying quiet.
+3. ~~Read the top of the list.~~ Done, and the answer was no. It is not
+   something left unclosed; it is the definition corpus, once per face, held on
+   purpose.
+4. ~~Say whose the 449 MB of byte arrays are.~~ Done, and without the heap
+   dump: there is one byte array per String to within a percent, so they are
+   the Strings' own storage, and 69% of the Strings are FHIR primitives in a
+   definition. Counting beat measuring retained size.
+5. ~~Ask what still needs a `SimpleWorkerContext`.~~ Asked, and it is large
+   enough to be its own work:
+   [item 024](../024-definitions-out-of-the-heap/README.md) plans it. The short
+   of it is that the definitions are in the database and the face reads them
+   with SQL, so what keeps a version's whole corpus in memory is the
+   toolchain's second copy. Splitting the suite by face rents the megabytes;
+   needing fewer contexts gives them back.
+6. Say whether the four-minute wait raised the peak. It is one change and it is
+   reversible, and an honest answer is worth more than the wait.
+7. Then the tail — seventy classes at seven megabytes each — which is the other
+   quarter and is nobody's fault in particular.
+8. Then decide about the dial, with all of that in hand. Raising it before that
+   is buying quiet.
 
 ## Why it matters beyond a red build
 
