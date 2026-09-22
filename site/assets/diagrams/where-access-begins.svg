@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="-389.276 -148.5 778.552 297" width="778.552" height="297" class="lini lini-scope-01662583" role="img" aria-labelledby="where-access-begins-title where-access-begins-desc">
-  <title id="where-access-begins-title">Nothing is accessed except by a step</title>
-  <desc id="where-access-begins-desc">A step of a process — validating a batch, clearing a consignment — declares who may perform it, drawn as an active role in the tenant's own records. The step reaches only the documents it needs and the ones it may change, and no others; performing it leaves a run recording what it read and changed, when, and on whose authority. All three sit inside one tenant, which is its own database, and the party running the deployment holds the copies without being able to read them.</desc>
+  <title id="where-access-begins-title">Getting at the data means doing the job</title>
+  <desc id="where-access-begins-desc">A job somebody declared — validating a batch, clearing a consignment — names who may perform it, drawn as an active role in the tenant's own records. The job reaches only the documents it needs and the ones it may change, and no others; performing it leaves behind what it read and changed, when, on whose authority, and what it was for. All three sit inside one tenant, which is its own database, and the party running the deployment holds the copies without being able to read them.</desc>
   <style>
     @layer lini.defaults {
       :root, .lini-scope-01662583 { color-scheme: light dark; --lini-accent: #a8641b; --lini-bg: #fbfaf8; --lini-body: #2c3a47; --lini-faint: #8695a3; --lini-fill: light-dark(white, #26262b); --lini-font-weight: 500; --lini-ink: #111a24; --lini-line: #e3e0da; --lini-muted: #5d6c7b; --lini-panel: #ffffff; --lini-seal: #14532d; --lini-seal-soft: #e7f0e9; --lini-stroke: #444444; }
@@ -46,9 +46,9 @@
               <rect x="-102" y="-38" width="204" height="76" rx="9" ry="9"/>
               <g class="lini-node lini-col lini-block" transform="translate(0,0)">
                 <rect x="-86" y="-23" width="172" height="46" rx="0" ry="0"/>
-                <g class="lini-node lini-cap lini-t lini-block" transform="translate(-28.2085,-16.5)">
-                  <rect x="-57.7915" y="-6.5" width="115.583" height="13" rx="0" ry="0"/>
-                  <text class="lini-text" x="0" y="0" dy="0.358em">a step of a process</text>
+                <g class="lini-node lini-cap lini-t lini-block" transform="translate(-8.819,-16.5)">
+                  <rect x="-77.181" y="-6.5" width="154.362" height="13" rx="0" ry="0"/>
+                  <text class="lini-text" x="0" y="0" dy="0.358em">a job somebody declared</text>
                 </g>
                 <g class="lini-node lini-small lini-t lini-block" transform="translate(-33.0562,0.25)">
                   <rect x="-52.9438" y="-6.25" width="105.8875" height="12.5" rx="0" ry="0"/>
@@ -136,34 +136,41 @@
               <polygon class="lini-marker lini-marker-arrow" points="44,0 36,4 36,-4" style="fill: var(--lini-accent)"/>
             </g>
           </g>
-          <g class="lini-node lini-col lini-block" transform="translate(254.125,-34.75)">
-            <rect x="-114.401" y="-71.25" width="228.802" height="142.5" rx="0" ry="0"/>
-            <g class="lini-node lini-eyebrow lini-t lini-block" transform="translate(-62.227,-65.75)">
+          <g class="lini-node lini-col lini-block" transform="translate(254.125,-16.75)">
+            <rect x="-114.401" y="-89.25" width="228.802" height="178.5" rx="0" ry="0"/>
+            <g class="lini-node lini-eyebrow lini-t lini-block" transform="translate(-62.227,-83.75)">
               <rect x="-52.174" y="-5.5" width="104.348" height="11" rx="0" ry="0"/>
               <text class="lini-text" x="0" y="0" dy="0.358em" dx="0 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2">WHAT IT LEAVES</text>
             </g>
-            <g class="lini-node lini-block" transform="translate(-114.401,-56.25)">
+            <g class="lini-node lini-block" transform="translate(-114.401,-74.25)">
             </g>
             <g class="lini-node lini-panel lini-box lini-block" transform="translate(0,9.5)">
-              <rect x="-113.651" y="-61" width="227.302" height="122" rx="9" ry="9"/>
+              <rect x="-113.651" y="-79" width="227.302" height="158" rx="9" ry="9"/>
               <g class="lini-node lini-col lini-block" transform="translate(0,0)">
-                <rect x="-97.651" y="-41.75" width="195.302" height="83.5" rx="0" ry="0"/>
-                <g class="lini-node lini-cap lini-t lini-block" transform="translate(-82.259,-35.25)">
-                  <rect x="-15.392" y="-6.5" width="30.784" height="13" rx="0" ry="0"/>
-                  <text class="lini-text" x="0" y="0" dy="0.358em">a run</text>
+                <rect x="-97.651" y="-59.375" width="195.302" height="118.75" rx="0" ry="0"/>
+                <g class="lini-node lini-cap lini-t lini-block" transform="translate(-26.1705,-52.875)">
+                  <rect x="-71.4805" y="-6.5" width="142.961" height="13" rx="0" ry="0"/>
+                  <text class="lini-text" x="0" y="0" dy="0.358em">written down as it goes</text>
                 </g>
-                <g class="lini-node lini-seal-item lini-line-item lini-box lini-block" transform="translate(-1.026,-7.125)">
+                <g class="lini-node lini-seal-item lini-line-item lini-box lini-block" transform="translate(-1.026,-24.75)">
                   <rect x="-96" y="-13" width="192" height="26" rx="5" ry="5"/>
                   <g class="lini-node lini-slt lini-lt lini-t lini-block" transform="translate(-12.198,0)">
                     <rect x="-71.802" y="-6" width="143.604" height="12" rx="0" ry="0"/>
                     <text class="lini-text" x="0" y="0" dy="0.358em">what it read and changed</text>
                   </g>
                 </g>
-                <g class="lini-node lini-seal-item lini-line-item lini-box lini-block" transform="translate(0,28.125)">
+                <g class="lini-node lini-seal-item lini-line-item lini-box lini-block" transform="translate(0,10.5)">
                   <rect x="-97.026" y="-13" width="194.052" height="26" rx="5" ry="5"/>
                   <g class="lini-node lini-slt lini-lt lini-t lini-block" transform="translate(0,0)">
                     <rect x="-85.026" y="-6" width="170.052" height="12" rx="0" ry="0"/>
                     <text class="lini-text" x="0" y="0" dy="0.358em">when, and on whose authority</text>
+                  </g>
+                </g>
+                <g class="lini-node lini-seal-item lini-line-item lini-box lini-block" transform="translate(-1.026,45.75)">
+                  <rect x="-96" y="-13" width="192" height="26" rx="5" ry="5"/>
+                  <g class="lini-node lini-slt lini-lt lini-t lini-block" transform="translate(-30.186,0)">
+                    <rect x="-53.814" y="-6" width="107.628" height="12" rx="0" ry="0"/>
+                    <text class="lini-text" x="0" y="0" dy="0.358em">and what it was for</text>
                   </g>
                 </g>
               </g>

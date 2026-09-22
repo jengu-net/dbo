@@ -104,7 +104,10 @@ dependencies {
     testImplementation(project(":core:dbo-terminology"))
     testImplementation(project(":core:dbo-definitions"))
     testImplementation("org.junit.jupiter:junit-jupiter:5.11.4")
-    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+    // Compiled against, not merely present: the suite carries a launcher
+    // listener that records what is still in the heap after each class, which
+    // is how the floor under a tenant gets an owner.
+    testImplementation("org.junit.platform:junit-platform-launcher")
     testImplementation(project(":core:dbo-operator"))
     testImplementation(project(":core:dbo-tenant-k8s"))
     testImplementation(project(":core:dbo-auth"))
@@ -191,6 +194,10 @@ tasks.test {
     // declare, so a restored pass would say a suite succeeded against a world
     // nobody can describe. The cache is for work whose inputs are on disk.
     outputs.cacheIf { false }
+    // Forwarded for the same reason the memory flag is: a -D on the gradle
+    // command line stops at the daemon, and a measurement that silently does
+    // nothing is worse than one nobody asked for.
+    System.getProperty("dbo.heap.attribute")?.let { systemProperty("dbo.heap.attribute", it) }
     filter.excludeTestsMatching("*ServerDistIT")
     filter.excludeTestsMatching("*WhatTheLoadedSpecificationCostsIT")
     shouldRunAfter(distTest)

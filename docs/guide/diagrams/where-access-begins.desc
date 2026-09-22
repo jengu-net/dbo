@@ -1,0 +1,9 @@
+Getting at the data means doing the job
+
+A job somebody declared — validating a batch, clearing a consignment — names
+who may perform it, drawn as an active role in the tenant's own records. The
+job reaches only the documents it needs and the ones it may change, and no
+others; performing it leaves behind what it read and changed, when, on whose
+authority, and what it was for. All three sit inside one tenant, which is its
+own database, and the party running the deployment holds the copies without
+being able to read them.

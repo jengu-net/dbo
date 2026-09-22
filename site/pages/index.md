@@ -1,5 +1,5 @@
 ---
-title: A store for data somebody will one day audit
+title: Describe the job, and the rest follows
 template: home.html
 hide:
   - toc
@@ -9,20 +9,19 @@ hide:
 <div class="wrap" markdown>
 <div class="kicker">Open source · MIT · Pre-1.0</div>
 
-# A store for data somebody will one day audit.
+# Describe the job. DBO does the rest.
 
-<p class="lede">DBO holds regulated records for organisations that do not trust
-each other, and the operator running it cannot read them.</p>
+<p class="lede">The work your organisation does is made of jobs — clearing a
+consignment, validating a batch, admitting a patient. You say what the jobs are,
+who may do them, and what each one needs to see. That description is most of the
+application.</p>
 
-<p class="lede">Every disclosure is recorded and says why it happened. Every
-version is kept and cannot be quietly changed. Erasing a person is an operation
-that answers with a receipt. None of that is a policy somebody promises to
-honour. It is a set of things the operator cannot do.</p>
+<p class="lede">Everything underneath follows from it. Getting at the data means
+doing one of those jobs, so who looked and why is left behind by the looking.
+Keeping every version, answering an erasure with a receipt you can show — the
+store's business, not something your code has to remember to do.</p>
 
-<p class="lede">What is left to think about is the work. You declare it — a
-process, its steps, who may perform them — and the store carries everything
-under it: the regulation, the durable machinery that runs the work, and the
-proof that it ran.</p>
+<p class="lede">And whoever runs the servers cannot read any of it.</p>
 
 <div class="cta" markdown>
 [Read the guide](docs/guide/){ .btn .primary }
@@ -34,30 +33,32 @@ proof that it ran.</p>
 
 <section markdown>
 <div class="wrap prose" markdown>
-<div class="eyebrow">Why another one of these</div>
+<div class="eyebrow">What it is for</div>
 
-## Storing the records is the easy half.
+## Storing the data is the easy half.
 
-The questions that decide whether you may operate are different ones. Who read
-this record, and for what stated purpose. Can this person be erased, and can you
-show that it happened. Has this history been altered since it was written. Which
-organisation does this belong to, and what does its jurisdiction require. How
-long may it be kept.
+The hard half is everything standing around it. Who read this, and what were
+they doing at the time. Can this person be deleted, and can you show that it
+happened. Has any of this been changed since it was written. Whose is it, and
+how long may you keep it.
 
-Platforms answer those by hand, once per application, above a store that cannot
-help. The answers end up scattered across application code, where each one is
-somebody's good intention rather than a property of the system.
+None of those are extra questions. A job has somebody doing it, a reason for
+doing it and a time it happened — the same way a street has a name and a person
+has one. Write the job down and you have already answered them.
 
-**DBO is the store that helps**, and it starts somewhere unusual: not with the
-data, but with the work that needs it. Nobody reads or changes a regulated
-record for no reason — the reason is a step of some process. So a step is what
-access is granted to, and performing it is what leaves the proof.
+If instead they are answered in your own code, one at a time, by whoever
+remembered, then each answer is as good as the person who wrote it and as
+current as the day they left.
+
+Here, getting at the data means doing the job — so there is no second system
+keeping the record of the first, and nothing to remember to call.
 
 --8<-- "assets/diagrams/where-access-begins.svg"
 
-<p class="diagram-caption">Analysing, deciding and recording the decision are
-one piece of work. There is no way to reach the data, or to change it, without
-doing the work that needed it.</p>
+<p class="diagram-caption">A job reaches the documents that job needs and no
+others, and what it read, when, and what it was for is written down as the job
+runs rather than reconciled afterwards. A plain read still reaches the data
+too, and closing that is unfinished.</p>
 
 [How work is declared, and performed →](docs/guide/work/)
 </div>
