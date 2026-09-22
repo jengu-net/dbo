@@ -5,9 +5,9 @@ cost another hundred megabytes; measured, **a second face costs 444**, on top of
 graph nor the records-backed one. Three of the four
 pieces are already there: the definitions are a schema the face's SQL reads,
 the database answers tier one and the envelope at parity, and a face is cut
-once per release into an image of everything derived from them. Next: say what
-version conversion would take, because it is the one piece with nothing
-sketched.**
+once per release into an image of everything derived from them. Next: conversion as a step
+dbo provides rather than a projection tenant that holds a face — sketched, and
+resting on the fact that nothing synchronous waits on a converter today.**
 
 # Definitions out of the heap
 
@@ -282,17 +282,74 @@ already locate. Conversion is a program over a model, it runs when a zone hands
 content to a tenant on another version, and no part of it is answered in the
 database today.
 
+## Conversion as a step, not as a tenant
+
+The open piece has a shape worth writing down, and the first thing to say about
+it is that **cross-version conversion is already not on a read**. Two promises
+place it:
+
+- `SYNC_CONVERT_ON_APPLY` — streamed objects are converted **at apply** into
+  the receiving tenant's version, and an unconvertible one dead-letters visibly.
+- `ZONE_A_ZONE_IS_SERVED_TO_A_FACE_THROUGH_ONE_PROJECTION` — a zone reaches a
+  face it was not written in through **one projection per zone per face**, so
+  the conversion happens once rather than once per tenant.
+
+`CORE_UPGRADE_ON_READ` is the one that sounds like a counter-example and is
+not: it is a schema-version hop, a tenant's own object shape moving, rather
+than a FHIR version.
+
+So nothing synchronous waits on a converter today, which is what makes the
+proposal available at all.
+
+**The proposal: conversion is a step dbo itself provides.** A tenant that has
+subscribed to the registered faces holds their definitions as records, and
+offers conversion as declared work over them — a run per conversion, with its
+inputs, its holder and its outcome, rather than a code path inside a projection.
+
+What it buys, in the order the gains matter:
+
+1. **The serving nodes hold nothing.** Today a projection is a tenant: it has a
+   database, it comes up, and it holds a face's object graph. Every node
+   serving a face pays for that face. A converter step is run by whatever
+   process implements it, so the toolchain lives in one deployment that is
+   sized on purpose instead of in every node that serves.
+2. **A conversion becomes visible.** `PROC_AUTOMATION_IS_DECLARED` asks for
+   automation to be as auditable as a terminology overlay rather than a code
+   path that happens to run. A conversion that is a run says who asked, what
+   went in, what came out and whether it held.
+3. **It is the projection's own idea, generalised.** "Once rather than once per
+   tenant" is already the rule; this moves the *once* out of a tenant and into
+   work.
+
+**What it must answer.**
+
+- **It moves the memory rather than removing it.** A converter needs both
+  versions' definitions, so whatever process implements the step holds two
+  faces. That is the one place the object graph genuinely has to exist, and the
+  gain is that it exists once in a fleet instead of once per serving node —
+  which is worth saying out loud rather than letting the item claim a removal
+  it does not get.
+- **The apply path's guarantees have to survive.** An unconvertible object
+  dead-letters visibly and degrades the dependency; a step that fails has to
+  land in the same place rather than in a queue somebody else watches.
+- **Definitions and records are not the same job.** A projection converts a
+  zone's definitions so a face can be built from them, and content converts on
+  apply. Whether one step serves both, or the definitions half stays where it
+  is, is the first thing to decide.
+- **Who runs it.** A step service that nobody deploys is a tenant that cannot
+  take a zone. Either the store ships an implementation, or a deployment
+  without one has to degrade in a way somebody can read.
+
 ## The sequence
 
 1. ~~Split the holders by arrival against serving.~~ Done: everything but the
    parity references serves.
 2. ~~Weigh the two paths.~~ Done: 225 against 101, 11 against 3.
 3. ~~Say who takes the fallback.~~ Done: 24 of the shared world's 25.
-4. **Say what conversion would take**, because it is the one piece with no
-   answer sketched. If it can be a cut-time or a separate-process concern, the
-   runtime can lose the toolchain entirely and everything else here is
-   ordinary work. If it cannot, that is the thing this item is really about and
-   the rest is detail.
+4. **Decide conversion as a step**, sketched above. The reading it needs first
+   is which conversions are definitions and which are records, because that
+   decides whether one step serves both. Nothing synchronous waits on a
+   converter today, which is the fact the whole idea rests on.
 5. **Write the three rules**, which is small, self-contained, and closes most
    of the divergence baseline — the remaining gap between what the database
    says and what the toolchain says.
