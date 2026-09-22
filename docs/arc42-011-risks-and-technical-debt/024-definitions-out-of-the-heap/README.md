@@ -5,9 +5,9 @@ cost another hundred megabytes; measured, **a second face costs 444**, on top of
 graph nor the records-backed one. Three of the four
 pieces are already there: the definitions are a schema the face's SQL reads,
 the database answers tier one and the envelope at parity, and a face is cut
-once per release into an image of everything derived from them. Next: conversion as a step
-dbo provides rather than a projection tenant that holds a face — sketched, and
-resting on the fact that nothing synchronous waits on a converter today.**
+once per release into an image of everything derived from them. Next: conversion as a published
+step rather than a projection tenant holding a face — sketched, and resting on
+the fact that nothing synchronous waits on a converter today.**
 
 # Definitions out of the heap
 
@@ -282,69 +282,57 @@ already locate. Conversion is a program over a model, it runs when a zone hands
 content to a tenant on another version, and no part of it is answered in the
 database today.
 
-## Conversion as a step, not as a tenant
+## How steps pipe together
 
-The open piece has a shape worth writing down, and the first thing to say about
-it is that **cross-version conversion is already not on a read**. Two promises
-place it:
+Before the conversion case, the general one, because the conversion case is an
+instance of it and reads as a pattern otherwise.
 
-- `SYNC_CONVERT_ON_APPLY` — streamed objects are converted **at apply** into
-  the receiving tenant's version, and an unconvertible one dead-letters visibly.
-- `ZONE_A_ZONE_IS_SERVED_TO_A_FACE_THROUGH_ONE_PROJECTION` — a zone reaches a
-  face it was not written in through **one projection per zone per face**, so
-  the conversion happens once rather than once per tenant.
+**A step says what it consumes and what it produces.** That is already the
+vocabulary `StepDeclaration` carries:
 
-`CORE_UPGRADE_ON_READ` is the one that sounds like a counter-example and is
-not: it is a schema-version hop, a tenant's own object shape moving, rather
-than a FHIR version.
+```java
+StepDeclaration.of("lab.result.convert", "1.0", domain)
+        .consuming("…/shape/r5-observation")
+        .producing("…/shape/r4-observation")
+        .taking("scan", "…/shape/scan")
+```
 
-So nothing synchronous waits on a converter today, which is what makes the
-proposal available at all.
+So piping is not wiring. B consumes what A produces, and the chain is in the
+declarations rather than in a configuration somebody keeps in step. A run is
+one step happening once, over the documents filling its slots, leaving what it
+read, what it changed, when and on whose authority.
 
-**The proposal: conversion is a step dbo itself provides.** A tenant that has
-subscribed to the registered faces holds their definitions as records, and
-offers conversion as declared work over them — a run per conversion, with its
-inputs, its holder and its outcome, rather than a code path inside a projection.
+**Then the only question is where the middle lands, and there are two answers.**
 
-What it buys, in the order the gains matter:
+- **Hand it on.** The next run takes it as an input slot. No feed, no cursor,
+  no second copy. This is the ordinary case, and it is crash-safe without any
+  of them: a run is checkpointed, and a step that got somewhere and then failed
+  is released with its milestone intact.
+- **Publish it.** It becomes a feed, and consumers take it with their own
+  cursors. This is for when several things want the same result, or it has to
+  be replayable.
 
-1. **The serving nodes hold nothing.** Today a projection is a tenant: it has a
-   database, it comes up, and it holds a face's object graph. Every node
-   serving a face pays for that face. A converter step is run by whatever
-   process implements it, so the toolchain lives in one deployment that is
-   sized on purpose instead of in every node that serves.
-2. **A conversion becomes visible.** `PROC_AUTOMATION_IS_DECLARED` asks for
-   automation to be as auditable as a terminology overlay rather than a code
-   path that happens to run. A conversion that is a run says who asked, what
-   went in, what came out and whether it held.
-3. **It is the projection's own idea, generalised.** "Once rather than once per
-   tenant" is already the rule; this moves the *once* out of a tenant and into
-   work.
+The second is the more expensive one and it buys something specific: fan-out
+and replay. Reaching for it by default would mean a stream and a cursor between
+every pair of steps, which is a great deal of machinery for a chain one tenant
+walks once.
 
-**A converter is a consumer that publishes, and that is the whole mechanism.**
-Both act as data arrives. A consumer holds a named cursor, acknowledges, and
-resumes from the last acknowledged position; a converter does the same and
-emits what it made. `FEED_ONE_PRIMITIVE` already says pagination, subscription
-delivery, content streams and edge sync are one thing — an ordered, replayable
-sequence with an opaque durable cursor — so a converted stream is another
-instance of it rather than a new kind of pipe.
+## Conversion is the published kind
 
-Which means nothing is injected into anybody's pipeline. A conversion is a
-consumer of the zone's feed that publishes a feed on the target face, and the
-tenants on that face consume it with their own cursors, exactly as they consume
-anything. The cursor question disappears because there is no shared cursor to
-get ahead of: each consumer has its own, and an item exists in the converted
-feed only once the conversion that made it was acknowledged.
+A zone's content converted for a face is wanted by every tenant on that face,
+and `ZONE_A_ZONE_IS_SERVED_TO_A_FACE_THROUGH_ONE_PROJECTION` already says it is
+done once rather than once per tenant. So it is the published kind: a step that
+consumes the zone's feed, produces on the target face, and publishes what it
+produced. Tenants on that face consume it with their own cursors, exactly as
+they consume anything.
 
-**And that is what a projection already is**, with a tenant wrapped around it.
-A projection reads the zone's feed, converts, holds the result and publishes
-it. Take away the database, the bring-up and the face context and what is left
-is a consumer that publishes — which is the thing worth keeping.
+**Which is what a projection already is, with a tenant wrapped around it.** It
+reads the zone's feed, converts, holds the result and publishes. Take away the
+database, the bring-up and the face context and a step that publishes is what
+remains — and it is the part worth keeping.
 
-**And the stream is where it would be injected.** Today the RECEIVER converts.
-`ContentSyncEngine` holds the converters by the version they convert from and
-walks the chain at apply, hop by hop, dead-lettering the item if the chain does
-not reach the target:
+**What it changes is who holds the toolchain.** Today `ContentSyncEngine` holds
+the converters by the version they convert from and walks the chain at apply:
 
 ```java
 for (int hops = 0; hops < 8 && !version.equals(targetPayloadVersion); hops++) {
@@ -353,77 +341,42 @@ for (int hops = 0; hops < 8 && !version.equals(targetPayloadVersion); hops++) {
     payload = converter.convert(item.typeName(), payload);
 ```
 
-So the tenant taking content from a zone written in another version is the
-tenant holding that version's converters — and therefore its model classes.
-That is the cost, in the place it is least wanted: on every receiver.
+So the receiver is what holds the source version's converters, and therefore
+its model classes. With the conversion published, a receiver applies bytes
+already in its own version and never loads the source version at all. The chain
+above becomes one step's business, in one deployment sized on purpose, rather
+than a cost carried by everything that receives.
 
-If the stream injects a conversion step between publish and apply, the receiver
-applies bytes already in its own version and **never loads the source version
-at all**. The chain above becomes the step's business, in one place, and the
-derivation rule does not change: a projection is already synthesised from a
-zone's version and the faces of the tenants that asked for it, so a conversion
-step is synthesised from the same two facts.
+**What it does not do is remove the memory.** A converter needs both versions'
+definitions, so whatever implements the step holds two faces. The gain is that
+they exist once in a fleet instead of once per serving node, which is worth
+saying rather than letting this item claim a removal it does not get.
 
-The dead-letter gets better rather than worse. A conversion that fails is a run
-that failed, with its input, its holder and its reason, instead of an entry in
-a dead-letter table — and degrading the dependency is what a failed run already
-does.
+**And nothing is injected into anybody's pipeline.** `FEED_ONE_PRIMITIVE`
+already makes pagination, subscription delivery, content streams and edge sync
+one thing — an ordered, replayable sequence with an opaque durable cursor — so
+a converted stream is another instance of it. There is no shared position to
+get ahead of: each consumer holds its own cursor, and an item is in the
+converted feed only once the run that made it finished.
 
 **What it must answer.**
 
-- **It moves the memory rather than removing it.** A converter needs both
-  versions' definitions, so whatever process implements the step holds two
-  faces. That is the one place the object graph genuinely has to exist, and the
-  gain is that it exists once in a fleet instead of once per serving node —
-  which is worth saying out loud rather than letting the item claim a removal
-  it does not get.
-- **The apply path's guarantees have to survive.** An unconvertible object
-  dead-letters visibly and degrades the dependency; a step that fails has to
-  land in the same place rather than in a queue somebody else watches.
-- **Definitions and records are not the same job.** A projection converts a
-  zone's definitions so a face can be built from them, and content converts on
-  apply. Whether one step serves both, or the definitions half stays where it
-  is, is the first thing to decide.
-- **Who runs it.** A step service that nobody deploys is a tenant that cannot
-  take a zone. Either the store ships an implementation, or a deployment
-  without one has to degrade in a way somebody can read.
-- **Where the step sits, which decides whether a cursor is a question at all.**
-  Today one consumer reads item N, converts it, applies it and advances to N,
-  all in a row. A step is work — created, claimed, performed — so read and
-  apply stop being one motion, and there are two places to put it.
-
-  *Upstream*, converting before the item enters the stream the consumer reads:
-  the consumer's cursor is over already-converted items, and an item does not
-  exist in that stream until the run that made it finished. There is no cursor
-  question, and this is what a projection already is — a tenant on the target
-  face holding converted content that members sync from.
-
-  *At the consumer*, reading item N and waiting on a run before applying: now
-  the cursor is a real question, because advancing after dispatch acknowledges
-  an item that has not been applied, and holding it stalls the stream behind
-  every conversion.
-
-  **And a stream collapses the choice.** A feed read as a lazy stream makes
-  the conversion a stage rather than a place: an item is converted on its way
-  to the terminal operation, so it cannot reach the apply unconverted and the
-  cursor cannot be ahead of it. The ordering is a property of the pipeline
-  rather than something the consumer has to be careful about.
-
-  The shape is already in the tree, and in both halves. `Answered.pagedBy`
-  walks a `FeedChunk` page by page as a `Stream`, lazily, holding no buffer —
-  written for asking the store a question. `ContentSyncEngine` reads exactly
-  the same `FeedChunk` and loops over it by hand. Same type, one of them a
-  pipeline and the other a loop.
-
-  Futures are then an optimisation rather than a requirement. A converter
-  that acts as data arrives is already keeping up or already behind, and its
-  lag is observable because its cursor is named. A bounded window of runs in
-  flight is worth writing when one conversion at a time is measurably too
-  slow — a stream has no ordered, bounded, parallel map of its own before
-  `gather` — and not before.
-
-  Delivery is idempotent and conversion is pure, so re-running a step is safe
-  either way.
+- **An unconvertible object must still dead-letter visibly** and degrade the
+  dependency. A conversion that fails is a run that failed, carrying its input,
+  its holder and its reason, which is more than a dead-letter row says — but it
+  has to land somewhere a person reads.
+- **Definitions and records may not be one job.** A projection converts a zone's
+  definitions so a face can be built from them, and content converts on apply.
+  Whether one step serves both is the first thing to decide.
+- **A step nobody deploys is a tenant that cannot take a zone.** Either the
+  store ships an implementation, or a deployment without one degrades in a way
+  somebody can read.
+- **Reading the feed as a stream is what makes the ordinary case ordinary.**
+  `Answered.pagedBy` already walks a `FeedChunk` page by page, lazily and
+  without a buffer, and `ContentSyncEngine` reads the same `FeedChunk` in a
+  loop. One of them is a pipeline. Concurrency across items is then an
+  optimisation with an observable trigger — a named consumer's lag — rather
+  than something to design for in advance.
 
 ## The sequence
 
@@ -431,10 +384,10 @@ does.
    parity references serves.
 2. ~~Weigh the two paths.~~ Done: 225 against 101, 11 against 3.
 3. ~~Say who takes the fallback.~~ Done: 24 of the shared world's 25.
-4. **Decide conversion as a step**, sketched above. The reading it needs first
-   is which conversions are definitions and which are records, because that
-   decides whether one step serves both. Nothing synchronous waits on a
-   converter today, which is the fact the whole idea rests on.
+4. **Decide conversion as a published step**, sketched above. The reading it
+   needs first is which conversions are definitions and which are records,
+   because that decides whether one step serves both. Nothing synchronous waits
+   on a converter today, which is the fact the whole idea rests on.
 5. **Write the three rules**, which is small, self-contained, and closes most
    of the divergence baseline — the remaining gap between what the database
    says and what the toolchain says.
