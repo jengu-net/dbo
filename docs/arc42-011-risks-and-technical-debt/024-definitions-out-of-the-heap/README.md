@@ -321,6 +321,26 @@ What it buys, in the order the gains matter:
    tenant" is already the rule; this moves the *once* out of a tenant and into
    work.
 
+**A converter is a consumer that publishes, and that is the whole mechanism.**
+Both act as data arrives. A consumer holds a named cursor, acknowledges, and
+resumes from the last acknowledged position; a converter does the same and
+emits what it made. `FEED_ONE_PRIMITIVE` already says pagination, subscription
+delivery, content streams and edge sync are one thing — an ordered, replayable
+sequence with an opaque durable cursor — so a converted stream is another
+instance of it rather than a new kind of pipe.
+
+Which means nothing is injected into anybody's pipeline. A conversion is a
+consumer of the zone's feed that publishes a feed on the target face, and the
+tenants on that face consume it with their own cursors, exactly as they consume
+anything. The cursor question disappears because there is no shared cursor to
+get ahead of: each consumer has its own, and an item exists in the converted
+feed only once the conversion that made it was acknowledged.
+
+**And that is what a projection already is**, with a tenant wrapped around it.
+A projection reads the zone's feed, converts, holds the result and publishes
+it. Take away the database, the bring-up and the face context and what is left
+is a consumer that publishes — which is the thing worth keeping.
+
 **And the stream is where it would be injected.** Today the RECEIVER converts.
 `ContentSyncEngine` holds the converters by the version they convert from and
 walks the chain at apply, hop by hop, dead-lettering the item if the chain does
@@ -395,11 +415,12 @@ does.
   the same `FeedChunk` and loops over it by hand. Same type, one of them a
   pipeline and the other a loop.
 
-  What the futures buy on top is concurrency without losing order: a stage
-  that dispatches a run per item and gathers the results in a bounded window
-  keeps several conversions in flight while the terminal operation still sees
-  them in sequence. That window is the one piece of machinery to write — a
-  stream has no ordered, bounded, parallel map of its own before `gather`.
+  Futures are then an optimisation rather than a requirement. A converter
+  that acts as data arrives is already keeping up or already behind, and its
+  lag is observable because its cursor is named. A bounded window of runs in
+  flight is worth writing when one conversion at a time is measurably too
+  slow — a stream has no ordered, bounded, parallel map of its own before
+  `gather` — and not before.
 
   Delivery is idempotent and conversion is pure, so re-running a step is safe
   either way.
