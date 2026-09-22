@@ -4,8 +4,10 @@ face's first, 11 MB for the next on it. The floor is attributed now — twelve
 classes keep 1755 MB and seventy more keep 477, against a 2 GB heap. Nothing is
 being left unclosed: the floor is the FHIR definition corpus, loaded once per
 face and resident by design — the model objects, their strings, and those
-strings' arrays, which together are over half the live heap. Next: whether one
-JVM holds three faces.**
+strings' arrays, which together are over half the live heap. It is the
+toolchain's `SimpleWorkerContext`, one per version — the store's own definitions
+have been in a database schema since before this was filed. Next: what still
+needs that context.**
 
 # The suite runs out of heap
 
@@ -267,6 +269,31 @@ and those strings' arrays. Shallow sizes could answer it after all — not by
 adding the columns up, which is what shallow sizes cannot do, but by noticing
 that the counts line up one to one.
 
+### And the corpus is the toolchain's, not the store's
+
+The store's definitions are already in the database. Every definition a tenant
+holds, its history and every row derived from one live in a schema of their
+own, and the face's own SQL functions read what a definition says from that
+schema and nowhere else — declared as
+`REQ-DBO-VER-DEFINITIONS-LIVE-IN-A-SCHEMA-OF-THEIR-OWN` and proven. That was
+the decision this measurement keeps arriving at from the other side.
+
+What is resident is HAPI's `SimpleWorkerContext`, and `TenantContext` says its
+shape without knowing what it weighs:
+
+> The shared `SimpleWorkerContext` is one per version and takes seconds to
+> build; a tenant cannot have its own. What a tenant has is a copy — the copy
+> constructor shares the loaded definition managers, ~100ms.
+
+**One per version, copied per tenant.** That is the 226 MB and the 11 MB
+exactly: the first tenant on a face builds the version's context, and every
+tenant after it takes a copy that shares the loaded managers. The numbers were
+measured before this was read, and they describe the same object.
+
+So the megabytes are the toolchain's model of the definitions, held for
+validation and snapshotting, rather than the store's copy of them. The store's
+copy is in Postgres and is read with SQL.
+
 **And one is a caution about item 003.** `DelegationIT` keeps 124 MB, and it is
 the first class moved onto the shared cast. The shared world's tenants are
 never dropped by design, so a class moving down the ladder transfers its
@@ -301,10 +328,14 @@ suite of fifty-odd classes needs it.
    dump: there is one byte array per String to within a percent, so they are
    the Strings' own storage, and 69% of the Strings are FHIR primitives in a
    definition. Counting beat measuring retained size.
-5. Decide how many faces one JVM holds. This is now the question the floor
-   actually poses, and it is a suite-shape decision rather than a defect:
-   splitting the run by face buys back a face's definitions, at the cost of a
-   second JVM's startup.
+5. Ask what still needs a `SimpleWorkerContext`. That is the better form of
+   "how many faces one JVM holds", because it names the object rather than the
+   symptom: the definitions are in the database and the face reads them with
+   SQL, so what keeps a version's whole corpus in memory is the toolchain's
+   model of it, for validation and for snapshotting a profile. A suite that
+   holds three of those holds three, whether or not the run is split. Splitting
+   by face is the cheap answer and it rents the megabytes; needing fewer
+   contexts is the one that gives them back.
 6. Say whether the four-minute wait raised the peak. It is one change and it is
    reversible, and an honest answer is worth more than the wait.
 7. Then the tail — seventy classes at seven megabytes each — which is the other
