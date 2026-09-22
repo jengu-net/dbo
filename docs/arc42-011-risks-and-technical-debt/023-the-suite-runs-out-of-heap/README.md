@@ -113,12 +113,60 @@ It also says why the failures look the way they do. The class that fails most
 brings four tenants up **at once**, and the ones that failed tonight were
 bringing up tenants on faces nothing else in the run was holding.
 
-## What is not known, which is most of it
+## What the floor is made of
 
-**What the 1.3 GB is made of.** That is the number to attack, and nothing
-attributes it. It is whatever fifty-odd classes have left behind — retained
-worlds, pools, caches, definitions — and none of it is a tenant that is still
-being served.
+Measured, by recording heap in use after a forced collection at the end of
+every class. Two hundred and two classes, a floor that climbs 244 → 577 →
+1172 → 1536 → **1610 MB**, and a suite that passed with 438 MB to spare — which
+is why this is a coin flip rather than a certainty. The margin is about two
+faces wide, and a face's first tenant is 226.
+
+| | classes | kept |
+|---|---|---|
+| kept 40 MB or more | **12** | **1755 MB** |
+| kept 1–39 MB | 70 | 477 MB |
+| kept nothing, or gave some back | 120 | — |
+
+**It is both.** A first reading of the top of the list says a short list of
+offenders; the tail says otherwise. Seventy classes keeping an average of seven
+megabytes each are a quarter of the floor, and no single one of them would ever
+be noticed. Attacking only the twelve leaves about a third of the problem.
+
+The twelve, largest first:
+
+```
+ +423  ATenantDeliversWhatItSubscribedToIT
+ +227  R6TenantIT
+ +215  MilestonesOnTheCheckpointIT
+ +179  TenantOsgiIT
+ +153  TheTwoAnswersAreComparedOverTheVersionIT
+ +124  DelegationIT
+ +110  ArchiveProvenanceIT
+  +90  ADefinitionIsExpandedWhenItArrivesIT
+  +83  EmbeddedContainerIT
+  +60  ACommaMeansOrInASearchIT
+  +46  AFaceIsCutOnceAndBroughtUpFromIT
+  +45  TheFaceSqlShipsWithTheReleaseIT
+```
+
+**Not all of them are a defect.** `R6TenantIT` at 227 is a third face's first
+tenant, which is the 226 the baseline records: the cost working as measured.
+`EmbeddedContainerIT` and `TenantOsgiIT` hold a framework each, which is what
+they are for.
+
+**The top and third look like something not being closed.** A subscription
+dispatcher and a checkpointing run are threads, pools and engines rather than
+faces, and several hundred megabytes surviving the class that made them is not
+explained by anything in the baseline.
+
+**And one is a caution about item 003.** `DelegationIT` keeps 124 MB, and it is
+the first class moved onto the shared cast. The shared world's tenants are
+never dropped by design, so a class moving down the ladder transfers its
+retention to the shared runtime rather than removing it. Moving classes saves
+bring-up time; whether it saves memory is a separate question and nobody had
+asked it.
+
+## What is still not known
 
 **Whether the ceiling moved today or the load did.** Two changes this session
 are candidates and neither has been measured against it. The wait now holds for
@@ -137,10 +185,15 @@ suite of fifty-odd classes needs it.
    "how many fit" stops being a thing the suite discovers by dying.
 2. Say whether the four-minute wait raised the peak. It is one change and it is
    reversible, and an honest answer is worth more than the wait.
-3. Attribute the floor. What is resident before a tenant is brought up is
-   thirteen hundred megabytes and nobody can say whose. A manager already rolls
-   up what IT serves; what no one counts is the suite holding several managers
-   at once and whatever earlier classes never let go of.
+3. ~~Attribute the floor.~~ Done, and the instrument is kept:
+   `WhatTheSuiteLeavesBehind` records the floor after each class when asked
+   with `-Ddbo.heap.attribute=true`. It writes after every class rather than at
+   the end, because the suite it measures is the one that dies.
+4. Read the top three. A subscription dispatcher, a checkpointing run and a
+   delegation class keeping hundreds of megabytes after they finish is the
+   fixable third of this, and none of it is explained by what a tenant costs.
+5. Then the tail, which is the other quarter and is nobody's fault in
+   particular.
 4. Then decide about the dial, with the measurement in hand. Raising it before
    that is buying quiet.
 
