@@ -1696,16 +1696,29 @@ public final class ElementStore implements FhirStoreFacade,
         if (compiled.includeRefParams().isEmpty()) {
             return null;
         }
+        // From the edges the write extracted, not from the documents again.
+        //
+        // Every payload's references are pulled out on write and keyed by the
+        // search parameter that found them — which is the same name a caller
+        // spells in an _include. So the targets of a page are an indexed read
+        // per member, where this used to parse every member through the
+        // element model and evaluate a FHIRPath expression over it per
+        // parameter. Same answer, and it was the last thing on the serving
+        // path that wanted the version's definitions in memory.
+        Set<String> wanted = new HashSet<>();
+        for (String refParam : compiled.includeRefParams()) {
+            wanted.add(ElementEnvelopes.pathName(refParam));
+        }
         List<StoredObject> included = new ArrayList<>();
         Set<String> seen = new HashSet<>();
         for (StoredObject item : chunk.items()) {
-            Object document = payloads().read(null, item.payload());
-            for (String refParam : compiled.includeRefParams()) {
-                for (String[] target : version.referencedTargets(elementPayloads().context(),
-                        document, item.typeName(), refParam)) {
-                    if (seen.add(target[0] + "/" + target[1])) {
-                        store.get(target[0], target[1]).ifPresent(included::add);
-                    }
+            for (cloud.jengu.dbo.core.api.Envelope.ReferenceEdge edge
+                    : store.edgesOf(item.typeName(), item.id())) {
+                if (!wanted.contains(edge.refType())) {
+                    continue;
+                }
+                if (seen.add(edge.targetType() + "/" + edge.targetId())) {
+                    store.get(edge.targetType(), edge.targetId()).ifPresent(included::add);
                 }
             }
         }

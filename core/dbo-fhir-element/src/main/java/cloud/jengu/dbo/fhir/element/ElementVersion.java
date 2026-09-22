@@ -388,50 +388,6 @@ public final class ElementVersion {
         });
     }
 
-    /**
-     * Where one member's reference parameter points, for {@code _include}.
-     *
-     * <p>Asked of the document the page already read, and of the parameter's
-     * own expression, so what an include follows and what a search filters on
-     * are the same definition rather than two readings of it.
-     */
-    List<String[]> referencedTargets(SimpleWorkerContext context, Object document, String typeName,
-            String refParam) {
-        SearchParameter parameter = parametersFor(typeName).stream()
-                .filter(p -> p.getCode().equals(refParam)).findFirst().orElse(null);
-        if (parameter == null || !(document instanceof Element element)) {
-            return List.of();
-        }
-        List<String[]> targets = new ArrayList<>();
-        List<org.hl7.fhir.r5.model.Base> hits;
-        try {
-            org.hl7.fhir.r5.fhirpath.FHIRPathEngine fhirPath =
-                    new org.hl7.fhir.r5.fhirpath.FHIRPathEngine(context);
-            fhirPath.setHostServices(new ElementHostServices(context));
-            hits = fhirPath.evaluate(element, parameter.getExpression());
-        } catch (Exception e) {
-            return List.of();
-        }
-        for (org.hl7.fhir.r5.model.Base hit : hits) {
-            String reference = hit instanceof Element referenced
-                    ? ("Reference".equals(referenced.fhirType())
-                            ? referenced.getNamedChildValue("reference")
-                            : referenced.primitiveValue())
-                    : hit.primitiveValue();
-            if (reference == null) {
-                continue;
-            }
-            int slash = reference.lastIndexOf('/');
-            if (slash > 0) {
-                String type = reference.substring(0, slash);
-                int previous = type.lastIndexOf('/');
-                targets.add(new String[] {previous < 0 ? type : type.substring(previous + 1),
-                        reference.substring(slash + 1)});
-            }
-        }
-        return targets;
-    }
-
     /** The canonical url of a canonical resource — its identity, for a conditional write. */
     String canonicalUrlOf(Object document) {
         if (document instanceof Element element) {

@@ -858,6 +858,43 @@ public final class PgObjectStore implements ObjectStore {
         });
     }
 
+    /**
+     * What this object points at, read from the edges rather than from the
+     * payload.
+     *
+     * <p>Every write extracts them and every delete takes them away, so this
+     * is the same answer a walk of the document would give and it costs one
+     * indexed read. An id that is not a uuid is nobody's owner, which is an
+     * ordinary answer here: a caller following references out of a page has no
+     * reason to know which ids this store minted.
+     */
+    @Override
+    public List<Envelope.ReferenceEdge> edgesOf(String typeName, String id) {
+        TypeRegistration type = registry.require(typeName);
+        UUID owner;
+        try {
+            owner = UUID.fromString(id);
+        } catch (IllegalArgumentException notOurs) {
+            return List.of();
+        }
+        return withConnection(c -> {
+            try (PreparedStatement ps = c.prepareStatement("""
+                    SELECT ref_type, target_type, target_id FROM %s_reference
+                    WHERE owner_id = ? ORDER BY ref_type, target_type, target_id"""
+                    .formatted(Domains.tables(type.domain())))) {
+                ps.setObject(1, owner);
+                try (ResultSet rs = ps.executeQuery()) {
+                    List<Envelope.ReferenceEdge> edges = new ArrayList<>();
+                    while (rs.next()) {
+                        edges.add(new Envelope.ReferenceEdge(
+                                rs.getString(1), rs.getString(2), rs.getString(3)));
+                    }
+                    return edges;
+                }
+            }
+        });
+    }
+
     @Override
     public List<StoredObject> getByIdentifier(String typeName, List<Identifier> identifiers) {
         TypeRegistration type = registry.require(typeName);

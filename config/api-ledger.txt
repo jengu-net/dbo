@@ -739,6 +739,7 @@ cloud.jengu.dbo.core.api.IndexSpec                                     toString(
 cloud.jengu.dbo.core.api.ObjectStore                                   count(cloud.jengu.dbo.core.api.Criteria):long
 cloud.jengu.dbo.core.api.ObjectStore                                   delete(String,String,Long):void
 cloud.jengu.dbo.core.api.ObjectStore                                   delete(String,String,Long,cloud.jengu.dbo.core.api.Handling.Authority):void
+cloud.jengu.dbo.core.api.ObjectStore                                   edgesOf(String,String):List
 cloud.jengu.dbo.core.api.ObjectStore                                   get(String,String):Optional
 cloud.jengu.dbo.core.api.ObjectStore                                   getByIdentifier(String,List):List
 cloud.jengu.dbo.core.api.ObjectStore                                   history(String,String):List
@@ -2327,6 +2328,7 @@ cloud.jengu.dbo.postgres.PgObjectStore                                 class
 cloud.jengu.dbo.postgres.PgObjectStore                                 count(cloud.jengu.dbo.core.api.Criteria):long
 cloud.jengu.dbo.postgres.PgObjectStore                                 delete(String,String,Long):void
 cloud.jengu.dbo.postgres.PgObjectStore                                 delete(String,String,Long,cloud.jengu.dbo.core.api.Handling.Authority):void
+cloud.jengu.dbo.postgres.PgObjectStore                                 edgesOf(String,String):List
 cloud.jengu.dbo.postgres.PgObjectStore                                 get(String,String):Optional
 cloud.jengu.dbo.postgres.PgObjectStore                                 getByIdentifier(String,List):List
 cloud.jengu.dbo.postgres.PgObjectStore                                 history(String,String):List
