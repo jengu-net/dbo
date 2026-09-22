@@ -5,6 +5,34 @@
 
 # Own-world tests move down the ladder
 
+## What moving one actually costs and saves
+
+Worth stating before more classes move, because the obvious arithmetic is
+wrong in the direction that would make this item look better than it is.
+
+**A private world does not pay for its face.** `ElementVersion.BY_CODE` is a
+static map keyed by version and `FaceBase` is "one worker context per face and
+process", so every world in a JVM shares the same definitions. The 225 MB a
+carried face costs, and the 101 a records-backed one costs, are paid once by
+whichever world got there first — measured in
+[item 024](../024-definitions-out-of-the-heap/README.md). A class building its
+own runtime is not buying a second copy of the specification.
+
+**What it does pay is per tenant**, and that is 11 MB on a carried face or 3 to
+4 on a base.
+
+**And a private world gives it back.** Its `@AfterAll` closes the manager and
+retires its databases, so what it held is released when the class finishes. The
+shared world's tenants are never dropped by design — so a class moving down the
+ladder converts memory that would have been returned into memory held for the
+rest of the run.
+
+So the trade is bring-up seconds against megabytes held to the end, and it is
+not the trade this item started with. At a 2 GB ceiling it would have been
+worth arguing about; at 3g, against a suite that spends forty minutes and most
+of it coming tenants up, seconds are the scarcer thing. That is the reason to
+keep moving classes — not that it saves memory, because it does not.
+
 `config/worlds-ledger.txt` records every harness class that builds a
 runtime of its own. Forty-four predate the ledger and carry no reason; the
 [shared-world rule](../../arc42-002-constraints/working-rules/shared-world-tests.md)

@@ -183,7 +183,21 @@ public final class Across implements Questions {
 
         @Override
         public Questions.Work open() {
-            return new WorkAcross(asked.also("open", "status:not=completed"));
+            // The holders that still owe something, named rather than negated.
+            //
+            // It rendered `status:not=completed`, and that is a different
+            // question: a run abandoned rather than finished has a Task that
+            // is not completed, so the surface called it open while the store
+            // called it closed — Holder.NOBODY is "done, OR ABANDONED". A
+            // vocabulary whose whole claim is that a caller cannot tell the
+            // bindings apart cannot have a word meaning two things.
+            //
+            // A comma is "any of these" on this surface, which the store
+            // promises and answers; `:not` was never answered for a Task at
+            // all, so the negation was unreachable as well as wrong.
+            return new WorkAcross(asked.also("open", "owner="
+                    + Holder.AUTOMATION.wire() + "," + Holder.RETRY.wire()
+                    + "," + Holder.PERSON.wire()));
         }
 
         @Override

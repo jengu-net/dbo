@@ -427,7 +427,13 @@ what it should produce when it gets there.
    thing that proves the caller cannot tell, and a host outside the framework
    asking one question, which is the only thing that proves the types travel.
 5. The observer seam, off by default.
-6. The guide chapter, replacing `search.md` in the reading order.
+6. The guide chapter. **Half done**: `asking.md` exists, at the end of the Work
+   section, over a `TheWard` the sample compiles — so a chapter cannot show a
+   call that no longer exists. What is not done is the replacing:
+   `search.md` is still in the reading order, and the three claims of its that
+   survive — an unrecognised parameter refused rather than answered more
+   broadly, a CapabilityStatement generated from what is served, a page held by
+   a cursor — have to reach the stories that meet them before it goes.
 7. Joins, which is its own subject: the five questions above first, the
    feature after. Until then the three methods refuse by name, with a test
    holding them to it.

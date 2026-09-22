@@ -14,10 +14,12 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -103,6 +105,31 @@ class OneVocabularyTwoBindingsIT {
                         + "different ids: inside=" + inside + " across=" + across);
         assertTrue(inside.stream().noneMatch(String::isBlank),
                 "a record came back without the id it is addressed by");
+    }
+
+    @Test
+    @DisplayName("open names the holders that still owe something, because a negation asked a "
+            + "different question and the surface never answered it")
+    void openAsksForTheHoldersThatStillOwe() {
+        // Pinned on the question rather than on an answer, because what went
+        // wrong was the question. `status:not=completed` reads as open and is
+        // not: Holder.NOBODY is "done, OR abandoned", so an abandoned run's
+        // Task is not completed and the surface called it open while the store
+        // called it closed. A word in this vocabulary may not mean two things.
+        List<String> asked = new ArrayList<>();
+        Questions recording = Across.through(pathAndQuery -> {
+            asked.add(pathAndQuery);
+            return "{\"resourceType\":\"Bundle\",\"type\":\"searchset\",\"total\":0,"
+                    + "\"entry\":[]}";
+        });
+
+        recording.work().open().count();
+
+        assertEquals(1, asked.size(), "one question, one request: " + asked);
+        assertTrue(asked.get(0).contains("owner=automation,retry,person"),
+                "open did not ask for the holders that still owe: " + asked.get(0));
+        assertFalse(asked.get(0).contains(":not"),
+                "open asked a negation, which this surface does not answer: " + asked.get(0));
     }
 
     @Test
