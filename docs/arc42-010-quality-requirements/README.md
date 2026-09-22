@@ -49,14 +49,17 @@ about one of them — and nothing could notice, because a table is a list
 somebody keeps in step by hand. That is the argument for the section below
 stated better than the section states it.
 
-The goals above are matched to areas by reading, not by declaration. The
-promise model carries a Quality classification for exactly this — the
-technical view of a promise, in the sense arc42 chapter 10 and ISO 25010 use
-— and this store declares none, so no coverage is computed for a goal and
-nothing fails when one loses its last proof.
+The goals above are matched to areas by reading, and the table is still the
+hand-kept thing that lost a row. What has changed is that the declaration now
+exists beside it: each of the twelve is a Quality naming the promises that
+fulfil it, in the sense arc42 chapter 10 and ISO 25010 use the word. Nothing
+reads those declarations yet — the catalogue projection places a promise
+through the area that owns it, and a quality crosses areas — so no coverage is
+computed for a goal and nothing fails when one loses its last proof. The table
+above is what a reader has until it is.
 
 Performance is the goal this costs most. The bench runner exists and carries
 the discipline a measurement needs; the figures that would let a reader
 compare are not taken.
 
-Both are [item 017](../arc42-011-risks-and-technical-debt/017-quality-goals-are-not-declared/README.md).
+Both are [item 017](../arc42-011-risks-and-technical-debt/017-quality-coverage-is-not-folded/README.md).
