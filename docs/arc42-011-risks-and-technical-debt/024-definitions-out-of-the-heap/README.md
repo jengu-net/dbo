@@ -1,10 +1,11 @@
-**Open, and no longer "nothing is built". Four of the nine moves on the
-critical path are done and two of them were closed by reading rather than by
-work: the snapshot is kept and travels in the face image, `_elements` is the
+**Open, and no longer "nothing is built". Seven of the nine moves on the
+critical path are done and most were closed by reading rather than by work: the snapshot is kept and travels in the face image, `_elements` is the
 same token copy a whole read is, framing held a context it had stopped
-reading, and a parameter's evaluability never read a definition at all. What
-is left of `ElementStore`'s four serving reaches is `_include`, which item 021
-is deciding for joins. None of it is a megabyte yet — a context held for any
+reading, and a parameter's evaluability never read a definition at all. `ElementStore` has no serving reaches left: `_include` reads the edges the
+write extracted, and a tenant's conversion maps are loaded when a reshape asks
+rather than held for its life. What remains is step 8 — a write judged by the
+database rather than by `InstanceValidator` — and then the context itself.
+None of it is a megabyte yet — a context held for any
 reason is held whole — which is the point of reading the path rather than the
 list. A version's definitions are parsed into a HAPI object
 graph and held while a tenant serves. The criterion is that a new face must not
@@ -346,8 +347,8 @@ dependency between them nowhere.
 | 3 | **The three rules** — canonical absolute, uuid lowercase, identifier under `urn:ietf:rfc:3986` a full uri | the validator's own code as a reason to hold a context | nothing; two are written and proven, the third is written |
 | 4 | ~~**`_elements` from the rows**~~ **Built, and the rows were not needed.** The filter is top-level names, so the same token copy a whole read uses answers it | `ElementAncestors.projected`, one serving branch — and the context parameter with it | nothing |
 | 5 | ~~**Framing and rendering from stored JSON**~~ **Closed by 4**, not by work of its own: framing already wrote the Bundle shape directly, and the rendering it delegates to stopped needing a context | three of `ElementStore`'s four serving reaches | — |
-| 6 | **Decide where `_include` resolves** | `ElementStore`'s fourth serving reach | a decision, and [item 021](../021-asking-the-store/README.md) is deciding the same thing for joins |
-| 7 | **A StructureMap checked as a program becomes an ingest concern** | the tenant context's maps on the serving path | 1–2, the same cut |
+| 6 | ~~**Decide where `_include` resolves**~~ **The edges, built.** They are extracted on write and keyed by the parameter's own name; the policy half stays with [item 021](../021-asking-the-store/README.md) | `ElementStore`'s fourth and last serving reach | — |
+| 7 | ~~**A StructureMap becomes a conversion-time concern**~~ **Built.** A reshape is an operator asking once, so the maps are loaded when one runs rather than held for a tenant's life | the tenant context's maps on the serving path | — |
 | 8 | **Types declare `verdict: database`** | `InstanceValidator`, the largest serving reach | the database answering tier one, which it does; the divergence baseline says how far |
 | 9 | **Delete the context** | the 225 MB, and the 101 with it | 1–8, because a context held for any reason is held whole |
 
@@ -415,7 +416,21 @@ still required.
 So the row's three reaches were one reach counted three times, and what is
 left of `ElementStore`'s four is `_include` alone.
 
-**The branch points are 4 and 8.** Everything before 4 is derivation moving to
+**Steps 6 and 7 were both smaller than the table, and for the same reason
+twice.** `_include` re-derived something the write had already extracted and
+indexed — the edges are keyed by `pathName(parameter.getCode())`, which is the
+name a caller spells — so following a reference became an indexed read and
+`referencedTargets` was deleted. The maps were loaded into the object a tenant
+serves from, for a conversion that only a maintenance request ever asks for, so
+they are loaded when one is asked for instead.
+
+Neither needed the element rows, the cut, or a decision. What the table
+recorded in both cases was where the work *appeared* to be, and the reading
+found it somewhere cheaper — which is now the rule rather than the surprise:
+**five of the nine moves have come off this list by being read.**
+
+**The branch points are 4 and 8**, and 4 is done, so what is left that can be
+wrong before a megabyte moves is step 8. Everything before 4 is derivation moving to
 a cut that already exists, which is mechanical. Step 4 is the first thing that
 changes what a serving request does, and step 8 is the first that changes what
 a write is judged by. If either turns out to be wrong, it is wrong before any

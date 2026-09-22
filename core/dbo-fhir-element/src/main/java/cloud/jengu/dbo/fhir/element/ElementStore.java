@@ -177,9 +177,16 @@ public final class ElementStore implements FhirStoreFacade,
                         held = (Payloads<Object>) version.face().require(Payloads.class);
                         shapesInView = java.util.Set.of();
                     } else {
+                        // Without the tenant's maps. A map is a program run
+                        // by a reshape, which is maintenance, and it was being
+                        // held in the object a tenant serves from for the
+                        // whole of its life — so a converter nobody had asked
+                        // to run was resident in every serving process. The
+                        // conversion view below takes them when a conversion
+                        // is actually asked for.
                         List<String> profiles = profilesForTheView();
                         held = (Payloads<Object>) (Payloads<?>)
-                                version.payloadsFor(terms, profiles, storedMaps(store));
+                                version.payloadsFor(terms, profiles, List.of());
                         shapesInView = canonicalsOf(profiles);
                     }
                     payloads = held;
@@ -1420,9 +1427,23 @@ public final class ElementStore implements FhirStoreFacade,
     @Override
     public java.util.Optional<cloud.jengu.dbo.core.face.ShapeConversion> shapeConversion() {
         Object view = payloads();
-        return view instanceof ElementPayloads tenant
-                ? java.util.Optional.of(new ElementShapeConversion(tenant))
-                : java.util.Optional.empty();
+        if (!(view instanceof ElementPayloads)) {
+            return java.util.Optional.empty();
+        }
+        // A view of its own, built here and dropped with the conversion.
+        //
+        // The maps used to ride in the serving view, which meant every
+        // process that served this tenant held its converters whether or not
+        // anything ever ran one — and a reshape is an operator asking for
+        // something, once, not a thing a request does. So the cost is paid
+        // where the asking is: the face base is shared by construction, so
+        // what this builds on top of it is the copy and the maps.
+        List<String> maps = storedMaps(store);
+        if (maps.isEmpty()) {
+            return java.util.Optional.empty();
+        }
+        return java.util.Optional.of(new ElementShapeConversion(
+                version.payloadsFor(terms, profilesForTheView(), maps)));
     }
 
     /** The tenant's own converters, alongside its own profiles. */
