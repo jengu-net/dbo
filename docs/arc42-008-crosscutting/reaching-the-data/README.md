@@ -122,6 +122,25 @@ exceptions below are acts that happen with *no task at all*.
 outside the model, but it is recorded in the managing tenant, which is where
 the regress dissolves.
 
+**Asking is not unsealing.** A product puts things on screens — a worklist, a
+ward list, a number beside a filter — and every one of those is a question. Read
+as forbidding those, this invariant would forbid building anything on the store
+at all, and that is not what it says.
+
+The line the store already draws is between asking and unsealing, and it is
+drawn in the data rather than in a rule about who may query. Identifying
+elements are encrypted in place, so a read by a credential not entitled to
+unseal answers the record *without* them rather than refusing — proven in the
+guide, where a hospital's own service credential writes a person and cannot
+read her name back. So a screen can list, filter, count and page without
+learning who anybody is.
+
+Learning who somebody is, is a disclosure. That is the act this invariant is
+about, and that is where a purpose and a run belong. A vocabulary for asking —
+what is outstanding, what needs somebody, who touched this record — sits on the
+asking side of that line, and it does not become an exception by being
+convenient.
+
 ## The five reasons a thing may be direct
 
 **The floor.** A task must be stored somewhere. Tenant creation is recorded in

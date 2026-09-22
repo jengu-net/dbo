@@ -2,9 +2,9 @@
 that is now true of work as well as records: the surface serves a run search,
 and what both hand back is an `Ongoing` — the seven fields of a run that a
 rendering carries — rather than a `Run` whose other eleven only one binding
-could fill. The guide chapter reads over a ward the sample compiles. Next: the
-observer seam's own chapter section, and whether a free kind of question
-belongs in the vocabulary at all.**
+could fill. The guide chapter reads over a ward the sample compiles, and asking against
+unsealing is settled where the invariant it seemed to contradict is stated.
+Next: joins, which the vocabulary declares and refuses.**
 
 # Asking the store a question
 
@@ -416,9 +416,13 @@ what it should produce when it gets there.
 
 ## Steps
 
-1. Settle asking against unsealing, as a crosscutting concept rather than as a
-   paragraph here, because item 009 reads as forbidding this until it is
-   written down.
+1. ~~Settle asking against unsealing, as a crosscutting concept rather than as
+   a paragraph here.~~ Done. It is in
+   [reaching the data](../../arc42-008-crosscutting/reaching-the-data/README.md),
+   beside the two other things that look like exceptions to the invariant and
+   are not — because that is where somebody reading the invariant as a
+   prohibition will meet it, and a paragraph in this item was never going to be
+   read by them.
 2. Agree the vocabulary: what a product asks about runs, the trail, the
    declarations and the records a screen is made of, written as the methods
    rather than as the tables. The inventory above is the input, not the answer.
