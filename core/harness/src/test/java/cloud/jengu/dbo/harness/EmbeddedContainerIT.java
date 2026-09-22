@@ -86,6 +86,8 @@ class EmbeddedContainerIT {
                 // the shared facade the versions are served through
                 // run records, before the module that writes them
                 "dbo.work",
+                // the questions a tenant registers, after the runs they ask about
+                "dbo.asking",
                 "dbo.subscriptions", "dbo.fhir.element", "dbo.fhir.r4", "dbo.fhir.r5",
                 "dbo.rest")) {
             String path = System.getProperty(name + ".jar");

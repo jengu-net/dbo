@@ -114,6 +114,7 @@ dependencies {
     testImplementation(project(":core:dbo-pdi"))
     testImplementation(project(":core:dbo-policy"))
     testImplementation(project(":core:dbo-work"))
+    testImplementation(project(":core:dbo-asking"))
     testImplementation(dboWorkTestOutput)
     testImplementation(dboFhirElementTestOutput)
     testImplementation(dboTenantTestOutput)
@@ -242,6 +243,7 @@ val promiseReport by tasks.registering(JavaExec::class) {
 val ledgerBundles = mapOf(
     "dbo.core" to "dbo-core", "dbo.postgres" to "dbo-postgres", "dbo.auth" to "dbo-auth",
     "dbo.pdi" to "dbo-pdi", "dbo.policy" to "dbo-policy", "dbo.work" to "dbo-work",
+    "dbo.asking" to "dbo-asking",
     "dbo.runner" to "dbo-runner", "dbo.stream" to "dbo-stream", "dbo.sync" to "dbo-sync",
     "dbo.maintenance" to "dbo-maintenance", "dbo.terminology" to "dbo-terminology",
     "dbo.definitions" to "dbo-definitions",
@@ -261,7 +263,7 @@ val ledgerBundles = mapOf(
 // naming it here.
 val reachModules = listOf(
     "core:dbo-core", "core:dbo-postgres", "core:dbo-auth", "core:dbo-pdi", "core:dbo-policy",
-    "core:dbo-work", "core:dbo-runner", "core:dbo-stream", "core:dbo-sync",
+    "core:dbo-work", "core:dbo-asking", "core:dbo-runner", "core:dbo-stream", "core:dbo-sync",
     "core:dbo-maintenance", "core:dbo-terminology", "core:dbo-definitions",
     "core:dbo-subscriptions", "core:dbo-rest",
     "core:dbo-scim", "core:dbo-telemetry", "core:dbo-telemetry-otlp", "core:dbo-promises",
@@ -444,7 +446,7 @@ tasks.withType<Test>().configureEach {
         ":core:dbo-sync:jar", ":core:dbo-maintenance:jar", ":core:dbo-tenant:jar",
         ":core:dbo-tenant-k8s:jar", ":core:dbo-auth:jar", ":core:dbo-pdi:jar", ":core:dbo-scim:jar", ":core:dbo-policy:jar",
         ":promise:jar", ":core:dbo-promises:jar", ":core:dbo-telemetry:jar",
-        ":core:dbo-work:jar", ":core:dbo-runner:jar", ":core:dbo-stream:jar",
+        ":core:dbo-work:jar", ":core:dbo-asking:jar", ":core:dbo-runner:jar", ":core:dbo-stream:jar",
         ":core:dbo-telemetry-otlp:jar",
         ":core:dbo-server:installDist")
     systemProperty(
@@ -472,6 +474,7 @@ tasks.withType<Test>().configureEach {
         "dbo.scim.jar" to "dbo-scim",
         "dbo.policy.jar" to "dbo-policy",
         "dbo.work.jar" to "dbo-work",
+        "dbo.asking.jar" to "dbo-asking",
         "dbo.runner.jar" to "dbo-runner",
         "dbo.stream.jar" to "dbo-stream",
         "dbo.fhir.element.jar" to "dbo-fhir-element",

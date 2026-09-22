@@ -157,7 +157,18 @@ public record Run(String id, long versionId, String key, String process, String 
         return holder == Holder.PERSON;
     }
 
-    static Run of(StoredObject stored) {
+    /**
+     * A run, read from what the store holds.
+     *
+     * <p>Public because the vocabulary a product asks about work with lives
+     * in its own module, and a question answering {@code Stream<Run>} has to
+     * turn the store's rows into runs somewhere. It was package-private while
+     * reading one was this package's own business, and the module boundary is
+     * what made that no longer true — which is the honest reason rather than a
+     * general widening: nobody else has a reason to call it, and anybody who
+     * does is holding a stored object out of the work domain already.
+     */
+    public static Run of(StoredObject stored) {
         Object json = Json.parse(new String(stored.payload(), StandardCharsets.UTF_8));
         Map<String, Long> tally = new LinkedHashMap<>();
         Object counts = ((Map<?, ?>) json).get("tally");

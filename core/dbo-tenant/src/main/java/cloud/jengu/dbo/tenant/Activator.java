@@ -432,8 +432,8 @@ public final class Activator implements BundleActivator {
                                 // nobody: a bundle beside this one takes it
                                 // off the whiteboard, and so does a host that
                                 // embedded the framework.
-                                ctx.registerService(cloud.jengu.dbo.work.Asking.class,
-                                        cloud.jengu.dbo.work.Asking.at(runtime.engine()),
+                                ctx.registerService(cloud.jengu.dbo.asking.Asking.class,
+                                        cloud.jengu.dbo.asking.Asking.at(runtime.engine()),
                                         props)));
                         if (runtime.engine() instanceof cloud.jengu.dbo.policy.PolicyObjectStore p) {
                             // §15.1: module engines contribute custom audit

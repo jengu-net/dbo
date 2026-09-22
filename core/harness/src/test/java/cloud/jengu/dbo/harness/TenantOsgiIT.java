@@ -110,6 +110,11 @@ class TenantOsgiIT {
                 // and pdi, imported by the tenant bundle
                 "dbo.scim.jar",
                 "dbo.policy.jar",
+                // the questions a tenant registers beside its store, and the
+                // runs they ask about: the tenant bundle names the first, so
+                // an absent one leaves it unresolved and reads as the tenant
+                // failing to start
+                "dbo.asking.jar",
                 // the manager wires declared content dependencies —
                 // without this bundle the tenant bundle does not resolve
                 "dbo.sync.jar",

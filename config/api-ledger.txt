@@ -3918,18 +3918,6 @@ cloud.jengu.dbo.terminology.TerminologyStore.ValueSetCompose           record
 cloud.jengu.dbo.terminology.TerminologyStore.ValueSetCompose           toString():String
 cloud.jengu.dbo.terminology.TerminologyStore.ValueSetCompose           url():String
 cloud.jengu.dbo.terminology.TerminologyStore.ValueSetCompose           version():String
-cloud.jengu.dbo.work.Asking                                            at(cloud.jengu.dbo.core.api.ObjectStore):cloud.jengu.dbo.work.Asking
-cloud.jengu.dbo.work.Asking                                            class
-cloud.jengu.dbo.work.Asking                                            work():cloud.jengu.dbo.work.Asking.Work
-cloud.jengu.dbo.work.Asking.Work                                       by(String):cloud.jengu.dbo.work.Asking.Work
-cloud.jengu.dbo.work.Asking.Work                                       class
-cloud.jengu.dbo.work.Asking.Work                                       correlated(String):cloud.jengu.dbo.work.Asking.Work
-cloud.jengu.dbo.work.Asking.Work                                       count():long
-cloud.jengu.dbo.work.Asking.Work                                       heldBy(cloud.jengu.dbo.work.Holder):cloud.jengu.dbo.work.Asking.Work
-cloud.jengu.dbo.work.Asking.Work                                       inScope(String):cloud.jengu.dbo.work.Asking.Work
-cloud.jengu.dbo.work.Asking.Work                                       ofStep(String):cloud.jengu.dbo.work.Asking.Work
-cloud.jengu.dbo.work.Asking.Work                                       open():cloud.jengu.dbo.work.Asking.Work
-cloud.jengu.dbo.work.Asking.Work                                       stream():Stream
 cloud.jengu.dbo.work.Automation                                        equals(Object):boolean
 cloud.jengu.dbo.work.Automation                                        hashCode():int
 cloud.jengu.dbo.work.Automation                                        new(String,String,cloud.jengu.dbo.work.Scope,boolean)
@@ -4089,6 +4077,7 @@ cloud.jengu.dbo.work.Run                                               milestone
 cloud.jengu.dbo.work.Run                                               named(String):cloud.jengu.dbo.work.Run
 cloud.jengu.dbo.work.Run                                               needsAPerson():boolean
 cloud.jengu.dbo.work.Run                                               new(String,long,String,String,String,cloud.jengu.dbo.work.RunKind,cloud.jengu.dbo.work.Holder,String,String,String,Map,cloud.jengu.dbo.work.Run.Item,List,cloud.jengu.dbo.work.Run.Assignment,cloud.jengu.dbo.work.Run.Produced,String,Map,cloud.jengu.dbo.work.Run.Milestone)
+cloud.jengu.dbo.work.Run                                               of(cloud.jengu.dbo.core.api.StoredObject):cloud.jengu.dbo.work.Run
 cloud.jengu.dbo.work.Run                                               open():boolean
 cloud.jengu.dbo.work.Run                                               parent():String
 cloud.jengu.dbo.work.Run                                               process():String

@@ -72,6 +72,11 @@ val dboRuntimeModules = listOf(
     ":core:dbo-runner",
     // the third carrier for the lane, imported by dbo-tenant for the door
     ":core:dbo-stream",
+    // the asking vocabulary, which dbo-tenant imports to register a tenant's
+    // own binding on the whiteboard — so it is in the container for the same
+    // reason the runner's host half is, and a container without it refuses to
+    // resolve dbo-tenant at all
+    ":core:dbo-asking",
     // dbo-tenant imports it for the maintenance surface
     ":core:dbo-maintenance", ":core:dbo-tenant", ":core:dbo-tenant-k8s",
 )
