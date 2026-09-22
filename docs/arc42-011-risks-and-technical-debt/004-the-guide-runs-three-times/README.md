@@ -1,11 +1,11 @@
 **Open. The step is ported, the shell harness is gone from the tree run, and
 who moves the pin is written down. Whether the pinned shell run earns its place
-is decided, and on a count rather than on item 002: the suite runs all
-ninety-nine published snippets, `up.sh` included as of this change, so the
-guide's shell run covers nothing the suite does not — while the quickstart's
-own run covers a compose file and two specs nothing else touches. Next: delete
-the guide's shell run from the `quickstart` job, once the bring-up snippet has
-run as published in CI.**
+is decided, and on a count rather than on item 002: the suite runs
+ninety-eight of the ninety-nine published snippets, so the guide's shell run's
+unique coverage is one command — `up.sh`, the bring-up — while the quickstart's
+own run covers a compose file and two specs nothing else touches. Next: run
+`up.sh` as published on the pinned run, then delete the guide's shell run from
+the `quickstart` job.**
 
 # The guide runs three times in CI
 
@@ -52,20 +52,23 @@ snippet is executed by the suite except one — `up.sh`, the command that brings
 the world up, which is the first thing a reader types and was the only one
 nothing ran as published.
 
-It ran as arguments instead, because it cannot run as published on the tree:
-the published command names the published compose file, and substituting
-another is the whole of what `DBO_GUIDE_COMPOSE` is for. So the suite runs it
-as published where that is true — the pinned run — and by the same arguments
-where it is not. That closes the gap where the overlap actually is.
+It runs as arguments instead, and cannot run as published on the tree: the
+published command names the published compose file, and substituting another is
+the whole of what `DBO_GUIDE_COMPOSE` is for. Where it CAN run as published is
+the pinned run, which is the run the shell script duplicates — so closing the
+gap is a conditional rather than a redesign, and it is the step before the
+deletion.
 
-**And the reason recorded for the overlap is now spent.** `guide-as-tests`
+**And the reason recorded for the overlap is nearly spent.** `guide-as-tests`
 says in its own comment that it overlaps "on purpose and only for now…one step
 is deliberately not ported, and the shell harness is what still covers it."
-That step is ported, and this was the last published command the suite did not
-run. What is left before the guide world comes up twice instead of three times
-is the deletion, and nothing is now learned by deferring it to item 002 — that
-item changes what the suite is made of, not which of these three runs covers
-something the others do not.
+That step is ported. `up.sh` is what is left, and it is the last published
+command the suite does not run — so the shell run's unique coverage is one
+command, not a chapter.
+
+Nothing is learned by deferring the rest to item 002: that item changes what
+the suite is made of, not which of these three runs covers something the others
+do not.
 
 Who moves the pin is now written down. The
 [documentation rule](../../arc42-002-constraints/working-rules/documentation.md)
@@ -96,10 +99,13 @@ forgetting.
    the quickstart's own compose file and specs, which is a different artefact
    from the guide world and the one a reader copies first. The three guide-world
    bring-ups are the question, and the count says the shell one is the
-   redundant one — the suite runs every published snippet, `up.sh` included as
-   of this change.
-4. Delete `docs/guide/examples/check.sh` from the `quickstart` job, and the
-   stale sentence in `guide-as-tests` explaining an overlap that has ended.
-   Held back from the same change as step 3 on purpose: the step above is what
-   makes the deletion safe, and a deletion that lands with its own
-   justification unproven is how coverage goes missing.
+   redundant one — the suite runs ninety-eight of the ninety-nine published
+   snippets.
+4. Run `up.sh` as published where the compose file is the published one, which
+   is the ninety-ninth and the shell run's last unique coverage.
+5. Then delete `docs/guide/examples/check.sh` from the `quickstart` job, and
+   the stale sentence in `guide-as-tests` explaining an overlap that has ended.
+   Three steps rather than one on purpose: a deletion that lands with its own
+   justification unproven is how coverage goes missing, which is the mistake
+   this item already made once when deleting the tree job would have cost the
+   only place the guide meets the code under review.
