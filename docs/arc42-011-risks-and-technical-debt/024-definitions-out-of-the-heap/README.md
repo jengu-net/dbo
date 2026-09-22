@@ -422,14 +422,29 @@ converted feed only once the run that made it finished.
    | `StructureMap` ×2 | checked as programs: an unknown source or target context, a target path not on the type |
    | `ValueSet` | about a hundred and ten errors, every one *Unknown code … in the code system 'http://snomed.info/sct'* on `compose.include.concept.designation.use` |
 
-   Two of those are worth a second look rather than a rule. The third rule is
-   reachable — one document, on an `Identifier` inside an example — but it is a
-   relation between two elements rather than a primitive form, so it does not
-   belong in `dbo.admits` beside the other two. And the `ValueSet` is filed in
-   the baseline as content, while its findings say the system was *answered
-   from this tenant's terminology* — so the tenant holds SNOMED and not those
-   codes, and whether the database says nothing because the binding is weaker
-   than required or because the code is simply absent is not the same answer.
+   The third rule is reachable — one document, on an `Identifier` inside an
+   example — but it is a relation between two elements rather than a primitive
+   form, so it does not belong in `dbo.admits` beside the other two.
+
+   **And the `ValueSet` turns out to name a check the database does not have.**
+   Its findings are not about the binding. `dbo.binding_in` fires only where
+   `binding_strength = 'required'`, and `designation.use` is extensible — which
+   the toolchain agrees with, reporting the binding itself as a warning. What
+   it reports as an ERROR is different: the code does not exist in
+   `http://snomed.info/sct` at all, *answered from this tenant's terminology*.
+
+   The terminology SQL answers whether a code is in a value set —
+   `dbo.in_value_set`, three-valued, with NULL for cannot say. Nothing answers
+   whether a code exists in the code system it names. So a code naming a system
+   this tenant holds and absent from it produces no finding, at any binding
+   strength.
+
+   That is not the unresolvable case the store already reasons about: a system
+   the tenant does not hold cannot be judged, and is not judged. A system it
+   does hold can be. The baseline files this one as content and is right that
+   carrying the codes would close it — and it would also close by the database
+   learning to say so, which is a smaller thing than it sounds and is the only
+   one of the five that a check could reach.
 
 6. **Snapshot into the cut**: generate it where the image is made and carry it,
    so `cacheProfile` has nothing to build.
