@@ -17,6 +17,10 @@ dependencies {
     // that carries it. There is deliberately no store on this path.
     api(project(":core:dbo-runner"))
     api(project(":core:dbo-work"))
+    // The questions a screen asks. The binding this sample builds is the one
+    // that speaks over the tenant's surface, because this application is
+    // across a network from its tenant — the other one needs a store.
+    api(project(":core:dbo-asking"))
     implementation(project(":core:dbo-tenant"))
     // The chapters are documentation about this module, and one test here
     // holds them to it. It reads files and needs no world.
