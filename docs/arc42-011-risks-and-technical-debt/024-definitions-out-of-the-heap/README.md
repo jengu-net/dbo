@@ -321,6 +321,34 @@ What it buys, in the order the gains matter:
    tenant" is already the rule; this moves the *once* out of a tenant and into
    work.
 
+**And the stream is where it would be injected.** Today the RECEIVER converts.
+`ContentSyncEngine` holds the converters by the version they convert from and
+walks the chain at apply, hop by hop, dead-lettering the item if the chain does
+not reach the target:
+
+```java
+for (int hops = 0; hops < 8 && !version.equals(targetPayloadVersion); hops++) {
+    PayloadConverter converter = convertersByFrom.get(version);
+    ...
+    payload = converter.convert(item.typeName(), payload);
+```
+
+So the tenant taking content from a zone written in another version is the
+tenant holding that version's converters — and therefore its model classes.
+That is the cost, in the place it is least wanted: on every receiver.
+
+If the stream injects a conversion step between publish and apply, the receiver
+applies bytes already in its own version and **never loads the source version
+at all**. The chain above becomes the step's business, in one place, and the
+derivation rule does not change: a projection is already synthesised from a
+zone's version and the faces of the tenants that asked for it, so a conversion
+step is synthesised from the same two facts.
+
+The dead-letter gets better rather than worse. A conversion that fails is a run
+that failed, with its input, its holder and its reason, instead of an entry in
+a dead-letter table — and degrading the dependency is what a failed run already
+does.
+
 **What it must answer.**
 
 - **It moves the memory rather than removing it.** A converter needs both
@@ -339,6 +367,11 @@ What it buys, in the order the gains matter:
 - **Who runs it.** A step service that nobody deploys is a tenant that cannot
   take a zone. Either the store ships an implementation, or a deployment
   without one has to degrade in a way somebody can read.
+- **The cursor may not pass an unconverted item.** Feeds are keyset cursors
+  with acknowledge-and-resume, and a step between publish and apply is a hop a
+  cursor could run ahead of. Delivery is idempotent, and conversion is pure, so
+  re-running a step is safe — what is not safe is a consumer standing at a
+  position whose content never arrived in its version.
 
 ## The sequence
 
