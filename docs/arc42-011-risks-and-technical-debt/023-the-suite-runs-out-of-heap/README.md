@@ -328,14 +328,13 @@ suite of fifty-odd classes needs it.
    dump: there is one byte array per String to within a percent, so they are
    the Strings' own storage, and 69% of the Strings are FHIR primitives in a
    definition. Counting beat measuring retained size.
-5. Ask what still needs a `SimpleWorkerContext`. That is the better form of
-   "how many faces one JVM holds", because it names the object rather than the
-   symptom: the definitions are in the database and the face reads them with
-   SQL, so what keeps a version's whole corpus in memory is the toolchain's
-   model of it, for validation and for snapshotting a profile. A suite that
-   holds three of those holds three, whether or not the run is split. Splitting
-   by face is the cheap answer and it rents the megabytes; needing fewer
-   contexts is the one that gives them back.
+5. ~~Ask what still needs a `SimpleWorkerContext`.~~ Asked, and it is large
+   enough to be its own work:
+   [item 024](../024-definitions-out-of-the-heap/README.md) plans it. The short
+   of it is that the definitions are in the database and the face reads them
+   with SQL, so what keeps a version's whole corpus in memory is the
+   toolchain's second copy. Splitting the suite by face rents the megabytes;
+   needing fewer contexts gives them back.
 6. Say whether the four-minute wait raised the peak. It is one change and it is
    reversible, and an honest answer is worth more than the wait.
 7. Then the tail — seventy classes at seven megabytes each — which is the other
