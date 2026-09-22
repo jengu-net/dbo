@@ -367,11 +367,25 @@ does.
 - **Who runs it.** A step service that nobody deploys is a tenant that cannot
   take a zone. Either the store ships an implementation, or a deployment
   without one has to degrade in a way somebody can read.
-- **The cursor may not pass an unconverted item.** Feeds are keyset cursors
-  with acknowledge-and-resume, and a step between publish and apply is a hop a
-  cursor could run ahead of. Delivery is idempotent, and conversion is pure, so
-  re-running a step is safe — what is not safe is a consumer standing at a
-  position whose content never arrived in its version.
+- **Where the step sits, which decides whether a cursor is a question at all.**
+  Today one consumer reads item N, converts it, applies it and advances to N,
+  all in a row. A step is work — created, claimed, performed — so read and
+  apply stop being one motion, and there are two places to put it.
+
+  *Upstream*, converting before the item enters the stream the consumer reads:
+  the consumer's cursor is over already-converted items, and an item does not
+  exist in that stream until the run that made it finished. There is no cursor
+  question, and this is what a projection already is — a tenant on the target
+  face holding converted content that members sync from.
+
+  *At the consumer*, reading item N and waiting on a run before applying: now
+  the cursor is a real question, because advancing after dispatch acknowledges
+  an item that has not been applied, and holding it stalls the stream behind
+  every conversion.
+
+  So it is a reason to choose upstream rather than a hazard the idea carries.
+  Delivery is idempotent and conversion is pure, so re-running a step is safe
+  either way.
 
 ## The sequence
 
