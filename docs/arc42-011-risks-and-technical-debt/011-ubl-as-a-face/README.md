@@ -70,7 +70,11 @@ needing one.
 **What is next** is generating the models, and nothing blocks it.
 
 **What is open** is the signature question in *Not doing*, which decides what a
-tenant may be promised rather than what can be built.
+tenant may be promised rather than what can be built — and it is narrower than
+it was. Holding a signed document's received bytes as its truth does not
+contradict the store's own promise about projections; what it needs is a
+projection that is a whole document rather than an envelope, which the store
+does not have and which a signed FHIR document would want on the same day.
 
 ## Sequence
 
@@ -206,6 +210,32 @@ longer the authority. Whether that is a sound arrangement for a document type
 or a quiet contradiction is the question — and it is a smaller and more
 answerable one than choosing between two mechanisms, one of which turns out to
 exist.
+
+**Read against the promise it would have to keep, it is not a contradiction,
+and the cost is somewhere else than where this paragraph was looking.**
+`CORE_PAYLOAD_IS_TRUTH` says every searchable projection is derived from the
+payload and can always be rebuilt. If the received XML is the payload, the
+parse to JSON is a step in that derivation rather than a competing authority:
+the chain is longer and it still starts at the truth. Nothing reads from
+something that is no longer the authority, provided the normalised form is
+rebuildable and never written to directly. The contradiction only appears in
+the *other* arrangement — the JSON stored as the payload with the bytes kept
+beside it as extras — where two things are authoritative at once and the store
+has no rule for which wins.
+
+**The cost is that the database's checks read JSON.** `dbo.walked`,
+`dbo.instances` and everything over them take `doc jsonb`, so a type whose
+payload is XML cannot be checked where the bytes are until its JSON exists as
+something the database can read. That is a **derived form kept in the
+database**, which this store has index rows and an envelope for and no
+document-shaped equivalent of — the grain codec is the opposite arrangement,
+a stored form smaller than the transported one.
+
+So the question this paragraph should be asking is not whether the truth may be
+the bytes. It is whether a projection may be a whole document, rebuildable from
+the payload the way an envelope is, and what rebuilds it when the parser
+changes. That is a real piece of design and it is the store's rather than
+UBL's — a signed FHIR document would meet it identically.
 
 **Order normalisation is not being fought.** UBL's schema sequences are ordered,
 so coming back in model order makes a stored document schema-valid whatever
