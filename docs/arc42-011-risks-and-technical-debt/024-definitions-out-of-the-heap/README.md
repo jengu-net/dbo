@@ -441,10 +441,21 @@ converted feed only once the run that made it finished.
 
    That is not the unresolvable case the store already reasons about: a system
    the tenant does not hold cannot be judged, and is not judged. A system it
-   does hold can be. The baseline files this one as content and is right that
-   carrying the codes would close it — and it would also close by the database
-   learning to say so, which is a smaller thing than it sounds and is the only
-   one of the five that a check could reach.
+   does hold can be.
+
+   **And it cannot be built today, for a reason worth knowing.**
+   `definitions.term_system` records a url, a version, a concept count and when
+   it was updated. It does not record the code system's `content` — whether
+   what was imported is the whole of it or a fragment. So "this tenant holds
+   the system" cannot mean "this tenant holds all of it", and a check that
+   refused a code for being absent would refuse valid data wherever a system
+   was imported in part. Which is the normal case for SNOMED, and is precisely
+   this document.
+
+   So the baseline files it as content and is right twice over: carrying the
+   codes closes it, and the database cannot honestly say otherwise until a held
+   system says how much of itself it is. That is the smallest change that would
+   make the check possible, and it is a column rather than a design.
 
 6. **Snapshot into the cut**: generate it where the image is made and carry it,
    so `cacheProfile` has nothing to build.
