@@ -47,9 +47,18 @@ than recollection.
 **Ancestor slots — answered.** A logical model parses by its type name, snapshots
 against `Base`, validates cardinality and FHIRPath invariants, and is indexed by
 SearchParameters, all through code written for FHIR. The store's `id` and `meta`
-must be declared on the model: the token-copy serving path injects them whether
-or not the model has them, but the projection path goes through the element
-model and throws without them.
+are injected by the serving path whether or not the model declares them.
+
+~~The store's `id` and `meta` must be declared on the model: the token-copy
+serving path injects them whether or not the model has them, but the projection
+path goes through the element model and throws without them.~~ **That demand is
+gone**, and not because anything was done for UBL. A narrowed read — `_elements`
+— used to go through the element model while a whole read copied tokens, so the
+model refused to set an id it did not declare and a logical model had to carry
+the store's slots to survive one. Item 024 made the two the same read, for its
+own reason: two reads of one record disagreeing about what is in it is not a
+smaller answer but a different one. The demand went with the model path, so a
+logical model is one thing simpler to write than this spike found.
 
 **Wire format — answered, and the shape is CDA's.** A UBL basic component is a
 backbone element with a `value` child carrying the `xmlText` representation and

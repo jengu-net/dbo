@@ -336,7 +336,7 @@ dependency between them nowhere.
 | 1 | ~~**Snapshot into the cut**~~ **Built.** The snapshot is kept in `definitions.definition_snapshot`, so the schema an image is cut from carries it and the view is handed a definition with nothing left to build | `cacheProfile`'s differential expansion, an *arrival* reach | the cut, which exists |
 | 2 | ~~**A parameter's expression checked at the cut**~~ **Not needed.** The check parses; parsing reads the text | nothing — these were never reaches | — |
 | 3 | **The three rules** — canonical absolute, uuid lowercase, identifier under `urn:ietf:rfc:3986` a full uri | the validator's own code as a reason to hold a context | nothing; two are written and proven, the third is written |
-| 4 | **`_elements` from the rows** — a projection over the stored JSON, located by the jsonpaths the element rows already carry | `ElementAncestors.projected`, one serving branch | nothing |
+| 4 | ~~**`_elements` from the rows**~~ **Built, and the rows were not needed.** The filter is top-level names, so the same token copy a whole read uses answers it | `ElementAncestors.projected`, one serving branch — and the context parameter with it | nothing |
 | 5 | **Framing and rendering from stored JSON** — putting the engine's facts back without the element model | three of `ElementStore`'s four serving reaches | 4, which is the same projection |
 | 6 | **Decide where `_include` resolves** | `ElementStore`'s fourth serving reach | a decision, and [item 021](../021-asking-the-store/README.md) is deciding the same thing for joins |
 | 7 | **A StructureMap checked as a program becomes an ingest concern** | the tenant context's maps on the serving path | 1–2, the same cut |
@@ -376,6 +376,23 @@ two: rows are re-derived when they are stale, and a snapshot is kept when it is
 missing, which are different questions about the same definition. A second
 derivation that follows the first is a cache; one that follows the definition
 is derived data, and only the second belongs in an image.
+
+**Step 4 was a decision before it was a change.** `projected` parsed through
+the element model, dropped the children nobody asked for and composed it back;
+the filter is top-level names only, so no jsonpath and no row came into it. But
+its own comment defended the model: *what the model does not know about is not
+among the elements they named*. So a narrowed read silently dropped what the
+toolchain did not recognise and a whole read kept it, and two reads of one
+record disagreed about what was in it. Making them agree was the call, and the
+way to keep them agreeing is one path rather than two that match — `projected`
+is gone, `rendered` takes the names, and `ElementAncestors` no longer takes a
+context at all. `resourceType` is kept beside `id` and `meta`, because what is
+left of a narrowed document still has to say what it is.
+
+It also cost a recorded finding, which is the honest way round: the UBL spike
+had established that a logical model must declare the store's slots or a
+narrowed read throws. That was the model path talking, and
+[item 011](../011-ubl-as-a-face/README.md) says so now.
 
 **The branch points are 4 and 8.** Everything before 4 is derivation moving to
 a cut that already exists, which is mechanical. Step 4 is the first thing that

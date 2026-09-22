@@ -95,7 +95,7 @@ public final class ElementVersion {
                 // which kind it is.
                 .providing(PortableRendering.class,
                         (payload, id, versionId) -> new String(
-                                ElementAncestors.rendered(context(), payload, id, versionId),
+                                ElementAncestors.rendered(payload, id, versionId),
                                 java.nio.charset.StandardCharsets.UTF_8))
                 .build();
     }

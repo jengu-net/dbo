@@ -14,6 +14,7 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -133,7 +134,7 @@ class UblSpikeAncestorSlotsTest {
     void ancestorsRendered() {
         for (String model : List.of(modelWithSlots(), modelWithoutSlots())) {
             ElementPayloads payloads = payloads(model);
-            byte[] served = ElementAncestors.rendered(version.context(),
+            byte[] served = ElementAncestors.rendered(
                     INVOICE.getBytes(StandardCharsets.UTF_8), "inv-1", 3L);
             String text = new String(served, StandardCharsets.UTF_8);
             assertTrue(text.contains("\"id\":\"inv-1\""), text);
@@ -143,20 +144,29 @@ class UblSpikeAncestorSlotsTest {
     }
 
     @Test
-    @DisplayName("ancestor slots: a projection goes through the model, so the slots must be declared on it")
+    @DisplayName("ancestor slots: a narrowing is the same token copy, so the slots need not be "
+            + "declared on the model for one to work")
     void ancestorsProjected() throws java.io.IOException {
-        TenantContext with = new TenantContext(version.context(), Terms.NONE, List.of(modelWithSlots()));
-        String projected = new String(ElementAncestors.rendered(with,
-                INVOICE.getBytes(StandardCharsets.UTF_8), "inv-1", 3L, List.of("ID")), StandardCharsets.UTF_8);
-        assertTrue(projected.contains("\"id\":\"inv-1\""), projected);
-        assertTrue(projected.contains("\"versionId\":\"3\""), projected);
-        assertTrue(projected.contains("\"ID\":\"INV-2026-0001\""), projected);
-        assertFalse(projected.contains("IssueDate"), projected);
-
-        TenantContext without = new TenantContext(version.context(), Terms.NONE, List.of(modelWithoutSlots()));
-        assertThrows(Error.class, () -> ElementAncestors.rendered(without,
-                INVOICE.getBytes(StandardCharsets.UTF_8), "inv-1", 3L, List.of("ID")),
-                "the element model refuses to set an id the model does not declare");
+        // Both models, and the assertion is that they now agree.
+        //
+        // This test recorded the opposite while a narrowing went through the
+        // element model: the model refused to set an id it did not declare,
+        // so a logical model had to carry the store's slots or a narrowed
+        // read threw where a whole read worked. A narrowing is the same token
+        // copy as a whole read now, and the demand goes with it — which is
+        // one less thing a face has to know to be served.
+        for (String model : List.of(modelWithSlots(), modelWithoutSlots())) {
+            TenantContext context =
+                    new TenantContext(version.context(), Terms.NONE, List.of(model));
+            assertNotNull(context);
+            String projected = new String(ElementAncestors.rendered(
+                    INVOICE.getBytes(StandardCharsets.UTF_8), "inv-1", 3L, List.of("ID")),
+                    StandardCharsets.UTF_8);
+            assertTrue(projected.contains("\"id\":\"inv-1\""), projected);
+            assertTrue(projected.contains("\"versionId\":\"3\""), projected);
+            assertTrue(projected.contains("\"ID\":\"INV-2026-0001\""), projected);
+            assertFalse(projected.contains("IssueDate"), projected);
+        }
     }
 
     @Test
