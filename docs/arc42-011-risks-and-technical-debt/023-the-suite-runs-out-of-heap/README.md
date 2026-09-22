@@ -316,8 +316,8 @@ four minutes rather than giving up after twenty passes, so tenants that would
 have been abandoned early now stay alive and overlap with more neighbours. And
 the cast added a member to the shared world.
 
-The first of those is now instrumented rather than argued — step 6 — and the
-reading is one attributed run away. The question turned out to be narrower
+The first of those has a measurement designed for it rather than an argument —
+step 6 — though nothing is built yet. The question turned out to be narrower
 than it was written: not *did the peak move* but *did any wait ever need more
 than twenty passes*, because that is the only case in which the lengthened
 ceiling holds anything the old rule would have let go.
@@ -348,15 +348,15 @@ suite of fifty-odd classes needs it.
    with SQL, so what keeps a version's whole corpus in memory is the
    toolchain's second copy. Splitting the suite by face rents the megabytes;
    needing fewer contexts gives them back.
-6. Say whether the four-minute wait raised the peak. **The instrument is
-   built; the reading is not taken.** It does not need the suite run twice.
-   The wait leaves only when both its pass floor and its time ceiling are
-   spent, so the four minutes keep a tenant alive past where the old
-   twenty-pass rule stopped in exactly one case: a wait that needed more than
-   twenty passes. Whether that ever happens is a count, and
-   `WhatTheSuiteLeavesBehind` now writes `build/waits-observed.txt` beside the
-   floor under the same `-Ddbo.heap.attribute=true`, with the longest wait and
-   how many went past the floor at the top of it.
+6. Say whether the four-minute wait raised the peak. **Nothing is built; what
+   is settled is what to measure.** It does not need the suite run twice. The
+   wait leaves only when both its pass floor and its time ceiling are spent,
+   so the four minutes keep a tenant alive past where the old twenty-pass rule
+   stopped in exactly one case: a wait that needed more than twenty passes.
+   Whether that ever happens is a count, and the place to take it is beside
+   the floor `WhatTheSuiteLeavesBehind` already records — same run, same
+   `-Ddbo.heap.attribute=true`, the longest wait and how many went past the
+   floor.
 
    Counting beats comparing two peaks, which is what this step first asked
    for: two runs of this suite differ for a dozen reasons and only one of them
