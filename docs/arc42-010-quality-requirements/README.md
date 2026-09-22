@@ -13,20 +13,36 @@ day.
 
 ## The tree
 
-| Goal | How it is judged | Where the answer is read |
+Generated from the twelve Quality declarations, so a goal cannot be missing
+from it and a coverage cannot be stale. Each goal names the promises that
+fulfil it; the areas below are where those promises live, and the fold is the
+statuses of the promises themselves.
+
+<!-- quality:begin — generated from the promise catalogue; do not edit. Regenerate: ./gradlew :core:harness:promiseProjection -->
+
+| Goal | Where the answer is read | Coverage |
 |---|---|---|
-| Total tenant isolation | No cross-tenant surface exists, a tenant's data sits in its own database, and erasure is a drop | The `TEN` and `PDI` areas of the [catalogue](../arc42-006-runtime/req-catalogue.md) |
-| The tenant owns the box | The tenant's own authority issues its users' tokens, and the operator cannot read what it holds | `AUTH`, `OPS` |
-| Process as a storage concern | Durable work, subscriptions and feeds run on the same substrate as the data, with no broker and no cache tier | `PROC`, `WF`, `FEED`, `EVT` |
-| Declared handling | A type states what kind of data it is and the engine enforces it rather than trusting the caller | `POL`, `CORE` |
-| One API | Configuration, identity and authorization are ordinary records on the same surface | `AUTH`, `SCIM`, `IDN` |
-| Jurisdiction as configuration | Zones, brokers and identifier systems are records and terminology | `ZONE`, `TERM` |
-| Personal data under structural control | Identifying elements are encrypted in place and erasure destroys a key | `PDI` |
-| Portability | One sealed archive is backup, restore, migration and export | `OPS`, `MNT` |
-| FHIR-version plurality | Several versions are served at once, and the engine holds no version knowledge | `VER`, `SHAPE`, and the [conformance reports](../conformance/README.md) |
-| Performance as a first-class property | Measured on reference hardware, on the production serving path | [Evidence](../evidence/README.md), and the run in [item 015](../arc42-011-risks-and-technical-debt/015-the-comparative-load-test/README.md) |
-| Embeddability | The store boots inside a host's own JVM, and the suite runs against it | `CONT` |
-| Operational honesty | An unrecognised search parameter is refused rather than answered more broadly, the CapabilityStatement is generated from what is actually served, and every boundary crossing leaves an entry | `SRCH`, `POL`, and the [conformance reports](../conformance/README.md) |
+| Total tenant isolation: no cross-tenant surface exists, a tenant's data sits in its own database, and erasure is a drop. | `AUTH`, `SCIM`, `TEN` | 5/7 |
+| The tenant owns the box: its own authority issues its users' tokens, and the operator cannot read what it holds. | `AUTH`, `MNT`, `OPS`, `TEN` | 6/6 |
+| Process as a storage concern: durable work, subscriptions and feeds run on the same substrate as the data, with no broker and no cache tier. | `EVT`, `FEED`, `SCAL`, `WF` | 7/9 |
+| Declared handling: a type states what kind of data it is and the engine enforces it rather than trusting the caller. | `CORE`, `POL`, `TEN` | 7/7 |
+| One API: configuration, identity and authorization are ordinary records on the same surface as the data. | `AUTH`, `POL`, `SCIM`, `TEN` | 7/7 |
+| Jurisdiction as configuration: zones, brokers and identifier systems are records and terminology rather than code. | `AUTH`, `TERM`, `ZONE` | 7/7 |
+| Personal data under structural control: identifying elements are encrypted in place and erasure destroys a key. | `PDI` | 8/8 |
+| Portability: one sealed archive is backup, restore, migration and export. | `MNT`, `OPS` | 6/7 |
+| FHIR-version plurality: several versions are served at once, and the engine holds no version knowledge. | `SHAPE`, `VER` | 8/8 |
+| Performance as a first-class property: measured on reference hardware, on the production serving path. | `CONT`, `SCAL` | 1/6 — 1 gap |
+| Embeddability: the store boots inside a host's own JVM, and the suite runs against it. | `CONT` | 5/5 |
+| Operational honesty: an unrecognised search parameter is refused rather than answered more broadly, the CapabilityStatement is generated from what is actually served, and every boundary crossing leaves an entry. | `OPS`, `POL`, `SRCH`, `WF` | 8/8 |
+
+<!-- quality:end -->
+
+A gap counts against the goal that declares it: it is ground nobody has stated
+yet, named rather than left silent, and it stays in the fold until somebody
+makes it true. The promises behind every row, with their proving sites, are in
+the [requirement catalogue](../arc42-006-runtime/req-catalogue.md); the
+conformance reports and the evidence the performance goal is waiting for are
+below.
 
 ## What is measured rather than asserted
 

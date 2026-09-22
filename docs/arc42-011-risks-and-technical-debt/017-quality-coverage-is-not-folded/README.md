@@ -1,9 +1,9 @@
-**Open. The twelve goals are declared, one Quality each, and the promise
-report folds each one's coverage — performance reads 1/6, its sixth entry
-being the gap where the figures are not taken. What is not folded is the
-quality tree itself: its table is still hand-kept, and it is the page a reader
-of the specification arrives at. Next: project that table from the model,
-under the ratchet the requirement catalogue is under.**
+**Open. The twelve goals are declared and the quality tree is generated from
+them, coverage and all, under the ratchet the requirement catalogue is under —
+so a goal cannot go missing from it and a fold cannot go stale. Four goals are
+short: isolation 5/7, process-as-storage 7/9, portability 6/7, and performance
+1/6 against a gap nobody has closed. Next: the figures that gap names, which is
+item 015.**
 
 # Quality coverage is not folded
 
@@ -32,10 +32,13 @@ its last proof.
    quality is what would stop being true without it.
 2. ~~Make a declared hole renderable.~~ Done, and it was a defect in the
    projection rather than a missing feature: see below.
-3. Replace the tree's hand-written table with the projection, under the same
-   ratchet the requirement catalogue is under. This is the step that makes the
-   fold visible where a reader of the specification will meet it — the report
-   already computes it, and the report is not the quality chapter.
+3. ~~Replace the tree's hand-written table with the projection, under the same
+   ratchet the requirement catalogue is under.~~ Done. The chapter carries
+   markers and a generated table of goal, areas and fold; `PromiseCatalogueTest`
+   regenerates it in memory on every build and refuses a hand-edit or a stale
+   copy. Proven by making the edit: changing one fold by hand fails the suite.
+   The areas are derived from the promises rather than named again, which is
+   the column the old table kept by hand and the row it lost.
 4. Take the performance figures the goal asks for, which is
    [item 015](../015-the-comparative-load-test/README.md). The gap the quality
    now declares is what that work closes, and it counts against the goal until
@@ -64,6 +67,12 @@ promise happens to live rather than what the hole is about.
 
 **So the performance goal now says what it lacks.** Its coverage reads 1/6,
 and the sixth line is the figures nobody has taken.
+
+**And three other goals turned out to be short.** Nothing was hiding them; the
+table simply never said. Total tenant isolation is 5 of 7, process as a storage
+concern 7 of 9, portability 6 of 7. Those are promises declared and not yet
+proven rather than behaviour missing, and they are now visible on the page that
+exists to say how each goal is judged.
 
 ## What this is not
 
