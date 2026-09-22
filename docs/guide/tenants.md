@@ -81,14 +81,13 @@ Wait for it, and it answers:
 200
 ```
 
-This is the whole provisioning model, and it is worth trying rather than
-reading. Nobody ran a migration, nobody created a schema, and no existing
-tenant was touched or restarted.
+This is the whole provisioning model. Nobody ran a migration, nobody created
+a schema, and no existing tenant was touched or restarted.
 
 It is not instant. A new tenant is a database provisioned from nothing with a
 terminology baseline loaded into it, which is tens of seconds even on a warm
 machine. Onboarding a customer is an operation the runtime performs, not a
-project, but it is not free either.
+project.
 
 ## Taking it away stops it
 
@@ -96,10 +95,10 @@ project, but it is not free either.
 --8<-- "docs/guide/examples/snippets/remove-tenant.sh"
 ```
 
-The tenant stops being served. Note what that is and is not: retracting a spec
-stops serving a tenant, and it does not erase it. Erasing is an explicit
-deprovision that drops the database, and the two are deliberately different
-operations — one is a Tuesday, the other is irreversible.
+The tenant stops being served. Retracting a spec stops serving a tenant; it
+does not erase it. Erasing is an explicit deprovision that drops the database,
+and the two are deliberately different operations — one is a Tuesday, the other
+is irreversible.
 
 Meanwhile the hospital never noticed. Its records are still there, because they
 were never in the same database in the first place.
