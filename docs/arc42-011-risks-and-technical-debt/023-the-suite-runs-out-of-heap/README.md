@@ -51,6 +51,34 @@ re-run once, deliberately, and only after this was written down.
 `SeveralTenantsDeclaredAtOnceComeUpTogetherIT`. None of the three classes was
 touched by either change.
 
+**And a third change, carrying this item's own instrument, died the same way.**
+The change that attributed the floor — documentation, a test listener and an
+editor's preview config, nothing that can reach a tenant — failed at 25m53s:
+
+```
+TenantRuntimeIT > everyTenantAnswersTerminologyFromItsOwnStore FAILED
+  bring-up FAILED for: [terms5]
+  {terms5=java.lang.OutOfMemoryError: Java heap space}; serving=[teine, terms4]
+```
+
+**It is the same tenant, in the same test, with the same two neighbours
+already serving.** Twice now, and that is not what a heap running out at random
+looks like. `terms5` is a terminology tenant on the R5 face, and R5's first
+tenant is the 226 MB this item measured — the definition corpus, not the
+tenant. Whichever run leaves that corpus unloaded until `TenantRuntimeIT` asks
+for it is the run where 226 MB has to be found at a floor of about 1.6 GB, and
+`terms4` and `teine` are already up because they are on faces somebody paid for
+earlier. So the coin flip has a shape: it is whether this tenant is the one
+that pays for a face.
+
+**Checked rather than argued, as far as it can be without another red run.**
+`terms5` is declared `"face":"r5"` in the test itself and `terms4` is `r4`,
+which is why one of the pair dies and the other does not: r4's definitions are
+long resident by the time this class runs, and r5's need not be. And in the run
+that produced the attribution above — a run that passed — `TenantRuntimeIT` is
+not among the twelve classes keeping 40 MB or more. It paid nothing that time,
+which is what a class that found the corpus already loaded looks like.
+
 ## Why it is filed now rather than earlier
 
 **It was already known and had no item.** The risks list records it: a class
