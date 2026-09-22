@@ -408,12 +408,28 @@ converted feed only once the run that made it finished.
    trap. A recording that quietly does nothing leaves a ratchet reading like a
    measurement.
 
-   What remains is five, and none of it is a rule a definition could state: two
-   StructureMaps checked as programs, a constraint the toolchain cannot
-   evaluate at all, and a code this tenant's terminology does not hold. Which
-   is which is printable now rather than remembered — `-Ddbo.divergence.name=true`
-   writes the findings beside the baseline, into a file rather than a standard
-   output nothing carries.
+   What remains is five, and `-Ddbo.divergence.name=true` now writes what
+   decided each one to `build/divergence-findings.txt` — the error and fatal
+   issues alone, because an outcome leads with warnings and the first attempt
+   at this truncated one and read as though it had no errors at all.
+
+   Read out, they are:
+
+   | | what decided it |
+   |---|---|
+   | `StructureDefinition` | `cid-0`, which the toolchain cannot evaluate: *the name 'name' is not valid for any of the possible types* |
+   | `StructureDefinition` | **the third rule** — *if identifier.system is 'urn:ietf:rfc:3986', then the identifier.value must be a full URI*, twice, on an example value |
+   | `StructureMap` ×2 | checked as programs: an unknown source or target context, a target path not on the type |
+   | `ValueSet` | about a hundred and ten errors, every one *Unknown code … in the code system 'http://snomed.info/sct'* on `compose.include.concept.designation.use` |
+
+   Two of those are worth a second look rather than a rule. The third rule is
+   reachable — one document, on an `Identifier` inside an example — but it is a
+   relation between two elements rather than a primitive form, so it does not
+   belong in `dbo.admits` beside the other two. And the `ValueSet` is filed in
+   the baseline as content, while its findings say the system was *answered
+   from this tenant's terminology* — so the tenant holds SNOMED and not those
+   codes, and whether the database says nothing because the binding is weaker
+   than required or because the code is simply absent is not the same answer.
 
 6. **Snapshot into the cut**: generate it where the image is made and carry it,
    so `cacheProfile` has nothing to build.

@@ -188,9 +188,23 @@ class TheTwoAnswersAreComparedOverTheVersionIT {
                 return "the database found "
                         + definitions.issuesUnder(document, canonical).orElse(0);
             }
+            // The error and fatal issues alone, and not the outcome whole.
+            // Truncating the outcome was the obvious thing and it cut the
+            // findings off: an outcome leads with warnings, so the first
+            // fifteen hundred characters of one can be entirely the part that
+            // decides nothing, and a reader concludes there were no errors.
             String outcome = tenant.store()
                     .validationOutcome(new String(document, StandardCharsets.UTF_8));
-            return outcome.length() > 1500 ? outcome.substring(0, 1500) + "…" : outcome;
+            StringBuilder deciding = new StringBuilder();
+            java.util.regex.Matcher issue = java.util.regex.Pattern
+                    .compile("\\{\"severity\":\"(error|fatal)\".*?\\}(?=,\\{\"severity\"|\\]\\})")
+                    .matcher(outcome);
+            while (issue.find()) {
+                deciding.append("    ").append(issue.group()).append(System.lineSeparator());
+            }
+            return deciding.isEmpty()
+                    ? "no error or fatal issue, so what counted it is the refusal itself"
+                    : deciding.toString();
         } catch (RuntimeException refused) {
             return "refused: " + refused.getMessage();
         }
