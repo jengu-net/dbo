@@ -3,7 +3,8 @@
 turned out not to need the same pass — measured whole it is 7.5 per thousand,
 where the working rules are 7 — and the one cut worth making was a promise
 reciting its neighbours rather than a style fix. Next: the crosscutting
-concepts and their pattern pages.**
+concepts, which measure 7.5 too. Next: the guide chapters, and a decision about
+whether this item is still measuring anything.**
 
 # The specification is cut to the house style
 
@@ -86,6 +87,38 @@ its neighbours has no status of its own to lose, so what is left is the part
 only it makes: that the surface exists, and that its scope is not the resource
 grammar's.
 
+## What the crosscutting pages measured
+
+7.5 per thousand over 54,689 words, against the 9 to 10 this document recorded
+for them. Split, because the three families are not one thing:
+
+| | pages | whole | range |
+|---|---|---|---|
+| `why-` essays | 13 | 8.1 | 1.6–12.5 |
+| patterns | 24 | 6.2 | 0.0–15.1 |
+| section READMEs | 14 | 7.8 | 2.1–11.2 |
+
+The densest pages were read rather than cut on the number.
+`why-applying-configuration` carries thirteen contrasts across a thousand
+words, and every one names the thing a reader would otherwise assume: *a query
+rather than an expedition*, *a card naming the file rather than a line in a
+boot log that scrolled past*, *not a privileged path with its own error
+handling*. `pattern-a-country-is-a-zone` is the densest page in the tree at
+15.1 and six of its seven are the forces and the rule — *genuinely national,
+not organisational*, *may narrow, never widen*.
+
+**The one cut is one the counter cannot see.** That page said the narrowing
+rule twice: *may narrow, never widen*, then *its decision to make downward, not
+upward* three sentences later. The second is gone. The number did not move,
+because the phrase list does not contain "not upward" — so the instrument
+misses a restatement phrased in its own words while flagging a clause that
+earns its place.
+
+**Twice now the measure has over-predicted the work.** The promise text and the
+crosscutting pages both came in at 7.5 against an expectation of a cut, and
+both yielded one edit found by reading. That is worth saying before step 4
+spends the same effort on the guide.
+
 ## The count is a signal and not a target
 
 What is left in the cut stories is mostly allowed. "A custodian, **not a
@@ -107,7 +140,10 @@ and the number is how the pages get ordered rather than what they are cut to.
    promise was cut, for restating six others rather than for its contrasts,
    and it moved the requirement catalogue and one story's joins — not the API
    ledger, which records names and signatures and never the words.
-3. The crosscutting concepts and their pattern pages.
+3. ~~The crosscutting concepts and their pattern pages.~~ Read and measured:
+   7.5 per thousand over 54,689 words, where this document said 9 to 10. The
+   `why-` essays are 8.1, the patterns 6.2, the section READMEs 7.8. One cut
+   made, in the densest page, and the counter cannot see it.
 4. The guide chapters, unless item 002 rewrites them first. Which chapters
    there are to cut is settled by the item on asking the store a question.
 5. Everything else under `docs/`, then delete this item.
