@@ -131,6 +131,33 @@ exist.** A context is not something built when a definition arrives and
 dropped; it is the object a tenant serves from, held for as long as the tenant
 is up. That is why the soft reference never helps a face in use.
 
+## What the serving store reaches for, counted
+
+`ElementStore` is the object a tenant serves from, and it asks for the worker
+context in seven places. They are not seven of a kind:
+
+| | what it wants it for | when |
+|---|---|---|
+| framing a document, rendering one, framing a bundle | the element model, for `_elements` and for putting the engine's facts back | serving |
+| resolving what an `_include` points at | walking a reference target | serving, per request |
+| whether a stored `SearchParameter`'s expression is evaluable, twice | parsing FHIRPath | **arrival** — when a parameter is written |
+| expanding a differential from the view | generating a snapshot | **arrival** — when a profile is written |
+
+**Three of the seven are arrival.** A parameter arriving and a profile arriving
+are both derivation, and derivation is what the image cut is for. They do not
+need a context that stays; they need one that exists while the definition is
+being taken in.
+
+**Four are serving**, and three of those are the same want: the element model,
+to frame or to render. The fourth is `_include`.
+
+So the shape of the remaining work is clearer than "remove the toolchain". It
+is: move three to the cut, answer `_elements` and framing from the stored JSON
+and the rows that locate it, and decide where `_include` resolves. Nothing on
+that list needs a decision about validation, because the database already
+answers tier one — and nothing on it is the 444 MB until all four of the
+serving ones are gone, since a context held for any reason is held whole.
+
 ## The cut that does exist
 
 Reading for the first one turned up a second, and it is better. There are two
