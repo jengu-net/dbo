@@ -1,18 +1,12 @@
-**Open. Nothing is built. A version's definitions are parsed into a HAPI
-`SimpleWorkerContext` once per face and held for as long as any tenant on that
-face is up: 226 MB measured, against 11 MB for the second tenant on the same
-face. The store's own definitions are already in a database schema and read
-with SQL, so this is the toolchain's second copy. The move has been made once
-before, for terminology, and it took 40 to 50% off building the context.
-Nothing here is built once and dropped: every holder but the parity references
-serves. What is already built is the other half — `FaceBase` is a context made
-from the records a tenant holds, shared per face, and a tenant with a version
-root takes it. Weighed now: **101 MB against 225, and 3 MB against 11 for the
-next tenant on each**. So the number this item opened with is what the FALLBACK
-costs, not what definitions cost. And the fallback is who the suite is: **24 of
-the shared world's 25 tenants take it**, where five of the sample's seven take
-a base. On r4 the suite pays for both at once. Next: put the shared world on a
-face root and measure the floor again.**
+**Open. Nothing is built. A version's definitions are parsed into a HAPI object
+graph and held while a tenant serves — 225 MB from the carried packages, 101 MB
+from the records-backed base, and the second number is a smaller waste rather
+than an answer. The aim is a serving process holding neither. Three of the four
+pieces are already there: the definitions are a schema the face's SQL reads,
+the database answers tier one and the envelope at parity, and a face is cut
+once per release into an image of everything derived from them. Next: say what
+version conversion would take, because it is the one piece with nothing
+sketched.**
 
 # Definitions out of the heap
 
@@ -229,36 +223,73 @@ shared world's tenants can take their face from a root the way the sample
 world's do. That is a test-world change, it is reversible, and the instrument
 to say whether it worked is already recording.
 
+## The aim is no toolchain in the runtime
+
+101 MB is not a win, it is a smaller waste. Both paths build the same thing —
+an object graph of a version's definitions — and differ only in where the bytes
+came from. The aim is a serving process that holds none of it.
+
+**Three of the four pieces already exist**, which is why this is a plan rather
+than a wish:
+
+- **The definitions are a schema**, and the face's own SQL reads them. The
+  functions ship with the release and arrive no other way.
+- **The database answers what the toolchain answered.** Tier one at 258
+  documents against 10 classified divergences; the envelope at 100 documents
+  against none.
+- **A face is cut once per release into an image** of its definitions schema —
+  "the definitions, their history and everything derived from them" — and a
+  tenant comes up from the image rather than expanding anything.
+
+That last one is the shape of the answer. **Whatever still needs a toolchain is
+derivation, and derivation belongs in the cut.** An image cutter is a
+release-time tool; it may hold HAPI, a gigabyte and a long afternoon, because
+nothing is serving while it runs. What it produces is rows.
+
+## What would have to move into the cut, or go
+
+| What still needs HAPI | Where it goes |
+|---|---|
+| snapshotting a profile | derived data in the image, like the element rows beside it |
+| the three rules the validator carries in its own code | explicit checks — a canonical url absolute, a uuid lowercase, an identifier under `urn:ietf:rfc:3986` a full uri. Six documents' worth, and no definition states them, so they are written once rather than derived |
+| a StructureMap checked as a program | an ingest concern for a tenant that holds maps, not a serving one |
+| version conversion, R4 ↔ R5 | the open one: a zone hop converts while serving. Either the maps compile the way invariants did, or conversion is a process of its own |
+| `_elements` | a projection over the stored JSON, located by the element rows that already carry jsonpaths |
+| parsing JSON into an `Element` | nothing needs it once the five above are gone; the database walks the document and the ordinary read copies tokens |
+
+**The honest unknown is conversion.** Everything else is either derivation that
+can be cut, a handful of rules that can be written, or a projection the rows
+already locate. Conversion is a program over a model, it runs when a zone hands
+content to a tenant on another version, and no part of it is answered in the
+database today.
+
 ## The sequence
 
-1. ~~Split the holders by arrival against serving.~~ Done, above, and the
-   answer is that everything but the parity references is serving.
-2. ~~Weigh the two paths side by side.~~ Done: 225 against 101, and 11 against
-   3 for the next tenant on each.
-3. ~~Say which tenants take the carried fallback.~~ Done, above: twenty-four
-   of the shared world's twenty-five, and two of the sample's seven.
-4. **Put the shared world on a face root** and measure the floor again. It is
-   a test-world change rather than a change to the store, the sample world
-   already shows the shape, and item 023's instrument is already recording what
-   would move. If the floor falls by the order this estimates, the rest of this
-   item is a smaller and more patient piece of work than it looked.
-5. **Snapshot at arrival.** A profile is snapshotted so it can be validated
-   against, and a snapshot is derived data like the element rows beside it.
-   Deriving it once when the definition arrives and storing it is the same move
-   as the expansion, on the same trigger, and removes `cacheProfile`'s reason
-   to hold a live context.
-6. **Declare what tier-two validation is.** Tier one is answered in the
-   database and named. What the toolchain still answers — slicing, profile
-   conformance, the rules no row can carry — has no such statement, and it is
-   the only thing that plainly needs an object graph. Deciding whether it is
-   served per write, on request, or by a separate process is deciding whether
-   any context survives.
-7. **Answer framing without the definitions**, or show it needs them. Framing
-   puts the engine's own facts back around a stored payload; whether that reads
-   a definition or only the parsed element is a question the code answers and
-   nobody has asked it here.
-8. **Then the search parameters**, which are already compiled and whose
-   in-memory copy may have no caller left once 2 and 5 are done.
+1. ~~Split the holders by arrival against serving.~~ Done: everything but the
+   parity references serves.
+2. ~~Weigh the two paths.~~ Done: 225 against 101, 11 against 3.
+3. ~~Say who takes the fallback.~~ Done: 24 of the shared world's 25.
+4. **Say what conversion would take**, because it is the one piece with no
+   answer sketched. If it can be a cut-time or a separate-process concern, the
+   runtime can lose the toolchain entirely and everything else here is
+   ordinary work. If it cannot, that is the thing this item is really about and
+   the rest is detail.
+5. **Write the three rules**, which is small, self-contained, and closes most
+   of the divergence baseline — the remaining gap between what the database
+   says and what the toolchain says.
+6. **Snapshot into the cut**: generate it where the image is made and carry it,
+   so `cacheProfile` has nothing to build.
+7. **`_elements` from the rows**, which removes the last reader of the element
+   model on the serving path.
+8. **Then delete the context**, and with it the carried-against-base question
+   entirely — both paths, not the more expensive one.
+
+**What this does not need.** Putting the suite's shared world on a face root
+would take its floor from roughly 675 MB to 303. It is worth an hour if the
+suite keeps dying, and it is not progress: it buys a cheaper copy of the thing
+being removed. It belongs to
+[item 023](../023-the-suite-runs-out-of-heap/README.md) as relief, not here as
+a step.
 
 ## What this is not
 
