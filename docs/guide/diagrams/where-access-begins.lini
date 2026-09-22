@@ -1,11 +1,13 @@
 {
   // The thread the concepts hang on, in one figure.
   //
-  // Read left to right it is the argument the index page makes: a step is what
-  // needs data, so a step is what access is granted to, and performing it is
-  // what leaves the proof. Reading and changing are the same move here — a
-  // step analyses, decides, and writes what it decided — so the middle column
-  // names both rather than letting "access" be heard as "read". The strip underneath is the boundary all three sit
+  // Read left to right it is the argument the index page makes: a job is what
+  // needs data, so a job is what access is granted to, and performing it is
+  // what leaves the proof. It is the guide's word "step" said in the reader's
+  // own, because the landing page is where nobody has the vocabulary yet.
+  // Reading and changing are the same move here — a job analyses, decides,
+  // and writes what it decided — so the middle column names both rather than
+  // letting "access" be heard as "read". The strip underneath is the boundary all three sit
   // inside — drawn as an enclosure rather than as a fourth column, because it
   // is not a later stage of the same sequence — so it is drawn around them.
 
@@ -60,7 +62,7 @@
       |eyebrow| "Where access begins"
       |block| { height: 8 } []
       |panel| { width: 204; height: 76; padding: 12 16 } [ |col| { width: 172; gap: 4 } [
-        |cap| "a step of a process"
+        |cap| "a job somebody declared"
         |small| "validating a batch,"
         |small| "clearing a consignment" ] ]
       |block| { width: 204; height: 30 } [ |down| { pin: center } ]
@@ -86,10 +88,11 @@
     |col| { width: 224; gap: 0 } [
       |eyebrow| "What it leaves"
       |block| { height: 8 } []
-      |panel| { width: 224; height: 122; padding: 14 16 } [ |col| { width: 192; gap: 8 } [
-        |cap| "a run"
+      |panel| { width: 224; height: 158; padding: 14 16 } [ |col| { width: 192; gap: 8 } [
+        |cap| "written down as it goes"
         |seal-item| { width: 192 } [ |slt| "what it read and changed" ]
-        |seal-item| { width: 192 } [ |slt| "when, and on whose authority" ] ] ]
+        |seal-item| { width: 192 } [ |slt| "when, and on whose authority" ]
+        |seal-item| { width: 192 } [ |slt| "and what it was for" ] ] ]
     ]
   ]
 
