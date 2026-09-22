@@ -1,4 +1,9 @@
-**Open. The actor surface exists and two scenes run over it, each having caught an assumption an in-JVM scene would have let stand. The map said HTTP belonged only in the participant's chapter; that is changed, on this evidence. Next: the guide's chapters, one at a time, over the surface.**
+**Open. The actor surface exists and five scenes run over it: the first two,
+each having caught an assumption an in-JVM scene would have let stand, and then
+Records, History and References, one chapter at a time in the reading order.
+The map said HTTP belonged only in the participant's chapter; that is changed,
+on this evidence. Next: the chapters after References — transactions,
+validation, terminology, the change feed, blobs.**
 
 # The sample application
 
@@ -106,7 +111,14 @@ an embedded boot. Those are things a host does, not things an actor does.
    is a refusal. Two scenes use it and both earned their keep on the first
    day; they are the evidence for the paragraph above.
 5. Each further chapter of the guide, in the order item 001 gives, over that
-   surface.
+   surface. Records, History and References are done; each added one class to
+   the sample in the actor's vocabulary — `Intake` and `Publishing`,
+   `Amending`, `Observing` — and the chapter includes it whole, so a chapter
+   that says 409 and a store that says something else cannot both survive a
+   build. What the References scene is for is the negative claim: the store
+   does **not** refuse a reference to a record it does not hold, and a test
+   that only wrote resolvable references would pass for years over a store that
+   had quietly become a foreign-key database.
 6. Promises move onto it as the stories grow, one story at a time, and a
    harness class whose conditions the surface now produces is deleted rather
    than ported. Nothing moves that the ledger says needs a world of its own.

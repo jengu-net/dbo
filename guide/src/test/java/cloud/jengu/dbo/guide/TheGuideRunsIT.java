@@ -2709,6 +2709,67 @@ class TheGuideRunsIT {
                             + "conditional write built on it would look safe: past="
                             + past.etag() + " now=" + now.etag());
         }
+
+        /**
+         * The References chapter, run rather than described.
+         *
+         * <p>Its claim is a negative one and negatives are what a synthetic
+         * test gets wrong: the store does NOT refuse a reference to something
+         * it does not hold. A test that only wrote references the store could
+         * resolve would pass for years over a store that had quietly become a
+         * foreign-key database, and the day it was noticed would be the day a
+         * real sender's data stopped being accepted.
+         *
+         * <p>So the three writes here are the three kinds a real feed sends:
+         * one naming a record we hold, one naming a record that is somebody
+         * else's, and one naming nobody at all and leaving the store to work
+         * out who is meant.
+         */
+        @Test
+        @Order(5)
+        @DisplayName("what belongs to a record is found by the reference, a pointer out of "
+                + "the store is kept rather than refused, and a reference may be a question")
+        @Proving({DboPromises.CORE_REFERENCE_EDGES, DboPromises.CORE_CONDITIONAL_REFERENCES})
+        void theReferencesChapter() {
+            cloud.jengu.dbo.sample.Surface hospital =
+                    new cloud.jengu.dbo.sample.TheWorld(java.net.URI.create("http://localhost:8090"))
+                            .hospital().signIn("tenant-bootstrap", "hogwarts-secret");
+            cloud.jengu.dbo.sample.Intake intake = new cloud.jengu.dbo.sample.Intake(hospital);
+            cloud.jengu.dbo.sample.Observing observing =
+                    new cloud.jengu.dbo.sample.Observing(hospital);
+
+            String number = "RL-0081";
+            String id = intake.admit(number, "Abbott", "Hannah").id();
+
+            assertTrue(observing.about(id, "height").ok(),
+                    "an observation about somebody we hold would not write");
+
+            // The edge was derived from the payload on the way in. Nobody
+            // indexed anything and there is no join table to have drifted.
+            cloud.jengu.dbo.sample.Answer hers = observing.whatBelongsTo(id);
+            assertTrue(hers.body().contains("height"),
+                    "what was written about her is not found by the reference to her, so "
+                            + "the edge was not derived from the document: " + hers.body());
+
+            // The negative. A practitioner at another organisation, a patient
+            // in the tenant next door, a number in a national registry: a
+            // store that refused these would be insisting it is the whole
+            // world, and senders would strip the references to get their data
+            // in.
+            assertEquals(201, observing.aboutSomebodyElsewhere("referred elsewhere").status(),
+                    "a reference to a record this store does not hold was refused, which is "
+                            + "the day a real sender starts stripping its references");
+
+            // And the reference that is a question, answered once, when the
+            // document is written — because the sender has her number and not
+            // our id, which is most senders most of the time.
+            assertTrue(observing.aboutWhoeverHolds(number, "weight").ok(),
+                    "a reference naming her by the number she is known by would not resolve");
+            cloud.jengu.dbo.sample.Answer bothOfThem = observing.whatBelongsTo(id);
+            assertTrue(bothOfThem.body().contains("weight"),
+                    "the question was stored rather than answered, so what was written "
+                            + "about her is not about her: " + bothOfThem.body());
+        }
     }
 
     @Nested
