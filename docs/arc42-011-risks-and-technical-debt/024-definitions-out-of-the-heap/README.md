@@ -7,8 +7,10 @@ before, for terminology, and it took 40 to 50% off building the context.
 Nothing here is built once and dropped: every holder but the parity references
 serves. What is already built is the other half — `FaceBase` is a context made
 from the records a tenant holds, shared per face, and a tenant with a version
-root takes it. Next: weigh that against the carried fallback, and say who still
-takes the fallback.**
+root takes it. Weighed now: **101 MB against 225, and 3 MB against 11 for the
+next tenant on each**. So the number this item opened with is what the FALLBACK
+costs, not what definitions cost. Next: who still takes the fallback, and
+whether they need to.**
 
 # Definitions out of the heap
 
@@ -158,18 +160,49 @@ are which tenants still take the carried fallback and why, what the two paths
 actually weigh side by side, and whether serving can drop the context
 altogether now that the database answers tier one and the envelope at parity.
 
+## The two paths, weighed
+
+Measured by `WhatTheLoadedSpecificationCostsIT`, which exists to put a number
+on exactly this sentence, and recorded in `config/memory-baseline.txt`:
+
+| | MB |
+|---|---|
+| a served tenant, carried packages | **225** |
+| a second tenant on that carried context | 11 |
+| a face root holding the version as records | **101** |
+| a tenant serving from that face base | **3** |
+
+**The records-backed path is 101 MB against 225, and a tenant on it is 3 MB
+against 11.** Better than half off, on a mechanism that is already written,
+already shared per face, already held softly, and already chosen automatically
+by `ElementStore` for any tenant with a version root in its store.
+
+Two honesties about the numbers. The base was measured in a JVM where the
+carried context for the same version already existed, so whatever the two share
+— loaded classes, interned strings — is counted against the carried one and not
+against the base; a base measured alone could read higher. And a heap delta
+after a forced collection still counts what is softly reachable, which is why
+this file records rather than asserts.
+
+**So the headline of this item is wrong, and the right one is smaller.** The
+226 MB is not what definitions cost. It is what the *fallback* costs, taken by
+a tenant with no version root — and the sample world's tenants that have one
+are already paying 101 and 3.
+
 ## The sequence
 
 1. ~~Split the holders by arrival against serving.~~ Done, above, and the
    answer is that everything but the parity references is serving.
-2. **Weigh the two paths side by side.** `CarriedDefinitions.contextFor`
-   against `FaceBase.of`, same version, same instrument as item 023. The 226 MB
-   this item opens with is one of them and nobody has said which, or what the
-   other costs.
+2. ~~Weigh the two paths side by side.~~ Done: 225 against 101, and 11 against
+   3 for the next tenant on each.
 3. **Say which tenants take the carried fallback, and whether they need to.**
-   `ElementStore` chooses it when a tenant has no version root in its store. If
-   that set is small, or closable, the fallback stops being a steady-state cost
-   and this item's headline number changes.
+   This is now the item. `ElementStore` chooses the fallback when a tenant has
+   no version root in its store, and the fallback is what costs 225 MB. Every
+   tenant that could have a root and does not is paying twice over: the whole
+   corpus, and again for the next tenant beside it. Which of the suite's
+   tenants are in that set, and what it would take to move them, is the next
+   thing to find out — and it is worth doing before anything below, because it
+   may be all of this.
 4. **Snapshot at arrival.** A profile is snapshotted so it can be validated
    against, and a snapshot is derived data like the element rows beside it.
    Deriving it once when the definition arrives and storing it is the same move

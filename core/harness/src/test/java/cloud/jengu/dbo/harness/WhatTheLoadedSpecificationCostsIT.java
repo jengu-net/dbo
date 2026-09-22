@@ -1,5 +1,6 @@
 package cloud.jengu.dbo.harness;
 
+import cloud.jengu.dbo.fhir.element.ElementVersion;
 import cloud.jengu.dbo.promises.DboPromises;
 import cloud.jengu.dbo.promises.Proving;
 import cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner;
@@ -115,6 +116,23 @@ class WhatTheLoadedSpecificationCostsIT {
         write("malu-kaks");
         long twoTenants = heapInUse();
 
+        // The OTHER way a version becomes a context, which nothing here had
+        // ever measured. A tenant with no version root takes the carried
+        // packages — every scenario above — and one that has a root in its
+        // store takes a base built from the records instead, shared per face.
+        // The whole of "moving this into the database will cut dbo's memory"
+        // is the difference between those two numbers, and until now the
+        // second one existed only as a sentence in a javadoc.
+        long basesBefore = ElementVersion.baseBuilds();
+        long contextsBefore = ElementVersion.contextBuilds();
+        serveARoot("juur");
+        long aRoot = heapInUse();
+        serveOnTheFace("teine", "juur");
+        write("teine");
+        long onTheBase = heapInUse();
+        System.out.println("MEASURED bases built " + (ElementVersion.baseBuilds() - basesBefore)
+                + ", carried contexts built " + (ElementVersion.contextBuilds() - contextsBefore));
+
         Map<String, Long> now = new LinkedHashMap<>();
         // Deltas only, and the absolute floor deliberately not among them.
         // This runs inside a suite that shares one JVM, so what is resident
@@ -126,6 +144,8 @@ class WhatTheLoadedSpecificationCostsIT {
         now.put("theFirstValidatedWrite", mb(afterAWrite - oneTenant));
         now.put("theRestOfTheValidatorPool", mb(afterThePool - afterAWrite));
         now.put("aSecondTenantOnTheSameFace", mb(twoTenants - afterThePool));
+        now.put("aFaceRootHoldingTheVersionAsRecords", mb(aRoot - twoTenants));
+        now.put("aTenantServingFromTheFaceBase", mb(onTheBase - aRoot));
 
         String rendered = PREAMBLE + asLines(now);
         if (Boolean.getBoolean("dbo.memory.record")) {
@@ -157,6 +177,35 @@ class WhatTheLoadedSpecificationCostsIT {
                  "types":[
                   {"name":"Patient","identity":"internal","handling":"operational"}]}"""
                 .formatted(code));
+        UntilServed.scan(manager, code);
+    }
+
+    /** A tenant that holds the version as records, so the face has a base. */
+    private void serveARoot(String code) throws Exception {
+        Files.writeString(dir.resolve(code + ".json"), """
+                {"code":"%s","face":"r4","faceRoot":true,"audit":{"level":"none"},
+                 "types":[
+                  {"name":"StructureDefinition","identity":"canonical","handling":"operational"},
+                  {"name":"SearchParameter","identity":"canonical","handling":"operational"},
+                  {"name":"ValueSet","identity":"canonical","handling":"operational"},
+                  {"name":"CodeSystem","identity":"canonical","handling":"operational"}]}"""
+                .formatted(code));
+        UntilServed.scan(manager, code);
+    }
+
+    /** A tenant that takes its face from that root rather than from packages. */
+    private void serveOnTheFace(String code, String root) throws Exception {
+        Files.writeString(dir.resolve(code + ".json"), """
+                {"code":"%s","face":"r4","audit":{"level":"none"},
+                 "dependencies":[{"name":"%s","face":true,
+                   "types":["StructureDefinition","SearchParameter","ValueSet","CodeSystem"]}],
+                 "types":[
+                  {"name":"StructureDefinition","identity":"canonical","handling":"replicated"},
+                  {"name":"SearchParameter","identity":"canonical","handling":"replicated"},
+                  {"name":"ValueSet","identity":"canonical","handling":"replicated"},
+                  {"name":"CodeSystem","identity":"canonical","handling":"replicated"},
+                  {"name":"Patient","identity":"internal","handling":"operational"}]}"""
+                .formatted(code, root));
         UntilServed.scan(manager, code);
     }
 
