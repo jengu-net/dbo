@@ -3,9 +3,12 @@
 face is up: 226 MB measured, against 11 MB for the second tenant on the same
 face. The store's own definitions are already in a database schema and read
 with SQL, so this is the toolchain's second copy. The move has been made once
-before, for terminology, and it took 40 to 50% off building the context. Next:
-split the 226 MB into structures, search parameters and core code systems, so
-the order of work is read rather than guessed.**
+before, for terminology, and it took 40 to 50% off building the context.
+Nothing here is built once and dropped: every holder but the parity references
+serves. What is already built is the other half — `FaceBase` is a context made
+from the records a tenant holds, shared per face, and a tenant with a version
+root takes it. Next: weigh that against the carried fallback, and say who still
+takes the fallback.**
 
 # Definitions out of the heap
 
@@ -109,50 +112,80 @@ defect. One code the tenant's terminology does not hold. Nothing compiled from
 definitions can produce the first group, and nothing about the others is a
 statement about shape.
 
-## What still asks for the object graph
+## What still asks for the object graph, sorted
 
-| Holder | What it wants | Needed while serving, or only at arrival? |
+The column was worth filling in, because the answer is not the one the plan
+guessed.
+
+| Holder | Wanted | Read off |
 |---|---|---|
-| `ElementPayloads.read` | parsing FHIR JSON into an `Element` | serving — everything below inherits it |
-| `InstanceValidator` | slicing, profile conformance, the rules above | serving, on every write |
-| `TenantContext.cacheProfile` | snapshotting a profile before it can be validated against | **arrival** |
-| `ElementAncestors.projected` | `_elements` — parse and re-compose | serving, one branch of read |
-| `ElementEnvelopes.extract` | FHIRPath over a parsed document | to be established — the database does this too |
-| version conversion | R4 ↔ R5 over the model | **arrival**, and a zone hop |
-| the parity references | being the answer the database is compared against | tests |
+| `ElementPayloads.read` | **serving** — every write, and every read that projects | the parse is what produces the `Element` everything else takes |
+| `InstanceValidator` | **serving** — every write | `ElementPayloads.check` calls it; the database's answer beside it changes nothing |
+| `TenantContext.cacheProfile` | **serving** | it caches into the tenant's own serving context, which `payloadsFor` returns and `ElementStore` holds for the tenant's life |
+| `ElementAncestors.projected` | **serving**, one branch | `_elements` only; the ordinary read copies tokens |
+| `ElementEnvelopes.extract` | **serving**, for records | a definition type takes `DefinitionEnvelopes` and no context; a record type takes the toolchain path |
+| converters a tenant declares | **serving** | the maps are cached into the same tenant context |
+| the parity references | **tests** | built deliberately, to be what the database is compared against |
 
-**The column on the right is the plan.** A context needed only when a
-definition arrives can be built, used and dropped; one needed while serving
-must stay resident for as long as a tenant is up. Splitting the holders on that
-line is worth more than any single removal, because everything on the arrival
-side stops costing steady-state memory without anything being reimplemented.
+**So nothing is arrival-only, and the cut this plan was built on does not
+exist.** A context is not something built when a definition arrives and
+dropped; it is the object a tenant serves from, held for as long as the tenant
+is up. That is why the soft reference never helps a face in use.
+
+## The cut that does exist
+
+Reading for the first one turned up a second, and it is better. There are two
+ways a version's definitions become a context, and a tenant takes one or the
+other:
+
+- `CarriedDefinitions.contextFor` builds it **from the carried packages' own
+  bytes**. This is the fallback: `ElementStore` takes it when a tenant has no
+  version root in its store.
+- `FaceBase.of` builds it **from the records a tenant holds** — "one worker
+  context per face and process, built from the records a tenant holds rather
+  than from the carried packages, and shared by every tenant on that face",
+  keyed by version, answered from whichever tenant on the face is still
+  mounted, and held softly.
+
+**The second one is this item's own idea, already built.** Its javadoc even
+carries the measurement that motivated it: a context per tenant was 86 MB
+against 5 MB for a copy of a shared one, and a face base it calls a hundred
+megabytes.
+
+So the question is no longer "can the definitions come from the database".
+They can, and for a tenant with a version root they already do. The questions
+are which tenants still take the carried fallback and why, what the two paths
+actually weigh side by side, and whether serving can drop the context
+altogether now that the database answers tier one and the envelope at parity.
 
 ## The sequence
 
-1. **Split the holders by arrival against serving**, which is the table above
-   with its last column filled in. Two entries are already arrival-only and one
-   is unknown; establishing that is reading, not building, and it decides
-   whether this item is large or small.
-2. **Split the 226 MB.** Structures, search parameters, core code systems: one
-   run with the histogram already built for item 023, counting instances by
-   package rather than guessing. What is left after step 1 is what this
-   measures.
-3. **Snapshot at arrival.** A profile is snapshotted so it can be validated
+1. ~~Split the holders by arrival against serving.~~ Done, above, and the
+   answer is that everything but the parity references is serving.
+2. **Weigh the two paths side by side.** `CarriedDefinitions.contextFor`
+   against `FaceBase.of`, same version, same instrument as item 023. The 226 MB
+   this item opens with is one of them and nobody has said which, or what the
+   other costs.
+3. **Say which tenants take the carried fallback, and whether they need to.**
+   `ElementStore` chooses it when a tenant has no version root in its store. If
+   that set is small, or closable, the fallback stops being a steady-state cost
+   and this item's headline number changes.
+4. **Snapshot at arrival.** A profile is snapshotted so it can be validated
    against, and a snapshot is derived data like the element rows beside it.
    Deriving it once when the definition arrives and storing it is the same move
    as the expansion, on the same trigger, and removes `cacheProfile`'s reason
    to hold a live context.
-4. **Declare what tier-two validation is.** Tier one is answered in the
+5. **Declare what tier-two validation is.** Tier one is answered in the
    database and named. What the toolchain still answers — slicing, profile
    conformance, the rules no row can carry — has no such statement, and it is
    the only thing that plainly needs an object graph. Deciding whether it is
    served per write, on request, or by a separate process is deciding whether
    any context survives.
-5. **Answer framing without the definitions**, or show it needs them. Framing
+6. **Answer framing without the definitions**, or show it needs them. Framing
    puts the engine's own facts back around a stored payload; whether that reads
    a definition or only the parsed element is a question the code answers and
    nobody has asked it here.
-6. **Then the search parameters**, which are already compiled and whose
+7. **Then the search parameters**, which are already compiled and whose
    in-memory copy may have no caller left once 2 and 5 are done.
 
 ## What this is not
