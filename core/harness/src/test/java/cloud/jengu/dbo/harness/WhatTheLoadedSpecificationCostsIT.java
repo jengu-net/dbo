@@ -141,10 +141,10 @@ class WhatTheLoadedSpecificationCostsIT {
         // second one existed only as a sentence in a javadoc.
         long basesBefore = ElementVersion.baseBuilds();
         long contextsBefore = ElementVersion.contextBuilds();
-        serveARoot("juur");
+        serveARoot("malu-juur");
         long aRoot = heapInUse();
-        serveOnTheFace("teine", "juur");
-        write("teine");
+        serveOnTheFace("malu-baasil", "malu-juur");
+        write("malu-baasil");
         long onTheBase = heapInUse();
         System.out.println("MEASURED bases built " + (ElementVersion.baseBuilds() - basesBefore)
                 + ", carried contexts built " + (ElementVersion.contextBuilds() - contextsBefore));
@@ -154,7 +154,7 @@ class WhatTheLoadedSpecificationCostsIT {
         // another tenant costs; this measures what another VERSION costs, and
         // a deployment serving three faces pays it twice over before a tenant
         // exists. The target is that it stops being a number at all.
-        serveOn("teine-nagu", "r5");
+        serveOn("malu-teine-nagu", "r5");
         long aSecondFace = heapInUse();
 
         Map<String, Long> now = new LinkedHashMap<>();
