@@ -146,7 +146,7 @@ public final class ElementStore implements FhirStoreFacade,
         this.types = List.copyOf(types);
         this.baseUrl = baseUrl;
         this.terms = terms;
-        this.framing = new ElementFraming(() -> elementPayloads().context());
+        this.framing = new ElementFraming();
     }
 
     /**

@@ -75,7 +75,7 @@ public final class ElementVersion {
         this.code = code;
         this.fhirVersion = CarriedDefinitions.fhirVersionOf(code);
         this.payloads = new ElementPayloads(this::context);
-        this.framing = new ElementFraming(this::context);
+        this.framing = new ElementFraming();
         this.face = FhirFace.describing(code)
                 .providing(Payloads.class, payloads)
                 .providing(PayloadFraming.class, framing)

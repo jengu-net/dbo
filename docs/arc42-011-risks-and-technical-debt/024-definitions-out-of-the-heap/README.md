@@ -1,4 +1,12 @@
-**Open. Nothing is built. A version's definitions are parsed into a HAPI object
+**Open, and no longer "nothing is built". Four of the nine moves on the
+critical path are done and two of them were closed by reading rather than by
+work: the snapshot is kept and travels in the face image, `_elements` is the
+same token copy a whole read is, framing held a context it had stopped
+reading, and a parameter's evaluability never read a definition at all. What
+is left of `ElementStore`'s four serving reaches is `_include`, which item 021
+is deciding for joins. None of it is a megabyte yet — a context held for any
+reason is held whole — which is the point of reading the path rather than the
+list. A version's definitions are parsed into a HAPI object
 graph and held while a tenant serves. The criterion is that a new face must not
 cost another hundred megabytes; measured, **a second face costs 444**, on top of
 225 for the first. The aim is a serving process holding neither the carried
@@ -337,7 +345,7 @@ dependency between them nowhere.
 | 2 | ~~**A parameter's expression checked at the cut**~~ **Not needed.** The check parses; parsing reads the text | nothing — these were never reaches | — |
 | 3 | **The three rules** — canonical absolute, uuid lowercase, identifier under `urn:ietf:rfc:3986` a full uri | the validator's own code as a reason to hold a context | nothing; two are written and proven, the third is written |
 | 4 | ~~**`_elements` from the rows**~~ **Built, and the rows were not needed.** The filter is top-level names, so the same token copy a whole read uses answers it | `ElementAncestors.projected`, one serving branch — and the context parameter with it | nothing |
-| 5 | **Framing and rendering from stored JSON** — putting the engine's facts back without the element model | three of `ElementStore`'s four serving reaches | 4, which is the same projection |
+| 5 | ~~**Framing and rendering from stored JSON**~~ **Closed by 4**, not by work of its own: framing already wrote the Bundle shape directly, and the rendering it delegates to stopped needing a context | three of `ElementStore`'s four serving reaches | — |
 | 6 | **Decide where `_include` resolves** | `ElementStore`'s fourth serving reach | a decision, and [item 021](../021-asking-the-store/README.md) is deciding the same thing for joins |
 | 7 | **A StructureMap checked as a program becomes an ingest concern** | the tenant context's maps on the serving path | 1–2, the same cut |
 | 8 | **Types declare `verdict: database`** | `InstanceValidator`, the largest serving reach | the database answering tier one, which it does; the divergence baseline says how far |
@@ -393,6 +401,19 @@ It also cost a recorded finding, which is the honest way round: the UBL spike
 had established that a logical model must declare the store's slots or a
 narrowed read throws. That was the model path talking, and
 [item 011](../011-ubl-as-a-face/README.md) says so now.
+
+**Step 5 was already done when step 4 landed**, which is worth recording
+because it did not look that way from the table. `ElementFraming` writes the
+Bundle shape itself — the comment says why: it is the same in every version
+this face serves, and building one through the element model would mean
+holding a page — so the only reason it held a worker context was the member
+rendering it delegates to. When that stopped taking one, the supplier stayed:
+declared, wired at two construction sites, and read by nothing. That is the
+state a reach is in just before somebody reads the table and concludes it is
+still required.
+
+So the row's three reaches were one reach counted three times, and what is
+left of `ElementStore`'s four is `_include` alone.
 
 **The branch points are 4 and 8.** Everything before 4 is derivation moving to
 a cut that already exists, which is mechanical. Step 4 is the first thing that
