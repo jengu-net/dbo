@@ -383,7 +383,24 @@ does.
   an item that has not been applied, and holding it stalls the stream behind
   every conversion.
 
-  So it is a reason to choose upstream rather than a hazard the idea carries.
+  **And a stream collapses the choice.** A feed read as a lazy stream makes
+  the conversion a stage rather than a place: an item is converted on its way
+  to the terminal operation, so it cannot reach the apply unconverted and the
+  cursor cannot be ahead of it. The ordering is a property of the pipeline
+  rather than something the consumer has to be careful about.
+
+  The shape is already in the tree, and in both halves. `Answered.pagedBy`
+  walks a `FeedChunk` page by page as a `Stream`, lazily, holding no buffer —
+  written for asking the store a question. `ContentSyncEngine` reads exactly
+  the same `FeedChunk` and loops over it by hand. Same type, one of them a
+  pipeline and the other a loop.
+
+  What the futures buy on top is concurrency without losing order: a stage
+  that dispatches a run per item and gathers the results in a bounded window
+  keeps several conversions in flight while the terminal operation still sees
+  them in sequence. That window is the one piece of machinery to write — a
+  stream has no ordered, bounded, parallel map of its own before `gather`.
+
   Delivery is idempotent and conversion is pure, so re-running a step is safe
   either way.
 
