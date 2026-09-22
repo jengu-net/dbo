@@ -3,7 +3,9 @@
 face's first, 11 MB for the next on it. The floor is attributed now — twelve
 classes keep 1755 MB and seventy more keep 477, against a 2 GB heap. Nothing is
 being left unclosed: the floor is the FHIR definition corpus, loaded once per
-face and resident by design. Next: whether one JVM holds three faces.**
+face and resident by design — the model objects, their strings, and those
+strings' arrays, which together are over half the live heap. Next: whether one
+JVM holds three faces.**
 
 # The suite runs out of heap
 
@@ -223,10 +225,34 @@ shared by every tenant on it. The 226 is the definitions; the 11 is the tenant.
 Three faces resident in one JVM is most of a gigabyte before a single tenant is
 served, which is the floor this item has been walking around.
 
-**What it does not answer.** The largest single entry is 449 MB of byte arrays,
-and nothing here says whose they are. Definition source, payloads and driver
-buffers all look like `[B`. That is the next thing worth knowing, and it needs
-retained sizes rather than shallow ones.
+### Whose the byte arrays are
+
+The largest single entry is the byte arrays, and the item expected that to need
+a heap dump read for retained size. It did not. Two histograms, one of the pair
+of classes and one of the subscription class alone, answer it by counting:
+
+| | two classes | subscription alone |
+|---|---|---|
+| live | 904 MB | 702 MB |
+| `[B` | 428.7 MB, 3,660,386 | 300.5 MB, 3,085,823 |
+| `java.lang.String` | 83.1 MB, 3,629,356 | 70.0 MB, 3,058,830 |
+| byte arrays per String | **1.009** | **1.009** |
+
+**One each, to within a percent, in both.** A String on this JDK holds its
+characters in a byte array, so the biggest line in the histogram is not a
+second owner competing with the definitions — it is what the Strings are made
+of. Together they are 57% and 53% of the live heap.
+
+And the Strings are the corpus. The FHIR primitive wrappers each hold exactly
+one: 2.09 million of them in the narrower run against 3.06 million Strings, so
+**69% of every String alive is a `StringType`, `CodeType`, `UriType`, `IdType`
+or `MarkdownType` in a definition**, before counting the strings inside
+`ElementDefinition` and its components.
+
+So the floor has one owner and three shapes: the model objects, their strings,
+and those strings' arrays. Shallow sizes could answer it after all — not by
+adding the columns up, which is what shallow sizes cannot do, but by noticing
+that the counts line up one to one.
 
 **And one is a caution about item 003.** `DelegationIT` keeps 124 MB, and it is
 the first class moved onto the shared cast. The shared world's tenants are
@@ -258,8 +284,10 @@ suite of fifty-odd classes needs it.
 3. ~~Read the top of the list.~~ Done, and the answer was no. It is not
    something left unclosed; it is the definition corpus, once per face, held on
    purpose.
-4. Say whose the 449 MB of byte arrays are. Shallow sizes cannot, so this wants
-   a heap dump read for retained size rather than another histogram.
+4. ~~Say whose the 449 MB of byte arrays are.~~ Done, and without the heap
+   dump: there is one byte array per String to within a percent, so they are
+   the Strings' own storage, and 69% of the Strings are FHIR primitives in a
+   definition. Counting beat measuring retained size.
 5. Decide how many faces one JVM holds. This is now the question the floor
    actually poses, and it is a suite-shape decision rather than a defect:
    splitting the run by face buys back a face's definitions, at the cost of a
