@@ -508,14 +508,14 @@ public final class DefinitionStore {
      * otherwise ask nine hundred times to learn that the answer is nothing to
      * do.
      */
-    public java.util.Set<String> keptSnapshots() {
-        java.util.Set<String> kept = new java.util.HashSet<>();
+    public java.util.Map<String, Long> keptSnapshots() {
+        java.util.Map<String, Long> kept = new java.util.HashMap<>();
         try (Connection c = ds.getConnection();
              PreparedStatement ps = c.prepareStatement(
-                     "SELECT canonical FROM definitions.definition_snapshot");
+                     "SELECT canonical, source_version FROM definitions.definition_snapshot");
              ResultSet rs = ps.executeQuery()) {
             while (rs.next()) {
-                kept.add(rs.getString(1));
+                kept.put(rs.getString(1), rs.getLong(2));
             }
             return kept;
         } catch (SQLException e) {
@@ -569,15 +569,27 @@ public final class DefinitionStore {
     }
 
     /**
-     * The snapshot kept for this profile, if one was.
+     * The snapshot kept for this profile AT THIS VERSION of it, if one was.
+     *
+     * <p>The version is not an extra safeguard, it is the question. A profile
+     * moves — a pack is republished, a zone sends a new one — and what was
+     * snapshotted is then a description of what the profile used to say.
+     * Handing that to a view is worse than handing it nothing: the view
+     * validates against a definition the tenant no longer holds, and every
+     * answer looks ordinary. Asked without the version, this served a stale
+     * snapshot to a tenant whose pack had rolled forward, and writes that
+     * should have been refused by their stamp were accepted.
      *
      * @return the snapshotted definition as bytes, or null where none is kept
+     *         for that version of it
      */
-    public byte[] snapshotOf(String canonical) {
+    public byte[] snapshotOf(String canonical, long sourceVersion) {
         try (Connection c = ds.getConnection();
              PreparedStatement ps = c.prepareStatement(
-                     "SELECT snapshot FROM definitions.definition_snapshot WHERE canonical = ?")) {
+                     "SELECT snapshot FROM definitions.definition_snapshot"
+                             + " WHERE canonical = ? AND source_version = ?")) {
             ps.setString(1, canonical);
+            ps.setLong(2, sourceVersion);
             try (ResultSet rs = ps.executeQuery()) {
                 return rs.next() ? rs.getBytes(1) : null;
             }

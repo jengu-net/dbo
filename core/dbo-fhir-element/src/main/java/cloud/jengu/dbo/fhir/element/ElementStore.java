@@ -769,7 +769,7 @@ public final class ElementStore implements FhirStoreFacade,
             // as itself rather than inside a Basic.
             return new String(stored.payload(), StandardCharsets.UTF_8);
         }
-        return new String(ElementAncestors.rendered(elementPayloads().context(), stored.payload(),
+        return new String(ElementAncestors.rendered(stored.payload(),
                 stored.id(), stored.versionId(), null, stampsFor(stored)), StandardCharsets.UTF_8);
     }
 
@@ -1226,7 +1226,7 @@ public final class ElementStore implements FhirStoreFacade,
             return 0;
         }
         java.util.Map<String, Long> expanded = definitions.expandedFrom();
-        java.util.Set<String> kept = definitions.keptSnapshots();
+        java.util.Map<String, Long> kept = definitions.keptSnapshots();
         List<cloud.jengu.dbo.definitions.DefinitionStore.Expanded> moved = new ArrayList<>();
         Map<String, cloud.jengu.dbo.core.api.Held> differential = new java.util.LinkedHashMap<>();
         // Profiles whose rows are already here and whose snapshot is not.
@@ -1250,7 +1250,7 @@ public final class ElementStore implements FhirStoreFacade,
             }
             boolean rowsAreCurrent =
                     Long.valueOf(held.versionId()).equals(expanded.get(canonical));
-            if (rowsAreCurrent && kept.contains(canonical)) {
+            if (rowsAreCurrent && Long.valueOf(held.versionId()).equals(kept.get(canonical))) {
                 continue;
             }
             StoredObject stored = store.get("StructureDefinition", held.id()).orElse(null);
@@ -1560,7 +1560,13 @@ public final class ElementStore implements FhirStoreFacade,
         List<String> forTheView = new ArrayList<>(inventory.size());
         for (cloud.jengu.dbo.core.api.Held held : inventory) {
             String canonical = FaceBase.canonicalOf(held);
-            byte[] kept = canonical == null ? null : definitions.snapshotOf(canonical);
+            // At the version this tenant holds, never merely under this
+            // canonical. A profile that has moved on was snapshotted from
+            // what it used to say, and a view given that validates against a
+            // definition the tenant no longer holds — which is how a write
+            // its own stamp should have refused came back accepted.
+            byte[] kept = canonical == null
+                    ? null : definitions.snapshotOf(canonical, held.versionId());
             if (kept != null) {
                 forTheView.add(new String(kept, StandardCharsets.UTF_8));
                 continue;

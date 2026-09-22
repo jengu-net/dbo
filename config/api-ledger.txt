@@ -1334,13 +1334,13 @@ cloud.jengu.dbo.definitions.DefinitionStore                            findingsU
 cloud.jengu.dbo.definitions.DefinitionStore                            forget(Collection):void
 cloud.jengu.dbo.definitions.DefinitionStore                            invariantsOf(String):List
 cloud.jengu.dbo.definitions.DefinitionStore                            issuesUnder(byte[],String):OptionalLong
-cloud.jengu.dbo.definitions.DefinitionStore                            keptSnapshots():Set
+cloud.jengu.dbo.definitions.DefinitionStore                            keptSnapshots():Map
 cloud.jengu.dbo.definitions.DefinitionStore                            new(DataSource)
 cloud.jengu.dbo.definitions.DefinitionStore                            parametersOf(String):List
 cloud.jengu.dbo.definitions.DefinitionStore                            rememberSnapshot(String,String,long,byte[]):void
 cloud.jengu.dbo.definitions.DefinitionStore                            replaceAll(Collection):void
 cloud.jengu.dbo.definitions.DefinitionStore                            replaceParameters(Collection):void
-cloud.jengu.dbo.definitions.DefinitionStore                            snapshotOf(String):byte[]
+cloud.jengu.dbo.definitions.DefinitionStore                            snapshotOf(String,long):byte[]
 cloud.jengu.dbo.definitions.DefinitionStore                            theTypeItself(String):Optional
 cloud.jengu.dbo.definitions.DefinitionStore.Expanded                   base():String
 cloud.jengu.dbo.definitions.DefinitionStore.Expanded                   canonical():String
