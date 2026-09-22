@@ -20,6 +20,13 @@ import java.lang.annotation.Target;
  * every annotated enum during its component's own compilation and writes its
  * name into {@link Registry#INDEX} — no classpath is ever swept, and an
  * index regenerated on every compile cannot drift or be lost.
+ *
+ * <p><b>Read this off the enum, never off a constant's {@code getClass()}.</b>
+ * A constant with a body is an anonymous subclass, so it does not carry its
+ * enum's annotations and the lookup answers null. Where a constant is in hand,
+ * {@code getDeclaringClass()} is the enum. It cost an hour here, and it will
+ * recur anywhere something reads a marker off a constant rather than off the
+ * type that declares it.
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE)

@@ -121,12 +121,15 @@ Two questions decide this, and neither is architectural:
    than a diagram, and measure what the decision costs: objects per model, bytes per
    object, and what a single edit touches.
 
-   This question is not only this repository's.
-   [The face contract](../007-the-face-contract/README.md) has one slice left open and it is
-   the same silence from the other side: the engine's contract never had to say what one
-   object is, because FHIR answered it and the second face happened to agree. Answering it
-   here closes that slice too, and nothing else on the candidate list would — an invoice is
-   one document, so [UBL](../011-ubl-as-a-face/README.md) leaves it unmeasured.
+   **This question is not only this repository's**, and it is the last thing the face
+   contract was waiting on. The engine's contract never had to say what one object is:
+   FHIR answered it, and the second face — one payload, one object, a type the caller
+   supplies — happened to agree, so the silence went on being unmeasured while everything
+   else about the contract became measurable. Answering it here is what would measure it,
+   and nothing else on the candidate list would: an invoice is one document whose lines
+   carry no identity, so [UBL](../011-ubl-as-a-face/README.md) is FHIR-shaped in exactly
+   this respect. The contract itself is written up in
+   [engine and faces](../../arc42-008-crosscutting/engine-and-faces/README.md).
 
 A third, if the first two pass: **what marks an extra stale?** When a shared core changes in
 a way a preserved extra depended on, keeping it silently is worse than losing it. That is a
