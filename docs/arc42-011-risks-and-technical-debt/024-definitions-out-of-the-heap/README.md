@@ -433,12 +433,24 @@ converted feed only once the run that made it finished.
    **And it does not close the divergence, which is the interesting part.** The
    corpus's occurrence is not a `StructureDefinition.identifier`. It is inside
    `snapshot.element[9].example[0].value.ofType(Identifier)` — an example value
-   on an element definition, a choice inside a nested backbone. The rule fires
-   at the root and not there, so either the walk does not descend that far or
-   the element is marked unenforceable. Which of the two is the next question,
-   and it is worth more than the rule was: a check that reaches the top of a
-   document and not the inside of one is a check that reports less than it
-   appears to.
+   on an element definition.
+
+   **The walk cannot reach it, and neither can any other check.**
+   `dbo.instances` descends the `definition_element` rows down their parent
+   chain, so it goes exactly as far as the expansion did — and the expansion
+   follows the profile's own snapshot. A snapshot names an element of a complex
+   type and stops: it says `StructureDefinition.snapshot.element` is an
+   `ElementDefinition` without saying what an `ElementDefinition` holds.
+   Asserted rather than reasoned — there is no row whose path begins
+   `StructureDefinition.snapshot.element.`, and there are rows under
+   `Patient.identifier` on a profile that constrains one.
+
+   So the reach of everything in `dbo.validate` is the same: **a datatype's
+   insides are checked where a profile constrains them and nowhere else.** The
+   toolchain walks further because it holds each datatype's own definition,
+   which is one more thing the object graph is for. That is a limit worth
+   knowing before anybody counts on tier one covering a document, and it is
+   held by a test now rather than inferred from a rule that did not fire.
 
    **And the `ValueSet` turns out to name a check the database does not have.**
    Its findings are not about the binding. `dbo.binding_in` fires only where
