@@ -3,8 +3,13 @@ critical path are done and most were closed by reading rather than by work: the 
 same token copy a whole read is, framing held a context it had stopped
 reading, and a parameter's evaluability never read a definition at all. `ElementStore` has no serving reaches left: `_include` reads the edges the
 write extracted, and a tenant's conversion maps are loaded when a reshape asks
-rather than held for its life. What remains is step 8 — a write judged by the
-database rather than by `InstanceValidator` — and then the context itself.
+rather than held for its life. What remains is step 8, which is a decision rather than
+a change: `verdict: database` is built and decides, and the validator runs
+anyway as the measurement, so no memory moves until a store may stop running a
+second validator. Over 258 documents the database has never refused what the
+toolchain accepted — `onlyTheDatabase` is zero everywhere — and the five it
+misses are each accounted for. That is a promise question and it is stated
+below rather than taken.
 None of it is a megabyte yet — a context held for any
 reason is held whole — which is the point of reading the path rather than the
 list. A version's definitions are parsed into a HAPI object
@@ -349,7 +354,7 @@ dependency between them nowhere.
 | 5 | ~~**Framing and rendering from stored JSON**~~ **Closed by 4**, not by work of its own: framing already wrote the Bundle shape directly, and the rendering it delegates to stopped needing a context | three of `ElementStore`'s four serving reaches | — |
 | 6 | ~~**Decide where `_include` resolves**~~ **The edges, built.** They are extracted on write and keyed by the parameter's own name; the policy half stays with [item 021](../021-asking-the-store/README.md) | `ElementStore`'s fourth and last serving reach | — |
 | 7 | ~~**A StructureMap becomes a conversion-time concern**~~ **Built.** A reshape is an operator asking once, so the maps are loaded when one runs rather than held for a tenant's life | the tenant context's maps on the serving path | — |
-| 8 | **Types declare `verdict: database`** | `InstanceValidator`, the largest serving reach | the database answering tier one, which it does; the divergence baseline says how far |
+| 8 | **Stop RUNNING the toolchain, not just stop believing it** — `verdict: database` is built and decides; the validator runs anyway, as the measurement | `InstanceValidator`, the largest serving reach | a decision about what this store promises, stated below |
 | 9 | **Delete the context** | the 225 MB, and the 101 with it | 1–8, because a context held for any reason is held whole |
 
 **Nothing on it is the 444 MB until all of it is done**, which is the item's
@@ -430,7 +435,57 @@ found it somewhere cheaper — which is now the rule rather than the surprise:
 **five of the nine moves have come off this list by being read.**
 
 **The branch points are 4 and 8**, and 4 is done, so what is left that can be
-wrong before a megabyte moves is step 8. Everything before 4 is derivation moving to
+wrong before a megabyte moves is step 8.
+
+## Step 8 is a decision, and here is what it rests on
+
+**`verdict: database` is built.** A type can declare it, `whoDecides` returns
+the database's own sentences — path, rule and detail — and a type declared that
+way whose definitions the tenant does not hold keeps the toolchain's answer
+rather than being accepted by silence.
+
+**And it removes nothing**, because the toolchain still runs on every write.
+That is deliberate and it is written where it is done: *the comparison above
+still runs and is still counted; what a declared verdict moves is the decision,
+not the measurement, so a tenant that switched a type can still see what the
+two made of every write.* So `InstanceValidator` — the largest serving reach —
+is held by the measurement rather than by the verdict, and the memory does not
+move until the measurement stops.
+
+**What the measurement says, over 258 documents:**
+
+| | compared | only the toolchain | only the database |
+|---|---|---|---|
+| eight types | 176 | **0** | **0** |
+| `StructureDefinition` | 40 | 2 | 0 |
+| `StructureMap` | 2 | 2 | 0 |
+| `ValueSet` | 40 | 1 | 0 |
+
+**`onlyTheDatabase` is zero everywhere.** Across every type and every document,
+the database has never refused something the toolchain accepted. The whole risk
+of switching is in one direction — under-refusing — and it is five documents.
+
+**And the five are named, which is the part that makes this a decision rather
+than a gap.** One is `cid-0`, which the toolchain cannot evaluate either and
+reports as *the name 'name' is not valid for any of the possible types*. One is
+an identifier inside `snapshot.element[].example[].value`, which no check here
+can reach: a datatype's insides are checked where a profile constrains them and
+nowhere else, and that limit is held by a test. Two are StructureMaps checked as
+programs — an unknown source context, a target path not on the type — which is
+a program checker the database is not trying to be. One is a code absent from a
+held code system, which needs `definitions.term_system` to record a system's
+`content` before the database can honestly ask.
+
+**So the question to answer is not "is the divergence zero".** It is whether a
+store may stop running a second validator when, over everything a version
+publishes, the two agree except for five documents whose disagreements are each
+accounted for and none of which is the database being wrong. Two of the five
+are the toolchain doing something this store has decided not to do; one is a
+stated limit of where checking reaches; one waits on a column.
+
+That is a promise question — it changes what a write is judged by — and it is
+not one to take while writing the step that benefits from it. It is put here so
+it is decided rather than arrived at. Everything before 4 is derivation moving to
 a cut that already exists, which is mechanical. Step 4 is the first thing that
 changes what a serving request does, and step 8 is the first that changes what
 a write is judged by. If either turns out to be wrong, it is wrong before any
