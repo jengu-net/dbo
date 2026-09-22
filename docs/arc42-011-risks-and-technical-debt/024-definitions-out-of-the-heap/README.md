@@ -81,34 +81,62 @@ holds and the database answers from. What remains loaded, by that same comment,
 is the version's own structures, its search parameters, and the code systems
 the core package itself carries.
 
-## What still asks for the context
+## What the database already answers
 
-Read off the call sites rather than assumed. Five things hold a
-`SimpleWorkerContext` today:
+Read off the SQL and the recorded baselines, not off an impression.
 
-| Holder | What it wants |
-|---|---|
-| `ElementFetcher`, `ElementHostServices` | the validator's view: fetch a definition, answer what the host knows |
-| `TenantContext.cacheProfile` | snapshotting a profile so it can be validated against |
-| `ElementFraming`, `ElementAncestors` | framing and rendering a document — bundles, history, export |
-| `ElementEnvelopes` | extracting the envelope in the JVM |
-| `WithoutNarrative` | loading a package into the context in the first place |
+| Function | Where it is answered | How close the two are |
+|---|---|---|
+| cardinality, fixed and pattern values, primitives | `dbo.cardinality_in`, `dbo.value_in`, `dbo.primitive_in` | — |
+| a coded value is in the value set its binding names | `dbo.binding_in`, joining the tenant's terminology | — |
+| a reference points at a record this store holds | `dbo.reference_in`, joining the records | — |
+| a rule an element carries | `dbo.invariant_in`, from the path compiled at arrival | — |
+| all of the above, under one name | `dbo.validate` | **258 documents compared, 10 divergences, 0 the database invented** |
+| a document's search envelope | `dbo.envelope` and friends | **100 documents compared, 0 differing** |
+| indexing a definition as it arrives | `DefinitionEnvelopes`, from the JSON | identical over every definition every face publishes |
+| an ordinary read | `ElementAncestors.rendered` copies JSON tokens | no definitions touched at all |
 
-The last one goes when the others do. The fourth is the reference
-implementation the database's extraction is compared against, and a reference
-implementation is not a production cost if nothing in a serving deployment
-constructs it — which is a question, not a claim.
+The read is worth dwelling on: the plain path already avoids the element
+model, and the comment says why — re-rendering through it drops an element the
+version does not define, so a document stored under one version comes back
+smaller. The context parameter it takes is used by one branch, `_elements`.
+
+**And the ten divergences are classified, one by one, in the baseline itself.**
+Three rules the validator carries in its own code and no definition states — a
+canonical url must be absolute, a uuid must be lowercase — over six documents.
+A StructureMap checked as a program rather than as a document. One toolchain
+defect. One code the tenant's terminology does not hold. Nothing compiled from
+definitions can produce the first group, and nothing about the others is a
+statement about shape.
+
+## What still asks for the object graph
+
+| Holder | What it wants | Needed while serving, or only at arrival? |
+|---|---|---|
+| `ElementPayloads.read` | parsing FHIR JSON into an `Element` | serving — everything below inherits it |
+| `InstanceValidator` | slicing, profile conformance, the rules above | serving, on every write |
+| `TenantContext.cacheProfile` | snapshotting a profile before it can be validated against | **arrival** |
+| `ElementAncestors.projected` | `_elements` — parse and re-compose | serving, one branch of read |
+| `ElementEnvelopes.extract` | FHIRPath over a parsed document | to be established — the database does this too |
+| version conversion | R4 ↔ R5 over the model | **arrival**, and a zone hop |
+| the parity references | being the answer the database is compared against | tests |
+
+**The column on the right is the plan.** A context needed only when a
+definition arrives can be built, used and dropped; one needed while serving
+must stay resident for as long as a tenant is up. Splitting the holders on that
+line is worth more than any single removal, because everything on the arrival
+side stops costing steady-state memory without anything being reimplemented.
 
 ## The sequence
 
-1. **Split the 226 MB.** Structures, search parameters, core code systems: one
+1. **Split the holders by arrival against serving**, which is the table above
+   with its last column filled in. Two entries are already arrival-only and one
+   is unknown; establishing that is reading, not building, and it decides
+   whether this item is large or small.
+2. **Split the 226 MB.** Structures, search parameters, core code systems: one
    run with the histogram already built for item 023, counting instances by
-   package rather than guessing. The order of everything below follows from
-   which of the three is large.
-2. **Say who constructs a context in a serving deployment**, as against in a
-   test. The envelope parity check builds one deliberately; if that is its only
-   caller outside a test, one of the five holders costs nothing in production
-   and the item is smaller than it looks.
+   package rather than guessing. What is left after step 1 is what this
+   measures.
 3. **Snapshot at arrival.** A profile is snapshotted so it can be validated
    against, and a snapshot is derived data like the element rows beside it.
    Deriving it once when the definition arrives and storing it is the same move
