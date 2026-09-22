@@ -1,7 +1,8 @@
 **Open. Nothing is built. A version's definitions are parsed into a HAPI object
-graph and held while a tenant serves — 225 MB from the carried packages, 101 MB
-from the records-backed base, and the second number is a smaller waste rather
-than an answer. The aim is a serving process holding neither. Three of the four
+graph and held while a tenant serves. The criterion is that a new face must not
+cost another hundred megabytes; measured, **a second face costs 444**, on top of
+225 for the first. The aim is a serving process holding neither the carried
+graph nor the records-backed one. Three of the four
 pieces are already there: the definitions are a schema the face's SQL reads,
 the database answers tier one and the envelope at parity, and a face is cut
 once per release into an image of everything derived from them. Next: say what
@@ -166,7 +167,8 @@ on exactly this sentence, and recorded in `config/memory-baseline.txt`:
 | a served tenant, carried packages | **225** |
 | a second tenant on that carried context | 11 |
 | a face root holding the version as records | **101** |
-| a tenant serving from that face base | **3** |
+| a tenant serving from that face base | **4** |
+| **a second face served** | **444** |
 
 **The records-backed path is 101 MB against 225, and a tenant on it is 3 MB
 against 11.** Better than half off, on a mechanism that is already written,
@@ -222,6 +224,23 @@ is what runs in the phase that keeps dying.
 shared world's tenants can take their face from a root the way the sample
 world's do. That is a test-world change, it is reversible, and the instrument
 to say whether it worked is already recording.
+
+## What done looks like
+
+**A new face must not cost another hundred megabytes.** That is the criterion,
+and it is the one number above that nobody had taken: serving a second version
+after the first costs **444 MB**, measured, which is not a hundred but four
+hundred. R5 carries more than R4 does and the validator that reads it is the
+one the build already gives two gigabytes to.
+
+So the cost of this store scales with the versions it serves, before a single
+tenant exists on them. Three faces is most of a gigabyte and it is the whole of
+the ceiling item 023 keeps hitting. A store whose pitch is that several
+versions serve at once over one engine cannot have "and each one costs half a
+gigabyte" as a footnote.
+
+`aSecondFaceServed` is in `config/memory-baseline.txt` now, so the number has
+somewhere to fall. Done is when it is small enough not to be interesting.
 
 ## The aim is no toolchain in the runtime
 

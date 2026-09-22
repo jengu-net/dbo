@@ -37,4 +37,5 @@ theFirstValidatedWrite 0
 theRestOfTheValidatorPool 36
 aSecondTenantOnTheSameFace 11
 aFaceRootHoldingTheVersionAsRecords 101
-aTenantServingFromTheFaceBase 3
+aTenantServingFromTheFaceBase 4
+aSecondFaceServed 444

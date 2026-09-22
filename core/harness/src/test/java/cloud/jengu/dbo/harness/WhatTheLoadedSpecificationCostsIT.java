@@ -133,6 +133,14 @@ class WhatTheLoadedSpecificationCostsIT {
         System.out.println("MEASURED bases built " + (ElementVersion.baseBuilds() - basesBefore)
                 + ", carried contexts built " + (ElementVersion.contextBuilds() - contextsBefore));
 
+        // A SECOND FACE, which is the number that decides whether this store
+        // can serve many versions at once. Everything above measures what
+        // another tenant costs; this measures what another VERSION costs, and
+        // a deployment serving three faces pays it twice over before a tenant
+        // exists. The target is that it stops being a number at all.
+        serveOn("teine-nagu", "r5");
+        long aSecondFace = heapInUse();
+
         Map<String, Long> now = new LinkedHashMap<>();
         // Deltas only, and the absolute floor deliberately not among them.
         // This runs inside a suite that shares one JVM, so what is resident
@@ -146,6 +154,7 @@ class WhatTheLoadedSpecificationCostsIT {
         now.put("aSecondTenantOnTheSameFace", mb(twoTenants - afterThePool));
         now.put("aFaceRootHoldingTheVersionAsRecords", mb(aRoot - twoTenants));
         now.put("aTenantServingFromTheFaceBase", mb(onTheBase - aRoot));
+        now.put("aSecondFaceServed", mb(aSecondFace - onTheBase));
 
         String rendered = PREAMBLE + asLines(now);
         if (Boolean.getBoolean("dbo.memory.record")) {
@@ -177,6 +186,16 @@ class WhatTheLoadedSpecificationCostsIT {
                  "types":[
                   {"name":"Patient","identity":"internal","handling":"operational"}]}"""
                 .formatted(code));
+        UntilServed.scan(manager, code);
+    }
+
+    /** The same as {@link #serve}, on whichever face is named. */
+    private void serveOn(String code, String face) throws Exception {
+        Files.writeString(dir.resolve(code + ".json"), """
+                {"code":"%s","face":"%s","audit":{"level":"none"},
+                 "types":[
+                  {"name":"Patient","identity":"internal","handling":"operational"}]}"""
+                .formatted(code, face));
         UntilServed.scan(manager, code);
     }
 
