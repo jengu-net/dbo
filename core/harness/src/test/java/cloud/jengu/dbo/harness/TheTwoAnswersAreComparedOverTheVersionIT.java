@@ -82,6 +82,11 @@ class TheTwoAnswersAreComparedOverTheVersionIT {
     @Proving(DboPromises.VAL_DIVERGENCE_IS_MEASURED_OVER_THE_VERSION)
     void theyDisagreeAboutNoMoreThanWasRecorded() throws Exception {
         Map<String, int[]> perType = new TreeMap<>();
+        // Written to a file rather than printed. A test's standard output goes
+        // nowhere by default and this task forwards none of it, so a naming
+        // that printed would be a naming nobody reads — which is how the
+        // recording flag above spent a while doing nothing.
+        StringBuilder named = new StringBuilder();
         int compared = 0;
         for (Map.Entry<String, List<FaceRootPackages.Definition>> ofType : corpus().entrySet()) {
             String canonical = definitions.theTypeItself(ofType.getKey()).orElse(null);
@@ -97,10 +102,29 @@ class TheTwoAnswersAreComparedOverTheVersionIT {
                 compared++;
                 if (toolchainFound != databaseFound) {
                     tally[toolchainFound ? 1 : 2]++;
+                    // What the tally cannot say: WHICH finding. A count of
+                    // documents orders the work and never names it, so the
+                    // findings are printable on request — the ten are read one
+                    // by one and the reading is what the baseline's own preamble
+                    // is made of.
+                    if (Boolean.getBoolean("dbo.divergence.name")) {
+                        named.append(ofType.getKey()).append("  ")
+                                .append(toolchainFound ? "onlyTheToolchain" : "onlyTheDatabase")
+                                .append(System.lineSeparator())
+                                .append(saidBy(document.document(), toolchainFound, canonical))
+                                .append(System.lineSeparator())
+                                .append(System.lineSeparator());
+                    }
                 }
             }
         }
         assertTrue(compared > 200, "only " + compared + " documents were compared");
+        if (Boolean.getBoolean("dbo.divergence.name")) {
+            Path where = Path.of("build", "divergence-findings.txt");
+            Files.createDirectories(where.getParent());
+            Files.writeString(where, named.toString());
+            System.out.println("divergence findings written: " + where.toAbsolutePath());
+        }
 
         String observed = asLines(perType);
         Path baseline = BASELINE.toAbsolutePath().normalize();
@@ -157,6 +181,21 @@ class TheTwoAnswersAreComparedOverTheVersionIT {
         return byType;
     }
 
+    /** The errors the side that found something reported, for reading. */
+    private String saidBy(byte[] document, boolean toolchain, String canonical) {
+        try {
+            if (!toolchain) {
+                return "the database found "
+                        + definitions.issuesUnder(document, canonical).orElse(0);
+            }
+            String outcome = tenant.store()
+                    .validationOutcome(new String(document, StandardCharsets.UTF_8));
+            return outcome.length() > 1500 ? outcome.substring(0, 1500) + "…" : outcome;
+        } catch (RuntimeException refused) {
+            return "refused: " + refused.getMessage();
+        }
+    }
+
     private boolean theToolchainRefuses(byte[] document) {
         try {
             String outcome = tenant.store()
@@ -186,7 +225,7 @@ class TheTwoAnswersAreComparedOverTheVersionIT {
             # toolchain and acts on nothing, and the whole case for it answering at
             # all is that it answers the same.
             #
-            # What the remaining ten are, read one by one — and read by the findings that
+            # What the remaining FIVE are, read one by one — and read by the findings that
             # actually decided each one. An outcome carries everything the face has to say,
             # warnings included; only error and fatal decide this count, and the first
             # sentence in an outcome is usually neither.
@@ -194,9 +233,14 @@ class TheTwoAnswersAreComparedOverTheVersionIT {
             # RULES THE VALIDATOR CARRIES IN ITS OWN CODE, which no definition states: a
             # canonical url must be absolute, a uuid must be lowercase, an identifier under
             # urn:ietf:rfc:3986 must be a full uri. Three rules over six documents, and the
-            # absolute-url one accounts for eighteen findings by itself. Nothing compiled
+            # absolute-url one accounted for eighteen findings by itself. Nothing compiled
             # FROM the definitions can produce these, and compiling invariants did not move
             # them by one.
+            #
+            # TWO OF THE THREE ARE WRITTEN NOW, in dbo.admits beside the primitive forms:
+            # a uuid is lowercase and a canonical carries a scheme. That closed every
+            # CapabilityStatement — five documents, and the count with them. What a
+            # definition cannot state, somebody states once.
             #
             # A STRUCTUREMAP CHECKED AS A PROGRAM rather than as a document: a source or
             # target context must be one the map declared, and a target path must exist on
@@ -215,9 +259,16 @@ class TheTwoAnswersAreComparedOverTheVersionIT {
             # carrying the content and would not have moved however many invariants were
             # compiled.
             #
-            # So the ceiling that "the specification is data" runs into is the first group
-            # and only it — three rules, hard-coded, over six documents. The rest is a
-            # program checker, a defect in the toolchain, and a gap in what is loaded.
+            # So the ceiling that "the specification is data" runs into was the first group
+            # and only it, and two thirds of that group is now written down. What is left
+            # is a program checker, a defect in the toolchain, and a gap in what is loaded
+            # — none of which a checker built from StructureDefinitions was ever going to
+            # answer.
+            #
+            # Which of the five is which is printable rather than remembered:
+            #     ./gradlew :core:harness:test --tests '*TheTwoAnswersAreCompared*' \
+            #         -Ddbo.divergence.name=true
+            #     cat core/harness/build/divergence-findings.txt
             """;
 
     private static String asLines(Map<String, int[]> perType) {

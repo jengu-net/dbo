@@ -199,6 +199,14 @@ tasks.test {
     // nothing is worse than one nobody asked for.
     System.getProperty("dbo.heap.attribute")?.let { systemProperty("dbo.heap.attribute", it) }
     System.getProperty("dbo.heap.histogram")?.let { systemProperty("dbo.heap.histogram", it) }
+    // Same reason, and it had the same silence: the divergence baseline said
+    // re-record with -Ddbo.divergence.record=true, the flag stopped here, and
+    // the run compared against the old file and passed. A recording that
+    // quietly does nothing leaves a ratchet reading like a measurement.
+    System.getProperty("dbo.divergence.record")?.let {
+        systemProperty("dbo.divergence.record", it)
+    }
+    System.getProperty("dbo.divergence.name")?.let { systemProperty("dbo.divergence.name", it) }
     filter.excludeTestsMatching("*ServerDistIT")
     filter.excludeTestsMatching("*WhatTheLoadedSpecificationCostsIT")
     shouldRunAfter(distTest)
