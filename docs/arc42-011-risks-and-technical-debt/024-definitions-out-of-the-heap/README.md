@@ -9,8 +9,10 @@ once per release into an image of everything derived from them. Conversion as a
 published step is read out now: a version converter holds no definitions at
 all, so it can leave a tenant, while a shape converter resolves a map the
 tenant holds and cannot — and what leaving saves is a projection **tenant**
-rather than a context, which is more than the sketch claimed. Next: the
-snapshot into the cut.**
+rather than a context. Which also takes conversion off the path to deleting
+the context: it was the one thing on that list nobody could see the end of, and
+it was never on it. The path is written out now, nine moves with no partial
+win, and the first is the snapshot into the cut.**
 
 # Definitions out of the heap
 
@@ -312,6 +314,53 @@ already locate. Conversion is a program over a model, it runs when a zone hands
 content to a tenant on another version, and no part of it is answered in the
 database today.
 
+**And it is not on the path to deleting the context**, which the row above got
+wrong by grouping it with the rest. Read out in step 4: a version converter is
+`VersionConvertorFactory_40_50` over two object models and holds no
+`SimpleWorkerContext` at all. It keeps HAPI's r4 and r5 model classes resident
+and it keeps no definitions. So conversion blocks *no toolchain in the
+runtime*, which is the larger aim, and blocks nothing in the list below. The
+shape converter is the one that holds a context, and it holds the **tenant's**
+own — which is a different object from the version's and goes when the tenant's
+own held maps stop being executed in the serving process.
+
+## The critical path
+
+The sequence below is ordered by what has to exist first. The list above is
+what has to move; this is the order it moves in, and what each removal buys.
+Written out because the item carried the pieces in three tables and the
+dependency between them nowhere.
+
+| # | Move | Removes | Needs |
+|---|---|---|---|
+| 1 | **Snapshot into the cut** — generate it where the image is made and carry it | `cacheProfile`'s differential expansion, an *arrival* reach | the cut, which exists |
+| 2 | **A parameter's expression checked at the cut** — whether a stored `SearchParameter` is evaluable, the other two arrival reaches | the last two arrival reaches | 1, same machinery |
+| 3 | **The three rules** — canonical absolute, uuid lowercase, identifier under `urn:ietf:rfc:3986` a full uri | the validator's own code as a reason to hold a context | nothing; two are written and proven, the third is written |
+| 4 | **`_elements` from the rows** — a projection over the stored JSON, located by the jsonpaths the element rows already carry | `ElementAncestors.projected`, one serving branch | nothing |
+| 5 | **Framing and rendering from stored JSON** — putting the engine's facts back without the element model | three of `ElementStore`'s four serving reaches | 4, which is the same projection |
+| 6 | **Decide where `_include` resolves** | `ElementStore`'s fourth serving reach | a decision, and [item 021](../021-asking-the-store/README.md) is deciding the same thing for joins |
+| 7 | **A StructureMap checked as a program becomes an ingest concern** | the tenant context's maps on the serving path | 1–2, the same cut |
+| 8 | **Types declare `verdict: database`** | `InstanceValidator`, the largest serving reach | the database answering tier one, which it does; the divergence baseline says how far |
+| 9 | **Delete the context** | the 225 MB, and the 101 with it | 1–8, because a context held for any reason is held whole |
+
+**Nothing on it is the 444 MB until all of it is done**, which is the item's
+own sentence and is the reason to read the path rather than the list: there is
+no partial win. Eight removals buy nothing measurable and the ninth buys all of
+it.
+
+**Two are not this item's to decide.** Step 6 is the same question item 021 is
+answering for joins, and whichever answers first answers for both. Step 8 rests
+on the divergence baseline — five divergences left, one of which needs a column
+`definitions.term_system` does not have — and that is measurement this item
+already records rather than work it has to schedule.
+
+**The branch points are 4 and 8.** Everything before 4 is derivation moving to
+a cut that already exists, which is mechanical. Step 4 is the first thing that
+changes what a serving request does, and step 8 is the first that changes what
+a write is judged by. If either turns out to be wrong, it is wrong before any
+memory has been saved — which is the argument for doing them early rather than
+saving them for last.
+
 ## How steps pipe together
 
 Before the conversion case, the general one, because the conversion case is an
@@ -549,7 +598,9 @@ converted feed only once the run that made it finished.
    make the check possible, and it is a column rather than a design.
 
 6. **Snapshot into the cut**: generate it where the image is made and carry it,
-   so `cacheProfile` has nothing to build.
+   so `cacheProfile` has nothing to build. This and everything after it are
+   ordered in *The critical path* above, with what each removal buys and what
+   it needs first.
 7. **`_elements` from the rows**, which removes the last reader of the element
    model on the serving path.
 8. **Then delete the context**, and with it the carried-against-base question
