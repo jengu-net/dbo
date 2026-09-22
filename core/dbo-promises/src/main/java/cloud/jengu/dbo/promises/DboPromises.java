@@ -1332,7 +1332,12 @@ public enum DboPromises implements Promise {
             + "What nothing here can judge is reported by nobody — a code from a system this "
             + "tenant does not hold, a reference to another server or to something contained "
             + "in the document — because unresolvable is not invalid. The checks read rows "
-            + "and name no FHIR version, so one set of them serves every face."),
+            + "and name no FHIR version, so one set of them serves every face. They "
+            + "reach as far as the rows go and no further: a definition is expanded "
+            + "from the profile's own snapshot, and a snapshot names an element of a "
+            + "complex type without saying what that type holds — so a datatype's "
+            + "insides are answered where a profile constrains them and are silent "
+            + "where none does."),
     TEN_A_TENANT_COMES_UP_FROM_THE_FACE_IMAGE(
             "A face is cut once per release into an image of its definitions schema, and a "
             + "tenant coming up on that face is brought up from the image rather than "
