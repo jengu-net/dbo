@@ -1,9 +1,10 @@
-**Open. A product building a screen has no vocabulary for asking this store a
-question — not about runs and the trail, and not about the records a list
-screen is made of. The in-JVM binding is most of the way there already and
-unnamed: a tenant registers its `ObjectStore` on the whiteboard, so what a
-consumer gets is an engine handle and `Criteria`. Next: settle what asking is,
-as against reaching, then the vocabulary.**
+**Open. The vocabulary exists with two bindings a caller cannot tell apart, and
+that is now true of work as well as records: the surface serves a run search,
+and what both hand back is an `Ongoing` — the seven fields of a run that a
+rendering carries — rather than a `Run` whose other eleven only one binding
+could fill. The guide chapter reads over a ward the sample compiles. Next: the
+observer seam's own chapter section, and whether a free kind of question
+belongs in the vocabulary at all.**
 
 # Asking the store a question
 
