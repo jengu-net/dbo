@@ -219,6 +219,21 @@ public final class PromiseProjection {
         // the rendered document not mention them.
         java.util.List<String> homeless = new java.util.ArrayList<>();
         for (Promise promise : model.promises()) {
+            // A gap has no area to belong to and never did. Its code is
+            // synthetic and carries the DECLARING catalogue's namespace, so it
+            // matches no REQ-DBO area prefix and this check called every one of
+            // them homeless — which made Promise.gap unusable anywhere, in a
+            // model whose own PRM-GAP-IS-FIRST-CLASS says unstated ground is
+            // named rather than silent. It is placed below by gapsFor, through
+            // the classification that declares it.
+            if (promise.gap()) {
+                // Still refused when it has nowhere to go, or the silent
+                // omission this check exists to stop simply moves to gaps.
+                if (firstSectionOf(model, promise, sections) == null) {
+                    homeless.add(model.codeOf(promise));
+                }
+                continue;
+            }
             String code = model.codeOf(promise);
             if (sections.keySet().stream().noneMatch(p -> code.startsWith("REQ-DBO-" + p + "-"))) {
                 homeless.add(code);
@@ -248,22 +263,53 @@ public final class PromiseProjection {
             out.append('\n').append(section.getValue())
                     .append("\n| REQ | Promise | Status | Proven by |\n|---|---|---|---|\n")
                     .append(tables.getOrDefault(section.getKey(), new StringBuilder()));
-            gapsFor(model, section.getKey(), out);
+            gapsFor(model, section.getKey(), sections, out);
         }
         return out.append('\n').toString();
     }
 
+    /**
+     * Where a gap is rendered: the section of the FIRST named promise its
+     * declarer lists. Null when the declarer names nothing with a section,
+     * which is a gap with no home and is refused above rather than dropped
+     * here.
+     *
+     * <p>The declarer's own order, not this file's. Walking the section list
+     * instead would file a gap under whichever of the declarer's areas happens
+     * to be printed earliest, which for a quality declaring scaling promises
+     * and one container promise put a missing performance figure under
+     * container and embedding.
+     */
+    private static String firstSectionOf(Registry.Model model, Promise gap,
+            Map<String, String> sections) {
+        for (cloud.jengu.dbo.promise.Classified declarer : model.declaring(gap)) {
+            for (Promise declared : declarer.promises()) {
+                if (declared.gap() || !(declared instanceof DboPromises named)) {
+                    continue;
+                }
+                for (String prefix : sections.keySet()) {
+                    if (named.code().startsWith("REQ-DBO-" + prefix + "-")) {
+                        return prefix;
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
     /** Gaps declared by classifications whose promises live in this section. */
-    private static void gapsFor(Registry.Model model, String prefix, StringBuilder out) {
+    private static void gapsFor(Registry.Model model, String prefix, Map<String, String> sections,
+            StringBuilder out) {
         for (Promise promise : model.promises()) {
             if (!promise.gap()) {
                 continue;
             }
-            boolean besideThisSection = model.declaring(promise).stream()
-                    .flatMap(c -> c.promises().stream())
-                    .anyMatch(p -> !p.gap() && (p instanceof DboPromises named)
-                            && named.code().startsWith("REQ-DBO-" + prefix + "-"));
-            if (besideThisSection) {
+            // The FIRST section its declarer touches, not every one. A
+            // classification that crosses areas — a quality does so by
+            // definition — would otherwise have its gap rendered once per area,
+            // and a catalogue that lists the same hole four times is telling a
+            // reader there are four.
+            if (prefix.equals(firstSectionOf(model, promise, sections))) {
                 out.append("| ").append(model.codeOf(promise))
                         .append(" | *gap: ").append(promise.text())
                         .append("* | GAP |  |\n");

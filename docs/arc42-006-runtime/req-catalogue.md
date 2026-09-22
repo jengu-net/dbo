@@ -347,6 +347,7 @@ deliberately have no REQs yet — they get them when scheduled.
 | REQ-DBO-SCAL-TRANSPARENT-ROUTING | Planned — Callers look up a tenant's service in the registry; local instance or remote proxy is indistinguishable. | PLANNED |  |
 | REQ-DBO-SCAL-TWO-HOP-LOCALITY | Planned — Requests enter at the closest public node (Kubernetes locality), then route to the serving pod (tenant assignment). | PLANNED |  |
 | REQ-DBO-SCAL-NO-SHARED-STATE-BROKER | Planned — The architecture requires no Redis-class shared-state service. | PLANNED |  |
+| QUAL-DBO-GAP-dee11944 | *gap: Throughput and latency on the production serving path, on stated reference hardware, against a stated workload — so a reader can compare rather than take the shape on trust.* | GAP |  |
 
 ## TERM — terminology
 

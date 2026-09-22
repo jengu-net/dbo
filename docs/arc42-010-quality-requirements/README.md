@@ -49,14 +49,18 @@ about one of them — and nothing could notice, because a table is a list
 somebody keeps in step by hand. That is the argument for the section below
 stated better than the section states it.
 
-The goals above are matched to areas by reading, and the table is still the
-hand-kept thing that lost a row. What has changed is that the declaration now
-exists beside it: each of the twelve is a Quality naming the promises that
-fulfil it, in the sense arc42 chapter 10 and ISO 25010 use the word. Nothing
-reads those declarations yet — the catalogue projection places a promise
-through the area that owns it, and a quality crosses areas — so no coverage is
-computed for a goal and nothing fails when one loses its last proof. The table
-above is what a reader has until it is.
+The table above is still the hand-kept thing that lost a row. What has changed
+is that the declaration now exists beside it: each of the twelve is a Quality
+naming the promises that fulfil it, in the sense arc42 chapter 10 and ISO 25010
+use the word, and the promise report folds each one's coverage from the
+statuses of those promises. Performance reads 1 of 6 there, the sixth being the
+figures nobody has taken, declared as a gap so that the goal counts its own
+hole.
+
+What is not yet true is that this page says any of it. The fold is computed
+where a build reports, not where a reader of the specification arrives, and
+until this table is projected from the same model it remains a list somebody
+keeps in step by hand.
 
 Performance is the goal this costs most. The bench runner exists and carries
 the discipline a measurement needs; the figures that would let a reader

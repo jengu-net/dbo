@@ -1,8 +1,9 @@
-**Open. The twelve goals are declared now, one Quality each, naming the
-promises that fulfil it — so a goal's coverage can be folded rather than read
-off a table somebody keeps in step. Nothing folds it yet: the projection walks
-areas and a quality crosses them. Next: render the qualities, and replace the
-tree's hand-written table with that.**
+**Open. The twelve goals are declared, one Quality each, and the promise
+report folds each one's coverage — performance reads 1/6, its sixth entry
+being the gap where the figures are not taken. What is not folded is the
+quality tree itself: its table is still hand-kept, and it is the page a reader
+of the specification arrives at. Next: project that table from the model,
+under the ratchet the requirement catalogue is under.**
 
 # Quality coverage is not folded
 
@@ -29,27 +30,40 @@ its last proof.
    the promises that fulfil it.~~ Done. Twelve constants, and the promises are
    chosen rather than swept in by area: an area is where a promise lives, a
    quality is what would stop being true without it.
-2. Give a quality somewhere to be rendered. The projection places every promise
-   through the area that owns it and refuses to render a catalogue that would
-   silently omit one — correctly — so a quality, which crosses areas by
-   definition, currently reaches nothing. This is what the reach ledger records
-   against the new enum, and it is the next step rather than a defect in it.
+2. ~~Make a declared hole renderable.~~ Done, and it was a defect in the
+   projection rather than a missing feature: see below.
 3. Replace the tree's hand-written table with the projection, under the same
-   ratchet the requirement catalogue is under.
+   ratchet the requirement catalogue is under. This is the step that makes the
+   fold visible where a reader of the specification will meet it — the report
+   already computes it, and the report is not the quality chapter.
 4. Take the performance figures the goal asks for, which is
-   [item 015](../015-the-comparative-load-test/README.md), and cite them from
-   the quality that needs them.
+   [item 015](../015-the-comparative-load-test/README.md). The gap the quality
+   now declares is what that work closes, and it counts against the goal until
+   it does.
 
 ## What the declaring turned up
 
-**The performance goal's hole cannot be declared yet, and that is the same
-shape as the problem above.** What that goal asks for is a number on stated
-hardware and none has been taken, so it belongs in the list as a gap — which is
-what a gap is for, and what counts an unstated promise against coverage. But a
-gap is reachable only from the classification that declares it, and step 2 is
-exactly the reason that does not work. Declaring it would have failed the
-projection rather than quietly under-reporting, which is the ratchet behaving
-as designed.
+**No gap could be declared anywhere, and nobody had noticed because none had
+been.** `Promise.gap` is a first-class part of the model —
+REQ-DBO-PRM-GAP-IS-FIRST-CLASS promises that unstated ground is named rather
+than silent — and the requirement-catalogue projection refused every one of
+them. Its guard against a promise belonging to no section compared codes
+against the area prefixes, and a gap's code is synthetic and carries the
+declaring catalogue's namespace, so it matched nothing and was reported as
+homeless. The guard is right to exist: it was added after six identification
+promises were rendered into nothing. It was simply asking the wrong question of
+a gap, which has no area by construction and is placed through its declarer.
+
+The fix is three lines and a second guard, so the silence does not move: a gap
+is exempt from the prefix check and refused instead when its declarer names
+nothing that has a section. A gap is now rendered once, in the section of the
+first promise its declarer lists — the declarer's order rather than the
+projection's, because walking the section list filed a missing performance
+figure under container and embedding, which is where that quality's last
+promise happens to live rather than what the hole is about.
+
+**So the performance goal now says what it lacks.** Its coverage reads 1/6,
+and the sixth line is the figures nobody has taken.
 
 ## What this is not
 

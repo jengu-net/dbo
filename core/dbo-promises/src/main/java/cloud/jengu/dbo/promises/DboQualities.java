@@ -20,16 +20,11 @@ import java.util.List;
  * goal's coverage is folded from those statuses rather than asserted here. A
  * goal that loses its last proof now shows as a goal that lost it.
  *
- * <p><b>One hole is not declared here, and it is the performance goal's.</b>
- * What that goal asks for is a number on stated hardware, and none has been
- * taken. It belongs in the list below as a gap — that is what a gap is for —
- * but a gap is reachable only from the classification that declares it, and
- * the catalogue projection places a promise through the area that owns it. A
- * quality crosses areas by definition, so a gap declared by one lands nowhere
- * and the projection refuses to render a catalogue that would silently omit
- * it. It is refusing correctly. Until a quality is a section of its own, the
- * hole is where it already was: the quality tree says the figures are not
- * taken, and taking them is its own item.
+ * <p><b>One goal declares a hole rather than promises.</b> Performance asks
+ * for a number on stated hardware and none has been taken, so it carries a
+ * gap: named ground nobody has made true, counting against that goal's own
+ * coverage instead of letting the promises about the shape performance comes
+ * from read as though the figures existed.
  *
  * <p>The promises are chosen rather than swept in by area. An area is where a
  * promise lives; a quality is what would stop being true without it, which is
@@ -137,7 +132,17 @@ public enum DboQualities implements Quality {
                     DboPromises.SCAL_SINGLE_WRITER_TENANT,
                     DboPromises.SCAL_TRANSPARENT_ROUTING,
                     DboPromises.SCAL_TWO_HOP_LOCALITY,
-                    DboPromises.CONT_FAST_COLD_START)),
+                    DboPromises.CONT_FAST_COLD_START,
+                    // The goal asks for a number, and no number has been taken.
+                    // Named here rather than left to the tree's prose, because
+                    // a goal whose defining figures are missing should count
+                    // against its own coverage rather than read as covered by
+                    // the promises describing the shape performance is expected
+                    // to come from.
+                    Promise.gap("Throughput and latency on the production serving path, "
+                            + "on stated reference hardware, against a stated workload — "
+                            + "so a reader can compare rather than take the shape on "
+                            + "trust."))),
 
     EMBEDDABILITY("Embeddability: the store boots inside a host's own JVM, and the suite "
             + "runs against it.",
