@@ -3,8 +3,9 @@
 turned out not to need the same pass — measured whole it is 7.5 per thousand,
 where the working rules are 7 — and the one cut worth making was a promise
 reciting its neighbours rather than a style fix. Next: the crosscutting
-concepts, which measure 7.5 too. Next: the guide chapters, and a decision about
-whether this item is still measuring anything.**
+concepts, which measure 7.5 too. The counter was reading code as prose and is
+fixed: the tree is 7.0 per thousand with no section above 8.5. Next: the guide,
+whose chapter list item 021 settles.**
 
 # The specification is cut to the house style
 
@@ -44,6 +45,11 @@ python3 - docs/arc42-003-context/user-stories/us-dbo-person-rights.md <<'EOF'
 import re, sys
 s = open(sys.argv[1]).read()
 authored = s[:s.find('<!-- story:begin')]
+# Code is not prose. Without this the counter reads its own phrase list out
+# of any page that quotes it — which is how the page you are reading scored
+# 24.3 and led the tree.
+authored = re.sub(r'```.*?```', ' ', authored, flags=re.S)
+authored = re.sub(r'`[^`]*`', ' ', authored)
 words = len(authored.split())
 found = re.findall(r'rather than|instead of|not a |not the |never a |never the '
                    r'|as against|as opposed to|unlike |it is not |is not that',
@@ -103,9 +109,9 @@ The densest pages were read rather than cut on the number.
 words, and every one names the thing a reader would otherwise assume: *a query
 rather than an expedition*, *a card naming the file rather than a line in a
 boot log that scrolled past*, *not a privileged path with its own error
-handling*. `pattern-a-country-is-a-zone` is the densest page in the tree at
-15.1 and six of its seven are the forces and the rule — *genuinely national,
-not organisational*, *may narrow, never widen*.
+handling*. `pattern-a-country-is-a-zone` is the densest crosscutting page and
+six of its seven are the forces and the rule — *genuinely national, not
+organisational*, *may narrow, never widen*.
 
 **The one cut is one the counter cannot see.** That page said the narrowing
 rule twice: *may narrow, never widen*, then *its decision to make downward, not
@@ -118,6 +124,31 @@ earns its place.
 crosscutting pages both came in at 7.5 against an expectation of a cut, and
 both yielded one edit found by reading. That is worth saying before step 4
 spends the same effort on the guide.
+
+## What the tree measures, and what the counter was counting
+
+**7.0 per thousand over 189,566 words**, with no section above 8.5. Measured
+after the instrument was fixed, which is the more interesting half.
+
+The counter read fenced code as prose. Any page quoting a contrast in an
+example scored for it, and a page embedding the detector scored for every
+phrase in its own phrase list — so this document, which does both, led the
+whole tree at 24.3 and dropped to 16.4 the moment code stopped counting. The
+tree went 6.9 to 7.0, which is the honest summary of how little the error
+mattered in aggregate and how much it mattered per page: it put the document
+arguing for the rule at the top of the list of offenders, which is the kind of
+finding that reads as satisfying and is an artefact.
+
+**What is still true after the fix** is that this page is the densest item
+document at 16.4, and the reason is its subject. A page about contrasts quotes
+contrasts. That is the rule's own permission — an alternative a reader would
+reach for, named in one clause — applied recursively, and it is where the
+count stops being useful rather than where the prose stops being good.
+
+**So the sections are done and the item is not.** Every section reads at or
+below the working rules' 7 to 8.5. What is left is the guide, and which
+chapters the guide has is settled by
+[item 021](../021-asking-the-store/README.md) rather than here.
 
 ## The count is a signal and not a target
 
