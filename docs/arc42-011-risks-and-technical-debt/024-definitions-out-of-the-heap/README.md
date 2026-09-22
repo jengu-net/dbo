@@ -9,8 +9,10 @@ serves. What is already built is the other half — `FaceBase` is a context made
 from the records a tenant holds, shared per face, and a tenant with a version
 root takes it. Weighed now: **101 MB against 225, and 3 MB against 11 for the
 next tenant on each**. So the number this item opened with is what the FALLBACK
-costs, not what definitions cost. Next: who still takes the fallback, and
-whether they need to.**
+costs, not what definitions cost. And the fallback is who the suite is: **24 of
+the shared world's 25 tenants take it**, where five of the sample's seven take
+a base. On r4 the suite pays for both at once. Next: put the shared world on a
+face root and measure the floor again.**
 
 # Definitions out of the heap
 
@@ -189,36 +191,73 @@ this file records rather than asserts.
 a tenant with no version root — and the sample world's tenants that have one
 are already paying 101 and 3.
 
+## Who takes the fallback
+
+`ElementStore` takes the base when the tenant's OWN store holds the version
+root — a `StructureDefinition` whose canonical is
+`http://hl7.org/fhir/StructureDefinition/Resource`. So a tenant is on the base
+if it is a face root, or if it replicates the version from one over a
+dependency declared `"face": true`. Everything else takes the carried packages.
+
+**The sample world is mostly on the base. The suite's shared world is almost
+entirely on the fallback.**
+
+| World | On a base | On the carried fallback |
+|---|---|---|
+| the sample's seven | `fhir-r4`, `fhir-r5` (roots); `gringotts`, `hogwarts`, `st-jerome` (face dependants) | `mom`, `rl` |
+| the shared world's twenty-five | `sharedr4faceroot` | **the other twenty-four** |
+
+The shared world has four dependencies and not one of them is a face chain:
+they carry a `CodeSystem` or a single `StructureDefinition`, which is content,
+not the version. A tenant replicating one profile does not hold the version
+root, so it takes the packages.
+
+**And on r4 the suite pays for both.** `sharedr4faceroot` brings up a base, and
+the twenty other r4 tenants build the carried context beside it — 225 and 101
+for one version, in one JVM, for the same definitions.
+
+The rough arithmetic, as an estimate rather than a measurement: three carried
+contexts for r4, r5 and r6 is about 675 MB, plus 11 MB for each tenant after
+the first on a face. The same tenants on bases would be about 303 MB plus 3 MB
+each. Against a floor measured at 1.6 GB and a corpus that is over half the
+live heap, that is the right order to explain
+[item 023](../023-the-suite-runs-out-of-heap/README.md) — and the shared world
+is what runs in the phase that keeps dying.
+
+**So the first thing to try is not a change to the store.** It is whether the
+shared world's tenants can take their face from a root the way the sample
+world's do. That is a test-world change, it is reversible, and the instrument
+to say whether it worked is already recording.
+
 ## The sequence
 
 1. ~~Split the holders by arrival against serving.~~ Done, above, and the
    answer is that everything but the parity references is serving.
 2. ~~Weigh the two paths side by side.~~ Done: 225 against 101, and 11 against
    3 for the next tenant on each.
-3. **Say which tenants take the carried fallback, and whether they need to.**
-   This is now the item. `ElementStore` chooses the fallback when a tenant has
-   no version root in its store, and the fallback is what costs 225 MB. Every
-   tenant that could have a root and does not is paying twice over: the whole
-   corpus, and again for the next tenant beside it. Which of the suite's
-   tenants are in that set, and what it would take to move them, is the next
-   thing to find out — and it is worth doing before anything below, because it
-   may be all of this.
-4. **Snapshot at arrival.** A profile is snapshotted so it can be validated
+3. ~~Say which tenants take the carried fallback.~~ Done, above: twenty-four
+   of the shared world's twenty-five, and two of the sample's seven.
+4. **Put the shared world on a face root** and measure the floor again. It is
+   a test-world change rather than a change to the store, the sample world
+   already shows the shape, and item 023's instrument is already recording what
+   would move. If the floor falls by the order this estimates, the rest of this
+   item is a smaller and more patient piece of work than it looked.
+5. **Snapshot at arrival.** A profile is snapshotted so it can be validated
    against, and a snapshot is derived data like the element rows beside it.
    Deriving it once when the definition arrives and storing it is the same move
    as the expansion, on the same trigger, and removes `cacheProfile`'s reason
    to hold a live context.
-5. **Declare what tier-two validation is.** Tier one is answered in the
+6. **Declare what tier-two validation is.** Tier one is answered in the
    database and named. What the toolchain still answers — slicing, profile
    conformance, the rules no row can carry — has no such statement, and it is
    the only thing that plainly needs an object graph. Deciding whether it is
    served per write, on request, or by a separate process is deciding whether
    any context survives.
-6. **Answer framing without the definitions**, or show it needs them. Framing
+7. **Answer framing without the definitions**, or show it needs them. Framing
    puts the engine's own facts back around a stored payload; whether that reads
    a definition or only the parsed element is a question the code answers and
    nobody has asked it here.
-7. **Then the search parameters**, which are already compiled and whose
+8. **Then the search parameters**, which are already compiled and whose
    in-memory copy may have no caller left once 2 and 5 are done.
 
 ## What this is not
