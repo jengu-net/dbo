@@ -2,8 +2,11 @@
 them, coverage and all, under the ratchet the requirement catalogue is under —
 so a goal cannot go missing from it and a fold cannot go stale. Four goals are
 short: isolation 5/7, process-as-storage 7/9, portability 6/7, and performance
-1/6 against a gap nobody has closed. Next: the figures that gap names, which is
-item 015.**
+1/6. The last of those is read out now and it is not mostly about
+measurement: four of its five missing points are PLANNED scaling promises that
+no item describes, and the figures item 015 would take are the fifth. Next:
+those figures, which need hardware, and a decision about whether the tree
+should name the four.**
 
 # Quality coverage is not folded
 
@@ -42,7 +45,17 @@ its last proof.
 4. Take the performance figures the goal asks for, which is
    [item 015](../015-the-comparative-load-test/README.md). The gap the quality
    now declares is what that work closes, and it counts against the goal until
-   it does.
+   it does — **one sixth of it.** The other four missing points are the `SCAL`
+   promises, all PLANNED, which is horizontal scaling and is not measurement at
+   all. `bench/` carries the runner and the discipline and `bench/results/`
+   holds a schema and no figures, so the measurement half is waiting on
+   hardware rather than on design.
+5. Decide whether four PLANNED promises under one declared goal, with no item
+   describing them, is a gap this tree should name the way it names a missing
+   figure. It would be the same mechanism reaching one level further out: from
+   *this goal lacks a number* to *this goal rests on behaviour nobody is
+   building*. Not done here, because naming it is a claim about what the
+   store intends rather than about what it has.
 
 ## What the declaring turned up
 
@@ -67,6 +80,20 @@ promise happens to live rather than what the hole is about.
 
 **So the performance goal now says what it lacks.** Its coverage reads 1/6,
 and the sixth line is the figures nobody has taken.
+
+**And reading the other five says something the 1/6 alone does not.** Four of
+them — `SCAL_DURABLE_ASSIGNMENT`, `SCAL_SINGLE_WRITER_TENANT`,
+`SCAL_TRANSPARENT_ROUTING`, `SCAL_TWO_HOP_LOCALITY` — are **PLANNED**, which is
+behaviour not built rather than behaviour unproven. The one that is PROVEN is
+`CONT_FAST_COLD_START`.
+
+So taking the figures would move this goal from one to two of six, not from one
+to six, and the other four are horizontal scaling: work no item describes.
+That is worth saying because the step below reads as though item 015 stands
+between this goal and its coverage, and it does not — it closes a sixth of it.
+A declared goal resting mostly on unbuilt behaviour with nothing tracking that
+behaviour is exactly what a quality tree is for making visible, and this is the
+tree doing it on its first reading.
 
 **And three other goals turned out to be short.** Nothing was hiding them; the
 table simply never said. Total tenant isolation is 5 of 7, process as a storage

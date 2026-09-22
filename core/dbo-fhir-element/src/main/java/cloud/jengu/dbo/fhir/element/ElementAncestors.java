@@ -4,12 +4,8 @@ import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
-import org.hl7.fhir.r5.context.SimpleWorkerContext;
 import org.hl7.fhir.r5.elementmodel.Element;
-import org.hl7.fhir.r5.elementmodel.Manager;
-import org.hl7.fhir.r5.formats.IParser;
 
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -83,14 +79,13 @@ final class ElementAncestors {
         return dependency == null ? null : "urn:dbo:upstream:" + dependency;
     }
 
-    static byte[] rendered(SimpleWorkerContext context, byte[] payload, String id,
-            long versionId) {
-        return rendered(context, payload, id, versionId, null, Stamps.NONE);
+    static byte[] rendered(byte[] payload, String id, long versionId) {
+        return rendered(payload, id, versionId, null, Stamps.NONE);
     }
 
-    static byte[] rendered(SimpleWorkerContext context, byte[] payload, String id,
-            long versionId, List<String> elements) {
-        return rendered(context, payload, id, versionId, elements, Stamps.NONE);
+    static byte[] rendered(byte[] payload, String id, long versionId,
+            List<String> elements) {
+        return rendered(payload, id, versionId, elements, Stamps.NONE);
     }
 
     /**
@@ -98,10 +93,25 @@ final class ElementAncestors {
      *                 slots always survive, because a resource a client cannot
      *                 reference is not a smaller resource, it is a broken one
      */
-    static byte[] rendered(SimpleWorkerContext context, byte[] payload, String id, long versionId,
+    static byte[] rendered(byte[] payload, String id, long versionId,
             List<String> elements, Stamps stamps) {
+        // ONE path, whether or not the caller narrowed. Narrowing used to be
+        // a different path — parsed through the element model, filtered,
+        // composed — and a different path is a different answer: the model
+        // drops what it does not recognise, the token copy keeps it, and two
+        // reads of one record disagreed about what was in it. A caller asking
+        // for fewer elements is asking for fewer elements, not for a document
+        // the toolchain has had an opinion about.
+        //
+        // It is also what wanted a worker context here, so the parameter is
+        // gone rather than kept and ignored: a reach nobody makes should not
+        // read like one that is still made.
+        Set<String> keep = null;
         if (elements != null && !elements.isEmpty()) {
-            return projected(context, payload, id, versionId, elements);
+            keep = new LinkedHashSet<>();
+            for (String element : elements) {
+                keep.add(element.trim());
+            }
         }
         ByteArrayOutputStream out = new ByteArrayOutputStream(payload.length + 64);
         try (JsonParser in = JSON.createParser(payload);
@@ -126,8 +136,17 @@ final class ElementAncestors {
                         sawMeta = true;
                     }
                     default -> {
-                        gen.writeFieldName(field);
-                        copy(in, gen);
+                        // The store's own slots survive a narrowing, because a
+                        // resource a client cannot reference is not a smaller
+                        // resource but a broken one — and resourceType with
+                        // them, since what is left has to still say what it is.
+                        if (keep != null && !keep.contains(field)
+                                && !"resourceType".equals(field)) {
+                            in.skipChildren();
+                        } else {
+                            gen.writeFieldName(field);
+                            copy(in, gen);
+                        }
                     }
                 }
             }
@@ -371,36 +390,4 @@ final class ElementAncestors {
         }
     }
 
-    /**
-     * A projection is a different promise: the caller asked for less than was
-     * stored, so it is rendered through the model rather than copied — and what
-     * the model does not know about is not among the elements they named.
-     */
-    private static byte[] projected(SimpleWorkerContext context, byte[] payload, String id,
-            long versionId, List<String> elements) {
-        try {
-            Element document = Manager.parseSingle(context, new ByteArrayInputStream(payload),
-                    Manager.FhirFormat.JSON);
-            document.setChildValue("id", id);
-            Element meta = document.getNamedChild("meta");
-            if (meta == null) {
-                meta = document.makeElement("meta");
-            }
-            meta.setChildValue("versionId", Long.toString(versionId));
-            Set<String> keep = new LinkedHashSet<>();
-            elements.forEach(element -> keep.add(element.trim()));
-            for (Element child : new java.util.ArrayList<>(document.getChildren())) {
-                if (!keep.contains(child.getName()) && !"id".equals(child.getName())
-                        && !"meta".equals(child.getName())) {
-                    document.removeChild(child);
-                }
-            }
-            ByteArrayOutputStream out = new ByteArrayOutputStream(payload.length + 64);
-            Manager.compose(context, document, out, Manager.FhirFormat.JSON,
-                    IParser.OutputStyle.NORMAL, null);
-            return out.toByteArray();
-        } catch (IOException e) {
-            throw new UncheckedIOException("cannot render a stored payload held in memory", e);
-        }
-    }
 }

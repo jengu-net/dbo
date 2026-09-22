@@ -47,9 +47,18 @@ than recollection.
 **Ancestor slots — answered.** A logical model parses by its type name, snapshots
 against `Base`, validates cardinality and FHIRPath invariants, and is indexed by
 SearchParameters, all through code written for FHIR. The store's `id` and `meta`
-must be declared on the model: the token-copy serving path injects them whether
-or not the model has them, but the projection path goes through the element
-model and throws without them.
+are injected by the serving path whether or not the model declares them.
+
+~~The store's `id` and `meta` must be declared on the model: the token-copy
+serving path injects them whether or not the model has them, but the projection
+path goes through the element model and throws without them.~~ **That demand is
+gone**, and not because anything was done for UBL. A narrowed read — `_elements`
+— used to go through the element model while a whole read copied tokens, so the
+model refused to set an id it did not declare and a logical model had to carry
+the store's slots to survive one. Item 024 made the two the same read, for its
+own reason: two reads of one record disagreeing about what is in it is not a
+smaller answer but a different one. The demand went with the model path, so a
+logical model is one thing simpler to write than this spike found.
 
 **Wire format — answered, and the shape is CDA's.** A UBL basic component is a
 backbone element with a `value` child carrying the `xmlText` representation and
@@ -70,7 +79,11 @@ needing one.
 **What is next** is generating the models, and nothing blocks it.
 
 **What is open** is the signature question in *Not doing*, which decides what a
-tenant may be promised rather than what can be built.
+tenant may be promised rather than what can be built — and it is narrower than
+it was. Holding a signed document's received bytes as its truth does not
+contradict the store's own promise about projections; what it needs is a
+projection that is a whole document rather than an envelope, which the store
+does not have and which a signed FHIR document would want on the same day.
 
 ## Sequence
 
@@ -206,6 +219,32 @@ longer the authority. Whether that is a sound arrangement for a document type
 or a quiet contradiction is the question — and it is a smaller and more
 answerable one than choosing between two mechanisms, one of which turns out to
 exist.
+
+**Read against the promise it would have to keep, it is not a contradiction,
+and the cost is somewhere else than where this paragraph was looking.**
+`CORE_PAYLOAD_IS_TRUTH` says every searchable projection is derived from the
+payload and can always be rebuilt. If the received XML is the payload, the
+parse to JSON is a step in that derivation rather than a competing authority:
+the chain is longer and it still starts at the truth. Nothing reads from
+something that is no longer the authority, provided the normalised form is
+rebuildable and never written to directly. The contradiction only appears in
+the *other* arrangement — the JSON stored as the payload with the bytes kept
+beside it as extras — where two things are authoritative at once and the store
+has no rule for which wins.
+
+**The cost is that the database's checks read JSON.** `dbo.walked`,
+`dbo.instances` and everything over them take `doc jsonb`, so a type whose
+payload is XML cannot be checked where the bytes are until its JSON exists as
+something the database can read. That is a **derived form kept in the
+database**, which this store has index rows and an envelope for and no
+document-shaped equivalent of — the grain codec is the opposite arrangement,
+a stored form smaller than the transported one.
+
+So the question this paragraph should be asking is not whether the truth may be
+the bytes. It is whether a projection may be a whole document, rebuildable from
+the payload the way an envelope is, and what rebuilds it when the parser
+changes. That is a real piece of design and it is the store's rather than
+UBL's — a signed FHIR document would meet it identically.
 
 **Order normalisation is not being fought.** UBL's schema sequences are ordered,
 so coming back in model order makes a stored document schema-valid whatever

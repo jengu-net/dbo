@@ -177,7 +177,7 @@ public final class ElementStore implements FhirStoreFacade,
                         held = (Payloads<Object>) version.face().require(Payloads.class);
                         shapesInView = java.util.Set.of();
                     } else {
-                        List<String> profiles = storedProfiles(store);
+                        List<String> profiles = profilesForTheView();
                         held = (Payloads<Object>) (Payloads<?>)
                                 version.payloadsFor(terms, profiles, storedMaps(store));
                         shapesInView = canonicalsOf(profiles);
@@ -769,7 +769,7 @@ public final class ElementStore implements FhirStoreFacade,
             // as itself rather than inside a Basic.
             return new String(stored.payload(), StandardCharsets.UTF_8);
         }
-        return new String(ElementAncestors.rendered(elementPayloads().context(), stored.payload(),
+        return new String(ElementAncestors.rendered(stored.payload(),
                 stored.id(), stored.versionId(), null, stampsFor(stored)), StandardCharsets.UTF_8);
     }
 
@@ -1226,12 +1226,31 @@ public final class ElementStore implements FhirStoreFacade,
             return 0;
         }
         java.util.Map<String, Long> expanded = definitions.expandedFrom();
+        java.util.Map<String, Long> kept = definitions.keptSnapshots();
         List<cloud.jengu.dbo.definitions.DefinitionStore.Expanded> moved = new ArrayList<>();
         Map<String, cloud.jengu.dbo.core.api.Held> differential = new java.util.LinkedHashMap<>();
+        // Profiles whose rows are already here and whose snapshot is not.
+        //
+        // The skip below is about the ROWS: a definition expanded at this
+        // version has nothing to re-derive. A kept snapshot is a second
+        // derivation from the same definition and it does not follow the
+        // rows, because which route a tenant took decides which of the two it
+        // arrives holding — one that read a chain expanded and kept, one that
+        // loaded an image inherited rows and, before this, nothing else.
+        // Left to the one skip, the kept set became a record of what THIS
+        // process happened to generate rather than of what the definitions
+        // imply, and two tenants holding one face disagreed about a table
+        // derived from definitions they agree on.
+        Map<String, cloud.jengu.dbo.core.api.Held> unkept = new java.util.LinkedHashMap<>();
         for (cloud.jengu.dbo.core.api.Held held
                 : store.inventory("StructureDefinition", List.of())) {
             String canonical = canonicalOf(held);
-            if (canonical == null || Long.valueOf(held.versionId()).equals(expanded.get(canonical))) {
+            if (canonical == null) {
+                continue;
+            }
+            boolean rowsAreCurrent =
+                    Long.valueOf(held.versionId()).equals(expanded.get(canonical));
+            if (rowsAreCurrent && Long.valueOf(held.versionId()).equals(kept.get(canonical))) {
                 continue;
             }
             StoredObject stored = store.get("StructureDefinition", held.id()).orElse(null);
@@ -1242,7 +1261,15 @@ public final class ElementStore implements FhirStoreFacade,
             try {
                 expansion = DefinitionElements.of(stored.payload());
             } catch (IllegalArgumentException noSnapshot) {
-                differential.put(canonical, held);
+                // It states only what it changes, so a snapshot has to be made
+                // for it — to expand it, or only to keep it where the rows are
+                // here already.
+                (rowsAreCurrent ? unkept : differential).put(canonical, held);
+                continue;
+            }
+            // It carries its own snapshot, so there is nothing to keep: what
+            // would be kept is what the record already holds.
+            if (rowsAreCurrent) {
                 continue;
             }
             moved.add(new cloud.jengu.dbo.definitions.DefinitionStore.Expanded(
@@ -1252,6 +1279,7 @@ public final class ElementStore implements FhirStoreFacade,
         }
         int unresolved = expandedFromTheView(differential, moved);
         definitions.replaceAll(moved);
+        keepSnapshotsFor(unkept);
         compileParametersHeld();
         if (!moved.isEmpty() || unresolved > 0) {
             LOG.info("definitions expanded: structures={} elements={} fromTheirDifferential={}"
@@ -1261,6 +1289,41 @@ public final class ElementStore implements FhirStoreFacade,
                     differential.size() - unresolved, unresolved);
         }
         return moved.size();
+    }
+
+    /**
+     * A snapshot kept for a profile whose rows are already here.
+     *
+     * <p>The same derivation the expansion does, for the profiles the
+     * expansion skips. A definition expanded at this version has no rows to
+     * re-derive, and until this ran it also had no snapshot kept unless the
+     * process that expanded it happened to be this one — so a tenant that
+     * loaded an image and a tenant that read the chain ended up disagreeing
+     * about a table that is derived from definitions they agree on.
+     *
+     * <p>Costs a view only when something is missing, which is the same rule
+     * the expansion follows. A tenant whose profiles all carry their own
+     * snapshot, or all have one kept, asks for no view here.
+     */
+    private void keepSnapshotsFor(Map<String, cloud.jengu.dbo.core.api.Held> unkept) {
+        if (unkept.isEmpty()) {
+            return;
+        }
+        org.hl7.fhir.r5.context.SimpleWorkerContext view = elementPayloads().context();
+        for (Map.Entry<String, cloud.jengu.dbo.core.api.Held> entry : unkept.entrySet()) {
+            byte[] snapshotted = snapshotFrom(view, entry.getKey());
+            if (snapshotted == null) {
+                // The rows are here, so this profile was resolvable when they
+                // were made. That it is not now is worth saying rather than
+                // passing over: what checks against it is the rows, and they
+                // stay, but nothing will keep its snapshot either.
+                LOG.warn("the profile {} has its rows and its face can no longer resolve it "
+                        + "against its base, so no snapshot is kept for it", entry.getKey());
+                continue;
+            }
+            definitions.rememberSnapshot(entry.getKey(), entry.getValue().id(),
+                    entry.getValue().versionId(), snapshotted);
+        }
     }
 
     /**
@@ -1291,6 +1354,14 @@ public final class ElementStore implements FhirStoreFacade,
                         entry.getKey());
                 continue;
             }
+            // Kept, because it has just been made and nothing kept it before.
+            // The rows below are derived from these bytes and are stored; the
+            // bytes were thrown away, so the next process to serve this
+            // profile generated them again. They are derived data beside
+            // derived data now, which means a face image carries them and a
+            // tenant brought up from one finds the snapshot already made.
+            definitions.rememberSnapshot(entry.getKey(), entry.getValue().id(),
+                    entry.getValue().versionId(), snapshotted);
             DefinitionElements.Expansion expansion = DefinitionElements.of(snapshotted);
             moved.add(new cloud.jengu.dbo.definitions.DefinitionStore.Expanded(
                     entry.getKey(), expansion.version(), expansion.type(), expansion.kind(),
@@ -1459,6 +1530,56 @@ public final class ElementStore implements FhirStoreFacade,
             // tenant whose bring-up should fail over profiles it never had.
             return List.of();
         }
+    }
+
+    /**
+     * The same profiles, with a kept snapshot standing in for the differential
+     * it was made from.
+     *
+     * <p>What the view does with a profile that has no snapshot is generate
+     * one, every time a process builds a view. Handing it the snapshotted form
+     * instead leaves it nothing to build — not by changing what it does, but
+     * by giving it a definition that is already complete, which is the case it
+     * already handles by doing nothing.
+     *
+     * <p>Walked as an inventory rather than as payloads, because the canonical
+     * is what a kept snapshot is keyed by and the inventory is where the store
+     * already holds it. Reading it back out of the bytes would be a second
+     * answer to a question the record answers, and would find the wrong
+     * {@code "url"} on the day one appears inside a fixed value.
+     */
+    private List<String> profilesForTheView() {
+        List<cloud.jengu.dbo.core.api.Held> inventory;
+        try {
+            inventory = FaceBase.inventoryOf(store, "StructureDefinition");
+        } catch (RuntimeException notHeldHere) {
+            // A tenant that does not register StructureDefinition is not a
+            // tenant whose bring-up should fail over profiles it never had.
+            return List.of();
+        }
+        List<String> forTheView = new ArrayList<>(inventory.size());
+        for (cloud.jengu.dbo.core.api.Held held : inventory) {
+            String canonical = FaceBase.canonicalOf(held);
+            // At the version this tenant holds, never merely under this
+            // canonical. A profile that has moved on was snapshotted from
+            // what it used to say, and a view given that validates against a
+            // definition the tenant no longer holds — which is how a write
+            // its own stamp should have refused came back accepted.
+            byte[] kept = canonical == null
+                    ? null : definitions.snapshotOf(canonical, held.versionId());
+            if (kept != null) {
+                forTheView.add(new String(kept, StandardCharsets.UTF_8));
+                continue;
+            }
+            // By id, not by canonical, so a profile holding no canonical at
+            // all still reaches the view. It cannot have a kept snapshot —
+            // nothing could key one — and it is exactly the profile that was
+            // silently dropped when this read by canonical and found nothing.
+            store.get("StructureDefinition", held.id())
+                    .map(stored -> new String(stored.payload(), StandardCharsets.UTF_8))
+                    .ifPresent(forTheView::add);
+        }
+        return forTheView;
     }
 
     /** The engine, for the one caller that writes several entries as one unit. */

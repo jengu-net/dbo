@@ -54,7 +54,7 @@ final class ElementFraming implements PayloadFraming {
     @Override
     public void member(Member member, OutputStream out) throws IOException {
         out.write(bytes("{\"fullUrl\":" + quoted(member.url()) + ",\"resource\":"));
-        out.write(ElementAncestors.rendered(context.get(), member.payload(), member.id(),
+        out.write(ElementAncestors.rendered(member.payload(), member.id(),
                 member.versionId(), member.elements(),
                 new ElementAncestors.Stamps(member.source(), member.handling(), member.tag(),
                         member.shape())));

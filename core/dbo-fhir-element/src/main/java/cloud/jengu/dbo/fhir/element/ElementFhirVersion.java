@@ -341,7 +341,7 @@ public class ElementFhirVersion implements FhirVersion {
             // carried context was the last thing that built one for a tenant
             // holding its version as records.
             return (payload, id, versionId) -> new String(
-                    ElementAncestors.rendered(through().context(), payload, id, versionId),
+                    ElementAncestors.rendered(payload, id, versionId),
                     java.nio.charset.StandardCharsets.UTF_8);
         }
     }

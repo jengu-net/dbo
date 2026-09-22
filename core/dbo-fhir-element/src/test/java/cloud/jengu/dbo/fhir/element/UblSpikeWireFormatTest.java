@@ -216,7 +216,7 @@ class UblSpikeWireFormatTest {
         fromXml.setType("UBLInvoice");
         byte[] stored = composed(context, fromXml, Manager.FhirFormat.JSON).getBytes(StandardCharsets.UTF_8);
 
-        byte[] served = ElementAncestors.rendered(context, stored, "inv-1", 3L);
+        byte[] served = ElementAncestors.rendered(stored, "inv-1", 3L);
         Element servedElement = parsed(context, new String(served, StandardCharsets.UTF_8),
                 Manager.FhirFormat.JSON);
         String xml = composed(context, servedElement, Manager.FhirFormat.XML);

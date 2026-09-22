@@ -1,4 +1,10 @@
-**Open. The context chapter is done, and so is the worked deployment: it is a chapter now, built on the guide world's compose file. One disagreement is left and it waits on item 002 — the guide is shell commands, and the map says it is the sample application's story.**
+**Open. The context chapter is done, and so is the worked deployment: it is a
+chapter now, built on the guide world's compose file. Two disagreements are
+left and both wait on item 002 — the guide is shell commands where the map says
+it is the sample application's story, and `using-dbo.md` is a reference where
+the map says it is that sample's README. The second had no step and has one
+now; an item deleted when its list empties cannot empty a line nobody
+scheduled.**
 
 # The documentation tree is moved to match its map
 
@@ -27,7 +33,12 @@ building. This item is deleted when the list is empty.
   world. The map says it is the sample application's story, and there is no
   sample application.
 - `docs/using-dbo.md` is a reference a builder reads; the map says it is the
-  sample's README.
+  sample's README. **And it had no step**, which is worth saying because this
+  item is deleted when the list is empty and a disagreement nobody scheduled
+  could never leave it. It has one now, below. `sample/README.md` does not
+  exist; `docs/using-dbo.md` is organised by capability, the `dbo-using` skill
+  projects from it, `docs/README.md` points at it, and a Gradle input names
+  it — so the move is four references and a rewrite rather than a `git mv`.
 
 ## The steps, in order
 
@@ -49,9 +60,23 @@ building. This item is deleted when the list is empty.
    chapter that should not exist is the one way this step can waste work, so
    the list is settled there first.
 
-Step 2 is the largest and is now the only one. It waits on
-[item 002](../002-sample-application/README.md) rather than on anything here,
-so this item is finished when that one is.
+3. Rewrite `docs/using-dbo.md` as the sample's README — what the store
+   provided and the sample did not write — and move the four references with
+   it: the `dbo-using` skill's source, the docs index, the working-rules index
+   and the Gradle input that reads it.
+
+   **After step 2, not beside it.** Today the document is organised by
+   capability, which is the shape of a reference; as a README it is organised
+   by what the sample would otherwise have had to write. That second list is
+   read off the sample, and the sample is still growing a class per chapter —
+   `Observing` arrived with References. Writing it now means writing it
+   against a sample that is a third of its eventual size, which is the one way
+   this step can waste work, in the same way converting a chapter that should
+   not exist is the one way step 2 can.
+
+Step 2 is the largest, and with step 3 it is no longer the only one. Both wait
+on [item 002](../002-sample-application/README.md) rather than on anything
+here, so this item is finished when that one is.
 
 ## How a step lands
 

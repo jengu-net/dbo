@@ -160,6 +160,19 @@ in silence. A deployment would see an activity that simply never runs, with
 nothing to search for — which is the exact shape of wrongness this mechanism
 was built to replace.
 
+**Notice what is not in that list: a kind.** There is no `dbo.tenant.kind` to
+filter on, and the obvious design — label a tenant a face root, a projection or
+an ordinary tenant, and let activities select the label — was tried on paper
+and did not survive contact with the selectors that exist. Every one of them
+turned out to want a resolved fact instead, and the activity that looked most
+like it wanted a kind wanted *where this tenant keeps its records*, which
+follows from the types it declares rather than from what kind of tenant it is.
+
+The difference matters on the day somebody invents a kind of tenant nobody
+anticipated. A filter on `holdsRecordsInFaceDomain` keeps answering correctly
+for it; a filter on `kind == "dbo.face"` has to be found and edited, and until
+it is, it is wrong silently.
+
 ## What an activity may and may not do
 
 It **declares where it applies**, or it runs for everything on purpose.

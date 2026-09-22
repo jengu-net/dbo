@@ -23,7 +23,7 @@ import java.util.function.Predicate;
 final class UntilServed {
 
     /** Enough passes that a chain of dependents resolves; short of forever. */
-    private static final int PASSES = 20;
+    static final int PASSES = 20;
 
     /**
      * And how long to keep going while the runtime says a tenant is still on
@@ -46,6 +46,36 @@ final class UntilServed {
      * waiting on it would only make it arrive later.
      */
     private static final java.time.Duration WHILE_COMING_UP = java.time.Duration.ofMinutes(4);
+
+    /**
+     * What each wait actually took, so the ceiling above can be judged rather
+     * than argued about.
+     *
+     * <p>The loop below leaves only when BOTH the floor and the ceiling are
+     * spent, so the four minutes keep a tenant alive past where the old
+     * twenty-pass rule stopped in exactly one case: a wait that needed more
+     * than {@link #PASSES} passes. Whether that ever happens is a count, and
+     * a count is cheaper and more honest than running the suite twice and
+     * comparing two peaks that differ for a dozen other reasons.
+     *
+     * <p>And if one does exceed the floor, the finding is not that a peak
+     * rose. Under the old rule that class went RED; it did not hold memory.
+     * What the change traded is a failure for an occupancy, and the count
+     * says which.
+     *
+     * <p><b>Only waits that ended in service are recorded</b>, which bounds
+     * what the count can say. A wait that never gets what it asked for throws
+     * from below and adds nothing here — and that is the wait the ceiling was
+     * lengthened for. So a run where everything came up says the ceiling was
+     * never reached; it cannot say what the ceiling costs on a run where
+     * something does not arrive, because on such a run this file is the
+     * evidence that is missing rather than the evidence that is taken.
+     */
+    record Waited(String codes, int passes, long millis) {}
+
+    /** Every wait this JVM has finished, in the order they finished. */
+    static final java.util.List<Waited> WAITS =
+            java.util.Collections.synchronizedList(new java.util.ArrayList<>());
 
     /**
      * Which class brought up which tenant, for this JVM.
@@ -117,10 +147,13 @@ final class UntilServed {
         }
         Set<String> wanted = Set.of(codes);
         Set<String> up = Set.of();
-        long deadline = System.currentTimeMillis() + WHILE_COMING_UP.toMillis();
+        long began = System.currentTimeMillis();
+        long deadline = began + WHILE_COMING_UP.toMillis();
         for (int pass = 0; ; pass++) {
             up = manager.scanOnce();
             if (up.containsAll(wanted)) {
+                WAITS.add(new Waited(String.join(",", new java.util.TreeSet<>(wanted)),
+                        pass + 1, System.currentTimeMillis() - began));
                 return up;
             }
             // The runtime's own word on it, not the trouble ledger. A tenant

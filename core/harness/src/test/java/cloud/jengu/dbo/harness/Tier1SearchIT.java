@@ -243,6 +243,40 @@ class Tier1SearchIT {
         assertFalse(bundle.contains("Trimmed"), "_elements=identifier must drop name");
     }
 
+    /**
+     * A narrowed read and a whole read are the same read.
+     *
+     * <p>They were two. A narrowing parsed the document through the element
+     * model, dropped the children nobody asked for and composed it back, while
+     * an ordinary read copied tokens — so the model had an opinion on one path
+     * and not on the other, and what it does not recognise survived a whole
+     * read and vanished from a narrowed one. Two reads of one record then
+     * disagreed about what was in it, which is not a smaller answer but a
+     * different one.
+     *
+     * <p>Asserted on what a narrowing KEEPS as well as what it drops, because
+     * a projection that returned the whole document would pass a test that
+     * only checked the dropping.
+     */
+    @Test
+    @Proving(DboPromises.SRCH_TIER1_PARITY)
+    void aNarrowedReadIsTheSameReadAsAWholeOne() {
+        fhir.create(patient("70503030066", "Agreed"));
+        String narrowed = fhir.search("Patient", Map.of(
+                "identifier", EID + "|70503030066", "_elements", "identifier"), null);
+
+        assertTrue(narrowed.contains("\"resourceType\":\"Patient\""),
+                "a narrowed read dropped resourceType, so what came back cannot say what "
+                        + "it is: " + narrowed);
+        assertTrue(narrowed.contains("70503030066"),
+                "the element that was asked for is not there: " + narrowed);
+        assertFalse(narrowed.contains("Agreed"),
+                "an element nobody asked for survived the narrowing");
+        assertTrue(narrowed.contains("\"meta\""),
+                "the store's own slots did not survive the narrowing, so the answer cannot "
+                        + "be referenced: " + narrowed);
+    }
+
     /** Inventory (lab worklist): `ServiceRequest?...&_include=ServiceRequest:specimen`. */
     @Test
     @Proving(DboPromises.SRCH_TIER1_PARITY)

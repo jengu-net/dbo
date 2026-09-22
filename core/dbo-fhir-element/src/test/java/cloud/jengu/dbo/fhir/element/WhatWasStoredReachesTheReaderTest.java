@@ -33,7 +33,7 @@ class WhatWasStoredReachesTheReaderTest {
     private final ElementVersion version = ElementVersion.of("r4");
 
     private String read(String stored) {
-        return new String(ElementAncestors.rendered(version.context(),
+        return new String(ElementAncestors.rendered(
                 stored.getBytes(StandardCharsets.UTF_8), "the-id", 3), StandardCharsets.UTF_8);
     }
 

@@ -316,11 +316,13 @@ four minutes rather than giving up after twenty passes, so tenants that would
 have been abandoned early now stay alive and overlap with more neighbours. And
 the cast added a member to the shared world.
 
-The first of those has a measurement designed for it rather than an argument —
-step 6 — though nothing is built yet. The question turned out to be narrower
-than it was written: not *did the peak move* but *did any wait ever need more
-than twenty passes*, because that is the only case in which the lengthened
-ceiling holds anything the old rule would have let go.
+The first of those is measured — step 6 — and the answer is that on a run
+where everything comes up the wait is never reached: ninety-three waits, none
+past the pass floor, the longest two passes. The question turned out to be
+narrower than it was written, and then narrower again: not *did the peak move*
+but *did any wait ever need more than twenty passes*, and the count can only
+answer that for waits that ended in service, which are not the ones the
+ceiling was lengthened for.
 
 **Whether raising the heap is a fix or a postponement.** Two gigabytes is a
 floor somebody chose. Four would pass tomorrow and say nothing about why a
@@ -348,15 +350,33 @@ suite of fifty-odd classes needs it.
    with SQL, so what keeps a version's whole corpus in memory is the
    toolchain's second copy. Splitting the suite by face rents the megabytes;
    needing fewer contexts gives them back.
-6. Say whether the four-minute wait raised the peak. **Nothing is built; what
-   is settled is what to measure.** It does not need the suite run twice. The
-   wait leaves only when both its pass floor and its time ceiling are spent,
-   so the four minutes keep a tenant alive past where the old twenty-pass rule
-   stopped in exactly one case: a wait that needed more than twenty passes.
-   Whether that ever happens is a count, and the place to take it is beside
-   the floor `WhatTheSuiteLeavesBehind` already records — same run, same
-   `-Ddbo.heap.attribute=true`, the longest wait and how many went past the
-   floor.
+6. ~~Say whether the four-minute wait raised the peak.~~ **Measured, and the
+   answer is no — on a run where everything comes up, which is a real limit on
+   the answer and is stated below.**
+
+   It did not need the suite run twice. The wait leaves only when both its pass
+   floor and its time ceiling are spent, so the four minutes keep a tenant
+   alive past where the old twenty-pass rule stopped in exactly one case: a
+   wait needing more than twenty passes. `WhatTheSuiteLeavesBehind` records
+   every wait beside the floor under the same `-Ddbo.heap.attribute=true`.
+
+   **Ninety-three waits. None past the floor. The longest was two passes.**
+   Ninety finished on the first pass and three on the second; the longest by
+   time was forty-one seconds and still one pass. So nothing in this suite
+   comes close to either dial, and the ceiling held nothing alive that the old
+   rule would have let go.
+
+   **What the count cannot say, and the instrument now says so itself.** Only
+   waits that ended in service are recorded — a wait that never gets what it
+   asked for throws from below and leaves no row. That is precisely the wait
+   the ceiling was lengthened for. So this answers the question for a green
+   run and not for a red one: where something never arrives, the ceiling holds
+   its neighbours alive for four minutes instead of twenty passes, and the
+   evidence for what that costs would have to come from a failing run. The
+   suite that dies is once again the one that cannot be asked.
+
+   The narrow finding stands on its own, though: **on every run that passes,
+   the lengthened wait changes nothing at all**, because it is never reached.
 
    Counting beats comparing two peaks, which is what this step first asked
    for: two runs of this suite differ for a dozen reasons and only one of them

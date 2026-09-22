@@ -94,13 +94,81 @@ public final class WhatTheSuiteLeavesBehind implements TestExecutionListener {
         // measurement that only survives a clean finish would be absent from
         // exactly the run worth reading.
         write();
+        // And the waits for the same reason, which this listener got wrong on
+        // its first day: they were written at the end of the plan alone, so
+        // the run that exhausts the heap — the one the question is about —
+        // would have left no record of how long anything waited. Found by
+        // watching for the file during a run and not finding it.
+        waits();
     }
 
     @Override
     public void testPlanExecutionFinished(TestPlan plan) {
         write();
+        waits();
         histogram();
     }
+
+    /**
+     * What every wait for a tenant actually took, beside the floor it was
+     * taken with.
+     *
+     * <p>Here rather than in its own listener because it answers a question
+     * about this file's own numbers: whether the wait that was lengthened is
+     * why the floor moved. Same run, same flag, no second suite — and a
+     * second suite could not answer it anyway, because two peaks differ for a
+     * dozen reasons and only one of them is the wait.
+     *
+     * <p>What to read out of it is the maximum. A wait that finished inside
+     * the pass floor would have finished under the old rule too, so the
+     * lengthened ceiling held nothing alive that was not already alive.
+     *
+     * <p>Written after every class, like the floor beside it and for the same
+     * reason: the run this is asked about is the one that dies, and a file
+     * written only at the end of the plan is absent from exactly that run.
+     */
+    private void waits() {
+        if (!ASKED_FOR || UntilServed.WAITS.isEmpty()) {
+            return;
+        }
+        List<UntilServed.Waited> waits = new ArrayList<>(UntilServed.WAITS);
+        int longest = waits.stream().mapToInt(UntilServed.Waited::passes).max().orElse(0);
+        long overTheFloor = waits.stream()
+                .filter(waited -> waited.passes() > UntilServed.PASSES).count();
+        StringBuilder out = new StringBuilder(String.format(HEADER,
+                UntilServed.PASSES, UntilServed.PASSES, longest, overTheFloor, waits.size()));
+        for (UntilServed.Waited waited : waits) {
+            out.append(String.format("%8d %8d  %s%n",
+                    waited.passes(), waited.millis(), waited.codes()));
+        }
+        try {
+            Path where = Path.of("build", "waits-observed.txt");
+            Files.createDirectories(where.getParent());
+            Files.writeString(where, out.toString());
+        } catch (IOException cannotWrite) {
+            throw new IllegalStateException("could not write what the waits took", cannotWrite);
+        }
+    }
+
+    /** Said here so the method above is the counting and nothing else. */
+    private static final String HEADER = """
+            # What every wait for a tenant took, in passes and milliseconds.
+            #
+            # The wait leaves only when BOTH its pass floor (%d) and its time
+            # ceiling are spent, so the ceiling keeps a tenant alive past
+            # where the floor alone would have stopped in exactly one case: a
+            # wait needing more than %d passes.
+            #
+            # longest wait: %d passes
+            # waits past the floor: %d of %d
+            #
+            # None past the floor means the ceiling was never load-bearing and
+            # cannot have raised the peak. Any past it is not a peak finding
+            # either: under the floor alone that class went RED rather than
+            # holding memory.
+            #
+            #  passes       ms  tenants
+            """;
 
     /**
      * What is live at the end, by type, from the JVM's own tooling.
