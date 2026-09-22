@@ -84,6 +84,19 @@ anything arriving from another organisation, is most of the time.
 [Records](records.md) made the same point about writing a record by identity
 instead of by id; this is that idea applied to the links between them.
 
+## What an integrator writes
+
+All three kinds of reference, and the call that asks what belongs to somebody:
+
+```java title="sample/src/main/java/cloud/jengu/dbo/sample/Observing.java"
+--8<-- "sample/src/main/java/cloud/jengu/dbo/sample/Observing.java"
+```
+
+Notice what is not there. No edge to insert beside the document, no lookup
+before the write to find out whether the subject exists, and no branch on the
+answer — because a reference that names a number rather than an id is answered
+by the store on the way in.
+
 ## What you would otherwise have written
 
 Foreign keys, and then the discovery that a third of your inbound references

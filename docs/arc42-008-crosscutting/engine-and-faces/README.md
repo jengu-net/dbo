@@ -298,7 +298,11 @@ So an obligation is one of three things, and only the first is a declared capabi
   learn the name of what they serve, so one instance serves every tenant of a version.
 - **A tenant-scoped facade**, which holds the tenant's store and is therefore
   *constructed* by the version rather than declared. The grain codec arrives this way:
-  reassembling a vocabulary means reading the concepts this tenant holds. Its absence
+  reassembling a vocabulary means reading the concepts this tenant holds. Shape
+  conversion arrives this way too, and it is the one that looked most like a
+  version-scoped capability and is not — converters ship in the *tenant's* pack, so a
+  conversion resolved against the shared definitions answers "no converter" about maps
+  the tenant is holding. Its absence
   shows as a facade refusing by name, not as a missing capability.
 - **A per-request fact**, which is not a scope at all. Who is calling and what they
   said the access is for travel beside the request, and the capability using them

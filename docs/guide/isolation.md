@@ -8,8 +8,7 @@ template: essay.html
 ---
 
 [Tenants](tenants.md) said a tenant is a database rather than a column on your
-tables.
-This is what follows from that, shown rather than asserted.
+tables. This is what follows from that.
 
 ## A credential is for one tenant
 
@@ -45,13 +44,12 @@ them, with a different id in each, and the thing that says they are the same
 person is an identifier the zone declares — which is [Records](records.md)' subject and
 the reason identity is declared rather than assumed.
 
-So a leaked id is not a key to anything. It is a string that resolves in
-exactly one database.
+So a leaked id is a string that resolves in exactly one database.
 
 ## What this does not give you
 
-Two limits, stated plainly, because a claim about isolation that skips them is
-not worth reading.
+Two limits, stated plainly, because they are what an isolation claim is
+usually missing.
 
 **Tenants share a process and a machine.** They are separate databases, not
 separate servers. A deployment under enough load that one tenant's work starves
@@ -61,8 +59,7 @@ material under *Technical* — not this boundary.
 **The operator can reach the databases.** What stops an operator reading a
 person is not this chapter; it is that identifying material is sealed with a key
 the store does not hold, which is the Privacy section's subject. Isolation
-separates tenants from each other. It is not what separates the operator from
-the data.
+separates tenants from each other.
 
 ## What you would otherwise have written
 

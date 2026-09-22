@@ -8,8 +8,11 @@ template: essay.html
 ---
 
 Rowling Land is `rl`, and it is a tenant like any other: a database, a bring-up,
-a surface, records with history. What makes it a zone is what the tenants around
-it say about it.
+a surface, records with history. What makes it a zone is that it says so:
+
+```json
+{ "code": "rl", "face": "r5", "zoneRoot": true, ... }
+```
 
 ## Joining is one word
 
@@ -20,6 +23,19 @@ it say about it.
 That is the whole of membership. The hospital is in Rowling Land because it
 says so, and the store treats that sentence as a commitment rather than
 metadata.
+
+Naming a zone is not appointing one. A member that names a tenant which has not
+declared itself a zone is refused, by name — because for a while the opposite
+was true, and a one-word typo was load-bearing. A member's file saying
+`"zone": "hogwarts"` built a hub over the hospital's database and made the
+hospital's login ceremony the one everybody federates to, and the deployment
+came up green. Nothing in the hospital's own file recorded that it had become a
+jurisdiction, and the only way to ask which tenants were zones was to read every
+other file and collect what they pointed at.
+
+Being a zone and being in one are not exclusive: a jurisdiction holds ordinary
+records too, and may itself belong to a wider one. That is why it is a property
+of the tenant rather than a kind of tenant.
 
 Notice what it is *not*. It is not how the hospital gets the zone's
 terminology — that is a dependency, declared separately, and

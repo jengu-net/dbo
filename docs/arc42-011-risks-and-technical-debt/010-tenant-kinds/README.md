@@ -1,9 +1,9 @@
 **Open. A tenant's kind is re-derived at every call site instead of being
-declared. Two pieces are done ahead of the kind: the dispatcher starts from
-what the registrations say and a failing dispatch says so, and the custom
-resource is now checked against the whole spec rather than its root — proven
-by deleting the nested key that was found by hand, which the widened check
-names.**
+declared. Three pieces are done ahead of the kind: the dispatcher starts from
+what the registrations say and a failing dispatch says so, the custom resource
+is now checked against the whole spec rather than its root — proven by deleting
+the nested key that was found by hand, which the widened check names — and a
+zone declares itself, which closes the second of the three costs below.**
 
 # Tenant kinds
 
@@ -54,23 +54,32 @@ The second cost is larger than the noise: because every failure in that loop is
 swallowed identically, a **genuine** feed failure on an ordinary tenant is
 indistinguishable from this one.
 
-**A tenant is conscripted into being a zone by somebody else's file.** A zone
-never declares itself. A hub is built for it because a member's spec says
-`"zone": "X"`, and nothing checks that X is a zone — there is nothing recording
-that X is a zone to check against. Since a zone that names no broker is its own,
-a one-word typo is silently load-bearing:
+**A tenant is conscripted into being a zone by somebody else's file.**
+**Closed.** `zoneRoot` is a field on the spec and on the custom resource, the
+sample world's zone declares it, and a member naming a tenant that does not is
+refused at bring-up by name
+(`REQ-DBO-ZONE-A-ZONE-IS-DECLARED-BY-THE-TENANT-THAT-IS-ONE`). The rule is a
+function over two declarations, so what it refuses can be asked without a
+deployment to ask it of, and the runtime's part is the lookup.
+
+What it cost while it was open, kept because it is the evidence the design
+paragraph below rests on. A zone never declared itself. A hub was built for it
+because a member's spec said `"zone": "X"`, and nothing checked that X was a
+zone — there was nothing recording that X was a zone to check against. Since a
+zone that names no broker is its own, a one-word typo was silently
+load-bearing:
 
 ```json
 { "code": "gringotts", "zone": "hogwarts" }
 ```
 
-The hospital becomes an identity zone: a hub over its database, its authority
-the ceremony the insurer federates to, and the deployment comes up green. Every
-spec comes from the same declared configuration source, so this is not an
-escalation by an untrusted party; it is a blast radius that no file records and
-a misconfiguration that cannot be diagnosed from any single file. Which tenants
-are zones is answerable only by scanning every spec and taking the union of
-what they point at.
+The hospital became an identity zone: a hub over its database, its authority
+the ceremony the insurer federates to, and the deployment came up green. Every
+spec comes from the same declared configuration source, so this was not an
+escalation by an untrusted party; it was a blast radius that no file recorded
+and a misconfiguration that could not be diagnosed from any single file. Which
+tenants were zones was answerable only by scanning every spec and taking the
+union of what they pointed at.
 
 **A key the parser reads and the custom resource does not declare.**
 `dependencies[].face` was read by the spec parser and absent from
@@ -140,6 +149,17 @@ ordinary records, so being a zone cannot be exclusive with being a tenant. It
 is declared on the zone itself — which is what turns `"zone": "hogwarts"` into
 a refusal by name — and membership stays the optional property it already is,
 where absent means no terminology dependency, no zone services, no connection.
+**Built**, ahead of the kind and independently of it, which is the evidence for
+the paragraph above: the axis that mattered was a property, and making it one
+needed none of the kind machinery.
+
+What it does not do is refuse a name nothing serves. A member naming a tenant
+this runtime has never heard of is a wait rather than a fault — that is the
+ordinary order of arrival, and it is how the hub path already behaves — so a
+typo naming nobody still reads as an upstream that has not come up. Closing
+that means asking the configuration source what tenants exist rather than
+asking the runtime what it is serving, and the source is a directory somebody
+is still writing into.
 
 **Manager is an appointment, not a kind.** Which tenant manages the deployment
 is decided by the file the deployment was pointed at, and the managing tenant
@@ -190,6 +210,10 @@ the same time, or a tenant carrying one is refused at registration — which is
 the failure this document already describes once.
 
 ## What keeps it from decaying
+
+The path-aware custom-resource check covers `zoneRoot` already, proven the way
+the widening was: deleting it from the schema fails naming `zoneRoot`, and
+restoring it passes.
 
 A ratchet asserting that **no production source outside the kind registry
 compares a kind string literal**. That is greppable, it is the same shape as

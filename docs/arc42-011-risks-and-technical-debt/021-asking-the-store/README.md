@@ -344,6 +344,22 @@ reasons are fresh:
    are preserved and proven to be; there is no cross-tenant read, so following
    one is refused rather than attempted.
 
+**And these five are owed to two doors, not one.**
+[The step-scoped API](../009-the-step-scoped-api/README.md) defers the same
+thing from the other side: a run reaches the documents it named and nothing
+else, with reference traversal deliberately out of its first slice, and a write
+that references something out of reach left unrefused because *it needs
+traversal to be meaningful*. That item records the deferral; this one records
+the questions.
+
+They have to be answered once. A run context following a reference and an
+include bringing a record along are the same act through two doors, and
+question three — **an include is not a widening** — is the invariant both must
+hold. If only one door holds it, the other is the way round it, which is worse
+than neither holding it: a boundary with a documented exception is at least
+known. So whichever is built first answers for both, and the answer belongs
+here, where the questions are written out.
+
 ## Three things a query vocabulary must not become
 
 **A cross-tenant read.** The registry keys these services by tenant and the

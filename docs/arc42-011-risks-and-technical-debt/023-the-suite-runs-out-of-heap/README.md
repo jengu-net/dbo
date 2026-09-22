@@ -316,6 +316,12 @@ four minutes rather than giving up after twenty passes, so tenants that would
 have been abandoned early now stay alive and overlap with more neighbours. And
 the cast added a member to the shared world.
 
+The first of those has a measurement designed for it rather than an argument —
+step 6 — though nothing is built yet. The question turned out to be narrower
+than it was written: not *did the peak move* but *did any wait ever need more
+than twenty passes*, because that is the only case in which the lengthened
+ceiling holds anything the old rule would have let go.
+
 **Whether raising the heap is a fix or a postponement.** Two gigabytes is a
 floor somebody chose. Four would pass tomorrow and say nothing about why a
 suite of fifty-odd classes needs it.
@@ -342,8 +348,21 @@ suite of fifty-odd classes needs it.
    with SQL, so what keeps a version's whole corpus in memory is the
    toolchain's second copy. Splitting the suite by face rents the megabytes;
    needing fewer contexts gives them back.
-6. Say whether the four-minute wait raised the peak. It is one change and it is
-   reversible, and an honest answer is worth more than the wait.
+6. Say whether the four-minute wait raised the peak. **Nothing is built; what
+   is settled is what to measure.** It does not need the suite run twice. The
+   wait leaves only when both its pass floor and its time ceiling are spent,
+   so the four minutes keep a tenant alive past where the old twenty-pass rule
+   stopped in exactly one case: a wait that needed more than twenty passes.
+   Whether that ever happens is a count, and the place to take it is beside
+   the floor `WhatTheSuiteLeavesBehind` already records — same run, same
+   `-Ddbo.heap.attribute=true`, the longest wait and how many went past the
+   floor.
+
+   Counting beats comparing two peaks, which is what this step first asked
+   for: two runs of this suite differ for a dozen reasons and only one of them
+   is the wait. And if a wait does go past the floor, the finding is not that
+   a peak rose — under the floor alone that class went **red** rather than
+   holding memory, so what the change traded is a failure for an occupancy.
 7. Then the tail — seventy classes at seven megabytes each — which is the other
    quarter and is nobody's fault in particular.
 8. Then decide about the dial, with all of that in hand. Raising it before that

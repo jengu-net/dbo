@@ -1381,6 +1381,18 @@ public enum DboPromises implements Promise {
             + "every definition whose base that face does not carry, and says which base "
             + "it lost. Named rather than counted: a count says a zone is partly "
             + "unservable and leaves somebody to find out which part."),
+    ZONE_A_ZONE_IS_DECLARED_BY_THE_TENANT_THAT_IS_ONE(
+            "A tenant is a jurisdiction because its own declaration says so, never because "
+            + "somebody else named it. A member naming a tenant that does not declare "
+            + "itself a zone is refused by name, and the refusal says where the "
+            + "declaration belongs. Without it a one-word typo was load-bearing and "
+            + "silent: an ordinary hospital named as a zone had a hub built over its "
+            + "database and its ceremony became the one every member federates to, and the "
+            + "deployment came up green. Being a zone and being in one are not exclusive, "
+            + "so this is a property rather than a kind — a jurisdiction holds ordinary "
+            + "records too. What it ends is the answer to `which tenants are zones` being "
+            + "obtainable only by reading every other file and taking the union of what "
+            + "they point at."),
     ZONE_A_ZONE_IS_SERVED_TO_A_FACE_THROUGH_ONE_PROJECTION(
             "A zone's definitions and records reach the tenants of a face it was not "
             + "written in through one projection per zone per face: a tenant that takes "

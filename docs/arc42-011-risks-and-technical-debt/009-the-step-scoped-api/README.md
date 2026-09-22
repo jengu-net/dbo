@@ -1,4 +1,9 @@
-**Open. The store promises that reaching data means performing a step, and a plain read still bypasses it.**
+**Open. The store promises that reaching data means performing a step, and a
+plain read still bypasses it. The slice that exists is built and proven; what
+is left is traversal, a write refusal that needs it, and demoting the general
+surface. The traversal half is not this item's to design — item 021 defers the
+same question from the other side and has it written out, and one answer has to
+serve both doors.**
 
 # The step-scoped API
 
@@ -104,7 +109,14 @@ rather than a bespoke protocol.
 
 - **Asynchronous steps, lanes, runners claiming work.** Already partly built
   elsewhere and not needed to prove the boundary.
-- **Reference traversal from the anchor.** Deliberate; see above.
+- **Reference traversal from the anchor.** Deliberate; see above. **And not
+  this item's to design**: [asking the store](../021-asking-the-store/README.md)
+  defers the same thing from the other side and has the five questions written
+  out — deduplication across a page, N+1, the membrane, a reference out of the
+  store, and the one that binds them, *an include is not a widening*. A run
+  context following a reference and an include bringing a record along are the
+  same act through two doors. If only one door holds that invariant the other
+  is the way round it, so whichever is built first answers for both.
 - **Write refusal for out-of-reach references.** Wanted eventually — a write
   that references something out of reach must be refused or the context
   smuggles links — but it needs traversal to be meaningful.

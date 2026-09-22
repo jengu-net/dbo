@@ -129,6 +129,20 @@ public record SpecChange(Kind kind, List<String> fields) {
         if (!Objects.equals(serving.mandatorySteps(), declared.mandatorySteps())) {
             hot.add("mandatorySteps");
         }
+        if (serving.zoneRoot() != declared.zoneRoot()) {
+            // Hot, and it is the one field whose effect is on OTHER tenants.
+            // Nothing this tenant serves, stores or mounts depends on being a
+            // jurisdiction: what the declaration decides is whether a member
+            // naming it is refused at ITS bring-up. So this tenant absorbs the
+            // change by holding the new word, and a member that arrives after
+            // it reads the new answer.
+            //
+            // Which means retracting it does not retract the members, and
+            // nothing here can make it: they are serving already, and their
+            // bring-up is where the rule is applied. A zone that stops saying
+            // so keeps the members it has until each of them comes up again.
+            hot.add("zoneRoot");
+        }
         if (serving.faceRoot() != declared.faceRoot()) {
             // Hot both ways. Becoming a root loads the version into a tenant
             // that keeps serving — an arrival like any profile's, rebuilding

@@ -5,9 +5,12 @@ cost another hundred megabytes; measured, **a second face costs 444**, on top of
 graph nor the records-backed one. Three of the four
 pieces are already there: the definitions are a schema the face's SQL reads,
 the database answers tier one and the envelope at parity, and a face is cut
-once per release into an image of everything derived from them. Next: conversion as a published
-step rather than a projection tenant holding a face — sketched, and resting on
-the fact that nothing synchronous waits on a converter today.**
+once per release into an image of everything derived from them. Conversion as a
+published step is read out now: a version converter holds no definitions at
+all, so it can leave a tenant, while a shape converter resolves a map the
+tenant holds and cannot — and what leaving saves is a projection **tenant**
+rather than a context, which is more than the sketch claimed. Next: the
+snapshot into the cut.**
 
 # Definitions out of the heap
 
@@ -411,10 +414,45 @@ converted feed only once the run that made it finished.
    parity references serves.
 2. ~~Weigh the two paths.~~ Done: 225 against 101, 11 against 3.
 3. ~~Say who takes the fallback.~~ Done: 24 of the shared world's 25.
-4. **Decide conversion as a published step**, sketched above. The reading it
-   needs first is which conversions are definitions and which are records,
-   because that decides whether one step serves both. Nothing synchronous waits
-   on a converter today, which is the fact the whole idea rests on.
+4. **Decide conversion as a published step**, sketched above. **The reading is
+   done, and the split is not the one this step expected.**
+
+   It asked which conversions are definitions and which are records, on the
+   assumption that one step might not serve both. The converter does not
+   branch on it: `PayloadConverter.convert(typeName, payload)` takes a type
+   name and bytes, and a `StructureDefinition` and a `Patient` go through the
+   same call. Where the two do differ is absorbed before the converter — a
+   `CodeSystem` is carried whole by the grain codec, because the source stores
+   a shell and a dependent cannot rebuild anything from one. So one step
+   serves both, and the question that decides it is a different one.
+
+   **The split that matters is whether a conversion needs the tenant's own
+   held content.** Two kinds, and only one of them can leave:
+
+   | | what it is | what it needs |
+   |---|---|---|
+   | version conversion | `R4ToR5Converter`, `R5ToR4Converter` — parse, `VersionConvertorFactory_40_50`, compose | the two model bundles, and **no `SimpleWorkerContext` at all** |
+   | shape conversion | `ElementShapeConversion` — executes a StructureMap | the **tenant's own** context, to fetch a map the tenant holds and to drive the element model |
+
+   A version converter is generated code over two object models. It resolves
+   nothing, so it is publishable as a step anywhere, by anybody who has the
+   two bundles. A shape converter selects a map out of the tenant's own pack
+   and cannot leave the tenant without taking the pack with it — which is the
+   point of pack-shipped converters rather than a defect.
+
+   **And it corrects this item's own arithmetic.** Moving version conversion
+   out of a tenant saves none of the 226 MB, because a version converter never
+   loads a definition. What it removes is the **projection tenant** — a
+   database, a bring-up and a face — and the 226 is in the face. The saving is
+   a whole tenant rather than a context, which is larger than the sketch
+   claimed and arrives for a different reason.
+
+   The three call sites, for the record: `ContentSyncEngine.tryApply` converts
+   on apply and dead-letters on failure, `PgObjectStore.upgraded` is a payload
+   hop taken on read, and `Reshape.convertOne` is a maintenance run over a
+   type. Only the middle one is synchronous, and it is a shape hop inside one
+   version rather than a conversion between faces — so the fact the idea rests
+   on holds: nothing synchronous waits on a face converter.
 5. **Write the three rules.** Two are written, proven, and they closed half the
    divergence.
 
