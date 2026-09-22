@@ -61,6 +61,22 @@ class WhatTheLoadedSpecificationCostsIT {
     /** A step change rather than drift: allocation wanders, designs do not. */
     private static final double TOLERANCE = 1.30;
 
+    /**
+     * Below this, a ratio says nothing.
+     *
+     * <p>A thirty per cent tolerance on a number in the hundreds is a design
+     * change. On a number in the single digits it is the collector: a tenant
+     * serving from the face base read 3 MB, then 4, then 7 on a runner, and the
+     * third of those failed a build that had nothing to do with it. This class
+     * already says a threshold that fights the collector fails on Tuesdays, and
+     * that is what a Tuesday looks like.
+     *
+     * <p>The numbers this exists to protect are the hundreds — what a face
+     * costs and what a second one costs. A small line is still recorded,
+     * because it is how the large ones are read.
+     */
+    private static final long WORTH_RATCHETING = 20;
+
     static PostgreSQLContainer<?> postgres;
     static Path dir;
     static LocalDatabasePerTenantProvisioner provisioner;
@@ -169,7 +185,7 @@ class WhatTheLoadedSpecificationCostsIT {
         StringBuilder moved = new StringBuilder();
         now.forEach((what, mb) -> {
             Long was = recorded.get(what);
-            if (was != null && was > 0 && mb > was * TOLERANCE) {
+            if (was != null && was >= WORTH_RATCHETING && mb > was * TOLERANCE) {
                 moved.append(String.format("%n  %s: %d MB recorded, %d MB now", what, was, mb));
             }
         });
