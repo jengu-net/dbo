@@ -210,6 +210,97 @@ class ADefinitionIsExpandedWhenItArrivesIT {
     }
 
     @Test
+    @DisplayName("the snapshot a differential was expanded from is kept, so nothing generates "
+            + "it a second time")
+    @Proving(DboPromises.TEN_A_TENANT_COMES_UP_FROM_THE_FACE_IMAGE)
+    void theSnapshotIsKeptBesideTheRowsDerivedFromIt() throws Exception {
+        String canonical = "https://ee.ee/StructureDefinition/hoitud-patsient";
+        manager.runtime(CLINIC).orElseThrow().store().create("""
+                {"resourceType":"StructureDefinition",
+                 "url":"%s","name":"HoitudPatsient","status":"active","kind":"resource",
+                 "abstract":false,"type":"Patient",
+                 "baseDefinition":"http://hl7.org/fhir/StructureDefinition/Patient",
+                 "derivation":"constraint",
+                 "differential":{"element":[
+                   {"id":"Patient.birthDate","path":"Patient.birthDate","min":1}]}}"""
+                .formatted(canonical));
+        manager.runtime(CLINIC).orElseThrow().store().shapesChanged();
+
+        // The record holds a differential and no snapshot — that is what was
+        // written — and the expansion had to make one to know what the
+        // profile inherits. Until this, what was made was used once and
+        // dropped, so every process that served this profile made it again.
+        assertEquals(List.of("1"), queryOf(CLINIC,
+                "SELECT count(*)::text FROM definitions.definition_snapshot"
+                + " WHERE canonical = ?", canonical),
+                "the snapshot the expansion generated was not kept, so the next process "
+                        + "that serves this profile generates it again");
+
+        // And what is kept is a SNAPSHOT: the element the profile never
+        // mentions is in it. A differential stored under this name would
+        // carry one element and look like a saving.
+        List<String> holdsInherited = queryOf(CLINIC,
+                "SELECT (position('\"Patient.gender\"' in"
+                + " convert_from(snapshot, 'UTF8')) > 0)::text"
+                + " FROM definitions.definition_snapshot WHERE canonical = ?", canonical);
+        assertEquals(List.of("true"), holdsInherited,
+                "what was kept does not carry the elements the profile inherits, so it is "
+                        + "the differential rather than the snapshot made from it");
+
+        // It travels with the face for the same reason the rows do: it is
+        // derived from the definitions and lives in their schema, which is
+        // what an image is cut from.
+        assertEquals(List.of("definitions"), queryOf(CLINIC,
+                "SELECT table_schema FROM information_schema.tables"
+                + " WHERE table_name = 'definition_snapshot'"),
+                "the kept snapshot is not in the schema an image is cut from, so a tenant "
+                        + "brought up from an image would generate it after all");
+    }
+
+    @Test
+    @DisplayName("and what is kept is decided by the definitions, so a second bring-up of the "
+            + "same face keeps the same set")
+    @Proving(DboPromises.TEN_A_TENANT_COMES_UP_FROM_THE_FACE_IMAGE)
+    void whatIsKeptFollowsTheDefinitionsRatherThanTheRoute() throws Exception {
+        String canonical = "https://ee.ee/StructureDefinition/teist-korda";
+        manager.runtime(CLINIC).orElseThrow().store().create("""
+                {"resourceType":"StructureDefinition",
+                 "url":"%s","name":"TeistKorda","status":"active","kind":"resource",
+                 "abstract":false,"type":"Patient",
+                 "baseDefinition":"http://hl7.org/fhir/StructureDefinition/Patient",
+                 "derivation":"constraint",
+                 "differential":{"element":[
+                   {"id":"Patient.gender","path":"Patient.gender","min":1}]}}"""
+                .formatted(canonical));
+        manager.runtime(CLINIC).orElseThrow().store().shapesChanged();
+
+        List<String> afterTheFirst = queryOf(CLINIC,
+                "SELECT canonical FROM definitions.definition_snapshot ORDER BY canonical");
+        assertTrue(afterTheFirst.contains(canonical),
+                "the profile just written has no kept snapshot: " + afterTheFirst);
+
+        // Forget it, and ask again. The rows stay, which is what a tenant
+        // that loaded an image is holding: everything derived except this.
+        // Nothing here re-expands, and until the keeping followed the
+        // definitions rather than the expansion, nothing would have made it
+        // again either — which is how two tenants of one face came to
+        // disagree about a table derived from definitions they agree on.
+        execOn(CLINIC, "DELETE FROM definitions.definition_snapshot WHERE canonical = ?",
+                canonical);
+        assertEquals(List.of(), queryOf(CLINIC,
+                "SELECT canonical FROM definitions.definition_snapshot WHERE canonical = ?",
+                canonical), "the delete did not take");
+
+        manager.runtime(CLINIC).orElseThrow().store().shapesChanged();
+
+        assertEquals(afterTheFirst, queryOf(CLINIC,
+                "SELECT canonical FROM definitions.definition_snapshot ORDER BY canonical"),
+                "a bring-up that found the rows already expanded did not keep the snapshot "
+                        + "that goes with them, so what is kept depends on which route a "
+                        + "tenant took to the same face");
+    }
+
+    @Test
     @DisplayName("the version's own differential profiles are expanded too, from the same "
             + "snapshot their face makes for them")
     @Proving(DboPromises.VER_A_DEFINITION_IS_EXPANDED_WHEN_IT_ARRIVES)
@@ -319,6 +410,17 @@ class ADefinitionIsExpandedWhenItArrivesIT {
                 }
                 return rows;
             }
+        }
+    }
+
+    /** Reaches behind the store on purpose: what a route leaves out, made absent. */
+    private void execOn(String tenant, String sql, String... arguments) throws Exception {
+        try (Connection c = tenantConnection(tenant);
+             PreparedStatement ps = c.prepareStatement(sql)) {
+            for (int i = 0; i < arguments.length; i++) {
+                ps.setString(i + 1, arguments[i]);
+            }
+            ps.executeUpdate();
         }
     }
 

@@ -499,6 +499,94 @@ public final class DefinitionStore {
         }
     }
 
+    /**
+     * The canonicals a snapshot is kept for, in one question rather than one
+     * each.
+     *
+     * <p>Asked at every bring-up to decide whether anything is missing, so it
+     * is a set read whole: a tenant holding nine hundred profiles would
+     * otherwise ask nine hundred times to learn that the answer is nothing to
+     * do.
+     */
+    public java.util.Set<String> keptSnapshots() {
+        java.util.Set<String> kept = new java.util.HashSet<>();
+        try (Connection c = ds.getConnection();
+             PreparedStatement ps = c.prepareStatement(
+                     "SELECT canonical FROM definitions.definition_snapshot");
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                kept.add(rs.getString(1));
+            }
+            return kept;
+        } catch (SQLException e) {
+            throw new IllegalStateException("reading which snapshots are kept failed", e);
+        }
+    }
+
+    /**
+     * The snapshot a profile was expanded from, kept so nothing regenerates
+     * it.
+     *
+     * <p>A profile that ships only a differential says what it CHANGES from
+     * its base, and a validator handed one without a snapshot checks the
+     * handful of elements the author mentioned and silently passes the rest.
+     * So a snapshot is generated — by the toolchain, against the base, at the
+     * moment the profile is taken in — and until now it was generated again by
+     * every tenant that ever served that profile, because only the rows
+     * derived from it were kept.
+     *
+     * <p>Derived data, stored beside the rows that are also derived from it,
+     * and therefore carried by a face image exactly as they are: a tenant
+     * brought up from an image finds it already made. That is the whole of why
+     * it is here rather than in a cache — a cache is per process, and the cost
+     * this removes is paid per process.
+     *
+     * <p>Keyed by canonical alone. A profile is one definition under one
+     * canonical whatever version of it a tenant holds, and the source id and
+     * version travel beside it so a reader can tell WHICH version was
+     * snapshotted rather than assuming it was this one.
+     */
+    public void rememberSnapshot(String canonical, String sourceId, long sourceVersion,
+            byte[] snapshot) {
+        try (Connection c = ds.getConnection();
+             PreparedStatement ps = c.prepareStatement("""
+                     INSERT INTO definitions.definition_snapshot
+                         (canonical, source_id, source_version, snapshot)
+                     VALUES (?, ?, ?, ?)
+                     ON CONFLICT (canonical) DO UPDATE SET
+                         source_id = EXCLUDED.source_id,
+                         source_version = EXCLUDED.source_version,
+                         snapshot = EXCLUDED.snapshot""")) {
+            ps.setString(1, canonical);
+            ps.setString(2, sourceId);
+            ps.setLong(3, sourceVersion);
+            ps.setBytes(4, snapshot);
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            throw new IllegalStateException(
+                    "keeping the snapshot of " + canonical + " failed", e);
+        }
+    }
+
+    /**
+     * The snapshot kept for this profile, if one was.
+     *
+     * @return the snapshotted definition as bytes, or null where none is kept
+     */
+    public byte[] snapshotOf(String canonical) {
+        try (Connection c = ds.getConnection();
+             PreparedStatement ps = c.prepareStatement(
+                     "SELECT snapshot FROM definitions.definition_snapshot WHERE canonical = ?")) {
+            ps.setString(1, canonical);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? rs.getBytes(1) : null;
+            }
+        } catch (SQLException e) {
+            throw new IllegalStateException(
+                    "reading the snapshot of " + canonical + " failed", e);
+        }
+    }
+
     // -------------------------------------------------------------- schema
 
     private void ensureSchema() {
@@ -539,6 +627,13 @@ public final class DefinitionStore {
                     // of one definition, and the children of one element.
                     "CREATE INDEX IF NOT EXISTS definition_element_by_parent"
                             + " ON definitions.definition_element (canonical, parent_id)",
+                    """
+                    CREATE TABLE IF NOT EXISTS definitions.definition_snapshot (
+                      canonical      text   PRIMARY KEY,
+                      source_id      text,
+                      source_version bigint NOT NULL DEFAULT 0,
+                      snapshot       bytea  NOT NULL
+                    )""",
                     """
                     CREATE TABLE IF NOT EXISTS definitions.definition_invariant (
                       canonical     text NOT NULL,

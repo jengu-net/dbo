@@ -333,8 +333,8 @@ dependency between them nowhere.
 
 | # | Move | Removes | Needs |
 |---|---|---|---|
-| 1 | **Snapshot into the cut** — generate it where the image is made and carry it | `cacheProfile`'s differential expansion, an *arrival* reach | the cut, which exists |
-| 2 | **A parameter's expression checked at the cut** — whether a stored `SearchParameter` is evaluable, the other two arrival reaches | the last two arrival reaches | 1, same machinery |
+| 1 | ~~**Snapshot into the cut**~~ **Built.** The snapshot is kept in `definitions.definition_snapshot`, so the schema an image is cut from carries it and the view is handed a definition with nothing left to build | `cacheProfile`'s differential expansion, an *arrival* reach | the cut, which exists |
+| 2 | ~~**A parameter's expression checked at the cut**~~ **Not needed.** The check parses; parsing reads the text | nothing — these were never reaches | — |
 | 3 | **The three rules** — canonical absolute, uuid lowercase, identifier under `urn:ietf:rfc:3986` a full uri | the validator's own code as a reason to hold a context | nothing; two are written and proven, the third is written |
 | 4 | **`_elements` from the rows** — a projection over the stored JSON, located by the jsonpaths the element rows already carry | `ElementAncestors.projected`, one serving branch | nothing |
 | 5 | **Framing and rendering from stored JSON** — putting the engine's facts back without the element model | three of `ElementStore`'s four serving reaches | 4, which is the same projection |
@@ -353,6 +353,29 @@ answering for joins, and whichever answers first answers for both. Step 8 rests
 on the divergence baseline — five divergences left, one of which needs a column
 `definitions.term_system` does not have — and that is measurement this item
 already records rather than work it has to schedule.
+
+**Step 2 came off the list rather than being done**, which is the second time
+reading a step has been worth more than building it. `whyNotEvaluable` builds a
+`FHIRPathEngine` over the context and calls `parse`, and parsing FHIRPath is a
+question about the text: `Unicorn.horn.where(length > 3)` — a type no
+definition anywhere declares — parses clean, while `name.where(` and an empty
+expression are still refused. So the two reaches want *a* context and not the
+one holding a corpus. `WhatParsingAnExpressionNeedsTest` holds both halves,
+because the first assertion alone would pass against a check that answered yes
+to everything.
+
+**What step 1 cost, which is the part worth keeping.** The first cut of it
+wrote the snapshot where the snapshot was generated — inside the expansion —
+and that made the kept set a record of *what the process happened to generate*.
+A definition whose rows are current is skipped by the expansion, so a tenant
+that loaded an image inherited rows and nothing else, while a tenant that read
+a chain expanded and kept. Two tenants holding one face then disagreed about a
+table derived from definitions they agree on, and
+`ATenantComesUpFromTheFaceImageIT` said so. The fix is to split the one skip in
+two: rows are re-derived when they are stale, and a snapshot is kept when it is
+missing, which are different questions about the same definition. A second
+derivation that follows the first is a cache; one that follows the definition
+is derived data, and only the second belongs in an image.
 
 **The branch points are 4 and 8.** Everything before 4 is derivation moving to
 a cut that already exists, which is mechanical. Step 4 is the first thing that
