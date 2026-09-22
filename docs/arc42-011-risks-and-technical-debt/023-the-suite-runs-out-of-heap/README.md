@@ -1,7 +1,9 @@
 **Open. Seven tenants in four classes now, across three documentation-only changes
 — one of them this item's own. What a tenant costs IS measured: 226 MB for a
 face's first, 11 MB for the next on it. The floor is attributed now — twelve
-classes keep 1755 MB and seventy more keep 477, against a 2 GB heap. Nothing is
+classes keep 1755 MB and seventy more keep 477, against the 2 GB heap it had
+when that was taken — the dial is 3g now, which bought room and answered
+nothing. Nothing is
 being left unclosed: the floor is the FHIR definition corpus, loaded once per
 face and resident by design — the model objects, their strings, and those
 strings' arrays, which together are over half the live heap. It is the
@@ -117,9 +119,12 @@ search for.
 
 `gradle.properties` carries the two, with their reasoning:
 
-- `dboTestHeap=2g` — a floor rather than a default. Clearing it does not give
+- `dboTestHeap=3g` — a floor rather than a default. Clearing it does not give
   "the default": each module keeps its own minimum, because Gradle's own heap
-  dies inside HAPI as a null-message fault that names nothing.
+  dies inside HAPI as a null-message fault that names nothing. It was 2g until
+  three builds in a row died inside it, on changes that cannot reach a tenant.
+  The file's own rule is that a dial moves when a run there shows it should,
+  and three did.
 - `dboTestParallelism=1` — one fork. The suite is already refusing to run test
   classes in parallel, which is how much room there is.
 
@@ -150,10 +155,12 @@ records what was resident when it started: "measured alone that read 23 MB and
 inside the suite **1.3 GB**, which is a fact about the suite and not about a
 tenant."
 
-Against a two-gigabyte heap that leaves about seven hundred megabytes, and
-three faces at 226 MB is six hundred and seventy-eight. That is the ceiling,
-in numbers this repository already held: not a crowd of tenants, but a suite
-whose floor has risen until the faces no longer fit above it.
+Against the two-gigabyte heap it had, that left about seven hundred megabytes,
+and three faces at 226 MB is six hundred and seventy-eight. That was the
+ceiling, in numbers this repository already held: not a crowd of tenants, but a
+suite whose floor had risen until the faces no longer fit above it. The dial is
+3g now, which buys a gigabyte of room and answers none of that — what gives the
+megabytes back rather than renting them is holding fewer faces in one JVM.
 
 It also says why the failures look the way they do. The class that fails most
 brings four tenants up **at once**, and the ones that failed tonight were
