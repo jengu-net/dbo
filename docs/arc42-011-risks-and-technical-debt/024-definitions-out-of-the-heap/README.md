@@ -422,9 +422,23 @@ converted feed only once the run that made it finished.
    | `StructureMap` ×2 | checked as programs: an unknown source or target context, a target path not on the type |
    | `ValueSet` | about a hundred and ten errors, every one *Unknown code … in the code system 'http://snomed.info/sct'* on `compose.include.concept.designation.use` |
 
-   The third rule is reachable — one document, on an `Identifier` inside an
-   example — but it is a relation between two elements rather than a primitive
-   form, so it does not belong in `dbo.admits` beside the other two.
+   **The third rule is written too**, as `dbo.identifier_in` rather than in
+   `dbo.admits`: it is a relation between two elements — the system says the
+   value is a uri — rather than a primitive form. It is keyed on the system
+   alone, since nothing else can carry `urn:ietf:rfc:3986`, and
+   `TheFaceSqlShipsWithTheReleaseIT` holds it to all three of its edges: a
+   label under that system is refused, a real uri is not, and an identifier
+   under another system is left alone.
+
+   **And it does not close the divergence, which is the interesting part.** The
+   corpus's occurrence is not a `StructureDefinition.identifier`. It is inside
+   `snapshot.element[9].example[0].value.ofType(Identifier)` — an example value
+   on an element definition, a choice inside a nested backbone. The rule fires
+   at the root and not there, so either the walk does not descend that far or
+   the element is marked unenforceable. Which of the two is the next question,
+   and it is worth more than the rule was: a check that reaches the top of a
+   document and not the inside of one is a check that reports less than it
+   appears to.
 
    **And the `ValueSet` turns out to name a check the database does not have.**
    Its findings are not about the binding. `dbo.binding_in` fires only where

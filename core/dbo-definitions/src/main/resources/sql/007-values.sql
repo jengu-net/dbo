@@ -117,6 +117,38 @@ LANGUAGE sql STABLE AS $$
             WHERE dbo.admits(t ->> 'code', jsonb_typeof(h.v), h.v))
 $$;
 
+-- The third of the rules a validator carries in its own code: an identifier
+-- whose system says "this value is a uri" must hold one.
+--
+-- urn:ietf:rfc:3986 is the RFC that defines a URI, and naming it as an
+-- identifier's system is how FHIR says the value IS a uri rather than a number
+-- somebody assigns. No StructureDefinition states it, so it is written here
+-- beside the two in `dbo.admits` rather than expanded from anything.
+--
+-- Keyed on the system alone. Other elements carry a `system` — a contact
+-- point's is phone or email — and none of them can carry this one, so nothing
+-- needs to know it is looking at an Identifier.
+CREATE OR REPLACE FUNCTION dbo.identifier_in(walked jsonb, profile text)
+RETURNS TABLE (severity text, path text, key text, detail text)
+LANGUAGE sql STABLE AS $$
+  SELECT 'error', e.path, 'identifier',
+         format('%s names urn:ietf:rfc:3986 as its system, so its value is a uri and %s is not',
+                e.path, at.value -> 'i' ->> 'value')
+    FROM jsonb_array_elements(walked) AS at
+    JOIN definitions.definition_element e
+      ON e.canonical = profile AND e.element_id = at.value ->> 'e' AND e.unenforceable IS NULL
+   WHERE jsonb_typeof(at.value -> 'i') = 'object'
+     AND at.value -> 'i' ->> 'system' = 'urn:ietf:rfc:3986'
+     AND at.value -> 'i' ->> 'value' IS NOT NULL
+     AND (at.value -> 'i' ->> 'value') !~ '^[A-Za-z][A-Za-z0-9+.\-]*:'
+$$;
+
+CREATE OR REPLACE FUNCTION dbo.identifier_issues(doc jsonb, profile text)
+RETURNS TABLE (severity text, path text, key text, detail text)
+LANGUAGE sql STABLE AS $$
+  SELECT * FROM dbo.identifier_in(dbo.walked(doc, profile), profile)
+$$;
+
 CREATE OR REPLACE FUNCTION dbo.primitive_issues(doc jsonb, profile text)
 RETURNS TABLE (severity text, path text, key text, detail text)
 LANGUAGE sql STABLE AS $$
