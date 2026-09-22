@@ -388,9 +388,89 @@ converted feed only once the run that made it finished.
    needs first is which conversions are definitions and which are records,
    because that decides whether one step serves both. Nothing synchronous waits
    on a converter today, which is the fact the whole idea rests on.
-5. **Write the three rules**, which is small, self-contained, and closes most
-   of the divergence baseline — the remaining gap between what the database
-   says and what the toolchain says.
+5. **Write the three rules.** Two are written, proven, and they closed half the
+   divergence.
+
+   A uuid is lowercase now and a canonical carries a scheme, both in
+   `dbo.admits` where the primitive forms already live.
+   `TheFaceSqlShipsWithTheReleaseIT` holds the second to it: a `baseDefinition`
+   of `StructureDefinition/Patient` is refused and the absolute form is not.
+
+   **The baseline went from ten divergences to five**, and every
+   `CapabilityStatement` closed — eight compared, none disagreeing, where five
+   did. `onlyTheDatabase` stayed at zero across 258 documents, so neither rule
+   over-refuses.
+
+   **It took two runs to learn that, and the first one lied.**
+   `-Ddbo.divergence.record=true` was never forwarded to the test JVM, so the
+   recording silently did nothing and the run compared against the old file and
+   passed. The flag is forwarded now, beside the heap flags that had the same
+   trap. A recording that quietly does nothing leaves a ratchet reading like a
+   measurement.
+
+   What remains is five, and `-Ddbo.divergence.name=true` now writes what
+   decided each one to `build/divergence-findings.txt` — the error and fatal
+   issues alone, because an outcome leads with warnings and the first attempt
+   at this truncated one and read as though it had no errors at all.
+
+   Read out, they are:
+
+   | | what decided it |
+   |---|---|
+   | `StructureDefinition` | `cid-0`, which the toolchain cannot evaluate: *the name 'name' is not valid for any of the possible types* |
+   | `StructureDefinition` | **the third rule** — *if identifier.system is 'urn:ietf:rfc:3986', then the identifier.value must be a full URI*, twice, on an example value |
+   | `StructureMap` ×2 | checked as programs: an unknown source or target context, a target path not on the type |
+   | `ValueSet` | about a hundred and ten errors, every one *Unknown code … in the code system 'http://snomed.info/sct'* on `compose.include.concept.designation.use` |
+
+   **The third rule is written too**, as `dbo.identifier_in` rather than in
+   `dbo.admits`: it is a relation between two elements — the system says the
+   value is a uri — rather than a primitive form. It is keyed on the system
+   alone, since nothing else can carry `urn:ietf:rfc:3986`, and
+   `TheFaceSqlShipsWithTheReleaseIT` holds it to all three of its edges: a
+   label under that system is refused, a real uri is not, and an identifier
+   under another system is left alone.
+
+   **And it does not close the divergence, which is the interesting part.** The
+   corpus's occurrence is not a `StructureDefinition.identifier`. It is inside
+   `snapshot.element[9].example[0].value.ofType(Identifier)` — an example value
+   on an element definition, a choice inside a nested backbone. The rule fires
+   at the root and not there, so either the walk does not descend that far or
+   the element is marked unenforceable. Which of the two is the next question,
+   and it is worth more than the rule was: a check that reaches the top of a
+   document and not the inside of one is a check that reports less than it
+   appears to.
+
+   **And the `ValueSet` turns out to name a check the database does not have.**
+   Its findings are not about the binding. `dbo.binding_in` fires only where
+   `binding_strength = 'required'`, and `designation.use` is extensible — which
+   the toolchain agrees with, reporting the binding itself as a warning. What
+   it reports as an ERROR is different: the code does not exist in
+   `http://snomed.info/sct` at all, *answered from this tenant's terminology*.
+
+   The terminology SQL answers whether a code is in a value set —
+   `dbo.in_value_set`, three-valued, with NULL for cannot say. Nothing answers
+   whether a code exists in the code system it names. So a code naming a system
+   this tenant holds and absent from it produces no finding, at any binding
+   strength.
+
+   That is not the unresolvable case the store already reasons about: a system
+   the tenant does not hold cannot be judged, and is not judged. A system it
+   does hold can be.
+
+   **And it cannot be built today, for a reason worth knowing.**
+   `definitions.term_system` records a url, a version, a concept count and when
+   it was updated. It does not record the code system's `content` — whether
+   what was imported is the whole of it or a fragment. So "this tenant holds
+   the system" cannot mean "this tenant holds all of it", and a check that
+   refused a code for being absent would refuse valid data wherever a system
+   was imported in part. Which is the normal case for SNOMED, and is precisely
+   this document.
+
+   So the baseline files it as content and is right twice over: carrying the
+   codes closes it, and the database cannot honestly say otherwise until a held
+   system says how much of itself it is. That is the smallest change that would
+   make the check possible, and it is a column rather than a design.
+
 6. **Snapshot into the cut**: generate it where the image is made and carry it,
    so `cacheProfile` has nothing to build.
 7. **`_elements` from the rows**, which removes the last reader of the element

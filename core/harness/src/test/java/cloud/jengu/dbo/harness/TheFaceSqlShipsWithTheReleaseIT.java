@@ -105,7 +105,8 @@ class TheFaceSqlShipsWithTheReleaseIT {
         assertEquals(List.of("admits", "binding_in", "binding_issues", "cardinality_in",
                         "cardinality_issues", "coded_values", "date_key", "descends_from",
                         "envelope", "envelope_canonical", "envelope_key", "envelope_meta",
-                        "envelope_pairs", "envelope_parts", "in_value_set", "instances",
+                        "envelope_pairs", "envelope_parts", "identifier_in", "identifier_issues",
+                        "in_value_set", "instances",
                         "invariant_holds", "invariant_in", "invariant_issues", "located",
                         "primitive_in", "primitive_issues",
                         "record_exists", "reference_in", "reference_issues", "token_forms",
@@ -273,6 +274,66 @@ class TheFaceSqlShipsWithTheReleaseIT {
                    "text":"Abielus"}}""").stream()
                         .anyMatch(issue -> issue.contains("must contain")),
                 "a pattern was read as equality, so carrying more than it states was refused");
+    }
+
+    @Test
+    @DisplayName("a canonical without a scheme is refused, which no definition states and the "
+            + "toolchain has always held in its own code")
+    @Proving(DboPromises.VAL_TIER_ONE_IS_ANSWERED_IN_THE_DATABASE)
+    void aCanonicalIsAbsolute() throws Exception {
+        // One of three rules the divergence baseline attributes to the
+        // validator carrying them itself. A canonical names a resource by the
+        // url it is published under, so one with no scheme names it nowhere —
+        // and nothing in any StructureDefinition says so, which is why this is
+        // written rather than expanded.
+        List<String> relative = issuesAgainst(root.code(), SHAPE, """
+                {"resourceType":"StructureDefinition","url":"https://ee.ee/StructureDefinition/x",
+                 "name":"X","status":"draft","kind":"resource","abstract":false,
+                 "type":"Patient","baseDefinition":"StructureDefinition/Patient"}""");
+        assertTrue(relative.stream().anyMatch(issue -> issue.startsWith("primitive")
+                        && issue.contains("baseDefinition")),
+                "a canonical with no scheme was accepted: " + relative);
+
+        assertTrue(issuesAgainst(root.code(), SHAPE, """
+                {"resourceType":"StructureDefinition","url":"https://ee.ee/StructureDefinition/x",
+                 "name":"X","status":"draft","kind":"resource","abstract":false,
+                 "type":"Patient",
+                 "baseDefinition":"http://hl7.org/fhir/StructureDefinition/Patient"}""").stream()
+                        .noneMatch(issue -> issue.startsWith("primitive")),
+                "an absolute canonical was refused, so the rule is too strict");
+    }
+
+    @Test
+    @DisplayName("an identifier whose system says its value is a uri is held to it, which is the "
+            + "third rule no definition states")
+    @Proving(DboPromises.VAL_TIER_ONE_IS_ANSWERED_IN_THE_DATABASE)
+    void anIdentifierUnderRfc3986IsAUri() throws Exception {
+        List<String> notAUri = issuesAgainst(root.code(), SHAPE, """
+                {"resourceType":"StructureDefinition","url":"https://ee.ee/StructureDefinition/y",
+                 "name":"Y","status":"draft","kind":"resource","abstract":false,"type":"Patient",
+                 "baseDefinition":"http://hl7.org/fhir/StructureDefinition/Patient",
+                 "identifier":[{"system":"urn:ietf:rfc:3986","value":"Local eCMS identifier"}]}""");
+        assertTrue(notAUri.stream().anyMatch(issue -> issue.startsWith("identifier")),
+                "an identifier under urn:ietf:rfc:3986 holding a label was accepted: " + notAUri);
+
+        assertTrue(issuesAgainst(root.code(), SHAPE, """
+                {"resourceType":"StructureDefinition","url":"https://ee.ee/StructureDefinition/y",
+                 "name":"Y","status":"draft","kind":"resource","abstract":false,"type":"Patient",
+                 "baseDefinition":"http://hl7.org/fhir/StructureDefinition/Patient",
+                 "identifier":[{"system":"urn:ietf:rfc:3986",
+                                "value":"https://ee.ee/identifier/1"}]}""").stream()
+                        .noneMatch(issue -> issue.startsWith("identifier")),
+                "an identifier holding a real uri was refused, so the rule is too strict");
+
+        // Another system's identifier says nothing about being a uri, and this
+        // rule is keyed on the system alone — so it has to leave them alone.
+        assertTrue(issuesAgainst(root.code(), SHAPE, """
+                {"resourceType":"StructureDefinition","url":"https://ee.ee/StructureDefinition/y",
+                 "name":"Y","status":"draft","kind":"resource","abstract":false,"type":"Patient",
+                 "baseDefinition":"http://hl7.org/fhir/StructureDefinition/Patient",
+                 "identifier":[{"system":"urn:rl:nid","value":"RL-0077"}]}""").stream()
+                        .noneMatch(issue -> issue.startsWith("identifier")),
+                "an identifier under another system was held to a rule about this one");
     }
 
     @Test

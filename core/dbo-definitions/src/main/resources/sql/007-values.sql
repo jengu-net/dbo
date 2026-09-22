@@ -70,13 +70,23 @@ RETURNS boolean LANGUAGE sql IMMUTABLE AS $$
     WHEN 'id' THEN kind = 'string' AND (v #>> '{}') ~ '^[A-Za-z0-9\-\.]{1,64}$'
     WHEN 'code' THEN kind = 'string' AND (v #>> '{}') ~ '^[^\s]+( [^\s]+)*$'
     WHEN 'oid' THEN kind = 'string' AND (v #>> '{}') ~ '^urn:oid:[0-2](\.(0|[1-9][0-9]*))+$'
+    -- Lowercase, which the specification's own regex does not say and the
+    -- toolchain enforces anyway. It was one of three rules a validator carries
+    -- in its own code and no definition states, measured as the gap between
+    -- what the database answers and what the toolchain does.
     WHEN 'uuid' THEN kind = 'string' AND (v #>> '{}') ~
-      '^urn:uuid:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
+      '^urn:uuid:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
     WHEN 'string' THEN kind = 'string'
     WHEN 'markdown' THEN kind = 'string'
     WHEN 'uri' THEN kind = 'string'
     WHEN 'url' THEN kind = 'string'
+    -- Absolute, for the same reason: a canonical names a resource by the url
+    -- it is published under, and one without a scheme names it nowhere. The
+    -- second of the three, and the one that accounted for eighteen findings by
+    -- itself. A version suffix and a fragment ride after the scheme and are
+    -- none of this check's business.
     WHEN 'canonical' THEN kind = 'string'
+      AND (v #>> '{}') ~ '^[A-Za-z][A-Za-z0-9+.\-]*:'
     WHEN 'base64Binary' THEN kind = 'string'
     WHEN 'xhtml' THEN kind = 'string'
     -- Not a primitive this knows: it admits whatever is there, so nothing is
@@ -105,6 +115,38 @@ LANGUAGE sql STABLE AS $$
      AND NOT EXISTS (
            SELECT 1 FROM jsonb_array_elements(h.types) AS t
             WHERE dbo.admits(t ->> 'code', jsonb_typeof(h.v), h.v))
+$$;
+
+-- The third of the rules a validator carries in its own code: an identifier
+-- whose system says "this value is a uri" must hold one.
+--
+-- urn:ietf:rfc:3986 is the RFC that defines a URI, and naming it as an
+-- identifier's system is how FHIR says the value IS a uri rather than a number
+-- somebody assigns. No StructureDefinition states it, so it is written here
+-- beside the two in `dbo.admits` rather than expanded from anything.
+--
+-- Keyed on the system alone. Other elements carry a `system` — a contact
+-- point's is phone or email — and none of them can carry this one, so nothing
+-- needs to know it is looking at an Identifier.
+CREATE OR REPLACE FUNCTION dbo.identifier_in(walked jsonb, profile text)
+RETURNS TABLE (severity text, path text, key text, detail text)
+LANGUAGE sql STABLE AS $$
+  SELECT 'error', e.path, 'identifier',
+         format('%s names urn:ietf:rfc:3986 as its system, so its value is a uri and %s is not',
+                e.path, at.value -> 'i' ->> 'value')
+    FROM jsonb_array_elements(walked) AS at
+    JOIN definitions.definition_element e
+      ON e.canonical = profile AND e.element_id = at.value ->> 'e' AND e.unenforceable IS NULL
+   WHERE jsonb_typeof(at.value -> 'i') = 'object'
+     AND at.value -> 'i' ->> 'system' = 'urn:ietf:rfc:3986'
+     AND at.value -> 'i' ->> 'value' IS NOT NULL
+     AND (at.value -> 'i' ->> 'value') !~ '^[A-Za-z][A-Za-z0-9+.\-]*:'
+$$;
+
+CREATE OR REPLACE FUNCTION dbo.identifier_issues(doc jsonb, profile text)
+RETURNS TABLE (severity text, path text, key text, detail text)
+LANGUAGE sql STABLE AS $$
+  SELECT * FROM dbo.identifier_in(dbo.walked(doc, profile), profile)
 $$;
 
 CREATE OR REPLACE FUNCTION dbo.primitive_issues(doc jsonb, profile text)

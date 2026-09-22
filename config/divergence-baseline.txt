@@ -11,7 +11,7 @@
 # toolchain and acts on nothing, and the whole case for it answering at
 # all is that it answers the same.
 #
-# What the remaining ten are, read one by one — and read by the findings that
+# What the remaining FIVE are, read one by one — and read by the findings that
 # actually decided each one. An outcome carries everything the face has to say,
 # warnings included; only error and fatal decide this count, and the first
 # sentence in an outcome is usually neither.
@@ -19,9 +19,14 @@
 # RULES THE VALIDATOR CARRIES IN ITS OWN CODE, which no definition states: a
 # canonical url must be absolute, a uuid must be lowercase, an identifier under
 # urn:ietf:rfc:3986 must be a full uri. Three rules over six documents, and the
-# absolute-url one accounts for eighteen findings by itself. Nothing compiled
+# absolute-url one accounted for eighteen findings by itself. Nothing compiled
 # FROM the definitions can produce these, and compiling invariants did not move
 # them by one.
+#
+# TWO OF THE THREE ARE WRITTEN NOW, in dbo.admits beside the primitive forms:
+# a uuid is lowercase and a canonical carries a scheme. That closed every
+# CapabilityStatement — five documents, and the count with them. What a
+# definition cannot state, somebody states once.
 #
 # A STRUCTUREMAP CHECKED AS A PROGRAM rather than as a document: a source or
 # target context must be one the map declared, and a target path must exist on
@@ -40,10 +45,16 @@
 # carrying the content and would not have moved however many invariants were
 # compiled.
 #
-# So the ceiling that "the specification is data" runs into is the first group
-# and only it — three rules, hard-coded, over six documents. The rest is a
-# program checker, a defect in the toolchain, and a gap in what is loaded.
-CapabilityStatement compared=8 onlyTheToolchain=5 onlyTheDatabase=0
+# So the ceiling that "the specification is data" runs into was the first group
+# and only it, and two thirds of that group is now written down. What is left
+# is a program checker, a defect in the toolchain, and a gap in what is loaded
+# — none of which a checker built from StructureDefinitions was ever going to
+# answer.
+#
+# Which of the five is which is printable rather than remembered:
+#     ./gradlew :core:harness:test --tests '*TheTwoAnswersAreCompared*' #         -Ddbo.divergence.name=true
+#     cat core/harness/build/divergence-findings.txt
+CapabilityStatement compared=8 onlyTheToolchain=0 onlyTheDatabase=0
 CodeSystem compared=40 onlyTheToolchain=0 onlyTheDatabase=0
 CompartmentDefinition compared=6 onlyTheToolchain=0 onlyTheDatabase=0
 ConceptMap compared=40 onlyTheToolchain=0 onlyTheDatabase=0
