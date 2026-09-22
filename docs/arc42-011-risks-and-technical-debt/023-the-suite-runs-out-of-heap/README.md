@@ -1,4 +1,4 @@
-**Open. Four tenants in three classes, across two documentation-only changes
+**Open. Seven tenants in four classes now, across three documentation-only changes
 — one of them this item's own. What a tenant costs IS measured: 226 MB for a
 face's first, 11 MB for the next on it. The floor is attributed now — twelve
 classes keep 1755 MB and seventy more keep 477, against a 2 GB heap. Nothing is
@@ -72,6 +72,19 @@ for it is the run where 226 MB has to be found at a floor of about 1.6 GB, and
 `terms4` and `teine` are already up because they are on faces somebody paid for
 earlier. So the coin flip has a shape: it is whether this tenant is the one
 that pays for a face.
+
+**A fourth run refuted the general form of that.** The next build died in
+`SeveralTenantsDeclaredAtOnceComeUpTogetherIT`, with `at-once-2` out of heap
+where three of its four siblings came up. All four are declared `"face":"r4"`,
+and r4's definitions are long resident by the time that class runs — so nothing
+there was paying for a face. The 11 MB a later tenant on a loaded face costs is
+not what ran out.
+
+So the shape holds for the pair of `terms5` failures and does not generalise.
+What generalises is duller and worse: the floor is high enough that any
+additional demand can tip it, and which demand happens to be the one that tips
+it is not predictable from the demand. Four runs, three distinct classes, two
+distinct causes of the last megabyte.
 
 **Checked rather than argued, as far as it can be without another red run.**
 `terms5` is declared `"face":"r5"` in the test itself and `terms4` is `r4`,
