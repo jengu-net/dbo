@@ -1,4 +1,11 @@
-**Open. The cast has started and one class has moved onto it: delegation runs on the hospital. Four families have been read against it since and each resists for a reason that can be named. Next: the shapes that are close to a cast member and kept apart only by what the sample world declares.**
+**Open. The cast has started and one class has moved onto it: delegation runs
+on the hospital. Four families have been read against it since and each resists
+for a reason that can be named. The migration's own measure is finished — the
+undecided count is zero, thirty-eight classes build a runtime and every one
+names a reason — which also means the ratchet that drove this can never fire
+again, and nothing counts the total. Next: the shapes kept apart from a cast
+member only by what the sample world declares, and whether the total is worth
+ratcheting.**
 
 <!-- The worklist is empty and the ledger is honest, but moving classes onto one runtime made the suite slower before it made it faster: what this machine cannot carry is tenants alive at once. Next: name the shared tenants after the parts they play, so a story's worth of steps runs on a cast several stories share. -->
 
@@ -34,9 +41,35 @@ of it coming tenants up, seconds are the scarcer thing. That is the reason to
 keep moving classes — not that it saves memory, because it does not.
 
 `config/worlds-ledger.txt` records every harness class that builds a
-runtime of its own. Forty-four predate the ledger and carry no reason; the
+runtime of its own. Forty-four predated the ledger and carried no reason; the
 [shared-world rule](../../arc42-002-constraints/working-rules/shared-world-tests.md)
 says which rung each should be on, and the number may only fall.
+
+**It has fallen to zero**, which is the migration's own measure saying it is
+finished. Thirty-eight classes build a runtime and every one names a reason:
+
+| | |
+|---|---|
+| `sweep` | 14 |
+| `deployment` | 11 |
+| `lifecycle` | 8 |
+| `whole plane` | 2 |
+| `first boot` | 2 |
+| `container` | 1 |
+| **`UNDECIDED`** | **0** |
+
+And that is worth reading twice, because it means the ratchet that governed
+this work can never fire again. `AWorldOfItsOwnIsADecisionTest` fails when the
+ledger disagrees with the sources, when an entry has no reason, and when the
+undecided count rises above the recorded allowance — which is now `0`, a
+number nothing can exceed because nothing may take `UNDECIDED`. The record
+stays honest; nothing holds the total down.
+
+What holds it down instead is the judgement in each reason, and this item has
+already found that judgement given too readily once. Thirteen entries were
+recorded as `sweep` under a wording that meant *calls a deployment pass*, which
+the scan loop does continuously; re-read under *makes a claim about the pass*,
+two of them moved and one was not a sweep at all. Fourteen carry it today.
 
 ## Which class, in which order
 
@@ -97,9 +130,10 @@ in [how the migration is run](how-it-is-run.md), which moved here from
 
 ## Steps
 
-1. Classify the 44 into rungs from their source: a guide step, a shared
+1. ~~Classify the 44 into rungs from their source: a guide step, a shared
    shape, a private tenant on the shared runtime, or one of the five
-   reasons to keep a runtime. Record the result as the worklist here.
+   reasons to keep a runtime.~~ Done, and the worklist it produced is empty:
+   `UNDECIDED` is zero and every entry names a reason.
 2. Move them, one or a few per change, re-recording the ledger each time so
    the allowance falls.
 3. ~~Give the classes that keep a runtime their reason in the ledger, so
@@ -188,6 +222,18 @@ in [how the migration is run](how-it-is-run.md), which moved here from
    spec, and neither has earned one yet. That is the next thing to weigh, and
    it is a smaller prize than it looks — the second is one tenant, and the
    expensive one.
+
+7. Ratchet the TOTAL, not only the undecided count. The allowance that drove
+   this migration is spent — it reads `0` and nothing may take `UNDECIDED`, so
+   it cannot fail again — and a class arriving tomorrow needs only to name one
+   of seven reasons. The `sweep` re-reading is the evidence that a reason is
+   taken too readily when nothing counts them: thirteen were recorded under a
+   wording that admitted any class calling a pass. The same mechanism the
+   allowance already uses would do it — a recorded number that regeneration
+   lowers and the build refuses to exceed — and it costs a line in the ledger
+   and a third assertion in the test that is already there. Not built here
+   because it turns a judgement into a build failure, which is a decision about
+   how this repository wants to be argued with rather than a defect to fix.
 
 6. The old fourth step, kept because it is what was actually done:
    re-read the entries whose reason is `sweep`. That reason used to say a
