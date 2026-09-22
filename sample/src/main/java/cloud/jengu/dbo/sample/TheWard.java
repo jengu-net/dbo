@@ -47,7 +47,7 @@ public final class TheWard {
      */
     public java.util.List<String> waitingForAPerson() {
         try (var waiting = asking.work().heldBy(Holder.PERSON).stream()) {
-            return waiting.map(run -> run.step() + " " + run.key()).toList();
+            return waiting.map(one -> one.step() + " " + one.key()).toList();
         }
     }
 

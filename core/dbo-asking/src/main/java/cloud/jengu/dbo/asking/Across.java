@@ -229,8 +229,48 @@ public final class Across implements Questions {
         }
 
         @Override
-        public Stream<Run> stream() {
-            return asked.stream(bytes -> Run.of(wired(bytes)));
+        public Stream<Ongoing> stream() {
+            return asked.stream(WorkAcross::ongoing);
+        }
+
+        /**
+         * A rendered run, read back as the part of one that crossed.
+         *
+         * <p>The systems are the face's own, and they are here rather than
+         * shared with it on purpose: this binding already writes its questions
+         * in the surface's spelling — {@code owner}, {@code code},
+         * {@code identifier} — so it already depends on the rendering, and
+         * naming the systems beside the queries keeps the whole of that
+         * dependency in one file.
+         */
+        private static Ongoing ongoing(byte[] payload) {
+            String member = new String(payload, java.nio.charset.StandardCharsets.UTF_8);
+            // A run renders as a COLLECTION — the run and its items, because an
+            // item is its own card and a person fixes one thing at a time. So
+            // what a search hands back per match is that collection, and the
+            // run is its first entry.
+            if (member.contains("\"type\":\"collection\"")) {
+                java.util.List<byte[]> within = Bundles.members(member);
+                if (!within.isEmpty()) {
+                    member = new String(within.get(0), java.nio.charset.StandardCharsets.UTF_8);
+                }
+            }
+            String holder = Bundles.beside(member, "urn:dbo:run:holder", "code");
+            String milestone = Bundles.beside(member, "urn:dbo:run:milestone", "code");
+            String correlation = Bundles.beside(member, "urn:dbo:correlation", "value");
+            return new Ongoing(
+                    Bundles.field(member, "id"),
+                    Bundles.beside(member, "urn:dbo:run", "value"),
+                    emptyToNull(Bundles.beside(member, "urn:dbo:process", "code")),
+                    Bundles.beside(member, "urn:dbo:step", "code"),
+                    holder.isEmpty() ? Holder.NOBODY : Holder.valueOf(
+                            holder.toUpperCase(java.util.Locale.ROOT)),
+                    emptyToNull(correlation),
+                    emptyToNull(milestone));
+        }
+
+        private static String emptyToNull(String value) {
+            return value == null || value.isEmpty() ? null : value;
         }
 
         @Override

@@ -29,6 +29,13 @@ import java.util.Optional;
  */
 final class WorkProjection implements WorkSurface {
 
+    /**
+     * What the run is called on the surface, which is not what it is called in
+     * the store. WorkModel.TYPE is "Run" — the store's own word — and a link a
+     * client is meant to follow has to say the word the surface answers to.
+     */
+    private static final String SURFACE_TYPE = "Task";
+
     private final ObjectStore store;
     private final Runs runs;
     private final Steps steps;
@@ -100,7 +107,7 @@ final class WorkProjection implements WorkSurface {
                 face.require(cloud.jengu.dbo.core.face.PayloadFraming.class);
         cloud.jengu.dbo.core.face.PayloadFraming.Frame frame = framing.frame("searchset",
                 new cloud.jengu.dbo.core.face.PayloadFraming.Facts(
-                        total, baseUrl + "/" + WorkModel.TYPE, null));
+                        total, baseUrl + "/" + SURFACE_TYPE, null));
         java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream(512);
         try {
             out.write(frame.prologue());
@@ -110,9 +117,9 @@ final class WorkProjection implements WorkSurface {
                 }
                 StoredObject one = found.get(i);
                 framing.member(new cloud.jengu.dbo.core.face.PayloadFraming.Member(
-                        WorkModel.TYPE, one.id(), one.versionId(),
+                        SURFACE_TYPE, one.id(), one.versionId(),
                         rendered(Run.of(one)).getBytes(java.nio.charset.StandardCharsets.UTF_8),
-                        baseUrl + "/" + WorkModel.TYPE + "/" + one.id(),
+                        baseUrl + "/" + SURFACE_TYPE + "/" + one.id(),
                         cloud.jengu.dbo.core.face.PayloadFraming.Member.MATCHED), out);
             }
             out.write(frame.epilogue());

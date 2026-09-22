@@ -28,8 +28,13 @@ final class Bundles {
         if (at < 0) {
             return found;
         }
-        for (int resource = bundle.indexOf("\"resource\"", at); resource >= 0;
-                resource = bundle.indexOf("\"resource\"", resource + 1)) {
+        // Resumed AFTER the member just taken, not one character past where it
+        // started. A member may itself be a bundle — a run renders as its own
+        // collection — and scanning from inside one finds its entries again,
+        // so every nested resource came back a second time as a member of the
+        // outer answer. Two runs walked as four.
+        int resource = bundle.indexOf("\"resource\"", at);
+        while (resource >= 0) {
             int open = bundle.indexOf('{', resource);
             if (open < 0) {
                 break;
@@ -40,6 +45,7 @@ final class Bundles {
             }
             found.add(bundle.substring(open, close + 1)
                     .getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            resource = bundle.indexOf("\"resource\"", close + 1);
         }
         return found;
     }
@@ -84,6 +90,47 @@ final class Bundles {
     }
 
     /** A top-level string field of a member, or "" where it carries none. */
+    /**
+     * The {@code value} or {@code code} standing beside a given system.
+     *
+     * <p>A run crosses as the face renders it — identifiers under their
+     * systems, codings under theirs — and this reads one back out. Scanned
+     * rather than parsed because what is being read is a shape this binding
+     * already knows: it writes its questions in the same spelling, so a change
+     * to either is a change to both, and a reader that understood arbitrary
+     * JSON would not make that any safer.
+     *
+     * <p>The span searched is the object the system sits in, from the system
+     * to the next closing brace, so a value belonging to a later identifier
+     * cannot be read as this one's.
+     *
+     * @return the value, or empty where nothing carries that system
+     */
+    static String beside(String member, String system, String named) {
+        int at = member.indexOf("\"system\":\"" + system + "\"");
+        if (at < 0) {
+            return "";
+        }
+        int ends = member.indexOf('}', at);
+        String within = ends < 0 ? member.substring(at) : member.substring(at, ends);
+        int said = within.indexOf("\"" + named + "\"");
+        if (said < 0) {
+            // The system may be written after the value in the same object.
+            int opens = member.lastIndexOf('{', at);
+            if (opens < 0) {
+                return "";
+            }
+            within = member.substring(opens, ends < 0 ? member.length() : ends);
+            said = within.indexOf("\"" + named + "\"");
+            if (said < 0) {
+                return "";
+            }
+        }
+        int quote = within.indexOf('"', within.indexOf(':', said) + 1);
+        int closing = within.indexOf('"', quote + 1);
+        return quote < 0 || closing < 0 ? "" : within.substring(quote + 1, closing);
+    }
+
     static String field(String member, String name) {
         int at = member.indexOf("\"" + name + "\"");
         if (at < 0) {

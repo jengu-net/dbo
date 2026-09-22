@@ -1,6 +1,7 @@
 package cloud.jengu.dbo.harness;
 
 import cloud.jengu.dbo.asking.Across;
+import cloud.jengu.dbo.asking.Ongoing;
 import cloud.jengu.dbo.asking.Asking;
 import cloud.jengu.dbo.asking.Questions;
 import cloud.jengu.dbo.core.api.StoredObject;
@@ -191,25 +192,23 @@ class OneVocabularyTwoBindingsIT {
     }
 
     @Test
-    @DisplayName("walking work across the wire is not answerable yet, and says so rather than "
-            + "handing back runs it could not read")
-    void walkingWorkAcrossIsNotAnswerableYet() {
-        // The surface serves a run search now, and what comes back is a Task —
-        // the face's rendering of a run, not the run. Run.of reads the store's
-        // own form, so the walk cannot complete until the rendering is
-        // reversible. Counting is unaffected, because a count is a number.
-        //
-        // Held here so the gap is a failing expectation rather than a surprise
-        // in somebody's screen: the day the translation lands, this test is
-        // what says so.
-        assertThrows(RuntimeException.class,
-                () -> {
-                    try (Stream<Run> walking = fromAcross.work().correlated(CASE).open().stream()) {
-                        walking.forEach(run -> { });
-                    }
-                },
-                "walking work across the wire now works, so this test should become the "
-                        + "parity assertion it is standing in for");
+    @DisplayName("and walks the same work, with the same keys, because what crosses the wire "
+            + "is what both bindings can fill")
+    void bothBindingsWalkTheSameWork() {
+        List<String> inside = keysOf(fromInside);
+        List<String> across = keysOf(fromAcross);
+
+        assertEquals(2, inside.size(), "the store's own walk is wrong");
+        assertEquals(inside, across,
+                "the two bindings walked different work: inside=" + inside
+                        + " across=" + across);
+    }
+
+    private static List<String> keysOf(Questions asking) {
+        try (Stream<Ongoing> open = asking.work().correlated(CASE).open().stream()) {
+            return open.map(one -> one.step() + " " + one.key() + " " + one.holder())
+                    .sorted().toList();
+        }
     }
 
     @Test
