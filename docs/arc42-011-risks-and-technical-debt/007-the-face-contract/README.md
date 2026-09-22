@@ -1,4 +1,10 @@
-**Open. The epic closed and a second face exists; one slice remains, and it is still theoretical. The contract's silent answer is that one payload is one object, which the second face shares — so what was expected to make the question testable does not reach it.**
+**Open. The epic closed and a second face exists; one slice remains, and it is
+still theoretical. The contract's silent answer is that one payload is one
+object, which the second face shares — so what was expected to make the
+question testable does not reach it. What would test it is item 013's second
+spike question, which states the same silence in the domain that forces it, so
+this slice waits on that item rather than on a decision of its own. Next:
+move the trap, check the concept page carries the decisions, delete this.**
 
 # The face contract
 
@@ -71,6 +77,31 @@ grid topology with no document boundary, a tabular submission that is either
 one dataset or a hundred thousand rows. Until one of those exists, the slice
 stays theoretical, and the decision to make is which of those to build rather
 than how to phrase the capability.
+
+**And that decision is already made elsewhere, which is worth saying rather
+than re-deciding.** Two of the three candidates are filed.
+[UBL](../011-ubl-as-a-face/README.md) does **not** probe this: an invoice is
+one document whose lines carry no identity of their own, which is
+FHIR-shaped in exactly the respect that matters here, so building it would
+leave the silence unmeasured a second time.
+[A neutral IFC repository](../013-a-neutral-ifc-repository/README.md) does, and
+it states the question in its own words — *only rooted entities carry a stable
+identity; geometry entities carry none and number in the millions; what counts
+as one stored object has to be decided before anything can be stored, and the
+engine's contract has no row for it because a resource made it invisible.* Its
+spike list carries it as question two: **what is the object boundary, on a real
+file?**
+
+So this slice does not want a decision. It wants item 013's second spike
+question answered, and it closes with it — or, if that repository is never
+scheduled, it closes as a thing nobody needs.
+
+**Which makes this document one step from deletable.** Its decisions are in
+[engine and faces](../../arc42-008-crosscutting/engine-and-faces/README.md)
+already, by its own account; its trap belongs in the promise catalogue's notes;
+and its one open slice now belongs to another item that states it better. What
+is left before deleting it is moving the trap and checking that the concept
+page really carries the four decisions below — a reading, not a design.
 
 **[issue 110](https://github.com/jengu-net/dbo/issues/110) is done.** The spec field is called `face`, its old name is refused
 rather than honoured, and the operator's schema no longer enumerates three
