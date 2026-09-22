@@ -1,4 +1,11 @@
-**Open. The step is ported, the shell harness is gone from CI — the tree run is the JUnit suite now — and who moves the pin is written down. The guide still comes up three times, and what is left is deciding whether the pinned shell run earns its place. Next: item 002.**
+**Open. The step is ported, the shell harness is gone from the tree run, and
+who moves the pin is written down. Whether the pinned shell run earns its place
+is decided, and on a count rather than on item 002: the suite runs all
+ninety-nine published snippets, `up.sh` included as of this change, so the
+guide's shell run covers nothing the suite does not — while the quickstart's
+own run covers a compose file and two specs nothing else touches. Next: delete
+the guide's shell run from the `quickstart` job, once the bring-up snippet has
+run as published in CI.**
 
 # The guide runs three times in CI
 
@@ -25,11 +32,40 @@ the job exists to prevent. So it runs the JUnit suite instead of the shell
 one, through `DBO_GUIDE_COMPOSE`, which is the door `tree-world.sh` was
 written for.
 
-That leaves `quickstart` as the last shell run, against the pinned image. It
-proves the published commands work as a reader pastes them, which the suite
-approximates by sourcing the same snippets — so whether it still earns a
-third bring-up is a real question, and it is the same question item 002 forces
-anyway.
+That leaves the shell runs, and the `quickstart` job is two of them: it runs
+`quickstart/check.sh` and then `docs/guide/examples/check.sh`. They are not
+the same kind of thing, and counting them together is what made this look like
+one question.
+
+**`quickstart/check.sh` is the only thing in the repository that runs
+`quickstart/compose.yaml` and its two specs.** That compose file is what the
+landing page tells a reader to copy, and the suite never touches it — a
+different world, different tenants, reached through a different file. So the
+suite does not cover it in any sense, and deleting that run would restore
+exactly the failure the job was written for: an instruction nothing executes.
+It stays.
+
+**`docs/guide/examples/check.sh` is a different case, and it is nearly
+closed.** It and the JUnit suite run the same ninety-nine snippet files
+against the same pinned image. Counted rather than assumed: every published
+snippet is executed by the suite except one — `up.sh`, the command that brings
+the world up, which is the first thing a reader types and was the only one
+nothing ran as published.
+
+It ran as arguments instead, because it cannot run as published on the tree:
+the published command names the published compose file, and substituting
+another is the whole of what `DBO_GUIDE_COMPOSE` is for. So the suite runs it
+as published where that is true — the pinned run — and by the same arguments
+where it is not. That closes the gap where the overlap actually is.
+
+**And the reason recorded for the overlap is now spent.** `guide-as-tests`
+says in its own comment that it overlaps "on purpose and only for now…one step
+is deliberately not ported, and the shell harness is what still covers it."
+That step is ported, and this was the last published command the suite did not
+run. What is left before the guide world comes up twice instead of three times
+is the deletion, and nothing is now learned by deferring it to item 002 — that
+item changes what the suite is made of, not which of these three runs covers
+something the others do not.
 
 Who moves the pin is now written down. The
 [documentation rule](../../arc42-002-constraints/working-rules/documentation.md)
@@ -55,6 +91,15 @@ forgetting.
    from the build on a release.~~ Done: the documentation rule says it, and
    the skill carries it as a MUST. Revisit the automated half when a release
    exists to hang it on.
-3. When item 002 lands, decide whether the pinned runs stay — both of them,
-   and `quickstart`'s shell script first, since the suite now covers every
-   step it does.
+3. ~~Decide whether the pinned runs stay.~~ **Decided, on a count rather than
+   on item 002.** `quickstart/check.sh` stays: it is the only thing that runs
+   the quickstart's own compose file and specs, which is a different artefact
+   from the guide world and the one a reader copies first. The three guide-world
+   bring-ups are the question, and the count says the shell one is the
+   redundant one — the suite runs every published snippet, `up.sh` included as
+   of this change.
+4. Delete `docs/guide/examples/check.sh` from the `quickstart` job, and the
+   stale sentence in `guide-as-tests` explaining an overlap that has ended.
+   Held back from the same change as step 3 on purpose: the step above is what
+   makes the deletion safe, and a deletion that lands with its own
+   justification unproven is how coverage goes missing.
