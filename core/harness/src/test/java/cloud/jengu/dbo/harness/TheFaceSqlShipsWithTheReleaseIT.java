@@ -276,6 +276,33 @@ class TheFaceSqlShipsWithTheReleaseIT {
     }
 
     @Test
+    @DisplayName("a canonical without a scheme is refused, which no definition states and the "
+            + "toolchain has always held in its own code")
+    @Proving(DboPromises.VAL_TIER_ONE_IS_ANSWERED_IN_THE_DATABASE)
+    void aCanonicalIsAbsolute() throws Exception {
+        // One of three rules the divergence baseline attributes to the
+        // validator carrying them itself. A canonical names a resource by the
+        // url it is published under, so one with no scheme names it nowhere —
+        // and nothing in any StructureDefinition says so, which is why this is
+        // written rather than expanded.
+        List<String> relative = issuesAgainst(root.code(), SHAPE, """
+                {"resourceType":"StructureDefinition","url":"https://ee.ee/StructureDefinition/x",
+                 "name":"X","status":"draft","kind":"resource","abstract":false,
+                 "type":"Patient","baseDefinition":"StructureDefinition/Patient"}""");
+        assertTrue(relative.stream().anyMatch(issue -> issue.startsWith("primitive")
+                        && issue.contains("baseDefinition")),
+                "a canonical with no scheme was accepted: " + relative);
+
+        assertTrue(issuesAgainst(root.code(), SHAPE, """
+                {"resourceType":"StructureDefinition","url":"https://ee.ee/StructureDefinition/x",
+                 "name":"X","status":"draft","kind":"resource","abstract":false,
+                 "type":"Patient",
+                 "baseDefinition":"http://hl7.org/fhir/StructureDefinition/Patient"}""").stream()
+                        .noneMatch(issue -> issue.startsWith("primitive")),
+                "an absolute canonical was refused, so the rule is too strict");
+    }
+
+    @Test
     @DisplayName("a write is shown to both, the toolchain's verdict is the one used, and what "
             + "they made of it is counted")
     @Proving(DboPromises.VAL_THE_DATABASE_ANSWER_IS_ADVISORY_UNTIL_IT_IS_NOT)

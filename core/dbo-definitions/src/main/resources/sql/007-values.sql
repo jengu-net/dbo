@@ -70,13 +70,23 @@ RETURNS boolean LANGUAGE sql IMMUTABLE AS $$
     WHEN 'id' THEN kind = 'string' AND (v #>> '{}') ~ '^[A-Za-z0-9\-\.]{1,64}$'
     WHEN 'code' THEN kind = 'string' AND (v #>> '{}') ~ '^[^\s]+( [^\s]+)*$'
     WHEN 'oid' THEN kind = 'string' AND (v #>> '{}') ~ '^urn:oid:[0-2](\.(0|[1-9][0-9]*))+$'
+    -- Lowercase, which the specification's own regex does not say and the
+    -- toolchain enforces anyway. It was one of three rules a validator carries
+    -- in its own code and no definition states, measured as the gap between
+    -- what the database answers and what the toolchain does.
     WHEN 'uuid' THEN kind = 'string' AND (v #>> '{}') ~
-      '^urn:uuid:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
+      '^urn:uuid:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
     WHEN 'string' THEN kind = 'string'
     WHEN 'markdown' THEN kind = 'string'
     WHEN 'uri' THEN kind = 'string'
     WHEN 'url' THEN kind = 'string'
+    -- Absolute, for the same reason: a canonical names a resource by the url
+    -- it is published under, and one without a scheme names it nowhere. The
+    -- second of the three, and the one that accounted for eighteen findings by
+    -- itself. A version suffix and a fragment ride after the scheme and are
+    -- none of this check's business.
     WHEN 'canonical' THEN kind = 'string'
+      AND (v #>> '{}') ~ '^[A-Za-z][A-Za-z0-9+.\-]*:'
     WHEN 'base64Binary' THEN kind = 'string'
     WHEN 'xhtml' THEN kind = 'string'
     -- Not a primitive this knows: it admits whatever is there, so nothing is
