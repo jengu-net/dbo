@@ -1,15 +1,45 @@
-**Open. A tenant's kind is re-derived at every call site instead of being
-declared. Three pieces are done ahead of the kind: the dispatcher starts from
-what the registrations say and a failing dispatch says so, the custom resource
-is now checked against the whole spec rather than its root — proven by deleting
-the nested key that was found by hand, which the widened check names — and a
-zone declares itself, which closes the second of the three costs below.**
+**Open, and smaller than its title. All three costs it was filed for are
+closed — the dispatcher reads what the registrations say, the custom resource
+is checked as paths, and a zone declares itself — and not one of them was
+closed by a kind. The design below is superseded by the activity selectors
+built meanwhile, and the finding that supersedes it has moved to the guide's
+Lifecycle chapter, where a reader meets it. What is left is one speculative
+benefit: a coarse label an outside bundle could select on. Next: decide whether
+anybody wants that, and delete this if not.**
 
 # Tenant kinds
 
 Issue: [280](https://github.com/jengu-net/dbo/issues/280)
 
-## What this is
+## What this is now
+
+**The problem is closed and the solution was never built**, which is an odd
+shape for an item and is why it says so here rather than leaving a reader to
+assemble it from three sections.
+
+Three costs were recorded, all found in one afternoon and none looked for: a
+dispatcher polling a domain that does not exist, a tenant conscripted into
+being a zone by somebody else's file, and a key the parser read that the custom
+resource did not declare. All three are closed. **Not one of them was closed by
+a kind.** The dispatcher reads what the registrations say, because they already
+carry the domain each type lands in. The zone declares itself, because being a
+jurisdiction is a property rather than a kind. The key is declared, and the
+check that guards it reads the whole tree as paths.
+
+Meanwhile the mechanism that would have consumed a kind was built and does not
+want one. Every selector an activity can write asks about a resolved fact, and
+that finding now lives in the guide's
+[Lifecycle](../../guide/lifecycle.md) chapter beside the facts themselves —
+including why a filter on a resolved fact keeps answering correctly for a kind
+of tenant nobody anticipated, and a filter on a label does not.
+
+So what remains is the paragraph at the end of the design: a kind is a coarse
+label something *outside* this runtime could select on — hooks bound to a kind,
+billing by kind, policy applied per kind. Nothing asks for it today. This item
+is deleted when somebody decides nothing will, and what follows is kept until
+then because it is the argument that decision needs.
+
+## What this was
 
 A tenant's kind is not declared. It is re-derived at each call site from the
 shape of the spec — `faceRoot`, whether some dependency is the face chain,
