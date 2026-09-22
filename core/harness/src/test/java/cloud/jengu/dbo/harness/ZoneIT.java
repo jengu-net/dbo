@@ -94,9 +94,12 @@ class ZoneIT {
                 new TenantRuntimeManager.AuthorityConfig(kek, null, null, null,
                         Map.of("tara", "tara-salajane", "eeid", "eeid-salajane")));
 
-        // the ZONE tenant first — its declarations are records
+        // the ZONE tenant first — its declarations are records, and it says
+        // it is one: a member naming a tenant that has not declared itself a
+        // jurisdiction is refused.
         Files.writeString(dir.resolve("ee.json"), """
-                {"code":"ee","face":"r4","types":[{"name":"Basic","identity":"internal","handling":"operational"}]}""");
+                {"code":"ee","face":"r4","zoneRoot":true,
+                 "types":[{"name":"Basic","identity":"internal","handling":"operational"}]}""");
         // Waited for, not scanned once. A pass is one reconciliation, not a
         // promise that it finished: on a loaded runner the store below was
         // opened against a tenant still coming up.

@@ -1714,6 +1714,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 throw new UpstreamNotReady(spec.code(), dependency.name());
             }
         }
+        theZoneItNamesSaysItIsOne(spec);
         // Resolved before anything is created. A tenant declaring a version
         // nothing provides is refused because nothing provides it, and asking
         // first means the refusal leaves no database behind to clean up.
@@ -2988,6 +2989,46 @@ public final class TenantRuntimeManager implements AutoCloseable {
                     new cloud.jengu.dbo.work.Runs(engine, composed), composed, face);
         }
         return server;
+    }
+
+    /**
+     * A zone is declared by the tenant that is one.
+     *
+     * <p>Naming a tenant as your zone is not appointing it. Without this, a
+     * one-word typo was load-bearing and silent: a member's file saying
+     * {@code "zone": "hogwarts"} built a hub over the hospital's database and
+     * made its ceremony the one everybody federates to, and the deployment
+     * came up green. Which tenants were zones was answerable only by reading
+     * every other spec and taking the union of what they pointed at.
+     *
+     * <p>Refused only against a tenant this runtime already serves. A name
+     * that is nobody yet is a wait rather than a fault — the hub path waits
+     * for it already, and a member met before its zone is a normal order of
+     * arrival.
+     */
+    private void theZoneItNamesSaysItIsOne(TenantSpec spec) {
+        if (spec.zone() == null) {
+            return;
+        }
+        TenantRuntime named = runtimes.get(spec.zone());
+        if (named != null) {
+            aZoneIsDeclaredByItself(spec, named.spec());
+        }
+    }
+
+    /**
+     * The rule itself, over two declarations and nothing else, so that what it
+     * refuses can be asked without a deployment to ask it of.
+     */
+    static void aZoneIsDeclaredByItself(TenantSpec member, TenantSpec named) {
+        if (named.zoneRoot()) {
+            return;
+        }
+        throw new IllegalArgumentException(member.code() + ": names '" + named.code()
+                + "' as its zone, and '" + named.code() + "' does not declare itself one. "
+                + "A zone says so in its own file (\"zoneRoot\": true) — otherwise a tenant "
+                + "is conscripted into being a jurisdiction by somebody else's file, and no "
+                + "file records that it happened.");
     }
 
     /**

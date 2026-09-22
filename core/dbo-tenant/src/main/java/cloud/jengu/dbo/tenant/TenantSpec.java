@@ -12,12 +12,18 @@ import java.util.regex.Pattern;
  * One tenant's declaration: code, FHIR version, configured types.
  * In production these specs come from configuration (git / operator-managed
  * mounts); the manager watches them as files.
+ *
+ * <p>{@code zone} names the jurisdiction this tenant is a member of;
+ * {@code zoneRoot} says this tenant <b>is</b> one. They are two fields because
+ * being a jurisdiction and being in one are not exclusive — a jurisdiction
+ * holds ordinary records too — and because a zone that is only ever named by
+ * its members is a zone no file records.
  */
 public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
         boolean pdi, cloud.jengu.dbo.policy.TenantPolicies policies,
         String zone, String broker, List<String> acceptedBrokers,
         List<Dependency> dependencies, Scim scim, List<String> mandatorySteps,
-        String managedBy, boolean faceRoot, List<Step> steps) {
+        String managedBy, boolean faceRoot, List<Step> steps, boolean zoneRoot) {
 
     /**
      * A step this tenant offers, and the documents a run of it is over.
@@ -49,6 +55,19 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
             slots = java.util.Collections.unmodifiableMap(
                     new java.util.LinkedHashMap<>(slots));
         }
+    }
+
+    /**
+     * Without a declared zone: what every tenant was while a zone was made by
+     * its members rather than by itself.
+     */
+    public TenantSpec(String code, String face, List<FhirTypeConfig> types,
+            boolean pdi, cloud.jengu.dbo.policy.TenantPolicies policies,
+            String zone, String broker, List<String> acceptedBrokers,
+            List<Dependency> dependencies, Scim scim, List<String> mandatorySteps,
+            String managedBy, boolean faceRoot, List<Step> steps) {
+        this(code, face, types, pdi, policies, zone, broker, acceptedBrokers,
+                dependencies, scim, mandatorySteps, managedBy, faceRoot, steps, false);
     }
 
     /**
@@ -443,7 +462,10 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
                 Json.strings(root, "mandatorySteps"), Json.strOpt(root, "managedBy"),
                 // A face root holds its version's definitions as records —
                 // the one place the carried packages are ever read.
-                Json.bool(root, "faceRoot"), List.copyOf(steps));
+                Json.bool(root, "faceRoot"), List.copyOf(steps),
+                // A zone says it is one. Members name it, and naming is not
+                // appointing: see the check at bring-up.
+                Json.bool(root, "zoneRoot"));
     }
 
     /**

@@ -33,8 +33,15 @@ spec:
                 face:
                   type: string
                   pattern: '^[a-z][a-z0-9-]{0,31}$'
+                # Which jurisdiction this tenant is a member of. Naming one
+                # does not make it one: the named tenant says so itself.
                 zone:
                   type: string
+                # This tenant IS a jurisdiction. Members name it, its brokers
+                # and terminology are its records, and it is declared here
+                # rather than inferred from who points at it.
+                zoneRoot:
+                  type: boolean
                 broker:
                   type: string
                 acceptedBrokers:
