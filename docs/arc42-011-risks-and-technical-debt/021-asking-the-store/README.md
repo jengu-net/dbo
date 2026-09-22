@@ -1,9 +1,10 @@
-**Open. A product building a screen has no vocabulary for asking this store a
-question — not about runs and the trail, and not about the records a list
-screen is made of. The in-JVM binding is most of the way there already and
-unnamed: a tenant registers its `ObjectStore` on the whiteboard, so what a
-consumer gets is an engine handle and `Criteria`. Next: settle what asking is,
-as against reaching, then the vocabulary.**
+**Open. The vocabulary exists with two bindings a caller cannot tell apart, and
+that is now true of work as well as records: the surface serves a run search,
+and what both hand back is an `Ongoing` — the seven fields of a run that a
+rendering carries — rather than a `Run` whose other eleven only one binding
+could fill. The guide chapter reads over a ward the sample compiles, and asking against
+unsealing is settled where the invariant it seemed to contradict is stated.
+Next: joins, which the vocabulary declares and refuses.**
 
 # Asking the store a question
 
@@ -415,9 +416,13 @@ what it should produce when it gets there.
 
 ## Steps
 
-1. Settle asking against unsealing, as a crosscutting concept rather than as a
-   paragraph here, because item 009 reads as forbidding this until it is
-   written down.
+1. ~~Settle asking against unsealing, as a crosscutting concept rather than as
+   a paragraph here.~~ Done. It is in
+   [reaching the data](../../arc42-008-crosscutting/reaching-the-data/README.md),
+   beside the two other things that look like exceptions to the invariant and
+   are not — because that is where somebody reading the invariant as a
+   prohibition will meet it, and a paragraph in this item was never going to be
+   read by them.
 2. Agree the vocabulary: what a product asks about runs, the trail, the
    declarations and the records a screen is made of, written as the methods
    rather than as the tables. The inventory above is the input, not the answer.
@@ -427,13 +432,16 @@ what it should produce when it gets there.
    thing that proves the caller cannot tell, and a host outside the framework
    asking one question, which is the only thing that proves the types travel.
 5. The observer seam, off by default.
-6. The guide chapter. **Half done**: `asking.md` exists, at the end of the Work
-   section, over a `TheWard` the sample compiles — so a chapter cannot show a
-   call that no longer exists. What is not done is the replacing:
-   `search.md` is still in the reading order, and the three claims of its that
-   survive — an unrecognised parameter refused rather than answered more
-   broadly, a CapabilityStatement generated from what is served, a page held by
-   a cursor — have to reach the stories that meet them before it goes.
+6. ~~The guide chapter, replacing `search.md` in the reading order.~~ Done.
+   `asking.md` reads over a `TheWard` the sample compiles, so a chapter cannot
+   show a call that no longer exists. `search.md` is gone, and its three
+   surviving claims went where a story meets each: the capability statement and
+   the refusal of an unknown parameter to [the face](../../guide/the-face.md),
+   which is the chapter about what a tenant declares and what its refusals say;
+   the cursor that holds a page to
+   [the change feed](../../guide/change-feed.md), beside the durable cursors it
+   is the same primitive as; and counting without fetching to the asking
+   chapter, where a screen's first number is asked for.
 7. Joins, which is its own subject: the five questions above first, the
    feature after. Until then the three methods refuse by name, with a test
    holding them to it.

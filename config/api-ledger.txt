@@ -2852,6 +2852,8 @@ cloud.jengu.dbo.rest.RequestAuthenticator.Denial                       wwwAuthen
 cloud.jengu.dbo.rest.WorkSurface                                       create(String):cloud.jengu.dbo.rest.WorkSurface.Authored
 cloud.jengu.dbo.rest.WorkSurface                                       interface
 cloud.jengu.dbo.rest.WorkSurface                                       read(String):Optional
+cloud.jengu.dbo.rest.WorkSurface                                       search(Map,String):String
+cloud.jengu.dbo.rest.WorkSurface                                       searchParameters():Set
 cloud.jengu.dbo.rest.WorkSurface.Authored                              equals(Object):boolean
 cloud.jengu.dbo.rest.WorkSurface.Authored                              hashCode():int
 cloud.jengu.dbo.rest.WorkSurface.Authored                              id():String

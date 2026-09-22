@@ -7,6 +7,7 @@ import cloud.jengu.dbo.postgres.PgObjectStore;
 import cloud.jengu.dbo.promises.DboPromises;
 import cloud.jengu.dbo.promises.Proving;
 import cloud.jengu.dbo.asking.Asking;
+import cloud.jengu.dbo.asking.Ongoing;
 import cloud.jengu.dbo.work.Executor;
 import cloud.jengu.dbo.work.Holder;
 import cloud.jengu.dbo.work.Run;
@@ -84,8 +85,8 @@ class AskingWhatNeedsSomebodyIT {
     @DisplayName("what needs somebody is one question, and the store answers it")
     @Proving(DboPromises.PROC_RUN_HAS_A_RECORD)
     void whatNeedsSomebody() {
-        try (Stream<Run> waiting = asking.work().correlated(CASE).heldBy(Holder.PERSON).stream()) {
-            List<Run> found = waiting.toList();
+        try (Stream<Ongoing> waiting = asking.work().correlated(CASE).heldBy(Holder.PERSON).stream()) {
+            List<Ongoing> found = waiting.toList();
             assertEquals(1, found.size(),
                     "the one run automation could not finish is what an operator came for, "
                             + "and a list of runs that worked silently omits it: " + found);
@@ -96,8 +97,8 @@ class AskingWhatNeedsSomebodyIT {
     @Test
     @DisplayName("open is everything not finished with, which is a negation the store can take")
     void openIsEverythingNotDoneWith() {
-        try (Stream<Run> open = asking.work().correlated(CASE).open().stream()) {
-            List<String> keys = open.map(Run::key).sorted().toList();
+        try (Stream<Ongoing> open = asking.work().correlated(CASE).open().stream()) {
+            List<String> keys = open.map(Ongoing::key).sorted().toList();
             assertEquals(List.of(CASE + "/a", CASE + "/b"), keys,
                     "a closed run came back as open, or an open one did not: " + keys);
         }
@@ -138,7 +139,7 @@ class AskingWhatNeedsSomebodyIT {
 
         // A stream reports at the CLOSE, with what it actually produced —
         // which for a caller who stopped early is not what matched.
-        try (Stream<Run> some = watched.work().correlated(CASE).open().stream()) {
+        try (Stream<Ongoing> some = watched.work().correlated(CASE).open().stream()) {
             assertEquals(1, some.limit(1).count());
         }
         cloud.jengu.dbo.asking.Watching.Asked walked = seen.get(seen.size() - 1);

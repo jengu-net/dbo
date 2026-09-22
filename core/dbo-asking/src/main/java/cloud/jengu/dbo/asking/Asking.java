@@ -196,12 +196,18 @@ public final class Asking implements Questions {
          * <p>Close it. It is walking a cursor, and one abandoned half way
          * leaves the page it was in the middle of.
          */
-        public Stream<Run> stream() {
+        public Stream<Ongoing> stream() {
             long began = System.nanoTime();
             java.util.concurrent.atomic.AtomicLong produced =
                     new java.util.concurrent.atomic.AtomicLong();
             return Answered.pagedBy(store::page, asked())
                     .map(Run::of)
+                    // Narrowed here rather than at the seam, so the binding
+                    // that holds the whole run hands over exactly what the one
+                    // that holds a rendering can.
+                    .map(run -> new Ongoing(run.id(), run.key(), run.process(), run.step(),
+                            run.holder(), run.correlation(),
+                            run.milestone() == null ? null : run.milestone().name()))
                     .peek(run -> produced.incrementAndGet())
                     // Told at the close rather than at the open: a walk's
                     // length and its cost are not known until somebody has

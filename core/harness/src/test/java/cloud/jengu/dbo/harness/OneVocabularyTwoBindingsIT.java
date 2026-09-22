@@ -1,6 +1,7 @@
 package cloud.jengu.dbo.harness;
 
 import cloud.jengu.dbo.asking.Across;
+import cloud.jengu.dbo.asking.Ongoing;
 import cloud.jengu.dbo.asking.Asking;
 import cloud.jengu.dbo.asking.Questions;
 import cloud.jengu.dbo.core.api.StoredObject;
@@ -15,6 +16,14 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.ArrayList;
+import cloud.jengu.dbo.core.process.StepDeclaration;
+import cloud.jengu.dbo.core.process.Steps;
+import cloud.jengu.dbo.work.Executor;
+import cloud.jengu.dbo.work.Holder;
+import cloud.jengu.dbo.work.Run;
+import cloud.jengu.dbo.work.Runs;
+import cloud.jengu.dbo.work.WorkModel;
+import cloud.jengu.dbo.work.Scope;
 import java.util.List;
 import java.util.stream.Stream;
 
@@ -34,6 +43,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @Tag("integration")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class OneVocabularyTwoBindingsIT {
+
+    private static final String PROCESS = "two-bindings.example";
+    private static final String STEP = "two-bindings.example.weigh";
+    private static final String CASE = "two-bindings-" + java.util.UUID.randomUUID();
 
     private static final String SYSTEM = "urn:two-bindings:test";
     private static final String MINE = "two-bindings-" + java.util.UUID.randomUUID();
@@ -62,6 +75,22 @@ class OneVocabularyTwoBindingsIT {
                         failed);
             }
         });
+
+        // Three runs of one case, so the questions about WORK have something
+        // to be asked about: one a person has to look at, one an automation is
+        // holding, one finished with.
+        Runs runs = new Runs(tenant.engine(), Steps.of(
+                StepDeclaration.of(STEP, "1", WorkModel.DOMAIN)));
+        runs.held(runs.correlated(runs.pipeline(PROCESS, STEP, CASE + "/a",
+                List.of(WorkModel.DOMAIN)), CASE), Holder.PERSON);
+        runs.claim(runs.correlated(runs.pipeline(PROCESS, STEP, CASE + "/b",
+                        List.of(WorkModel.DOMAIN)), CASE),
+                new Executor("weigher", "1", "example", Scope.BASELINE),
+                java.time.Instant.now().plusSeconds(600));
+        runs.closed(runs.claim(runs.correlated(runs.pipeline(PROCESS, STEP, CASE + "/c",
+                        List.of(WorkModel.DOMAIN)), CASE),
+                new Executor("weigher", "1", "example", Scope.BASELINE),
+                java.time.Instant.now().plusSeconds(600)).orElseThrow());
 
         for (String state : List.of("final", "final", "preliminary")) {
             tenant.store().create(("{\"resourceType\":\"Observation\",\"status\":\"" + state
@@ -148,6 +177,38 @@ class OneVocabularyTwoBindingsIT {
         assertTrue(refused.getMessage().contains("NoSuchTypeHere"),
                 "the refusal did not say what was asked, which is the useful half: "
                         + refused.getMessage());
+    }
+
+    @Test
+    @DisplayName("the same work is counted from inside the deployment and from across a "
+            + "network, which the surface could not answer at all until it served a run search")
+    void bothBindingsCountTheSameWork() {
+        assertEquals(2, fromInside.work().correlated(CASE).open().count(),
+                "the store's own answer is wrong");
+        assertEquals(fromInside.work().correlated(CASE).open().count(),
+                fromAcross.work().correlated(CASE).open().count(),
+                "the two bindings disagree about how much work is open, so a caller CAN tell "
+                        + "which one it is holding");
+    }
+
+    @Test
+    @DisplayName("and walks the same work, with the same keys, because what crosses the wire "
+            + "is what both bindings can fill")
+    void bothBindingsWalkTheSameWork() {
+        List<String> inside = keysOf(fromInside);
+        List<String> across = keysOf(fromAcross);
+
+        assertEquals(2, inside.size(), "the store's own walk is wrong");
+        assertEquals(inside, across,
+                "the two bindings walked different work: inside=" + inside
+                        + " across=" + across);
+    }
+
+    private static List<String> keysOf(Questions asking) {
+        try (Stream<Ongoing> open = asking.work().correlated(CASE).open().stream()) {
+            return open.map(one -> one.step() + " " + one.key() + " " + one.holder())
+                    .sorted().toList();
+        }
     }
 
     @Test

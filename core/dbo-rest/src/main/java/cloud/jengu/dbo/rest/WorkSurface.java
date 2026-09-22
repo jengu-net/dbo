@@ -13,6 +13,30 @@ import java.util.Optional;
  */
 public interface WorkSurface {
 
+    /**
+     * The search parameters this surface honours — declared by the thing that
+     * implements them, so the capability statement cannot drift from the
+     * filtering.
+     *
+     * <p>Three, and they are the three a screen asks about work: whose it is,
+     * which step it is of, and what case it belongs to. What a run's document
+     * otherwise carries is the step's business and is not indexed here, so it
+     * is not searchable, and leaving it out of this set is how that is said.
+     */
+    default java.util.Set<String> searchParameters() {
+        return java.util.Set.of("owner", "code", "identifier");
+    }
+
+    /**
+     * A searchset Bundle of rendered runs.
+     *
+     * <p>It exists because a vocabulary for asking this store about work was
+     * given two bindings, and one of them could not be answered: everything
+     * about a run had to be read by id, so a question like "what is
+     * outstanding" had no form on the surface at all.
+     */
+    String search(java.util.Map<String, String> query, String baseUrl);
+
     /** The run rendered, or empty for an id that is no run. */
     Optional<String> read(String id);
 

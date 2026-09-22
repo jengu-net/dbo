@@ -60,6 +60,70 @@ selects a version, because the version is a property of the tenant rather than
 of the call — which means a client cannot get it wrong, and an operator cannot
 mis-route a request into the wrong release.
 
+## The face says what it can be asked, and refuses the rest
+
+The capability statement is generated from what the tenant actually holds,
+rather than written by hand:
+
+```bash
+--8<-- "docs/guide/examples/snippets/capability-search.sh"
+```
+
+```
+_id
+_lastUpdated
+_profile
+_tag
+active
+address
+address-city
+...
+family
+gender
+given
+identifier
+name
+...
+```
+
+Twenty-nine parameters for `Patient` here, and they are there because the
+hospital's face root carries the R5 `SearchParameter` definitions, which the
+hospital declared a dependency on. A tenant on a different version, or one that
+took a narrower set, lists something different. So this is a question to ask
+the tenant at runtime rather than a constant to compile in — which is the same
+fact as the section above, seen from the client's side.
+
+Ask for something else and you are refused:
+
+```bash
+--8<-- "docs/guide/examples/snippets/strict-search.sh"
+```
+
+```
+400
+```
+
+Not an empty bundle, and not a bundle that ignored the parameter. The same
+applies one level down, to a modifier a parameter does not have:
+
+```bash
+--8<-- "docs/guide/examples/snippets/unknown-modifier.sh"
+```
+
+```json
+{"resourceType":"OperationOutcome","issue":[{"severity":"error","code":"invalid",
+ "diagnostics":"unsupported search parameter for Patient: family:nosuch"}]}
+```
+
+The refusal names what it refused. That matters more than it sounds: a caller
+told only that something is unsupported can do nothing but guess, and the
+parameter here *is* supported — it is the modifier that is not.
+
+**What this costs you** is that a query which would have half worked now fails.
+That is the trade, and it is deliberate. A wrong answer that looks right is the
+failure you cannot detect from the outside, and on a store holding regulated
+records it is the one that matters.
+
 ## What a face is not
 
 It is not a translation layer you can point at anything. A face is a standard

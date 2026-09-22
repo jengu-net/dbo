@@ -2,7 +2,6 @@ package cloud.jengu.dbo.asking;
 
 import cloud.jengu.dbo.core.api.StoredObject;
 import cloud.jengu.dbo.work.Holder;
-import cloud.jengu.dbo.work.Run;
 
 import java.time.Instant;
 import java.util.stream.Stream;
@@ -61,8 +60,16 @@ public interface Questions {
         /** Everything filed under one correlation. */
         Work correlated(String correlation);
 
-        /** The answer, walked as it is produced. Close it. */
-        Stream<Run> stream();
+        /**
+         * The answer, walked as it is produced. Close it.
+         *
+         * <p>{@link Ongoing} rather than a {@code Run}: what a rendering of a
+         * run carries is what a screen asks about, and a binding that handed
+         * back the whole shape with most of it null would leave a caller
+         * unable to tell an empty field from one the wire does not carry.
+         * Whoever needs the rest of a run asks the store for it by id.
+         */
+        Stream<Ongoing> stream();
 
         /** How many, without fetching them. */
         long count();

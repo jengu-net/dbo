@@ -60,6 +60,26 @@ That is worth more than it sounds. It means the code you write against a
 development deployment embedded in your own tests is the code that runs against
 a cluster, rather than a thing that resembles it.
 
+## What comes back is narrower than a run
+
+A run is eighteen fields: its trace, its tally, what it assigned and produced,
+the domains it touched. What a screen asks about is seven, and seven is what
+this vocabulary hands over — an `Ongoing`: the id, the key, the process, the
+step, who holds it, the case it was filed under, and how far it said it had
+got.
+
+The reason is the binding across a network. It reads the run as the tenant
+renders it, and a rendering carries what a client needs rather than everything
+the store knows. Handing back the whole shape with eleven fields empty would
+leave you unable to tell a run with no domains from a wire that does not carry
+them — and a caller cannot check that, which makes it exactly the kind of
+answer this store refuses elsewhere.
+
+So the binding that *could* fill all eighteen narrows its own answer to the
+same seven. The two are equal because they were made equal, not because they
+happened to agree. When you need the rest of a run, ask the store for that run
+by id: a different question, asked where the answer is.
+
 ## Where the two honestly differ, they say so
 
 A question the surface has no parameter for is **refused** by the across-a-
@@ -79,6 +99,24 @@ thousand, having transferred all of them.
 
 Inside the deployment the same question is ordinary, because the run's envelope
 carries it.
+
+## A number without the rows
+
+`outstanding()` above asks how many without fetching any, and over the surface
+that is one request the tenant answers with a total and no entries:
+
+```bash
+--8<-- "docs/guide/examples/snippets/count.sh"
+```
+
+```json
+{"resourceType":"Bundle","type":"searchset","total":1}
+```
+
+A number beside a filter is the first thing a screen shows, and paying for the
+rows to produce it is what makes a dashboard slow. The vocabulary refuses a
+count the tenant will not answer rather than handing back a number meaning
+there was no number.
 
 ## Following links is declared and not built
 
