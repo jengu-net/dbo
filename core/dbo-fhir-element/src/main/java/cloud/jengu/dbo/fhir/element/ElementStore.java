@@ -3,6 +3,10 @@ package cloud.jengu.dbo.fhir.element;
 import cloud.jengu.dbo.core.api.Criteria;
 import cloud.jengu.dbo.core.api.IdentityRef;
 import cloud.jengu.dbo.core.api.ObjectStore;
+import cloud.jengu.dbo.fhir.index.BoundCodes;
+import cloud.jengu.dbo.fhir.index.DefinitionIndex;
+import cloud.jengu.dbo.fhir.index.DefinitionRows;
+import cloud.jengu.dbo.fhir.validate.IndexPayloads;
 import cloud.jengu.dbo.core.api.PutRequest;
 import cloud.jengu.dbo.core.api.PutResult;
 import cloud.jengu.dbo.core.api.StoredObject;
@@ -42,6 +46,8 @@ public final class ElementStore implements FhirStoreFacade,
         cloud.jengu.dbo.core.face.ReferenceResolution {
 
     private final ObjectStore store;
+    /** Where the expanded rows live, for a face asked to read them as arrays. */
+    private final javax.sql.DataSource rows;
     private final ElementVersion version;
     private final List<FhirTypeConfig> types;
     private final String baseUrl;
@@ -139,6 +145,22 @@ public final class ElementStore implements FhirStoreFacade,
     ElementStore(ObjectStore store, ElementVersion version, List<FhirTypeConfig> types,
             String baseUrl, cloud.jengu.dbo.core.process.Steps steps, Terms terms,
             cloud.jengu.dbo.definitions.DefinitionStore definitions) {
+        this(store, version, types, baseUrl, steps, terms, definitions, null);
+    }
+
+    /**
+     * The same, holding the source the expanded rows live in.
+     *
+     * <p>Only so that this face can be ASKED to read them as arrays: the
+     * definitions above are built from the same source, and what is new is
+     * reading the rows rather than parsing them into a model. Null wherever a
+     * caller has no tenant database, which is every caller that had none.
+     */
+    ElementStore(ObjectStore store, ElementVersion version, List<FhirTypeConfig> types,
+            String baseUrl, cloud.jengu.dbo.core.process.Steps steps, Terms terms,
+            cloud.jengu.dbo.definitions.DefinitionStore definitions,
+            javax.sql.DataSource rows) {
+        this.rows = rows;
         this.definitions = definitions;
         this.steps = steps;
         this.store = store;
@@ -147,6 +169,66 @@ public final class ElementStore implements FhirStoreFacade,
         this.baseUrl = baseUrl;
         this.terms = terms;
         this.framing = new ElementFraming();
+    }
+
+    /**
+     * Whether this face was asked to read the index instead of a context.
+     *
+     * <p>A dial rather than a declaration at this stage, and deliberately: it
+     * is for measuring the two against each other on one tenant, the way the
+     * carried definitions were compared when they were offered by name. What
+     * it costs and what it changes is what a tenant-facing declaration should
+     * be decided on.
+     */
+    private boolean asked() {
+        return rows != null && Boolean.getBoolean("dbo.payloads.index");
+    }
+
+    /**
+     * BOTH SEAMS, OR NEITHER. A write reads its payload and builds its
+     * envelope, and they are two different objects: swapping only the first
+     * left every write reaching for a worker context anyway, through the
+     * extractor, and a real write said so where no comparison had.
+     */
+    private IndexPayloads fromTheIndex() {
+        if (!asked()) {
+            return null;
+        }
+        IndexPayloads answering = fromTheIndex;
+        if (answering == null) {
+            Set<String> seeds = new java.util.LinkedHashSet<>();
+            for (FhirTypeConfig type : types) {
+                seeds.add("http://hl7.org/fhir/StructureDefinition/" + type.typeName());
+            }
+            // And the tenant's own, which is where a pinned value or a slice
+            // lives — the half a version's own definitions never exercise.
+            seeds.addAll(profilesForTheView());
+            DefinitionIndex index = DefinitionRows.over(rows,
+                    DefinitionRows.closureOf(rows, seeds));
+            fromTheIndex = answering = new IndexPayloads(index, BoundCodes.over(rows, index));
+            LOG.info("the index answers this face: version={} structures={} elements={}",
+                    version.code(), index.structures(), index.elements());
+        }
+        return answering;
+    }
+
+    private IndexPayloads fromTheIndex;
+    private List<DefinitionRows.Parameter> compiled;
+
+    /** The parameters the cut compiled, for the extractor that runs them. */
+    List<DefinitionRows.Parameter> compiledParameters() {
+        if (!asked()) {
+            return List.of();
+        }
+        List<DefinitionRows.Parameter> held = compiled;
+        if (held == null) {
+            List<String> declared = new java.util.ArrayList<>();
+            for (FhirTypeConfig type : types) {
+                declared.add(type.typeName());
+            }
+            compiled = held = DefinitionRows.parametersFor(rows, declared);
+        }
+        return held;
     }
 
     /**
@@ -169,7 +251,10 @@ public final class ElementStore implements FhirStoreFacade,
             try {
                 held = payloads;
                 if (held == null) {
-                    if (FaceBase.versionRootIn(store).isPresent()) {
+                    if (fromTheIndex() != null) {
+                        held = (Payloads<Object>) (Payloads<?>) fromTheIndex();
+                        shapesInView = canonicalsOf(profilesForTheView());
+                    } else if (FaceBase.versionRootIn(store).isPresent()) {
                         held = (Payloads<Object>) (Payloads<?>) version.payloadsFor(
                                 terms == null ? Terms.NONE : terms, store);
                         shapesInView = heldCanonicals(store);
@@ -970,7 +1055,7 @@ public final class ElementStore implements FhirStoreFacade,
                     version.extractor(typeName,
                             current.identityClass()
                                     == cloud.jengu.dbo.core.api.IdentityClass.CANONICAL,
-                            mine, this::elementPayloads),
+                            mine, this::elementPayloads, this::compiledParameters),
                     ElementVersion.indexesFor(ElementVersion.union(
                             version.parametersFor(typeName), mine)),
                     current.payloadVersion()));

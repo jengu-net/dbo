@@ -118,23 +118,24 @@ draw on it. It could have closed over most of the terminology and does not:
 a dependent of four declared types needs **119 names of the 5,275** a face
 holds, **2.3%**. What it does not yet do is send it — the sync path still
 streams a dependency by type — and that half is what actually shrinks the
-database, the expansion and the image. **And step 11 cannot fire, which is
-this pass's real finding.** The last move is a property — a node carrying no
-definition packages CANNOT populate a context — and its dependency was
-written as steps 7, 8 and 9. That was wrong. All three are done and no
-megabyte has moved, because the property does not depend on those answerers
-existing: it depends on nothing on the serving path BUILDING a context, and
-`ElementPayloads.read` still parses every write into an element model. The
-reach ledger has been saying so by name in every entry this item added to
-it. So the critical path has one dependency nobody wrote down — **a write
-that asks** — and both halves of what such a write needs are already proven
-possible. What is built instead is the ceiling:
-`config/carried-packages.txt` records the **68,646,067 bytes** of definition
-packages a serving node still carries, per bundle, and may only fall; when
-it reaches zero the ceiling and the property are the same statement. Next:
-the write that asks — putting the step 9 reader and envelope where
-`ElementPayloads` is — and wiring step 10's computed filter into the
-dependency.**
+database, the expansion and the image. **And the write that asks now
+exists.** Step 11's property waits on nothing on the serving path building a
+context, and its dependency was written as steps 7, 8 and 9 — which was
+wrong: all three were done and no megabyte had moved. The move nobody wrote
+down is a write that asks, and it is two seams rather than one. A tenant's
+face now reads its payloads from the index AND builds its envelopes from the
+compiled parameters, and a write through the door is stored, returned
+unaltered, found by a search, and refused for each of the three kinds of
+wrong — with no worker context anywhere. Both mistakes on the way were found
+by a real write and by no comparison: swapping one seam left every write
+reaching for a context through the extractor, and choosing the branch at
+registration chose it against a store that does not exist yet. It is a dial
+and not yet a declaration, and the declaration now has one more thing to
+decide — the index judges what a tenant holds as rows, so switching this
+face on for a tenant with no definitions would silently accept everything.
+What remains is that declaration, measuring what the face costs, and then
+step 11, whose ceiling is recorded at **68,646,067 bytes** and may only
+fall.**
 
 # A face toolset of our own
 
@@ -1257,10 +1258,56 @@ agree with the compiled parameters. The separate builder was deleted — two
 answerers to one specification is this store's arrangement on purpose, a
 third by accident is not.
 
-**What this does not do is wire it in.** `ElementVersion.extractor` still
-sends every ordinary type down the toolchain path; the compiled front end is
-called by a test and by nothing else. Both seams still have to be swapped
-together, and the second one now exists in the shape the first one needs.
+## The write that asks
+
+Both seams, on one dial. A tenant's face reads its payloads from the index and
+builds its envelopes from the compiled parameters, and a write through
+`store().create` is decided without a worker context anywhere.
+
+**Two seams, or neither**, which is what the first attempt got wrong. A write
+reads its payload and builds its envelope, and those are different objects
+behind different interfaces. Swapping the payloads alone left every write
+reaching for a context through the extractor — a `ClassCastException` out of
+`envelopeOf`, said by the first real write and by no comparison ever, because
+a comparison calls a checker and a write calls a store.
+
+**And the branch has to be chosen per write, not per registration.** A type's
+extractor is registered before the tenant's store exists — which is why the
+payloads it reads through are a supplier — so deciding at registration decides
+against a store that is not there yet, and every write afterwards takes the
+toolchain path however the tenant was configured. That was the second
+attempt, and again a real write is what said so.
+
+What the door shows, on a tenant whose face reads the index: a correct
+document is stored, comes back with its repeats and its spelling intact, and
+is **found by a search** — the envelope's half, which a face with only its
+payloads swapped would have silently skipped. Each of the three kinds of wrong
+is refused: a required element absent, an element allowed once and sent twice,
+a code outside a required binding.
+
+**And a hazard the declaration will have to face.** The index judges what the
+tenant holds as ROWS, so a tenant holding none judges nothing and accepts
+everything. That is "unresolvable is not invalid" taken to its limit and it is
+correct in the small, but as a per-tenant declaration it would mean switching
+this face on for a tenant with no definitions silently disables validation.
+The first tenant this was tried on was exactly that, which is how it surfaced.
+It belongs with item 021's other refusal-at-declaration question rather than
+being discovered at a write.
+
+**What the reach ledger says now.** `IndexPayloads`, `ElementChecks` and
+`BoundCodes` have left it, and this time a mount really does reach them:
+`ElementStore.payloads()` is on the serving path and calls them. Whether it
+does so on a given deployment is the dial's answer, which is the file's
+class-level limit again — but unlike the two earlier disappearances there is a
+path from a mount that calls this code, and a test that drives it through the
+door.
+
+**Still a dial and not a declaration**, deliberately. What it is for first is
+measuring the two faces against each other on one tenant, the way the carried
+definitions were compared when they were offered by name. The declaration is
+the decision the measurement exists to inform — and it now has one more thing
+to decide than it did: what to do about a tenant with nothing to judge
+against.
 
 ## What is not known
 

@@ -291,6 +291,52 @@ public final class ElementVersion {
     public EnvelopeExtractor extractor(String typeName, boolean canonical,
             List<SearchParameter> alsoAuthoredHere,
             java.util.function.Supplier<ElementPayloads> through) {
+        return extractorThroughTheToolchain(typeName, canonical, alsoAuthoredHere, through);
+    }
+
+    /**
+     * The same, with the parameters the cut compiled for this type.
+     *
+     * <p>Where there are any, they are what the envelope is built from, and
+     * the toolchain is not asked: a compiled path is run over the document by
+     * the same reader an invariant's condition is, so nothing here needs a
+     * worker context. Where there are none — a type whose parameters the
+     * compiler refused by name, or a tenant that has not asked — the
+     * toolchain path answers as it always did.
+     *
+     * <p>A tenant authoring parameters of its own still takes the toolchain
+     * path, as it did before: what it wrote has not been compiled, and an
+     * envelope built from half a tenant's parameters loses keys, which is a
+     * search that finds nothing while looking like an answer.
+     */
+    public EnvelopeExtractor extractor(String typeName, boolean canonical,
+            List<SearchParameter> alsoAuthoredHere,
+            java.util.function.Supplier<ElementPayloads> through,
+            java.util.function.Supplier<List<cloud.jengu.dbo.fhir.index.DefinitionRows.Parameter>>
+                    compiled) {
+        EnvelopeExtractor toolchain =
+                extractorThroughTheToolchain(typeName, canonical, alsoAuthoredHere, through);
+        if (!alsoAuthoredHere.isEmpty()) {
+            return toolchain;
+        }
+        // Asked at each write, not once here. A registration is made before
+        // the tenant's store exists — which is why the payloads above are a
+        // supplier — so deciding the branch at registration decides it against
+        // a store that is not there yet, and every write afterwards takes the
+        // toolchain path however the tenant was configured. That is what the
+        // first attempt did, and a real write is what said so.
+        return (type, payload) -> {
+            List<cloud.jengu.dbo.fhir.index.DefinitionRows.Parameter> forThisType =
+                    compiled.get().stream().filter(one -> typeName.equals(one.base())).toList();
+            return forThisType.isEmpty()
+                    ? toolchain.extract(type, payload)
+                    : DefinitionEnvelopes.extract(forThisType, type, payload, canonical, null);
+        };
+    }
+
+    private EnvelopeExtractor extractorThroughTheToolchain(String typeName, boolean canonical,
+            List<SearchParameter> alsoAuthoredHere,
+            java.util.function.Supplier<ElementPayloads> through) {
         if (alsoAuthoredHere.isEmpty() && DefinitionParameters.isDefinitionType(typeName)) {
             // A definition is indexed from its JSON, because the toolchain
             // needs the version's definitions to parse one and a definition

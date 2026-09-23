@@ -229,7 +229,7 @@ public class ElementFhirVersion implements FhirVersion {
                                 : version.extractor(type.typeName(),
                                         type.identityClass()
                                                 == cloud.jengu.dbo.core.api.IdentityClass.CANONICAL,
-                                        List.of(), this::through);
+                                        List.of(), this::through, this::compiled);
                 out.add(new TypeRegistration(type.typeName(), domain, type.identityClass(),
                         type.identitySystems(), type.handling(),
                         asDeclared(type, inProcess),
@@ -239,6 +239,18 @@ public class ElementFhirVersion implements FhirVersion {
             // The face's definitions are a domain of their own, wherever this
             // version's records are told to live.
             return FaceDefinitions.placed(out, domain);
+        }
+
+        /**
+         * The parameters the cut compiled, once there is a store to ask and
+         * it was asked to read them. Empty until then, which is the toolchain
+         * path — the same answer a registration made before a store exists
+         * has always had.
+         */
+        private java.util.List<cloud.jengu.dbo.fhir.index.DefinitionRows.Parameter> compiled() {
+            java.lang.ref.WeakReference<ElementStore> held = view.get();
+            ElementStore store = held == null ? null : held.get();
+            return store == null ? java.util.List.of() : store.compiledParameters();
         }
 
         /** The store's view once there is a store; the version's own payloads until then. */
@@ -304,7 +316,7 @@ public class ElementFhirVersion implements FhirVersion {
             long profilesAt = System.currentTimeMillis();
             ElementStore store = viewed(new ElementStore(engine, version, types, baseUrl,
                     cloud.jengu.dbo.core.process.Steps.of(), new StoreTerms(terminology),
-                    definitions));
+                    definitions, dataSource));
             // What the tenant already holds and has never been taken apart:
             // an upgrade to a store that expands definitions, or a rebuild.
             // A no-op once the rows are there, which is every bring-up after
