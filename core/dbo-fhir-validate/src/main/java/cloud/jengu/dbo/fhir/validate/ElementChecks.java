@@ -95,8 +95,19 @@ public final class ElementChecks {
      */
     public static Checked over(DefinitionIndex index, BoundCodes codes, String canonical,
             byte[] document) {
+        return over(index, codes, canonical, JsonDocument.of(document));
+    }
+
+    /**
+     * The same, over a document already read.
+     *
+     * <p>A face that has the tree does not compose it back to bytes so that
+     * this can read it again — one read per write is a promise this store
+     * already makes.
+     */
+    public static Checked over(DefinitionIndex index, BoundCodes codes, String canonical,
+            Map<String, Object> root) {
         ElementChecks check = new ElementChecks(index, codes);
-        Map<String, Object> root = JsonDocument.of(document);
         int from = index.rootOf(canonical);
         if (root != null && from >= 0) {
             // THE ROOT'S OWN RULES, before descending into anything. The walk
@@ -271,7 +282,8 @@ public final class ElementChecks {
      */
     private static List<String[]> codedValues(Object instance) {
         List<String[]> out = new ArrayList<>();
-        if (instance instanceof String bare) {
+        String bare = text(instance);
+        if (bare != null) {
             out.add(new String[] {null, bare});
             return out;
         }
@@ -290,7 +302,13 @@ public final class ElementChecks {
     }
 
     private static String text(Object held) {
-        return held instanceof String one ? one : null;
+        if (held instanceof String one) {
+            return one;
+        }
+        if (held instanceof JsonDocument.Literal literal) {
+            return literal.text();
+        }
+        return null;
     }
 
     /** One value, or the entries of a repeat. */

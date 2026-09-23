@@ -57,6 +57,7 @@ public final class DefinitionIndex {
     private final int[] invariants;
     private final int elements;
     private final Map<String, Integer> firstElementOf;
+    private final Map<String, String> versionOf;
 
     /**
      * The direct children of an element — {@code Patient.contact} answers
@@ -75,6 +76,7 @@ public final class DefinitionIndex {
         this.canonicals = from.canonicals.toArray(new String[0]);
         this.elements = from.rows.size();
         this.firstElementOf = Map.copyOf(from.firstElementOf);
+        this.versionOf = Map.copyOf(from.versionOf);
         this.canonicalOf = new int[elements];
         this.pathId = new int[elements];
         this.parent = new int[elements];
@@ -129,6 +131,19 @@ public final class DefinitionIndex {
     /** How many distinct strings the dictionary holds. */
     public int words() {
         return words.length;
+    }
+
+    /**
+     * The version this structure was published under, or null where it names
+     * none.
+     *
+     * <p>What a shape stamp is made of: a document is stamped with the
+     * profile it was judged against AND the version of it that did the
+     * judging, because a profile moves and a stamp naming only the url says
+     * nothing about which rules applied.
+     */
+    public String versionOf(String canonical) {
+        return versionOf.get(canonical);
     }
 
     /** Whether this structure is held at all. */
@@ -333,6 +348,7 @@ public final class DefinitionIndex {
         private final List<Integer> typeCodes = new ArrayList<>();
         private final List<Integer> invariants = new ArrayList<>();
         private final Map<String, Integer> firstElementOf = new LinkedHashMap<>();
+        private final Map<String, String> versionOf = new LinkedHashMap<>();
         private final Map<String, Integer> byId = new HashMap<>();
         private int canonical = -1;
         private Row open;
@@ -358,7 +374,15 @@ public final class DefinitionIndex {
          * the next one.
          */
         public Builder structure(String canonical) {
+            return structure(canonical, null);
+        }
+
+        /** The same, with the version the structure names. */
+        public Builder structure(String canonical, String version) {
             close();
+            if (version != null) {
+                versionOf.put(canonical, version);
+            }
             this.canonical = canonicals.size();
             canonicals.add(canonical);
             byId.clear();

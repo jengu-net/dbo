@@ -1147,6 +1147,47 @@ is one change on the write path rather than a new capability, and it is the
 only thing between a checker nobody asks and a face that costs a few hundred
 kilobytes.
 
+## The write that asks, half of it
+
+Step 11 waits on one thing nobody wrote down — a write that asks the index
+instead of the toolchain — and the half of it that can be built without
+touching how a tenant is wired now exists. `IndexPayloads` implements the same
+`Payloads` contract the element face implements, over the index rather than a
+populated context.
+
+**The whole contract, not the easy parts.** Reading, the type, writing back,
+the checks, and the shape stamp a document was accepted under. Every defect
+this item found looked like a face quietly answering less than it claimed, so
+answering four of five would have been the same mistake in a new place.
+
+**And the round trip needed something a checker never did.** A checker may
+read a document as a tree of text and never ask whether `1.5` arrived quoted:
+nothing it answers depends on the difference. A face that has to give the
+document BACK does, because writing a number as a quoted string corrupts every
+document it touches. So the reader now keeps a literal distinct from a string
+— the one thing its own documentation said it could not tell apart, written
+down at the time as a limit no check needed. It was the first thing the next
+caller needed.
+
+| | |
+|---|---|
+| documents read and written back | 400, none altered |
+| a decimal's written precision | `1.500` comes back `1.500` |
+| a boolean, an integer | unquoted in and unquoted out |
+| a shape nobody holds | not stamped, and not a refusal |
+
+**What it does not do is serve.** Nothing selects this face for a tenant, so
+no write asks it anything and no megabyte has moved. The remaining half is the
+selection and the bring-up, which live where a tenant is wired.
+
+**And the reach ledger shrank for the third time without anything changing.**
+`DefinitionRows` left it when `Envelope` named it; `ElementChecks` left it
+when this named it. Four entries have become one, because the ledger asks
+whether a production class names another rather than whether anything reaches
+the root of the chain. The entry that remains says so. That is a real gap in a
+ratchet this item has leaned on the whole way, and it is worth more than the
+line it costs to say it.
+
 ## What is not known
 
 ~~**How large a closure is.**~~ **Answered**, and above: 7.2% of a version's

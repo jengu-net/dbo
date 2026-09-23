@@ -233,7 +233,7 @@ public final class DefinitionRows {
                            binding_strength, binding_valueset, fixed::text, pattern::text,
                            (SELECT array_agg(t ->> 'code' ORDER BY n)
                               FROM jsonb_array_elements(types) WITH ORDINALITY AS a(t, n)),
-                           parent_id, steps
+                           parent_id, steps, definition_version
                       FROM definitions.definition_element
                      WHERE canonical = ANY(?)
                      ORDER BY canonical, ordinal""")) {
@@ -243,7 +243,7 @@ public final class DefinitionRows {
                     while (rs.next()) {
                         String canonical = rs.getString(1);
                         if (!canonical.equals(open)) {
-                            index.structure(canonical);
+                            index.structure(canonical, rs.getString(13));
                             open = canonical;
                         }
                         int max = rs.getInt(5);

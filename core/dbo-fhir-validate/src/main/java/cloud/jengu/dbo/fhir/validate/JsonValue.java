@@ -114,11 +114,20 @@ final class JsonValue {
             return true;
         }
         if (held instanceof String left && stated instanceof String right) {
-            if (left.equals(right)) {
+            return left.equals(right);
+        }
+        // A literal is equal to a literal and never to a string: in jsonb as
+        // on the wire, "1" and 1 are different values. Numbers compare as
+        // numbers, because jsonb stores a numeric and reads 1.0 and 1.00 as
+        // one value — comparing the text would make the two answerers
+        // disagree about a document neither thinks is wrong.
+        if (held instanceof JsonDocument.Literal left
+                && stated instanceof JsonDocument.Literal right) {
+            if (left.text().equals(right.text())) {
                 return true;
             }
-            return numeric(left) != null && numeric(right) != null
-                    && numeric(left).compareTo(numeric(right)) == 0;
+            return numeric(left.text()) != null && numeric(right.text()) != null
+                    && numeric(left.text()).compareTo(numeric(right.text())) == 0;
         }
         return false;
     }
@@ -135,6 +144,9 @@ final class JsonValue {
     static String asText(Object held) {
         if (held instanceof String text) {
             return text;
+        }
+        if (held instanceof JsonDocument.Literal literal) {
+            return literal.text();
         }
         return String.valueOf(held);
     }

@@ -110,7 +110,10 @@ public final class Envelope {
         if (hit == null) {
             return;
         }
-        String text = hit instanceof String one ? one : null;
+        // As dbo.envelope_pairs sets v_text: for a string, a number or a
+        // boolean, and null for anything composite. A number indexed as a
+        // number depends on it.
+        String text = scalar(hit);
         switch (kind == null ? "" : kind) {
             case "token" -> token(key, text, hit, into);
             case "string" -> {
@@ -203,8 +206,18 @@ public final class Envelope {
     }
 
     private static String field(Object held, String name) {
-        return held instanceof Map<?, ?> object && object.get(name) instanceof String text
-                ? text : null;
+        return held instanceof Map<?, ?> object ? scalar(object.get(name)) : null;
+    }
+
+    /** A string or a literal as its written text; null for an object or an array. */
+    private static String scalar(Object held) {
+        if (held instanceof String text) {
+            return text;
+        }
+        if (held instanceof JsonDocument.Literal literal) {
+            return literal.text();
+        }
+        return null;
     }
 
     private static void add(Map<String, List<Object>> into, String key, Object value) {

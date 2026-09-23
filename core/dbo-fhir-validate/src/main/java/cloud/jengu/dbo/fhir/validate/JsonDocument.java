@@ -24,14 +24,28 @@ import java.util.Map;
  * also what keeps a decimal's precision, the thing a parser reading doubles
  * destroys in silence.
  *
- * <p><b>What it cannot tell apart</b>, said so that a check relying on it
- * knows: a string holding {@code "true"} and the literal {@code true} are the
- * same text here, where jsonb holds them as different values. No check reads
- * a value's type from this — the types an element may take are a question for
- * the rows — and the first one that does needs the distinction rather than
- * this scan.
+ * <p><b>A literal is not a string</b>, and that distinction is kept even
+ * though no check needed it. A checker never asks whether {@code "1.5"} was
+ * written quoted; a reader that has to give the document BACK does, because
+ * writing a number as a quoted string corrupts every document it touches. So
+ * a number, a boolean and null arrive as a {@link Literal} carrying the text
+ * exactly as it was written — which is also what keeps a decimal's precision,
+ * the thing a parser reading doubles destroys in silence.
  */
 final class JsonDocument {
+
+    /**
+     * A number, a boolean or null, as the text that was written.
+     *
+     * <p>Distinct from a string so that composing gives back what arrived: in
+     * jsonb as on the wire, {@code "1"} and {@code 1} are different values.
+     */
+    record Literal(String text) {
+        @Override
+        public String toString() {
+            return text;
+        }
+    }
 
     private final byte[] bytes;
     private int at;
@@ -165,7 +179,7 @@ final class JsonDocument {
     }
 
     /** A number, a boolean or null, kept as the text that was written. */
-    private String literal() {
+    private Literal literal() {
         int from = at;
         while (at < bytes.length) {
             byte c = bytes[at];
@@ -174,7 +188,77 @@ final class JsonDocument {
             }
             at++;
         }
-        return new String(bytes, from, at - from, StandardCharsets.UTF_8);
+        return new Literal(new String(bytes, from, at - from, StandardCharsets.UTF_8));
+    }
+
+    /**
+     * The document as it would be written.
+     *
+     * <p>A string is quoted and escaped; a literal is emitted as the text that
+     * arrived, so a decimal keeps the precision its author gave it. Object
+     * members keep the order they were read in, because a reader that
+     * reordered them would hand back a document nobody sent.
+     */
+    static byte[] compose(Object value) {
+        StringBuilder out = new StringBuilder();
+        write(value, out);
+        return out.toString().getBytes(StandardCharsets.UTF_8);
+    }
+
+    private static void write(Object value, StringBuilder out) {
+        if (value instanceof Literal literal) {
+            out.append(literal.text());
+        } else if (value instanceof String text) {
+            quote(text, out);
+        } else if (value instanceof Map<?, ?> object) {
+            out.append('{');
+            boolean first = true;
+            for (Map.Entry<?, ?> entry : object.entrySet()) {
+                if (!first) {
+                    out.append(',');
+                }
+                first = false;
+                quote(String.valueOf(entry.getKey()), out);
+                out.append(':');
+                write(entry.getValue(), out);
+            }
+            out.append('}');
+        } else if (value instanceof List<?> many) {
+            out.append('[');
+            for (int i = 0; i < many.size(); i++) {
+                if (i > 0) {
+                    out.append(',');
+                }
+                write(many.get(i), out);
+            }
+            out.append(']');
+        } else {
+            out.append("null");
+        }
+    }
+
+    private static void quote(String text, StringBuilder out) {
+        out.append('"');
+        for (int i = 0; i < text.length(); i++) {
+            char c = text.charAt(i);
+            switch (c) {
+                case '"' -> out.append("\\\"");
+                case '\\' -> out.append("\\\\");
+                case '\n' -> out.append("\\n");
+                case '\r' -> out.append("\\r");
+                case '\t' -> out.append("\\t");
+                case '\b' -> out.append("\\b");
+                case '\f' -> out.append("\\f");
+                default -> {
+                    if (c < 0x20) {
+                        out.append(String.format("\\u%04x", (int) c));
+                    } else {
+                        out.append(c);
+                    }
+                }
+            }
+        }
+        out.append('"');
     }
 
     private void whitespace() {

@@ -1888,6 +1888,7 @@ cloud.jengu.dbo.fhir.index.DefinitionIndex                             rootOf(St
 cloud.jengu.dbo.fhir.index.DefinitionIndex                             sliceOf(int):String
 cloud.jengu.dbo.fhir.index.DefinitionIndex                             structures():int
 cloud.jengu.dbo.fhir.index.DefinitionIndex                             typesOf(int):List
+cloud.jengu.dbo.fhir.index.DefinitionIndex                             versionOf(String):String
 cloud.jengu.dbo.fhir.index.DefinitionIndex                             words():int
 cloud.jengu.dbo.fhir.index.DefinitionIndex.Builder                     build():cloud.jengu.dbo.fhir.index.DefinitionIndex
 cloud.jengu.dbo.fhir.index.DefinitionIndex.Builder                     class
@@ -1895,6 +1896,7 @@ cloud.jengu.dbo.fhir.index.DefinitionIndex.Builder                     element(S
 cloud.jengu.dbo.fhir.index.DefinitionIndex.Builder                     invariant(String,String,String,String):cloud.jengu.dbo.fhir.index.DefinitionIndex.Builder
 cloud.jengu.dbo.fhir.index.DefinitionIndex.Builder                     new()
 cloud.jengu.dbo.fhir.index.DefinitionIndex.Builder                     structure(String):cloud.jengu.dbo.fhir.index.DefinitionIndex.Builder
+cloud.jengu.dbo.fhir.index.DefinitionIndex.Builder                     structure(String,String):cloud.jengu.dbo.fhir.index.DefinitionIndex.Builder
 cloud.jengu.dbo.fhir.index.DefinitionIndex.Invariant                   equals(Object):boolean
 cloud.jengu.dbo.fhir.index.DefinitionIndex.Invariant                   expression():String
 cloud.jengu.dbo.fhir.index.DefinitionIndex.Invariant                   hashCode():int
@@ -2098,6 +2100,7 @@ cloud.jengu.dbo.fhir.r5.R5Terminology                                  storedFor
 cloud.jengu.dbo.fhir.r5.R5Terminology                                  validateCode(String,String):String
 cloud.jengu.dbo.fhir.validate.ElementChecks                            class
 cloud.jengu.dbo.fhir.validate.ElementChecks                            over(cloud.jengu.dbo.fhir.index.DefinitionIndex,String,byte[]):cloud.jengu.dbo.fhir.validate.ElementChecks.Checked
+cloud.jengu.dbo.fhir.validate.ElementChecks                            over(cloud.jengu.dbo.fhir.index.DefinitionIndex,cloud.jengu.dbo.fhir.index.BoundCodes,String,Map):cloud.jengu.dbo.fhir.validate.ElementChecks.Checked
 cloud.jengu.dbo.fhir.validate.ElementChecks                            over(cloud.jengu.dbo.fhir.index.DefinitionIndex,cloud.jengu.dbo.fhir.index.BoundCodes,String,byte[]):cloud.jengu.dbo.fhir.validate.ElementChecks.Checked
 cloud.jengu.dbo.fhir.validate.ElementChecks.Checked                    deepest():int
 cloud.jengu.dbo.fhir.validate.ElementChecks.Checked                    descents():int
@@ -2111,6 +2114,20 @@ cloud.jengu.dbo.fhir.validate.Envelope                                 class
 cloud.jengu.dbo.fhir.validate.Envelope                                 declined():List
 cloud.jengu.dbo.fhir.validate.Envelope                                 of(byte[],String):Map
 cloud.jengu.dbo.fhir.validate.Envelope                                 over(List):cloud.jengu.dbo.fhir.validate.Envelope
+cloud.jengu.dbo.fhir.validate.IndexPayloads                            check(String,cloud.jengu.dbo.fhir.validate.IndexPayloads.Document,String):List
+cloud.jengu.dbo.fhir.validate.IndexPayloads                            class
+cloud.jengu.dbo.fhir.validate.IndexPayloads                            new(cloud.jengu.dbo.fhir.index.DefinitionIndex,cloud.jengu.dbo.fhir.index.BoundCodes)
+cloud.jengu.dbo.fhir.validate.IndexPayloads                            read(String,byte[]):cloud.jengu.dbo.fhir.validate.IndexPayloads.Document
+cloud.jengu.dbo.fhir.validate.IndexPayloads                            typeOf(cloud.jengu.dbo.fhir.validate.IndexPayloads.Document):String
+cloud.jengu.dbo.fhir.validate.IndexPayloads                            validate(String,cloud.jengu.dbo.fhir.validate.IndexPayloads.Document):List
+cloud.jengu.dbo.fhir.validate.IndexPayloads                            write(cloud.jengu.dbo.fhir.validate.IndexPayloads.Document):byte[]
+cloud.jengu.dbo.fhir.validate.IndexPayloads                            writtenUnder(cloud.jengu.dbo.fhir.validate.IndexPayloads.Document):List
+cloud.jengu.dbo.fhir.validate.IndexPayloads.Document                   equals(Object):boolean
+cloud.jengu.dbo.fhir.validate.IndexPayloads.Document                   hashCode():int
+cloud.jengu.dbo.fhir.validate.IndexPayloads.Document                   new(Map)
+cloud.jengu.dbo.fhir.validate.IndexPayloads.Document                   record
+cloud.jengu.dbo.fhir.validate.IndexPayloads.Document                   toString():String
+cloud.jengu.dbo.fhir.validate.IndexPayloads.Document                   tree():Map
 cloud.jengu.dbo.maintenance.ArchiveAttestation                         equals(Object):boolean
 cloud.jengu.dbo.maintenance.ArchiveAttestation                         fromJson(String):cloud.jengu.dbo.maintenance.ArchiveAttestation
 cloud.jengu.dbo.maintenance.ArchiveAttestation                         hasSignature(cloud.jengu.dbo.maintenance.ArchiveAttestation.Party):boolean

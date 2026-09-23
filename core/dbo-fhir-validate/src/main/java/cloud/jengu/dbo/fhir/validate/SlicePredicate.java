@@ -82,13 +82,28 @@ final class SlicePredicate {
         // database for the same step.
         if (at instanceof List<?> many) {
             for (Object one : many) {
-                if (expected.equals(one)) {
+                if (expected.equals(textOf(one))) {
                     return true;
                 }
             }
             return false;
         }
-        return expected.equals(at);
+        return expected.equals(textOf(at));
+    }
+
+    /**
+     * A scalar as its written text. A discriminator is nearly always a code,
+     * but one on a number has to compare against what was written rather than
+     * against a wrapper's toString.
+     */
+    private static String textOf(Object held) {
+        if (held instanceof String text) {
+            return text;
+        }
+        if (held instanceof JsonDocument.Literal literal) {
+            return literal.text();
+        }
+        return null;
     }
 
     private static String unquoted(String text) {
