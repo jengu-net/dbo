@@ -1180,13 +1180,29 @@ caller needed.
 no write asks it anything and no megabyte has moved. The remaining half is the
 selection and the bring-up, which live where a tenant is wired.
 
-**And the reach ledger shrank for the third time without anything changing.**
-`DefinitionRows` left it when `Envelope` named it; `ElementChecks` left it
-when this named it. Four entries have become one, because the ledger asks
-whether a production class names another rather than whether anything reaches
-the root of the chain. The entry that remains says so. That is a real gap in a
-ratchet this item has leaned on the whole way, and it is worth more than the
-line it costs to say it.
+**And the reach ledger shrank three times without anything changing** —
+`DefinitionRows` left it when `Envelope` named it, `ElementChecks` when
+`IndexPayloads` did — because it counted who names a class rather than what a
+mount reaches. Four entries became one while nothing a deployment mounts had
+moved at all.
+
+**That was its own documented blind spot, and it is now closed.** The class
+said so in its javadoc: two classes nothing else names, which name each other,
+each satisfy a reference count on the strength of the other, so an unmounted
+CLUSTER holds itself up where a single unmounted class shows immediately. It
+named the fix too — reachability from the mount points rather than a reference
+count — and called it a larger computation. It is about thirty lines: a
+breadth-first walk of the naming graph from the activators, the service
+providers and the main methods.
+
+The measurement that decides whether such a change is usable is how much it
+lists. Seventeen entries became twenty-three, six of them unexplained — not
+hundreds. Four are this item's cluster, named at last and each carrying its own
+reason. The other two were `@Catalogue` enums, which nothing names because a
+classification declares its promises and a promise never names its
+classifications; they are found by their annotation, so the ledger was taught
+that rather than told it twice. Three entries that had carried the reason
+"reached by the catalogue projection" by hand no longer need one.
 
 ## What is not known
 
