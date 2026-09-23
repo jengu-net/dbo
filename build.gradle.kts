@@ -49,6 +49,10 @@ val dboRuntimeModules = listOf(
     // the HL7/HAPI engine, once, for every personality after it
     ":core:dbo-fhir-stack",
     ":core:dbo-terminology", ":core:dbo-definitions", ":core:dbo-subscriptions",
+    // the definitions as flat arrays and the reader over them, before the
+    // facade that imports it: an envelope is built by running compiled paths
+    // over a document, and neither the paths nor the reader needs a context
+    ":core:dbo-fhir-index", ":core:dbo-fhir-validate",
     // the shared facade every version is served through, and the definitions
     // it carries — before the faces that import it
     ":core:dbo-fhir-element",

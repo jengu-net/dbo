@@ -26,6 +26,12 @@ dependencies {
     api(project(":core:dbo-terminology"))
     // the native form a definition is expanded into when it arrives
     api(project(":core:dbo-definitions"))
+    // and the same rows as flat arrays, with the reader that runs a compiled
+    // path over a document. The envelope built here uses it rather than a
+    // second scanner of its own — implementation, because nothing in this
+    // module's own surface mentions them and bnd computes the imports.
+    implementation(project(":core:dbo-fhir-index"))
+    implementation(project(":core:dbo-fhir-validate"))
     // Notifications are composed here because this is the face that serves
     // tenants: the R4 and R5 personalities carry their own composers, hung off
     // stores no request reaches. The same edge the personalities already have,

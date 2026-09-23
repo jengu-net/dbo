@@ -90,6 +90,9 @@ class TenantOsgiIT {
                 "dbo.terminology.jar",
                 // the expanded form the element face writes on arrival
                 "dbo.definitions.jar",
+                // the same rows as flat arrays and the reader over them, which
+                // the element face imports to build an envelope
+                "dbo.fhir.index.jar", "dbo.fhir.validate.jar",
                 // run records, before subscriptions and policy, which write them
                 "dbo.work.jar",
                 "dbo.subscriptions.jar",

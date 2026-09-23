@@ -40,7 +40,7 @@ final class JsonDocument {
      * <p>Distinct from a string so that composing gives back what arrived: in
      * jsonb as on the wire, {@code "1"} and {@code 1} are different values.
      */
-    record Literal(String text) {
+    record Literal(String text) implements Documents.Literal {
         @Override
         public String toString() {
             return text;

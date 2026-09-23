@@ -17,7 +17,7 @@ core:dbo-asking              core:dbo-core core:dbo-work
 core:dbo-auth                core:dbo-core core:dbo-rest
 core:dbo-definitions         core:dbo-core
 core:dbo-fhir-common         core:dbo-core
-core:dbo-fhir-element        core:dbo-core core:dbo-definitions core:dbo-fhir-common core:dbo-fhir-stack core:dbo-promises core:dbo-subscriptions core:dbo-terminology promise
+core:dbo-fhir-element        core:dbo-core core:dbo-definitions core:dbo-fhir-common core:dbo-fhir-index core:dbo-fhir-stack core:dbo-fhir-validate core:dbo-promises core:dbo-subscriptions core:dbo-terminology promise
 core:dbo-fhir-r4             core:dbo-core core:dbo-fhir-common core:dbo-fhir-element core:dbo-fhir-stack core:dbo-subscriptions core:dbo-terminology
 core:dbo-fhir-r5             core:dbo-core core:dbo-fhir-common core:dbo-fhir-element core:dbo-fhir-stack core:dbo-subscriptions core:dbo-terminology
 core:dbo-fhir-validate       core:dbo-fhir-common core:dbo-fhir-index

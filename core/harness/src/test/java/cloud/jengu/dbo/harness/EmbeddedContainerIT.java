@@ -88,7 +88,10 @@ class EmbeddedContainerIT {
                 "dbo.work",
                 // the questions a tenant registers, after the runs they ask about
                 "dbo.asking",
-                "dbo.subscriptions", "dbo.fhir.element", "dbo.fhir.r4", "dbo.fhir.r5",
+                "dbo.subscriptions",
+                // the index and its reader, before the facade that imports them
+                "dbo.fhir.index", "dbo.fhir.validate",
+                "dbo.fhir.element", "dbo.fhir.r4", "dbo.fhir.r5",
                 "dbo.rest")) {
             String path = System.getProperty(name + ".jar");
             java.util.Objects.requireNonNull(path, name + ".jar system property missing");

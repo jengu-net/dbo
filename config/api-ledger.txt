@@ -1770,6 +1770,9 @@ cloud.jengu.dbo.fhir.element.DefinitionElements.Refusal                new(Strin
 cloud.jengu.dbo.fhir.element.DefinitionElements.Refusal                record
 cloud.jengu.dbo.fhir.element.DefinitionElements.Refusal                toString():String
 cloud.jengu.dbo.fhir.element.DefinitionElements.Refusal                why():String
+cloud.jengu.dbo.fhir.element.DefinitionEnvelopeProbe                   class
+cloud.jengu.dbo.fhir.element.DefinitionEnvelopeProbe                   fromTheFace(String,byte[]):cloud.jengu.dbo.core.api.Envelope
+cloud.jengu.dbo.fhir.element.DefinitionEnvelopeProbe                   fromTheRows(List,String,byte[],List):cloud.jengu.dbo.core.api.Envelope
 cloud.jengu.dbo.fhir.element.ElementFhirVersion                        class
 cloud.jengu.dbo.fhir.element.ElementFhirVersion                        code():String
 cloud.jengu.dbo.fhir.element.ElementFhirVersion                        domain():String
@@ -2098,6 +2101,14 @@ cloud.jengu.dbo.fhir.r5.R5Terminology                                  new(cloud
 cloud.jengu.dbo.fhir.r5.R5Terminology                                  operations():List
 cloud.jengu.dbo.fhir.r5.R5Terminology                                  storedFormOf(String,byte[]):byte[]
 cloud.jengu.dbo.fhir.r5.R5Terminology                                  validateCode(String,String):String
+cloud.jengu.dbo.fhir.validate.Documents                                at(Object,String):List
+cloud.jengu.dbo.fhir.validate.Documents                                class
+cloud.jengu.dbo.fhir.validate.Documents                                holds(Object,String):Boolean
+cloud.jengu.dbo.fhir.validate.Documents                                read(byte[]):Map
+cloud.jengu.dbo.fhir.validate.Documents                                text(Object):String
+cloud.jengu.dbo.fhir.validate.Documents                                write(Object):byte[]
+cloud.jengu.dbo.fhir.validate.Documents.Literal                        interface
+cloud.jengu.dbo.fhir.validate.Documents.Literal                        text():String
 cloud.jengu.dbo.fhir.validate.ElementChecks                            class
 cloud.jengu.dbo.fhir.validate.ElementChecks                            over(cloud.jengu.dbo.fhir.index.DefinitionIndex,String,byte[]):cloud.jengu.dbo.fhir.validate.ElementChecks.Checked
 cloud.jengu.dbo.fhir.validate.ElementChecks                            over(cloud.jengu.dbo.fhir.index.DefinitionIndex,cloud.jengu.dbo.fhir.index.BoundCodes,String,Map):cloud.jengu.dbo.fhir.validate.ElementChecks.Checked
@@ -2110,10 +2121,6 @@ cloud.jengu.dbo.fhir.validate.ElementChecks.Checked                    hashCode(
 cloud.jengu.dbo.fhir.validate.ElementChecks.Checked                    new(List,int,int)
 cloud.jengu.dbo.fhir.validate.ElementChecks.Checked                    record
 cloud.jengu.dbo.fhir.validate.ElementChecks.Checked                    toString():String
-cloud.jengu.dbo.fhir.validate.Envelope                                 class
-cloud.jengu.dbo.fhir.validate.Envelope                                 declined():List
-cloud.jengu.dbo.fhir.validate.Envelope                                 of(byte[],String):Map
-cloud.jengu.dbo.fhir.validate.Envelope                                 over(List):cloud.jengu.dbo.fhir.validate.Envelope
 cloud.jengu.dbo.fhir.validate.IndexPayloads                            check(String,cloud.jengu.dbo.fhir.validate.IndexPayloads.Document,String):List
 cloud.jengu.dbo.fhir.validate.IndexPayloads                            class
 cloud.jengu.dbo.fhir.validate.IndexPayloads                            new(cloud.jengu.dbo.fhir.index.DefinitionIndex,cloud.jengu.dbo.fhir.index.BoundCodes)

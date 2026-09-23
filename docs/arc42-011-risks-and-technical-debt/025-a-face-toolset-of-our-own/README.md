@@ -1204,6 +1204,64 @@ classifications; they are found by their annotation, so the ledger was taught
 that rather than told it twice. Three entries that had carried the reason
 "reached by the catalogue projection" by hand no longer need one.
 
+## The envelope generalised, rather than a third builder
+
+The write that asks needs two seams swapped together, not one: a face's
+`Payloads` AND the extractor that builds a document's envelope on every write.
+The first attempt swapped only the first and a real write said so — a
+`ClassCastException` out of `envelopeOf`, which no comparison had ever
+reached.
+
+**And the envelope built for the comparison did not fit the seam.**
+`EnvelopeExtractor` hands back `core.api.Envelope`: typed values, with
+identifiers and reference edges as their own channels. What had been built
+produced the DATABASE's jsonb pair shape, because that is what made it
+comparable to `dbo.envelope` byte for byte. A good proof of the wrong object.
+
+**There was already a builder that produced the right one.**
+`DefinitionEnvelopes` indexes the five definition types from their JSON with
+no worker context, because a definition arriving at a tenant is what the
+tenant does not have yet — the bootstrap cannot read rows the document is
+about to create. It carries the typed rules and emits the core type. What made
+it special was only its front end: expressions written out in the face, and an
+evaluator for the FHIRPath they use.
+
+**So it was generalised rather than duplicated**, in two steps, each held to
+an existing ratchet:
+
+- **Ported to the same document model the checks use.** It read the
+  toolchain's JSON classes; it now reads the scanner that keeps a literal
+  distinct from a string. `DefinitionsAreIndexedWithoutTheToolchainTest` still
+  passes, including *every carried definition indexes the same from JSON as
+  through the toolchain* — so the port changed no answer, and the class no
+  longer touches the toolchain at all.
+- **Given a second front end** driven by the parameters the cut compiled,
+  which need no evaluator of ours: they are run by the same reader the checks
+  run an invariant's condition with. The typed rules underneath are stated
+  once and serve both.
+
+**Held to each other over the types both can index**, which is the only place
+the two front ends overlap:
+
+| | |
+|---|---|
+| definitions compared | 300 |
+| keys built by the written-out expressions | 4,936 |
+| parameters the compiled reader declined | **none** |
+| divergences | **0** |
+
+That completes a chain rather than adding a claim: the database's envelope
+loses nothing the engine found, the engine's agrees with the written-out
+expressions over every carried definition, and the written-out expressions
+agree with the compiled parameters. The separate builder was deleted — two
+answerers to one specification is this store's arrangement on purpose, a
+third by accident is not.
+
+**What this does not do is wire it in.** `ElementVersion.extractor` still
+sends every ordinary type down the toolchain path; the compiled front end is
+called by a test and by nothing else. Both seams still have to be swapped
+together, and the second one now exists in the shape the first one needs.
+
 ## What is not known
 
 ~~**How large a closure is.**~~ **Answered**, and above: 7.2% of a version's

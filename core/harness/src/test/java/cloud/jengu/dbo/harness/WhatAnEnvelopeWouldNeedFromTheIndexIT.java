@@ -1,12 +1,6 @@
 package cloud.jengu.dbo.harness;
 
-import cloud.jengu.dbo.fhir.element.FaceRootPackages;
 import cloud.jengu.dbo.fhir.index.DefinitionRows;
-import cloud.jengu.dbo.fhir.validate.Envelope;
-import cloud.jengu.dbo.promises.DboPromises;
-import cloud.jengu.dbo.promises.Proving;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
@@ -18,13 +12,10 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.TreeMap;
-import java.util.TreeSet;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -49,6 +40,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * not carry is a search that silently finds nothing, which is worse than an
  * error. So this counts what would have to be covered, rather than assuming a
  * majority is a good place to start.
+ *
+ * <p>What was built on the strength of this count is the second front end of
+ * {@code DefinitionEnvelopes}, which drives the face's own typed rules from
+ * the compiled parameters — not a builder of its own. Two answerers to one
+ * specification is this store's arrangement on purpose; a third by accident
+ * is not, and the count is what says the residue is small enough that the
+ * existing rules can carry it.
  */
 @Tag("integration")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -144,107 +142,6 @@ class WhatAnEnvelopeWouldNeedFromTheIndexIT {
                         + "envelope has to cover is bigger than recorded: " + beyondNavigation);
         assertEquals(compiled, navigationOnly + beyondNavigation.size(),
                 "a compiled parameter was counted as neither plain nor beyond plain");
-    }
-
-    @Test
-    @DisplayName("over every document this face carries, the envelope built from the index is "
-            + "the envelope the database builds")
-    @Proving(DboPromises.VAL_A_THIRD_ANSWERER_READS_THE_INDEX)
-    void theEnvelopeIsTheSameBuiltFromTheIndex() throws Exception {
-        Envelope envelope = Envelope.over(
-                DefinitionRows.parametersFor(source(), DECLARED));
-        ObjectMapper json = new ObjectMapper();
-
-        List<String> divergences = new ArrayList<>();
-        int compared = 0;
-        int keys = 0;
-        for (FaceRootPackages.Definition document : FaceRootPackages.definitionsFor("r4",
-                Set.of("StructureDefinition", "SearchParameter", "ValueSet", "CodeSystem"))) {
-            if (compared >= 200) {
-                break;
-            }
-            compared++;
-            Map<String, List<Object>> ours = envelope.of(document.document(),
-                    document.typeName());
-            JsonNode theirs = json.readTree(
-                    theDatabasesEnvelope(document.document(), document.typeName()));
-            keys += ours.size();
-            // The meta keys are the database's own — id and lastUpdated come
-            // from envelope_meta, not from a search parameter — so what is
-            // compared is the parameter-built half on both sides.
-            Set<String> theirKeys = new TreeSet<>();
-            theirs.fieldNames().forEachRemaining(theirKeys::add);
-            theirKeys.retainAll(parameterKeys());
-            Set<String> ourKeys = new TreeSet<>(ours.keySet());
-            ourKeys.retainAll(parameterKeys());
-            if (!ourKeys.equals(theirKeys)) {
-                Set<String> missing = new TreeSet<>(theirKeys);
-                missing.removeAll(ourKeys);
-                Set<String> extra = new TreeSet<>(ourKeys);
-                extra.removeAll(theirKeys);
-                divergences.add(document.typeName() + " " + document.url()
-                        + ": the index misses " + missing + " and adds " + extra);
-            }
-        }
-
-        // Written to a file as well as printed. A test's standard output goes
-        // nowhere by default on this task, and a figure nobody can read is
-        // not a measurement.
-        String said = """
-                === the envelope, index against database, over r4 ===
-                documents compared %d, keys built by the index %d
-                parameters declined by the reader: %s
-                divergences in which keys are present: %d
-                """.formatted(compared, keys, envelope.declined(), divergences.size())
-                + String.join(System.lineSeparator(), divergences.stream().limit(10).toList());
-        System.out.println(said);
-        java.nio.file.Path where = java.nio.file.Path.of("build", "envelope-comparison.txt");
-        java.nio.file.Files.createDirectories(where.getParent());
-        java.nio.file.Files.writeString(where, said);
-
-        assertTrue(compared > 100, "too few documents compared: " + compared);
-        assertTrue(keys > 200, "the index built almost no envelope, so agreeing means nothing: "
-                + keys);
-        assertEquals(List.of(), divergences,
-                "the two envelopes do not hold the same keys, which is a search that finds "
-                        + "nothing on one side and looks like an answer");
-    }
-
-    private static Set<String> parameterKeys;
-
-    /**
-     * The keys a search parameter can produce, so the meta keys the database
-     * adds of its own are not compared.
-     *
-     * <p>Read once. It was being read twice per document, which is four
-     * hundred round trips to answer a question whose answer does not change.
-     */
-    private static synchronized Set<String> parameterKeys() {
-        if (parameterKeys == null) {
-            Set<String> keys = new TreeSet<>();
-            for (DefinitionRows.Parameter one
-                    : DefinitionRows.parametersFor(source(), DECLARED)) {
-                keys.add(one.code().replace('-', '_'));
-                keys.add(one.code().replace('-', '_') + "_xct");
-            }
-            parameterKeys = keys;
-        }
-        return parameterKeys;
-    }
-
-    private static String theDatabasesEnvelope(byte[] document, String type) {
-        try (Connection c = source().getConnection();
-             PreparedStatement ps = c.prepareStatement(
-                     "SELECT dbo.envelope(?::jsonb, ?)::text")) {
-            ps.setString(1, new String(document, StandardCharsets.UTF_8));
-            ps.setString(2, type);
-            try (ResultSet rs = ps.executeQuery()) {
-                rs.next();
-                return rs.getString(1);
-            }
-        } catch (SQLException e) {
-            throw new IllegalStateException("asking the database for an envelope failed", e);
-        }
     }
 
     private static PGSimpleDataSource source() {
