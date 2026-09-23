@@ -1907,6 +1907,17 @@ cloud.jengu.dbo.fhir.index.DefinitionIndex.Invariant                   toString(
 cloud.jengu.dbo.fhir.index.DefinitionRows                              class
 cloud.jengu.dbo.fhir.index.DefinitionRows                              closureOf(DataSource,Collection):Set
 cloud.jengu.dbo.fhir.index.DefinitionRows                              over(DataSource,Collection):cloud.jengu.dbo.fhir.index.DefinitionIndex
+cloud.jengu.dbo.fhir.index.DefinitionRows                              parametersFor(DataSource,Collection):List
+cloud.jengu.dbo.fhir.index.DefinitionRows.Parameter                    base():String
+cloud.jengu.dbo.fhir.index.DefinitionRows.Parameter                    code():String
+cloud.jengu.dbo.fhir.index.DefinitionRows.Parameter                    equals(Object):boolean
+cloud.jengu.dbo.fhir.index.DefinitionRows.Parameter                    hashCode():int
+cloud.jengu.dbo.fhir.index.DefinitionRows.Parameter                    kind():String
+cloud.jengu.dbo.fhir.index.DefinitionRows.Parameter                    new(String,String,String,List,String)
+cloud.jengu.dbo.fhir.index.DefinitionRows.Parameter                    paths():List
+cloud.jengu.dbo.fhir.index.DefinitionRows.Parameter                    predicate():String
+cloud.jengu.dbo.fhir.index.DefinitionRows.Parameter                    record
+cloud.jengu.dbo.fhir.index.DefinitionRows.Parameter                    toString():String
 cloud.jengu.dbo.fhir.r4.Activator                                      class
 cloud.jengu.dbo.fhir.r4.Activator                                      new()
 cloud.jengu.dbo.fhir.r4.Activator                                      start(BundleContext):void
@@ -2086,6 +2097,10 @@ cloud.jengu.dbo.fhir.validate.ElementChecks.Checked                    hashCode(
 cloud.jengu.dbo.fhir.validate.ElementChecks.Checked                    new(List,int,int)
 cloud.jengu.dbo.fhir.validate.ElementChecks.Checked                    record
 cloud.jengu.dbo.fhir.validate.ElementChecks.Checked                    toString():String
+cloud.jengu.dbo.fhir.validate.Envelope                                 class
+cloud.jengu.dbo.fhir.validate.Envelope                                 declined():List
+cloud.jengu.dbo.fhir.validate.Envelope                                 of(byte[],String):Map
+cloud.jengu.dbo.fhir.validate.Envelope                                 over(List):cloud.jengu.dbo.fhir.validate.Envelope
 cloud.jengu.dbo.maintenance.ArchiveAttestation                         equals(Object):boolean
 cloud.jengu.dbo.maintenance.ArchiveAttestation                         fromJson(String):cloud.jengu.dbo.maintenance.ArchiveAttestation
 cloud.jengu.dbo.maintenance.ArchiveAttestation                         hasSignature(cloud.jengu.dbo.maintenance.ArchiveAttestation.Party):boolean
@@ -3914,6 +3929,7 @@ cloud.jengu.dbo.tenant.TenantRuntimeManager                            class
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            close():void
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            codes():Set
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            databaseOf(String):Optional
+cloud.jengu.dbo.tenant.TenantRuntimeManager                            declaredFrom(cloud.jengu.dbo.sync.ConfigSource):cloud.jengu.dbo.tenant.TenantRuntimeManager
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            erase(String):void
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            faceImagesIn(Path):cloud.jengu.dbo.tenant.TenantRuntimeManager
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            factsOf(String):Optional
@@ -3955,6 +3971,7 @@ cloud.jengu.dbo.tenant.TenantRuntimeManager.AuthorityConfig            upstream(
 cloud.jengu.dbo.tenant.TenantRuntimeManager.Listener                   interface
 cloud.jengu.dbo.tenant.TenantRuntimeManager.Listener                   tenantDown(String):void
 cloud.jengu.dbo.tenant.TenantRuntimeManager.Listener                   tenantUp(cloud.jengu.dbo.tenant.TenantRuntimeManager.TenantRuntime):void
+cloud.jengu.dbo.tenant.TenantRuntimeManager.TenantRuntime              authority():cloud.jengu.dbo.auth.TenantAuthority
 cloud.jengu.dbo.tenant.TenantRuntimeManager.TenantRuntime              blobs():cloud.jengu.dbo.core.api.BlobStore
 cloud.jengu.dbo.tenant.TenantRuntimeManager.TenantRuntime              definitionsFeed():cloud.jengu.dbo.core.api.feed.ChangeFeed
 cloud.jengu.dbo.tenant.TenantRuntimeManager.TenantRuntime              endpoint():cloud.jengu.dbo.rest.FhirHttpServer
@@ -3963,7 +3980,7 @@ cloud.jengu.dbo.tenant.TenantRuntimeManager.TenantRuntime              equals(Ob
 cloud.jengu.dbo.tenant.TenantRuntimeManager.TenantRuntime              feed():cloud.jengu.dbo.core.api.feed.ChangeFeed
 cloud.jengu.dbo.tenant.TenantRuntimeManager.TenantRuntime              grain():cloud.jengu.dbo.core.face.GrainCodec
 cloud.jengu.dbo.tenant.TenantRuntimeManager.TenantRuntime              hashCode():int
-cloud.jengu.dbo.tenant.TenantRuntimeManager.TenantRuntime              new(cloud.jengu.dbo.tenant.TenantSpec,cloud.jengu.dbo.core.api.ObjectStore,cloud.jengu.dbo.fhir.common.FhirStoreFacade,cloud.jengu.dbo.core.api.feed.ChangeFeed,cloud.jengu.dbo.core.api.feed.ChangeFeed,cloud.jengu.dbo.rest.FhirHttpServer,cloud.jengu.dbo.core.face.GrainCodec,cloud.jengu.dbo.sync.Lanes,cloud.jengu.dbo.core.api.BlobStore)
+cloud.jengu.dbo.tenant.TenantRuntimeManager.TenantRuntime              new(cloud.jengu.dbo.tenant.TenantSpec,cloud.jengu.dbo.core.api.ObjectStore,cloud.jengu.dbo.fhir.common.FhirStoreFacade,cloud.jengu.dbo.core.api.feed.ChangeFeed,cloud.jengu.dbo.core.api.feed.ChangeFeed,cloud.jengu.dbo.rest.FhirHttpServer,cloud.jengu.dbo.core.face.GrainCodec,cloud.jengu.dbo.sync.Lanes,cloud.jengu.dbo.core.api.BlobStore,cloud.jengu.dbo.auth.TenantAuthority)
 cloud.jengu.dbo.tenant.TenantRuntimeManager.TenantRuntime              record
 cloud.jengu.dbo.tenant.TenantRuntimeManager.TenantRuntime              replication():cloud.jengu.dbo.sync.Lanes
 cloud.jengu.dbo.tenant.TenantRuntimeManager.TenantRuntime              spec():cloud.jengu.dbo.tenant.TenantSpec

@@ -1,36 +1,36 @@
-**Open. Nine of the twelve moves on the critical path are done and a tenth
-is spiked; four were measurements, the fifth was the decision they were
-gathered for, and the checker is finished. A face costs 225 MB because of
-the form its definitions are held in, not their size: 92,807 element
-definitions as object graphs, 1.1 million primitive wrappers, one byte array
-per string. The three cheap ways out are closed by measurement — lazy
-loading is 133 MB worse, eviction is impossible because the toolchain
-discards the reload path at first use, and the shape is fixed by a manager
-that holds model objects. What is left is a definition index of our own:
-flat rows in heap, per tenant, over the closure its declared types reach,
-under a face base the image already carries. **A closure is now counted**,
-and it needed no face root after all — the walk reads the carried packages,
-which is the same claim the index makes. Hogwarts' eleven declared types
-reach 78 of r5's 389 structures and **1,164 of its 16,150 elements, 7.2%**.
-The shape of that is the finding: a fixed kernel of 64 datatype structures,
-462 elements, that every resource type reaches, and one to three structures
-per type above it. It is a **per-tenant** win and not a per-face one — a
-face whose tenants between them declared every resource would reach 94% of
-the corpus, so one index shared by a face's tenants would save nothing.
-**And the form is now measured too**: the same 78 structures cost **190 KB
-flat against 5,966 KB as model objects, 31 times**, 167 bytes an element
-against 5,249. A tenant's whole index is 190 KB where a face's context is
-225 MB, and r5's entire corpus in the flat form is 2.6 MB. The premise is no
-longer a premise. **And something reads it**: a cardinality checker over the
-index faults none of the 6,532 conformance resources the release carries,
-and finds the faults that are there. It answers at every depth, entering a
-backbone where the resource defines it and a datatype's own structure where
-it does not — 276,258 descents over that corpus, five path segments at the
-deepest. **And it has been compared against the answerer that currently
-decides**: on what is missing the two agree exactly, 3 reported and the same
-3 found over 402 documents, none missed and none added. On what is repeated
-they do not, and the checker is the one that is right — an element allowed
-once and sent twice is dropped by the toolchain in silence, so
+**Open. Ten of the twelve moves on the critical path are done; four were
+measurements, the fifth was the decision they were gathered for, and the
+checker is finished. A face costs 225 MB because of the form its definitions
+are held in, not their size: 92,807 element definitions as object graphs,
+1.1 million primitive wrappers, one byte array per string. The three cheap
+ways out are closed by measurement — lazy loading is 133 MB worse, eviction
+is impossible because the toolchain discards the reload path at first use,
+and the shape is fixed by a manager that holds model objects. What is left
+is a definition index of our own: flat rows in heap, per tenant, over the
+closure its declared types reach, under a face base the image already
+carries. **A closure is now counted**, and it needed no face root after all
+— the walk reads the carried packages, which is the same claim the index
+makes. Hogwarts' eleven declared types reach 78 of r5's 389 structures and
+**1,164 of its 16,150 elements, 7.2%**. The shape of that is the finding: a
+fixed kernel of 64 datatype structures, 462 elements, that every resource
+type reaches, and one to three structures per type above it. It is a
+**per-tenant** win and not a per-face one — a face whose tenants between
+them declared every resource would reach 94% of the corpus, so one index
+shared by a face's tenants would save nothing. **And the form is now
+measured too**: the same 78 structures cost **190 KB flat against 5,966 KB
+as model objects, 31 times**, 167 bytes an element against 5,249. A tenant's
+whole index is 190 KB where a face's context is 225 MB, and r5's entire
+corpus in the flat form is 2.6 MB. The premise is no longer a premise. **And
+something reads it**: a cardinality checker over the index faults none of
+the 6,532 conformance resources the release carries, and finds the faults
+that are there. It answers at every depth, entering a backbone where the
+resource defines it and a datatype's own structure where it does not —
+276,258 descents over that corpus, five path segments at the deepest. **And
+it has been compared against the answerer that currently decides**: on what
+is missing the two agree exactly, 3 reported and the same 3 found over 402
+documents, none missed and none added. On what is repeated they do not, and
+the checker is the one that is right — an element allowed once and sent
+twice is dropped by the toolchain in silence, so
 `{"gender":["female","male"]}` is parsed into a Patient with no gender at
 all and accepted. That is a data-loss defect on this store's write path
 today, recorded below and independent of whether any of this is built. **And
@@ -96,8 +96,22 @@ the walk visits an element as a child and the root is nobody's child, which
 is where every dom-* rule sits. What made it visible was asserting what the
 checker DID and not only that the two agreed: it reported zero against the
 database's 301 and passed, because nothing is a subset of anything. It
-reports 258 now, with no divergence. Next: step 9's other half, or step
-10.**
+reports 258 now, with no divergence. **And step 9 is finished.** Its
+round-trip half was spiked and holds; its other half, the envelope, is
+built. An envelope's bar is not a checker's — a declined rule loses a
+refusal, which looks like a correct document, while a declined parameter
+loses a KEY and a search by it then finds nothing and looks like an answer —
+so a majority was never a place to stop. Of 150 compiled parameters over a
+face root's declared types the compiler had already refused 23 by name,
+which the database does not index either; of the 127 left, 117 are plain
+navigation and the residue is **ten**, all covered by the one filter form
+the slices already needed. Built and compared: **3,156 keys over 200
+documents, nothing declined, no divergence** from `dbo.envelope`. That
+closes the question step 4 said would reverse the decision: the payload path
+can leave the element model, because reading and writing is a JSON problem
+and the envelope is compiled paths run over a tree. Next: step 10, derived
+subscriptions, and step 11 — the ratchet, which is where the megabytes
+finally move.**
 
 # A face toolset of our own
 
@@ -544,7 +558,7 @@ was no way to tell what was next from what was merely undone.
 | 6 | ~~**The database leg**~~ **Done.** `core/dbo-fhir-validate` stands in `TheTwoAnswersAreComparedOverTheVersionIT` against `dbo.cardinality`: 258 documents, 21,267 descents, no divergence — and one divergence found on purpose, where the index reaches further | the word "third" in "third answerer", which was a plan until this. NOT reachability: comparing is not being asked | 5, and a tenant |
 | 7 | ~~**The rest of a checker** — fixed and pattern values, slicing, required bindings~~ **Done**, all five checks, each held against the database's own. Slicing turned out to be a correctness defect rather than a missing feature | a checker that covers what a tenant's own profiles actually say, rather than what base definitions happen not to | 5, because profiles arrive as rows |
 | 8 | ~~**FHIRPath compiled at the cut**~~ **It already was** — into `definition_invariant.path`, when the definition arrives. What was missing was an answerer that RUNS it: **68.4%** of the compiled paths now run in heap and agree with the database, and the rest are declined rather than guessed at | invariants, which are the largest thing the toolchain still answers alone | 5 |
-| 9 | **The payload path without `elementmodel`** — read and write EVERY type from JSON, not only check it. **Spiked, and it holds**: 6,532 documents and 86 MB in and out unaltered with no context, and 91.9% of search expressions are plain paths | the last reason a serving node builds a context at all; it is row one of item 024's foot and belonged in neither item's steps | 5, 7 |
+| 9 | ~~**The payload path without `elementmodel`**~~ **Done.** The round trip was spiked and holds — 6,532 documents and 86 MB in and out unaltered with no context, and no type knowledge either. The envelope is now built too: **3,156 keys over 200 documents, nothing declined, no divergence** from `dbo.envelope` | the last reason a serving node builds a context at all; it is row one of item 024's foot and belonged in neither item's steps | 5, 7 |
 | 10 | **Derived subscriptions** — the closure as what to replicate, the filter computed rather than declared | the database, the expansion, the image and the index all narrowed from one derivation | 5, and [item 021](../021-asking-the-store/README.md)'s answers, which are written |
 | 11 | **The distribution ratchet**: a serving node carries no definition packages | the 225 MB, 65 MB of jar, and the property that a context cannot be POPULATED rather than merely is not | 7, 8, 9 |
 
@@ -896,7 +910,10 @@ them, which is a reason to size this against a tenant's parameters rather than
 against a version's.
 
 **So the decision at step 4 stands.** What would have reversed it was the
-payload path being unable to leave the element model. It can.
+payload path being unable to leave the element model. It can — and the 8.1%
+left open here is now closed rather than plausible: the residue is ten
+parameters over a face root's declared types, all ten are covered, and the
+envelope built from the index holds the same keys as the database's.
 
 ## Step 5, built
 
@@ -948,6 +965,60 @@ thing rather than by reading it.
 reason, because an index nothing reads saves no megabyte and a line in a
 ratchet is harder to forget than a paragraph here. Step 6 is what takes the
 line out.
+
+## Step 9's other half: the envelope
+
+The round trip needed no type knowledge. The envelope does — it is the values
+a search asks by, pulled out of a document by the search parameters the
+version publishes — and it is the last thing on the write path that reached
+for the element model.
+
+**Its bar is not a checker's, and that is the first thing the count says.** A
+checker that declines a rule loses a refusal, and a lost refusal looks exactly
+like a correct document. An envelope that declines a parameter loses a KEY,
+and a search by that key then finds nothing while looking exactly like an
+answer — which the database's own comment already says is worse than an error.
+So a majority was never going to be a good place to stop.
+
+**What the compiled parameters ask for**, over a face root's six declared
+types:
+
+| | |
+|---|---|
+| parameters | 150 |
+| which the compiler already refused by name | **23** |
+| of the 127 compiled, plain navigation | **117 (92.1%)** |
+| carrying a predicate | 1 |
+| needing a filter, an equality or a starts-with | 10 |
+
+The 23 cost nothing to skip: a parameter the compiler refused is one the
+database does not index either, so leaving it out agrees with the envelope
+that exists rather than losing a key. The residue is ten parameters, which is
+a list to finish rather than a share to be satisfied with — and finishing it
+is one filter form, the same equality-and-conjunction the slices use.
+
+**So it was finished**, and the two envelopes were put side by side over 200
+of the documents the face carries:
+
+| | |
+|---|---|
+| keys built from the index | **3,156** |
+| parameters the reader declined | **none** |
+| divergences in which keys are present | **0** |
+
+**The typed rule is the contract, not the expression that found the value.** A
+token is three questions and not one — `system|code`, `code` anywhere, and
+anything in `system` — a string is held lowercased and again exactly under
+`_xct`, a uri is case-sensitive as written, a date is the moment its span
+opens at whatever precision its author had, and a reference is split into the
+type and the id it points at. Quantity and composite produce nothing, here as
+there: the database has no branch for them either, so a parameter of that kind
+indexes nothing on both sides rather than on one.
+
+**What this leaves.** The two halves of step 9 are the answer to the question
+step 4 said would reverse the decision: the payload path can leave the element
+model. Reading and writing is a JSON problem, and the envelope is compiled
+paths run over a tree — neither needs a populated context.
 
 ## What is not known
 

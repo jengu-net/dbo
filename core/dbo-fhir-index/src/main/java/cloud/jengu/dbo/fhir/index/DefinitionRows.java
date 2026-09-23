@@ -155,6 +155,54 @@ public final class DefinitionRows {
     }
 
     /**
+     * One search parameter, compiled.
+     *
+     * @param code      the parameter's own code, which names the envelope key
+     * @param base      the resource type it asks after
+     * @param kind      token, string, date, reference, uri, number — the typed
+     *                  rule that turns a hit into what a search asks by
+     * @param paths     the jsonpath selections whose items are the values
+     * @param predicate a condition each hit must satisfy, or null
+     */
+    public record Parameter(String code, String base, String kind, List<String> paths,
+            String predicate) {
+    }
+
+    /**
+     * The search parameters a type is asked after by, as they were compiled
+     * when they arrived.
+     *
+     * <p>Only the enforceable ones. A parameter the compiler refused by name
+     * is one the database does not index either, so leaving it out here is
+     * agreeing with the envelope that exists rather than losing a key.
+     */
+    public static List<Parameter> parametersFor(DataSource ds, Collection<String> types) {
+        List<Parameter> out = new ArrayList<>();
+        if (types.isEmpty()) {
+            return out;
+        }
+        try (Connection c = ds.getConnection();
+             PreparedStatement ps = c.prepareStatement("""
+                     SELECT code, base, kind, predicate,
+                            ARRAY(SELECT jsonb_array_elements_text(paths))
+                       FROM definitions.definition_parameter
+                      WHERE base = ANY(?) AND unenforceable IS NULL
+                      ORDER BY base, code""")) {
+            ps.setArray(1, textArray(c, types));
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    out.add(new Parameter(rs.getString(1), rs.getString(2), rs.getString(3),
+                            codes(rs.getArray(5)), rs.getString(4)));
+                }
+            }
+        } catch (SQLException e) {
+            throw new IllegalStateException(
+                    "reading the compiled search parameters failed", e);
+        }
+        return out;
+    }
+
+    /**
      * The invariants, in one read rather than one per element.
      *
      * <p>{@code ele-1} is inherited onto nearly every element there is, so

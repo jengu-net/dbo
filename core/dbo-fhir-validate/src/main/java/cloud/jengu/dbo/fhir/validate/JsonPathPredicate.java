@@ -1,8 +1,6 @@
 package cloud.jengu.dbo.fhir.validate;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 /**
  * A compiled invariant, run against one element instance.
@@ -99,7 +97,7 @@ final class JsonPathPredicate {
         }
         // Anything else is a comparison, a match or a filter: measured, not
         // implemented, and answered by nobody rather than badly.
-        throw new Unreadable();
+        throw new JsonPathValues.Unreadable();
     }
 
     /**
@@ -123,75 +121,12 @@ final class JsonPathPredicate {
 
     // --- navigation ---
 
-    /**
-     * What a path selects: {@code $."name"."family"} against a Patient is
-     * every family name there is.
-     *
-     * <p><b>Lax, because Postgres is.</b> A member accessor applied to an
-     * array unwraps it and applies to each member, so a path written for one
-     * name answers over all of them without saying so. Matching the database
-     * here is not a nicety: the two are compared, and a strict reading would
-     * disagree about every repeating element in the corpus.
-     */
+    /** What a path selects, shared with the reader an envelope uses. */
     private List<Object> navigate(Object instance) {
-        spaces();
-        if (!peek("$") && !peek("@")) {
-            throw new Unreadable();
-        }
-        at++;
-        List<Object> cursor = new ArrayList<>();
-        cursor.add(instance);
-        while (at < text.length()) {
-            if (peek("[*]")) {
-                at += 3;
-                cursor = unwrapped(cursor);
-                continue;
-            }
-            if (text.charAt(at) != '.') {
-                break;
-            }
-            at++;
-            String key = quoted();
-            List<Object> next = new ArrayList<>();
-            for (Object one : unwrapped(cursor)) {
-                if (one instanceof Map<?, ?> object) {
-                    Object held = object.get(key);
-                    if (held != null) {
-                        next.add(held);
-                    }
-                }
-            }
-            cursor = next;
-        }
-        return unwrapped(cursor);
-    }
-
-    /** Arrays flattened one level, which is what lax mode does at each step. */
-    private static List<Object> unwrapped(List<Object> values) {
-        List<Object> out = new ArrayList<>();
-        for (Object one : values) {
-            if (one instanceof List<?> many) {
-                out.addAll(many);
-            } else {
-                out.add(one);
-            }
-        }
-        return out;
-    }
-
-    private String quoted() {
-        spaces();
-        if (at >= text.length() || text.charAt(at) != '"') {
-            throw new Unreadable();
-        }
-        int from = ++at;
-        while (at < text.length() && text.charAt(at) != '"') {
-            at++;
-        }
-        if (at >= text.length()) {
-            throw new Unreadable();
-        }
-        return text.substring(from, at++);
+        int[] cursor = {at};
+        List<Object> found = JsonPathValues.from(instance, text, cursor);
+        at = cursor[0];
+        return found;
     }
 
     private void spaces() {
@@ -208,15 +143,10 @@ final class JsonPathPredicate {
     private void expect(String token) {
         spaces();
         if (!text.startsWith(token, at)) {
-            throw new Unreadable();
+            throw new JsonPathValues.Unreadable();
         }
         at += token.length();
     }
 
-    /** A construct this reader does not implement. */
-    private static final class Unreadable extends RuntimeException {
-        Unreadable() {
-            super(null, null, false, false);
-        }
-    }
+
 }
