@@ -353,6 +353,9 @@ val apiLedger by tasks.registering(JavaExec::class) {
             project(":core:$module").tasks.named<Jar>("jar").get().archiveFile.get().asFile.absolutePath,
         )
     }
+    // The build's list, stated to the ledger so that a bundle added here and
+    // not there fails rather than quietly shrinking the recorded surface.
+    systemProperty("dbo.api.bundles", ledgerBundles.keys.joinToString(","))
     args(rootProject.file("config/api-ledger.txt").absolutePath)
 }
 
@@ -396,6 +399,9 @@ tasks.withType<Test>().configureEach {
     // one check that would have spoken never runs.
     systemProperty("dbo.api.ledger", rootProject.file("config/api-ledger.txt").absolutePath)
     inputs.file(rootProject.file("config/api-ledger.txt"))
+    // And the same list here, so the ratchet catches the drift rather than
+    // only the re-recording does.
+    systemProperty("dbo.api.bundles", ledgerBundles.keys.joinToString(","))
     // The same, for the ledger that records what production names.
     systemProperty("dbo.reach.ledger", rootProject.file("config/reach-ledger.txt").absolutePath)
     inputs.file(rootProject.file("config/reach-ledger.txt"))

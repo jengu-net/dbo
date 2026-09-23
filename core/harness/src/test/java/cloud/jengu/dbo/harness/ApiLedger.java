@@ -41,10 +41,11 @@ final class ApiLedger {
 
     /** Every bundle that exports a package of this store's own. */
     static final List<String> BUNDLES = List.of("dbo.core", "dbo.postgres", "dbo.auth",
-            "dbo.pdi", "dbo.policy", "dbo.work", "dbo.runner", "dbo.stream", "dbo.sync", "dbo.maintenance",
+            "dbo.pdi", "dbo.policy", "dbo.work", "dbo.asking", "dbo.runner", "dbo.stream", "dbo.sync",
+            "dbo.maintenance",
             "dbo.terminology", "dbo.definitions", "dbo.subscriptions", "dbo.rest", "dbo.scim", "dbo.telemetry",
             "dbo.promises", "dbo.tenant", "dbo.tenant.k8s", "dbo.fhir.common",
-            "dbo.fhir.element", "dbo.fhir.r4", "dbo.fhir.r5");
+            "dbo.fhir.element", "dbo.fhir.index", "dbo.fhir.validate", "dbo.fhir.r4", "dbo.fhir.r5");
 
     private ApiLedger() {
     }
@@ -87,7 +88,43 @@ final class ApiLedger {
             }
             collect(Path.of(path), lines);
         }
+        unstaged();
         return List.copyOf(lines);
+    }
+
+    /**
+     * A bundle the build means this ledger to read and this list does not
+     * name.
+     *
+     * <p>The other direction of the guard above, and the one that had gone
+     * wrong. The build names the bundles whose jars to stage and this class
+     * names the bundles to read; they are two lists and they drifted. Three
+     * bundles were added to the first and not the second, so the ledger
+     * recorded a smaller surface than the store has and passed — which is the
+     * shape of a ratchet that guards nothing, said in the comment above about
+     * the other direction and just as true of this one.
+     *
+     * <p>The build states its list here rather than this inferring it from
+     * what happens to be staged: a test JVM stages bundles for the container
+     * suites too, and a guard that read those would fail over modules this
+     * ledger was never meant to cover.
+     */
+    private static void unstaged() {
+        String declared = System.getProperty("dbo.api.bundles");
+        if (declared == null || declared.isBlank()) {
+            return;
+        }
+        List<String> missing = new java.util.ArrayList<>();
+        for (String bundle : declared.split(",")) {
+            if (!bundle.isBlank() && !BUNDLES.contains(bundle.trim())) {
+                missing.add(bundle.trim());
+            }
+        }
+        if (!missing.isEmpty()) {
+            throw new IllegalStateException("the build means this ledger to cover " + missing
+                    + " and it does not read them, so it would record a surface smaller than "
+                    + "the real one — add them to BUNDLES");
+        }
     }
 
     private static void collect(Path jar, Set<String> into) throws Exception {
