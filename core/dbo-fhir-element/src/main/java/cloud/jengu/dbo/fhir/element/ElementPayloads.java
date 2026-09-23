@@ -149,6 +149,28 @@ final class ElementPayloads implements Payloads<Element> {
         return List.copyOf(found);
     }
 
+    /**
+     * Exactly the sentences this document's unrecognised elements contribute,
+     * so a caller that has been told to keep them subtracts these rather than
+     * matching on their words.
+     *
+     * <p>Same producer, same list: a type declared to keep what it cannot read
+     * takes these out of the findings, and everything else it was told stays.
+     * Reading the text instead would be a second opinion about which finding
+     * is which, and the two would disagree the first time the sentence was
+     * reworded.
+     */
+    static List<String> unknownElementsIn(Element document) {
+        if (!(document.getUserData(UNRECOGNISED) instanceof List<?> noticed)) {
+            return List.of();
+        }
+        List<String> said = new ArrayList<>(noticed.size());
+        for (Object one : noticed) {
+            said.add(String.valueOf(one));
+        }
+        return List.copyOf(said);
+    }
+
     /** Where a message with no location came from, so a refusal still points somewhere. */
     private static String document(ValidationMessage message) {
         return message.getLocation() == null ? "" : message.getLocation();

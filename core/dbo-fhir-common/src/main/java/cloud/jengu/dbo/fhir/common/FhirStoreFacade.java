@@ -296,6 +296,21 @@ public interface FhirStoreFacade {
     String operationOutcome(String issueCode, String diagnostics);
 
     /**
+     * The same, as one issue per finding, each naming the element it is about.
+     *
+     * <p>A face that has not moved to this renders the sentences instead, so
+     * a caller of a face without it gets what it always got rather than
+     * nothing.
+     */
+    default String operationOutcome(String issueCode, java.util.List<Finding> findings) {
+        java.util.List<String> said = new java.util.ArrayList<>(findings.size());
+        for (Finding finding : findings) {
+            said.add(finding.says());
+        }
+        return operationOutcome(issueCode, String.join("; ", said));
+    }
+
+    /**
      * An outcome for a fault in THIS STORE, as opposed to a finding about the
      * caller's content.
      *

@@ -22,6 +22,7 @@ BEGIN
     UNION ALL SELECT * FROM dbo.binding_in(once, profile)
     UNION ALL SELECT * FROM dbo.reference_in(once, profile)
     UNION ALL SELECT * FROM dbo.identifier_in(once, profile)
-    UNION ALL SELECT * FROM dbo.invariant_in(once, profile);
+    UNION ALL SELECT * FROM dbo.invariant_in(once, profile)
+    UNION ALL SELECT * FROM dbo.unknown_in(once, profile);
 END;
 $$;

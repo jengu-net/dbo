@@ -103,6 +103,9 @@ dependencies {
     testImplementation(project(":core:dbo-subscriptions"))
     testImplementation(project(":core:dbo-terminology"))
     testImplementation(project(":core:dbo-definitions"))
+    // The same rows as flat arrays. Not on the serving path yet: what
+    // is proven here is that the projection says what the packages say.
+    testImplementation(project(":core:dbo-fhir-index"))
     testImplementation("org.junit.jupiter:junit-jupiter:5.11.4")
     // Compiled against, not merely present: the suite carries a launcher
     // listener that records what is still in the heap after each class, which
@@ -188,6 +191,14 @@ val memoryTest = tasks.register<Test>("memoryTest") {
     // and the baseline stayed as it was, which is the quietest way for a
     // ratchet to become a decoration.
     System.getProperty("dbo.memory.record")?.let { systemProperty("dbo.memory.record", it) }
+    // And the one that chooses how a face's carried definitions are held:
+    // offered by name, or parsed at registration. It decides what every write
+    // is judged against, so a run that meant to test one and silently tested
+    // the other would be the worst of the three silences this block exists
+    // for.
+    System.getProperty("dbo.definitions.offered")?.let {
+        systemProperty("dbo.definitions.offered", it)
+    }
     maxHeapSize = "2g"
 }
 tasks.test {
@@ -208,6 +219,14 @@ tasks.test {
         systemProperty("dbo.divergence.record", it)
     }
     System.getProperty("dbo.divergence.name")?.let { systemProperty("dbo.divergence.name", it) }
+    // And the one that chooses how a face's carried definitions are held:
+    // offered by name, or parsed at registration. It decides what every write
+    // is judged against, so a run that meant to test one and silently tested
+    // the other would be the worst of the three silences this block exists
+    // for.
+    System.getProperty("dbo.definitions.offered")?.let {
+        systemProperty("dbo.definitions.offered", it)
+    }
     filter.excludeTestsMatching("*ServerDistIT")
     filter.excludeTestsMatching("*WhatTheLoadedSpecificationCostsIT")
     shouldRunAfter(distTest)
@@ -246,7 +265,7 @@ val ledgerBundles = mapOf(
     "dbo.asking" to "dbo-asking",
     "dbo.runner" to "dbo-runner", "dbo.stream" to "dbo-stream", "dbo.sync" to "dbo-sync",
     "dbo.maintenance" to "dbo-maintenance", "dbo.terminology" to "dbo-terminology",
-    "dbo.definitions" to "dbo-definitions",
+    "dbo.definitions" to "dbo-definitions", "dbo.fhir.index" to "dbo-fhir-index",
     "dbo.subscriptions" to "dbo-subscriptions", "dbo.rest" to "dbo-rest",
     "dbo.scim" to "dbo-scim", "dbo.telemetry" to "dbo-telemetry",
     "dbo.promises" to "dbo-promises", "dbo.tenant" to "dbo-tenant",
@@ -265,6 +284,7 @@ val reachModules = listOf(
     "core:dbo-core", "core:dbo-postgres", "core:dbo-auth", "core:dbo-pdi", "core:dbo-policy",
     "core:dbo-work", "core:dbo-asking", "core:dbo-runner", "core:dbo-stream", "core:dbo-sync",
     "core:dbo-maintenance", "core:dbo-terminology", "core:dbo-definitions",
+    "core:dbo-fhir-index",
     "core:dbo-subscriptions", "core:dbo-rest",
     "core:dbo-scim", "core:dbo-telemetry", "core:dbo-telemetry-otlp", "core:dbo-promises",
     "core:dbo-tenant", "core:dbo-tenant-k8s", "core:dbo-fhir-common", "core:dbo-fhir-element",

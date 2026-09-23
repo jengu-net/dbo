@@ -184,7 +184,10 @@ public final class FhirHttpServer implements AutoCloseable {
         } catch (UnknownSearchParameterException e) {
             respond(exchange, 400, store.operationOutcome("invalid", e.getMessage()));
         } catch (ValidationFailedException e) {
-            respond(exchange, 422, store.operationOutcome("invalid", String.join("; ", e.issues())));
+            // One issue per finding, each naming its element, because a form
+            // that wants to mark the field somebody typed wrong needs the
+            // element and not a sentence containing it.
+            respond(exchange, 422, store.operationOutcome("invalid", e.findings()));
         } catch (cloud.jengu.dbo.fhir.common.ValidationUnavailableException e) {
             // 503, not 422. The resource was never found invalid — validation
             // could not reach a verdict, and answering "invalid" would tell a

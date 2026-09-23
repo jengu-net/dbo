@@ -133,6 +133,44 @@ final class ElementOutcomes {
                 + quoted(issueCode) + ",\"diagnostics\":" + quoted(diagnostics) + "}]}";
     }
 
+    /**
+     * One issue per finding, each naming the element it is about.
+     *
+     * <p>{@code OperationOutcome.issue} is an array and carries {@code
+     * expression} — a FHIRPath to what is wrong — which is what a form binds
+     * to in order to mark the field somebody typed wrong. This store knew the
+     * path all along and joined its findings into one sentence with
+     * semicolons, so every client had to parse them back out, and the ones
+     * that did not simply showed the sentence.
+     *
+     * <p>A finding with no path still gets an issue, without an expression: a
+     * parse failure or a whole-document rule is about the document, and
+     * inventing an element for it would point a form at the wrong field,
+     * which is worse than pointing at none.
+     */
+    static String outcome(String issueCode, java.util.List<
+            cloud.jengu.dbo.fhir.common.Finding> findings) {
+        if (findings.isEmpty()) {
+            return outcome(issueCode, "the write was refused and nothing said why");
+        }
+        StringBuilder out = new StringBuilder(128)
+                .append("{\"resourceType\":\"OperationOutcome\",\"issue\":[");
+        for (int i = 0; i < findings.size(); i++) {
+            cloud.jengu.dbo.fhir.common.Finding finding = findings.get(i);
+            if (i > 0) {
+                out.append(',');
+            }
+            out.append("{\"severity\":").append(quoted(finding.severity()))
+                    .append(",\"code\":").append(quoted(issueCode))
+                    .append(",\"diagnostics\":").append(quoted(finding.detail()));
+            if (finding.path() != null) {
+                out.append(",\"expression\":[").append(quoted(finding.path())).append(']');
+            }
+            out.append('}');
+        }
+        return out.append("]}").toString();
+    }
+
     static String quoted(String s) {
         if (s == null) {
             return "null";

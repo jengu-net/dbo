@@ -54,6 +54,8 @@ public final class FaceFunctions {
             "/sql/008-bindings.sql",
             "/sql/009-references.sql",
             "/sql/010-invariants.sql",
+            // before the union that calls it
+            "/sql/013-unknown.sql",
             "/sql/011-validate.sql",
             // the index, built from the parameters compiled beside the elements
             "/sql/012-envelope.sql");

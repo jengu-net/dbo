@@ -22,7 +22,28 @@ import java.util.Set;
 public record FhirTypeConfig(String typeName, IdentityClass identityClass,
                              Set<String> identitySystems, Handling handling,
                              Extraction extraction, Definition definition,
-                             Verdict verdict) {
+                             Verdict verdict, Unknown unknown) {
+
+    /** Defaulting the newest component, so every existing spelling still reads. */
+    public FhirTypeConfig(String typeName, IdentityClass identityClass,
+            Set<String> identitySystems, Handling handling, Extraction extraction,
+            Definition definition, Verdict verdict) {
+        this(typeName, identityClass, identitySystems, handling, extraction, definition,
+                verdict, Unknown.REFUSED);
+    }
+
+    /**
+     * The same type, told to keep what it cannot read.
+     *
+     * <p>Named rather than passed as a flag, for the reason every other
+     * declaration here is: a boolean at a call site says nothing about which
+     * way is which, and this one decides whether a document somebody sent is
+     * stored or refused.
+     */
+    public FhirTypeConfig keepingWhatItCannotRead() {
+        return new FhirTypeConfig(typeName, identityClass, identitySystems, handling,
+                extraction, definition, verdict, Unknown.KEPT);
+    }
 
     /** Whether the face has a definition for this type. */
     public enum Definition {
@@ -72,12 +93,65 @@ public record FhirTypeConfig(String typeName, IdentityClass identityClass,
          * measured, except on cardinality, where the specification says it is
          * right and the toolchain says nothing at all.
          *
-         * <p>The toolchain is still asked while this is declared, and its
-         * answer is still counted. Only the decision moves. Not asking it is
-         * what finally lets the loaded specification go, and that is a
-         * separate step with its own evidence to gather.
+         * <p>The toolchain is NOT asked where this is declared and the tenant
+         * holds the rows to answer with. It was, for as long as the evidence
+         * was being gathered — and gathering it is what made stopping
+         * defensible: over 258 published definitions the two agree except for
+         * five, and the database refused nothing the toolchain accepted in any
+         * of them. The last thing that stopped this was a refusal the
+         * measurement could not see going missing, because no document in that
+         * corpus carries an element the face does not define; the database
+         * answers that now.
+         *
+         * <p>Where it cannot answer — no rows held, no canonical known — the
+         * toolchain runs exactly as before. A declaration is not a reason to
+         * stop checking.
          */
         THE_DATABASE
+    }
+
+    /**
+     * What a write does with an element this type's definition does not
+     * declare.
+     *
+     * <p>Not expressible by authoring definitions, which is why it is here. A
+     * tenant's own profiles are offered on top of the face's, but a canonical
+     * under {@code http://hl7.org/fhir/} is skipped — so the specification's
+     * own definitions cannot be replaced — and a FHIR profile only ever
+     * constrains: there is no construct for permitting an element the base
+     * resource does not define. The refusal comes from the parser, before any
+     * profile is consulted.
+     *
+     * <p>Extra <b>data</b> already has a sanctioned home and needs no
+     * declaration: FHIR carries what a resource does not define in {@code
+     * extension}. What this is about is an element that is not one — a typo, a
+     * sender's private dialect, a document written for a later version.
+     */
+    public enum Unknown {
+
+        /**
+         * The write is refused, naming the element. The ordinary answer, and
+         * what this store has always done.
+         *
+         * <p>The reason is the one it gives for an unrecognised search
+         * parameter: a caller who believed a filter applied would act on a
+         * wider answer than they asked for, and an element kept but never
+         * validated, never searchable, is handed to the next reader as though
+         * it were part of the record.
+         */
+        REFUSED,
+
+        /**
+         * Kept as it arrived, and said out loud once per type.
+         *
+         * <p>For the tenant taking a dialect from a sender it cannot change.
+         * What it buys is the document; what it costs is that the element is
+         * stored, returned, and answerable by nothing — not searched, not
+         * validated, not converted. Declared per type rather than for a face,
+         * because a tenant that tolerates a dialect in one feed has no reason
+         * to tolerate one everywhere.
+         */
+        KEPT
     }
 
     /** Where this type's envelope, claims and edges are computed. */
@@ -115,13 +189,13 @@ public record FhirTypeConfig(String typeName, IdentityClass identityClass,
     /** The same type, which this face has no definition for. */
     public FhirTypeConfig withoutADefinition() {
         return new FhirTypeConfig(typeName, identityClass, identitySystems, handling,
-                extraction, Definition.NONE, verdict);
+                extraction, Definition.NONE, verdict, unknown);
     }
 
     /** The same type, computed in the database instead of here. */
     public FhirTypeConfig inTheDatabase() {
         return new FhirTypeConfig(typeName, identityClass, identitySystems, handling,
-                Extraction.IN_THE_DATABASE, definition, verdict);
+                Extraction.IN_THE_DATABASE, definition, verdict, unknown);
     }
 
     public static FhirTypeConfig identifier(String typeName, String... systems) {
@@ -155,12 +229,12 @@ public record FhirTypeConfig(String typeName, IdentityClass identityClass,
      */
     public FhirTypeConfig handledAs(Handling replacement) {
         return new FhirTypeConfig(typeName, identityClass, identitySystems, replacement,
-                extraction, definition, verdict);
+                extraction, definition, verdict, unknown);
     }
 
     /** The same type, decided by the database rather than by the toolchain. */
     public FhirTypeConfig decidedByTheDatabase() {
         return new FhirTypeConfig(typeName, identityClass, identitySystems, handling,
-                extraction, definition, Verdict.THE_DATABASE);
+                extraction, definition, Verdict.THE_DATABASE, unknown);
     }
 }

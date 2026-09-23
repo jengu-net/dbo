@@ -32,10 +32,10 @@
 # happens to have reclaimed — and recording a low reading makes
 # the next ordinary run fail. So after re-recording, check the
 # numbers against a second run and keep the larger.
-oneServedTenantBeforeAnyWrite 225
-theFirstValidatedWrite 0
-theRestOfTheValidatorPool 36
+oneServedTenantBeforeAnyWrite 226
+theFirstValidatedWrite 1
+theRestOfTheValidatorPool 30
 aSecondTenantOnTheSameFace 11
 aFaceRootHoldingTheVersionAsRecords 101
 aTenantServingFromTheFaceBase 4
-aSecondFaceServed 444
+aSecondFaceServed 445

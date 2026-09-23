@@ -84,20 +84,47 @@ class EveryProfileATenantHoldsIsInViewTest {
     /** Stands in for the engine with a shelf of profiles, paged as the engine pages. */
     private static final class Holding implements ObjectStore {
         private final List<StoredObject> profiles = new ArrayList<>();
+        /** The canonical each one is held under, which a StoredObject does not carry. */
+        private final java.util.Map<String, String> canonicals = new java.util.HashMap<>();
 
         Holding(List<byte[]> documents) {
             int i = 0;
             for (byte[] document : documents) {
-                profiles.add(new StoredObject("held-" + (++i), "StructureDefinition", 1L, Instant.now(),
+                String id = "held-" + (++i);
+                profiles.add(new StoredObject(id, "StructureDefinition", 1L, Instant.now(),
                         document, false, "4.0", null, null, List.of()));
+                canonicals.put(id, PROFILE + i);
             }
         }
 
         @Override
         public FeedChunk<StoredObject> page(Criteria criteria, String cursor) {
+            // BY TYPE. A shelf that hands back StructureDefinitions when asked
+            // for StructureMaps is not a store, and this one did: the view was
+            // being filled by the read for CONVERTERS, so the profile path
+            // this test exists to hold could return nothing and the test still
+            // passed. It stopped passing the moment the serving view stopped
+            // loading maps, which is how the accident was found.
+            List<StoredObject> of = profiles.stream()
+                    .filter(p -> p.typeName().equals(criteria.typeName())).toList();
             int from = cursor == null ? 0 : Integer.parseInt(cursor);
-            int to = Math.min(profiles.size(), from + criteria.limitValue());
-            return new FeedChunk<>(profiles.subList(from, to), Integer.toString(to), to == profiles.size());
+            int to = Math.min(of.size(), from + criteria.limitValue());
+            return new FeedChunk<>(of.subList(from, to), Integer.toString(to), to == of.size());
+        }
+
+        /** What the view is built from, which is the path under test. */
+        @Override
+        public List<Held> inventory(String typeName, List<String> paths) {
+            List<Held> out = new ArrayList<>();
+            for (StoredObject held : profiles) {
+                if (held.typeName().equals(typeName)) {
+                    out.add(new Held(held.id(), held.versionId(),
+                            List.of(new Identifier(Identifier.CANONICAL_SYSTEM,
+                                    canonicals.get(held.id()))),
+                            java.util.Map.of()));
+                }
+            }
+            return out;
         }
 
         @Override
@@ -134,7 +161,9 @@ class EveryProfileATenantHoldsIsInViewTest {
 
         @Override
         public Optional<StoredObject> get(String typeName, String id) {
-            return Optional.empty();
+            return profiles.stream()
+                    .filter(p -> p.typeName().equals(typeName) && p.id().equals(id))
+                    .findFirst();
         }
 
         @Override
@@ -158,11 +187,6 @@ class EveryProfileATenantHoldsIsInViewTest {
         @Override
         public long count(Criteria criteria) {
             return 0;
-        }
-
-        @Override
-        public List<Held> inventory(String typeName, List<String> paths) {
-            return List.of();
         }
 
         @Override

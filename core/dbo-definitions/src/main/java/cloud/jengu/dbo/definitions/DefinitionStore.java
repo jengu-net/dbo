@@ -500,6 +500,33 @@ public final class DefinitionStore {
     }
 
     /**
+     * The version a definition declares, from the rows it was expanded into.
+     *
+     * <p>What the shape stamp is made of. The toolchain answered it by fetching
+     * the StructureDefinition out of a worker context — a version's whole
+     * corpus held to read one string — and the expansion already recorded it
+     * beside every element.
+     *
+     * @return the version, or null where this tenant holds no rows for that
+     *         canonical or the definition declared none
+     */
+    public String versionOf(String canonical) {
+        try (Connection c = ds.getConnection();
+             PreparedStatement ps = c.prepareStatement(
+                     "SELECT definition_version FROM definitions.definition_element"
+                             + " WHERE canonical = ? AND definition_version IS NOT NULL"
+                             + " LIMIT 1")) {
+            ps.setString(1, canonical);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? rs.getString(1) : null;
+            }
+        } catch (SQLException e) {
+            throw new IllegalStateException(
+                    "reading the version of " + canonical + " failed", e);
+        }
+    }
+
+    /**
      * The canonicals a snapshot is kept for, in one question rather than one
      * each.
      *

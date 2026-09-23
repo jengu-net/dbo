@@ -115,6 +115,87 @@ public final class CarriedDefinitions {
      * are read by an R6-aware loader, and handing them to the wrong one is how
      * a package loads and then means something else.
      */
+    /**
+     * The same definitions, OFFERED rather than parsed.
+     *
+     * <p>{@link #contextFor} parses every resource in every carried package
+     * into a model object at registration, and that is what a face costs: 225
+     * MB for content that is tens of megabytes of JSON, because a definition's
+     * path becomes a String inside a StringType inside an ElementDefinition.
+     * Held as records and offered by name, the same face costs 101.
+     *
+     * <p>So this offers the carried ones the same way. A package's index names
+     * every resource in it; what is read before anything asks is three fields
+     * out of each file — its type, its canonical, and for a structure its
+     * derivation — and the file is closed again. The bytes are parsed when the
+     * toolchain reaches for that definition and not before.
+     *
+     * <p><b>Two things that bite, and both are learned rather than guessed.</b>
+     * A structure is offered WITHOUT its version, because a version on the
+     * offer sends the toolchain looking through every extension of the core at
+     * registration. And nothing resolves from inside a load, because a load
+     * runs under an empty cache entry and a definition whose snapshot needs
+     * its base would re-enter it without end. Both are the reasons
+     * {@link FaceBase.Proxy} is shaped as it is.
+     */
+    public static SimpleWorkerContext offeredFor(String fhirVersion) {
+        try {
+            FaceBase.Rows context = new FaceBase.Rows(fhirVersion);
+            java.util.Map<String, String> fileOf = new java.util.HashMap<>();
+            java.util.Set<String> seen = new java.util.HashSet<>();
+            for (Carried carried : definitionPackages(fhirVersion)) {
+                for (NpmPackage.PackageResourceInformation indexed
+                        : indexed(carried, OFFERED_TYPES)) {
+                    String type;
+                    String url;
+                    String version;
+                    String derivation;
+                    try (java.io.InputStream in = read(indexed)) {
+                        org.hl7.fhir.utilities.json.model.JsonObject json =
+                                org.hl7.fhir.utilities.json.parser.JsonParser.parseObject(in);
+                        type = json.asString("resourceType");
+                        url = json.asString("url");
+                        version = json.asString("version");
+                        derivation = json.asString("derivation");
+                    }
+                    if (type == null || url == null || !seen.add(type + "|" + url)) {
+                        continue;
+                    }
+                    fileOf.put(type + "|" + url, indexed.getFilename());
+                    context.register(new FaceBase.Proxy(type, url, url, version, derivation,
+                            (askedType, askedUrl) -> bytesOf(fileOf, askedType, askedUrl),
+                            context), context.packageInfo);
+                }
+            }
+            return context;
+        } catch (IOException e) {
+            throw new UncheckedIOException(
+                    "cannot offer the definitions carried for " + fhirVersion, e);
+        }
+    }
+
+    /** What the toolchain is offered: the definitional types and nothing else. */
+    private static final String[] OFFERED_TYPES = {
+        "StructureDefinition", "SearchParameter", "ValueSet", "CodeSystem",
+        "ConceptMap", "NamingSystem", "OperationDefinition", "CompartmentDefinition",
+        "StructureMap", "CapabilityStatement",
+    };
+
+    /** One definition's bytes, read when the toolchain finally asks for it. */
+    private static byte[] bytesOf(java.util.Map<String, String> fileOf, String type, String url) {
+        String file = fileOf.get(type + "|" + url);
+        if (file == null) {
+            throw new IllegalStateException(
+                    "offered " + type + " " + url + " and then could not find it");
+        }
+        try (java.io.InputStream in =
+                org.hl7.fhir.utilities.filesystem.ManagedFileAccess.inStream(file)) {
+            return in.readAllBytes();
+        } catch (IOException e) {
+            throw new UncheckedIOException("cannot read " + file, e);
+        }
+    }
+
     public static SimpleWorkerContext contextFor(String fhirVersion) {
         // The terminology packages are carried but NOT loaded: 40-50% of this
         // build was parsing them into heap, and the concepts they carry are

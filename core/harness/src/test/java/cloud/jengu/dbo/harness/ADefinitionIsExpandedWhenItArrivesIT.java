@@ -210,6 +210,44 @@ class ADefinitionIsExpandedWhenItArrivesIT {
     }
 
     @Test
+    @DisplayName("an element the profile does not declare is found, and one inside a datatype "
+            + "nothing constrains is not accused")
+    @Proving(DboPromises.VAL_TIER_ONE_IS_ANSWERED_IN_THE_DATABASE)
+    void anUndefinedElementIsFoundWhereTheRowsReach() throws Exception {
+        // On the ROOT, which is where the version's own Patient is expanded.
+        //
+        // The gap this closes. Every other check asks whether what is here is
+        // allowed; the walk reaches a key by an element's steps, so a key
+        // nothing names is never reached, every check sees a clean document,
+        // and a typo is stored as though somebody meant it. The toolchain
+        // refuses these from the PARSER, and until this existed that refusal
+        // was what a tenant gave up by declaring verdict: database.
+        assertEquals(List.of("Patient.favouriteColour"), query(
+                "SELECT path FROM dbo.unknown_issues(?::jsonb, ?) ORDER BY path",
+                "{\"resourceType\":\"Patient\",\"favouriteColour\":\"blue\"}", PATIENT),
+                "an element no row declares was not found");
+
+        // And the silence that makes it safe. A datatype's insides are only in
+        // the rows where a profile constrains them, so an element with no
+        // children rows describes nothing — accusing its keys would refuse
+        // every unconstrained Identifier, Coding and HumanName in the corpus.
+        assertEquals(List.of(), query(
+                "SELECT path FROM dbo.unknown_issues(?::jsonb, ?) ORDER BY path",
+                "{\"resourceType\":\"Patient\",\"identifier\":[{\"system\":\"urn:x\","
+                        + "\"value\":\"1\",\"period\":{\"start\":\"2026\"}}]}", PATIENT),
+                "a key inside a datatype the profile does not constrain was refused, which "
+                        + "would refuse most correct documents");
+
+        // What every resource carries and no element declares, and a
+        // primitive's extensions, which ride beside it under an underscore.
+        assertEquals(List.of(), query(
+                "SELECT path FROM dbo.unknown_issues(?::jsonb, ?) ORDER BY path",
+                "{\"resourceType\":\"Patient\",\"birthDate\":\"1980-01-01\","
+                        + "\"_birthDate\":{\"id\":\"x\"}}", PATIENT),
+                "resourceType or a primitive's own extension was reported as undeclared");
+    }
+
+    @Test
     @DisplayName("the snapshot a differential was expanded from is kept, so nothing generates "
             + "it a second time")
     @Proving(DboPromises.TEN_A_TENANT_COMES_UP_FROM_THE_FACE_IMAGE)

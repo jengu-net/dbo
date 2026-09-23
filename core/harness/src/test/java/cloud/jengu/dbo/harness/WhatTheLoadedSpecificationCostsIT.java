@@ -154,8 +154,16 @@ class WhatTheLoadedSpecificationCostsIT {
         // another tenant costs; this measures what another VERSION costs, and
         // a deployment serving three faces pays it twice over before a tenant
         // exists. The target is that it stops being a number at all.
+        long buildsBeforeTheSecondFace = ElementVersion.contextBuilds();
         serveOn("malu-teine-nagu", "r5");
         long aSecondFace = heapInUse();
+        // Where the 444 is actually paid, said as a count rather than
+        // inferred from a size. A face's carried context is the 225; if
+        // serving the first tenant on a new face builds one, that is the
+        // whole of the number, and no declaration this tenant could make
+        // would avoid it while it is the thing that loads the definitions.
+        secondFaceBuilds = ElementVersion.contextBuilds() - buildsBeforeTheSecondFace;
+
 
         Map<String, Long> now = new LinkedHashMap<>();
         // Deltas only, and the absolute floor deliberately not among them.
@@ -195,6 +203,72 @@ class WhatTheLoadedSpecificationCostsIT {
                         + "-Ddbo.memory.record=true once somebody has said why:" + moved
                         + System.lineSeparator() + rendered);
     }
+
+    /**
+     * What a tenant costs is a size and it wanders; what a context costs is a
+     * decision and it does not.
+     *
+     * <p>Every figure above is a delta across a forced collection on a warm
+     * JVM, and they move a few per cent between runs of unchanged code — the
+     * validator pool has read 21 and 36 on the same commit. That is fine for
+     * "did this get much worse" and useless for "does this path build a
+     * context", which is the question the work to take the toolchain off the
+     * serving path is actually asking.
+     *
+     * <p><b>And a size could not answer it anyway.</b> A context is one per
+     * version per process: {@code ElementVersion.BY_CODE} is a static map and
+     * a face base is one worker context per face and process. So the moment
+     * any tenant in this JVM touches a path that needs one, the corpus is
+     * resident for every tenant in it, and a per-tenant delta measured
+     * afterwards shows nothing however well the tenant behaves. The unit of
+     * saving is the process, not the tenant — which is why a scenario that
+     * served one well-declared tenant among six others read the same before
+     * and after the write path stopped parsing, and was deleted rather than
+     * kept as evidence.
+     *
+     * <p>So this counts instead. It is deterministic, it cannot drift, and it
+     * fails the day somebody puts a parse back on a path that had stopped
+     * needing one.
+     */
+    @Test
+    @Proving(DboPromises.TEN_A_TENANT_COMES_UP_FROM_THE_FACE_IMAGE)
+    @DisplayName("a face's context is built once for the whole process, however many tenants "
+            + "serve on it")
+    void oneContextPerFaceHoweverManyTenants() {
+        // Both faces have served several tenants by now: three on r4, one
+        // holding the version as records, one taking it from that root, and
+        // one on r5. If a context were per tenant rather than per face, this
+        // would be six.
+        assertTrue(ElementVersion.contextBuilds() <= 2,
+                "a context was built more than once per face, so the sharing that makes a "
+                        + "second tenant cost 11 MB rather than 226 has stopped holding: "
+                        + ElementVersion.contextBuilds() + " builds for 2 faces");
+
+        assertTrue(ElementVersion.baseBuilds() <= 2,
+                "a face base was built more than once per face: "
+                        + ElementVersion.baseBuilds());
+    }
+
+    /**
+     * Where a new face's cost is paid, counted.
+     *
+     * <p>`aSecondFaceServed` is 444 MB and the item that chases it needs to
+     * know whether that is one carried context or an accumulation of smaller
+     * things, because the two want opposite work. Counted here so the answer
+     * is a fact rather than an inference from a size.
+     */
+    @Test
+    @Proving(DboPromises.TEN_A_TENANT_COMES_UP_FROM_THE_FACE_IMAGE)
+    @DisplayName("what a new face costs is one carried context, and serving its first tenant "
+            + "is what builds it")
+    void aNewFaceCostsOneCarriedContext() {
+        assertTrue(secondFaceBuilds == 1,
+                "serving the first tenant on a face that nothing had touched did not build "
+                        + "exactly one carried context, so what the 444 MB is made of is not "
+                        + "what this item has been assuming: " + secondFaceBuilds);
+    }
+
+    private static long secondFaceBuilds;
 
     private void serve(String code) throws Exception {
         Files.writeString(dir.resolve(code + ".json"), """

@@ -291,13 +291,36 @@ public final class ElementStore implements FhirStoreFacade,
         if (undefined != null) {
             return new Accepted(undefined, payload, java.util.List.of());
         }
-        Object document = payloads().read(null, payload);
-        String type = payloads().typeOf(document);
         ElementReferences.Resolver resolver = first == null ? this::identified
                 : (typeName, query) -> {
                     java.util.Optional<String> inBundle = first.resolve(typeName, query);
                     return inBundle.isPresent() ? inBundle : identified(typeName, query);
                 };
+        // The write path without the element model, for the tenant that has
+        // declared its way out of it.
+        //
+        // Parsing a document into an Element is the last thing here that needs
+        // a worker context, and a worker context is a version's whole
+        // definition corpus. Everything else the parse fed turned out to be a
+        // reading — the type, the claimed profiles, the engine's own stamp —
+        // and the one piece of work was answering a reference that is a
+        // question, which JsonReferences does over the bytes.
+        //
+        // Taken only where the database has ACTUALLY answered, never merely
+        // where a type asked it to: if this tenant holds no rows for the type,
+        // theDatabaseAlone is empty and the toolchain path runs exactly as it
+        // did. A declaration is not a reason to stop checking.
+        String saysItIs = typeInBytes(payload);
+        if (saysItIs != null && extractedByTheDatabase(saysItIs)) {
+            byte[] answered = JsonReferences.resolve(payload, resolver);
+            java.util.Optional<List<String>> alone = theDatabaseAlone(saysItIs, answered);
+            if (alone.isPresent()) {
+                return withoutParsing(saysItIs, answered, alone.get());
+            }
+            payload = answered;
+        }
+        Object document = payloads().read(null, payload);
+        String type = payloads().typeOf(document);
         // A reference that is a question is answered HERE, in the tree that
         // was already read. Re-reading would be a second read of one
         // payload, and keeping the original bytes would store a document the
@@ -334,7 +357,49 @@ public final class ElementStore implements FhirStoreFacade,
         // A finding rather than a throw, so somebody else's publication is
         // held-and-warned like any other imperfect arrival while an authored
         // write refuses.
-        List<String> issues = payloads().validate(type, document);
+        // Asked BEFORE the toolchain, because asking after is what kept the
+        // toolchain running. A declared verdict used to move only which answer
+        // was believed while both were still taken — so InstanceValidator, and
+        // the version's definitions it reads from, stayed resident for a
+        // measurement nobody acted on.
+        //
+        // What made this safe to do was the check that arrived beside it. Over
+        // 258 published definitions the two agree except for five documents,
+        // the database refusing nothing the toolchain accepted in any of them
+        // — but the corpus carries no document with an element the face does
+        // not define, so that refusal was one the measurement could never have
+        // seen going missing. dbo.unknown_in answers it now, and the baseline
+        // confirms it accuses nothing in 258 correct documents.
+        java.util.Optional<List<String>> alone = theDatabaseAlone(type, payload);
+        List<String> issues;
+        if (alone.isPresent()) {
+            issues = new ArrayList<>(alone.get());
+        } else {
+            issues = new ArrayList<>(payloads().validate(type, document));
+        }
+        // What a type told to keep what it cannot read does with it.
+        //
+        // Subtracted from the same producer's own list rather than matched on
+        // the words, so a reworded sentence cannot quietly change which
+        // findings are dropped. Said once per type: silence would read as a
+        // document that arrived clean, and what this tenant has accepted is a
+        // document carrying an element nothing here can search, validate or
+        // convert — which is a thing to know about a feed, not a thing to
+        // discover from a reader.
+        if (keepsWhatItCannotRead(type)) {
+            List<String> unknown = alone.isPresent()
+                    ? unknownSaidByTheDatabase(type, payload)
+                    : (document instanceof org.hl7.fhir.r5.elementmodel.Element parsed
+                            ? ElementPayloads.unknownElementsIn(parsed) : List.of());
+            if (!unknown.isEmpty()) {
+                issues.removeAll(unknown);
+                if (keptUnknown.add(type)) {
+                    LOG.info("a {} arrived carrying {} element(s) this face does not define, "
+                            + "and this type is declared to keep them: they are stored, "
+                            + "returned, and answerable by nothing", type, unknown.size());
+                }
+            }
+        }
         // The ordering rule's own door (REQ-DBO-SHAPE-UNPARSEABLE-VERSION-
         // REFUSED): dbo's pack is data, so "refused at pack load" means
         // refused HERE, when a shape arrives. A version whose leading
@@ -380,7 +445,12 @@ public final class ElementStore implements FhirStoreFacade,
                 issues = alsoWhatWillNotCompile(parameter, expression, issues);
             }
         }
-        takenBesideTheToolchain(type, payload, issues);
+        // Only where both answered. A type the database decided alone has no
+        // second answer to compare against, and counting it as agreement
+        // would be the tally reporting its own silence as a result.
+        if (alone.isEmpty()) {
+            takenBesideTheToolchain(type, payload, issues);
+        }
         // Whose answer decides, where the tenant has said. The comparison
         // above still runs and is still counted: what a declared verdict
         // moves is the decision, not the measurement, so a tenant that
@@ -388,7 +458,10 @@ public final class ElementStore implements FhirStoreFacade,
         // and would see a divergence appear rather than infer one from
         // traffic. Letting the loaded specification go is a further step,
         // and it is the one that stops asking the toolchain at all.
-        issues = whoDecides(type, payload, issues);
+        // Asked above, before the toolchain ran. What is left here is the
+        // types that did not declare it, whose answer is the toolchain's and
+        // always was.
+
         if (!issues.isEmpty()) {
             if (!authoredElsewhere(type)) {
                 throw new ValidationFailedException(type, issues);
@@ -1057,6 +1130,18 @@ public final class ElementStore implements FhirStoreFacade,
                 || !("StructureDefinition".equals(typeName) || "StructureMap".equals(typeName))) {
             return;
         }
+        // And not at all where nothing would read it.
+        //
+        // The point of building eagerly is to say NOW that a profile is
+        // broken, rather than on somebody's write. Where every type this
+        // tenant declares is judged and extracted by the database, no write
+        // will ever consult this view — so building it says nothing anybody
+        // was going to be told, and builds a version's whole definition
+        // corpus to say it.
+        if (nothingHereReadsTheView()) {
+            payloads = null;
+            return;
+        }
         try {
             payloads = null;
             payloads(); // built now, so a broken profile is said now rather than on somebody's write
@@ -1133,34 +1218,38 @@ public final class ElementStore implements FhirStoreFacade,
     }
 
     /**
-     * The findings that decide this write.
+     * Whether the database alone may judge this write, asked BEFORE the
+     * toolchain is run.
      *
-     * <p>The toolchain's, unless the type says otherwise. Where it does, the
-     * database's own sentences refuse it — path, rule and detail — because a
-     * writer told that something is wrong and not what can only send it
-     * again.
+     * <p>The order is the whole of it. A declared verdict used to move which
+     * answer was believed while both were still taken, so the validator — and
+     * the version's definitions it reads from — stayed resident for a
+     * measurement nobody acted on. Asking first means a type that has said the
+     * database decides, and whose definitions this tenant actually holds, is
+     * judged without the toolchain being run at all.
      *
-     * <p>A type declared this way whose definition this tenant does not hold
-     * keeps the toolchain's answer rather than being accepted by silence.
-     * Nothing to judge against is not the same as nothing wrong, and a
-     * declaration is not a reason to stop checking.
+     * <p>Empty when the database cannot answer: the type has not declared it,
+     * this store keeps no definitions, the canonical is unknown here, or no
+     * rows are held for it. Then the toolchain runs exactly as before — a
+     * declaration is not a reason to stop checking, and nothing to judge
+     * against is not the same as nothing wrong.
      */
-    private List<String> whoDecides(String type, byte[] payload, List<String> toolchain) {
+    private java.util.Optional<List<String>> theDatabaseAlone(String type, byte[] payload) {
         FhirTypeConfig declared = types.stream()
                 .filter(t -> t.typeName().equals(type)).findFirst().orElse(null);
         if (declared == null
                 || declared.verdict() != FhirTypeConfig.Verdict.THE_DATABASE
                 || definitions == null) {
-            return toolchain;
+            return java.util.Optional.empty();
         }
         java.util.Optional<String> canonical = definitions.theTypeItself(type);
         if (canonical.isEmpty()) {
-            return toolchain;
+            return java.util.Optional.empty();
         }
         java.util.Optional<List<cloud.jengu.dbo.definitions.DefinitionStore.Finding>> found =
                 definitions.findingsUnder(payload, canonical.get());
         if (found.isEmpty()) {
-            return toolchain;
+            return java.util.Optional.empty();
         }
         List<String> refusing = new ArrayList<>();
         for (var finding : found.get()) {
@@ -1168,8 +1257,145 @@ public final class ElementStore implements FhirStoreFacade,
                 refusing.add(finding.says());
             }
         }
-        return refusing;
+        return java.util.Optional.of(refusing);
     }
+
+    /**
+     * The sentences the database's own unknown-element check produced for this
+     * document, so a type told to keep them subtracts these rather than
+     * matching on their words.
+     *
+     * <p>The mirror of {@link ElementPayloads#unknownElementsIn}, for the path
+     * where the database answered alone. Same rule, two answerers, and neither
+     * of them is read by its prose.
+     */
+    private List<String> unknownSaidByTheDatabase(String type, byte[] payload) {
+        if (definitions == null) {
+            return List.of();
+        }
+        java.util.Optional<String> canonical = definitions.theTypeItself(type);
+        if (canonical.isEmpty()) {
+            return List.of();
+        }
+        java.util.Optional<List<cloud.jengu.dbo.definitions.DefinitionStore.Finding>> found =
+                definitions.findingsUnder(payload, canonical.get());
+        if (found.isEmpty()) {
+            return List.of();
+        }
+        List<String> said = new ArrayList<>();
+        for (var finding : found.get()) {
+            if ("unknown".equals(finding.key()) && finding.refuses()) {
+                said.add(finding.says());
+            }
+        }
+        return said;
+    }
+
+    /**
+     * The type a document declares, read from its bytes.
+     *
+     * <p>The same reader {@link #undefinedTypeOf} uses, which needs no context
+     * — it is a JSON object with a {@code resourceType} in it, and asking the
+     * element model was only ever convenient.
+     */
+    private String typeInBytes(byte[] payload) {
+        try {
+            return org.hl7.fhir.utilities.json.parser.JsonParser
+                    .parseObject(new java.io.ByteArrayInputStream(payload))
+                    .asString("resourceType");
+        } catch (Exception notEvenJson) {
+            return null;
+        }
+    }
+
+    /** Whether this type's envelope is computed where the bytes are. */
+    private boolean extractedByTheDatabase(String typeName) {
+        return types.stream().filter(t -> t.typeName().equals(typeName)).findFirst()
+                .map(t -> t.extraction() == FhirTypeConfig.Extraction.IN_THE_DATABASE)
+                .orElse(false);
+    }
+
+    /**
+     * A write finished without the document ever becoming an Element.
+     *
+     * <p>What is left after the parse goes: the findings the database gave,
+     * whatever this type was told to keep, and the shape stamps — which the
+     * toolchain answered by fetching a StructureDefinition out of the corpus
+     * to read one string, and the expansion recorded beside every element.
+     */
+    private Accepted withoutParsing(String type, byte[] payload, List<String> found) {
+        List<String> issues = new ArrayList<>(found);
+        if (keepsWhatItCannotRead(type)) {
+            List<String> unknown = unknownSaidByTheDatabase(type, payload);
+            if (!unknown.isEmpty()) {
+                issues.removeAll(unknown);
+                if (keptUnknown.add(type)) {
+                    LOG.info("a {} arrived carrying {} element(s) this face does not define, "
+                            + "and this type is declared to keep them: they are stored, "
+                            + "returned, and answerable by nothing", type, unknown.size());
+                }
+            }
+        }
+        if (!issues.isEmpty()) {
+            if (!authoredElsewhere(type)) {
+                throw new ValidationFailedException(type, issues);
+            }
+            LOG.warn("accepted with findings: type={} findings={} first={}",
+                    type, issues.size(), issues.get(0));
+        }
+        return new Accepted(type, payload, stampsFromTheRows(payload));
+    }
+
+    /**
+     * The shape stamps for what this document claims, from the rows.
+     *
+     * <p>A stamp is the claimed canonical and the version that canonical
+     * declares. The version used to come from a StructureDefinition fetched
+     * out of the worker context; the expansion wrote it into every element row
+     * of that definition, so it is a lookup rather than a corpus.
+     */
+    private List<String> stampsFromTheRows(byte[] payload) {
+        if (definitions == null) {
+            return List.of();
+        }
+        List<String> stamps = new ArrayList<>();
+        for (String claimed : claimedIn(payload)) {
+            String version = definitions.versionOf(claimed);
+            if (version != null && !version.isBlank()) {
+                stamps.add(claimed + "|" + version);
+            }
+        }
+        return stamps;
+    }
+
+    /**
+     * Whether any type here would still consult the toolchain's view.
+     *
+     * <p>A type judged by the database and extracted in the database never
+     * reaches it: the write is decided from the rows and the envelope is
+     * computed where the bytes are. When every declared type says both, the
+     * view is a quarter of a gigabyte nothing asks a question of.
+     *
+     * <p>Conservative on purpose — one type that has not said both is enough
+     * to keep it, because that type's writes are judged by the toolchain and
+     * a store that could not judge them would accept whatever arrived.
+     */
+    private boolean nothingHereReadsTheView() {
+        return !types.isEmpty() && types.stream().allMatch(t ->
+                t.verdict() == FhirTypeConfig.Verdict.THE_DATABASE
+                        && t.extraction() == FhirTypeConfig.Extraction.IN_THE_DATABASE);
+    }
+
+    /** Whether this type was told to hold an element its definition does not declare. */
+    private boolean keepsWhatItCannotRead(String type) {
+        return types.stream().filter(t -> t.typeName().equals(type)).findFirst()
+                .map(t -> t.unknown() == FhirTypeConfig.Unknown.KEPT)
+                .orElse(false);
+    }
+
+    /** Types already said about, so the saying is once and not per document. */
+    private final java.util.Set<String> keptUnknown =
+            java.util.concurrent.ConcurrentHashMap.newKeySet();
 
     /** The profiles a document claims, as written. */
     private static List<String> claimedIn(byte[] payload) {
@@ -1586,7 +1812,12 @@ public final class ElementStore implements FhirStoreFacade,
             // what it used to say, and a view given that validates against a
             // definition the tenant no longer holds — which is how a write
             // its own stamp should have refused came back accepted.
-            byte[] kept = canonical == null
+            // A store can be built without a definition store at all — the
+            // constructor above leaves it null — and then there are no kept
+            // snapshots to ask about, only what the store holds. Guarded
+            // here for the same reason expandDefinitionsHeld guards: a
+            // caller with no tenant database is a shape of caller.
+            byte[] kept = canonical == null || definitions == null
                     ? null : definitions.snapshotOf(canonical, held.versionId());
             if (kept != null) {
                 forTheView.add(new String(kept, StandardCharsets.UTF_8));
@@ -1926,6 +2157,12 @@ public final class ElementStore implements FhirStoreFacade,
     @Override
     public String operationOutcome(String issueCode, String diagnostics) {
         return ElementOutcomes.outcome(issueCode, diagnostics);
+    }
+
+    @Override
+    public String operationOutcome(String issueCode,
+            List<cloud.jengu.dbo.fhir.common.Finding> findings) {
+        return ElementOutcomes.outcome(issueCode, findings);
     }
 
     @Override

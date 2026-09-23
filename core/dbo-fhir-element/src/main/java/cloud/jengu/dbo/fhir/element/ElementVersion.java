@@ -139,8 +139,28 @@ public final class ElementVersion {
      * somebody else's server does — on a store's accept path, where the answer
      * has to be the store's own (REQ-DBO-TERM-EVERY-TENANT-ANSWERS).
      */
+    /**
+     * Whether a face's carried definitions are offered by name or parsed at
+     * registration.
+     *
+     * <p>Behind a flag while the two are compared, because this is the object
+     * every tenant of a face validates against and the difference is a
+     * quarter of a gigabyte: a face held as records and offered by name costs
+     * 101 MB where the same face parsed from its packages costs 225. Offering
+     * the carried ones the same way is the cheapest thing on item 024's path
+     * and the most load-bearing, which is exactly the combination that wants
+     * one release where both can be run.
+     *
+     * <p>Default off. A flag that changed what every write is judged against
+     * on the day it merged would be the defect this store's own rules are
+     * written against.
+     */
+    private static final boolean OFFERED =
+            Boolean.getBoolean("dbo.definitions.offered");
+
     private static SimpleWorkerContext offline(String code) {
-        SimpleWorkerContext context = CarriedDefinitions.contextFor(code);
+        SimpleWorkerContext context = OFFERED
+                ? CarriedDefinitions.offeredFor(code) : CarriedDefinitions.contextFor(code);
         context.setNoTerminologyServer(true);
         context.setCanRunWithoutTerminology(true);
         // Expansion needs parameters even when they say nothing. Left unset,

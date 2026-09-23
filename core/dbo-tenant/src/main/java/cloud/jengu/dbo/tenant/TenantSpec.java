@@ -352,6 +352,16 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
             if ("none".equals(definition)) {
                 placed = placed.withoutADefinition();
             }
+            String unknown = Json.strOpt(t, "unknown");
+            if (unknown != null && !"refused".equals(unknown) && !"kept".equals(unknown)) {
+                throw new IllegalArgumentException(code + "/" + name
+                        + ": unknown unknown " + unknown + " — say 'kept' to hold an element "
+                        + "this type's definition does not declare, or leave it out and it "
+                        + "is refused");
+            }
+            if ("kept".equals(unknown)) {
+                placed = placed.keepingWhatItCannotRead();
+            }
             String verdict = Json.strOpt(t, "verdict");
             if (verdict != null && !"database".equals(verdict)
                     && !"toolchain".equals(verdict)) {

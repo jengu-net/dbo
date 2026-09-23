@@ -195,6 +195,12 @@ spec:
                           what it holds.
                         type: string
                         enum: [in-process, database]
+                      # What a write does with an element this type's
+                      # definition does not declare: refused, or kept as it
+                      # arrived and answerable by nothing.
+                      unknown:
+                        type: string
+                        enum: ["refused", "kept"]
                       verdict:
                         description: >-
                           whose answer decides a write of this type. Left out,
