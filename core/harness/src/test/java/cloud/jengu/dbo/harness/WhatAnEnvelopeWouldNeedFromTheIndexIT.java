@@ -210,14 +210,26 @@ class WhatAnEnvelopeWouldNeedFromTheIndexIT {
                         + "nothing on one side and looks like an answer");
     }
 
-    /** The keys a search parameter can produce, so meta keys are not compared. */
-    private static Set<String> parameterKeys() {
-        Set<String> keys = new TreeSet<>();
-        for (DefinitionRows.Parameter one : DefinitionRows.parametersFor(source(), DECLARED)) {
-            keys.add(one.code().replace('-', '_'));
-            keys.add(one.code().replace('-', '_') + "_xct");
+    private static Set<String> parameterKeys;
+
+    /**
+     * The keys a search parameter can produce, so the meta keys the database
+     * adds of its own are not compared.
+     *
+     * <p>Read once. It was being read twice per document, which is four
+     * hundred round trips to answer a question whose answer does not change.
+     */
+    private static synchronized Set<String> parameterKeys() {
+        if (parameterKeys == null) {
+            Set<String> keys = new TreeSet<>();
+            for (DefinitionRows.Parameter one
+                    : DefinitionRows.parametersFor(source(), DECLARED)) {
+                keys.add(one.code().replace('-', '_'));
+                keys.add(one.code().replace('-', '_') + "_xct");
+            }
+            parameterKeys = keys;
         }
-        return keys;
+        return parameterKeys;
     }
 
     private static String theDatabasesEnvelope(byte[] document, String type) {

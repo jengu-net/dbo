@@ -1,0 +1,20 @@
+# The definition packages a serving node still carries, in bytes.
+#
+# GENERATED. Re-record with:
+#     ./gradlew :core:harness:test \
+#         --tests '*WhatAServingNodeCarriesOnlyFalls*' \
+#         -Ddbo.packages.record=true
+#
+# It may fall and may not rise. A node carrying no definition
+# packages cannot populate a worker context, whatever classes it
+# holds, which is item 025's last move and the one that moves the
+# megabytes. Nothing on the serving path has stopped needing them
+# yet — ElementPayloads parses every write into an element model,
+# and that needs a populated context whether or not anything
+# validates — so this is a ceiling rather than the property.
+#
+# When it reaches zero, the ceiling and the property are the same
+# statement.
+#
+dbo.fhir.element 68646067
+total 68646067

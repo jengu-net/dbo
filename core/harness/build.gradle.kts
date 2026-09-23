@@ -220,6 +220,12 @@ tasks.test {
         systemProperty("dbo.divergence.record", it)
     }
     System.getProperty("dbo.divergence.name")?.let { systemProperty("dbo.divergence.name", it) }
+    // And the ceiling on what a serving node still carries in definition
+    // packages, which falls as the serving path stops needing them.
+    System.getProperty("dbo.packages.record")?.let {
+        systemProperty("dbo.packages.record", it)
+    }
+    inputs.file(rootProject.file("config/carried-packages.txt"))
     // And the one that chooses how a face's carried definitions are held:
     // offered by name, or parsed at registration. It decides what every write
     // is judged against, so a run that meant to test one and silently tested

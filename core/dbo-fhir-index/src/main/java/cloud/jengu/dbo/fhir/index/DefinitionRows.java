@@ -96,6 +96,121 @@ public final class DefinitionRows {
     }
 
     /**
+     * What a dependent needs from this upstream, as a set of names.
+     *
+     * <p><b>A filter is not a predicate that travels.</b> It is a set of
+     * names, computed once, agreed between the two ends: the dependent says
+     * which types it operates on, the upstream answers with the canonicals,
+     * and the upstream then selects by name rather than executing anybody
+     * else's query. Computed HERE and not there because a tenant cannot
+     * compute the closure of definitions it does not hold — which is the
+     * whole reason this is derivable rather than written.
+     *
+     * <p><b>It closes over grains, not records.</b> Terminology's grain is a
+     * code system together with the value sets that draw on it, and that is a
+     * promise this store already keeps. A manifest naming half a grain would
+     * produce a stream that breaks on arrival, so the grain is closed here,
+     * where the manifest is computed, rather than discovered there.
+     *
+     * @param structures the definitional closure of the declared types
+     * @param valueSets  every value set a required binding in that closure
+     *                   names, and every one that draws on a code system
+     *                   those name
+     * @param codeSystems the systems those value sets are built from
+     */
+    public record Manifest(Set<String> structures, Set<String> valueSets,
+            Set<String> codeSystems) {
+
+        /** How many names the dependent would be sent. */
+        public int size() {
+            return structures.size() + valueSets.size() + codeSystems.size();
+        }
+    }
+
+    /** The manifest for a dependent that declares these types. */
+    public static Manifest manifestFor(DataSource ds, Collection<String> declared) {
+        Set<String> structures = closureOf(ds, declared);
+        Set<String> valueSets = new LinkedHashSet<>();
+        Set<String> codeSystems = new LinkedHashSet<>();
+        if (structures.isEmpty()) {
+            return new Manifest(structures, valueSets, codeSystems);
+        }
+        try (Connection c = ds.getConnection()) {
+            // Every value set a REQUIRED binding names. A weaker binding is
+            // advice, and advice a dependent cannot answer is not a stream it
+            // needs.
+            try (PreparedStatement ps = c.prepareStatement("""
+                    SELECT DISTINCT split_part(binding_valueset, '|', 1)
+                      FROM definitions.definition_element
+                     WHERE canonical = ANY(?) AND binding_strength = 'required'
+                       AND binding_valueset IS NOT NULL""")) {
+                ps.setArray(1, textArray(c, structures));
+                try (ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) {
+                        valueSets.add(rs.getString(1));
+                    }
+                }
+            }
+            // The grain, closed both ways and to a fixed point: a value set
+            // brings the systems it is built from, and a system brings the
+            // value sets that draw on it.
+            int before;
+            do {
+                before = valueSets.size() + codeSystems.size();
+                codeSystems.addAll(systemsOf(c, valueSets));
+                valueSets.addAll(drawingOn(c, codeSystems));
+            } while (valueSets.size() + codeSystems.size() > before);
+        } catch (SQLException e) {
+            throw new IllegalStateException(
+                    "computing the manifest for " + declared.size() + " declared types failed", e);
+        }
+        return new Manifest(structures, valueSets, codeSystems);
+    }
+
+    private static Set<String> systemsOf(Connection c, Set<String> valueSets)
+            throws SQLException {
+        Set<String> systems = new LinkedHashSet<>();
+        if (valueSets.isEmpty()) {
+            return systems;
+        }
+        try (PreparedStatement ps = c.prepareStatement("""
+                SELECT DISTINCT part ->> 'system'
+                  FROM definitions.term_valueset vs
+                 CROSS JOIN LATERAL jsonb_array_elements(
+                        coalesce(vs.compose -> 'includes', '[]'::jsonb)) AS part
+                 WHERE vs.url = ANY(?) AND part ->> 'system' IS NOT NULL""")) {
+            ps.setArray(1, textArray(c, valueSets));
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    systems.add(rs.getString(1));
+                }
+            }
+        }
+        return systems;
+    }
+
+    private static Set<String> drawingOn(Connection c, Set<String> systems) throws SQLException {
+        Set<String> valueSets = new LinkedHashSet<>();
+        if (systems.isEmpty()) {
+            return valueSets;
+        }
+        try (PreparedStatement ps = c.prepareStatement("""
+                SELECT DISTINCT vs.url
+                  FROM definitions.term_valueset vs
+                 CROSS JOIN LATERAL jsonb_array_elements(
+                        coalesce(vs.compose -> 'includes', '[]'::jsonb)) AS part
+                 WHERE part ->> 'system' = ANY(?)""")) {
+            ps.setArray(1, textArray(c, systems));
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    valueSets.add(rs.getString(1));
+                }
+            }
+        }
+        return valueSets;
+    }
+
+    /**
      * The named structures, as an index.
      *
      * <p>Named rather than all of them: what pays is one index per tenant

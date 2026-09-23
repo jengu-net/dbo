@@ -109,9 +109,32 @@ the slices already needed. Built and compared: **3,156 keys over 200
 documents, nothing declined, no divergence** from `dbo.envelope`. That
 closes the question step 4 said would reverse the decision: the payload path
 can leave the element model, because reading and writing is a JSON problem
-and the envelope is compiled paths run over a tree. Next: step 10, derived
-subscriptions, and step 11 — the ratchet, which is where the megabytes
-finally move.**
+and the envelope is compiled paths run over a tree. **Step 10's derivation
+is built too**: what a tenant needs from a face is the closure of what it
+declared, computed AT THE UPSTREAM because a tenant cannot compute the
+closure of what it does not hold, and closed over grains so that a value set
+brings the systems it is built from and a system brings the value sets that
+draw on it. It could have closed over most of the terminology and does not:
+a dependent of four declared types needs **119 names of the 5,275** a face
+holds, **2.3%**. What it does not yet do is send it — the sync path still
+streams a dependency by type — and that half is what actually shrinks the
+database, the expansion and the image. **And step 11 cannot fire, which is
+this pass's real finding.** The last move is a property — a node carrying no
+definition packages CANNOT populate a context — and its dependency was
+written as steps 7, 8 and 9. That was wrong. All three are done and no
+megabyte has moved, because the property does not depend on those answerers
+existing: it depends on nothing on the serving path BUILDING a context, and
+`ElementPayloads.read` still parses every write into an element model. The
+reach ledger has been saying so by name in every entry this item added to
+it. So the critical path has one dependency nobody wrote down — **a write
+that asks** — and both halves of what such a write needs are already proven
+possible. What is built instead is the ceiling:
+`config/carried-packages.txt` records the **68,646,067 bytes** of definition
+packages a serving node still carries, per bundle, and may only fall; when
+it reaches zero the ceiling and the property are the same statement. Next:
+the write that asks — putting the step 9 reader and envelope where
+`ElementPayloads` is — and wiring step 10's computed filter into the
+dependency.**
 
 # A face toolset of our own
 
@@ -559,8 +582,8 @@ was no way to tell what was next from what was merely undone.
 | 7 | ~~**The rest of a checker** — fixed and pattern values, slicing, required bindings~~ **Done**, all five checks, each held against the database's own. Slicing turned out to be a correctness defect rather than a missing feature | a checker that covers what a tenant's own profiles actually say, rather than what base definitions happen not to | 5, because profiles arrive as rows |
 | 8 | ~~**FHIRPath compiled at the cut**~~ **It already was** — into `definition_invariant.path`, when the definition arrives. What was missing was an answerer that RUNS it: **68.4%** of the compiled paths now run in heap and agree with the database, and the rest are declined rather than guessed at | invariants, which are the largest thing the toolchain still answers alone | 5 |
 | 9 | ~~**The payload path without `elementmodel`**~~ **Done.** The round trip was spiked and holds — 6,532 documents and 86 MB in and out unaltered with no context, and no type knowledge either. The envelope is now built too: **3,156 keys over 200 documents, nothing declined, no divergence** from `dbo.envelope` | the last reason a serving node builds a context at all; it is row one of item 024's foot and belonged in neither item's steps | 5, 7 |
-| 10 | **Derived subscriptions** — the closure as what to replicate, the filter computed rather than declared | the database, the expansion, the image and the index all narrowed from one derivation | 5, and [item 021](../021-asking-the-store/README.md)'s answers, which are written |
-| 11 | **The distribution ratchet**: a serving node carries no definition packages | the 225 MB, 65 MB of jar, and the property that a context cannot be POPULATED rather than merely is not | 7, 8, 9 |
+| 10 | **Derived subscriptions** — the closure as what to replicate, the filter computed rather than declared. **The derivation is built and closes over grains**: a dependent of four declared types needs **119 names of the 5,275** a face holds. Not yet wired into the sync path | the database, the expansion, the image and the index all narrowed from one derivation | 5, and [item 021](../021-asking-the-store/README.md)'s answers, which are written |
+| 11 | **The distribution ratchet**: a serving node carries no definition packages. **Cannot fire yet, and now says so with a number**: the ceiling is recorded and may only fall. Its real dependency was never 7, 8 and 9 existing — it is nothing on the serving path BUILDING a context, and `ElementPayloads` still does | the 225 MB, 65 MB of jar, and the property that a context cannot be POPULATED rather than merely is not | 7, 8, 9 — and, it turns out, a write that asks them |
 
 **Nothing on it is a megabyte until the last one**, which is the same shape
 item 024's path has and for the same reason: an index held beside a context
@@ -1019,6 +1042,110 @@ indexes nothing on both sides rather than on one.
 step 4 said would reverse the decision: the payload path can leave the element
 model. Reading and writing is a JSON problem, and the envelope is compiled
 paths run over a tree — neither needs a populated context.
+
+## Step 10, the derivation and its grain
+
+What a tenant needs from a face is the closure of what it declared, so the
+definitional dependency is derivable rather than written — and a declaration
+derived from another cannot disagree with it. `manifestFor` computes it.
+
+**At the upstream, and that is the point rather than a convenience.** Item
+021 settled that a filter is not a predicate that travels: it is a set of
+names, computed once, agreed between the two ends. The dependent says which
+types it operates on, the upstream answers with the canonicals, the upstream
+then selects by name, and nothing is executed on anybody's behalf. It has to
+be computed where the definitions are, because a tenant cannot compute the
+closure of what it does not yet hold — which is the same fact that makes it
+derivable at all.
+
+**And it closes over grains.** Terminology's grain is a code system together
+with the value sets that draw on it, and a manifest naming half a grain would
+produce a stream that breaks on arrival. So the closure runs to a fixed point
+in both directions: a value set brings the systems it is built from, a system
+brings the value sets that draw on it. The test asks that of the ROWS rather
+than of the code that built the manifest — every system behind a named value
+set is named, and every value set drawing on a named system is named.
+
+**It could have exploded and did not.** A required binding naming a value set
+built over a large shared system would have dragged in every value set drawing
+on that system, and then their systems, and so on; the fixed point could
+plausibly have been most of the terminology. For a dependent of four declared
+types on r4 it is not:
+
+| | | |
+|---|---|---|
+| structures | **41** | of 740 the face holds |
+| value sets | **51** | of 3,263 |
+| code systems | **27** | of 1,272 |
+| the manifest | **119 names** | of 5,275 — **2.3%** |
+
+The reason is that base definitions bind required strength to small, specific
+value sets over small code systems, and few other value sets draw on those.
+That is a fact about how the version is written rather than a property of the
+rule, so it is worth stating as a measurement: a face whose tenants bind
+required strength to a clinical terminology would close over much more, and
+the number to watch is this one.
+
+**What this does not do is send it.** The sync path still streams a dependency
+by type: `ContentDependency` names an upstream and a set of types and carries
+no manifest. Wiring the computed filter into it is the remaining half of this
+step, and it is the half that actually shrinks the database, the expansion and
+the image.
+
+**And one question stays open**, the one item 021 left and this case bites
+hardest on: a tenant narrowing below what its stored documents were validated
+against is to be refused at declaration, not discovered at the next write.
+Nothing here refuses it yet.
+
+## Step 11, which cannot fire, and now says so with a number
+
+The last move is a property rather than a count: a serving node that carries
+no definition packages **cannot** populate a worker context, whatever classes
+it holds, because `SimpleWorkerContext` with nothing to load is a class and
+not a graph.
+
+**Its dependency was written as steps 7, 8 and 9, and that was wrong.** Those
+three are done — the checker answers cardinality, fixed, pattern, slicing and
+required bindings; the rules run; the envelope is built and agrees with the
+database — and not one megabyte has moved, because the property does not
+depend on those answerers EXISTING. It depends on nothing on the serving path
+building a context, and something still does: `ElementPayloads.read` parses
+every write into an `elementmodel.Element`, and that needs a populated context
+whether or not anything validates. `config/reach-ledger.txt` has been saying
+this the whole time, by name, in every entry this item added to it.
+
+So the honest reading of the critical path is that step 11 has one dependency
+nobody wrote down: **a write that asks.**
+
+**What is built instead is the ceiling.** `config/carried-packages.txt`
+records what a serving node still carries in definition packages, per bundle,
+and the ratchet fails if it rises. Seven `.tgz` entries in `dbo-fhir-element`,
+**68,646,067 bytes** — r6 at 36.2 MB, r5 at 17.1, r4 at 4.5, the two
+terminology packages at 10.4 between them, and the tools packages.
+
+A number in a file is worth more here than another paragraph: it falls as the
+serving path stops needing the packages, and when it reaches zero the ceiling
+and the property are the same statement. The test says that about itself, so
+whoever finds it green does not read it as the move being done.
+
+**It also refuses to congratulate anybody by accident.** A run that staged no
+bundles would scan nothing, sum zero and look exactly like the goal reached,
+so an empty scan fails rather than recording a triumph.
+
+## What step 11 is actually waiting for
+
+One thing, and both halves of it are already proven to be possible:
+
+- **Reading and writing a document** without the element model. Spiked at step
+  9: 6,532 documents and 86 MB in and out unaltered, with no context and no
+  type knowledge at all.
+- **The envelope** without the element model. Built at step 9: 3,156 keys over
+  200 documents, nothing declined, no divergence from `dbo.envelope`.
+
+What has not been done is putting those two where `ElementPayloads` is. That
+is one change on the write path rather than a new capability, and it is the
+only thing between a checker nobody asks and a face that costs a few hundred
+kilobytes.
 
 ## What is not known
 
