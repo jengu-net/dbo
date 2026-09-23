@@ -106,6 +106,7 @@ dependencies {
     // The same rows as flat arrays. Not on the serving path yet: what
     // is proven here is that the projection says what the packages say.
     testImplementation(project(":core:dbo-fhir-index"))
+    testImplementation(project(":core:dbo-fhir-validate"))
     testImplementation("org.junit.jupiter:junit-jupiter:5.11.4")
     // Compiled against, not merely present: the suite carries a launcher
     // listener that records what is still in the heap after each class, which
@@ -266,6 +267,7 @@ val ledgerBundles = mapOf(
     "dbo.runner" to "dbo-runner", "dbo.stream" to "dbo-stream", "dbo.sync" to "dbo-sync",
     "dbo.maintenance" to "dbo-maintenance", "dbo.terminology" to "dbo-terminology",
     "dbo.definitions" to "dbo-definitions", "dbo.fhir.index" to "dbo-fhir-index",
+    "dbo.fhir.validate" to "dbo-fhir-validate",
     "dbo.subscriptions" to "dbo-subscriptions", "dbo.rest" to "dbo-rest",
     "dbo.scim" to "dbo-scim", "dbo.telemetry" to "dbo-telemetry",
     "dbo.promises" to "dbo-promises", "dbo.tenant" to "dbo-tenant",
@@ -284,7 +286,7 @@ val reachModules = listOf(
     "core:dbo-core", "core:dbo-postgres", "core:dbo-auth", "core:dbo-pdi", "core:dbo-policy",
     "core:dbo-work", "core:dbo-asking", "core:dbo-runner", "core:dbo-stream", "core:dbo-sync",
     "core:dbo-maintenance", "core:dbo-terminology", "core:dbo-definitions",
-    "core:dbo-fhir-index",
+    "core:dbo-fhir-index", "core:dbo-fhir-validate",
     "core:dbo-subscriptions", "core:dbo-rest",
     "core:dbo-scim", "core:dbo-telemetry", "core:dbo-telemetry-otlp", "core:dbo-promises",
     "core:dbo-tenant", "core:dbo-tenant-k8s", "core:dbo-fhir-common", "core:dbo-fhir-element",

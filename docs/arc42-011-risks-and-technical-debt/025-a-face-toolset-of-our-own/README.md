@@ -1,66 +1,75 @@
-**Open. Six of the twelve moves on the critical path are done and a seventh is
-spiked; four were measurements, the fifth was the decision they were gathered
-for, and the sixth is the first thing built. A face costs 225 MB because of
-the form its definitions are held in, not their size: 92,807 element
-definitions as object graphs, 1.1 million primitive wrappers, one byte array per string. The three
-cheap ways out are closed by measurement — lazy loading is 133 MB worse,
-eviction is impossible because the toolchain discards the reload path at first
-use, and the shape is fixed by a manager that holds model objects. What is left
-is a definition index of our own: flat rows in heap, per tenant, over the
-closure its declared types reach, under a face base the image already carries.
-**A closure is now counted**, and it needed no face root after all — the walk
-reads the carried packages, which is the same claim the index makes. Hogwarts'
-eleven declared types reach 78 of r5's 389 structures and **1,164 of its 16,150
-elements, 7.2%**. The shape of that is the finding: a fixed kernel of 64
-datatype structures, 462 elements, that every resource type reaches, and one to
-three structures per type above it. It is a **per-tenant** win and not a
-per-face one — a face whose tenants between them declared every resource would
-reach 94% of the corpus, so one index shared by a face's tenants would save
-nothing. **And the form is now measured too**: the same 78 structures cost
-**190 KB flat against 5,966 KB as model objects, 31 times**, 167 bytes an
-element against 5,249. A tenant's whole index is 190 KB where a face's context
-is 225 MB, and r5's entire corpus in the flat form is 2.6 MB. The premise is no
-longer a premise. **And something reads it**: a cardinality checker over the
-index faults none of the 6,532 conformance resources the release carries, and
-finds the faults that are there. It answers at every depth, entering a
-backbone where the resource defines it and a datatype's own structure where it
-does not — 276,258 descents over that corpus, five path segments at the
-deepest. **And it has been compared against the answerer that
-currently decides**: on what is missing the two agree exactly, 3 reported and
-the same 3 found over 402 documents, none missed and none added. On what is
-repeated they do not, and the checker is the one that is right — an element
-allowed once and sent twice is dropped by the toolchain in silence, so
-`{"gender":["female","male"]}` is parsed into a Patient with no gender at all
-and accepted. That is a data-loss defect on this store's write path today,
-recorded below and independent of whether any of this is built. **And the
-whole-version figure is now measured rather than extrapolated**: all three
-carried versions held at once are 41,013 elements in **4.3 MB**, 108 bytes
-each, against a recorded 226 MB for one face and 445 for a second — which is
-item 024's criterion answered as a question about the form. **Step 4 is taken: yes, build the three modules** —
-settled by reading the distribution, which corrected the last move and found a
-missing one. The ratchet was aimed at the validator jars and could never have
-fired: `SimpleWorkerContext` ships beside the 1,517 model classes conversion
-needs. It is the definition PACKAGES that have to go, 65 MB of them, and
-conversion and transaction bundles do not block that. The missing move is
-larger: nothing replaced `elementmodel` on the PAYLOAD path, so a finished
-checker still leaves every write parsing through a populated context, and the
-225 MB survives it. That is now step 9, and it was
-spiked immediately because it is what would have reversed the decision.
-**It holds**: 6,532 documents and 86 MB go in and come back unaltered with no
-context and — the surprise — no type knowledge either, since reading and
-writing a document losslessly is a JSON problem and the definitions are for
-checking it. 91.9% of r5's search expressions are plain paths a typed walk
-evaluates; the open 8.1% is a hundred needing `ofType`, `where` or a cast.
-**Step 5 is built**: `core/dbo-fhir-index`, a bundle whose
-Import-Package is the JDK and nothing else, reading the index out of
-`definitions.definition_element` rather than out of a package. Over a face
-root's closure — 44 structures of the 740 it holds rows for, **5.9%** — it
-agrees with the packages **element for element, 750 of them, no divergence**.
-And it corrected the shape: the three modules are two, because the expansion
-that already runs when a definition arrives IS the compiler the design wanted
-to write. Nothing on the serving path reads an index yet and the reach ledger
-says so by name. Next: step 6, the database leg, where the word "third" in
-"third answerer" stops being a plan.**
+**Open. Seven of the twelve moves on the critical path are done and an
+eighth is spiked; four were measurements, the fifth was the decision they
+were gathered for, and two are built. A face costs 225 MB because of the
+form its definitions are held in, not their size: 92,807 element definitions
+as object graphs, 1.1 million primitive wrappers, one byte array per string.
+The three cheap ways out are closed by measurement — lazy loading is 133 MB
+worse, eviction is impossible because the toolchain discards the reload path
+at first use, and the shape is fixed by a manager that holds model objects.
+What is left is a definition index of our own: flat rows in heap, per
+tenant, over the closure its declared types reach, under a face base the
+image already carries. **A closure is now counted**, and it needed no face
+root after all — the walk reads the carried packages, which is the same
+claim the index makes. Hogwarts' eleven declared types reach 78 of r5's 389
+structures and **1,164 of its 16,150 elements, 7.2%**. The shape of that is
+the finding: a fixed kernel of 64 datatype structures, 462 elements, that
+every resource type reaches, and one to three structures per type above it.
+It is a **per-tenant** win and not a per-face one — a face whose tenants
+between them declared every resource would reach 94% of the corpus, so one
+index shared by a face's tenants would save nothing. **And the form is now
+measured too**: the same 78 structures cost **190 KB flat against 5,966 KB
+as model objects, 31 times**, 167 bytes an element against 5,249. A tenant's
+whole index is 190 KB where a face's context is 225 MB, and r5's entire
+corpus in the flat form is 2.6 MB. The premise is no longer a premise. **And
+something reads it**: a cardinality checker over the index faults none of
+the 6,532 conformance resources the release carries, and finds the faults
+that are there. It answers at every depth, entering a backbone where the
+resource defines it and a datatype's own structure where it does not —
+276,258 descents over that corpus, five path segments at the deepest. **And
+it has been compared against the answerer that currently decides**: on what
+is missing the two agree exactly, 3 reported and the same 3 found over 402
+documents, none missed and none added. On what is repeated they do not, and
+the checker is the one that is right — an element allowed once and sent
+twice is dropped by the toolchain in silence, so
+`{"gender":["female","male"]}` is parsed into a Patient with no gender at
+all and accepted. That is a data-loss defect on this store's write path
+today, recorded below and independent of whether any of this is built. **And
+the whole-version figure is now measured rather than extrapolated**: all
+three carried versions held at once are 41,013 elements in **4.3 MB**, 108
+bytes each, against a recorded 226 MB for one face and 445 for a second —
+which is item 024's criterion answered as a question about the form. **Step
+4 is taken: yes, build the modules** — settled by reading the distribution,
+which corrected the last move and found a missing one. The ratchet was aimed
+at the validator jars and could never have fired: `SimpleWorkerContext`
+ships beside the 1,517 model classes conversion needs. It is the definition
+PACKAGES that have to go, 65 MB of them, and conversion and transaction
+bundles do not block that. The missing move is larger: nothing replaced
+`elementmodel` on the PAYLOAD path, so a finished checker still leaves every
+write parsing through a populated context, and the 225 MB survives it. That
+is now step 9, and it was spiked immediately because it is what would have
+reversed the decision. **It holds**: 6,532 documents and 86 MB go in and
+come back unaltered with no context and — the surprise — no type knowledge
+either, since reading and writing a document losslessly is a JSON problem
+and the definitions are for checking it. 91.9% of r5's search expressions
+are plain paths a typed walk evaluates; the open 8.1% is a hundred needing
+`ofType`, `where` or a cast. **Steps 5 and 6 are built.**
+`core/dbo-fhir-index`, a bundle whose Import-Package is the JDK and nothing
+else, reading the index out of `definitions.definition_element` rather than
+out of a package. Over a face root's closure — 44 structures of the 740 it
+holds rows for, **5.9%** — it agrees with the packages **element for
+element, 750 of them, no divergence**. And it corrected the shape: the three
+modules are two, because the expansion that already runs when a definition
+arrives IS the compiler the design wanted to write. **And the word "third"
+is now a fact**: `core/dbo-fhir-validate` checks cardinality against the
+index with no context and no round trip, and stands in the comparison beside
+the toolchain and the database. Over 258 of the version's own documents
+neither it nor the database faults anything, across 21,267 descents; on
+documents that ARE wrong they name the same elements at every depth. The one
+divergence is deliberate and the index is the side that reaches further — a
+datatype's insides are in the rows only where a profile constrains them, and
+the index holds the closure. Nothing on the serving path asks either module
+yet and the reach ledger names both: comparing is not being asked. Next:
+step 7, the rest of a checker, and step 9's other half.**
 
 # A face toolset of our own
 
@@ -153,6 +162,8 @@ first of them exists.
   `definitions.definition_element` is it.
 - `fhir/index` — the format and its reader. No toolchain. Built, as
   `core/dbo-fhir-index`.
+- `fhir/validate` — the checks over the index. No toolchain. Built, as
+  `core/dbo-fhir-validate`, with cardinality in it; the rest is step 7.
 - `fhir/validate` — the checks over the index. No toolchain.
 
 ## The closure, and what it does not reach
@@ -502,7 +513,7 @@ was no way to tell what was next from what was merely undone.
 | 3 | ~~**Compare it against the toolchain**~~ **Done.** Minima agree exactly; maxima diverge and the toolchain is the one at fault | the check that a second implementation has not become a second specification — and, unplanned, a data-loss defect on the write path | 2 |
 | 4 | ~~**Decide whether the spike becomes modules**~~ **Taken: yes**, and argued below | nothing by itself; it was the gate, and everything above was deliberately done without it so the decision rested on figures | 0–3, which is why they came first |
 | 5 | ~~**Build the index from ROWS rather than packages**~~ **Done.** `core/dbo-fhir-index`, one bundle importing nothing but the JDK; 750 elements over a face root's closure, element for element against the packages, **no divergence** | the base-and-overlay split, the face image path, and a tenant's own profiles — none of which a package can supply. And, unplanned, one of the three modules turned out not to be needed | 4 |
-| 6 | **The database leg.** The index checker inside `TheTwoAnswersAreComparedOverTheVersionIT`, against `dbo.cardinality` | the word "third" in "third answerer", which is a plan until this | 5, and a tenant |
+| 6 | ~~**The database leg**~~ **Done.** `core/dbo-fhir-validate` stands in `TheTwoAnswersAreComparedOverTheVersionIT` against `dbo.cardinality`: 258 documents, 21,267 descents, no divergence — and one divergence found on purpose, where the index reaches further | the word "third" in "third answerer", which was a plan until this. NOT reachability: comparing is not being asked | 5, and a tenant |
 | 7 | **The rest of a checker** — fixed and pattern values, slicing, required bindings | a checker that covers what a tenant's own profiles actually say, rather than what base definitions happen not to | 5, because profiles arrive as rows |
 | 8 | **FHIRPath compiled at the cut**, into rows, as `definition_parameter` already is in part | invariants, which are the largest thing the toolchain still answers alone | 5 |
 | 9 | **The payload path without `elementmodel`** — read and write EVERY type from JSON, not only check it. **Spiked, and it holds**: 6,532 documents and 86 MB in and out unaltered with no context, and 91.9% of search expressions are plain paths | the last reason a serving node builds a context at all; it is row one of item 024's foot and belonged in neither item's steps | 5, 7 |
@@ -554,6 +565,58 @@ faster cardinality check and nothing more, and the honest thing then is to stop
 and say so rather than to keep building toward a ratchet that cannot fire.
 Step 9 should therefore be attempted EARLY rather than in its dependency order,
 as a spike against one type, before the modules carry much.
+
+## Step 6, the database leg
+
+`core/dbo-fhir-validate` — the checks over the index, in a bundle that imports
+the index, the vocabulary a finding is carried in, and the JDK. **Not a JSON
+library either**: a document is read by a forty-line scanner of its own,
+because another bundle already embeds one privately and a second exporter
+would be a split package, and because the property this module exists to have
+is that a node holding it carries nothing. Numbers and booleans arrive as the
+text that was written and are never interpreted — nothing here asks what a
+value means, and reading a decimal as a double is how a written precision
+disappears in silence.
+
+**The word "third" is now a fact.** `CardinalityCheck` stands in
+`TheTwoAnswersAreComparedOverTheVersionIT` beside the two that were already
+there.
+
+| | |
+|---|---|
+| documents compared | 258 |
+| documents either answerer faulted | **0** |
+| nodes the walk descended into | 21,267 |
+| deepest path | 5 segments |
+| divergences | **0** |
+
+**The silence is asserted as silence.** Both answerers say nothing about every
+one of those documents, so that half is an agreement about silence — worth
+having, because it is the claim that neither faults the specification's own
+conformance resources, and worth naming, because it is not the claim that they
+say the same thing when something IS wrong. A second half asks that: a required
+element absent, an element allowed once and sent twice, one backbone instance
+holding two of something 0..1, two instances holding one each. They name the
+same elements on all of them. And the descent count is what keeps the first
+half from being a checker that never ran — a walk that stopped at the root
+would report the same clean corpus.
+
+**One divergence, found on purpose, and the index is the one that reaches
+further.** `Patient.name.family` sent twice: the index reports it and the
+database reports nothing. That is the promise the database makes rather than a
+defect in it — a definition is expanded from the profile's own snapshot, and
+Patient's snapshot names `Patient.name` as a `HumanName` and stops, so a
+datatype's insides are in the rows only where a profile constrains them. The
+index holds the CLOSURE, so it enters `HumanName`'s own structure and answers.
+
+That is the first argument for a third answerer that is not about memory. It
+was going to be cheaper to hold; it turns out also to answer where one
+profile's rows stop.
+
+**And it is still reached by nothing.** The line in `config/reach-ledger.txt`
+was expected to come out at this step and does not, which is worth saying
+plainly: comparing is not being asked. What takes it out is a write judged by
+this answerer, and no step below is that yet.
 
 ## Step 9, spiked out of order
 

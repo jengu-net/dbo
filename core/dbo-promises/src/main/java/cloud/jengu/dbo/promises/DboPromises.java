@@ -1342,6 +1342,21 @@ public enum DboPromises implements Promise {
             + "complex type without saying what that type holds — so a datatype's "
             + "insides are answered where a profile constrains them and are silent "
             + "where none does."),
+    VAL_A_THIRD_ANSWERER_READS_THE_INDEX(
+            "A third answerer checks a document against the definition index, in the serving "
+            + "process, with no worker context and no round trip — and what it answers is held "
+            + "against the database's own answer over everything the version publishes. It is "
+            + "not a second specification: the checks that read rows are the specification and "
+            + "this one is measured against them, because three answers nobody compares would "
+            + "be worse than two that are. How often an element may occur is counted inside the "
+            + "parent it occurs in, so the walk enters a backbone where the resource defines it "
+            + "and a datatype's own structure where it does not — one contact holding two names "
+            + "is wrong and two contacts holding one each is not. A contained resource is not "
+            + "followed: the element says only Resource, and what a document may contain is a "
+            + "question about the tenant's declaration rather than about cardinality. And "
+            + "silence is not evidence — the walk reports how far it descended, because a "
+            + "checker that never descended faults nothing and a correct corpus reads the same "
+            + "either way."),
     VAL_THE_INDEX_IS_A_PROJECTION_OF_THE_EXPANDED_ROWS(
             "A tenant's definitions are read into flat arrays over one interned dictionary — "
             + "path, parent, min, max, type codes, binding and its strength, and the "
