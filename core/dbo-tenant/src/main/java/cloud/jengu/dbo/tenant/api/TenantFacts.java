@@ -1,4 +1,4 @@
-package cloud.jengu.dbo.tenant;
+package cloud.jengu.dbo.tenant.api;
 
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -81,7 +81,7 @@ public record TenantFacts(Map<String, Object> properties) {
      * @param target the filter as written, or null
      * @param name   the registration, so the refusal says which one to fix
      */
-    static void refuseUnpublishedFacts(String target, String name) {
+    public static void refuseUnpublishedFacts(String target, String name) {
         if (target == null) {
             return;
         }
@@ -112,23 +112,6 @@ public record TenantFacts(Map<String, Object> properties) {
      */
     public record Resolved(boolean holdsRecordsInFaceDomain, boolean hasAuthority,
             boolean hasVault, boolean holdsIdentities) {
-    }
-
-    /** What a tenant says about itself, as the facts an activity selects on. */
-    public static TenantFacts of(TenantSpec spec, Resolved resolved) {
-        Map<String, Object> published = new LinkedHashMap<>();
-        published.put(CODE, spec.code());
-        published.put(FACE, spec.face());
-        if (spec.zone() != null) {
-            published.put(ZONE, spec.zone());
-        }
-        published.put(HOLDS_RECORDS_IN_FACE_DOMAIN, resolved.holdsRecordsInFaceDomain());
-        published.put(HAS_STEPS, !spec.steps().isEmpty());
-        published.put(HAS_SCIM, spec.scim() != null);
-        published.put(HAS_AUTHORITY, resolved.hasAuthority());
-        published.put(HAS_VAULT, resolved.hasVault());
-        published.put(HOLDS_IDENTITIES, resolved.holdsIdentities());
-        return new TenantFacts(published);
     }
 
     public String code() {

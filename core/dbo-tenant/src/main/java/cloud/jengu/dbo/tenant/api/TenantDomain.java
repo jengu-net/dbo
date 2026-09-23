@@ -1,4 +1,4 @@
-package cloud.jengu.dbo.tenant;
+package cloud.jengu.dbo.tenant.api;
 
 /**
  * The streams a tenant carries, as an observer names them.
@@ -86,7 +86,7 @@ public enum TenantDomain {
      * across it: a declaration of types with no anchor is type-level access
      * control wearing a step's clothing, and a feed has no anchor to give.
      */
-    boolean carriesContent() {
+    public boolean carriesContent() {
         return carriesContent;
     }
 
@@ -99,7 +99,7 @@ public enum TenantDomain {
      * The domain to read on this tenant, or null where this tenant has none —
      * which is a face root or a projection asked for its content.
      */
-    String on(TenantFacts facts, String recordDomain) {
+    public String on(TenantFacts facts, String recordDomain) {
         if (fixed != null) {
             return fixed;
         }
@@ -107,7 +107,7 @@ public enum TenantDomain {
                 .get(TenantFacts.HOLDS_RECORDS_IN_FACE_DOMAIN)) ? recordDomain : null;
     }
 
-    static TenantDomain ofSpelling(String spelling) {
+    public static TenantDomain ofSpelling(String spelling) {
         for (TenantDomain domain : values()) {
             if (domain.spelling().equals(spelling)) {
                 return domain;

@@ -1,4 +1,4 @@
-package cloud.jengu.dbo.tenant;
+package cloud.jengu.dbo.tenant.api;
 
 /**
  * A point in a tenant's life where activities run.

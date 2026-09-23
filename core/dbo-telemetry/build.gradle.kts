@@ -30,6 +30,13 @@ tasks.jar {
         bnd("""
             Bundle-SymbolicName: cloud.jengu.dbo.telemetry
             Export-Package: cloud.jengu.dbo.telemetry
+            # SUBSTITUTABLE: this bundle imports what it exports. bnd writes
+            # that import only when another package inside the bundle uses
+            # the exported one, and this bundle is one package — so without
+            # it the bundle can only wire to itself, and a host supplying
+            # the seam's classes from outside is ignored. With no other
+            # provider it wires to itself, exactly as before.
+            Import-Package: cloud.jengu.dbo.telemetry,*
             -noimportjava: true
             Require-Capability: osgi.extender;filter:="(&(osgi.extender=osgi.serviceloader.processor)(version>=1.0.0)(!(version>=2.0.0)))";resolution:=optional, osgi.serviceloader;filter:="(osgi.serviceloader=cloud.jengu.dbo.telemetry.Telemetry)";resolution:=optional;cardinality:=multiple
             SPI-Consumer: *

@@ -14,6 +14,10 @@ include("dbo-bom")
 include("promise")
 include("core:dbo-core", "core:dbo-postgres", "core:dbo-fhir-common", "core:dbo-fhir-stack", "core:dbo-fhir-r4", "core:dbo-fhir-r5", "core:dbo-fhir-element", "core:dbo-rest", "core:dbo-auth", "core:dbo-pdi", "core:dbo-policy", "core:dbo-work", "core:dbo-asking", "core:dbo-subscriptions", "core:dbo-sync", "core:dbo-maintenance", "core:dbo-verify", "core:dbo-tenant", "core:dbo-operator", "core:dbo-fleet", "core:dbo-tenant-k8s", "core:dbo-server", "core:dbo-logging", "core:dbo-telemetry", "core:dbo-telemetry-otlp", "core:dbo-terminology", "core:dbo-definitions", "core:dbo-fhir-index", "core:dbo-fhir-validate", "core:dbo-scim", "core:dbo-promises", "core:dbo-runner", "core:dbo-stream", "core:dbo-test-model", "core:dbo-step-probe", "core:harness", "core:conformance", "guide", "bench:runner", "karaf", "karaf:commands", "karaf:slf4j-compat", "sample", "sample:participant")
 
+// The Spring Boot assemblies: the runtime, hosted inside somebody else's
+// application, with the container invisible from the outside.
+include("assembly:spring-boot-core", "assembly:spring-boot-server", "assembly:spring-boot-worker")
+
 dependencyResolutionManagement {
     repositories {
         mavenCentral()

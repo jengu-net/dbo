@@ -1,4 +1,4 @@
-package cloud.jengu.dbo.tenant;
+package cloud.jengu.dbo.tenant.api;
 
 /**
  * Something outside the runtime told when a tenant reaches a point.

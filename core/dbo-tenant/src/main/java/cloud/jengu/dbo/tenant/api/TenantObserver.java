@@ -1,4 +1,4 @@
-package cloud.jengu.dbo.tenant;
+package cloud.jengu.dbo.tenant.api;
 
 import cloud.jengu.dbo.core.api.feed.FeedItem;
 

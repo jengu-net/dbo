@@ -1,4 +1,4 @@
-package cloud.jengu.dbo.tenant;
+package cloud.jengu.dbo.tenant.api;
 
 import java.time.Instant;
 import java.util.Optional;
@@ -38,13 +38,13 @@ public record Change(long seq, String typeName, String objectId, long versionId,
     }
 
     /** What an observer of a tenant's records or its trail is told. */
-    static Change withoutContent(cloud.jengu.dbo.core.api.feed.FeedItem item) {
+    public static Change withoutContent(cloud.jengu.dbo.core.api.feed.FeedItem item) {
         return new Change(item.seq(), item.typeName(), item.objectId(), item.versionId(),
                 item.committedAt(), item.deleted(), Optional.empty());
     }
 
     /** The same, for a domain the five reasons already admit as direct. */
-    static Change withContent(cloud.jengu.dbo.core.api.feed.FeedItem item) {
+    public static Change withContent(cloud.jengu.dbo.core.api.feed.FeedItem item) {
         return new Change(item.seq(), item.typeName(), item.objectId(), item.versionId(),
                 item.committedAt(), item.deleted(),
                 Optional.ofNullable(item.payload()));

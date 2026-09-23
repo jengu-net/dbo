@@ -14,6 +14,20 @@ tasks.jar {
     bundle {
         bnd(mapOf(
             "Bundle-SymbolicName" to "cloud.jengu.dbo.core",
+            // SUBSTITUTABLE: this bundle imports what it exports.
+            //
+            // Policy, not inventory — the packages are named, the rest is
+            // still bnd's to compute. bnd writes an import for a bundle's own
+            // export only when some OTHER package inside the bundle uses it,
+            // and a bundle whose code is one package never does. Without the
+            // import the bundle can only ever wire to itself, so a host that
+            // supplies these classes from outside the framework is ignored:
+            // the two copies then differ, and the framework HIDES a service
+            // whose type the consuming bundle loads differently. Nothing is
+            // logged and nothing throws; an extension point simply never
+            // fires. In a container with no other provider this changes
+            // nothing at all — the bundle wires to itself, as before.
+            "Import-Package" to "cloud.jengu.dbo.core,cloud.jengu.dbo.core.api.identity,cloud.jengu.dbo.core.api.seal,cloud.jengu.dbo.core.face,cloud.jengu.dbo.core.process,cloud.jengu.dbo.core.wire,*",
             // Every package the engine offers outward, named rather than
             // globbed: a package added here and not exported resolves on the
             // classpath and fails in the container, which is a failure that

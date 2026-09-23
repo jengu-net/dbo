@@ -82,7 +82,24 @@ tasks.jar {
                 "Bundle-Activator: cloud.jengu.dbo.tenant.Activator",
                 "Bundle-ClassPath: ." + jars.joinToString("") { ",lib/${it.name}" },
                 "-includeresource: " + jars.joinToString(",") { "lib/${it.name}=${it.absolutePath}" },
-                "Export-Package: cloud.jengu.dbo.tenant;version=0.1.0",
+                // Two packages, and the split is load-bearing.
+                //
+                // `api` is what a host implements against: the lifecycle
+                // listener, the observer, and the facts and changes they are
+                // handed. It carries no implementation, so it can be supplied
+                // from OUTSIDE the framework and this bundle will wire to it
+                // — bnd writes that import by itself, because the
+                // implementation package uses it.
+                //
+                // The implementation package cannot be. Its code IS this
+                // bundle, and the bundle reaches HikariCP privately over
+                // Bundle-ClassPath; wiring it to somebody else's copy loads
+                // the manager from a classloader where the pool is not, and
+                // a bring-up that cannot make one fails into the trouble
+                // ledger rather than loudly. Measured: twelve minutes and no
+                // tenant serving, against forty seconds and all of them.
+                "Export-Package: cloud.jengu.dbo.tenant;version=0.1.0"
+                    + ",cloud.jengu.dbo.tenant.api;version=0.1.0",
                 // The framework delegates java.* to the boot classloader;
                 // importing it is noise at best and a resolution failure at
                 // worst.
