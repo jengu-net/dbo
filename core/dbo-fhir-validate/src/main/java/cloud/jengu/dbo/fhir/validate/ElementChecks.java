@@ -11,8 +11,8 @@ import java.util.Set;
 
 /**
  * What the index says is wrong with a document: how often an element occurs,
- * what it must equal, what it must contain, and whether a coded value is in
- * the value set a required binding names.
+ * what it must equal, what it must contain, whether a coded value is in the
+ * value set a required binding names, and whether the rules it carries hold.
  *
  * <p>The third answerer. The toolchain reads an object graph and the database
  * reads the expanded rows; this reads the same rows as arrays in its own heap,
@@ -99,6 +99,13 @@ public final class ElementChecks {
         Map<String, Object> root = JsonDocument.of(document);
         int from = index.rootOf(canonical);
         if (root != null && from >= 0) {
+            // THE ROOT'S OWN RULES, before descending into anything. The walk
+            // visits an element as a child of its parent, and the root is
+            // nobody's child — so the rules a resource carries at its own
+            // level, which is where every dom-* rule sits, were run by nobody
+            // at all. It reported no rule and no rule is what a document
+            // satisfying all of them also reports.
+            check.rules(from, root, index.pathOf(from));
             check.walk(from, root, index.pathOf(from));
         }
         return new Checked(List.copyOf(check.findings), check.descents, check.deepest);
@@ -181,6 +188,7 @@ public final class ElementChecks {
                                     + JsonValue.asText(one)));
                 }
                 bound(element, one, where, full);
+                rules(element, one, where);
                 if (!(one instanceof Map<?, ?> object)) {
                     continue;
                 }
@@ -193,6 +201,30 @@ public final class ElementChecks {
                     descents++;
                     walk(index.rootOf(PREFIX + into), object, where);
                 }
+            }
+        }
+    }
+
+    /**
+     * The rules this element carries, run against this instance of it.
+     *
+     * <p>Compiled when the definition arrived, so what happens here is
+     * execution and nothing else — the same text the database runs, run in
+     * this process instead. A rule the reader cannot run is reported by
+     * nobody: a document is not wrong because a rule could not be run against
+     * it, which is the same three-valued answer {@code dbo.invariant_holds}
+     * gives.
+     */
+    private void rules(int element, Object instance, String where) {
+        for (DefinitionIndex.Invariant rule : index.invariantsOf(element)) {
+            if (rule.path() == null) {
+                continue;
+            }
+            if (Boolean.FALSE.equals(JsonPathPredicate.holds(instance, rule.path()))) {
+                findings.add(new Finding(
+                        rule.severity() == null ? "error" : rule.severity(), where, rule.key(),
+                        rule.key() + ": "
+                                + (rule.expression() == null ? rule.key() : rule.expression())));
             }
         }
     }

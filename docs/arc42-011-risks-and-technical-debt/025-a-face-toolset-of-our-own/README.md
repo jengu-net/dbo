@@ -1,4 +1,4 @@
-**Open. Eight of the twelve moves on the critical path are done and a ninth
+**Open. Nine of the twelve moves on the critical path are done and a tenth
 is spiked; four were measurements, the fifth was the decision they were
 gathered for, and the checker is finished. A face costs 225 MB because of
 the form its definitions are held in, not their size: 92,807 element
@@ -84,8 +84,20 @@ the row carries, which also retires the path-derived parent left over from
 step 5. A required binding is decided in the process against **520 codes**
 over 66 value sets, none declined as too large, with null a real answer
 where nothing can judge — unresolvable is not invalid, which is the rule the
-database follows and the reason the two agree. Next: step 8, FHIRPath
-compiled at the cut, or step 9's other half.**
+database follows and the reason the two agree. **Step 8 turned out to be
+half done already**: FHIRPath IS compiled at the cut, into
+`definition_invariant.path`, when a definition arrives — what was missing
+was an answerer that runs the compiled text somewhere other than Postgres.
+Measured first: 95 compiled paths over 67 rule keys, and **68.4%** use
+nothing a walk over a document does not already do, so that subset runs in
+heap and the rest are declined rather than guessed at. It found the third
+silent gap in the walk — the root's own rules were run by nobody, because
+the walk visits an element as a child and the root is nobody's child, which
+is where every dom-* rule sits. What made it visible was asserting what the
+checker DID and not only that the two agreed: it reported zero against the
+database's 301 and passed, because nothing is a subset of anything. It
+reports 258 now, with no divergence. Next: step 9's other half, or step
+10.**
 
 # A face toolset of our own
 
@@ -531,7 +543,7 @@ was no way to tell what was next from what was merely undone.
 | 5 | ~~**Build the index from ROWS rather than packages**~~ **Done.** `core/dbo-fhir-index`, one bundle importing nothing but the JDK; 750 elements over a face root's closure, element for element against the packages, **no divergence** | the base-and-overlay split, the face image path, and a tenant's own profiles — none of which a package can supply. And, unplanned, one of the three modules turned out not to be needed | 4 |
 | 6 | ~~**The database leg**~~ **Done.** `core/dbo-fhir-validate` stands in `TheTwoAnswersAreComparedOverTheVersionIT` against `dbo.cardinality`: 258 documents, 21,267 descents, no divergence — and one divergence found on purpose, where the index reaches further | the word "third" in "third answerer", which was a plan until this. NOT reachability: comparing is not being asked | 5, and a tenant |
 | 7 | ~~**The rest of a checker** — fixed and pattern values, slicing, required bindings~~ **Done**, all five checks, each held against the database's own. Slicing turned out to be a correctness defect rather than a missing feature | a checker that covers what a tenant's own profiles actually say, rather than what base definitions happen not to | 5, because profiles arrive as rows |
-| 8 | **FHIRPath compiled at the cut**, into rows, as `definition_parameter` already is in part | invariants, which are the largest thing the toolchain still answers alone | 5 |
+| 8 | ~~**FHIRPath compiled at the cut**~~ **It already was** — into `definition_invariant.path`, when the definition arrives. What was missing was an answerer that RUNS it: **68.4%** of the compiled paths now run in heap and agree with the database, and the rest are declined rather than guessed at | invariants, which are the largest thing the toolchain still answers alone | 5 |
 | 9 | **The payload path without `elementmodel`** — read and write EVERY type from JSON, not only check it. **Spiked, and it holds**: 6,532 documents and 86 MB in and out unaltered with no context, and 91.9% of search expressions are plain paths | the last reason a serving node builds a context at all; it is row one of item 024's foot and belonged in neither item's steps | 5, 7 |
 | 10 | **Derived subscriptions** — the closure as what to replicate, the filter computed rather than declared | the database, the expansion, the image and the index all narrowed from one derivation | 5, and [item 021](../021-asking-the-store/README.md)'s answers, which are written |
 | 11 | **The distribution ratchet**: a serving node carries no definition packages | the 225 MB, 65 MB of jar, and the property that a context cannot be POPULATED rather than merely is not | 7, 8, 9 |
@@ -776,6 +788,70 @@ the database on the way out, which is where the JSON already is. Getting that
 statement past the driver needed `jsonb_exists(part, 'codes')` rather than
 `part ? 'codes'`: the driver reads a `?` in the SQL as a parameter placeholder
 and refuses the statement for a missing value.
+
+## Step 8, which turned out to be already half done
+
+**FHIRPath is already compiled at the cut.** The move was written as though it
+were not. `ExpressionPaths` walks the toolchain's own parse tree when a
+definition arrives and writes a jsonpath into `definition_invariant.path`;
+`dbo.invariant_holds` executes it with `jsonb_path_match` and nothing is
+parsed at a write. What was missing was not the compiling. It was an answerer
+that RUNS the compiled text somewhere other than Postgres.
+
+**So the index carries the compiled path**, beside the rule's key, severity
+and the FHIRPath a person reads — and `JsonPathPredicate` executes it.
+
+**How much of it, measured first.** Over a face root's closure, 95 compiled
+paths carry 67 distinct rule keys, the longest 434 characters:
+
+| construct | | |
+|---|---|---|
+| exists | 89 | 93.7% |
+| negation | 72 | 75.8% |
+| or | 57 | 60.0% |
+| and | 19 | 20.0% |
+| equality | 12 | 12.6% |
+| like_regex | 8 | 8.4% |
+| a filter | 4 | 4.2% |
+| starts with | 4 | 4.2% |
+| ordering and inequality | 7 | 7.4% |
+
+**65 of the 95 — 68.4% — use nothing a walk over a document does not already
+do**: a path, `exists`, `!`, `&&`, `||`. That is what is built. The rest
+compare, match or filter, and each is a piece of evaluator on its own; the
+reader declines them and answers null, which is the third answer
+`dbo.invariant_holds` already gives. A document is not wrong because a rule
+could not be run against it.
+
+**The first measurement was wrong and said so.** The classifier counted `$`,
+the document root, as a construct — so every path used something "hard" and
+the answer came out 0.0%. A figure of zero that is really an artefact of the
+question is the same failure as the `|version` and the `includes` above: a
+clean, plausible number that is not about anything.
+
+**Lax, because Postgres is.** A member accessor applied to an array unwraps it
+and applies to each member, so a path written for one name answers over all of
+them. Matching that is not a nicety — a strict reading would disagree about
+every repeating element in the corpus.
+
+**And it found the third silent gap in the walk.** The index reported **zero**
+rule findings against the database's 301, and passed: what it reports has to
+be a subset of what the database reports, and nothing is a subset of anything.
+The walk visits an element as a child of its parent, and the root is nobody's
+child — so the rules a resource carries at its own level, which is where every
+`dom-*` rule sits, were run by nobody. That is a third defect of the same
+family: the earlier two walked past a constraint, this one never reached a
+whole level.
+
+**What made it visible was asserting what the checker DID**, not only that the
+two agreed. A reader that declines everything is a perfect subset of the
+database. So the count on each side is asserted: 258 findings from the index
+against 301 from the database, no divergence.
+
+**Every one of those 258 is `dom-6`**, and that is the fixture rather than the
+corpus: a definition is read with its narrative removed, so the rule about
+narrative fails on all of them. It is what makes this the one comparison over
+the corpus that is not an agreement about silence.
 
 ## Step 9, spiked out of order
 

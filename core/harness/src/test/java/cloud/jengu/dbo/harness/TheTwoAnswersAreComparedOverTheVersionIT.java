@@ -215,7 +215,11 @@ class TheTwoAnswersAreComparedOverTheVersionIT {
                         ElementChecks.over(index(), canonical, document.document());
                 Set<String> ours = new TreeSet<>();
                 for (Finding one : checked.findings()) {
-                    ours.add(withoutIndices(one.path()));
+                    // Cardinality alone: the walk answers five kinds of thing
+                    // now, and this half is compared against dbo.cardinality.
+                    if ("cardinality".equals(one.key())) {
+                        ours.add(withoutIndices(one.path()));
+                    }
                 }
                 Set<String> theirs = cardinalityPaths(document.document(), canonical);
                 compared++;
@@ -265,6 +269,103 @@ class TheTwoAnswersAreComparedOverTheVersionIT {
             codes = BoundCodes.over(source(), index());
         }
         return codes;
+    }
+
+    @Test
+    @DisplayName("over everything the version publishes, the rules the index runs and the rules "
+            + "the database runs fault the same documents")
+    @Proving(DboPromises.VAL_A_THIRD_ANSWERER_READS_THE_INDEX)
+    void theRulesAgreeOverTheVersion() {
+        // An invariant is compiled when the definition arrives; both sides run
+        // the same compiled text, one in Postgres and one here. Two thirds of
+        // them are a grammar this reader implements and the rest it declines
+        // — so what is compared is the rules BOTH ran, and how many were
+        // declined is reported rather than hidden, because a reader that
+        // declined everything would agree perfectly.
+        List<String> divergences = new ArrayList<>();
+        int compared = 0;
+        int spoken = 0;
+        int foundHere = 0;
+        int foundThere = 0;
+        Set<String> agreedOn = new TreeSet<>();
+        for (Map.Entry<String, List<FaceRootPackages.Definition>> ofType : corpus().entrySet()) {
+            String canonical = definitions.theTypeItself(ofType.getKey()).orElse(null);
+            if (canonical == null || !index().holds(canonical)) {
+                continue;
+            }
+            for (FaceRootPackages.Definition document : ofType.getValue()) {
+                Set<String> ours = new TreeSet<>();
+                for (Finding one : ElementChecks.over(index(), canonical,
+                        document.document()).findings()) {
+                    if (RULE_KEYS.matcher(one.key() == null ? "" : one.key()).matches()) {
+                        ours.add(one.key());
+                    }
+                }
+                Set<String> theirs = ruleKeys(document.document(), canonical);
+                compared++;
+                foundHere += ours.size();
+                foundThere += theirs.size();
+                agreedOn.addAll(ours);
+                if (!ours.isEmpty() || !theirs.isEmpty()) {
+                    spoken++;
+                }
+                // The reader answers a subset, so what it reports must be a
+                // subset of what the database reports. A rule it faults that
+                // the database does not is the failure that matters: the two
+                // ran the same compiled text and disagreed.
+                Set<String> onlyOurs = new TreeSet<>(ours);
+                onlyOurs.removeAll(theirs);
+                if (!onlyOurs.isEmpty()) {
+                    divergences.add(ofType.getKey() + " " + document.url()
+                            + ": the index faults " + onlyOurs + " and the database does not");
+                }
+            }
+        }
+        // Every one of these documents breaks a rule, and the reason is the
+        // fixture rather than the corpus: a definition is read with its
+        // narrative removed, so dom-6 fails on all of them. That is what makes
+        // this comparison worth running on the corpus at all — the cardinality
+        // half is an agreement about silence, and this one is not.
+        System.out.printf("%n=== the rules, index against database, over r4 ===%n"
+                + "documents compared %d, either answerer spoke about %d%n"
+                + "rule findings: %d from the index, %d from the database, over %d keys%n"
+                + "divergences where the index faults what the database does not: %d%n",
+                compared, spoken, foundHere, foundThere, agreedOn.size(),
+                divergences.size());
+        System.out.println("  the index reported: " + agreedOn);
+        divergences.stream().limit(10).forEach(one -> System.out.println("  " + one));
+
+        assertTrue(compared > 200, "only " + compared + " documents were compared");
+        // A reader that declined every rule would be a perfect subset of the
+        // database and prove nothing, so what it DID run is asserted too.
+        assertTrue(foundHere > 100,
+                "the index ran the rules and faulted almost nothing, so agreeing with the "
+                        + "database about a subset means nothing: " + foundHere);
+        assertEquals(List.of(), divergences,
+                "the two ran the same compiled rule and disagreed");
+    }
+
+    /** A rule key, which is how an invariant finding is named apart from the other checks. */
+    private static final java.util.regex.Pattern RULE_KEYS =
+            java.util.regex.Pattern.compile("[a-z][a-z0-9]*-[0-9]+");
+
+    /** The rule keys dbo.invariant_issues reports. */
+    private static Set<String> ruleKeys(byte[] document, String canonical) {
+        Set<String> keys = new TreeSet<>();
+        try (Connection c = source().getConnection();
+             PreparedStatement ps = c.prepareStatement(
+                     "SELECT key FROM dbo.invariant_issues(?::jsonb, ?)")) {
+            ps.setString(1, new String(document, StandardCharsets.UTF_8));
+            ps.setString(2, canonical);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    keys.add(rs.getString(1));
+                }
+            }
+        } catch (java.sql.SQLException e) {
+            throw new IllegalStateException("asking the database about the rules failed", e);
+        }
+        return keys;
     }
 
     @Test
@@ -409,7 +510,9 @@ class TheTwoAnswersAreComparedOverTheVersionIT {
         Set<String> paths = new TreeSet<>();
         for (Finding one : ElementChecks.over(index(), canonical,
                 document.getBytes(StandardCharsets.UTF_8)).findings()) {
-            paths.add(withoutIndices(one.path()));
+            if ("cardinality".equals(one.key())) {
+                paths.add(withoutIndices(one.path()));
+            }
         }
         return paths;
     }

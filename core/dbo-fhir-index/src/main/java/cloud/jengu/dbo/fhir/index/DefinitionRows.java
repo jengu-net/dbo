@@ -142,7 +142,7 @@ public final class DefinitionRows {
                         for (DefinitionIndex.Invariant rule
                                 : invariants.getOrDefault(canonical + "|" + rs.getString(2),
                                         List.of())) {
-                            index.invariant(rule.key(), rule.severity(), rule.expression());
+                            index.invariant(rule.key(), rule.severity(), rule.expression(), rule.path());
                         }
                     }
                 }
@@ -165,7 +165,7 @@ public final class DefinitionRows {
             Connection c, Collection<String> canonicals) throws SQLException {
         Map<String, List<DefinitionIndex.Invariant>> byElement = new LinkedHashMap<>();
         try (PreparedStatement ps = c.prepareStatement("""
-                SELECT canonical, element_id, key, severity, expression
+                SELECT canonical, element_id, key, severity, expression, path
                   FROM definitions.definition_invariant
                  WHERE canonical = ANY(?)
                  ORDER BY canonical, element_id, key""")) {
@@ -174,8 +174,8 @@ public final class DefinitionRows {
                 while (rs.next()) {
                     byElement.computeIfAbsent(rs.getString(1) + "|" + rs.getString(2),
                                     k -> new ArrayList<>())
-                            .add(new DefinitionIndex.Invariant(
-                                    rs.getString(3), rs.getString(4), rs.getString(5)));
+                            .add(new DefinitionIndex.Invariant(rs.getString(3),
+                                    rs.getString(4), rs.getString(5), rs.getString(6)));
                 }
             }
         }

@@ -1892,14 +1892,15 @@ cloud.jengu.dbo.fhir.index.DefinitionIndex                             words():i
 cloud.jengu.dbo.fhir.index.DefinitionIndex.Builder                     build():cloud.jengu.dbo.fhir.index.DefinitionIndex
 cloud.jengu.dbo.fhir.index.DefinitionIndex.Builder                     class
 cloud.jengu.dbo.fhir.index.DefinitionIndex.Builder                     element(String,String,String,int,int,List,String,String,String,String,String):cloud.jengu.dbo.fhir.index.DefinitionIndex.Builder
-cloud.jengu.dbo.fhir.index.DefinitionIndex.Builder                     invariant(String,String,String):cloud.jengu.dbo.fhir.index.DefinitionIndex.Builder
+cloud.jengu.dbo.fhir.index.DefinitionIndex.Builder                     invariant(String,String,String,String):cloud.jengu.dbo.fhir.index.DefinitionIndex.Builder
 cloud.jengu.dbo.fhir.index.DefinitionIndex.Builder                     new()
 cloud.jengu.dbo.fhir.index.DefinitionIndex.Builder                     structure(String):cloud.jengu.dbo.fhir.index.DefinitionIndex.Builder
 cloud.jengu.dbo.fhir.index.DefinitionIndex.Invariant                   equals(Object):boolean
 cloud.jengu.dbo.fhir.index.DefinitionIndex.Invariant                   expression():String
 cloud.jengu.dbo.fhir.index.DefinitionIndex.Invariant                   hashCode():int
 cloud.jengu.dbo.fhir.index.DefinitionIndex.Invariant                   key():String
-cloud.jengu.dbo.fhir.index.DefinitionIndex.Invariant                   new(String,String,String)
+cloud.jengu.dbo.fhir.index.DefinitionIndex.Invariant                   new(String,String,String,String)
+cloud.jengu.dbo.fhir.index.DefinitionIndex.Invariant                   path():String
 cloud.jengu.dbo.fhir.index.DefinitionIndex.Invariant                   record
 cloud.jengu.dbo.fhir.index.DefinitionIndex.Invariant                   severity():String
 cloud.jengu.dbo.fhir.index.DefinitionIndex.Invariant                   toString():String

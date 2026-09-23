@@ -62,6 +62,10 @@ class WhatTheRestOfACheckerWouldNeedIT {
 
     private static final ObjectMapper JSON = new ObjectMapper();
 
+    /** What a walk over a document tree already does, without comparing anything. */
+    private static final Set<String> NAVIGATION =
+            Set.of("exists", "negation", "and", "or");
+
     static SharedTenants.Tenant tenant;
     static Set<String> closure;
 
@@ -264,6 +268,91 @@ class WhatTheRestOfACheckerWouldNeedIT {
         assertEquals(List.of(), beyondEquality,
                 "a predicate appeared that is not equality, so a checker in heap needs more "
                         + "than the one form: " + beyondEquality);
+    }
+
+    @Test
+    @DisplayName("what an invariant would cost to answer in heap: the constructs the compiled "
+            + "paths actually use")
+    void whatAnInvariantWouldCost() {
+        // An invariant is compiled when the definition arrives, into a
+        // jsonpath the database executes with jsonb_path_match. Anything in
+        // heap executes it itself, so what matters is the grammar those paths
+        // actually reach for — which is a much wider one than a slice's
+        // predicate, and the reason this is counted before anything is built.
+        Map<String, Integer> uses = new TreeMap<>();
+        int all = 0;
+        int existsOnly = 0;
+        int longest = 0;
+        Map<String, Integer> byKey = new TreeMap<>();
+        try (Connection c = source().getConnection();
+             PreparedStatement ps = c.prepareStatement("""
+                     SELECT key, path FROM definitions.definition_invariant
+                      WHERE canonical = ANY(?) AND path IS NOT NULL""")) {
+            ps.setArray(1, c.createArrayOf("text", closure.toArray(new String[0])));
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    String key = rs.getString(1);
+                    String path = rs.getString(2);
+                    if (!byKey.containsKey(key)) {
+                        byKey.put(key, 0);
+                    }
+                    byKey.merge(key, 1, Integer::sum);
+                    all++;
+                    longest = Math.max(longest, path.length());
+                    // Navigation and the boolean connectives are the cheap
+                    // half: a path, exists, not, and, or. Everything else
+                    // compares, matches or filters, and each is a piece of
+                    // evaluator on its own.
+                    boolean navigationOnly = true;
+                    for (String[] construct : new String[][] {
+                            {"exists(", "exists"}, {"!", "negation"}, {"&&", "and"},
+                            {"||", "or"}, {"? (", "a filter"}, {"like_regex", "like_regex"},
+                            {"starts with", "starts with"}, {"==", "equality"},
+                            {"!=", "inequality"}, {">", "greater"}, {"<", "less"},
+                            {".type()", "type()"}}) {
+                        if (path.contains(construct[0])) {
+                            uses.merge(construct[1], 1, Integer::sum);
+                            if (!NAVIGATION.contains(construct[1])) {
+                                navigationOnly = false;
+                            }
+                        }
+                    }
+                    if (navigationOnly) {
+                        existsOnly++;
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            throw new IllegalStateException("reading the compiled invariants failed", e);
+        }
+
+        System.out.printf("%n=== what an invariant would need, over %s's closure ===%n"
+                + "compiled paths %d, over %d distinct rule keys, longest %d characters%n"
+                + "using only navigation and the boolean connectives: %d (%4.1f%%)%n",
+                tenant.code(), all, byKey.size(), longest,
+                existsOnly, 100.0 * existsOnly / all);
+        int compiled = all;
+        uses.forEach((construct, n) -> System.out.printf("  %-18s %5d  (%4.1f%%)%n",
+                construct, n, 100.0 * n / compiled));
+        byKey.entrySet().stream()
+                .sorted((a, b) -> b.getValue() - a.getValue()).limit(8)
+                .forEach(e -> System.out.printf("  rule %-10s %5d rows%n", e.getKey(),
+                        e.getValue()));
+
+        assertTrue(all > 50, "too few compiled invariants to say anything: " + all);
+        // THE ANSWER, locked: two thirds of them need only what a walk over a
+        // document already does, and the third that needs more needs one of
+        // these five things and not something nobody has seen. A construct
+        // outside this set is a piece of evaluator that does not exist, and
+        // an answerer meeting one must stay silent rather than guess — so it
+        // fails here, by name, rather than in a verdict.
+        List<String> unknown = uses.keySet().stream()
+                .filter(construct -> !NAVIGATION.contains(construct)
+                        && !Set.of("a filter", "like_regex", "starts with", "equality",
+                                "inequality", "greater", "less").contains(construct))
+                .toList();
+        assertEquals(List.of(), unknown,
+                "a construct appeared that nothing has costed: " + unknown);
     }
 
     /** A predicate reduced to its form, so a hundred slices are a handful of shapes. */

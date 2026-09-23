@@ -283,16 +283,25 @@ public final class DefinitionIndex {
         return word < 0 ? null : words[word];
     }
 
-    /** One invariant, as the rows carry it. */
-    public record Invariant(String key, String severity, String expression) {
+    /**
+     * One invariant, as the rows carry it.
+     *
+     * @param key        the rule's own key, which is how it is reported
+     * @param severity   the rule's own; a warning is advice and refuses nothing
+     * @param expression the FHIRPath it was written as, for a person reading
+     * @param path       the jsonpath it was COMPILED to when the definition
+     *                   arrived, which is what an answerer runs; null where
+     *                   the compiler refused it by name
+     */
+    public record Invariant(String key, String severity, String expression, String path) {
     }
 
     /** The invariants stated on this element. */
     public List<Invariant> invariantsOf(int element) {
         List<Invariant> out = new ArrayList<>();
-        for (int i = invariantAt[element]; i < invariantAt[element + 1]; i += 3) {
+        for (int i = invariantAt[element]; i < invariantAt[element + 1]; i += 4) {
             out.add(new Invariant(words[invariants[i]], word(invariants[i + 1]),
-                    word(invariants[i + 2])));
+                    word(invariants[i + 2]), word(invariants[i + 3])));
         }
         return out;
     }
@@ -391,7 +400,7 @@ public final class DefinitionIndex {
         }
 
         /** Add an invariant to the element last added. */
-        public Builder invariant(String key, String severity, String expression) {
+        public Builder invariant(String key, String severity, String expression, String path) {
             if (open == null) {
                 throw new IllegalStateException(
                         "an invariant arrived before any element: " + key);
@@ -399,6 +408,7 @@ public final class DefinitionIndex {
             invariants.add(intern(key));
             invariants.add(severity == null ? -1 : intern(severity));
             invariants.add(expression == null ? -1 : intern(expression));
+            invariants.add(path == null ? -1 : intern(path));
             return this;
         }
 
