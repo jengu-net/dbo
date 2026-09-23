@@ -11,7 +11,8 @@ import java.util.Map;
  *
  * <p>What it holds is what {@code definitions.definition_element} stores and
  * what a checker reads: path, parent, min, max, type codes, binding and its
- * strength, and the invariants. It does not hold {@code short},
+ * strength, what an element must equal or contain, and the invariants. It
+ * does not hold {@code short},
  * {@code definition} or {@code comment} — the prose a model built for
  * authoring carries and a checker never reads — and declining to hold it is
  * most of what this form is.
@@ -49,6 +50,8 @@ public final class DefinitionIndex {
     private final int[] typeCodes;
     private final byte[] bindingStrength;
     private final int[] bindingValueSet;
+    private final int[] fixedValue;
+    private final int[] patternValue;
     private final int[] invariantAt;
     private final int[] invariants;
     private final int elements;
@@ -80,6 +83,8 @@ public final class DefinitionIndex {
         this.invariantAt = new int[elements + 1];
         this.bindingStrength = new byte[elements];
         this.bindingValueSet = new int[elements];
+        this.fixedValue = new int[elements];
+        this.patternValue = new int[elements];
         for (int i = 0; i < elements; i++) {
             Builder.Row r = from.rows.get(i);
             canonicalOf[i] = r.canonical;
@@ -91,6 +96,8 @@ public final class DefinitionIndex {
             invariantAt[i] = r.invariantAt;
             bindingStrength[i] = r.bindingStrength;
             bindingValueSet[i] = r.bindingValueSet;
+            fixedValue[i] = r.fixedValue;
+            patternValue[i] = r.patternValue;
         }
         this.typeAt[elements] = from.typeCodes.size();
         this.invariantAt[elements] = from.invariants.size();
@@ -143,6 +150,23 @@ public final class DefinitionIndex {
             out.add(i);
         }
         return out;
+    }
+
+    /**
+     * The path this structure's own root element carries.
+     *
+     * <p>Asked rather than derived. A base definition's canonical ends in the
+     * type it defines, so the last segment of the url is the root path and
+     * looks like a fine shortcut; a profile's canonical ends in the profile's
+     * name, and a walk that started at {@code IndeksIkPatsient} finds nothing
+     * in a document whose paths all begin {@code Patient}. The rows say it,
+     * so nothing has to guess.
+     *
+     * @return the root path, or null where the structure is not held
+     */
+    public String rootPathOf(String canonical) {
+        Integer first = firstElementOf.get(canonical);
+        return first == null ? null : pathOf(first);
     }
 
     /** The direct children of a path within one structure. */
@@ -209,6 +233,31 @@ public final class DefinitionIndex {
         return word < 0 ? null : words[word];
     }
 
+    /**
+     * What this element must EQUAL, as the JSON the profile stated, or null.
+     *
+     * <p>Held as text rather than as a parsed value, and interned like
+     * everything else: the same fixed system is pinned on every element of
+     * every profile a tenant issues under it, so the text is stored once and
+     * pointed at. A checker compares it against the document's own text,
+     * which is also what keeps a decimal's written precision out of a double.
+     */
+    public String fixedOf(int element) {
+        int word = fixedValue[element];
+        return word < 0 ? null : words[word];
+    }
+
+    /**
+     * What this element must CONTAIN, as the JSON the profile stated, or null.
+     *
+     * <p>Containment rather than equality is what a pattern means: the
+     * element carries what the pattern states and may carry more.
+     */
+    public String patternOf(int element) {
+        int word = patternValue[element];
+        return word < 0 ? null : words[word];
+    }
+
     /** One invariant, as the rows carry it. */
     public record Invariant(String key, String severity, String expression) {
     }
@@ -265,6 +314,8 @@ public final class DefinitionIndex {
             int invariantAt;
             byte bindingStrength;
             int bindingValueSet = -1;
+            int fixedValue = -1;
+            int patternValue = -1;
         }
 
         /**
@@ -285,7 +336,7 @@ public final class DefinitionIndex {
          * @param max the maximum, or {@link #UNBOUNDED}
          */
         public Builder element(String path, int min, int max, List<String> types,
-                String bindingStrength, String bindingValueSet) {
+                String bindingStrength, String bindingValueSet, String fixed, String pattern) {
             if (canonical < 0) {
                 throw new IllegalStateException(
                         "an element arrived before any structure was opened: " + path);
@@ -303,6 +354,8 @@ public final class DefinitionIndex {
             }
             row.bindingStrength = strength(bindingStrength);
             row.bindingValueSet = bindingValueSet == null ? -1 : intern(bindingValueSet);
+            row.fixedValue = fixed == null ? -1 : intern(fixed);
+            row.patternValue = pattern == null ? -1 : intern(pattern);
             int cut = path.lastIndexOf('.');
             if (cut > 0) {
                 row.parent = byPath.getOrDefault(path.substring(0, cut), -1);

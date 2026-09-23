@@ -5,7 +5,7 @@ import cloud.jengu.dbo.fhir.common.Finding;
 import cloud.jengu.dbo.fhir.element.FaceRootPackages;
 import cloud.jengu.dbo.fhir.index.DefinitionIndex;
 import cloud.jengu.dbo.fhir.index.DefinitionRows;
-import cloud.jengu.dbo.fhir.validate.CardinalityCheck;
+import cloud.jengu.dbo.fhir.validate.ElementChecks;
 import cloud.jengu.dbo.promises.DboPromises;
 import cloud.jengu.dbo.promises.Proving;
 import cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner;
@@ -210,8 +210,8 @@ class TheTwoAnswersAreComparedOverTheVersionIT {
                 continue;
             }
             for (FaceRootPackages.Definition document : ofType.getValue()) {
-                CardinalityCheck.Checked checked =
-                        CardinalityCheck.over(index(), canonical, document.document());
+                ElementChecks.Checked checked =
+                        ElementChecks.over(index(), canonical, document.document());
                 Set<String> ours = new TreeSet<>();
                 for (Finding one : checked.findings()) {
                     ours.add(withoutIndices(one.path()));
@@ -334,7 +334,7 @@ class TheTwoAnswersAreComparedOverTheVersionIT {
     /** What the index checker faults, as the elements rather than the occurrences. */
     private static Set<String> pathsFromTheIndex(String canonical, String document) {
         Set<String> paths = new TreeSet<>();
-        for (Finding one : CardinalityCheck.over(index(), canonical,
+        for (Finding one : ElementChecks.over(index(), canonical,
                 document.getBytes(StandardCharsets.UTF_8)).findings()) {
             paths.add(withoutIndices(one.path()));
         }

@@ -1,22 +1,23 @@
-**Open. Seven of the twelve moves on the critical path are done and an
-eighth is spiked; four were measurements, the fifth was the decision they
-were gathered for, and two are built. A face costs 225 MB because of the
-form its definitions are held in, not their size: 92,807 element definitions
-as object graphs, 1.1 million primitive wrappers, one byte array per string.
-The three cheap ways out are closed by measurement — lazy loading is 133 MB
-worse, eviction is impossible because the toolchain discards the reload path
-at first use, and the shape is fixed by a manager that holds model objects.
-What is left is a definition index of our own: flat rows in heap, per
-tenant, over the closure its declared types reach, under a face base the
-image already carries. **A closure is now counted**, and it needed no face
-root after all — the walk reads the carried packages, which is the same
-claim the index makes. Hogwarts' eleven declared types reach 78 of r5's 389
-structures and **1,164 of its 16,150 elements, 7.2%**. The shape of that is
-the finding: a fixed kernel of 64 datatype structures, 462 elements, that
-every resource type reaches, and one to three structures per type above it.
-It is a **per-tenant** win and not a per-face one — a face whose tenants
-between them declared every resource would reach 94% of the corpus, so one
-index shared by a face's tenants would save nothing. **And the form is now
+**Open. Seven of the twelve moves on the critical path are done, an eighth
+is half built and half costed, and a ninth is spiked; four were
+measurements, the fifth was the decision they were gathered for, and the
+checker exists. A face costs 225 MB because of the form its definitions are
+held in, not their size: 92,807 element definitions as object graphs, 1.1
+million primitive wrappers, one byte array per string. The three cheap ways
+out are closed by measurement — lazy loading is 133 MB worse, eviction is
+impossible because the toolchain discards the reload path at first use, and
+the shape is fixed by a manager that holds model objects. What is left is a
+definition index of our own: flat rows in heap, per tenant, over the closure
+its declared types reach, under a face base the image already carries. **A
+closure is now counted**, and it needed no face root after all — the walk
+reads the carried packages, which is the same claim the index makes.
+Hogwarts' eleven declared types reach 78 of r5's 389 structures and **1,164
+of its 16,150 elements, 7.2%**. The shape of that is the finding: a fixed
+kernel of 64 datatype structures, 462 elements, that every resource type
+reaches, and one to three structures per type above it. It is a
+**per-tenant** win and not a per-face one — a face whose tenants between
+them declared every resource would reach 94% of the corpus, so one index
+shared by a face's tenants would save nothing. **And the form is now
 measured too**: the same 78 structures cost **190 KB flat against 5,966 KB
 as model objects, 31 times**, 167 bytes an element against 5,249. A tenant's
 whole index is 190 KB where a face's context is 225 MB, and r5's entire
@@ -68,8 +69,24 @@ documents that ARE wrong they name the same elements at every depth. The one
 divergence is deliberate and the index is the side that reaches further — a
 datatype's insides are in the rows only where a profile constrains them, and
 the index holds the closure. Nothing on the serving path asks either module
-yet and the reach ledger names both: comparing is not being asked. Next:
-step 7, the rest of a checker, and step 9's other half.**
+yet and the reach ledger names both: comparing is not being asked. **Step 7
+is half of itself**: fixed and pattern are built and agree with the database
+over a tenant's own profile, which is where pinned values actually live —
+the closure they sit in has zero in its base structures, so a checker proven
+only against what HL7 publishes would never have run that code. Running it
+against a profile found two silent defects in the walk, both of which
+reported a clean document: it left the profile's own structure on reaching a
+datatype and walked past the constraint, and it took its root path from the
+canonical's last segment, which is the profile's name rather than the type.
+The other two checks are costed rather than built, and both came out small:
+a required binding over a closure is 58 elements naming 43 value sets, all
+held, all a whole code system, **598 codes** — not an expansion engine — and
+a slice is **203 predicates, 1.5%**, every one of them equality optionally
+joined by and. Two traps on the way to the first number each gave a
+confident wrong answer: a binding names a canonical with its version and the
+terminology is keyed without one, and a compose is stored under this store's
+own plural names. Next: build the two now that neither is a guess, or step
+9's other half.**
 
 # A face toolset of our own
 
@@ -514,7 +531,7 @@ was no way to tell what was next from what was merely undone.
 | 4 | ~~**Decide whether the spike becomes modules**~~ **Taken: yes**, and argued below | nothing by itself; it was the gate, and everything above was deliberately done without it so the decision rested on figures | 0–3, which is why they came first |
 | 5 | ~~**Build the index from ROWS rather than packages**~~ **Done.** `core/dbo-fhir-index`, one bundle importing nothing but the JDK; 750 elements over a face root's closure, element for element against the packages, **no divergence** | the base-and-overlay split, the face image path, and a tenant's own profiles — none of which a package can supply. And, unplanned, one of the three modules turned out not to be needed | 4 |
 | 6 | ~~**The database leg**~~ **Done.** `core/dbo-fhir-validate` stands in `TheTwoAnswersAreComparedOverTheVersionIT` against `dbo.cardinality`: 258 documents, 21,267 descents, no divergence — and one divergence found on purpose, where the index reaches further | the word "third" in "third answerer", which was a plan until this. NOT reachability: comparing is not being asked | 5, and a tenant |
-| 7 | **The rest of a checker** — fixed and pattern values, slicing, required bindings | a checker that covers what a tenant's own profiles actually say, rather than what base definitions happen not to | 5, because profiles arrive as rows |
+| 7 | **The rest of a checker** — fixed and pattern values, slicing, required bindings. **Fixed and pattern are DONE** and agree with the database over a tenant's own profile; the other two are costed rather than built, and both came out small — 598 codes, one predicate form | a checker that covers what a tenant's own profiles actually say, rather than what base definitions happen not to | 5, because profiles arrive as rows |
 | 8 | **FHIRPath compiled at the cut**, into rows, as `definition_parameter` already is in part | invariants, which are the largest thing the toolchain still answers alone | 5 |
 | 9 | **The payload path without `elementmodel`** — read and write EVERY type from JSON, not only check it. **Spiked, and it holds**: 6,532 documents and 86 MB in and out unaltered with no context, and 91.9% of search expressions are plain paths | the last reason a serving node builds a context at all; it is row one of item 024's foot and belonged in neither item's steps | 5, 7 |
 | 10 | **Derived subscriptions** — the closure as what to replicate, the filter computed rather than declared | the database, the expansion, the image and the index all narrowed from one derivation | 5, and [item 021](../021-asking-the-store/README.md)'s answers, which are written |
@@ -617,6 +634,90 @@ profile's rows stop.
 was expected to come out at this step and does not, which is worth saying
 plainly: comparing is not being asked. What takes it out is a write judged by
 this answerer, and no step below is that yet.
+
+## Step 7, and what it found by being run against a profile
+
+**Fixed and pattern are built.** The index carries what a profile pinned, and
+`ElementChecks` answers equality and containment over it — jsonb's own
+relations, because the database answers the same two questions with
+`IS DISTINCT FROM` and `@>` and the whole case for a third answerer is that it
+says the same thing.
+
+The comparison is on the tenant that authors profiles, against the same kind
+of fixture the database's side is already proven on: a pinned identifier
+system and a pinned marital status. Five documents — exactly what is pinned
+with more beside it, the wrong system, a status the profile does not state,
+both wrong at once, and two identifiers of which one is wrong. Both answerers
+name the same elements on all five.
+
+**It could not have been proven a step earlier, and that is the point of the
+step.** A version states minima and maxima everywhere and pins almost nothing:
+the closure this profile sits in has **zero** fixed or pattern values in its
+base structures. A checker proven only against what HL7 publishes would never
+have run this code at all.
+
+**Running it against a profile found two defects, and both were silent.**
+
+- **The walk left the profile's own structure.** On reaching
+  `Patient.identifier` it moved into `Identifier`'s structure on the strength
+  of the type — and walked straight past `Patient.identifier.system`, which is
+  where the tenant's fixed value is. The rule is now the snapshot's rather
+  than the type's: where a structure enumerates anything below an element,
+  that is what applies and the walk stays. A backbone was already the same
+  case, which is why this looked right for a whole step.
+- **The root path was taken from the canonical's last segment.** That is the
+  type for a base definition and the profile's NAME for a profile, so the walk
+  began at `IndeksIkPatsient` and found nothing in a document whose paths all
+  begin `Patient`. It reports zero findings, which reads exactly like a clean
+  document. The index knows the root because the rows say it, so nothing
+  guesses now.
+
+Neither would have been found by cardinality over base definitions, and
+neither failed loudly. That is the second time in this item that the thing
+which looked finished was answering about nothing.
+
+## What the other two checks would cost
+
+Counted rather than guessed at, because a required binding needs CODES — which
+are not definitions — and a slice needs a PREDICATE evaluated, which the
+database gets from Postgres and anything in heap would have to do itself.
+
+**A required binding is not an expansion problem.** Over a face root's closure:
+
+| | |
+|---|---|
+| elements with a required binding | 58, naming 43 distinct value sets |
+| of those, held by the tenant | **43** |
+| the shape of all 43 | a whole code system, no filter and no nesting |
+| codes behind them | **598** |
+
+Six hundred strings beside the index. That is the answer: whatever answers a
+required binding in heap holds a few hundred codes, not an expansion engine —
+for a tenant of this shape, and the number is per closure, so a tenant
+declaring more types is the case to measure next.
+
+**Two traps on the way there, and both gave a confident wrong answer first.**
+Every one of the 43 bindings names a canonical WITH its version —
+`…|4.0.1` — and the terminology is keyed without one, so asked as written the
+tenant holds none of them. And a compose is stored under this store's own
+names, `includes` and `excludes`, not FHIR's singular ones, so read with the
+wrong names every value set is a shape nothing recognises. Each read as a
+clean, plausible measurement.
+
+**A slice needs one form.** Over everything the tenant holds rows for:
+
+| | | |
+|---|---|---|
+| one plain step | 12,675 | 90.6% |
+| several, a choice | 366 | 2.6% |
+| with a predicate | **203** | **1.5%** |
+| no step at all | 747 | 5.3% |
+
+And every one of the 203 is equality, optionally joined by `and`, over a path
+of one to three segments — 174 of them the bare `? (@."x" == "y")`. Not a
+comparison, not a regex, not an existence test. So slicing in heap is an
+evaluator for a single form, and a test fails the moment a sixth shape
+appears and says which it is.
 
 ## Step 9, spiked out of order
 

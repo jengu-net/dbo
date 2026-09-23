@@ -8,6 +8,9 @@
 # line names nothing, which for the engine and the storage module
 # is a load-bearing constraint rather than an observation.
 #
+assembly:spring-boot-core    core:dbo-core
+assembly:spring-boot-server  assembly:spring-boot-core core:dbo-asking core:dbo-core core:dbo-fhir-common core:dbo-runner core:dbo-tenant core:dbo-work
+assembly:spring-boot-worker  assembly:spring-boot-core core:dbo-core core:dbo-runner core:dbo-work
 bench:runner                 core:dbo-core core:dbo-fhir-common core:dbo-fhir-r4 core:dbo-postgres core:dbo-rest
 core:conformance             core:dbo-core core:dbo-fhir-common core:dbo-fhir-r4 core:dbo-fhir-r5 core:dbo-postgres core:dbo-rest core:dbo-terminology
 core:dbo-asking              core:dbo-core core:dbo-work

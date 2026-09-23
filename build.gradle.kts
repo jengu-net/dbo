@@ -34,6 +34,9 @@ val moduleBlurbs = mapOf(
     "dbo-runner" to "The embeddable step runner: register step services, work arrives, outcomes and vitals go back.",
     "dbo-stream" to "The lane over the store's own stream: the same verbs, carried on the durable substrate.",
     "dbo-telemetry-otlp" to "The telemetry exporter: the seam's numbers to a collector as OTLP over HTTP, no protocol library.",
+    "spring-boot-core" to "The embedded container host both Spring Boot assemblies stand on: one framework, one class space, one package list.",
+    "spring-boot-server" to "The serving runtime hosted inside a Spring Boot application: beans are extension points, the container is invisible.",
+    "spring-boot-worker" to "The step runner hosted inside a Spring Boot application: a bean that performs a step, over lanes read from configuration.",
 )
 
 // The runtime bundle set, in install order. ONE list: the serving
@@ -128,7 +131,20 @@ val dboDevMode = (findProperty("dbo.dev") as String?) == "true"
 // command bundle compiles against its shell API.
 val dboKarafVersion = (findProperty("dbo.karaf.version") as String?) ?: "4.4.11"
 
+// The Spring Boot generation the assemblies compile against, named once.
+// 4.1.1 carries Spring Framework 7 and a Java 17 floor, under the 21 this
+// repository compiles at.
+//
+// A dial rather than a constant: what an application already runs decides
+// this, and an assembly built against a later generation than its host is the
+// one dependency an integrator cannot work around. The auto-configuration
+// mechanism the assemblies register under is the same in 3.x and 4.x, so
+// moving the floor down for an application still on 3.x costs nothing
+// structural.
+val dboSpringBootVersion = (findProperty("dbo.spring.boot.version") as String?) ?: "4.1.1"
+
 extra["dboKarafVersion"] = dboKarafVersion
+extra["dboSpringBootVersion"] = dboSpringBootVersion
 // Every test JVM's ceiling bows to the machine it runs on. The per-module
 // maxHeapSize values are each suite's own minimum (the element face holds a
 // version's definitions, the harness holds a container and a distribution),

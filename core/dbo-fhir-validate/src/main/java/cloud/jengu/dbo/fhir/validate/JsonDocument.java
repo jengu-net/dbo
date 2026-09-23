@@ -23,6 +23,13 @@ import java.util.Map;
  * against different rows, and it will read the text as written — which is
  * also what keeps a decimal's precision, the thing a parser reading doubles
  * destroys in silence.
+ *
+ * <p><b>What it cannot tell apart</b>, said so that a check relying on it
+ * knows: a string holding {@code "true"} and the literal {@code true} are the
+ * same text here, where jsonb holds them as different values. No check reads
+ * a value's type from this — the types an element may take are a question for
+ * the rows — and the first one that does needs the distinction rather than
+ * this scan.
  */
 final class JsonDocument {
 
@@ -50,6 +57,14 @@ final class JsonDocument {
     @SuppressWarnings("unchecked")
     private static Map<String, Object> asObject(Object read) {
         return (Map<String, Object>) read;
+    }
+
+    /**
+     * Any JSON value, which is what a profile's fixed or pattern is: an
+     * object, an array of codings, or a bare value alike.
+     */
+    static Object value(String json) {
+        return new JsonDocument(json.getBytes(StandardCharsets.UTF_8)).value();
     }
 
     private Object value() {

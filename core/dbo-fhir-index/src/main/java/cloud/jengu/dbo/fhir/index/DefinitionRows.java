@@ -115,7 +115,7 @@ public final class DefinitionRows {
             Map<String, List<DefinitionIndex.Invariant>> invariants = invariantsOf(c, canonicals);
             try (PreparedStatement ps = c.prepareStatement("""
                     SELECT canonical, element_id, path, min_occurs, max_occurs,
-                           binding_strength, binding_valueset,
+                           binding_strength, binding_valueset, fixed::text, pattern::text,
                            (SELECT array_agg(t ->> 'code' ORDER BY n)
                               FROM jsonb_array_elements(types) WITH ORDINALITY AS a(t, n))
                       FROM definitions.definition_element
@@ -135,7 +135,8 @@ public final class DefinitionRows {
                             max = DefinitionIndex.UNBOUNDED;
                         }
                         index.element(rs.getString(3), rs.getInt(4), max,
-                                codes(rs.getArray(8)), rs.getString(6), rs.getString(7));
+                                codes(rs.getArray(10)), rs.getString(6), rs.getString(7),
+                                rs.getString(8), rs.getString(9));
                         for (DefinitionIndex.Invariant rule
                                 : invariants.getOrDefault(canonical + "|" + rs.getString(2),
                                         List.of())) {
