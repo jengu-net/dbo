@@ -48,6 +48,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class WhatAProfilePinsIsAnsweredFromTheIndexIT {
 
     private static final String PINNED = "https://ee.ee/StructureDefinition/IndeksIkPatsient";
+    private static final String SLICED = "https://ee.ee/StructureDefinition/IndeksViilutatud";
     private static final String SYSTEM = "https://ee.ee/ik";
     private static final String MARITAL =
             "http://terminology.hl7.org/CodeSystem/v3-MaritalStatus";
@@ -73,9 +74,26 @@ class WhatAProfilePinsIsAnsweredFromTheIndexIT {
                    {"id":"Patient.maritalStatus","path":"Patient.maritalStatus",
                     "patternCodeableConcept":{"coding":[{"system":"%s","code":"M"}]}}]}}"""
                 .formatted(PINNED, SYSTEM, MARITAL));
+        // And one that SLICES: an identifier under this tenant's own system,
+        // required exactly once, beside whatever else a patient carries.
+        tenant.store().create("""
+                {"resourceType":"StructureDefinition",
+                 "url":"%s","name":"IndeksViilutatud","status":"active","kind":"resource",
+                 "abstract":false,"type":"Patient",
+                 "baseDefinition":"http://hl7.org/fhir/StructureDefinition/Patient",
+                 "derivation":"constraint",
+                 "differential":{"element":[
+                   {"id":"Patient.identifier","path":"Patient.identifier",
+                    "slicing":{"discriminator":[{"type":"value","path":"system"}],
+                     "rules":"open"}},
+                   {"id":"Patient.identifier:ik","path":"Patient.identifier","sliceName":"ik",
+                    "min":1,"max":"1","type":[{"code":"Identifier"}]},
+                   {"id":"Patient.identifier:ik.system","path":"Patient.identifier.system",
+                    "min":1,"max":"1","fixedUri":"%s"}]}}"""
+                .formatted(SLICED, SYSTEM));
         tenant.store().shapesChanged();
 
-        Set<String> seeds = new LinkedHashSet<>(Set.of(PINNED));
+        Set<String> seeds = new LinkedHashSet<>(Set.of(PINNED, SLICED));
         index = DefinitionRows.over(source(), DefinitionRows.closureOf(source(), seeds));
     }
 
@@ -161,6 +179,62 @@ class WhatAProfilePinsIsAnsweredFromTheIndexIT {
                    {"system":"https://ee.ee/ik","value":"1"},
                    {"system":"https://vale.ee/ik","value":"2"}]}""",
                 Set.of("Patient.identifier.system"));
+    }
+
+    @Test
+    @DisplayName("a slice is counted as the members it claims, not as every member of the "
+            + "element it slices")
+    @Proving(DboPromises.VAL_A_THIRD_ANSWERER_READS_THE_INDEX)
+    void aSliceIsCountedAsWhatItClaims() {
+        // The slice requires exactly one identifier under this tenant's own
+        // system. An identifier under a different one does not satisfy it,
+        // and an answerer that counted every identifier would think it did.
+        bothCount("""
+                {"resourceType":"Patient",
+                 "identifier":[{"system":"https://vale.ee/ik","value":"1"}]}""",
+                Set.of("Patient.identifier"));
+
+        // The other direction, which is the one that refuses a correct
+        // document: two identifiers neither of which the slice claims. An
+        // answerer counting every member sees two where the slice allows one.
+        bothCount("""
+                {"resourceType":"Patient","identifier":[
+                   {"system":"https://ee.ee/ik","value":"1"},
+                   {"system":"https://muu.ee/ik","value":"2"}]}""",
+                Set.of());
+
+        // And what the slice is actually for: exactly one of its own.
+        bothCount("""
+                {"resourceType":"Patient",
+                 "identifier":[{"system":"https://ee.ee/ik","value":"1"}]}""",
+                Set.of());
+    }
+
+    /** Both answerers on cardinality alone, over the sliced profile. */
+    private void bothCount(String document, Set<String> expected) {
+        byte[] bytes = document.getBytes(StandardCharsets.UTF_8);
+        Set<String> ours = new TreeSet<>();
+        for (Finding one : ElementChecks.over(index, SLICED, bytes).findings()) {
+            if ("cardinality".equals(one.key())) {
+                ours.add(one.path().replaceAll("\\[\\d+\\]", ""));
+            }
+        }
+        Set<String> theirs = new TreeSet<>();
+        try (Connection c = source().getConnection();
+             PreparedStatement ps = c.prepareStatement(
+                     "SELECT path FROM dbo.cardinality_issues(?::jsonb, ?)")) {
+            ps.setString(1, new String(bytes, StandardCharsets.UTF_8));
+            ps.setString(2, SLICED);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    theirs.add(rs.getString(1));
+                }
+            }
+        } catch (SQLException e) {
+            throw new IllegalStateException("asking the database about a slice failed", e);
+        }
+        assertEquals(new TreeSet<>(expected), ours, "the index checker: " + document);
+        assertEquals(new TreeSet<>(expected), theirs, "the database: " + document);
     }
 
     /**

@@ -52,14 +52,15 @@ public final class DefinitionIndex {
     private final int[] bindingValueSet;
     private final int[] fixedValue;
     private final int[] patternValue;
+    private final int[] slice;
     private final int[] invariantAt;
     private final int[] invariants;
     private final int elements;
     private final Map<String, Integer> firstElementOf;
 
     /**
-     * The direct children of a path, by canonical — {@code Patient.contact}
-     * answers {@code Patient.contact.name} and nothing deeper.
+     * The direct children of an element — {@code Patient.contact} answers
+     * {@code Patient.contact.name} and nothing deeper.
      *
      * <p>Built on first use rather than eagerly, because a process that only
      * reads one structure should not pay for the rest, and never twice: a
@@ -67,7 +68,7 @@ public final class DefinitionIndex {
      * structure's elements each time would make the walk quadratic in the
      * size of a definition.
      */
-    private Map<String, List<Integer>> childrenByPath;
+    private List<List<Integer>> childrenByElement;
 
     private DefinitionIndex(Builder from) {
         this.words = from.words.toArray(new String[0]);
@@ -85,6 +86,7 @@ public final class DefinitionIndex {
         this.bindingValueSet = new int[elements];
         this.fixedValue = new int[elements];
         this.patternValue = new int[elements];
+        this.slice = new int[elements];
         for (int i = 0; i < elements; i++) {
             Builder.Row r = from.rows.get(i);
             canonicalOf[i] = r.canonical;
@@ -98,6 +100,7 @@ public final class DefinitionIndex {
             bindingValueSet[i] = r.bindingValueSet;
             fixedValue[i] = r.fixedValue;
             patternValue[i] = r.patternValue;
+            slice[i] = r.slice;
         }
         this.typeAt[elements] = from.typeCodes.size();
         this.invariantAt[elements] = from.invariants.size();
@@ -153,42 +156,64 @@ public final class DefinitionIndex {
     }
 
     /**
-     * The path this structure's own root element carries.
+     * This structure's own root element.
      *
      * <p>Asked rather than derived. A base definition's canonical ends in the
-     * type it defines, so the last segment of the url is the root path and
-     * looks like a fine shortcut; a profile's canonical ends in the profile's
-     * name, and a walk that started at {@code IndeksIkPatsient} finds nothing
+     * type it defines, so the last segment of the url looks like a fine
+     * shortcut to the root path; a profile's canonical ends in the profile's
+     * NAME, and a walk that started at {@code IndeksIkPatsient} finds nothing
      * in a document whose paths all begin {@code Patient}. The rows say it,
      * so nothing has to guess.
      *
-     * @return the root path, or null where the structure is not held
+     * @return the root element, or -1 where the structure is not held
      */
-    public String rootPathOf(String canonical) {
+    public int rootOf(String canonical) {
         Integer first = firstElementOf.get(canonical);
-        return first == null ? null : pathOf(first);
+        return first == null ? -1 : first;
     }
 
-    /** The direct children of a path within one structure. */
-    public List<Integer> childrenOf(String canonical, String path) {
-        if (childrenByPath == null) {
-            Map<String, List<Integer>> built = new HashMap<>();
+    /**
+     * The predicate that says which members this element claims, or null
+     * where it claims all of them.
+     *
+     * <p>A slice is located by a predicate over the members of the element it
+     * slices, and the row carries it as part of the jsonpath the database
+     * locates by. Held as that text: every one of them is equality, optionally
+     * joined by and.
+     */
+    public String sliceOf(int element) {
+        int word = slice[element];
+        return word < 0 ? null : words[word];
+    }
+
+    /**
+     * The direct children of one element.
+     *
+     * <p>By ELEMENT and not by path, which is what a slice makes necessary.
+     * {@code Patient.identifier} and {@code Patient.identifier:ik} carry the
+     * same path — a path has no slice markers — so children keyed by path
+     * hand a slice's own constraints to the element it slices, and every
+     * identifier is then held to what one slice says. The rows distinguish
+     * them, so this does.
+     */
+    public List<Integer> childrenOf(int element) {
+        if (childrenByElement == null) {
+            List<List<Integer>> built = new ArrayList<>(elements);
             for (int i = 0; i < elements; i++) {
-                String full = pathOf(i);
-                int cut = full == null ? -1 : full.lastIndexOf('.');
-                if (cut < 0) {
-                    continue;
-                }
-                built.computeIfAbsent(key(canonicals[canonicalOf[i]], full.substring(0, cut)),
-                        k -> new ArrayList<>()).add(i);
+                built.add(null);
             }
-            childrenByPath = built;
+            for (int i = 0; i < elements; i++) {
+                if (parent[i] >= 0) {
+                    if (built.get(parent[i]) == null) {
+                        built.set(parent[i], new ArrayList<>());
+                    }
+                    built.get(parent[i]).add(i);
+                }
+            }
+            childrenByElement = built;
         }
-        return childrenByPath.getOrDefault(key(canonical, path), List.of());
-    }
-
-    private static String key(String canonical, String path) {
-        return canonical + "|" + path;
+        List<Integer> children = childrenByElement.get(element);
+        return children == null ? List.of() : children;
     }
 
     public String canonicalOf(int element) {
@@ -285,10 +310,10 @@ public final class DefinitionIndex {
      *
      * <p>Elements arrive in document order within a structure, because that
      * is the order {@code ordinal} gives them and the order a parent is known
-     * in before its children. A parent is derived from the path rather than
-     * taken from the caller: a row's {@code parent_id} says the same thing,
-     * and deriving it here is what lets an index built from packages and one
-     * built from rows be compared without either being given the answer.
+     * in before its children. A parent is taken from the row's own
+     * {@code parent_id} and not derived from the path: deriving it looked
+     * equivalent and is not, because a slice and the element it slices carry
+     * the same path and different ids.
      */
     public static final class Builder {
 
@@ -299,10 +324,10 @@ public final class DefinitionIndex {
         private final List<Integer> typeCodes = new ArrayList<>();
         private final List<Integer> invariants = new ArrayList<>();
         private final Map<String, Integer> firstElementOf = new LinkedHashMap<>();
-        private final Map<String, Integer> byPath = new HashMap<>();
+        private final Map<String, Integer> byId = new HashMap<>();
         private int canonical = -1;
         private Row open;
-        private String openPath;
+        private String openId;
 
         private static final class Row {
             int canonical;
@@ -316,6 +341,7 @@ public final class DefinitionIndex {
             int bindingValueSet = -1;
             int fixedValue = -1;
             int patternValue = -1;
+            int slice = -1;
         }
 
         /**
@@ -326,7 +352,7 @@ public final class DefinitionIndex {
             close();
             this.canonical = canonicals.size();
             canonicals.add(canonical);
-            byPath.clear();
+            byId.clear();
             return this;
         }
 
@@ -335,8 +361,9 @@ public final class DefinitionIndex {
          *
          * @param max the maximum, or {@link #UNBOUNDED}
          */
-        public Builder element(String path, int min, int max, List<String> types,
-                String bindingStrength, String bindingValueSet, String fixed, String pattern) {
+        public Builder element(String elementId, String parentId, String path, int min, int max,
+                List<String> types, String bindingStrength, String bindingValueSet,
+                String fixed, String pattern, String slice) {
             if (canonical < 0) {
                 throw new IllegalStateException(
                         "an element arrived before any structure was opened: " + path);
@@ -345,6 +372,9 @@ public final class DefinitionIndex {
             Row row = new Row();
             row.canonical = canonical;
             row.path = intern(path);
+            row.slice = slice == null ? -1 : intern(slice);
+            openId = elementId;
+            row.parent = parentId == null ? -1 : byId.getOrDefault(parentId, -1);
             row.min = clamp(min);
             row.max = max == UNBOUNDED ? (short) UNBOUNDED : clamp(max);
             row.typeAt = typeCodes.size();
@@ -356,12 +386,7 @@ public final class DefinitionIndex {
             row.bindingValueSet = bindingValueSet == null ? -1 : intern(bindingValueSet);
             row.fixedValue = fixed == null ? -1 : intern(fixed);
             row.patternValue = pattern == null ? -1 : intern(pattern);
-            int cut = path.lastIndexOf('.');
-            if (cut > 0) {
-                row.parent = byPath.getOrDefault(path.substring(0, cut), -1);
-            }
             open = row;
-            openPath = path;
             return this;
         }
 
@@ -387,10 +412,10 @@ public final class DefinitionIndex {
                 return;
             }
             firstElementOf.putIfAbsent(canonicals.get(open.canonical), rows.size());
-            byPath.put(openPath, rows.size());
+            byId.put(openId, rows.size());
             rows.add(open);
             open = null;
-            openPath = null;
+            openId = null;
         }
 
         private static short clamp(int occurs) {

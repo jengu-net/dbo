@@ -34,10 +34,17 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * PREDICATE evaluated, which the database gets from Postgres's jsonpath and
  * an index in heap would have to evaluate itself.
  *
- * <p>So this counts rather than builds, in the shape the rest of this item
+ * <p>So this counted rather than built, in the shape the rest of this item
  * was decided in: what is there, how much of it is the easy form, and what
- * the residue is. A checker written before the count would be a guess about
- * which half of the work matters.
+ * the residue is. A checker written before the count would have been a guess
+ * about which half of the work matters.
+ *
+ * <p><b>Both are built now, and this is what holds them up.</b> The two
+ * numbers it records are the premises they rest on — that everything a
+ * required binding names is content the tenant already holds, and that every
+ * predicate is the one form — so each is asserted rather than printed. A
+ * version that changed either would otherwise move a checker from answering
+ * to guessing without anything saying so.
  *
  * <p>Shared, and a face root, because both questions are about what a version
  * says rather than about a tenant that holds it.

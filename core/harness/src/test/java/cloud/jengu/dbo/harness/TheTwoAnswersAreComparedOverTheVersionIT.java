@@ -3,6 +3,7 @@ package cloud.jengu.dbo.harness;
 import cloud.jengu.dbo.definitions.DefinitionStore;
 import cloud.jengu.dbo.fhir.common.Finding;
 import cloud.jengu.dbo.fhir.element.FaceRootPackages;
+import cloud.jengu.dbo.fhir.index.BoundCodes;
 import cloud.jengu.dbo.fhir.index.DefinitionIndex;
 import cloud.jengu.dbo.fhir.index.DefinitionRows;
 import cloud.jengu.dbo.fhir.validate.ElementChecks;
@@ -254,6 +255,78 @@ class TheTwoAnswersAreComparedOverTheVersionIT {
         assertTrue(deepest >= 4, "the walk never went deep: " + deepest);
         assertEquals(List.of(), divergences,
                 "the two answerers over the same rows do not name the same elements");
+    }
+
+    private static BoundCodes codes;
+
+    /** The codes behind the required bindings, read once beside the index. */
+    private static synchronized BoundCodes codes() {
+        if (codes == null) {
+            codes = BoundCodes.over(source(), index());
+        }
+        return codes;
+    }
+
+    @Test
+    @DisplayName("a required binding is decided in the process, against a few hundred codes, "
+            + "and the database says the same")
+    @Proving(DboPromises.VAL_A_THIRD_ANSWERER_READS_THE_INDEX)
+    void aRequiredBindingIsDecidedFromTheCodesHeld() {
+        String patient = "http://hl7.org/fhir/StructureDefinition/Patient";
+        System.out.printf("%n=== the codes behind %s's required bindings ===%n"
+                + "%d value sets answerable, %d codes held, %d declined as too large%n",
+                tenant.code(), codes().valueSets(), codes().codes(), codes().declined().size());
+
+        // Patient.gender is bound to administrative-gender at required
+        // strength, which is four codes.
+        bothBind(patient, "{\"resourceType\":\"Patient\",\"gender\":\"female\"}", Set.of());
+        bothBind(patient, "{\"resourceType\":\"Patient\",\"gender\":\"kass\"}",
+                Set.of("Patient.gender"));
+
+        // A CodeableConcept is satisfied by ANY of its codings, so one good
+        // coding beside one bad one is not a refusal.
+        bothBind(patient,
+                "{\"resourceType\":\"Patient\",\"maritalStatus\":{\"coding\":["
+                        + "{\"system\":\"http://terminology.hl7.org/CodeSystem/v3-MaritalStatus\","
+                        + "\"code\":\"M\"}]}}",
+                Set.of());
+
+        // And a code from a system the value set is not built from: knowable
+        // without holding anything, and both know it.
+        bothBind(patient,
+                "{\"resourceType\":\"Patient\",\"maritalStatus\":{\"coding\":["
+                        + "{\"system\":\"https://ee.ee/oma\",\"code\":\"X\"}]}}",
+                Set.of());
+
+        assertTrue(codes().codes() > 100,
+                "too few codes held for this to have decided anything: " + codes().codes());
+    }
+
+    /** Both answerers on the binding check alone. */
+    private void bothBind(String canonical, String document, Set<String> expected) {
+        byte[] bytes = document.getBytes(StandardCharsets.UTF_8);
+        Set<String> ours = new TreeSet<>();
+        for (Finding one : ElementChecks.over(index(), codes(), canonical, bytes).findings()) {
+            if ("binding".equals(one.key())) {
+                ours.add(withoutIndices(one.path()));
+            }
+        }
+        Set<String> theirs = new TreeSet<>();
+        try (Connection c = source().getConnection();
+             PreparedStatement ps = c.prepareStatement(
+                     "SELECT path FROM dbo.binding_issues(?::jsonb, ?)")) {
+            ps.setString(1, new String(bytes, StandardCharsets.UTF_8));
+            ps.setString(2, canonical);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    theirs.add(rs.getString(1));
+                }
+            }
+        } catch (java.sql.SQLException e) {
+            throw new IllegalStateException("asking the database about a binding failed", e);
+        }
+        assertEquals(new TreeSet<>(expected), ours, "the index checker: " + document);
+        assertEquals(new TreeSet<>(expected), theirs, "the database: " + document);
     }
 
     @Test

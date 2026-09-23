@@ -117,7 +117,8 @@ public final class DefinitionRows {
                     SELECT canonical, element_id, path, min_occurs, max_occurs,
                            binding_strength, binding_valueset, fixed::text, pattern::text,
                            (SELECT array_agg(t ->> 'code' ORDER BY n)
-                              FROM jsonb_array_elements(types) WITH ORDINALITY AS a(t, n))
+                              FROM jsonb_array_elements(types) WITH ORDINALITY AS a(t, n)),
+                           parent_id, steps
                       FROM definitions.definition_element
                      WHERE canonical = ANY(?)
                      ORDER BY canonical, ordinal""")) {
@@ -134,9 +135,10 @@ public final class DefinitionRows {
                         if (rs.wasNull()) {
                             max = DefinitionIndex.UNBOUNDED;
                         }
-                        index.element(rs.getString(3), rs.getInt(4), max,
-                                codes(rs.getArray(10)), rs.getString(6), rs.getString(7),
-                                rs.getString(8), rs.getString(9));
+                        index.element(rs.getString(2), rs.getString(11), rs.getString(3),
+                                rs.getInt(4), max, codes(rs.getArray(10)), rs.getString(6),
+                                rs.getString(7), rs.getString(8), rs.getString(9),
+                                predicateOf(rs.getArray(12)));
                         for (DefinitionIndex.Invariant rule
                                 : invariants.getOrDefault(canonical + "|" + rs.getString(2),
                                         List.of())) {
@@ -178,6 +180,30 @@ public final class DefinitionRows {
             }
         }
         return byElement;
+    }
+
+    /**
+     * The predicate a slice is located by, out of the jsonpaths the row
+     * carries, or null where the element claims every member.
+     *
+     * <p>A row's steps are jsonpaths relative to its parent instance: one
+     * normally, several for a choice, one with a predicate for a slice. Only
+     * the predicate is taken — where the member sits is something the walk
+     * already knows from the path, and what it needs from the step is which
+     * of the members there belong to this slice.
+     */
+    private static String predicateOf(Array steps) throws SQLException {
+        if (steps == null) {
+            return null;
+        }
+        for (Object step : (Object[]) steps.getArray()) {
+            String one = step == null ? null : step.toString();
+            int at = one == null ? -1 : one.indexOf('?');
+            if (at >= 0) {
+                return one.substring(at + 1).trim();
+            }
+        }
+        return null;
     }
 
     private static List<String> codes(Array codes) throws SQLException {

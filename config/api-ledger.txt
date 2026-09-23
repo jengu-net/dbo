@@ -1853,6 +1853,14 @@ cloud.jengu.dbo.fhir.element.Terms.Membership                          new(boole
 cloud.jengu.dbo.fhir.element.Terms.Membership                          present():boolean
 cloud.jengu.dbo.fhir.element.Terms.Membership                          record
 cloud.jengu.dbo.fhir.element.Terms.Membership                          toString():String
+cloud.jengu.dbo.fhir.index.BoundCodes                                  DEFAULT_CAP:int
+cloud.jengu.dbo.fhir.index.BoundCodes                                  class
+cloud.jengu.dbo.fhir.index.BoundCodes                                  codes():int
+cloud.jengu.dbo.fhir.index.BoundCodes                                  contains(String,String,String):Boolean
+cloud.jengu.dbo.fhir.index.BoundCodes                                  declined():Set
+cloud.jengu.dbo.fhir.index.BoundCodes                                  over(DataSource,cloud.jengu.dbo.fhir.index.DefinitionIndex):cloud.jengu.dbo.fhir.index.BoundCodes
+cloud.jengu.dbo.fhir.index.BoundCodes                                  over(DataSource,cloud.jengu.dbo.fhir.index.DefinitionIndex,int):cloud.jengu.dbo.fhir.index.BoundCodes
+cloud.jengu.dbo.fhir.index.BoundCodes                                  valueSets():int
 cloud.jengu.dbo.fhir.index.DefinitionIndex                             EXAMPLE:byte
 cloud.jengu.dbo.fhir.index.DefinitionIndex                             EXTENSIBLE:byte
 cloud.jengu.dbo.fhir.index.DefinitionIndex                             NO_BINDING:byte
@@ -1863,7 +1871,7 @@ cloud.jengu.dbo.fhir.index.DefinitionIndex                             bindingSt
 cloud.jengu.dbo.fhir.index.DefinitionIndex                             bindingValueSetOf(int):String
 cloud.jengu.dbo.fhir.index.DefinitionIndex                             builder():cloud.jengu.dbo.fhir.index.DefinitionIndex.Builder
 cloud.jengu.dbo.fhir.index.DefinitionIndex                             canonicalOf(int):String
-cloud.jengu.dbo.fhir.index.DefinitionIndex                             childrenOf(String,String):List
+cloud.jengu.dbo.fhir.index.DefinitionIndex                             childrenOf(int):List
 cloud.jengu.dbo.fhir.index.DefinitionIndex                             class
 cloud.jengu.dbo.fhir.index.DefinitionIndex                             elements():int
 cloud.jengu.dbo.fhir.index.DefinitionIndex                             elementsOf(String):List
@@ -1876,13 +1884,14 @@ cloud.jengu.dbo.fhir.index.DefinitionIndex                             minOf(int
 cloud.jengu.dbo.fhir.index.DefinitionIndex                             parentOf(int):int
 cloud.jengu.dbo.fhir.index.DefinitionIndex                             pathOf(int):String
 cloud.jengu.dbo.fhir.index.DefinitionIndex                             patternOf(int):String
-cloud.jengu.dbo.fhir.index.DefinitionIndex                             rootPathOf(String):String
+cloud.jengu.dbo.fhir.index.DefinitionIndex                             rootOf(String):int
+cloud.jengu.dbo.fhir.index.DefinitionIndex                             sliceOf(int):String
 cloud.jengu.dbo.fhir.index.DefinitionIndex                             structures():int
 cloud.jengu.dbo.fhir.index.DefinitionIndex                             typesOf(int):List
 cloud.jengu.dbo.fhir.index.DefinitionIndex                             words():int
 cloud.jengu.dbo.fhir.index.DefinitionIndex.Builder                     build():cloud.jengu.dbo.fhir.index.DefinitionIndex
 cloud.jengu.dbo.fhir.index.DefinitionIndex.Builder                     class
-cloud.jengu.dbo.fhir.index.DefinitionIndex.Builder                     element(String,int,int,List,String,String,String,String):cloud.jengu.dbo.fhir.index.DefinitionIndex.Builder
+cloud.jengu.dbo.fhir.index.DefinitionIndex.Builder                     element(String,String,String,int,int,List,String,String,String,String,String):cloud.jengu.dbo.fhir.index.DefinitionIndex.Builder
 cloud.jengu.dbo.fhir.index.DefinitionIndex.Builder                     invariant(String,String,String):cloud.jengu.dbo.fhir.index.DefinitionIndex.Builder
 cloud.jengu.dbo.fhir.index.DefinitionIndex.Builder                     new()
 cloud.jengu.dbo.fhir.index.DefinitionIndex.Builder                     structure(String):cloud.jengu.dbo.fhir.index.DefinitionIndex.Builder
@@ -2067,6 +2076,7 @@ cloud.jengu.dbo.fhir.r5.R5Terminology                                  storedFor
 cloud.jengu.dbo.fhir.r5.R5Terminology                                  validateCode(String,String):String
 cloud.jengu.dbo.fhir.validate.ElementChecks                            class
 cloud.jengu.dbo.fhir.validate.ElementChecks                            over(cloud.jengu.dbo.fhir.index.DefinitionIndex,String,byte[]):cloud.jengu.dbo.fhir.validate.ElementChecks.Checked
+cloud.jengu.dbo.fhir.validate.ElementChecks                            over(cloud.jengu.dbo.fhir.index.DefinitionIndex,cloud.jengu.dbo.fhir.index.BoundCodes,String,byte[]):cloud.jengu.dbo.fhir.validate.ElementChecks.Checked
 cloud.jengu.dbo.fhir.validate.ElementChecks.Checked                    deepest():int
 cloud.jengu.dbo.fhir.validate.ElementChecks.Checked                    descents():int
 cloud.jengu.dbo.fhir.validate.ElementChecks.Checked                    equals(Object):boolean
@@ -3911,6 +3921,7 @@ cloud.jengu.dbo.tenant.TenantRuntimeManager                            new(Path,
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            new(Path,cloud.jengu.dbo.tenant.TenantDatabaseProvisioner,String,int,cloud.jengu.dbo.tenant.TenantRuntimeManager.Listener,cloud.jengu.dbo.tenant.TenantRuntimeManager.AuthorityConfig)
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            new(Path,cloud.jengu.dbo.tenant.TenantDatabaseProvisioner,String,int,cloud.jengu.dbo.tenant.TenantRuntimeManager.Listener,cloud.jengu.dbo.tenant.TenantRuntimeManager.AuthorityConfig,cloud.jengu.dbo.fhir.common.FhirVersions)
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            new(Path,cloud.jengu.dbo.tenant.TenantDatabaseProvisioner,String,int,cloud.jengu.dbo.tenant.TenantRuntimeManager.Listener,cloud.jengu.dbo.tenant.TenantRuntimeManager.AuthorityConfig,cloud.jengu.dbo.fhir.common.FhirVersions,cloud.jengu.dbo.core.process.Steps)
+cloud.jengu.dbo.tenant.TenantRuntimeManager                            new(Path,cloud.jengu.dbo.tenant.TenantDatabaseProvisioner,String,int,cloud.jengu.dbo.tenant.TenantRuntimeManager.Listener,cloud.jengu.dbo.tenant.TenantRuntimeManager.AuthorityConfig,cloud.jengu.dbo.fhir.common.FhirVersions,cloud.jengu.dbo.core.process.Steps,HttpServer)
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            port():int
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            pruneSigningKeys():int
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            redeclarations():Map
