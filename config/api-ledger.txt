@@ -964,6 +964,7 @@ cloud.jengu.dbo.core.api.feed.ChangeFeed                               interface
 cloud.jengu.dbo.core.api.feed.ChangeFeed                               lag(String):long
 cloud.jengu.dbo.core.api.feed.ChangeFeed                               read(String,int):cloud.jengu.dbo.core.api.feed.FeedChunk
 cloud.jengu.dbo.core.api.feed.ChangeFeed                               readFor(String,int):cloud.jengu.dbo.core.api.feed.FeedChunk
+cloud.jengu.dbo.core.api.feed.ChangeFeed                               readFor(String,int,cloud.jengu.dbo.core.api.feed.FeedSelection):cloud.jengu.dbo.core.api.feed.FeedChunk
 cloud.jengu.dbo.core.api.feed.ChangeFeed                               resetConsumer(String,String):void
 cloud.jengu.dbo.core.api.feed.ChangeKind                               CREATED:cloud.jengu.dbo.core.api.feed.ChangeKind
 cloud.jengu.dbo.core.api.feed.ChangeKind                               DELETED:cloud.jengu.dbo.core.api.feed.ChangeKind
@@ -996,6 +997,16 @@ cloud.jengu.dbo.core.api.feed.FeedItem                                 shape():L
 cloud.jengu.dbo.core.api.feed.FeedItem                                 toString():String
 cloud.jengu.dbo.core.api.feed.FeedItem                                 typeName():String
 cloud.jengu.dbo.core.api.feed.FeedItem                                 versionId():long
+cloud.jengu.dbo.core.api.feed.FeedSelection                            EVERYTHING:cloud.jengu.dbo.core.api.feed.FeedSelection
+cloud.jengu.dbo.core.api.feed.FeedSelection                            canonicals():Set
+cloud.jengu.dbo.core.api.feed.FeedSelection                            equals(Object):boolean
+cloud.jengu.dbo.core.api.feed.FeedSelection                            everything():boolean
+cloud.jengu.dbo.core.api.feed.FeedSelection                            hashCode():int
+cloud.jengu.dbo.core.api.feed.FeedSelection                            new(Set,Set)
+cloud.jengu.dbo.core.api.feed.FeedSelection                            ofTypes(Set):cloud.jengu.dbo.core.api.feed.FeedSelection
+cloud.jengu.dbo.core.api.feed.FeedSelection                            record
+cloud.jengu.dbo.core.api.feed.FeedSelection                            toString():String
+cloud.jengu.dbo.core.api.feed.FeedSelection                            types():Set
 cloud.jengu.dbo.core.api.identity.Adjudication                         because():String
 cloud.jengu.dbo.core.api.identity.Adjudication                         bound(String,List,List,String,Instant,String):cloud.jengu.dbo.core.api.identity.Adjudication
 cloud.jengu.dbo.core.api.identity.Adjudication                         created(String,List,List,String,Instant,String):cloud.jengu.dbo.core.api.identity.Adjudication
@@ -2563,6 +2574,7 @@ cloud.jengu.dbo.postgres.PgChangeFeed                                  lag(Strin
 cloud.jengu.dbo.postgres.PgChangeFeed                                  new(DataSource,String)
 cloud.jengu.dbo.postgres.PgChangeFeed                                  read(String,int):cloud.jengu.dbo.core.api.feed.FeedChunk
 cloud.jengu.dbo.postgres.PgChangeFeed                                  readFor(String,int):cloud.jengu.dbo.core.api.feed.FeedChunk
+cloud.jengu.dbo.postgres.PgChangeFeed                                  readFor(String,int,cloud.jengu.dbo.core.api.feed.FeedSelection):cloud.jengu.dbo.core.api.feed.FeedChunk
 cloud.jengu.dbo.postgres.PgChangeFeed                                  resetConsumer(String,String):void
 cloud.jengu.dbo.postgres.PgObjectStore                                 class
 cloud.jengu.dbo.postgres.PgObjectStore                                 count(cloud.jengu.dbo.core.api.Criteria):long
@@ -3538,10 +3550,13 @@ cloud.jengu.dbo.sync.ConfigSource.Fetch                                toString(
 cloud.jengu.dbo.sync.ContentDependency                                 declaredTypes():Set
 cloud.jengu.dbo.sync.ContentDependency                                 equals(Object):boolean
 cloud.jengu.dbo.sync.ContentDependency                                 hashCode():int
+cloud.jengu.dbo.sync.ContentDependency                                 manifest():Set
 cloud.jengu.dbo.sync.ContentDependency                                 name():String
 cloud.jengu.dbo.sync.ContentDependency                                 new(String,Set)
+cloud.jengu.dbo.sync.ContentDependency                                 new(String,Set,Set)
 cloud.jengu.dbo.sync.ContentDependency                                 record
 cloud.jengu.dbo.sync.ContentDependency                                 toString():String
+cloud.jengu.dbo.sync.ContentDependency                                 wanted():cloud.jengu.dbo.core.api.feed.FeedSelection
 cloud.jengu.dbo.sync.ContentSyncEngine                                 PROCESS:String
 cloud.jengu.dbo.sync.ContentSyncEngine                                 STEP:String
 cloud.jengu.dbo.sync.ContentSyncEngine                                 class
