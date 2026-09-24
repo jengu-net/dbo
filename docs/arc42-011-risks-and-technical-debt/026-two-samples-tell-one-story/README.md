@@ -63,9 +63,36 @@ to learn that from this file in one paragraph, which is the whole job it does.
   its own tenant would prove the wrapper again and say nothing about the
   application.
 
+- `samples/spring-boot-worker-app` — a Spring Boot application with one DBO
+  dependency, no tenant, no database and no way to get one. A bean implements
+  `StepService` and that is the whole of what it writes; the executor identity,
+  the durations, the registration and the lane are configuration.
+
+- `assembly/spring-boot-test` — how either is tested. `dbo.test.*` is the only
+  namespace a test author writes, and everything the application reads is
+  derived from it: one database per JVM, the world, a key minted for the run,
+  and where a worker is present, a credential the tenant issued and a lane
+  pointing at the port. It replaced a `samples/test-support` written an hour
+  earlier, which is where it wanted to live once it was clear an integrator
+  wants it too.
+
+## Two things that are documented and not proven
+
+**The process boundary.** The samples are two applications because that is the
+deployment: work is performed by somebody else's process, reaching the store
+over HTTP with a credential the tenant issued. The test collapses them into one
+JVM, which proves the HTTP round trip and says nothing about two processes. A
+compose-level test of the same shape as `guide-on-tree` is what would, and it
+is not written.
+
+**Running either by hand.** Neither module has a README showing a reader how to
+start the server, issue a credential and point a worker at it — which is the
+artefact somebody arriving at `samples/` actually wants.
+
 ## What is not
 
-- the worker application, and the module holding what it shares with the
-  server — the worker's test needs a server to connect to, which is what that
-  module is for
+- the end-to-end test: a step performed through the lane, asserted on the
+  executor that performed it rather than on the step having run, because in one
+  container a locally-driven run and a lane-driven one look the same from the
+  step's side
 - anything about retiring `sample/`

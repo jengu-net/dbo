@@ -27,17 +27,11 @@ dependencies {
         "org.springframework.boot:spring-boot-configuration-processor:$springBootVersion")
     runtimeOnly("ch.qos.logback:logback-classic:1.5.18")
 
-    testImplementation("org.junit.jupiter:junit-jupiter:6.0.0")
-    testImplementation("org.springframework.boot:spring-boot-test:$springBootVersion")
-    testImplementation("org.springframework:spring-test:7.0.9")
-    // A real servlet container, a real database, a real tenant: the claim is
-    // that an application serves one, and none of it survives being mocked.
-    testImplementation("org.testcontainers:testcontainers-postgresql:2.0.5")
+    // How an application on these assemblies is tested: a database for this
+    // JVM, the world, a key, and a tenant that came up — all derived from
+    // what `dbo.test.*` says this test needs.
+    testImplementation(project(":assembly:spring-boot-test"))
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
-    // The packages a face is expanded from. This application declares a
-    // tenant that takes its face from no root, so it is the case that builds
-    // one out of the specification.
-    testRuntimeOnly(project(":core:dbo-fhir-packages"))
 }
 
 tasks.withType<Test>().configureEach {

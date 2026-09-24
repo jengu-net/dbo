@@ -3,19 +3,14 @@ package cloud.jengu.dbo.samples.server;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.web.server.LocalServerPort;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.containers.PostgreSQLContainer;
+import cloud.jengu.dbo.spring.test.DboSpringBootTest;
+import org.springframework.beans.factory.annotation.Value;
 
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.nio.file.Path;
 import java.time.Duration;
-import java.util.Base64;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -34,33 +29,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * one {@code main} starts. A test that built its own tenant would prove the
  * wrapper again and say nothing about this application.
  */
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@DboSpringBootTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class TheApplicationServesItsWorldIT {
 
     private static final String TENANT = "hogwarts";
 
-    static final PostgreSQLContainer<?> POSTGRES =
-            new PostgreSQLContainer<>("postgres:17-alpine");
-
-    @LocalServerPort
+    @Value("${server.port}")
     int applicationPort;
-
-    @DynamicPropertySource
-    static void configuration(DynamicPropertyRegistry registry) {
-        POSTGRES.start();
-        // The module's own world, as a reader finds it. Resolved here because
-        // a test's working directory is the module and an application's need
-        // not be.
-        Path world = Path.of("world").toAbsolutePath();
-        registry.add("dbo.tenants.directory", () -> world.resolve("tenants").toString());
-        registry.add("dbo.management-spec", () -> world.resolve("mom.json").toString());
-        registry.add("dbo.admin.jdbc-url", POSTGRES::getJdbcUrl);
-        registry.add("dbo.admin.user", POSTGRES::getUsername);
-        registry.add("dbo.admin.password", POSTGRES::getPassword);
-        registry.add("dbo.auth.kek",
-                () -> Base64.getEncoder().encodeToString(new byte[32]));
-    }
 
     @Test
     @DisplayName("the tenant in this application's world answers a FHIR read on the "

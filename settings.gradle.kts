@@ -24,13 +24,14 @@ include("core:dbo-core", "core:dbo-postgres", "core:dbo-fhir-common", "core:dbo-
 
 // The Spring Boot assemblies: the runtime, hosted inside somebody else's
 // application, with the container invisible from the outside.
-include("assembly:spring-boot-core", "assembly:spring-boot-server", "assembly:spring-boot-worker")
+include("assembly:spring-boot-core", "assembly:spring-boot-server", "assembly:spring-boot-worker",
+        "assembly:spring-boot-test")
 
 // Applications built ON those assemblies, which is a different claim: the
 // assemblies prove the wrapper works, these prove an application can be built
 // on it. Nothing here shares anything with `sample`, which is the
 // distribution's story and the one the guide includes the source of.
-include("samples:spring-boot-server-app")
+include("samples:spring-boot-server-app", "samples:spring-boot-worker-app")
 
 dependencyResolutionManagement {
     repositories {

@@ -343,7 +343,7 @@ subprojects {
         ":sample", ":sample:participant",
         // and the applications built on the Spring Boot assemblies: something
         // to read and run rather than something to depend on
-        ":samples:spring-boot-server-app")
+        ":samples:spring-boot-server-app", ":samples:spring-boot-worker-app")
     if (project.path !in notALibrary) {
         apply(plugin = "maven-publish")
         apply(plugin = "signing")
