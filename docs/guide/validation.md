@@ -27,12 +27,17 @@ code from a particular value set. Write something else:
 
 ```
 422
-error | ERROR Patient.gender: The value provided ('purple') was not found in the
+error | Patient.gender | The value provided ('purple') was not found in the
 value set 'AdministrativeGender' (http://hl7.org/fhir/ValueSet/administrative-gender|5.0.0),
 and a code is required from this value set (error message = The code 'purple' is not in
 the value set 'http://hl7.org/fhir/ValueSet/administrative-gender'
 (answered from this tenant's terminology))
 ```
+
+The element is its own field. `expression` is where FHIR puts what an issue is
+about, so a form can mark the input somebody typed wrong without reading the
+sentence — which is the difference between a refusal a person acts on and one
+they have to parse.
 
 `422`, and nothing was written — the record does not exist at either version,
 because a refused write is not a partial one.
