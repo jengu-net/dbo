@@ -2527,7 +2527,8 @@ public final class TenantRuntimeManager implements AutoCloseable {
             if (!definitions.isEmpty()) {
                 engines.add(withRuns(spec, new cloud.jengu.dbo.sync.ContentSyncEngine(
                         new cloud.jengu.dbo.sync.ContentDependency(
-                                dependency.name(), java.util.Set.copyOf(definitions)),
+                                dependency.name(), java.util.Set.copyOf(definitions),
+                                manifestFrom(from, spec)),
                         upstream.definitionsFeed(), runtime.engine(), on,
                         // Its bookkeeping belongs beside the rows it is about,
                         // so what a face gave this tenant — the records, their
@@ -2540,6 +2541,77 @@ public final class TenantRuntimeManager implements AutoCloseable {
             }
         }
         syncEngines.put(spec.code(), java.util.List.copyOf(engines));
+    }
+
+    /**
+     * What a dependent needs from a face, computed where the definitions are.
+     *
+     * <p><b>At the upstream, because the dependent cannot.</b> The closure of
+     * a declared type runs through the structures that type refers to, and a
+     * tenant that has not received them cannot walk it. So it is derived from
+     * the upstream's own rows, over the types THIS tenant declared, and what
+     * travels between the two ends is a set of names.
+     *
+     * <p><b>Asked for as the face changes, because a filter cannot report what
+     * it removed.</b> A profile published to a face after a dependent came up
+     * can sit inside that dependent's closure, and the only thing that would
+     * say so is the feed this manifest narrows. Computed once, the dependent
+     * holds a face that stopped growing and never hears about it.
+     *
+     * <p><b>And recomputed only when the upstream has moved.</b> The closure
+     * is several queries, and running it per poll on every dependent of a busy
+     * face would cost more than the narrowing saves. The high-water mark of
+     * the upstream's definition rows answers whether anything could have
+     * changed, in one indexed read.
+     *
+     * <p>Empty is not a refusal: a selection's halves are optional and empty
+     * means everything, so an upstream with no rows yet narrows by type alone
+     * rather than asking for nothing.
+     */
+    private java.util.function.Supplier<java.util.Set<String>> manifestFrom(
+            String upstream, TenantSpec spec) {
+        java.util.List<String> declared = spec.types().stream()
+                .map(cloud.jengu.dbo.fhir.common.FhirTypeConfig::typeName)
+                .toList();
+        java.util.concurrent.atomic.AtomicLong seenAt = new java.util.concurrent.atomic.AtomicLong(-1);
+        java.util.concurrent.atomic.AtomicReference<java.util.Set<String>> held =
+                new java.util.concurrent.atomic.AtomicReference<>(java.util.Set.of());
+        return () -> {
+            javax.sql.DataSource rows = tenantDataSources.get(upstream);
+            if (rows == null) {
+                return held.get();
+            }
+            long mark;
+            try (java.sql.Connection c = rows.getConnection();
+                    java.sql.PreparedStatement ps = c.prepareStatement(
+                            "SELECT coalesce(max(id), 0) FROM definitions.definition_element");
+                    java.sql.ResultSet rs = ps.executeQuery()) {
+                mark = rs.next() ? rs.getLong(1) : 0;
+            } catch (java.sql.SQLException notReadable) {
+                // The upstream is coming up, or its schema is not there yet.
+                // Narrowing on a guess would withhold what it does have, so
+                // this answers with what it last knew — empty, at first, which
+                // is everything.
+                return held.get();
+            }
+            if (mark == seenAt.get()) {
+                return held.get();
+            }
+            cloud.jengu.dbo.fhir.index.DefinitionRows.Manifest manifest =
+                    cloud.jengu.dbo.fhir.index.DefinitionRows.manifestFor(rows, declared);
+            java.util.Set<String> names = new java.util.LinkedHashSet<>(manifest.structures());
+            names.addAll(manifest.valueSets());
+            names.addAll(manifest.codeSystems());
+            names.addAll(manifest.searchParameters());
+            held.set(java.util.Set.copyOf(names));
+            seenAt.set(mark);
+            LOG.info("what {} needs from {}: names={} structures={} valueSets={} codeSystems={}"
+                    + " searchParameters={}",
+                    spec.code(), upstream, names.size(), manifest.structures().size(),
+                    manifest.valueSets().size(), manifest.codeSystems().size(),
+                    manifest.searchParameters().size());
+            return held.get();
+        };
     }
 
     /**

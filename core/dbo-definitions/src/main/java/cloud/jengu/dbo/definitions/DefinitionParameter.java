@@ -29,6 +29,10 @@ import java.util.List;
  * @param paths         where the values are, as this store selects them
  * @param predicate     which of them count, or null when all of them do
  * @param unenforceable why it cannot be run here, or null when it can
+ * @param canonical     the url of the definition this was compiled from, so a
+ *                      dependent can be sent the ones its types are searched
+ *                      by. A compiled row is derived and cannot be streamed;
+ *                      what travels is the record, and this is its name.
  */
 public record DefinitionParameter(
         String code,
@@ -37,7 +41,14 @@ public record DefinitionParameter(
         String expression,
         List<String> paths,
         String predicate,
-        String unenforceable) {
+        String unenforceable,
+        String canonical) {
+
+    /** Compiled without knowing the definition's name. */
+    public DefinitionParameter(String code, String base, String kind, String expression,
+            List<String> paths, String predicate, String unenforceable) {
+        this(code, base, kind, expression, paths, predicate, unenforceable, null);
+    }
 
     public DefinitionParameter {
         paths = paths == null ? List.of() : List.copyOf(paths);

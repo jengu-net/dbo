@@ -1423,6 +1423,7 @@ cloud.jengu.dbo.definitions.DefinitionInvariant                        severity(
 cloud.jengu.dbo.definitions.DefinitionInvariant                        toString():String
 cloud.jengu.dbo.definitions.DefinitionInvariant                        unenforceable():String
 cloud.jengu.dbo.definitions.DefinitionParameter                        base():String
+cloud.jengu.dbo.definitions.DefinitionParameter                        canonical():String
 cloud.jengu.dbo.definitions.DefinitionParameter                        code():String
 cloud.jengu.dbo.definitions.DefinitionParameter                        enforceable():boolean
 cloud.jengu.dbo.definitions.DefinitionParameter                        equals(Object):boolean
@@ -1431,6 +1432,7 @@ cloud.jengu.dbo.definitions.DefinitionParameter                        extractab
 cloud.jengu.dbo.definitions.DefinitionParameter                        hashCode():int
 cloud.jengu.dbo.definitions.DefinitionParameter                        kind():String
 cloud.jengu.dbo.definitions.DefinitionParameter                        new(String,String,String,String,List,String,String)
+cloud.jengu.dbo.definitions.DefinitionParameter                        new(String,String,String,String,List,String,String,String)
 cloud.jengu.dbo.definitions.DefinitionParameter                        paths():List
 cloud.jengu.dbo.definitions.DefinitionParameter                        predicate():String
 cloud.jengu.dbo.definitions.DefinitionParameter                        record
@@ -1759,6 +1761,8 @@ cloud.jengu.dbo.fhir.element.CarriedDefinitions.Carried                toString(
 cloud.jengu.dbo.fhir.element.CarriedDefinitions.Carried                version():String
 cloud.jengu.dbo.fhir.element.CarriedDefinitions.NotCarried             class
 cloud.jengu.dbo.fhir.element.CarriedDefinitions.NotCarried             new(String,Set)
+cloud.jengu.dbo.fhir.element.CarriedDefinitions.PackagesNotInstalled   class
+cloud.jengu.dbo.fhir.element.CarriedDefinitions.PackagesNotInstalled   new(cloud.jengu.dbo.fhir.element.CarriedDefinitions.Carried)
 cloud.jengu.dbo.fhir.element.DefinitionElements                        class
 cloud.jengu.dbo.fhir.element.DefinitionElements                        of(byte[]):cloud.jengu.dbo.fhir.element.DefinitionElements.Expansion
 cloud.jengu.dbo.fhir.element.DefinitionElements.Expansion              base():String
@@ -1931,7 +1935,9 @@ cloud.jengu.dbo.fhir.index.DefinitionRows.Manifest                     codeSyste
 cloud.jengu.dbo.fhir.index.DefinitionRows.Manifest                     equals(Object):boolean
 cloud.jengu.dbo.fhir.index.DefinitionRows.Manifest                     hashCode():int
 cloud.jengu.dbo.fhir.index.DefinitionRows.Manifest                     new(Set,Set,Set)
+cloud.jengu.dbo.fhir.index.DefinitionRows.Manifest                     new(Set,Set,Set,Set)
 cloud.jengu.dbo.fhir.index.DefinitionRows.Manifest                     record
+cloud.jengu.dbo.fhir.index.DefinitionRows.Manifest                     searchParameters():Set
 cloud.jengu.dbo.fhir.index.DefinitionRows.Manifest                     size():int
 cloud.jengu.dbo.fhir.index.DefinitionRows.Manifest                     structures():Set
 cloud.jengu.dbo.fhir.index.DefinitionRows.Manifest                     toString():String
@@ -3551,10 +3557,11 @@ cloud.jengu.dbo.sync.ConfigSource.Fetch                                toString(
 cloud.jengu.dbo.sync.ContentDependency                                 declaredTypes():Set
 cloud.jengu.dbo.sync.ContentDependency                                 equals(Object):boolean
 cloud.jengu.dbo.sync.ContentDependency                                 hashCode():int
-cloud.jengu.dbo.sync.ContentDependency                                 manifest():Set
+cloud.jengu.dbo.sync.ContentDependency                                 manifest():Supplier
 cloud.jengu.dbo.sync.ContentDependency                                 name():String
 cloud.jengu.dbo.sync.ContentDependency                                 new(String,Set)
 cloud.jengu.dbo.sync.ContentDependency                                 new(String,Set,Set)
+cloud.jengu.dbo.sync.ContentDependency                                 new(String,Set,Supplier)
 cloud.jengu.dbo.sync.ContentDependency                                 record
 cloud.jengu.dbo.sync.ContentDependency                                 toString():String
 cloud.jengu.dbo.sync.ContentDependency                                 wanted():cloud.jengu.dbo.core.api.feed.FeedSelection

@@ -117,13 +117,25 @@ public final class DefinitionRows {
      *                   names, and every one that draws on a code system
      *                   those name
      * @param codeSystems the systems those value sets are built from
+     * @param searchParameters the definitions the declared types are searched
+     *                  by. A dependent compiles its parameters from what it
+     *                  HOLDS once its face carries no packages, so a manifest
+     *                  that named none of these would leave it with no keys —
+     *                  and a search by a key nobody built finds nothing and
+     *                  reads as an answer
      */
     public record Manifest(Set<String> structures, Set<String> valueSets,
-            Set<String> codeSystems) {
+            Set<String> codeSystems, Set<String> searchParameters) {
+
+        /** The shape before a manifest named the parameters too. */
+        public Manifest(Set<String> structures, Set<String> valueSets, Set<String> codeSystems) {
+            this(structures, valueSets, codeSystems, Set.of());
+        }
 
         /** How many names the dependent would be sent. */
         public int size() {
-            return structures.size() + valueSets.size() + codeSystems.size();
+            return structures.size() + valueSets.size() + codeSystems.size()
+                    + searchParameters.size();
         }
     }
 
@@ -132,8 +144,9 @@ public final class DefinitionRows {
         Set<String> structures = closureOf(ds, declared);
         Set<String> valueSets = new LinkedHashSet<>();
         Set<String> codeSystems = new LinkedHashSet<>();
+        Set<String> parameters = new LinkedHashSet<>();
         if (structures.isEmpty()) {
-            return new Manifest(structures, valueSets, codeSystems);
+            return new Manifest(structures, valueSets, codeSystems, parameters);
         }
         try (Connection c = ds.getConnection()) {
             // Every value set a REQUIRED binding names. A weaker binding is
@@ -160,11 +173,27 @@ public final class DefinitionRows {
                 codeSystems.addAll(systemsOf(c, valueSets));
                 valueSets.addAll(drawingOn(c, codeSystems));
             } while (valueSets.size() + codeSystems.size() > before);
+            // By the DECLARED types rather than by the closure: a parameter is
+            // about the type it is asked after, and nobody searches a datatype
+            // the closure was walked through. One with no name is one compiled
+            // before a row carried it, and naming nothing is how it is left
+            // out rather than how everything is let in.
+            try (PreparedStatement ps = c.prepareStatement("""
+                    SELECT DISTINCT canonical
+                      FROM definitions.definition_parameter
+                     WHERE base = ANY(?) AND canonical IS NOT NULL""")) {
+                ps.setArray(1, textArray(c, declared));
+                try (ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) {
+                        parameters.add(rs.getString(1));
+                    }
+                }
+            }
         } catch (SQLException e) {
             throw new IllegalStateException(
                     "computing the manifest for " + declared.size() + " declared types failed", e);
         }
-        return new Manifest(structures, valueSets, codeSystems);
+        return new Manifest(structures, valueSets, codeSystems, parameters);
     }
 
     private static Set<String> systemsOf(Connection c, Set<String> valueSets)

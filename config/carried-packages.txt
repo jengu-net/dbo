@@ -7,14 +7,12 @@
 #
 # It may fall and may not rise. A node carrying no definition
 # packages cannot populate a worker context, whatever classes it
-# holds, which is item 025's last move and the one that moves the
-# megabytes. Nothing on the serving path has stopped needing them
-# yet — ElementPayloads parses every write into an element model,
-# and that needs a populated context whether or not anything
-# validates — so this is a ceiling rather than the property.
+# holds.
 #
-# When it reaches zero, the ceiling and the property are the same
-# statement.
+# The packages are a FRAGMENT of the face, shipped beside a
+# distribution's bundle set and installed only where a node has
+# to turn a version into records. The serving set carries none,
+# which is why this reads zero — and zero here is the property
+# rather than a ceiling approaching it.
 #
-dbo.fhir.element 68646067
-total 68646067
+total 0

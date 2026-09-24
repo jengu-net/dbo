@@ -60,12 +60,14 @@ public final class DefinitionStore {
             }
             try (PreparedStatement ps = c.prepareStatement("""
                     INSERT INTO definitions.definition_parameter
-                        (code, base, kind, expression, paths, predicate, unenforceable)
-                    VALUES (?, ?, ?, ?, ?::jsonb, ?, ?)
+                        (code, base, kind, expression, paths, predicate, unenforceable,
+                         canonical)
+                    VALUES (?, ?, ?, ?, ?::jsonb, ?, ?, ?)
                     ON CONFLICT (base, code) DO UPDATE SET
                       kind = EXCLUDED.kind, expression = EXCLUDED.expression,
                       paths = EXCLUDED.paths, predicate = EXCLUDED.predicate,
-                      unenforceable = EXCLUDED.unenforceable""")) {
+                      unenforceable = EXCLUDED.unenforceable,
+                      canonical = EXCLUDED.canonical""")) {
                 int batched = 0;
                 for (DefinitionParameter parameter : parameters) {
                     ps.setString(1, parameter.code());
@@ -75,6 +77,7 @@ public final class DefinitionStore {
                     ps.setString(5, Json.arrayOf(parameter.paths()));
                     ps.setString(6, parameter.predicate());
                     ps.setString(7, parameter.unenforceable());
+                    ps.setString(8, parameter.canonical());
                     ps.addBatch();
                     if (++batched % BATCH == 0) {
                         ps.executeBatch();
@@ -127,7 +130,12 @@ public final class DefinitionStore {
      * read by the checks of another are wrong in a way nothing reports, so
      * the number travels with the bytes and is compared before they load.
      */
-    public static final int SHAPE = 4;
+    // 5: a compiled parameter carries the canonical it came from, so a
+    // dependent's manifest can name the search parameters its types are
+    // searched by. A row is derived and cannot be streamed; the record is what
+    // travels, and without its name the manifest would withhold every one of
+    // them — a search that finds nothing and reads as an answer.
+    public static final int SHAPE = 5;
 
     private final DataSource ds;
 
@@ -693,6 +701,7 @@ public final class DefinitionStore {
                       paths         jsonb NOT NULL,
                       predicate     text,
                       unenforceable text,
+                      canonical     text,
                       PRIMARY KEY (base, code)
                     )""",
                     """

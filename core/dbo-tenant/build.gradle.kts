@@ -18,6 +18,9 @@ dependencies {
     implementation(project(":core:dbo-fhir-r5"))
     implementation(project(":core:dbo-rest"))
     implementation(project(":core:dbo-sync"))
+    // The closure a dependent needs from its face, derived from the upstream's
+    // own rows. JDK-only itself, so this adds no stack to the tenant bundle.
+    implementation(project(":core:dbo-fhir-index"))
     implementation(project(":core:dbo-auth"))
     implementation(project(":core:dbo-maintenance"))
     implementation(project(":core:dbo-pdi"))
