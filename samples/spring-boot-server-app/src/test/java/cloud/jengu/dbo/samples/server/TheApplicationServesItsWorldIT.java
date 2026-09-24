@@ -59,4 +59,49 @@ class TheApplicationServesItsWorldIT {
                 "the records door answered a caller carrying nothing, so this application "
                         + "serves a tenant's records to anybody who knows the path");
     }
+
+    @Test
+    @DisplayName("a record written through this application's port is stored with its person "
+            + "sealed, and a search that cannot reach under the membrane is refused rather "
+            + "than answered empty")
+    void aRecordIsWrittenAndFound() {
+        assertTrue(dbo.until(TENANT, true, Duration.ofMinutes(6)),
+                "the tenant never came up: " + dbo.serving());
+
+        var written = dbo.write(TENANT, "Patient", """
+                {"resourceType":"Patient",
+                 "identifier":[{"system":"urn:rl:nid","value":"RL-9001"}],
+                 "name":[{"family":"Kontekst","given":["Anu"]}]}""");
+        assertTrue(written.accepted(),
+                "a correct document was not accepted: " + written.statusCode() + " "
+                        + written.body());
+
+        // READ BACK, AND THE PERSON IS NOT IN IT. This tenant declares pdi, so
+        // the identifying elements are encrypted in the payload and a system
+        // credential sees the record without them. That is the vault working
+        // rather than a write losing data — and asserting the name came back
+        // would have been asserting the opposite of what this store promises.
+        String id = written.idOrFail();
+        var back = dbo.read(TENANT, "Patient", id);
+        assertAll(
+                () -> assertEquals(200, back.statusCode(),
+                        "the record was not readable: " + back.body()),
+                () -> assertTrue(!back.body().contains("Kontekst"),
+                        "a name came back to a caller holding a system credential, so this "
+                                + "tenant's vault is not holding the person it declared it "
+                                + "would: " + back.body()));
+
+        // AND AN IDENTIFYING SEARCH IS REFUSED, NOT ANSWERED EMPTY. This
+        // tenant holds Patient.identifier under the membrane, so the store
+        // cannot match on it — and says so, because an empty page would have
+        // said nobody has that identifier, which is a different thing and the
+        // one a caller would have believed.
+        var found = dbo.search(TENANT, "Patient", "identifier=urn:rl:nid|RL-9001", "TREAT");
+        assertAll(
+                () -> assertEquals(403, found.statusCode(),
+                        "a search the store cannot make was not refused: " + found.body()),
+                () -> assertTrue(found.body().contains("under the membrane"),
+                        "the refusal did not say why it cannot match, so a caller cannot tell "
+                                + "it from a rejection: " + found.body()));
+    }
 }

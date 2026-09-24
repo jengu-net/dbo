@@ -95,7 +95,7 @@ public final class ADeploymentForThisTest
             beans.registerBean(TheWorldThisTestDeclares.class, () -> declaring);
             beans.registerBean(DboTestContext.class, () -> new DboTestContext(
                     declaring, beans.getBean(cloud.jengu.dbo.spring.EmbeddedRuntime.class),
-                    beans.getBean(cloud.jengu.dbo.spring.server.DboTenants.class), port));
+                    beans.getBean(cloud.jengu.dbo.spring.server.DboTenants.class), port, beans));
             return;
         }
         throw new IllegalStateException("this context cannot be given the test's declarations: "
