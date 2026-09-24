@@ -1665,6 +1665,7 @@ cloud.jengu.dbo.fhir.common.FhirVersion.ForTypes                       registrat
 cloud.jengu.dbo.fhir.common.FhirVersion.ForTypes                       store(cloud.jengu.dbo.core.api.ObjectStore,String):cloud.jengu.dbo.fhir.common.FhirStoreFacade
 cloud.jengu.dbo.fhir.common.FhirVersion.ForTypes                       store(cloud.jengu.dbo.core.api.ObjectStore,String,DataSource):cloud.jengu.dbo.fhir.common.FhirStoreFacade
 cloud.jengu.dbo.fhir.common.FhirVersion.ForTypes                       store(cloud.jengu.dbo.core.api.ObjectStore,String,DataSource,boolean):cloud.jengu.dbo.fhir.common.FhirStoreFacade
+cloud.jengu.dbo.fhir.common.FhirVersion.ForTypes                       store(cloud.jengu.dbo.core.api.ObjectStore,String,DataSource,boolean,boolean):cloud.jengu.dbo.fhir.common.FhirStoreFacade
 cloud.jengu.dbo.fhir.common.FhirVersion.ForTypes                       store(cloud.jengu.dbo.core.api.ObjectStore,String,cloud.jengu.dbo.core.process.Steps):cloud.jengu.dbo.fhir.common.FhirStoreFacade
 cloud.jengu.dbo.fhir.common.FhirVersion.ForTypes                       terminology(cloud.jengu.dbo.core.api.ObjectStore,DataSource):cloud.jengu.dbo.fhir.common.FhirTerminology
 cloud.jengu.dbo.fhir.common.FhirVersions                               byCode(String):Optional
@@ -3984,6 +3985,7 @@ cloud.jengu.dbo.tenant.TenantSpec                                      equals(Ob
 cloud.jengu.dbo.tenant.TenantSpec                                      face():String
 cloud.jengu.dbo.tenant.TenantSpec                                      faceRoot():boolean
 cloud.jengu.dbo.tenant.TenantSpec                                      hashCode():int
+cloud.jengu.dbo.tenant.TenantSpec                                      indexFace():boolean
 cloud.jengu.dbo.tenant.TenantSpec                                      isCode(String):boolean
 cloud.jengu.dbo.tenant.TenantSpec                                      managedBy():String
 cloud.jengu.dbo.tenant.TenantSpec                                      mandatorySteps():List
@@ -3998,6 +4000,7 @@ cloud.jengu.dbo.tenant.TenantSpec                                      new(Strin
 cloud.jengu.dbo.tenant.TenantSpec                                      new(String,String,List,boolean,cloud.jengu.dbo.policy.TenantPolicies,String,String,List,List,cloud.jengu.dbo.tenant.TenantSpec.Scim,List,String,boolean)
 cloud.jengu.dbo.tenant.TenantSpec                                      new(String,String,List,boolean,cloud.jengu.dbo.policy.TenantPolicies,String,String,List,List,cloud.jengu.dbo.tenant.TenantSpec.Scim,List,String,boolean,List)
 cloud.jengu.dbo.tenant.TenantSpec                                      new(String,String,List,boolean,cloud.jengu.dbo.policy.TenantPolicies,String,String,List,List,cloud.jengu.dbo.tenant.TenantSpec.Scim,List,String,boolean,List,boolean)
+cloud.jengu.dbo.tenant.TenantSpec                                      new(String,String,List,boolean,cloud.jengu.dbo.policy.TenantPolicies,String,String,List,List,cloud.jengu.dbo.tenant.TenantSpec.Scim,List,String,boolean,List,boolean,boolean)
 cloud.jengu.dbo.tenant.TenantSpec                                      parse(String):cloud.jengu.dbo.tenant.TenantSpec
 cloud.jengu.dbo.tenant.TenantSpec                                      pdi():boolean
 cloud.jengu.dbo.tenant.TenantSpec                                      policies():cloud.jengu.dbo.policy.TenantPolicies

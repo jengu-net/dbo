@@ -1983,7 +1983,12 @@ public final class TenantRuntimeManager implements AutoCloseable {
         long facadeAt = System.currentTimeMillis();
         boolean versionHeldAsRecords = spec.faceRoot()
                 || spec.dependencies().stream().anyMatch(TenantSpec.Dependency::face);
-        FhirStoreFacade store = declared.store(engine, base, db.dataSource(), versionHeldAsRecords);
+        // A face with no version behind it has no rows for the index to be
+        // built from, so the declaration cannot mean anything there — and a
+        // face that read an empty index would refuse nothing at all.
+        boolean indexFace = spec.indexFace() && versionHeldAsRecords;
+        FhirStoreFacade store = declared.store(engine, base, db.dataSource(),
+                versionHeldAsRecords, indexFace);
         long facadeMillis = System.currentTimeMillis() - facadeAt;
 
         // REQ-DBO-TERM-EVERY-TENANT-ANSWERS: the native form is per tenant,

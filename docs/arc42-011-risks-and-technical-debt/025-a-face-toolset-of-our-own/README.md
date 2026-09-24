@@ -150,8 +150,14 @@ CLOSURE and accepted on COVERAGE rather than equality, because the saving is
 per tenant by measurement and a face-wide image carries very nearly the whole
 corpus however narrow its tenants are. Coverage is what makes it cheap — a
 face-wide image is the widest closure there is, so a face nobody narrowed
-behaves exactly as it does today. What remains is the per-tenant declaration,
-step 10's other half, and step 11 itself.**
+behaves exactly as it does today. **And the per-tenant declaration is taken**:
+a tenant says `indexFace` in its own spec, and the dial it replaced survives
+only for a measurement on a tenant that declared neither. Its two hazards are
+closed by construction rather than by care — a tenant whose rows have not
+arrived is served by the loaded specification until they do, and a definition
+stating only what it CHANGES is named and left unexpanded rather than pulling
+a whole specification into the heap to snapshot it. What remains is step 10's
+other half and step 11 itself.**
 
 # A face toolset of our own
 
@@ -1168,6 +1174,81 @@ thing that separated them was removing one and trying again.
 
 **So step 10's other half is a mechanism that works and a question nobody had
 answered**: whether an image is cut per face or per closure.
+
+## What the other half of step 10 has to be, and one trap in it
+
+The derivation is built and the upstream already selects by name. What is left
+is the wiring: the definitions dependency is constructed with the types alone,
+so a dependent still receives every definition of those types.
+
+**A manifest computed once cannot learn what it excluded.** A dependent's
+closure is over the types IT declared, and those change only when its own
+declaration does — but the upstream's definitions change constantly, and a
+profile published to a face after the dependent came up can sit squarely
+inside that dependent's closure. Nothing would tell it. The only channel that
+would is the definitions feed, and the manifest is what is filtering it: a
+filter cannot report what it removed. A tenant in that state is not visibly
+broken — it holds a face that stopped growing, and every write it judges is
+judged against the version it had when it started.
+
+So the manifest is not a set computed at bring-up. It is asked for as the
+upstream changes, which is what `syncOnce` already does by calling the
+dependency for its selection every round rather than holding one.
+
+**And the empty case is already safe**, which is worth knowing before
+inventing a guard for it: a selection's halves are both optional and empty
+means EVERYTHING. An upstream with no rows yet, or a closure that resolved
+nothing, narrows by type alone rather than asking for nothing — so the failure
+where a derived dependency quietly stops delivering is closed by the type
+rather than by care.
+
+**What a change to it costs the tenant.** A dependency's fields are already
+classified as rebuilt-in-place, which is what a manifest changing means too:
+the engines are rebuilt, the feed position is kept, and nothing stored moves.
+
+## The declaration, and the guard that is not the one it looked like
+
+**A dial is the whole process; a declaration is one tenant.** That is most of
+why this had to stop being a system property: any tenant whose payloads were
+first built inside the window kept the index face for the rest of the run, so
+the class proving it needed a world of its own to avoid leaving a neighbour
+quietly testing something else. `indexFace` is declared in a tenant's own spec,
+carried on the version's `store(...)` beside the fact that it holds its version
+as records, and read once where the face is built.
+
+**The obvious guard was wrong, and the existing test said so.** A tenant that
+AUTHORS a profile has to snapshot it against its base, and the only thing that
+can is the loaded specification this face exists not to hold — so the first
+refusal keyed on `handling`: `StructureDefinition` that is not read-only here
+means a tenant that authors. It refuses the r4 face root, which authors by that
+measure and works perfectly, because the packages it loads carry snapshots and
+nothing ever asks for a view. `handling` was a proxy for a question already
+answered elsewhere.
+
+**So the refusal sits where the fact is.** The expansion already separates a
+definition carrying its own snapshot from one stating only what it changes. A
+face judging from the index expands the first and NAMES the second, leaving it
+unexpanded rather than building a specification to snapshot a handful of
+profiles and then answering every later write out of it. Nothing claims to
+check what was left.
+
+**And the empty index is the hazard worth a test that cannot pass by
+accident.** The index judges a document against what the tenant holds, and
+nothing is wrong with a document nobody holds a definition for — so the failure
+is not a refusal but an acceptance, every write stored and every one of them
+reported as checked. A tenant declaring the face with no definitions is served
+by the loaded specification, and says so in the log rather than answering from
+nothing.
+
+| | |
+|---|---|
+| declared, not dialled | a tenant's own spec, and a face with no version behind it cannot mean it |
+| a definition with no snapshot | named, unexpanded, and no row claims to check it |
+| an index with no structures | the loaded specification answers, and the log says why |
+| the test, with each guard removed | still passes — with BOTH removed, `"gender":"kass"` is accepted |
+
+That last line is the point of the sabotage. Either guard alone leaves the test
+green, which is exactly how a check that proves nothing looks from the outside.
 
 ## The image is cut per closure, and acceptance is coverage
 

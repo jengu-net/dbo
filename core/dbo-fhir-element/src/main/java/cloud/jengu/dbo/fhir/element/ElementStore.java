@@ -160,6 +160,18 @@ public final class ElementStore implements FhirStoreFacade,
             String baseUrl, cloud.jengu.dbo.core.process.Steps steps, Terms terms,
             cloud.jengu.dbo.definitions.DefinitionStore definitions,
             javax.sql.DataSource rows) {
+        this(store, version, types, baseUrl, steps, terms, definitions, rows, false);
+    }
+
+    /**
+     * The same, told whether this tenant DECLARED that its writes are judged
+     * from the index.
+     */
+    ElementStore(ObjectStore store, ElementVersion version, List<FhirTypeConfig> types,
+            String baseUrl, cloud.jengu.dbo.core.process.Steps steps, Terms terms,
+            cloud.jengu.dbo.definitions.DefinitionStore definitions,
+            javax.sql.DataSource rows, boolean indexFace) {
+        this.indexFace = indexFace;
         this.rows = rows;
         this.definitions = definitions;
         this.steps = steps;
@@ -171,17 +183,24 @@ public final class ElementStore implements FhirStoreFacade,
         this.framing = new ElementFraming();
     }
 
+    /** What the tenant declared: judged from the index, or from a context. */
+    private final boolean indexFace;
+
     /**
-     * Whether this face was asked to read the index instead of a context.
+     * Whether this face reads the index instead of a context.
      *
-     * <p>A dial rather than a declaration at this stage, and deliberately: it
-     * is for measuring the two against each other on one tenant, the way the
-     * carried definitions were compared when they were offered by name. What
-     * it costs and what it changes is what a tenant-facing declaration should
-     * be decided on.
+     * <p>Declared by the tenant, and the system property beside it is what
+     * the declaration replaced — kept only so a measurement can turn one face
+     * into the other on a tenant that declared neither.
+     *
+     * <p><b>Rows or nothing.</b> There is no index without them, and a face
+     * that read an empty one would not refuse anything: an element nobody
+     * holds a definition for is an element nobody objects to, so every write
+     * would be accepted and every one of them would look checked. A tenant
+     * whose rows have not arrived is served by the context until they do.
      */
     private boolean asked() {
-        return rows != null && Boolean.getBoolean("dbo.payloads.index");
+        return rows != null && (indexFace || Boolean.getBoolean("dbo.payloads.index"));
     }
 
     /**
@@ -205,6 +224,19 @@ public final class ElementStore implements FhirStoreFacade,
             seeds.addAll(profilesForTheView());
             DefinitionIndex index = DefinitionRows.over(rows,
                     DefinitionRows.closureOf(rows, seeds));
+            // AN EMPTY INDEX IS NOT AN ANSWER. Nothing is wrong with a
+            // document nobody holds a definition for, so a face reading no
+            // rows accepts every write and reports each one as checked. A
+            // tenant whose face has not arrived yet is in exactly that state,
+            // and it is the state a bring-up passes through rather than an
+            // error, so the context serves until the rows are there and this
+            // is asked again.
+            if (index.structures() == 0) {
+                LOG.warn("this face was declared to judge writes from the index and the index "
+                        + "holds no structure yet, so the loaded specification answers: "
+                        + "version={}", version.code());
+                return null;
+            }
             fromTheIndex = answering = new IndexPayloads(index, BoundCodes.over(rows, index));
             LOG.info("the index answers this face: version={} structures={} elements={}",
                     version.code(), index.structures(), index.elements());
@@ -1595,9 +1627,29 @@ public final class ElementStore implements FhirStoreFacade,
                     expansion.base(), expansion.derivation(),
                     held.id(), held.versionId(), expansion.elements(), expansion.invariants()));
         }
-        int unresolved = expandedFromTheView(differential, moved);
+        // A DEFINITION WITHOUT A SNAPSHOT IS THE ONE THING THIS FACE CANNOT
+        // EXPAND. Everything below it reads the snapshot the definition
+        // carries, which is what a published definition contains; a profile
+        // stating only what it CHANGES has to be snapshotted against its base
+        // first, and the only thing that can do that is the loaded
+        // specification this face exists not to hold. Building one here to
+        // expand a handful of profiles would put the whole specification back
+        // in the heap and answer every later write from it — so they are named
+        // and left unexpanded, and nothing claims to check them.
+        int unresolved = 0;
+        if (indexFace && !(differential.isEmpty() && unkept.isEmpty())) {
+            LOG.warn("this face judges writes from the index and {} definition(s) state only "
+                    + "what they change, so they cannot be expanded here and nothing checks "
+                    + "against them: {}",
+                    differential.size() + unkept.size(),
+                    new java.util.TreeSet<>(differential.keySet()).stream().limit(8).toList());
+        } else {
+            unresolved = expandedFromTheView(differential, moved);
+        }
         definitions.replaceAll(moved);
-        keepSnapshotsFor(unkept);
+        if (!indexFace) {
+            keepSnapshotsFor(unkept);
+        }
         compileParametersHeld();
         if (!moved.isEmpty() || unresolved > 0) {
             LOG.info("definitions expanded: structures={} elements={} fromTheirDifferential={}"

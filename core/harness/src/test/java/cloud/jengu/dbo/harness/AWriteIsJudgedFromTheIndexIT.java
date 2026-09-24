@@ -36,31 +36,26 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * and no comparison ever had, because a comparison calls a checker and a write
  * calls a store.
  *
- * <p><b>A world of its own, and the dial is why.</b> The face is chosen by a
- * system property at this stage rather than by a declaration, so any tenant
- * whose payloads were first built inside this window would keep the index face
- * for the rest of the run — a shared tenant caught that way would leave a
- * neighbouring class quietly testing something else. The declaration that
- * makes this per-tenant is the decision this measurement exists to inform, and
- * when it is taken this class joins a shared world like the rest.
+ * <p><b>Declared by the tenant, which is what makes it safe to sit beside
+ * others.</b> It was a system property first, and a property is the whole
+ * process: any tenant whose payloads were built inside that window kept the
+ * index face for the rest of the run, so this class needed a world of its own
+ * to avoid leaving a neighbour quietly testing something else. A tenant says
+ * it in its own spec now, and says nothing about anybody else's.
  */
 @Tag("integration")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class AWriteIsJudgedFromTheIndexIT {
 
-    private static final String DIAL = "dbo.payloads.index";
     private static final String TENANT = "indeksitenant";
 
     static PostgreSQLContainer<?> postgres;
     static Path dir;
     static LocalDatabasePerTenantProvisioner provisioner;
     static TenantRuntimeManager manager;
-    static String restore;
 
     @BeforeAll
     void up() throws Exception {
-        restore = System.getProperty(DIAL);
-        System.setProperty(DIAL, "true");
         postgres = SharedPostgres.get();
         dir = Files.createTempDirectory("dbo-index-face");
         provisioner = new LocalDatabasePerTenantProvisioner(
@@ -78,7 +73,8 @@ class AWriteIsJudgedFromTheIndexIT {
         // root loads the version and expands it, so there is something to
         // judge against.
         Files.writeString(dir.resolve(TENANT + ".json"), """
-                {"code":"%s","face":"r4","faceRoot":true,"audit":{"level":"none"},
+                {"code":"%s","face":"r4","faceRoot":true,"indexFace":true,
+                 "audit":{"level":"none"},
                  "types":[
                   {"name":"StructureDefinition","identity":"canonical","handling":"operational"},
                   {"name":"SearchParameter","identity":"canonical","handling":"operational"},
@@ -92,11 +88,6 @@ class AWriteIsJudgedFromTheIndexIT {
 
     @AfterAll
     void down() {
-        if (restore == null) {
-            System.clearProperty(DIAL);
-        } else {
-            System.setProperty(DIAL, restore);
-        }
         if (manager != null) {
             manager.close();
         }
@@ -147,5 +138,37 @@ class AWriteIsJudgedFromTheIndexIT {
                 () -> tenant.store().create(
                         "{\"resourceType\":\"Patient\",\"gender\":\"kass\"}"),
                 "a code outside a required binding was accepted");
+    }
+
+    @Test
+    @DisplayName("a tenant that declares the index face and holds no definitions is checked "
+            + "anyway, because an empty index refuses nothing")
+    @Proving(DboPromises.VAL_A_THIRD_ANSWERER_READS_THE_INDEX)
+    void declaringItOnATenantWithNoRowsDoesNotDisarmTheChecking() throws Exception {
+        // THE HAZARD THE DECLARATION INTRODUCED. The index judges a document
+        // against what this tenant holds, and nothing is wrong with a document
+        // nobody holds a definition for. So the worst outcome is not a refusal
+        // but an acceptance: every write stored, every one reported as checked,
+        // and no row anywhere that had an opinion. This tenant declares the
+        // face and holds no definitions at all.
+        String empty = "tyhjindeks";
+        Files.writeString(dir.resolve(empty + ".json"), ("""
+                {"code":"%s","face":"r4","indexFace":true,"audit":{"level":"none"},
+                 "types":[
+                  {"name":"Patient","identity":"internal","handling":"operational"},
+                  {"name":"Observation","identity":"internal","handling":"operational"}]}""")
+                .formatted(empty));
+        UntilServed.scan(manager, empty);
+        var bare = manager.runtime(empty).orElseThrow();
+
+        assertNotNull(bare.store().create(
+                "{\"resourceType\":\"Patient\",\"gender\":\"female\"}").id(),
+                "a correct document was refused by the face that stood in");
+        assertThrows(RuntimeException.class,
+                () -> bare.store().create(
+                        "{\"resourceType\":\"Patient\",\"gender\":\"kass\"}"),
+                "a tenant declared the index face, holds no definitions, and accepted a code "
+                        + "outside a required binding — which is every write accepted and every "
+                        + "one of them reported as checked");
     }
 }

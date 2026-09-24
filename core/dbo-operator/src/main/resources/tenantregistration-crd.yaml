@@ -136,6 +136,13 @@ spec:
                 # records; every other tenant subscribes to one.
                 faceRoot:
                   type: boolean
+                # Writes judged from the definition index rather than from a
+                # loaded specification. Needs a face behind it, and needs its
+                # StructureDefinition to be replicated: a tenant that authors
+                # profiles has to snapshot them, and this face holds nothing
+                # that can.
+                indexFace:
+                  type: boolean
                 # Which element of a type carries the organisation a record
                 # belongs to, per type.
                 organisations:

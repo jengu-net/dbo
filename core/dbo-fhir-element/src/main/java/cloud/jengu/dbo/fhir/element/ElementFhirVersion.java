@@ -293,6 +293,13 @@ public class ElementFhirVersion implements FhirVersion {
         @Override
         public FhirStoreFacade store(ObjectStore engine, String baseUrl,
                 javax.sql.DataSource dataSource, boolean versionHeldAsRecords) {
+            return store(engine, baseUrl, dataSource, versionHeldAsRecords, false);
+        }
+
+        @Override
+        public FhirStoreFacade store(ObjectStore engine, String baseUrl,
+                javax.sql.DataSource dataSource, boolean versionHeldAsRecords,
+                boolean indexFace) {
             cloud.jengu.dbo.terminology.TerminologyStore terminology =
                     new cloud.jengu.dbo.terminology.TerminologyStore(dataSource);
             cloud.jengu.dbo.definitions.DefinitionStore definitions =
@@ -316,7 +323,7 @@ public class ElementFhirVersion implements FhirVersion {
             long profilesAt = System.currentTimeMillis();
             ElementStore store = viewed(new ElementStore(engine, version, types, baseUrl,
                     cloud.jengu.dbo.core.process.Steps.of(), new StoreTerms(terminology),
-                    definitions, dataSource));
+                    definitions, dataSource, indexFace));
             // What the tenant already holds and has never been taken apart:
             // an upgrade to a store that expands definitions, or a rebuild.
             // A no-op once the rows are there, which is every bring-up after
