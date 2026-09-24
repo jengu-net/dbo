@@ -19,7 +19,15 @@ rather than what it contains.
 
 **The direction is the whole rule.** `core/` never reaches up. An assembly is
 optional — the store is complete without one, and a framework-free application
-is not a lesser path but the layer every assembly is built on.
+is not a lesser path but the layer every assembly is built on. `core/dbo-embedded`
+is that layer's edge: boot a framework, install a bundle set, share one class
+space with the host, and no framework anywhere in it.
+
+**So a module belongs to `assembly/` by what it imports, not by who calls it.**
+One that names no framework is `core/` even when an assembly is its only
+caller today — otherwise the first binding to arrive quietly claims the
+shared host, and the second one inherits a dependency on the first one's
+framework.
 
 **And that constraint is what makes the assemblies possible**, which is worth
 saying the right way round. The store takes no framework (R2), so it can be
