@@ -44,7 +44,9 @@ have two of everything, which is why this item exists rather than a comment.
 - whatever the two applications must agree on lives in one module under
   `samples/`, rather than being copied into both
 - the guide's chapters include the new applications' source, and its compose
-  file serves the new world
+  file serves the new world — which is [item
+  027](../027-the-guide-moves-onto-the-samples/README.md), and the largest of
+  the things on this list
 - `sample:participant` — a participant joining from outside — has an
   equivalent, or its absence is a decision somebody wrote down
 - nothing in `docs/` or `site/` still points at `sample/`
