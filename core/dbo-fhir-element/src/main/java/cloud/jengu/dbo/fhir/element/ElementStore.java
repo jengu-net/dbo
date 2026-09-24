@@ -3,6 +3,10 @@ package cloud.jengu.dbo.fhir.element;
 import cloud.jengu.dbo.core.api.Criteria;
 import cloud.jengu.dbo.core.api.IdentityRef;
 import cloud.jengu.dbo.core.api.ObjectStore;
+import cloud.jengu.dbo.fhir.index.BoundCodes;
+import cloud.jengu.dbo.fhir.index.DefinitionIndex;
+import cloud.jengu.dbo.fhir.index.DefinitionRows;
+import cloud.jengu.dbo.fhir.validate.IndexPayloads;
 import cloud.jengu.dbo.core.api.PutRequest;
 import cloud.jengu.dbo.core.api.PutResult;
 import cloud.jengu.dbo.core.api.StoredObject;
@@ -42,6 +46,8 @@ public final class ElementStore implements FhirStoreFacade,
         cloud.jengu.dbo.core.face.ReferenceResolution {
 
     private final ObjectStore store;
+    /** Where the expanded rows live, for a face asked to read them as arrays. */
+    private final javax.sql.DataSource rows;
     private final ElementVersion version;
     private final List<FhirTypeConfig> types;
     private final String baseUrl;
@@ -139,6 +145,34 @@ public final class ElementStore implements FhirStoreFacade,
     ElementStore(ObjectStore store, ElementVersion version, List<FhirTypeConfig> types,
             String baseUrl, cloud.jengu.dbo.core.process.Steps steps, Terms terms,
             cloud.jengu.dbo.definitions.DefinitionStore definitions) {
+        this(store, version, types, baseUrl, steps, terms, definitions, null);
+    }
+
+    /**
+     * The same, holding the source the expanded rows live in.
+     *
+     * <p>Only so that this face can be ASKED to read them as arrays: the
+     * definitions above are built from the same source, and what is new is
+     * reading the rows rather than parsing them into a model. Null wherever a
+     * caller has no tenant database, which is every caller that had none.
+     */
+    ElementStore(ObjectStore store, ElementVersion version, List<FhirTypeConfig> types,
+            String baseUrl, cloud.jengu.dbo.core.process.Steps steps, Terms terms,
+            cloud.jengu.dbo.definitions.DefinitionStore definitions,
+            javax.sql.DataSource rows) {
+        this(store, version, types, baseUrl, steps, terms, definitions, rows, false);
+    }
+
+    /**
+     * The same, told whether this tenant DECLARED that its writes are judged
+     * from the index.
+     */
+    ElementStore(ObjectStore store, ElementVersion version, List<FhirTypeConfig> types,
+            String baseUrl, cloud.jengu.dbo.core.process.Steps steps, Terms terms,
+            cloud.jengu.dbo.definitions.DefinitionStore definitions,
+            javax.sql.DataSource rows, boolean indexFace) {
+        this.indexFace = indexFace;
+        this.rows = rows;
         this.definitions = definitions;
         this.steps = steps;
         this.store = store;
@@ -146,7 +180,87 @@ public final class ElementStore implements FhirStoreFacade,
         this.types = List.copyOf(types);
         this.baseUrl = baseUrl;
         this.terms = terms;
-        this.framing = new ElementFraming(() -> elementPayloads().context());
+        this.framing = new ElementFraming();
+    }
+
+    /** What the tenant declared: judged from the index, or from a context. */
+    private final boolean indexFace;
+
+    /**
+     * Whether this face reads the index instead of a context.
+     *
+     * <p>Declared by the tenant, and the system property beside it is what
+     * the declaration replaced — kept only so a measurement can turn one face
+     * into the other on a tenant that declared neither.
+     *
+     * <p><b>Rows or nothing.</b> There is no index without them, and a face
+     * that read an empty one would not refuse anything: an element nobody
+     * holds a definition for is an element nobody objects to, so every write
+     * would be accepted and every one of them would look checked. A tenant
+     * whose rows have not arrived is served by the context until they do.
+     */
+    private boolean asked() {
+        return rows != null && (indexFace || Boolean.getBoolean("dbo.payloads.index"));
+    }
+
+    /**
+     * BOTH SEAMS, OR NEITHER. A write reads its payload and builds its
+     * envelope, and they are two different objects: swapping only the first
+     * left every write reaching for a worker context anyway, through the
+     * extractor, and a real write said so where no comparison had.
+     */
+    private IndexPayloads fromTheIndex() {
+        if (!asked()) {
+            return null;
+        }
+        IndexPayloads answering = fromTheIndex;
+        if (answering == null) {
+            Set<String> seeds = new java.util.LinkedHashSet<>();
+            for (FhirTypeConfig type : types) {
+                seeds.add("http://hl7.org/fhir/StructureDefinition/" + type.typeName());
+            }
+            // And the tenant's own, which is where a pinned value or a slice
+            // lives — the half a version's own definitions never exercise.
+            seeds.addAll(profilesForTheView());
+            DefinitionIndex index = DefinitionRows.over(rows,
+                    DefinitionRows.closureOf(rows, seeds));
+            // AN EMPTY INDEX IS NOT AN ANSWER. Nothing is wrong with a
+            // document nobody holds a definition for, so a face reading no
+            // rows accepts every write and reports each one as checked. A
+            // tenant whose face has not arrived yet is in exactly that state,
+            // and it is the state a bring-up passes through rather than an
+            // error, so the context serves until the rows are there and this
+            // is asked again.
+            if (index.structures() == 0) {
+                LOG.warn("this face was declared to judge writes from the index and the index "
+                        + "holds no structure yet, so the loaded specification answers: "
+                        + "version={}", version.code());
+                return null;
+            }
+            fromTheIndex = answering = new IndexPayloads(index, BoundCodes.over(rows, index));
+            LOG.info("the index answers this face: version={} structures={} elements={}",
+                    version.code(), index.structures(), index.elements());
+        }
+        return answering;
+    }
+
+    private IndexPayloads fromTheIndex;
+    private List<DefinitionRows.Parameter> compiled;
+
+    /** The parameters the cut compiled, for the extractor that runs them. */
+    List<DefinitionRows.Parameter> compiledParameters() {
+        if (!asked()) {
+            return List.of();
+        }
+        List<DefinitionRows.Parameter> held = compiled;
+        if (held == null) {
+            List<String> declared = new java.util.ArrayList<>();
+            for (FhirTypeConfig type : types) {
+                declared.add(type.typeName());
+            }
+            compiled = held = DefinitionRows.parametersFor(rows, declared);
+        }
+        return held;
     }
 
     /**
@@ -169,7 +283,10 @@ public final class ElementStore implements FhirStoreFacade,
             try {
                 held = payloads;
                 if (held == null) {
-                    if (FaceBase.versionRootIn(store).isPresent()) {
+                    if (fromTheIndex() != null) {
+                        held = (Payloads<Object>) (Payloads<?>) fromTheIndex();
+                        shapesInView = canonicalsOf(profilesForTheView());
+                    } else if (FaceBase.versionRootIn(store).isPresent()) {
                         held = (Payloads<Object>) (Payloads<?>) version.payloadsFor(
                                 terms == null ? Terms.NONE : terms, store);
                         shapesInView = heldCanonicals(store);
@@ -177,9 +294,16 @@ public final class ElementStore implements FhirStoreFacade,
                         held = (Payloads<Object>) version.face().require(Payloads.class);
                         shapesInView = java.util.Set.of();
                     } else {
+                        // Without the tenant's maps. A map is a program run
+                        // by a reshape, which is maintenance, and it was being
+                        // held in the object a tenant serves from for the
+                        // whole of its life — so a converter nobody had asked
+                        // to run was resident in every serving process. The
+                        // conversion view below takes them when a conversion
+                        // is actually asked for.
                         List<String> profiles = profilesForTheView();
                         held = (Payloads<Object>) (Payloads<?>)
-                                version.payloadsFor(terms, profiles, storedMaps(store));
+                                version.payloadsFor(terms, profiles, List.of());
                         shapesInView = canonicalsOf(profiles);
                     }
                     payloads = held;
@@ -284,13 +408,36 @@ public final class ElementStore implements FhirStoreFacade,
         if (undefined != null) {
             return new Accepted(undefined, payload, java.util.List.of());
         }
-        Object document = payloads().read(null, payload);
-        String type = payloads().typeOf(document);
         ElementReferences.Resolver resolver = first == null ? this::identified
                 : (typeName, query) -> {
                     java.util.Optional<String> inBundle = first.resolve(typeName, query);
                     return inBundle.isPresent() ? inBundle : identified(typeName, query);
                 };
+        // The write path without the element model, for the tenant that has
+        // declared its way out of it.
+        //
+        // Parsing a document into an Element is the last thing here that needs
+        // a worker context, and a worker context is a version's whole
+        // definition corpus. Everything else the parse fed turned out to be a
+        // reading — the type, the claimed profiles, the engine's own stamp —
+        // and the one piece of work was answering a reference that is a
+        // question, which JsonReferences does over the bytes.
+        //
+        // Taken only where the database has ACTUALLY answered, never merely
+        // where a type asked it to: if this tenant holds no rows for the type,
+        // theDatabaseAlone is empty and the toolchain path runs exactly as it
+        // did. A declaration is not a reason to stop checking.
+        String saysItIs = typeInBytes(payload);
+        if (saysItIs != null && extractedByTheDatabase(saysItIs)) {
+            byte[] answered = JsonReferences.resolve(payload, resolver);
+            java.util.Optional<List<String>> alone = theDatabaseAlone(saysItIs, answered);
+            if (alone.isPresent()) {
+                return withoutParsing(saysItIs, answered, alone.get());
+            }
+            payload = answered;
+        }
+        Object document = payloads().read(null, payload);
+        String type = payloads().typeOf(document);
         // A reference that is a question is answered HERE, in the tree that
         // was already read. Re-reading would be a second read of one
         // payload, and keeping the original bytes would store a document the
@@ -327,7 +474,49 @@ public final class ElementStore implements FhirStoreFacade,
         // A finding rather than a throw, so somebody else's publication is
         // held-and-warned like any other imperfect arrival while an authored
         // write refuses.
-        List<String> issues = payloads().validate(type, document);
+        // Asked BEFORE the toolchain, because asking after is what kept the
+        // toolchain running. A declared verdict used to move only which answer
+        // was believed while both were still taken — so InstanceValidator, and
+        // the version's definitions it reads from, stayed resident for a
+        // measurement nobody acted on.
+        //
+        // What made this safe to do was the check that arrived beside it. Over
+        // 258 published definitions the two agree except for five documents,
+        // the database refusing nothing the toolchain accepted in any of them
+        // — but the corpus carries no document with an element the face does
+        // not define, so that refusal was one the measurement could never have
+        // seen going missing. dbo.unknown_in answers it now, and the baseline
+        // confirms it accuses nothing in 258 correct documents.
+        java.util.Optional<List<String>> alone = theDatabaseAlone(type, payload);
+        List<String> issues;
+        if (alone.isPresent()) {
+            issues = new ArrayList<>(alone.get());
+        } else {
+            issues = new ArrayList<>(payloads().validate(type, document));
+        }
+        // What a type told to keep what it cannot read does with it.
+        //
+        // Subtracted from the same producer's own list rather than matched on
+        // the words, so a reworded sentence cannot quietly change which
+        // findings are dropped. Said once per type: silence would read as a
+        // document that arrived clean, and what this tenant has accepted is a
+        // document carrying an element nothing here can search, validate or
+        // convert — which is a thing to know about a feed, not a thing to
+        // discover from a reader.
+        if (keepsWhatItCannotRead(type)) {
+            List<String> unknown = alone.isPresent()
+                    ? unknownSaidByTheDatabase(type, payload)
+                    : (document instanceof org.hl7.fhir.r5.elementmodel.Element parsed
+                            ? ElementPayloads.unknownElementsIn(parsed) : List.of());
+            if (!unknown.isEmpty()) {
+                issues.removeAll(unknown);
+                if (keptUnknown.add(type)) {
+                    LOG.info("a {} arrived carrying {} element(s) this face does not define, "
+                            + "and this type is declared to keep them: they are stored, "
+                            + "returned, and answerable by nothing", type, unknown.size());
+                }
+            }
+        }
         // The ordering rule's own door (REQ-DBO-SHAPE-UNPARSEABLE-VERSION-
         // REFUSED): dbo's pack is data, so "refused at pack load" means
         // refused HERE, when a shape arrives. A version whose leading
@@ -373,7 +562,12 @@ public final class ElementStore implements FhirStoreFacade,
                 issues = alsoWhatWillNotCompile(parameter, expression, issues);
             }
         }
-        takenBesideTheToolchain(type, payload, issues);
+        // Only where both answered. A type the database decided alone has no
+        // second answer to compare against, and counting it as agreement
+        // would be the tally reporting its own silence as a result.
+        if (alone.isEmpty()) {
+            takenBesideTheToolchain(type, payload, issues);
+        }
         // Whose answer decides, where the tenant has said. The comparison
         // above still runs and is still counted: what a declared verdict
         // moves is the decision, not the measurement, so a tenant that
@@ -381,7 +575,10 @@ public final class ElementStore implements FhirStoreFacade,
         // and would see a divergence appear rather than infer one from
         // traffic. Letting the loaded specification go is a further step,
         // and it is the one that stops asking the toolchain at all.
-        issues = whoDecides(type, payload, issues);
+        // Asked above, before the toolchain ran. What is left here is the
+        // types that did not declare it, whose answer is the toolchain's and
+        // always was.
+
         if (!issues.isEmpty()) {
             if (!authoredElsewhere(type)) {
                 throw new ValidationFailedException(type, issues);
@@ -890,7 +1087,7 @@ public final class ElementStore implements FhirStoreFacade,
                     version.extractor(typeName,
                             current.identityClass()
                                     == cloud.jengu.dbo.core.api.IdentityClass.CANONICAL,
-                            mine, this::elementPayloads),
+                            mine, this::elementPayloads, this::compiledParameters),
                     ElementVersion.indexesFor(ElementVersion.union(
                             version.parametersFor(typeName), mine)),
                     current.payloadVersion()));
@@ -968,15 +1165,19 @@ public final class ElementStore implements FhirStoreFacade,
             String typeName, SearchParameter parameter) {
         String kind = parameter.hasType() ? parameter.getType().toCode() : null;
         String expression = parameter.getExpression();
+        // Kept even where the parameter cannot be run: the row says why, and
+        // the name is how a dependent is sent the record it was compiled from.
+        String canonical = parameter.hasUrl() ? parameter.getUrl() : null;
         if (!cloud.jengu.dbo.definitions.DefinitionParameter.extractable(kind)) {
             return new cloud.jengu.dbo.definitions.DefinitionParameter(
                     parameter.getCode(), typeName, kind, expression, List.of(), null,
-                    kind + " values are not taken apart by this store, here or anywhere else");
+                    kind + " values are not taken apart by this store, here or anywhere else",
+                    canonical);
         }
         ExpressionPaths.Selection selection = ExpressionPaths.selection(expression, typeName);
         return new cloud.jengu.dbo.definitions.DefinitionParameter(
                 parameter.getCode(), typeName, kind, expression,
-                selection.paths(), selection.predicate(), selection.why());
+                selection.paths(), selection.predicate(), selection.why(), canonical);
     }
 
     private static Set<String> codesOf(List<SearchParameter> parameters) {
@@ -1048,6 +1249,18 @@ public final class ElementStore implements FhirStoreFacade,
         // (found by the test, not by review).
         if (terms == null
                 || !("StructureDefinition".equals(typeName) || "StructureMap".equals(typeName))) {
+            return;
+        }
+        // And not at all where nothing would read it.
+        //
+        // The point of building eagerly is to say NOW that a profile is
+        // broken, rather than on somebody's write. Where every type this
+        // tenant declares is judged and extracted by the database, no write
+        // will ever consult this view — so building it says nothing anybody
+        // was going to be told, and builds a version's whole definition
+        // corpus to say it.
+        if (nothingHereReadsTheView()) {
+            payloads = null;
             return;
         }
         try {
@@ -1126,34 +1339,38 @@ public final class ElementStore implements FhirStoreFacade,
     }
 
     /**
-     * The findings that decide this write.
+     * Whether the database alone may judge this write, asked BEFORE the
+     * toolchain is run.
      *
-     * <p>The toolchain's, unless the type says otherwise. Where it does, the
-     * database's own sentences refuse it — path, rule and detail — because a
-     * writer told that something is wrong and not what can only send it
-     * again.
+     * <p>The order is the whole of it. A declared verdict used to move which
+     * answer was believed while both were still taken, so the validator — and
+     * the version's definitions it reads from — stayed resident for a
+     * measurement nobody acted on. Asking first means a type that has said the
+     * database decides, and whose definitions this tenant actually holds, is
+     * judged without the toolchain being run at all.
      *
-     * <p>A type declared this way whose definition this tenant does not hold
-     * keeps the toolchain's answer rather than being accepted by silence.
-     * Nothing to judge against is not the same as nothing wrong, and a
-     * declaration is not a reason to stop checking.
+     * <p>Empty when the database cannot answer: the type has not declared it,
+     * this store keeps no definitions, the canonical is unknown here, or no
+     * rows are held for it. Then the toolchain runs exactly as before — a
+     * declaration is not a reason to stop checking, and nothing to judge
+     * against is not the same as nothing wrong.
      */
-    private List<String> whoDecides(String type, byte[] payload, List<String> toolchain) {
+    private java.util.Optional<List<String>> theDatabaseAlone(String type, byte[] payload) {
         FhirTypeConfig declared = types.stream()
                 .filter(t -> t.typeName().equals(type)).findFirst().orElse(null);
         if (declared == null
                 || declared.verdict() != FhirTypeConfig.Verdict.THE_DATABASE
                 || definitions == null) {
-            return toolchain;
+            return java.util.Optional.empty();
         }
         java.util.Optional<String> canonical = definitions.theTypeItself(type);
         if (canonical.isEmpty()) {
-            return toolchain;
+            return java.util.Optional.empty();
         }
         java.util.Optional<List<cloud.jengu.dbo.definitions.DefinitionStore.Finding>> found =
                 definitions.findingsUnder(payload, canonical.get());
         if (found.isEmpty()) {
-            return toolchain;
+            return java.util.Optional.empty();
         }
         List<String> refusing = new ArrayList<>();
         for (var finding : found.get()) {
@@ -1161,8 +1378,145 @@ public final class ElementStore implements FhirStoreFacade,
                 refusing.add(finding.says());
             }
         }
-        return refusing;
+        return java.util.Optional.of(refusing);
     }
+
+    /**
+     * The sentences the database's own unknown-element check produced for this
+     * document, so a type told to keep them subtracts these rather than
+     * matching on their words.
+     *
+     * <p>The mirror of {@link ElementPayloads#unknownElementsIn}, for the path
+     * where the database answered alone. Same rule, two answerers, and neither
+     * of them is read by its prose.
+     */
+    private List<String> unknownSaidByTheDatabase(String type, byte[] payload) {
+        if (definitions == null) {
+            return List.of();
+        }
+        java.util.Optional<String> canonical = definitions.theTypeItself(type);
+        if (canonical.isEmpty()) {
+            return List.of();
+        }
+        java.util.Optional<List<cloud.jengu.dbo.definitions.DefinitionStore.Finding>> found =
+                definitions.findingsUnder(payload, canonical.get());
+        if (found.isEmpty()) {
+            return List.of();
+        }
+        List<String> said = new ArrayList<>();
+        for (var finding : found.get()) {
+            if ("unknown".equals(finding.key()) && finding.refuses()) {
+                said.add(finding.says());
+            }
+        }
+        return said;
+    }
+
+    /**
+     * The type a document declares, read from its bytes.
+     *
+     * <p>The same reader {@link #undefinedTypeOf} uses, which needs no context
+     * — it is a JSON object with a {@code resourceType} in it, and asking the
+     * element model was only ever convenient.
+     */
+    private String typeInBytes(byte[] payload) {
+        try {
+            return org.hl7.fhir.utilities.json.parser.JsonParser
+                    .parseObject(new java.io.ByteArrayInputStream(payload))
+                    .asString("resourceType");
+        } catch (Exception notEvenJson) {
+            return null;
+        }
+    }
+
+    /** Whether this type's envelope is computed where the bytes are. */
+    private boolean extractedByTheDatabase(String typeName) {
+        return types.stream().filter(t -> t.typeName().equals(typeName)).findFirst()
+                .map(t -> t.extraction() == FhirTypeConfig.Extraction.IN_THE_DATABASE)
+                .orElse(false);
+    }
+
+    /**
+     * A write finished without the document ever becoming an Element.
+     *
+     * <p>What is left after the parse goes: the findings the database gave,
+     * whatever this type was told to keep, and the shape stamps — which the
+     * toolchain answered by fetching a StructureDefinition out of the corpus
+     * to read one string, and the expansion recorded beside every element.
+     */
+    private Accepted withoutParsing(String type, byte[] payload, List<String> found) {
+        List<String> issues = new ArrayList<>(found);
+        if (keepsWhatItCannotRead(type)) {
+            List<String> unknown = unknownSaidByTheDatabase(type, payload);
+            if (!unknown.isEmpty()) {
+                issues.removeAll(unknown);
+                if (keptUnknown.add(type)) {
+                    LOG.info("a {} arrived carrying {} element(s) this face does not define, "
+                            + "and this type is declared to keep them: they are stored, "
+                            + "returned, and answerable by nothing", type, unknown.size());
+                }
+            }
+        }
+        if (!issues.isEmpty()) {
+            if (!authoredElsewhere(type)) {
+                throw new ValidationFailedException(type, issues);
+            }
+            LOG.warn("accepted with findings: type={} findings={} first={}",
+                    type, issues.size(), issues.get(0));
+        }
+        return new Accepted(type, payload, stampsFromTheRows(payload));
+    }
+
+    /**
+     * The shape stamps for what this document claims, from the rows.
+     *
+     * <p>A stamp is the claimed canonical and the version that canonical
+     * declares. The version used to come from a StructureDefinition fetched
+     * out of the worker context; the expansion wrote it into every element row
+     * of that definition, so it is a lookup rather than a corpus.
+     */
+    private List<String> stampsFromTheRows(byte[] payload) {
+        if (definitions == null) {
+            return List.of();
+        }
+        List<String> stamps = new ArrayList<>();
+        for (String claimed : claimedIn(payload)) {
+            String version = definitions.versionOf(claimed);
+            if (version != null && !version.isBlank()) {
+                stamps.add(claimed + "|" + version);
+            }
+        }
+        return stamps;
+    }
+
+    /**
+     * Whether any type here would still consult the toolchain's view.
+     *
+     * <p>A type judged by the database and extracted in the database never
+     * reaches it: the write is decided from the rows and the envelope is
+     * computed where the bytes are. When every declared type says both, the
+     * view is a quarter of a gigabyte nothing asks a question of.
+     *
+     * <p>Conservative on purpose — one type that has not said both is enough
+     * to keep it, because that type's writes are judged by the toolchain and
+     * a store that could not judge them would accept whatever arrived.
+     */
+    private boolean nothingHereReadsTheView() {
+        return !types.isEmpty() && types.stream().allMatch(t ->
+                t.verdict() == FhirTypeConfig.Verdict.THE_DATABASE
+                        && t.extraction() == FhirTypeConfig.Extraction.IN_THE_DATABASE);
+    }
+
+    /** Whether this type was told to hold an element its definition does not declare. */
+    private boolean keepsWhatItCannotRead(String type) {
+        return types.stream().filter(t -> t.typeName().equals(type)).findFirst()
+                .map(t -> t.unknown() == FhirTypeConfig.Unknown.KEPT)
+                .orElse(false);
+    }
+
+    /** Types already said about, so the saying is once and not per document. */
+    private final java.util.Set<String> keptUnknown =
+            java.util.concurrent.ConcurrentHashMap.newKeySet();
 
     /** The profiles a document claims, as written. */
     private static List<String> claimedIn(byte[] payload) {
@@ -1277,9 +1631,29 @@ public final class ElementStore implements FhirStoreFacade,
                     expansion.base(), expansion.derivation(),
                     held.id(), held.versionId(), expansion.elements(), expansion.invariants()));
         }
-        int unresolved = expandedFromTheView(differential, moved);
+        // A DEFINITION WITHOUT A SNAPSHOT IS THE ONE THING THIS FACE CANNOT
+        // EXPAND. Everything below it reads the snapshot the definition
+        // carries, which is what a published definition contains; a profile
+        // stating only what it CHANGES has to be snapshotted against its base
+        // first, and the only thing that can do that is the loaded
+        // specification this face exists not to hold. Building one here to
+        // expand a handful of profiles would put the whole specification back
+        // in the heap and answer every later write from it — so they are named
+        // and left unexpanded, and nothing claims to check them.
+        int unresolved = 0;
+        if (indexFace && !(differential.isEmpty() && unkept.isEmpty())) {
+            LOG.warn("this face judges writes from the index and {} definition(s) state only "
+                    + "what they change, so they cannot be expanded here and nothing checks "
+                    + "against them: {}",
+                    differential.size() + unkept.size(),
+                    new java.util.TreeSet<>(differential.keySet()).stream().limit(8).toList());
+        } else {
+            unresolved = expandedFromTheView(differential, moved);
+        }
         definitions.replaceAll(moved);
-        keepSnapshotsFor(unkept);
+        if (!indexFace) {
+            keepSnapshotsFor(unkept);
+        }
         compileParametersHeld();
         if (!moved.isEmpty() || unresolved > 0) {
             LOG.info("definitions expanded: structures={} elements={} fromTheirDifferential={}"
@@ -1420,9 +1794,23 @@ public final class ElementStore implements FhirStoreFacade,
     @Override
     public java.util.Optional<cloud.jengu.dbo.core.face.ShapeConversion> shapeConversion() {
         Object view = payloads();
-        return view instanceof ElementPayloads tenant
-                ? java.util.Optional.of(new ElementShapeConversion(tenant))
-                : java.util.Optional.empty();
+        if (!(view instanceof ElementPayloads)) {
+            return java.util.Optional.empty();
+        }
+        // A view of its own, built here and dropped with the conversion.
+        //
+        // The maps used to ride in the serving view, which meant every
+        // process that served this tenant held its converters whether or not
+        // anything ever ran one — and a reshape is an operator asking for
+        // something, once, not a thing a request does. So the cost is paid
+        // where the asking is: the face base is shared by construction, so
+        // what this builds on top of it is the copy and the maps.
+        List<String> maps = storedMaps(store);
+        if (maps.isEmpty()) {
+            return java.util.Optional.empty();
+        }
+        return java.util.Optional.of(new ElementShapeConversion(
+                version.payloadsFor(terms, profilesForTheView(), maps)));
     }
 
     /** The tenant's own converters, alongside its own profiles. */
@@ -1565,7 +1953,12 @@ public final class ElementStore implements FhirStoreFacade,
             // what it used to say, and a view given that validates against a
             // definition the tenant no longer holds — which is how a write
             // its own stamp should have refused came back accepted.
-            byte[] kept = canonical == null
+            // A store can be built without a definition store at all — the
+            // constructor above leaves it null — and then there are no kept
+            // snapshots to ask about, only what the store holds. Guarded
+            // here for the same reason expandDefinitionsHeld guards: a
+            // caller with no tenant database is a shape of caller.
+            byte[] kept = canonical == null || definitions == null
                     ? null : definitions.snapshotOf(canonical, held.versionId());
             if (kept != null) {
                 forTheView.add(new String(kept, StandardCharsets.UTF_8));
@@ -1696,16 +2089,29 @@ public final class ElementStore implements FhirStoreFacade,
         if (compiled.includeRefParams().isEmpty()) {
             return null;
         }
+        // From the edges the write extracted, not from the documents again.
+        //
+        // Every payload's references are pulled out on write and keyed by the
+        // search parameter that found them — which is the same name a caller
+        // spells in an _include. So the targets of a page are an indexed read
+        // per member, where this used to parse every member through the
+        // element model and evaluate a FHIRPath expression over it per
+        // parameter. Same answer, and it was the last thing on the serving
+        // path that wanted the version's definitions in memory.
+        Set<String> wanted = new HashSet<>();
+        for (String refParam : compiled.includeRefParams()) {
+            wanted.add(ElementEnvelopes.pathName(refParam));
+        }
         List<StoredObject> included = new ArrayList<>();
         Set<String> seen = new HashSet<>();
         for (StoredObject item : chunk.items()) {
-            Object document = payloads().read(null, item.payload());
-            for (String refParam : compiled.includeRefParams()) {
-                for (String[] target : version.referencedTargets(elementPayloads().context(),
-                        document, item.typeName(), refParam)) {
-                    if (seen.add(target[0] + "/" + target[1])) {
-                        store.get(target[0], target[1]).ifPresent(included::add);
-                    }
+            for (cloud.jengu.dbo.core.api.Envelope.ReferenceEdge edge
+                    : store.edgesOf(item.typeName(), item.id())) {
+                if (!wanted.contains(edge.refType())) {
+                    continue;
+                }
+                if (seen.add(edge.targetType() + "/" + edge.targetId())) {
+                    store.get(edge.targetType(), edge.targetId()).ifPresent(included::add);
                 }
             }
         }
@@ -1892,6 +2298,12 @@ public final class ElementStore implements FhirStoreFacade,
     @Override
     public String operationOutcome(String issueCode, String diagnostics) {
         return ElementOutcomes.outcome(issueCode, diagnostics);
+    }
+
+    @Override
+    public String operationOutcome(String issueCode,
+            List<cloud.jengu.dbo.fhir.common.Finding> findings) {
+        return ElementOutcomes.outcome(issueCode, findings);
     }
 
     @Override

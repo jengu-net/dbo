@@ -2,7 +2,7 @@
 # Built from the installDist output: bin/ launcher + lib/ full classpath.
 # A glibc temurin base, matching the serving image; the operator itself has
 # no native dependencies.
-FROM eclipse-temurin:21-jre
+FROM eclipse-temurin:25-jre
 
 LABEL org.opencontainers.image.description="DBO tenant provisioning operator"
 

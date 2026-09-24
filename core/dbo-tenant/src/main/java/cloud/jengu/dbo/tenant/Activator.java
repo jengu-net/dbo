@@ -1,8 +1,13 @@
 package cloud.jengu.dbo.tenant;
 
+import cloud.jengu.dbo.tenant.api.TenantDomain;
+import cloud.jengu.dbo.tenant.api.TenantLifecycleListener;
+import cloud.jengu.dbo.tenant.api.TenantObserver;
+import cloud.jengu.dbo.tenant.api.TenantPoint;
 import cloud.jengu.dbo.core.api.ObjectStore;
 import cloud.jengu.dbo.core.api.feed.ChangeFeed;
 import cloud.jengu.dbo.fhir.common.FhirStoreFacade;
+import com.sun.net.httpserver.HttpServer;
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceReference;
@@ -34,11 +39,63 @@ public final class Activator implements BundleActivator {
 
     private ServiceRegistration<TenantDatabaseProvisioner> defaultProvisioner;
     private ServiceTracker<TenantDatabaseProvisioner, TenantDatabaseProvisioner> tracker;
+    private ServiceTracker<HttpServer, HttpServer> servers;
+    private ServiceTracker<cloud.jengu.dbo.sync.ConfigSource,
+            cloud.jengu.dbo.sync.ConfigSource> sources;
+
+    /** The two the manager cannot be built without, as each arrives. */
+    private volatile TenantDatabaseProvisioner provisioner;
+    private volatile HttpServer sharedServer;
+    private volatile cloud.jengu.dbo.sync.ConfigSource declarations;
+
+    /**
+     * Whether a host is going to hand this container a server to mount on.
+     *
+     * <p>Said by the deployment rather than discovered, because the absence of
+     * a service and the absence of a service YET are the same thing to a
+     * tracker. Unset, this container binds its own port exactly as it always
+     * has and a server registered later is not taken up — which is the
+     * serving distribution, untouched. Set, the container waits for one, the
+     * way it already waits for a provisioner.
+     */
+    private boolean expectsAServer;
+
+    /**
+     * Whether a host is going to say where the declarations are read from.
+     *
+     * <p>Said rather than discovered, on the same reason as the server above:
+     * a tracker cannot tell a service that is absent from one that has not
+     * arrived. Unset, this container reads the watched directory exactly as
+     * it always has.
+     */
+    private boolean expectsASource;
     private LocalDatabasePerTenantProvisioner localProvisioner;
     private TenantRuntimeManager manager;
     private ServiceTracker<TenantLifecycleListener, TenantLifecycleListener> lifecycle;
     private ServiceTracker<TenantObserver, TenantObserver> observers;
     private final Map<String, List<ServiceRegistration<?>>> tenantRegistrations = new ConcurrentHashMap<>();
+
+    /**
+     * Set where a host holds the web tier and this container mounts on it.
+     *
+     * <p>Every surface a tenant offers is a context on one {@code HttpServer},
+     * so a host that registers one gets all of them — the records door, the
+     * tenant's own authority, provisioning, steps, maintenance, erasure,
+     * content, the ops readouts — without a second implementation of any of
+     * them. What the host supplies is an {@code HttpServer}; what it does
+     * underneath is its own business.
+     */
+    static final String SHARED_SERVER = "dbo.tenant.http.shared";
+
+    /**
+     * Set where a host says what this deployment is told to serve.
+     *
+     * <p>The management tenant is still declared by configuration and still
+     * outside whatever this names, for the reason it always was: the loop
+     * that retracts tenants must not be able to retract the thing recording
+     * retractions.
+     */
+    static final String SHARED_DECLARATIONS = "dbo.tenant.declarations.shared";
 
     /** How many tenants a node brings up at once, when a deployment says. */
     static final String BRING_UP_TOGETHER = "dbo.tenant.bringup.together";
@@ -187,7 +244,9 @@ public final class Activator implements BundleActivator {
                 ctx.getProperty("dbo.tenant.k8s.namespace") != null
                         ? "kubernetes-secrets" : "local-database-per-tenant",
                 ctx.getProperty("dbo.tenant.auth.kek") != null ? "enabled" : "DISABLED",
-                ctx.getProperty("dbo.tenant.http.host"),
+                Boolean.parseBoolean(ctx.getProperty(SHARED_SERVER))
+                        ? ctx.getProperty("dbo.tenant.http.host") + " (a host's server)"
+                        : ctx.getProperty("dbo.tenant.http.host"),
                 ctx.getProperty("dbo.tenant.http.port"),
                 ctx.getProperty("dbo.tenant.dir"));
         String adminUrl = ctx.getProperty("dbo.tenant.admin.url");
@@ -210,14 +269,74 @@ public final class Activator implements BundleActivator {
             defaultProvisioner = ctx.registerService(TenantDatabaseProvisioner.class,
                     localProvisioner, null);
         }
+        expectsAServer = Boolean.parseBoolean(ctx.getProperty(SHARED_SERVER));
+        expectsASource = Boolean.parseBoolean(ctx.getProperty(SHARED_DECLARATIONS));
+        if (expectsASource) {
+            sources = new ServiceTracker<>(ctx, cloud.jengu.dbo.sync.ConfigSource.class,
+                    new ServiceTrackerCustomizer<>() {
+                        @Override
+                        public cloud.jengu.dbo.sync.ConfigSource addingService(
+                                ServiceReference<cloud.jengu.dbo.sync.ConfigSource> ref) {
+                            cloud.jengu.dbo.sync.ConfigSource source = ctx.getService(ref);
+                            declarations = source;
+                            startWhenBothArrive(ctx);
+                            return source;
+                        }
+
+                        @Override
+                        public void modifiedService(
+                                ServiceReference<cloud.jengu.dbo.sync.ConfigSource> ref,
+                                cloud.jengu.dbo.sync.ConfigSource source) {
+                        }
+
+                        @Override
+                        public void removedService(
+                                ServiceReference<cloud.jengu.dbo.sync.ConfigSource> ref,
+                                cloud.jengu.dbo.sync.ConfigSource source) {
+                            // Left in place on purpose. Withdrawing it would
+                            // drop this node back to reading a directory that
+                            // declares nothing, and the next sweep would
+                            // retract every tenant — a service going away is
+                            // not a deployment saying it serves nobody.
+                        }
+                    });
+            sources.open();
+        }
+        if (expectsAServer) {
+            servers = new ServiceTracker<>(ctx, HttpServer.class,
+                    new ServiceTrackerCustomizer<>() {
+                        @Override
+                        public HttpServer addingService(ServiceReference<HttpServer> ref) {
+                            HttpServer server = ctx.getService(ref);
+                            sharedServer = server;
+                            startWhenBothArrive(ctx);
+                            return server;
+                        }
+
+                        @Override
+                        public void modifiedService(ServiceReference<HttpServer> ref,
+                                HttpServer server) {
+                        }
+
+                        @Override
+                        public void removedService(ServiceReference<HttpServer> ref,
+                                HttpServer server) {
+                            // The manager holds it for its life. A host taking
+                            // its web tier away mid-flight is a host shutting
+                            // down, and this container goes with it.
+                        }
+                    });
+            servers.open();
+        }
         tracker = new ServiceTracker<>(ctx, TenantDatabaseProvisioner.class,
                 new ServiceTrackerCustomizer<>() {
                     @Override
                     public TenantDatabaseProvisioner addingService(
                             ServiceReference<TenantDatabaseProvisioner> ref) {
-                        TenantDatabaseProvisioner provisioner = ctx.getService(ref);
-                        startManager(ctx, provisioner);
-                        return provisioner;
+                        TenantDatabaseProvisioner arrived = ctx.getService(ref);
+                        provisioner = arrived;
+                        startWhenBothArrive(ctx);
+                        return arrived;
                     }
 
                     @Override
@@ -231,6 +350,23 @@ public final class Activator implements BundleActivator {
                     }
                 });
         tracker.open();
+    }
+
+    /**
+     * Starts once everything the manager cannot be built without is here.
+     *
+     * <p>More than one mandatory service, when a host holds the web tier or
+     * says where the declarations are, and they arrive in whichever order the
+     * framework registers them. Whichever is last starts the manager; the
+     * others do nothing and say nothing, because a container waiting for a
+     * service it was told to expect is not in trouble.
+     */
+    private synchronized void startWhenBothArrive(BundleContext ctx) {
+        if (provisioner == null || (expectsAServer && sharedServer == null)
+                || (expectsASource && declarations == null)) {
+            return;
+        }
+        startManager(ctx, provisioner);
     }
 
     /**
@@ -435,6 +571,25 @@ public final class Activator implements BundleActivator {
                                 ctx.registerService(cloud.jengu.dbo.asking.Asking.class,
                                         cloud.jengu.dbo.asking.Asking.at(runtime.engine()),
                                         props)));
+                        if (runtime.authority() != null) {
+                            // Who is asking, as this tenant answers it. Only
+                            // this tenant's own keys verify its own tokens, so
+                            // a cross-tenant credential is indistinguishable
+                            // from garbage — which is the property a host
+                            // embedding this framework gets by taking the
+                            // authority off the whiteboard, and the one it
+                            // loses the moment it verifies somebody else's
+                            // word about these records instead.
+                            //
+                            // Registered on the same terms as everything else
+                            // here: it appears when the tenant serves and is
+                            // retracted when it stops, so a host holding one
+                            // for a tenant that has gone is holding a
+                            // reference the registry has already withdrawn.
+                            regs.add(ctx.registerService(
+                                    cloud.jengu.dbo.auth.TenantAuthority.class,
+                                    runtime.authority(), props));
+                        }
                         if (runtime.engine() instanceof cloud.jengu.dbo.policy.PolicyObjectStore p) {
                             // §15.1: module engines contribute custom audit
                             // events through this per-tenant recorder surface
@@ -451,7 +606,7 @@ public final class Activator implements BundleActivator {
                             registrations.forEach(ServiceRegistration::unregister);
                         }
                     }
-                }, authority, registered(ctx), stepsFromRegistry(ctx));
+                }, authority, registered(ctx), stepsFromRegistry(ctx), sharedServer);
         // The tenant this deployment's own history lives in, brought up
         // before anything else and declared by configuration rather than by a
         // file in the watched directory. A deployment whose management tenant
@@ -468,6 +623,12 @@ public final class Activator implements BundleActivator {
                 manager = null;
                 throw e;
             }
+        }
+        // Where the declarations are read from, when a host says. Before
+        // start, like the substrate below: a source swapped under a running
+        // scan would make one round read one deployment and the next another.
+        if (declarations != null) {
+            manager.declaredFrom(declarations);
         }
         // A runtime can be asked what it is serving, when a deployment has
         // said who may ask.
@@ -505,6 +666,12 @@ public final class Activator implements BundleActivator {
         LOG.info("shutdown requested: component=dbo-server");
         if (tracker != null) {
             tracker.close();
+        }
+        if (servers != null) {
+            servers.close();
+        }
+        if (sources != null) {
+            sources.close();
         }
         // Before the manager, so nothing is selected for a tenant that is on
         // its way down.

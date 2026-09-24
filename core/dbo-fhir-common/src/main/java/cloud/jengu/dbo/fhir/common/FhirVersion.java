@@ -73,6 +73,21 @@ public interface FhirVersion {
          */
         default FhirStoreFacade store(ObjectStore engine, String baseUrl,
                 javax.sql.DataSource dataSource, boolean versionHeldAsRecords) {
+            return store(engine, baseUrl, dataSource, versionHeldAsRecords, false);
+        }
+
+        /**
+         * The same, for a tenant that declared its writes are judged from the
+         * definition index rather than from a loaded specification.
+         *
+         * <p>Declared rather than sensed, because a face that read the rows
+         * whenever it found some would judge a tenant's first writes against
+         * whatever had arrived by then. What it is checked against is the
+         * tenant's to state.
+         */
+        default FhirStoreFacade store(ObjectStore engine, String baseUrl,
+                javax.sql.DataSource dataSource, boolean versionHeldAsRecords,
+                boolean indexFace) {
             return store(engine, baseUrl, dataSource);
         }
 

@@ -1,5 +1,7 @@
 package cloud.jengu.dbo.tenant;
 
+import cloud.jengu.dbo.tenant.api.Change;
+import cloud.jengu.dbo.tenant.api.TenantDomain;
 import cloud.jengu.dbo.core.api.feed.ChangeKind;
 import cloud.jengu.dbo.core.api.feed.FeedItem;
 import cloud.jengu.dbo.promises.DboPromises;

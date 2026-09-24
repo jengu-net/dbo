@@ -16,7 +16,7 @@ import java.util.zip.ZipFile
 // What stays per personality: hapi-fhir-validation-resources-rX, the profile
 // and value-set definitions of one version.
 
-val embedded: Configuration by configurations.creating
+val embedded: Configuration = configurations.create("embedded")
 
 // Consumers on a plain classpath (the harness, the bench, dbo-tenant) get HAPI
 // from here transitively; consumers inside Felix get it by Import-Package from

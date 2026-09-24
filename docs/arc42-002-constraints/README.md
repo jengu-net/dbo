@@ -1,6 +1,6 @@
 # Constraints
 
-- **Java** (current LTS; Java 21+ language level, virtual threads assumed). (R1)
+- **Java** (current LTS; Java 25+ language level, virtual threads assumed). (R1)
 - **No heavyweight application framework** — no Spring Boot, no Micronaut in
   the engine; the runtime container is **OSGi** (Felix as reference
   implementation). Heavy third-party stacks ride as private packages inside

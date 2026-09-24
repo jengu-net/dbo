@@ -54,6 +54,7 @@ ATenantGoingAwayIsNotOneThatFailedIT                     lifecycle
 ATenantOpensAndItsPeopleGetInIT                          lifecycle
 ATenantSubscribesToItsVersionIT                          lifecycle
 ATenantThatIsNotUpSaysWhyIT                              sweep
+AWriteIsJudgedFromTheIndexIT                             a global dial: the face is chosen by a system property rather than by a declaration, so any tenant whose payloads were first built inside this class's window would keep the index face for the rest of the run. A shared tenant caught that way would leave a neighbouring class quietly testing something else. It joins a shared world when the selector becomes per-tenant
 AZoneReachesAnotherFaceThroughOneProjectionIT            sweep
 AnOperatorReadsAndSteersTheFleetIT                       sweep
 EngineVocabularyDoesNotCollideWithItselfIT               sweep

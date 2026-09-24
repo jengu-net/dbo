@@ -110,6 +110,7 @@ class TheFaceSqlShipsWithTheReleaseIT {
                         "invariant_holds", "invariant_in", "invariant_issues", "located",
                         "primitive_in", "primitive_issues",
                         "record_exists", "reference_in", "reference_issues", "token_forms",
+                        "unknown_in", "unknown_issues",
                         "validate", "value_in", "value_issues", "walked"), query(
                 "SELECT p.proname FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace"
                 + " WHERE n.nspname = 'dbo' ORDER BY p.proname"),

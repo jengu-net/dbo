@@ -1,8 +1,8 @@
 package cloud.jengu.dbo.sample;
 
-import cloud.jengu.dbo.tenant.TenantFacts;
-import cloud.jengu.dbo.tenant.TenantLifecycleListener;
-import cloud.jengu.dbo.tenant.TenantPoint;
+import cloud.jengu.dbo.tenant.api.TenantFacts;
+import cloud.jengu.dbo.tenant.api.TenantLifecycleListener;
+import cloud.jengu.dbo.tenant.api.TenantPoint;
 
 /** Told when a tenant reaches a point. Registered against the point it wants. */
 public final class NoticingATenant implements TenantLifecycleListener {

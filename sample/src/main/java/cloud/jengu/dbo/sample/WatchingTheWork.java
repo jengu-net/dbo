@@ -1,8 +1,8 @@
 package cloud.jengu.dbo.sample;
 
-import cloud.jengu.dbo.tenant.Change;
-import cloud.jengu.dbo.tenant.TenantFacts;
-import cloud.jengu.dbo.tenant.TenantObserver;
+import cloud.jengu.dbo.tenant.api.Change;
+import cloud.jengu.dbo.tenant.api.TenantFacts;
+import cloud.jengu.dbo.tenant.api.TenantObserver;
 
 import java.util.List;
 

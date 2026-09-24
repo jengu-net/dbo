@@ -55,12 +55,13 @@ val guideTestOutput = project(":guide")
         .extensions.getByType(SourceSetContainer::class.java)
         .getByName("test").output
 
-evaluationDependsOn(":karaf:commands")
-val karafCommandsTestOutput = project(":karaf:commands")
-        .extensions.getByType(SourceSetContainer::class.java)
-        .getByName("test").output
-
 dependencies {
+    // THE PACKAGES, ON A TEST CLASSPATH. They ship as a fragment of the face,
+    // which is a container mechanism: a test runs in a plain JVM and finds
+    // resources by classpath, so a test that builds a face out of the
+    // specification needs them here. One that takes its face from records
+    // never opens them and is unaffected by their presence.
+    testRuntimeOnly(project(":core:dbo-fhir-packages"))
     testRuntimeOnly(guideTestOutput)
     // Its CLASSES only, and the distinction is load-bearing. What is wanted
     // is the META-INF/promise/proofs index the processor writes beside them.
@@ -70,7 +71,6 @@ dependencies {
     // a recorder written for two tests. That cost 108 threads contending on
     // one list and turned a forty-minute suite into a two-hour one.
     testRuntimeOnly(dboRunnerTestOutput.classesDirs)
-    testImplementation(karafCommandsTestOutput)
     testImplementation(project(":core:dbo-core"))
     testImplementation(project(":core:dbo-promises"))
     // The reference LOCAL executor under a step service. Test-only and
@@ -103,6 +103,10 @@ dependencies {
     testImplementation(project(":core:dbo-subscriptions"))
     testImplementation(project(":core:dbo-terminology"))
     testImplementation(project(":core:dbo-definitions"))
+    // The same rows as flat arrays. Not on the serving path yet: what
+    // is proven here is that the projection says what the packages say.
+    testImplementation(project(":core:dbo-fhir-index"))
+    testImplementation(project(":core:dbo-fhir-validate"))
     testImplementation("org.junit.jupiter:junit-jupiter:5.11.4")
     // Compiled against, not merely present: the suite carries a launcher
     // listener that records what is still in the heap after each class, which
@@ -118,13 +122,6 @@ dependencies {
     testImplementation(dboWorkTestOutput)
     testImplementation(dboFhirElementTestOutput)
     testImplementation(dboTenantTestOutput)
-    // The console's executor half, which is the one part of it that cannot be
-    // tested without a store: it reads a tenant's declarations and asks the
-    // same resolution the store would. Test-only and one-directional -- no
-    // main source under core/ may depend on the commands.
-    testImplementation(project(":karaf:commands"))
-    testImplementation("org.apache.karaf.shell:org.apache.karaf.shell.core:"
-            + rootProject.extra["dboKarafVersion"])
     testImplementation("org.osgi:osgi.core:8.0.0")
     testImplementation("org.testcontainers:testcontainers-postgresql:2.0.5")
     testImplementation("org.testcontainers:testcontainers-k3s:2.0.5")
@@ -133,7 +130,7 @@ dependencies {
     // slf4j-api declares Require-Capability osgi.extender=osgi.serviceloader.processor.
     // SPI-Fly is that extender: a framework extension that lets a bundle's
     // ServiceLoader lookup see providers. Without it slf4j-api will not resolve.
-    testImplementation("org.apache.aries.spifly:org.apache.aries.spifly.dynamic.framework.extension:1.3.7")
+    testImplementation("org.apache.aries.spifly:org.apache.aries.spifly.dynamic.framework.extension:1.3.8")
     testImplementation("org.apache.felix:org.apache.felix.framework:7.0.5")
     testRuntimeOnly("org.slf4j:slf4j-simple:2.0.18")
 }
@@ -188,6 +185,14 @@ val memoryTest = tasks.register<Test>("memoryTest") {
     // and the baseline stayed as it was, which is the quietest way for a
     // ratchet to become a decoration.
     System.getProperty("dbo.memory.record")?.let { systemProperty("dbo.memory.record", it) }
+    // And the one that chooses how a face's carried definitions are held:
+    // offered by name, or parsed at registration. It decides what every write
+    // is judged against, so a run that meant to test one and silently tested
+    // the other would be the worst of the three silences this block exists
+    // for.
+    System.getProperty("dbo.definitions.offered")?.let {
+        systemProperty("dbo.definitions.offered", it)
+    }
     maxHeapSize = "2g"
 }
 tasks.test {
@@ -208,6 +213,20 @@ tasks.test {
         systemProperty("dbo.divergence.record", it)
     }
     System.getProperty("dbo.divergence.name")?.let { systemProperty("dbo.divergence.name", it) }
+    // And the ceiling on what a serving node still carries in definition
+    // packages, which falls as the serving path stops needing them.
+    System.getProperty("dbo.packages.record")?.let {
+        systemProperty("dbo.packages.record", it)
+    }
+    inputs.file(rootProject.file("config/carried-packages.txt"))
+    // And the one that chooses how a face's carried definitions are held:
+    // offered by name, or parsed at registration. It decides what every write
+    // is judged against, so a run that meant to test one and silently tested
+    // the other would be the worst of the three silences this block exists
+    // for.
+    System.getProperty("dbo.definitions.offered")?.let {
+        systemProperty("dbo.definitions.offered", it)
+    }
     filter.excludeTestsMatching("*ServerDistIT")
     filter.excludeTestsMatching("*WhatTheLoadedSpecificationCostsIT")
     shouldRunAfter(distTest)
@@ -227,7 +246,7 @@ tasks.test {
 // The composed promise report and the catalogue projection: both run
 // on the TEST runtime classpath, because that is where the catalogue
 // registration and the citation index live.
-val promiseReport by tasks.registering(JavaExec::class) {
+val promiseReport = tasks.register<JavaExec>("promiseReport") {
     group = "documentation"
     description = "Renders the composed promise report to build/reports/promise/report.md."
     dependsOn(tasks.named("testClasses"))
@@ -246,7 +265,8 @@ val ledgerBundles = mapOf(
     "dbo.asking" to "dbo-asking",
     "dbo.runner" to "dbo-runner", "dbo.stream" to "dbo-stream", "dbo.sync" to "dbo-sync",
     "dbo.maintenance" to "dbo-maintenance", "dbo.terminology" to "dbo-terminology",
-    "dbo.definitions" to "dbo-definitions",
+    "dbo.definitions" to "dbo-definitions", "dbo.fhir.index" to "dbo-fhir-index",
+    "dbo.fhir.validate" to "dbo-fhir-validate",
     "dbo.subscriptions" to "dbo-subscriptions", "dbo.rest" to "dbo-rest",
     "dbo.scim" to "dbo-scim", "dbo.telemetry" to "dbo-telemetry",
     "dbo.promises" to "dbo-promises", "dbo.tenant" to "dbo-tenant",
@@ -265,16 +285,17 @@ val reachModules = listOf(
     "core:dbo-core", "core:dbo-postgres", "core:dbo-auth", "core:dbo-pdi", "core:dbo-policy",
     "core:dbo-work", "core:dbo-asking", "core:dbo-runner", "core:dbo-stream", "core:dbo-sync",
     "core:dbo-maintenance", "core:dbo-terminology", "core:dbo-definitions",
+    "core:dbo-fhir-index", "core:dbo-fhir-validate",
     "core:dbo-subscriptions", "core:dbo-rest",
     "core:dbo-scim", "core:dbo-telemetry", "core:dbo-telemetry-otlp", "core:dbo-promises",
     "core:dbo-tenant", "core:dbo-tenant-k8s", "core:dbo-fhir-common", "core:dbo-fhir-element",
     "core:dbo-fhir-r4", "core:dbo-fhir-r5", "core:dbo-logging", "core:dbo-verify",
-    "core:dbo-operator", "core:dbo-fleet", "karaf:commands",
+    "core:dbo-operator", "core:dbo-fleet",
 )
 
 fun reachProperty(module: String) = module.replace(':', '.').replace('-', '.') + ".reach.jar"
 
-val worldsLedger by tasks.registering(JavaExec::class) {
+val worldsLedger = tasks.register<JavaExec>("worldsLedger") {
     group = "documentation"
     description = "Re-records config/worlds-ledger.txt from the harness classes that build a runtime."
     dependsOn(tasks.named("testClasses"))
@@ -286,7 +307,7 @@ val worldsLedger by tasks.registering(JavaExec::class) {
     )
 }
 
-val promiseCitations by tasks.registering(JavaExec::class) {
+val promiseCitations = tasks.register<JavaExec>("promiseCitations") {
     group = "documentation"
     description = "Re-records config/promise-citations.txt from the prose in the tree."
     dependsOn(tasks.named("testClasses"))
@@ -302,7 +323,7 @@ val promiseCitations by tasks.registering(JavaExec::class) {
     args(rootProject.file("config/promise-citations.txt").absolutePath)
 }
 
-val reachLedger by tasks.registering(JavaExec::class) {
+val reachLedger = tasks.register<JavaExec>("reachLedger") {
     group = "documentation"
     description = "Re-records config/reach-ledger.txt from the built production jars."
     dependsOn(tasks.named("testClasses"))
@@ -318,7 +339,7 @@ val reachLedger by tasks.registering(JavaExec::class) {
     args(rootProject.file("config/reach-ledger.txt").absolutePath)
 }
 
-val apiLedger by tasks.registering(JavaExec::class) {
+val apiLedger = tasks.register<JavaExec>("apiLedger") {
     group = "documentation"
     description = "Re-records config/api-ledger.txt from the exported packages of every bundle."
     dependsOn(tasks.named("testClasses"))
@@ -331,6 +352,9 @@ val apiLedger by tasks.registering(JavaExec::class) {
             project(":core:$module").tasks.named<Jar>("jar").get().archiveFile.get().asFile.absolutePath,
         )
     }
+    // The build's list, stated to the ledger so that a bundle added here and
+    // not there fails rather than quietly shrinking the recorded surface.
+    systemProperty("dbo.api.bundles", ledgerBundles.keys.joinToString(","))
     args(rootProject.file("config/api-ledger.txt").absolutePath)
 }
 
@@ -338,7 +362,7 @@ val apiLedger by tasks.registering(JavaExec::class) {
 //
 // A report rather than a recorded artefact: it moves whenever a test moves,
 // which is what makes it worth reading and would make it noise to ratchet.
-val storyCoverage by tasks.registering(JavaExec::class) {
+val storyCoverage = tasks.register<JavaExec>("storyCoverage") {
     group = "documentation"
     description = "Reports where each story's promises are proven."
     dependsOn(tasks.named("testClasses"))
@@ -348,7 +372,7 @@ val storyCoverage by tasks.registering(JavaExec::class) {
         rootProject.file("config/worlds-ledger.txt").absolutePath)
 }
 
-val promiseProjection by tasks.registering(JavaExec::class) {
+val promiseProjection = tasks.register<JavaExec>("promiseProjection") {
     group = "documentation"
     description = "Rewrites the generated blocks: the requirement catalogue, the stories' joins and the quality tree."
     dependsOn(tasks.named("testClasses"))
@@ -374,6 +398,9 @@ tasks.withType<Test>().configureEach {
     // one check that would have spoken never runs.
     systemProperty("dbo.api.ledger", rootProject.file("config/api-ledger.txt").absolutePath)
     inputs.file(rootProject.file("config/api-ledger.txt"))
+    // And the same list here, so the ratchet catches the drift rather than
+    // only the re-recording does.
+    systemProperty("dbo.api.bundles", ledgerBundles.keys.joinToString(","))
     // The same, for the ledger that records what production names.
     systemProperty("dbo.reach.ledger", rootProject.file("config/reach-ledger.txt").absolutePath)
     inputs.file(rootProject.file("config/reach-ledger.txt"))
@@ -441,7 +468,7 @@ tasks.withType<Test>().configureEach {
     )
     dependsOn(":core:dbo-terminology:jar", ":core:dbo-definitions:jar",
         ":core:dbo-fhir-r5:jar", ":core:dbo-fhir-stack:jar",
-        ":core:dbo-fhir-element:jar",
+        ":core:dbo-fhir-element:jar", ":core:dbo-fhir-packages:jar",
         ":core:dbo-fhir-common:jar", ":core:dbo-subscriptions:jar", ":core:dbo-rest:jar",
         ":core:dbo-sync:jar", ":core:dbo-maintenance:jar", ":core:dbo-tenant:jar",
         ":core:dbo-tenant-k8s:jar", ":core:dbo-auth:jar", ":core:dbo-pdi:jar", ":core:dbo-scim:jar", ":core:dbo-policy:jar",
@@ -478,6 +505,10 @@ tasks.withType<Test>().configureEach {
         "dbo.runner.jar" to "dbo-runner",
         "dbo.stream.jar" to "dbo-stream",
         "dbo.fhir.element.jar" to "dbo-fhir-element",
+        // The definitions, as a fragment of the face. Staged so a container
+        // test can install it where a tenant needs a context built, and
+        // deliberately absent from the serving bundle set.
+        "dbo.fhir.packages.jar" to "dbo-fhir-packages",
         "dbo.definitions.jar" to "dbo-definitions",
     )) {
         systemProperty(

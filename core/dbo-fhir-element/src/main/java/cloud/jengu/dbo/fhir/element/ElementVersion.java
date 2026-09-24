@@ -75,7 +75,7 @@ public final class ElementVersion {
         this.code = code;
         this.fhirVersion = CarriedDefinitions.fhirVersionOf(code);
         this.payloads = new ElementPayloads(this::context);
-        this.framing = new ElementFraming(this::context);
+        this.framing = new ElementFraming();
         this.face = FhirFace.describing(code)
                 .providing(Payloads.class, payloads)
                 .providing(PayloadFraming.class, framing)
@@ -139,8 +139,28 @@ public final class ElementVersion {
      * somebody else's server does — on a store's accept path, where the answer
      * has to be the store's own (REQ-DBO-TERM-EVERY-TENANT-ANSWERS).
      */
+    /**
+     * Whether a face's carried definitions are offered by name or parsed at
+     * registration.
+     *
+     * <p>Behind a flag while the two are compared, because this is the object
+     * every tenant of a face validates against and the difference is a
+     * quarter of a gigabyte: a face held as records and offered by name costs
+     * 101 MB where the same face parsed from its packages costs 225. Offering
+     * the carried ones the same way is the cheapest thing on item 024's path
+     * and the most load-bearing, which is exactly the combination that wants
+     * one release where both can be run.
+     *
+     * <p>Default off. A flag that changed what every write is judged against
+     * on the day it merged would be the defect this store's own rules are
+     * written against.
+     */
+    private static final boolean OFFERED =
+            Boolean.getBoolean("dbo.definitions.offered");
+
     private static SimpleWorkerContext offline(String code) {
-        SimpleWorkerContext context = CarriedDefinitions.contextFor(code);
+        SimpleWorkerContext context = OFFERED
+                ? CarriedDefinitions.offeredFor(code) : CarriedDefinitions.contextFor(code);
         context.setNoTerminologyServer(true);
         context.setCanRunWithoutTerminology(true);
         // Expansion needs parameters even when they say nothing. Left unset,
@@ -271,6 +291,52 @@ public final class ElementVersion {
     public EnvelopeExtractor extractor(String typeName, boolean canonical,
             List<SearchParameter> alsoAuthoredHere,
             java.util.function.Supplier<ElementPayloads> through) {
+        return extractorThroughTheToolchain(typeName, canonical, alsoAuthoredHere, through);
+    }
+
+    /**
+     * The same, with the parameters the cut compiled for this type.
+     *
+     * <p>Where there are any, they are what the envelope is built from, and
+     * the toolchain is not asked: a compiled path is run over the document by
+     * the same reader an invariant's condition is, so nothing here needs a
+     * worker context. Where there are none — a type whose parameters the
+     * compiler refused by name, or a tenant that has not asked — the
+     * toolchain path answers as it always did.
+     *
+     * <p>A tenant authoring parameters of its own still takes the toolchain
+     * path, as it did before: what it wrote has not been compiled, and an
+     * envelope built from half a tenant's parameters loses keys, which is a
+     * search that finds nothing while looking like an answer.
+     */
+    public EnvelopeExtractor extractor(String typeName, boolean canonical,
+            List<SearchParameter> alsoAuthoredHere,
+            java.util.function.Supplier<ElementPayloads> through,
+            java.util.function.Supplier<List<cloud.jengu.dbo.fhir.index.DefinitionRows.Parameter>>
+                    compiled) {
+        EnvelopeExtractor toolchain =
+                extractorThroughTheToolchain(typeName, canonical, alsoAuthoredHere, through);
+        if (!alsoAuthoredHere.isEmpty()) {
+            return toolchain;
+        }
+        // Asked at each write, not once here. A registration is made before
+        // the tenant's store exists — which is why the payloads above are a
+        // supplier — so deciding the branch at registration decides it against
+        // a store that is not there yet, and every write afterwards takes the
+        // toolchain path however the tenant was configured. That is what the
+        // first attempt did, and a real write is what said so.
+        return (type, payload) -> {
+            List<cloud.jengu.dbo.fhir.index.DefinitionRows.Parameter> forThisType =
+                    compiled.get().stream().filter(one -> typeName.equals(one.base())).toList();
+            return forThisType.isEmpty()
+                    ? toolchain.extract(type, payload)
+                    : DefinitionEnvelopes.extract(forThisType, type, payload, canonical, null);
+        };
+    }
+
+    private EnvelopeExtractor extractorThroughTheToolchain(String typeName, boolean canonical,
+            List<SearchParameter> alsoAuthoredHere,
+            java.util.function.Supplier<ElementPayloads> through) {
         if (alsoAuthoredHere.isEmpty() && DefinitionParameters.isDefinitionType(typeName)) {
             // A definition is indexed from its JSON, because the toolchain
             // needs the version's definitions to parse one and a definition
@@ -386,50 +452,6 @@ public final class ElementVersion {
             ordered.sort(java.util.Comparator.comparing(SearchParameter::getCode));
             return List.copyOf(ordered);
         });
-    }
-
-    /**
-     * Where one member's reference parameter points, for {@code _include}.
-     *
-     * <p>Asked of the document the page already read, and of the parameter's
-     * own expression, so what an include follows and what a search filters on
-     * are the same definition rather than two readings of it.
-     */
-    List<String[]> referencedTargets(SimpleWorkerContext context, Object document, String typeName,
-            String refParam) {
-        SearchParameter parameter = parametersFor(typeName).stream()
-                .filter(p -> p.getCode().equals(refParam)).findFirst().orElse(null);
-        if (parameter == null || !(document instanceof Element element)) {
-            return List.of();
-        }
-        List<String[]> targets = new ArrayList<>();
-        List<org.hl7.fhir.r5.model.Base> hits;
-        try {
-            org.hl7.fhir.r5.fhirpath.FHIRPathEngine fhirPath =
-                    new org.hl7.fhir.r5.fhirpath.FHIRPathEngine(context);
-            fhirPath.setHostServices(new ElementHostServices(context));
-            hits = fhirPath.evaluate(element, parameter.getExpression());
-        } catch (Exception e) {
-            return List.of();
-        }
-        for (org.hl7.fhir.r5.model.Base hit : hits) {
-            String reference = hit instanceof Element referenced
-                    ? ("Reference".equals(referenced.fhirType())
-                            ? referenced.getNamedChildValue("reference")
-                            : referenced.primitiveValue())
-                    : hit.primitiveValue();
-            if (reference == null) {
-                continue;
-            }
-            int slash = reference.lastIndexOf('/');
-            if (slash > 0) {
-                String type = reference.substring(0, slash);
-                int previous = type.lastIndexOf('/');
-                targets.add(new String[] {previous < 0 ? type : type.substring(previous + 1),
-                        reference.substring(slash + 1)});
-            }
-        }
-        return targets;
     }
 
     /** The canonical url of a canonical resource — its identity, for a conditional write. */

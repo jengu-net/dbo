@@ -124,6 +124,16 @@ public record SpecChange(Kind kind, List<String> fields) {
         if (!Objects.equals(serving.managedBy(), declared.managedBy())) {
             rewire.add("managedBy");
         }
+        // Which answerer judges a write is decided when the face is built and
+        // held for its life: the index is read once into arrays and the
+        // payloads over it are cached, so a serving face cannot become the
+        // other one in place. Nothing already stored moves — the two answer
+        // the same question and were held against each other over a version's
+        // own documents before either could be declared — so this is the
+        // surfaces being rebuilt rather than the records being touched.
+        if (serving.indexFace() != declared.indexFace()) {
+            rewire.add("indexFace");
+        }
         // Mandatory steps classify incidents and gate nothing, so a tenant
         // reads the new list the moment it holds it.
         if (!Objects.equals(serving.mandatorySteps(), declared.mandatorySteps())) {

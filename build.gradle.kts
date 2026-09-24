@@ -20,6 +20,8 @@ val moduleBlurbs = mapOf(
     "dbo-sync" to "Declared content dependencies streamed between tenant stores.",
     "dbo-terminology" to "Concept-per-row terminology with \$expand, \$lookup and \$validate-code.",
     "dbo-definitions" to "Element-per-row definitions: a snapshot expanded once, located by jsonpath.",
+    "dbo-fhir-index" to "Definitions as flat arrays over one interned dictionary, projected from the expanded rows.",
+    "dbo-fhir-validate" to "The checks over the definition index: a third answerer, with no toolchain and no round trip.",
     "dbo-maintenance" to "Sealed, attested archives: backup, restore, portable export and import.",
     "dbo-scim" to "Per-tenant SCIM 2.0 staff provisioning over the person vault (RFC 7643/7644).",
     "dbo-tenant" to "Tenant runtime wiring: spec files to live per-tenant service sets.",
@@ -32,6 +34,9 @@ val moduleBlurbs = mapOf(
     "dbo-runner" to "The embeddable step runner: register step services, work arrives, outcomes and vitals go back.",
     "dbo-stream" to "The lane over the store's own stream: the same verbs, carried on the durable substrate.",
     "dbo-telemetry-otlp" to "The telemetry exporter: the seam's numbers to a collector as OTLP over HTTP, no protocol library.",
+    "spring-boot-core" to "The embedded container host both Spring Boot assemblies stand on: one framework, one class space, one package list.",
+    "spring-boot-server" to "The serving runtime hosted inside a Spring Boot application: beans are extension points, the container is invisible.",
+    "spring-boot-worker" to "The step runner hosted inside a Spring Boot application: a bean that performs a step, over lanes read from configuration.",
 )
 
 // The runtime bundle set, in install order. ONE list: the serving
@@ -44,9 +49,17 @@ val dboRuntimeModules = listOf(
     // the HL7/HAPI engine, once, for every personality after it
     ":core:dbo-fhir-stack",
     ":core:dbo-terminology", ":core:dbo-definitions", ":core:dbo-subscriptions",
+    // the definitions as flat arrays and the reader over them, before the
+    // facade that imports it: an envelope is built by running compiled paths
+    // over a document, and neither the paths nor the reader needs a context
+    ":core:dbo-fhir-index", ":core:dbo-fhir-validate",
     // the shared facade every version is served through, and the definitions
     // it carries — before the faces that import it
     ":core:dbo-fhir-element",
+    // NOT the definition packages. They are a fragment of the face
+    // (:core:dbo-fhir-packages), installed where a tenant has to build a
+    // context and absent from a serving node — which is what makes "cannot
+    // populate one" a property rather than a habit.
     // the promise framework and the store's catalogue: leaf bundles the
     // citing modules (dbo-pdi first) import from
     ":promise", ":core:dbo-promises",
@@ -113,7 +126,7 @@ val dboRuntimeExternalBundles = listOf("org.postgresql:postgresql:42.7.13")
 val dboLoggingBundles = listOf("org.slf4j:slf4j-api:2.0.18")
 val dboLoggingModules = listOf(":core:dbo-logging")
 val dboLoggingExtension =
-    "org.apache.aries.spifly:org.apache.aries.spifly.dynamic.framework.extension:1.3.7"
+    "org.apache.aries.spifly:org.apache.aries.spifly.dynamic.framework.extension:1.3.8"
 
 // Development mode: set `dbo.dev=true` in ~/.gradle/gradle.properties. It is a
 // machine-local convenience for the Karaf console loop and never reaches CI,
@@ -126,7 +139,20 @@ val dboDevMode = (findProperty("dbo.dev") as String?) == "true"
 // command bundle compiles against its shell API.
 val dboKarafVersion = (findProperty("dbo.karaf.version") as String?) ?: "4.4.11"
 
+// The Spring Boot generation the assemblies compile against, named once.
+// 4.1.1 carries Spring Framework 7 and a Java 17 floor, under the 21 this
+// repository compiles at.
+//
+// A dial rather than a constant: what an application already runs decides
+// this, and an assembly built against a later generation than its host is the
+// one dependency an integrator cannot work around. The auto-configuration
+// mechanism the assemblies register under is the same in 3.x and 4.x, so
+// moving the floor down for an application still on 3.x costs nothing
+// structural.
+val dboSpringBootVersion = (findProperty("dbo.spring.boot.version") as String?) ?: "4.1.1"
+
 extra["dboKarafVersion"] = dboKarafVersion
+extra["dboSpringBootVersion"] = dboSpringBootVersion
 // Every test JVM's ceiling bows to the machine it runs on. The per-module
 // maxHeapSize values are each suite's own minimum (the element face holds a
 // version's definitions, the harness holds a container and a distribution),
@@ -298,7 +324,7 @@ subprojects {
         }
     }
     if (!isPlatform) {
-        the<JavaPluginExtension>().toolchain.languageVersion.set(JavaLanguageVersion.of(21))
+        the<JavaPluginExtension>().toolchain.languageVersion.set(JavaLanguageVersion.of(25))
     }
     group = "cloud.jengu.dbo"
     // Snapshots on main; a release build passes -Pdbo.version=X.Y.Z (the
@@ -312,9 +338,6 @@ subprojects {
     // promises a library.
     val notALibrary = setOf(
         ":core:harness", ":core:dbo-server", ":core:conformance", ":bench:runner",
-        // the development console: a stock Karaf pointed at the bundle set,
-        // not an artifact anyone consumes
-        ":karaf", ":karaf:commands", ":karaf:slf4j-compat",
         // the guide's examples, compiled so a chapter cannot show a call that
         // no longer exists; nobody depends on them
         ":sample", ":sample:participant")
@@ -464,7 +487,7 @@ subprojects {
 // the same arrangement the requirement catalogue is under, for the same
 // reason. Hung off `check` so it runs wherever the build does, rather than
 // in a lane somebody has to remember.
-val generateSkills by tasks.registering(Exec::class) {
+val generateSkills = tasks.register<Exec>("generateSkills") {
     group = "documentation"
     description = "Projects the constraints documents' skill-blocks into tools/dbo-conventions/."
     workingDir = rootDir
@@ -480,7 +503,7 @@ val generateSkills by tasks.registering(Exec::class) {
     outputs.file(layout.projectDirectory.file("CLAUDE.md"))
 }
 
-val verifySkillProjection by tasks.registering(Exec::class) {
+val verifySkillProjection = tasks.register<Exec>("verifySkillProjection") {
     group = "verification"
     description = "Fails when the committed skills or CLAUDE.md disagree with their source."
     dependsOn(generateSkills)
@@ -537,7 +560,7 @@ tasks.register<Zip>("centralBundle") {
 // file, `verifyModuleMap` refuses a committed one that disagrees with the
 // build. A new edge is a line in a diff, which is where a layering
 // violation is cheapest to notice.
-val moduleMap by tasks.registering {
+val moduleMap = tasks.register("moduleMap") {
     group = "documentation"
     description = "Records config/module-map.txt from the project dependencies."
     val out = rootProject.file("config/module-map.txt")
@@ -583,7 +606,7 @@ val moduleMap by tasks.registering {
     }
 }
 
-val verifyModuleMap by tasks.registering(Exec::class) {
+val verifyModuleMap = tasks.register<Exec>("verifyModuleMap") {
     group = "verification"
     description = "Fails when the committed module map disagrees with the build."
     dependsOn(moduleMap)
@@ -615,7 +638,7 @@ fun liniInstalled(): Boolean =
         false
     }
 
-val reRecord by tasks.registering {
+val reRecord = tasks.register("reRecord") {
     group = "documentation"
     description = "Re-records every artefact that is generated and committed beside its source."
     dependsOn(
@@ -737,7 +760,7 @@ if (hooksDir.isDirectory) {
 // reputation. This ranks them from the XML the last run left behind, and CI
 // appends the table to the run's summary, so the worklist is the top of a
 // list rather than a memory.
-val slowestTests by tasks.registering {
+val slowestTests = tasks.register("slowestTests") {
     group = "verification"
     description = "Ranks test classes by wall-clock time from the JUnit XML of the last run."
     val report = layout.buildDirectory.file("reports/slowest-tests.md")
@@ -806,7 +829,7 @@ val siteVenv = layout.buildDirectory.dir("site-venv")
 val siteSrc = layout.buildDirectory.dir("site-src")
 val siteOut = layout.buildDirectory.dir("site")
 
-val siteTools by tasks.registering(Exec::class) {
+val siteTools = tasks.register<Exec>("siteTools") {
     group = "documentation"
     description = "Creates the pinned Python environment the site is built with."
     inputs.file(siteDir.file("requirements.txt"))
@@ -916,7 +939,7 @@ fun describe(target: File) {
     }
 }
 
-val siteDiagrams by tasks.registering(Exec::class) {
+val siteDiagrams = tasks.register<Exec>("siteDiagrams") {
     group = "documentation"
     description = "Compiles site/diagrams/*.lini to site/assets/diagrams/*.svg."
     inputs.files(diagramSources(), diagramDescriptions())
@@ -935,7 +958,7 @@ val siteDiagrams by tasks.registering(Exec::class) {
 // @font-face rules thrown away. Regenerating is a deliberate act rather than
 // a build step: the output is 340kB of base64 that changes only when the
 // compiler does.
-val siteDiagramFont by tasks.registering {
+val siteDiagramFont = tasks.register("siteDiagramFont") {
     group = "documentation"
     description = "Rewrites site/assets/lini-font.css from lini's bundled faces."
     doLast {
@@ -971,7 +994,7 @@ val siteDiagramFont by tasks.registering {
     }
 }
 
-val siteDiagramsCheck by tasks.registering {
+val siteDiagramsCheck = tasks.register("siteDiagramsCheck") {
     group = "verification"
     description = "Fails when a committed diagram SVG differs from its .lini source."
     // Asked for in the same invocation as the compile, Gradle is free to run
@@ -999,7 +1022,7 @@ val siteDiagramsCheck by tasks.registering {
     }
 }
 
-val siteAssemble by tasks.registering(Sync::class) {
+val siteAssemble = tasks.register<Sync>("siteAssemble") {
     group = "documentation"
     description = "Assembles the site's source tree from docs/ and site/."
     into(siteSrc)
@@ -1106,7 +1129,7 @@ val siteAssemble by tasks.registering(Sync::class) {
     }
 }
 
-val site by tasks.registering(Exec::class) {
+val site = tasks.register<Exec>("site") {
     group = "documentation"
     description = "Builds the site into build/site."
     dependsOn(siteTools, siteAssemble)

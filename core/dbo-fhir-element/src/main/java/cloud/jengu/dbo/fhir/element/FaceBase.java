@@ -316,6 +316,27 @@ final class FaceBase {
             this.context = context;
         }
 
+        /**
+         * The same offer, for a definition that lives in a carried package
+         * rather than in a store.
+         *
+         * <p>A package's index names every resource in it, so what is read
+         * before anything is asked for is three fields out of each file —
+         * type, url, derivation — and the file is left alone. The bytes are
+         * read when the toolchain asks, and the parsed form is the
+         * toolchain's to keep or drop.
+         */
+        Proxy(String type, String id, String url, String version, String derivation,
+                Loading loading, SimpleWorkerContext context) {
+            super(type, id, url,
+                    "StructureDefinition".equals(type) ? null : version, null,
+                    "StructureDefinition".equals(type) ? derivation : null, null);
+            this.type = type;
+            this.url = url;
+            this.loading = loading;
+            this.context = context;
+        }
+
         @Override
         public CanonicalResource loadResource() throws FHIRException {
             byte[] payload = loading.load(type, url);

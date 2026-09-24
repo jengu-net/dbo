@@ -1,7 +1,12 @@
 package cloud.jengu.dbo.harness;
 
 import cloud.jengu.dbo.definitions.DefinitionStore;
+import cloud.jengu.dbo.fhir.common.Finding;
 import cloud.jengu.dbo.fhir.element.FaceRootPackages;
+import cloud.jengu.dbo.fhir.index.BoundCodes;
+import cloud.jengu.dbo.fhir.index.DefinitionIndex;
+import cloud.jengu.dbo.fhir.index.DefinitionRows;
+import cloud.jengu.dbo.fhir.validate.ElementChecks;
 import cloud.jengu.dbo.promises.DboPromises;
 import cloud.jengu.dbo.promises.Proving;
 import cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner;
@@ -18,12 +23,17 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.TreeSet;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -161,6 +171,382 @@ class TheTwoAnswersAreComparedOverTheVersionIT {
                 "the two answers agree about less of the version than they did. Re-record "
                         + "with -Ddbo.divergence.record=true only when the change is meant.\n"
                         + observed);
+    }
+
+    // --------------------------------------------------------- a third leg
+
+    /** The types the corpus holds, plus the two ordinary ones the second half writes. */
+    private static final Set<String> INDEXED = new LinkedHashSet<>(List.of(
+            "StructureDefinition", "SearchParameter", "ValueSet", "CodeSystem", "ConceptMap",
+            "OperationDefinition", "CapabilityStatement", "CompartmentDefinition",
+            "NamingSystem", "StructureMap", "Patient", "Observation"));
+
+    private static DefinitionIndex index;
+
+    /** Built once: it is the same rows for every document put through it. */
+    private static synchronized DefinitionIndex index() {
+        if (index == null) {
+            Set<String> seeds = new LinkedHashSet<>();
+            for (String type : INDEXED) {
+                seeds.add("http://hl7.org/fhir/StructureDefinition/" + type);
+            }
+            index = DefinitionRows.over(source(), DefinitionRows.closureOf(source(), seeds));
+        }
+        return index;
+    }
+
+    @Test
+    @DisplayName("over everything the version publishes, neither the index nor the database "
+            + "faults anything, and the walk went far enough for that to mean something")
+    @Proving(DboPromises.VAL_A_THIRD_ANSWERER_READS_THE_INDEX)
+    void theThirdAnswererNamesWhatTheDatabaseNames() {
+        List<String> divergences = new ArrayList<>();
+        int compared = 0;
+        int descents = 0;
+        int deepest = 0;
+        int spoken = 0;
+        for (Map.Entry<String, List<FaceRootPackages.Definition>> ofType : corpus().entrySet()) {
+            String canonical = definitions.theTypeItself(ofType.getKey()).orElse(null);
+            if (canonical == null || !index().holds(canonical)) {
+                continue;
+            }
+            for (FaceRootPackages.Definition document : ofType.getValue()) {
+                ElementChecks.Checked checked =
+                        ElementChecks.over(index(), canonical, document.document());
+                Set<String> ours = new TreeSet<>();
+                for (Finding one : checked.findings()) {
+                    // Cardinality alone: the walk answers five kinds of thing
+                    // now, and this half is compared against dbo.cardinality.
+                    if ("cardinality".equals(one.key())) {
+                        ours.add(withoutIndices(one.path()));
+                    }
+                }
+                Set<String> theirs = cardinalityPaths(document.document(), canonical);
+                compared++;
+                descents += checked.descents();
+                deepest = Math.max(deepest, checked.deepest());
+                if (!ours.isEmpty() || !theirs.isEmpty()) {
+                    spoken++;
+                }
+                if (!ours.equals(theirs)) {
+                    divergences.add(ofType.getKey() + " " + document.url()
+                            + ": the index says " + ours + ", the database says " + theirs);
+                }
+            }
+        }
+
+        System.out.printf("%n=== the index checker against dbo.cardinality, over r4 ===%n"
+                + "documents compared %d, of which either answerer spoke about %d%n"
+                + "the walk descended into %d nodes, deepest path %d segments%n"
+                + "divergences %d%n", compared, spoken, descents, deepest, divergences.size());
+        divergences.stream().limit(10).forEach(one -> System.out.println("  " + one));
+
+        assertTrue(compared > 200, "only " + compared + " documents were compared");
+        // WHAT THIS HALF IS, said rather than implied: both answerers are
+        // silent about every one of these documents, so the agreement is an
+        // agreement about silence. That is worth asserting — it is the claim
+        // that neither faults the specification's own resources — and it is
+        // not the claim that they say the same thing when something is wrong.
+        // The other half of this pair is where that is asked.
+        assertEquals(0, spoken,
+                "an answerer faulted the specification's own conformance resources, which is "
+                        + "either a real defect in these documents or a false positive");
+        // And a clean corpus is also what a checker that never descended
+        // reports, so the walk has to have gone somewhere before its silence
+        // means anything at all.
+        assertTrue(descents > 20_000,
+                "the walk barely descended, so agreement means nothing: " + descents);
+        assertTrue(deepest >= 4, "the walk never went deep: " + deepest);
+        assertEquals(List.of(), divergences,
+                "the two answerers over the same rows do not name the same elements");
+    }
+
+    private static BoundCodes codes;
+
+    /** The codes behind the required bindings, read once beside the index. */
+    private static synchronized BoundCodes codes() {
+        if (codes == null) {
+            codes = BoundCodes.over(source(), index());
+        }
+        return codes;
+    }
+
+    @Test
+    @DisplayName("over everything the version publishes, the rules the index runs and the rules "
+            + "the database runs fault the same documents")
+    @Proving(DboPromises.VAL_A_THIRD_ANSWERER_READS_THE_INDEX)
+    void theRulesAgreeOverTheVersion() {
+        // An invariant is compiled when the definition arrives; both sides run
+        // the same compiled text, one in Postgres and one here. Two thirds of
+        // them are a grammar this reader implements and the rest it declines
+        // — so what is compared is the rules BOTH ran, and how many were
+        // declined is reported rather than hidden, because a reader that
+        // declined everything would agree perfectly.
+        List<String> divergences = new ArrayList<>();
+        int compared = 0;
+        int spoken = 0;
+        int foundHere = 0;
+        int foundThere = 0;
+        Set<String> agreedOn = new TreeSet<>();
+        for (Map.Entry<String, List<FaceRootPackages.Definition>> ofType : corpus().entrySet()) {
+            String canonical = definitions.theTypeItself(ofType.getKey()).orElse(null);
+            if (canonical == null || !index().holds(canonical)) {
+                continue;
+            }
+            for (FaceRootPackages.Definition document : ofType.getValue()) {
+                Set<String> ours = new TreeSet<>();
+                for (Finding one : ElementChecks.over(index(), canonical,
+                        document.document()).findings()) {
+                    if (RULE_KEYS.matcher(one.key() == null ? "" : one.key()).matches()) {
+                        ours.add(one.key());
+                    }
+                }
+                Set<String> theirs = ruleKeys(document.document(), canonical);
+                compared++;
+                foundHere += ours.size();
+                foundThere += theirs.size();
+                agreedOn.addAll(ours);
+                if (!ours.isEmpty() || !theirs.isEmpty()) {
+                    spoken++;
+                }
+                // The reader answers a subset, so what it reports must be a
+                // subset of what the database reports. A rule it faults that
+                // the database does not is the failure that matters: the two
+                // ran the same compiled text and disagreed.
+                Set<String> onlyOurs = new TreeSet<>(ours);
+                onlyOurs.removeAll(theirs);
+                if (!onlyOurs.isEmpty()) {
+                    divergences.add(ofType.getKey() + " " + document.url()
+                            + ": the index faults " + onlyOurs + " and the database does not");
+                }
+            }
+        }
+        // Every one of these documents breaks a rule, and the reason is the
+        // fixture rather than the corpus: a definition is read with its
+        // narrative removed, so dom-6 fails on all of them. That is what makes
+        // this comparison worth running on the corpus at all — the cardinality
+        // half is an agreement about silence, and this one is not.
+        System.out.printf("%n=== the rules, index against database, over r4 ===%n"
+                + "documents compared %d, either answerer spoke about %d%n"
+                + "rule findings: %d from the index, %d from the database, over %d keys%n"
+                + "divergences where the index faults what the database does not: %d%n",
+                compared, spoken, foundHere, foundThere, agreedOn.size(),
+                divergences.size());
+        System.out.println("  the index reported: " + agreedOn);
+        divergences.stream().limit(10).forEach(one -> System.out.println("  " + one));
+
+        assertTrue(compared > 200, "only " + compared + " documents were compared");
+        // A reader that declined every rule would be a perfect subset of the
+        // database and prove nothing, so what it DID run is asserted too.
+        assertTrue(foundHere > 100,
+                "the index ran the rules and faulted almost nothing, so agreeing with the "
+                        + "database about a subset means nothing: " + foundHere);
+        assertEquals(List.of(), divergences,
+                "the two ran the same compiled rule and disagreed");
+    }
+
+    /** A rule key, which is how an invariant finding is named apart from the other checks. */
+    private static final java.util.regex.Pattern RULE_KEYS =
+            java.util.regex.Pattern.compile("[a-z][a-z0-9]*-[0-9]+");
+
+    /** The rule keys dbo.invariant_issues reports. */
+    private static Set<String> ruleKeys(byte[] document, String canonical) {
+        Set<String> keys = new TreeSet<>();
+        try (Connection c = source().getConnection();
+             PreparedStatement ps = c.prepareStatement(
+                     "SELECT key FROM dbo.invariant_issues(?::jsonb, ?)")) {
+            ps.setString(1, new String(document, StandardCharsets.UTF_8));
+            ps.setString(2, canonical);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    keys.add(rs.getString(1));
+                }
+            }
+        } catch (java.sql.SQLException e) {
+            throw new IllegalStateException("asking the database about the rules failed", e);
+        }
+        return keys;
+    }
+
+    @Test
+    @DisplayName("a required binding is decided in the process, against a few hundred codes, "
+            + "and the database says the same")
+    @Proving(DboPromises.VAL_A_THIRD_ANSWERER_READS_THE_INDEX)
+    void aRequiredBindingIsDecidedFromTheCodesHeld() {
+        String patient = "http://hl7.org/fhir/StructureDefinition/Patient";
+        System.out.printf("%n=== the codes behind %s's required bindings ===%n"
+                + "%d value sets answerable, %d codes held, %d declined as too large%n",
+                tenant.code(), codes().valueSets(), codes().codes(), codes().declined().size());
+
+        // Patient.gender is bound to administrative-gender at required
+        // strength, which is four codes.
+        bothBind(patient, "{\"resourceType\":\"Patient\",\"gender\":\"female\"}", Set.of());
+        bothBind(patient, "{\"resourceType\":\"Patient\",\"gender\":\"kass\"}",
+                Set.of("Patient.gender"));
+
+        // A CodeableConcept is satisfied by ANY of its codings, so one good
+        // coding beside one bad one is not a refusal.
+        bothBind(patient,
+                "{\"resourceType\":\"Patient\",\"maritalStatus\":{\"coding\":["
+                        + "{\"system\":\"http://terminology.hl7.org/CodeSystem/v3-MaritalStatus\","
+                        + "\"code\":\"M\"}]}}",
+                Set.of());
+
+        // And a code from a system the value set is not built from: knowable
+        // without holding anything, and both know it.
+        bothBind(patient,
+                "{\"resourceType\":\"Patient\",\"maritalStatus\":{\"coding\":["
+                        + "{\"system\":\"https://ee.ee/oma\",\"code\":\"X\"}]}}",
+                Set.of());
+
+        assertTrue(codes().codes() > 100,
+                "too few codes held for this to have decided anything: " + codes().codes());
+    }
+
+    /** Both answerers on the binding check alone. */
+    private void bothBind(String canonical, String document, Set<String> expected) {
+        byte[] bytes = document.getBytes(StandardCharsets.UTF_8);
+        Set<String> ours = new TreeSet<>();
+        for (Finding one : ElementChecks.over(index(), codes(), canonical, bytes).findings()) {
+            if ("binding".equals(one.key())) {
+                ours.add(withoutIndices(one.path()));
+            }
+        }
+        Set<String> theirs = new TreeSet<>();
+        try (Connection c = source().getConnection();
+             PreparedStatement ps = c.prepareStatement(
+                     "SELECT path FROM dbo.binding_issues(?::jsonb, ?)")) {
+            ps.setString(1, new String(bytes, StandardCharsets.UTF_8));
+            ps.setString(2, canonical);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    theirs.add(rs.getString(1));
+                }
+            }
+        } catch (java.sql.SQLException e) {
+            throw new IllegalStateException("asking the database about a binding failed", e);
+        }
+        assertEquals(new TreeSet<>(expected), ours, "the index checker: " + document);
+        assertEquals(new TreeSet<>(expected), theirs, "the database: " + document);
+    }
+
+    @Test
+    @DisplayName("and on documents that are actually wrong, at every depth, they name the same "
+            + "elements")
+    @Proving(DboPromises.VAL_A_THIRD_ANSWERER_READS_THE_INDEX)
+    void theyAgreeAboutWhatIsWrong() {
+        // The corpus is correct, so agreeing about it is half a proof: two
+        // answerers that both say nothing agree perfectly. These are the
+        // documents where something has to be said.
+        String patient = "http://hl7.org/fhir/StructureDefinition/Patient";
+        String observation = "http://hl7.org/fhir/StructureDefinition/Observation";
+
+        // A required element absent. Observation.status and Observation.code
+        // are both 1..1.
+        bothSay(observation, "{\"resourceType\":\"Observation\"}",
+                Set.of("Observation.status", "Observation.code"));
+
+        // An element allowed once, sent twice — the case the toolchain drops
+        // in silence and both of these report.
+        bothSay(patient, "{\"resourceType\":\"Patient\",\"gender\":[\"female\",\"male\"]}",
+                Set.of("Patient.gender"));
+
+        // Unbounded, so many is correct and neither may speak.
+        bothSay(patient,
+                "{\"resourceType\":\"Patient\",\"name\":[{\"family\":\"a\"},"
+                        + "{\"family\":\"b\"}]}",
+                Set.of());
+
+        // DEPTH, inside a backbone: one contact holding two names is wrong.
+        bothSay(patient,
+                "{\"resourceType\":\"Patient\",\"contact\":[{\"name\":[{\"family\":\"a\"},"
+                        + "{\"family\":\"b\"}]}]}",
+                Set.of("Patient.contact.name"));
+
+        // And per parent: two contacts holding one name each is correct. An
+        // answerer counting across the document gets this one wrong.
+        bothSay(patient,
+                "{\"resourceType\":\"Patient\",\"contact\":[{\"name\":{\"family\":\"a\"}},"
+                        + "{\"name\":{\"family\":\"b\"}}]}",
+                Set.of());
+
+        // INSIDE A DATATYPE THEY DIVERGE, and the index is the one that
+        // reaches further. HumanName.family is 0..1 and is stated in
+        // HumanName's own structure; Patient's snapshot names Patient.name as
+        // a HumanName and stops. The database walks one profile's rows, so it
+        // has nothing to say here and says nothing — which is the promise it
+        // makes rather than a defect. The index holds the closure, so it
+        // enters HumanName and speaks.
+        //
+        // This is the whole reason a third answerer is worth having and not
+        // only cheaper: it answers where one profile's rows stop.
+        String insideAType =
+                "{\"resourceType\":\"Patient\",\"name\":[{\"family\":[\"a\",\"b\"]}]}";
+        assertEquals(Set.of("Patient.name.family"), pathsFromTheIndex(patient, insideAType),
+                "the index checker did not enter the datatype's own structure");
+        assertEquals(Set.of(), cardinalityPaths(insideAType.getBytes(StandardCharsets.UTF_8),
+                        patient),
+                "the database spoke inside a datatype no profile constrains, which is a change "
+                        + "in how far the rows reach and not a change to this comparison");
+    }
+
+    /**
+     * Both answerers, over one document, against what should be said.
+     *
+     * <p>The expectation is stated as well as the agreement, because two
+     * answerers can agree by both being silent and that is exactly what the
+     * corpus half cannot rule out.
+     */
+    private void bothSay(String canonical, String document, Set<String> expected) {
+        byte[] bytes = document.getBytes(StandardCharsets.UTF_8);
+        Set<String> ours = pathsFromTheIndex(canonical, document);
+        Set<String> theirs = cardinalityPaths(bytes, canonical);
+        assertEquals(new TreeSet<>(expected), ours, "the index checker: " + document);
+        assertEquals(new TreeSet<>(expected), theirs, "the database: " + document);
+    }
+
+    /** What the index checker faults, as the elements rather than the occurrences. */
+    private static Set<String> pathsFromTheIndex(String canonical, String document) {
+        Set<String> paths = new TreeSet<>();
+        for (Finding one : ElementChecks.over(index(), canonical,
+                document.getBytes(StandardCharsets.UTF_8)).findings()) {
+            if ("cardinality".equals(one.key())) {
+                paths.add(withoutIndices(one.path()));
+            }
+        }
+        return paths;
+    }
+
+    /** What dbo.cardinality faults, as the definition paths it names. */
+    private static Set<String> cardinalityPaths(byte[] document, String canonical) {
+        Set<String> paths = new TreeSet<>();
+        try (Connection c = source().getConnection();
+             PreparedStatement ps = c.prepareStatement(
+                     "SELECT path FROM dbo.cardinality_issues(?::jsonb, ?)")) {
+            ps.setString(1, new String(document, StandardCharsets.UTF_8));
+            ps.setString(2, canonical);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    paths.add(rs.getString(1));
+                }
+            }
+        } catch (java.sql.SQLException e) {
+            throw new IllegalStateException("asking the database about cardinality failed", e);
+        }
+        return paths;
+    }
+
+    /**
+     * An instance path reduced to the definition path it is an instance of.
+     *
+     * <p>The database names the element — {@code Patient.contact.name} — and
+     * the index checker names the occurrence — {@code Patient.contact[0].name}
+     * — because a caller fixing a document needs to know which contact. What
+     * is compared is which ELEMENT each faulted, so the occurrence is dropped
+     * on this side rather than added on the other.
+     */
+    private static String withoutIndices(String path) {
+        return path.replaceAll("\\[\\d+\\]", "");
     }
 
     // -------------------------------------------------------------- corpus

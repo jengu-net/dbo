@@ -146,6 +146,13 @@ class ServerDistIT {
         // version again. Set here so the distribution's own test is what
         // notices if the way in disappears.
         pb.environment().put("DBO_FACE_IMAGES", faceImages.toString());
+        // THIS NODE POPULATES A FACE. The tenant below declares a version and
+        // takes it from no root, so the specification has to be turned into
+        // records here — and the packages that is done from ship beside the
+        // bundle set rather than in it. A node left to the default installs
+        // none of them and cannot build a worker context at all, which is what
+        // item 025's last move is for; this is the other kind of node.
+        pb.environment().put("DBO_FACE_PACKAGES", "true");
         pb.environment().put("PATH",
                 System.getProperty("java.home") + "/bin:" + pb.environment().getOrDefault("PATH", ""));
         pb.redirectErrorStream(true);

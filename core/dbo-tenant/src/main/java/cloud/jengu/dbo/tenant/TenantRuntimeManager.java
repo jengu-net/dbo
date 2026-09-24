@@ -1,5 +1,10 @@
 package cloud.jengu.dbo.tenant;
 
+import cloud.jengu.dbo.tenant.api.TenantDomain;
+import cloud.jengu.dbo.tenant.api.TenantFacts;
+import cloud.jengu.dbo.tenant.api.TenantLifecycleListener;
+import cloud.jengu.dbo.tenant.api.TenantObserver;
+import cloud.jengu.dbo.tenant.api.TenantPoint;
 import cloud.jengu.dbo.core.api.ObjectStore;
 import cloud.jengu.dbo.core.api.feed.ChangeFeed;
 import cloud.jengu.dbo.fhir.common.FhirStoreFacade;
@@ -109,7 +114,27 @@ public final class TenantRuntimeManager implements AutoCloseable {
              * to remember, and a place nobody remembers is a place that keeps
              * somebody's recording after they asked for it to be gone.
              */
-            cloud.jengu.dbo.core.api.BlobStore blobs) {}
+            cloud.jengu.dbo.core.api.BlobStore blobs,
+
+            /**
+             * This tenant's own authority, or null where it has none.
+             *
+             * <p>Here for the reason the asking vocabulary is registered
+             * beside the store: a thing reachable only by whoever can already
+             * reach the engine is reachable by nobody. The authority is what
+             * says who is asking, and a host that embedded this framework has
+             * exactly one way to answer that question about a tenant's own
+             * tokens — this object. Without it such a host either takes a
+             * second issuer's word about somebody else's records, or it
+             * reimplements the verification, and both are worse than handing
+             * over the thing that already knows.
+             *
+             * <p><b>Null is a real answer.</b> A tenant declared without an
+             * authority has none, and nothing of it is registered: a host
+             * asking gets nothing, rather than something that admits
+             * everybody.
+             */
+            cloud.jengu.dbo.auth.TenantAuthority authority) {}
 
     /**
      * This tenant's blob store, sealing where it can.
@@ -250,6 +275,27 @@ public final class TenantRuntimeManager implements AutoCloseable {
     private final TenantDatabaseProvisioner provisioner;
     private final Listener listener;
     private final HttpServer sharedServer;
+
+    /**
+     * Whether this runtime is the one that has to take the server down.
+     *
+     * <p>A host that handed one in owns its lifetime — it bound it, it
+     * started it, and it is serving things of its own on it. Stopping it here
+     * would take an application's whole web tier down because a tenant
+     * runtime was closed.
+     */
+    private final boolean ownsServer;
+
+    /**
+     * The port this deployment answers on, as declared.
+     *
+     * <p>Kept because a supplied server may never bind: one backed by
+     * somebody else's web tier has no address of its own to report, and the
+     * port the outside world reaches is a fact only the host has. A server
+     * this runtime bound answers for itself, which is what makes port 0
+     * — bind anywhere, then say where — keep working.
+     */
+    private final int declaredPort;
     private final String host;
     private final Map<String, TenantRuntime> runtimes = new ConcurrentHashMap<>();
     /**
@@ -479,6 +525,41 @@ public final class TenantRuntimeManager implements AutoCloseable {
     public TenantRuntimeManager(Path directory, TenantDatabaseProvisioner provisioner,
             String host, int port, Listener listener, AuthorityConfig authorityConfig,
             FhirVersions versions, cloud.jengu.dbo.core.process.Steps steps) {
+        this(directory, provisioner, host, port, listener, authorityConfig, versions, steps,
+                null);
+    }
+
+    /**
+     * The same runtime, on a server somebody else is already running.
+     *
+     * <p>Every surface this runtime mounts — the records door, a tenant's own
+     * authority, provisioning, the step surface, maintenance, erasure,
+     * content, the ops readouts — goes on one {@link HttpServer} through
+     * {@code createContext}. That is the only thing a host has to fill, so a
+     * host with a web tier of its own supplies an {@code HttpServer} backed by
+     * it and every surface arrives there at once. Nothing below this line
+     * knows the difference, which is the point: a surface written against the
+     * servlet API would be a second implementation of a door that already
+     * exists.
+     *
+     * <p><b>A supplied server is not bound, started or stopped here.</b> It
+     * arrives however the host made it, and the host takes it away. What this
+     * runtime does to it is add contexts and remove them.
+     *
+     * <p>The port is then the declared one rather than a bound one, because a
+     * server standing in for somebody else's web tier has no address to
+     * report and the port the outside world reaches is a fact only the host
+     * has.
+     *
+     * @param shared the server to mount on, or null to bind one of this
+     *               runtime's own on {@code host:port} — which is what the
+     *               serving distribution does and what every test that names
+     *               a port has always done
+     */
+    public TenantRuntimeManager(Path directory, TenantDatabaseProvisioner provisioner,
+            String host, int port, Listener listener, AuthorityConfig authorityConfig,
+            FhirVersions versions, cloud.jengu.dbo.core.process.Steps steps,
+            HttpServer shared) {
         this.versions = versions;
         this.steps = steps;
         this.authorityConfig = authorityConfig;
@@ -494,19 +575,28 @@ public final class TenantRuntimeManager implements AutoCloseable {
             public void tenantDown(String code) {
             }
         };
-        try {
-            this.sharedServer = HttpServer.create(new InetSocketAddress(host, port), 0);
-        } catch (IOException e) {
-            // "Address already in use" with no address in it is the least
-            // useful sentence a bring-up can end on: the whole runtime fails to
-            // start, and what a reader needs is which port and who is likely
-            // holding it — commonly a second dbo on the same box.
-            throw new UncheckedIOException(host + ":" + port + " could not be bound, so this "
-                    + "runtime serves nothing. Something else is on that port — another dbo, "
-                    + "or an application embedding one.", e);
+        this.declaredPort = port;
+        this.ownsServer = shared == null;
+        if (shared != null) {
+            this.sharedServer = shared;
+        } else {
+            try {
+                this.sharedServer = HttpServer.create(new InetSocketAddress(host, port), 0);
+            } catch (IOException e) {
+                // "Address already in use" with no address in it is the least
+                // useful sentence a bring-up can end on: the whole runtime fails to
+                // start, and what a reader needs is which port and who is likely
+                // holding it — commonly a second dbo on the same box.
+                throw new UncheckedIOException(host + ":" + port + " could not be bound, so this "
+                        + "runtime serves nothing. Something else is on that port — another dbo, "
+                        + "or an application embedding one.", e);
+            }
+            // A thread per request, dead afterwards. Surfaces still clear what
+            // a request bound, because a host's server is a pool and a door
+            // that is safe only on this executor is safe by accident.
+            sharedServer.setExecutor(Executors.newVirtualThreadPerTaskExecutor());
+            sharedServer.start();
         }
-        sharedServer.setExecutor(Executors.newVirtualThreadPerTaskExecutor());
-        sharedServer.start();
         if (authorityConfig != null && authorityConfig.upstream() != null) {
             String hubBase = authorityConfig.issuerBase() != null
                     ? authorityConfig.issuerBase()
@@ -800,8 +890,17 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 });
     }
 
+    /**
+     * Where this deployment answers.
+     *
+     * <p>A server this runtime bound answers for itself, which is what makes
+     * a declared port of 0 — bind anywhere, then say where — work. A supplied
+     * one may have no address at all, and then the declared port stands: the
+     * host knows what the outside world reaches and this runtime does not.
+     */
     public int port() {
-        return sharedServer.getAddress().getPort();
+        InetSocketAddress bound = sharedServer.getAddress();
+        return bound != null ? bound.getPort() : declaredPort;
     }
 
     public String baseUrl(String code) {
@@ -830,6 +929,59 @@ public final class TenantRuntimeManager implements AutoCloseable {
      * and accepts them, and never decides where they live or how long they
      * are kept.
      */
+    /**
+     * Where this deployment's declarations are read from, when a host says.
+     *
+     * <p>Null, and it is the watched directory, which is what the serving
+     * distribution has always used and what {@code dbo.tenant.dir} names.
+     */
+    private volatile cloud.jengu.dbo.sync.ConfigSource declaredFrom;
+
+    /**
+     * Reads what this deployment is told to serve from somewhere else.
+     *
+     * <p>A directory is one source among several, and the interface already
+     * says which others were expected: a git repository, a mounted ConfigMap,
+     * a directory, a lane from a cloud. A host that embedded this framework is
+     * the next one — an application whose tenants are declared where the rest
+     * of its configuration is, read the same way by every replica, rather than
+     * as files on one node's disk.
+     *
+     * <p>It changes where the declarations are READ and nothing else. What a
+     * declaration means, what applying it costs and what a partial read
+     * implies stay where they are, which is what keeps five sources from
+     * becoming five designs.
+     *
+     * <p><b>The source's own contract travels with it, and one clause of it
+     * is load-bearing here:</b> a source that cannot be read throws, and never
+     * answers with an empty set. Empty and unreachable are the same sentence
+     * to the sweep below, and it acts on the first one — so a host whose
+     * backing store blips and answers with nothing has retracted every tenant
+     * on this node.
+     *
+     * <p>Said before {@link #start}, like the substrate and the bring-up
+     * bounds. A source swapped under a running scan would make one round read
+     * one deployment and the next round another.
+     */
+    public TenantRuntimeManager declaredFrom(cloud.jengu.dbo.sync.ConfigSource source) {
+        this.declaredFrom = source;
+        return this;
+    }
+
+    /**
+     * The source, as it stands: what a host supplied, or the watched
+     * directory.
+     *
+     * <p>Built per read rather than kept, because a source remembers nothing
+     * itself — what a scope last agreed with is on the run, in the store,
+     * where it survives a restart.
+     */
+    private cloud.jengu.dbo.sync.ConfigSource source() {
+        cloud.jengu.dbo.sync.ConfigSource supplied = declaredFrom;
+        return supplied != null ? supplied : new cloud.jengu.dbo.sync.DirectoryConfigSource(
+                directory, TenantDeclarationModel.TYPE, ".json");
+    }
+
     public TenantRuntimeManager faceImagesIn(java.nio.file.Path directory) {
         this.faceImages = directory;
         return this;
@@ -1367,7 +1519,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
             runtimes.put(declared.code(), new TenantRuntime(declared, serving.engine(),
                     serving.store(), serving.feed(), serving.definitionsFeed(),
                     serving.endpoint(), serving.grain(), serving.replication(),
-                    serving.blobs()));
+                    serving.blobs(), serving.authority()));
             redeclared.remove(declared.code());
             LOG.info("tenant {} took a change where it stands: {}",
                     declared.code(), change.says());
@@ -1589,8 +1741,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
     private java.util.List<cloud.jengu.dbo.sync.ConfigApplication.Declared> declaredNow() {
         ObjectStore management = managementCode == null ? null : runStores.get(managementCode);
         if (management == null) {
-            return new cloud.jengu.dbo.sync.DirectoryConfigSource(
-                    directory, TenantDeclarationModel.TYPE, ".json").fetch().declarations();
+            return source().fetch().declarations();
         }
         java.util.List<cloud.jengu.dbo.sync.ConfigApplication.Declared> onRecord =
                 new java.util.ArrayList<>();
@@ -1832,7 +1983,12 @@ public final class TenantRuntimeManager implements AutoCloseable {
         long facadeAt = System.currentTimeMillis();
         boolean versionHeldAsRecords = spec.faceRoot()
                 || spec.dependencies().stream().anyMatch(TenantSpec.Dependency::face);
-        FhirStoreFacade store = declared.store(engine, base, db.dataSource(), versionHeldAsRecords);
+        // A face with no version behind it has no rows for the index to be
+        // built from, so the declaration cannot mean anything there — and a
+        // face that read an empty index would refuse nothing at all.
+        boolean indexFace = spec.indexFace() && versionHeldAsRecords;
+        FhirStoreFacade store = declared.store(engine, base, db.dataSource(),
+                versionHeldAsRecords, indexFace);
         long facadeMillis = System.currentTimeMillis() - facadeAt;
 
         // REQ-DBO-TERM-EVERY-TENANT-ANSWERS: the native form is per tenant,
@@ -1860,7 +2016,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
         // configured, whether it has a vault from whether one was built, and
         // which type holds identities from what was declared. Each used to be
         // re-derived at the site that needed it.
-        TenantFacts facts = TenantFacts.of(spec, new TenantFacts.Resolved(
+        TenantFacts facts = PublishedFacts.of(spec, new TenantFacts.Resolved(
                 holdsRecordsInFaceDomain(declared.registrations(), version.domain()),
                 authority != null,
                 vaults.get(spec.code()) != null,
@@ -1941,7 +2097,13 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 new PgChangeFeed(db.dataSource(), version.domain()),
                 new PgChangeFeed(db.dataSource(), cloud.jengu.dbo.core.api.Domains.DEFINITIONS),
                 withAuditSurface(withPolicyNote(new FhirHttpServer(sharedServer, store,
-                        terminology, "/t/" + spec.code() + "/fhir", guard), spec),
+                        terminology, "/t/" + spec.code() + "/fhir", guard,
+                        // What this deployment is reached from, which the
+                        // socket cannot say when a host holds the web tier
+                        // and says the wrong thing when it is bound to
+                        // 0.0.0.0. Every Location this surface writes and the
+                        // capability statement's own URL come from here.
+                        base), spec),
                         version.face(), engine),
                 terminology, replication,
                 // Sealed where there is a vault to seal with. A tenant behind
@@ -1950,7 +2112,10 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 // destroys the recording, rather than leaving it readable
                 // beside a receipt that says otherwise.
                 blobsFor(spec.code(), new cloud.jengu.dbo.postgres.PgBlobStore(
-                        db.dataSource())));
+                        db.dataSource())),
+                // Null where the tenant has none, which is the whole of what
+                // a host is told about a tenant nobody can sign in to.
+                tenantAuthority);
         // Staged, not published: what is mounted has to be reachable so a
         // bring-up that throws can be taken back down, and a runtime here is
         // nobody's upstream — a dependent that resolved one mid-wire would
@@ -2362,7 +2527,16 @@ public final class TenantRuntimeManager implements AutoCloseable {
             if (!definitions.isEmpty()) {
                 engines.add(withRuns(spec, new cloud.jengu.dbo.sync.ContentSyncEngine(
                         new cloud.jengu.dbo.sync.ContentDependency(
-                                dependency.name(), java.util.Set.copyOf(definitions)),
+                                dependency.name(), java.util.Set.copyOf(definitions),
+                                // ONLY A FACE CHAIN. The closure is what a
+                                // declared type reaches through a version's
+                                // structures, and a zone publishes what is
+                                // true in a jurisdiction — reachable from no
+                                // structure's binding, so a face closure would
+                                // name none of it and withhold all of it.
+                                dependency.face()
+                                        ? manifestFrom(from, spec)
+                                        : java.util.Set::<String>of),
                         upstream.definitionsFeed(), runtime.engine(), on,
                         // Its bookkeeping belongs beside the rows it is about,
                         // so what a face gave this tenant — the records, their
@@ -2375,6 +2549,82 @@ public final class TenantRuntimeManager implements AutoCloseable {
             }
         }
         syncEngines.put(spec.code(), java.util.List.copyOf(engines));
+    }
+
+    /**
+     * What a dependent needs from a face, computed where the definitions are.
+     *
+     * <p><b>At the upstream, because the dependent cannot.</b> The closure of
+     * a declared type runs through the structures that type refers to, and a
+     * tenant that has not received them cannot walk it. So it is derived from
+     * the upstream's own rows, over the types THIS tenant declared, and what
+     * travels between the two ends is a set of names.
+     *
+     * <p><b>Asked for as the face changes, because a filter cannot report what
+     * it removed.</b> A profile published to a face after a dependent came up
+     * can sit inside that dependent's closure, and the only thing that would
+     * say so is the feed this manifest narrows. Computed once, the dependent
+     * holds a face that stopped growing and never hears about it.
+     *
+     * <p><b>And recomputed only when the upstream has moved.</b> The closure
+     * is several queries, and running it per poll on every dependent of a busy
+     * face would cost more than the narrowing saves. The high-water mark of
+     * the upstream's definition rows answers whether anything could have
+     * changed, in one indexed read.
+     *
+     * <p>Empty is not a refusal: a selection's halves are optional and empty
+     * means everything, so an upstream with no rows yet narrows by type alone
+     * rather than asking for nothing.
+     */
+    private java.util.function.Supplier<java.util.Set<String>> manifestFrom(
+            String upstream, TenantSpec spec) {
+        java.util.List<String> declared = spec.types().stream()
+                .map(cloud.jengu.dbo.fhir.common.FhirTypeConfig::typeName)
+                .toList();
+        // The closure is walked from canonicals and the parameters are keyed
+        // by type, so both are said rather than one derived from the other.
+        java.util.List<String> seeds = declared.stream()
+                .map(type -> "http://hl7.org/fhir/StructureDefinition/" + type)
+                .toList();
+        java.util.concurrent.atomic.AtomicLong seenAt = new java.util.concurrent.atomic.AtomicLong(-1);
+        java.util.concurrent.atomic.AtomicReference<java.util.Set<String>> held =
+                new java.util.concurrent.atomic.AtomicReference<>(java.util.Set.of());
+        return () -> {
+            javax.sql.DataSource rows = tenantDataSources.get(upstream);
+            if (rows == null) {
+                return held.get();
+            }
+            long mark;
+            try (java.sql.Connection c = rows.getConnection();
+                    java.sql.PreparedStatement ps = c.prepareStatement(
+                            "SELECT coalesce(max(id), 0) FROM definitions.definition_element");
+                    java.sql.ResultSet rs = ps.executeQuery()) {
+                mark = rs.next() ? rs.getLong(1) : 0;
+            } catch (java.sql.SQLException notReadable) {
+                // The upstream is coming up, or its schema is not there yet.
+                // Narrowing on a guess would withhold what it does have, so
+                // this answers with what it last knew — empty, at first, which
+                // is everything.
+                return held.get();
+            }
+            if (mark == seenAt.get()) {
+                return held.get();
+            }
+            cloud.jengu.dbo.fhir.index.DefinitionRows.Manifest manifest =
+                    cloud.jengu.dbo.fhir.index.DefinitionRows.manifestFor(rows, seeds, declared);
+            java.util.Set<String> names = new java.util.LinkedHashSet<>(manifest.structures());
+            names.addAll(manifest.valueSets());
+            names.addAll(manifest.codeSystems());
+            names.addAll(manifest.searchParameters());
+            held.set(java.util.Set.copyOf(names));
+            seenAt.set(mark);
+            LOG.info("what {} needs from {}: names={} structures={} valueSets={} codeSystems={}"
+                    + " searchParameters={}",
+                    spec.code(), upstream, names.size(), manifest.structures().size(),
+                    manifest.valueSets().size(), manifest.codeSystems().size(),
+                    manifest.searchParameters().size());
+            return held.get();
+        };
     }
 
     /**
@@ -3358,9 +3608,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
                             new cloud.jengu.dbo.work.Runs(management),
                             cloud.jengu.dbo.work.WorkModel.DOMAIN);
             cloud.jengu.dbo.sync.ConfigApplication.Outcome outcome = applied.applyFrom(
-                    "deployment", new cloud.jengu.dbo.sync.DirectoryConfigSource(
-                            directory, TenantDeclarationModel.TYPE, ".json"),
-                    declarationsOf(applied, management));
+                    "deployment", source(), declarationsOf(applied, management));
             trouble.remove(SOURCE_TROUBLE);
             sayWhatWasRefused(outcome);
             return outcome;
@@ -3674,7 +3922,13 @@ public final class TenantRuntimeManager implements AutoCloseable {
         for (String code : Set.copyOf(runtimes.keySet())) {
             takeDown(code, null);
         }
-        sharedServer.stop(0);
+        // Only what this runtime bound. A host that handed a server in is
+        // serving things of its own on it, and stopping it here would take an
+        // application's whole web tier down because a tenant runtime closed.
+        // The contexts go with the tenants above; the server stays.
+        if (ownsServer) {
+            sharedServer.stop(0);
+        }
     }
 
     /**

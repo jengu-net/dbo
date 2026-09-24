@@ -54,20 +54,20 @@ import java.util.jar.JarFile;
  * most of the store and be read by nobody. It is written down here so the
  * ledger is not mistaken for a guarantee it does not make.
  *
- * <p><b>It asks whether something names a type, not whether a mount reaches
- * it.</b> One level, and that is a second blind spot with a sharper edge than
- * the first: two classes nothing else names, which name each other, each
- * satisfy this check on the strength of the other. A whole unmounted cluster
- * can hold itself up that way and show nothing at all, where a single
- * unmounted class shows immediately.
+ * <p><b>It asks whether a mount REACHES a type, and that is the second thing
+ * it learned.</b> It used to count who names a class, one level, and the
+ * javadoc here said what was wrong with that: two classes nothing else names,
+ * which name each other, each satisfy a reference count on the strength of
+ * the other, so a whole unmounted cluster holds itself up and shows nothing
+ * where a single unmounted class shows immediately.
  *
- * <p>Closing it means reachability <i>from</i> the mount points — the
- * activators, the service providers, the main methods — rather than a
- * reference count, which is a different and larger computation. Until then
- * the honest reading of a clean ledger is <i>nothing is unnamed</i>, and not
- * <i>everything is mounted</i>. Both known entries were checked by hand when
- * this was written and neither is self-supporting: the HTTP lane is named
- * from the fleet reader, and the stream door from the tenant runtime.
+ * <p>That was not hypothetical. Building a definition index added four
+ * classes over four changes, each naming the last, and the file shrank to one
+ * entry while nothing a deployment mounts had changed at all. So the
+ * computation named here as the fix — reachability from the mount points, the
+ * activators, the service providers and the main methods — is what it now
+ * does, and a clean ledger reads <i>everything is mounted</i> rather than
+ * <i>nothing is unnamed</i>.
  */
 final class ReachLedger {
 
@@ -106,7 +106,7 @@ final class ReachLedger {
 
     static String render(Map<String, String> reasons) throws Exception {
         StringBuilder text = new StringBuilder("""
-                # Production classes that no other production class names.
+                # Production classes no mount point reaches.
                 #
                 # GENERATED — do not edit the class list. Re-record with:
                 #     ./gradlew :core:harness:reachLedger
@@ -135,25 +135,51 @@ final class ReachLedger {
         return text.toString();
     }
 
-    /** Every judged class nothing else in production names, with no reason yet. */
+    /** Every judged class no mount point reaches, with no reason yet. */
     static Map<String, String> unreached() throws Exception {
         World world = read();
+        Set<String> reachable = reachable(world);
         Map<String, String> found = new TreeMap<>();
         for (String name : world.judged) {
-            if (!world.named.contains(name) && !world.mechanised.contains(name)) {
+            if (!reachable.contains(name)) {
                 found.put(name, MISSING);
             }
         }
         return found;
     }
 
-    /** What the jars say: who exists, who is named, who a mechanism reaches. */
-    record World(Set<String> judged, Set<String> named, Set<String> mechanised) {
+    /**
+     * Everything a mount point reaches, following the naming graph.
+     *
+     * <p>Reachability FROM the activators, the service providers and the main
+     * methods, rather than a count of who names a class. The count was this
+     * ledger's own documented blind spot and it was not hypothetical: as
+     * classes were added, four entries became one, because each new class
+     * named the last and a named class left the file. Nothing about what a
+     * deployment mounts had changed. A cluster that holds itself up is
+     * exactly what a reference count cannot see, and it is what this store's
+     * characteristic bug looks like once it is more than one class.
+     */
+    static Set<String> reachable(World world) {
+        Set<String> seen = new HashSet<>(world.mechanised());
+        java.util.Deque<String> queue = new java.util.ArrayDeque<>(world.mechanised());
+        while (!queue.isEmpty()) {
+            for (String next : world.edges().getOrDefault(queue.poll(), Set.of())) {
+                if (seen.add(next)) {
+                    queue.add(next);
+                }
+            }
+        }
+        return seen;
+    }
+
+    /** What the jars say: who exists, who names whom, and where a mount begins. */
+    record World(Set<String> judged, Map<String, Set<String>> edges, Set<String> mechanised) {
     }
 
     static World read() throws Exception {
         Set<String> judged = new TreeSet<>();
-        Set<String> named = new HashSet<>();
+        Map<String, Set<String>> edges = new HashMap<>();
         Set<String> mechanised = new HashSet<>();
         List<Path> jars = staged();
         for (Path jar : jars) {
@@ -179,17 +205,17 @@ final class ReachLedger {
                         mechanised.add(parsed.topLevel());
                     }
                     for (String reference : parsed.references()) {
-                        // A class naming itself, or its own nest, is not a
-                        // second party. The question is whether anything ELSE
-                        // in production knows this exists.
+                        // A class naming itself, or its own nest, is not an
+                        // edge: the question is what something ELSE leads to.
                         if (!reference.equals(parsed.topLevel())) {
-                            named.add(reference);
+                            edges.computeIfAbsent(parsed.topLevel(), k -> new HashSet<>())
+                                    .add(reference);
                         }
                     }
                 }
             }
         }
-        return new World(judged, named, mechanised);
+        return new World(judged, edges, mechanised);
     }
 
     /** The jars this runs over, staged by the build under {@code *.reach.jar}. */

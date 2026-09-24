@@ -199,15 +199,41 @@ public final class ContentSyncEngine {
 
     // -------------------------------------------------------------- syncing
 
+    /** The selection this stream last read under, so a widening is noticed. */
+    private java.util.Set<String> lastAskedFor;
+
     /** One sync round: read the upstream feed, apply declared changes, ack. Returns events seen. */
     public int syncOnce(int chunkSize) {
-        FeedChunk<FeedItem> chunk = sourceFeed.readFor(consumer(), chunkSize);
+        // Asked for rather than filtered afterwards. What the upstream sends
+        // is what this dependency declared and, where its filter is derived,
+        // the canonicals it names — so the work of reading, moving and parsing
+        // what nobody wanted is not done at all.
+        cloud.jengu.dbo.core.api.feed.FeedSelection asking = dependency.wanted();
+        // A NARROWED STREAM CANNOT BE REWOUND BY WANTING MORE. The cursor
+        // moves past what the selection excluded, not around it: a definition
+        // skipped at the time it was read is behind the position for good, and
+        // a closure that later grows to reach it would wait on a feed that has
+        // nothing left to say. It is the quiet case — a face that stopped
+        // being complete, with every write still judged and every answer still
+        // arriving — so a selection that GAINED a name is read from the head
+        // again. Applying is idempotent and dedupes on the version, so the
+        // cost is a re-read and never a second write.
+        if (lastAskedFor != null && !lastAskedFor.containsAll(asking.canonicals())) {
+            sourceFeed.resetConsumer(consumer(), null);
+        }
+        lastAskedFor = asking.canonicals();
+        FeedChunk<FeedItem> chunk = sourceFeed.readFor(consumer(), chunkSize, asking);
         if (chunk.items().isEmpty()) {
             return 0;
         }
+        // KEPT, though the upstream was asked to narrow. The selection is an
+        // efficiency and this is the promise: a feed that cannot narrow —
+        // an older release across a network, a transport that drops the
+        // parameter — answers with everything, and nothing undeclared may be
+        // applied whatever arrives (REQ-DBO-SYNC-DECLARED-ONLY).
         List<FeedItem> declared = chunk.items().stream()
                 .filter(item -> dependency.declaredTypes().contains(item.typeName()))
-                .toList(); // REQ-DBO-SYNC-DECLARED-ONLY: nothing syncs undeclared
+                .toList();
         if (!applyTogether(declared)) {
             for (FeedItem item : declared) {
                 applyItem(item);

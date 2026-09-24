@@ -59,6 +59,15 @@ public final class FhirHttpServer implements AutoCloseable {
     private final java.util.List<cloud.jengu.dbo.fhir.common.FhirOperation> declaredOperations =
             new java.util.ArrayList<>();
     /** §15.4: the tenant's declared policies, named in the capability statement. */
+    /**
+     * Where this surface is reached from, when somebody knows better than the
+     * socket does.
+     *
+     * <p>Null for a server this surface bound itself, which is the serving
+     * distribution and every test that names a port.
+     */
+    private String externalBase;
+
     public volatile String policyNote;
     /** §15.1: when set, /AuditEvent is served as a projection of the trail. */
     public volatile AuditSurface auditSurface;
@@ -97,6 +106,28 @@ public final class FhirHttpServer implements AutoCloseable {
     public FhirHttpServer(HttpServer sharedServer, FhirStoreFacade store,
             TerminologyFacade terminology, String basePath) {
         this(sharedServer, store, terminology, basePath, null);
+    }
+
+    /**
+     * The same, told where this deployment is reached from.
+     *
+     * <p>A shared server may have no address of its own: one standing in for
+     * a host's web tier never binds, and a bound one answers with whatever it
+     * was bound to — {@code 0.0.0.0} in a container. Neither is somewhere a
+     * caller can be sent back to, and this surface sends callers back to
+     * itself constantly: the capability statement's own URL, and the
+     * {@code Location} of every record written.
+     *
+     * @param externalBase where this surface is reached from outside, or null
+     *                     to work it out from the address the server is bound
+     *                     to — which is what a surface that bound its own
+     *                     server does
+     */
+    public FhirHttpServer(HttpServer sharedServer, FhirStoreFacade store,
+            TerminologyFacade terminology, String basePath, RequestAuthenticator authenticator,
+            String externalBase) {
+        this(sharedServer, store, terminology, basePath, authenticator);
+        this.externalBase = externalBase;
     }
 
     public FhirHttpServer(HttpServer sharedServer, FhirStoreFacade store,
@@ -164,6 +195,9 @@ public final class FhirHttpServer implements AutoCloseable {
     }
 
     public String baseUrl() {
+        if (externalBase != null) {
+            return externalBase;
+        }
         return "http://" + server.getAddress().getHostString() + ":" + port() + basePath;
     }
 
@@ -184,7 +218,10 @@ public final class FhirHttpServer implements AutoCloseable {
         } catch (UnknownSearchParameterException e) {
             respond(exchange, 400, store.operationOutcome("invalid", e.getMessage()));
         } catch (ValidationFailedException e) {
-            respond(exchange, 422, store.operationOutcome("invalid", String.join("; ", e.issues())));
+            // One issue per finding, each naming its element, because a form
+            // that wants to mark the field somebody typed wrong needs the
+            // element and not a sentence containing it.
+            respond(exchange, 422, store.operationOutcome("invalid", e.findings()));
         } catch (cloud.jengu.dbo.fhir.common.ValidationUnavailableException e) {
             // 503, not 422. The resource was never found invalid — validation
             // could not reach a verdict, and answering "invalid" would tell a

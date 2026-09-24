@@ -64,6 +64,15 @@ st-jerome=jerome-secret"
       # one without being asked.
       DBO_FACE_IMAGES: /var/lib/dbo/faces
 
+      # THIS NODE POPULATES A FACE. The packages a version's definitions are
+      # expanded from ship beside the bundle set rather than in it, so a node
+      # left to the default carries nothing to build a worker context out of
+      # — which is what makes "cannot" true of a serving node rather than
+      # "happens not to". The tenants below include face roots, and a face
+      # root is the thing that turns a specification into records, so this one
+      # installs them.
+      DBO_FACE_PACKAGES: "true"
+
       # The managing tenant sits outside the scanned directory deliberately:
       # the loop that retracts undeclared tenants must not be able to retract
       # the thing that records retractions.

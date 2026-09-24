@@ -1,6 +1,10 @@
 package cloud.jengu.dbo.tenant;
 
+import cloud.jengu.dbo.core.api.Audience;
 import cloud.jengu.dbo.core.api.BlobStore;
+import cloud.jengu.dbo.core.api.Caller;
+import cloud.jengu.dbo.core.api.Disclosure;
+import cloud.jengu.dbo.core.api.Reach;
 import cloud.jengu.dbo.core.wire.RecordWire;
 import cloud.jengu.dbo.rest.RequestAuthenticator;
 import com.sun.net.httpserver.HttpExchange;
@@ -92,6 +96,23 @@ public final class BlobHandler implements HttpHandler {
             // not — see what the configuration door learnt.
             fail(exchange, 500, died.getClass().getSimpleName() + ": the content did not arrive");
         } finally {
+            // What the guard bound, unbound — the same four the records
+            // surface clears, for the same reason it gives: a thread is
+            // reused, and a purpose left behind would disclose the next
+            // request's person under the last one's reason. Here it is also
+            // the reach and the audience, so the next caller on this thread
+            // would read the organisations this one was entitled to.
+            //
+            // Nothing had ever gone wrong, because this door is served by a
+            // thread that is created for the request and dies with it. That
+            // is the executor's doing rather than this handler's, and a door
+            // whose safety belongs to whoever wired the executor is safe by
+            // accident — which is not a property, and stops holding the first
+            // time the surfaces are mounted on a pool.
+            Caller.clear();
+            Disclosure.clear();
+            Reach.clear();
+            Audience.clear();
             exchange.close();
         }
     }

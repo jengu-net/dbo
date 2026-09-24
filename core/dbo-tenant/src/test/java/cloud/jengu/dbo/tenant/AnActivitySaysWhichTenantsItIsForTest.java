@@ -1,5 +1,8 @@
 package cloud.jengu.dbo.tenant;
 
+import cloud.jengu.dbo.tenant.api.TenantDomain;
+import cloud.jengu.dbo.tenant.api.TenantFacts;
+import cloud.jengu.dbo.tenant.api.TenantPoint;
 import cloud.jengu.dbo.promises.DboPromises;
 import cloud.jengu.dbo.promises.Proving;
 import org.junit.jupiter.api.DisplayName;
@@ -34,14 +37,14 @@ class AnActivitySaysWhichTenantsItIsForTest {
             "(" + TenantFacts.HOLDS_RECORDS_IN_FACE_DOMAIN + "=true)";
 
     private static TenantFacts ordinary() {
-        return TenantFacts.of(TenantSpec.parse("""
+        return PublishedFacts.of(TenantSpec.parse("""
                 {"code":"hogwarts","face":"r5","zone":"rl",
                  "types":[{"name":"Patient","identity":"internal","handling":"operational"}]}"""),
                 holding(true));
     }
 
     private static TenantFacts faceRoot() {
-        return TenantFacts.of(TenantSpec.parse("""
+        return PublishedFacts.of(TenantSpec.parse("""
                 {"code":"fhir-r5","face":"r5","faceRoot":true,
                  "types":[{"name":"StructureDefinition","identity":"canonical","handling":"operational"}]}"""),
                 holding(false));
@@ -88,7 +91,7 @@ class AnActivitySaysWhichTenantsItIsForTest {
                         + "is what sends a reader at a relation that does not exist");
         // A projection is not a face root and is the same on this axis: it
         // takes its definitions from one, so it holds none of its own.
-        assertFalse((Boolean) TenantFacts.of(TenantSpec.parse("""
+        assertFalse((Boolean) PublishedFacts.of(TenantSpec.parse("""
                 {"code":"rl-on-r4","face":"r4",
                  "dependencies":[{"name":"fhir-r4","face":true,"types":["ValueSet"]}],
                  "types":[{"name":"ValueSet","identity":"canonical","handling":"replicated"}]}"""),
@@ -159,13 +162,13 @@ class AnActivitySaysWhichTenantsItIsForTest {
         // was an `if` at the site that created the context, derived there from
         // the spec's shape — which is the arrangement that left one surface's
         // condition unwritten.
-        TenantFacts hospital = TenantFacts.of(TenantSpec.parse("""
+        TenantFacts hospital = PublishedFacts.of(TenantSpec.parse("""
                 {"code":"hogwarts","face":"r5","zone":"rl","pdi":true,
                  "steps":[{"code":"hogwarts.admission.admit","slots":{"patient":"Patient"}}],
                  "types":[{"name":"Person","identity":"internal","handling":"operational"},
                           {"name":"Patient","identity":"internal","handling":"operational"}]}"""),
                 new TenantFacts.Resolved(true, true, true, true));
-        TenantFacts gadgets = TenantFacts.of(TenantSpec.parse("""
+        TenantFacts gadgets = PublishedFacts.of(TenantSpec.parse("""
                 {"code":"widgets","face":"r5",
                  "types":[{"name":"Device","identity":"internal","handling":"operational"}]}"""),
                 new TenantFacts.Resolved(true, true, false, false));

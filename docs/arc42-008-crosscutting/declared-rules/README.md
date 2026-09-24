@@ -1,5 +1,121 @@
 # Declared rules, and how they layer
 
+## What a tenant declares
+
+A tenant is one file. Everything about it that is a contract rather than data
+is written there, and nothing about it is discovered by reading a class:
+
+```json
+{
+  "code": "hogwarts",
+  "face": "r5",
+  "zone": "rl",
+  "pdi": true,
+  "audit": { "level": "writes" },
+  "retention": { "perType": {
+    "Observation": { "keepAtLeast": "P10Y", "removeAfter": "P30Y" } } },
+  "dependencies": [
+    { "name": "fhir-r5", "face": true,
+      "types": ["StructureDefinition", "SearchParameter", "ValueSet", "CodeSystem"] },
+    { "name": "rl", "types": ["CodeSystem", "ValueSet"] }
+  ],
+  "steps": [
+    { "code": "hogwarts.admission.admit", "slots": { "patient": "Patient" } }
+  ],
+  "types": [
+    { "name": "Patient", "identity": "identifier", "systems": ["urn:rl:nid"],
+      "handling": "operational" },
+    { "name": "ValueSet", "identity": "canonical", "handling": "replicated" }
+  ]
+}
+```
+
+It says four kinds of thing:
+
+- **Who it is** — its code, whether it holds people behind the vault, who
+  manages it, and whether it is itself a face root or a jurisdiction.
+- **What it serves** — the face it speaks, and the types it admits. A type
+  declares how its records are identified (by canonical url, by an identifier
+  in a named system, or internally) and what kind of data it is:
+  `operational`, which the tenant owns and may edit, or `replicated`, which
+  belongs to whoever published it and is read-only here. **There is no default
+  for that**, because a default is a silent decision about a hospital's data.
+- **Where it gets things** — the tenants it depends on, and per dependency the
+  types that stream from it.
+- **What it must do** — its audit level, its write discipline, its retention,
+  and the jurisdiction whose facts it operates under.
+
+## The graph is tenants, and nothing underneath it
+
+**A tenant's upstreams are tenants.** A jurisdiction is a tenant. A face root
+is a tenant. Neither is a configuration file, a bundled resource or a
+deployment artefact — which is what lets both be versioned, audited, exported
+and streamed by the machinery that moves any other content.
+
+A dependency names **the direct upstream only**, and the types that travel from
+it. There is no transitive declaration: what reaches a tenant two hops away
+arrives because the tenant in between declared it and republished it, so every
+edge in the graph is one somebody wrote down.
+
+**Two of those edges mean different things, and a tenant chooses each on its
+own.** At most one dependency is marked as the **face chain** — the root a
+tenant takes its version's definitions from, which is what a resource *is*. The
+jurisdiction chain is what is *true here*: which brokers exist, which
+identifier systems people are resolved by, which terminology is official. They
+are never the same chain. A tenant may speak R5 in one country and R5 in
+another, and the two are the same face and different zones.
+
+## Narrowing, in one direction
+
+Outer declares the set; inner chooses within it and may narrow, never widen.
+**The set is the outer party's**, and that is the whole of what the rule
+governs.
+
+The same shape governs four unrelated-looking things in this store:
+
+- a **dependency** declares the types that stream, within what the upstream
+  publishes — so a tenant takes a face's vocabulary without taking all of it;
+- a **zone** declares which brokers exist and a tenant narrows them, and may
+  further restrict which it *accepts*;
+- a **step** declares who may override it, and precedence selects only among
+  those;
+- a **credential** and a step intersect to decide what a participant may claim.
+
+In each case the permissive direction requires an act by the party with
+standing, and the restrictive direction is always available to the party
+underneath. That is what makes a shared deployment safe to join: nothing an
+inner party declares can grant it more than the outer party allowed.
+
+Restricting is a **policy, not a capability claim**: a tenant narrowing its
+brokers is declining to honour the others, not asserting they do not work.
+
+## What narrowing is not
+
+**The rule is about authority over somebody else's set, not about size.** A
+tenant grows freely in its own direction, and none of that is widening:
+
+- it declares **types of its own** — the operational data it holds, which no
+  upstream published and none of which it took from anybody;
+- it publishes **profiles of its own**, constraining a type its face defines,
+  and the store reads which is which from the definitions rather than from the
+  shape of a name: a `specialization` introduces a type, a `constraint`
+  profiles one;
+- it carries **extensions**, which is the mechanism the base standard provides
+  for exactly this — a document says more than the base foresaw without the
+  base being altered to allow it.
+
+So a tenant may hold far more than its face publishes, and be strictly inside
+the rules the whole time. What it may not do is take more of an upstream's set
+than the upstream declared, or relax something the upstream fixed. Adding a
+constraint of your own is not widening; removing one of theirs is, and that is
+the direction the rule closes.
+
+**Which is why the two never conflict.** A profile narrows the documents it
+governs while the tenant that wrote it is adding a definition nobody else had
+— one is a rule getting stricter, the other is a party holding more of its own
+— and reading both as "narrowing" is what makes the rule sound like it forbids
+ordinary work.
+
 ## Two questions with one mechanism
 
 **What must this tenant do?** — what is remembered about every action, what may
@@ -119,23 +235,8 @@ things a declaration is supposed to be.
 **The set is jurisdictional; the choice is organisational.** A region declares
 which brokers exist — a jurisdiction may well have several, one for government
 bodies and another for the private sector. A tenant then declares which it uses,
-and may further restrict which it *accepts*. That restriction is a **policy, not
-a capability claim**: the tenant is not saying the others do not work, it is
-saying it will not honour them.
-
-## The layering rule, which turns up everywhere
-
-Outer declares the set; inner chooses within it and may narrow, never widen.
-
-It is worth naming because the same shape governs three unrelated-looking things
-in this store: a zone declares brokers and a tenant narrows them; a step declares
-who may override it and precedence selects only among those; a credential and a
-step intersect to decide what a participant may claim. In each case the
-permissive direction requires an act by the party with standing, and the
-restrictive direction is always available to the party underneath.
-
-That is what makes a shared deployment safe to join: nothing an inner party
-declares can grant it more than the outer party allowed.
+and may further restrict which it accepts, which is the narrowing rule above
+arriving at authentication.
 
 ## Two structural rules underneath
 
@@ -161,6 +262,14 @@ rather than a cron line.
 **Jurisdictional declarations are somebody's job to maintain.** When a national
 broker changes, a record has to change — and until it does, authentication in
 that zone is running on a stale fact.
+
+**And narrowing content is not yet refused where it should be.** The rule says
+the restrictive direction is always available to the party underneath, and for
+brokers and steps it is. For the types a dependency streams it is not safe: a
+tenant that narrows below what its stored documents were validated against is
+refused at declaration; instead it is accepted and discovered at the next
+write — the wrong place and the wrong party. Recorded as
+[a face toolset of our own](../../arc42-011-risks-and-technical-debt/025-a-face-toolset-of-our-own/README.md).
 
 ## Where the detail is written down
 

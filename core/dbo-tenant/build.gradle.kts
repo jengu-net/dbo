@@ -7,10 +7,16 @@ plugins {
     id("biz.aQute.bnd.builder")
 }
 
-val embedded: Configuration by configurations.creating
+val embedded: Configuration = configurations.create("embedded")
 configurations.implementation.get().extendsFrom(embedded)
 
 dependencies {
+    // THE PACKAGES, ON A TEST CLASSPATH. They ship as a fragment of the face,
+    // which is a container mechanism: a test runs in a plain JVM and finds
+    // resources by classpath, so a test that builds a face out of the
+    // specification needs them here. One that takes its face from records
+    // never opens them and is unaffected by their presence.
+    testRuntimeOnly(project(":core:dbo-fhir-packages"))
     api(project(":core:dbo-core"))
     api(project(":core:dbo-fhir-common"))
     implementation(project(":core:dbo-postgres"))
@@ -18,6 +24,9 @@ dependencies {
     implementation(project(":core:dbo-fhir-r5"))
     implementation(project(":core:dbo-rest"))
     implementation(project(":core:dbo-sync"))
+    // The closure a dependent needs from its face, derived from the upstream's
+    // own rows. JDK-only itself, so this adds no stack to the tenant bundle.
+    implementation(project(":core:dbo-fhir-index"))
     implementation(project(":core:dbo-auth"))
     implementation(project(":core:dbo-maintenance"))
     implementation(project(":core:dbo-pdi"))
@@ -82,7 +91,24 @@ tasks.jar {
                 "Bundle-Activator: cloud.jengu.dbo.tenant.Activator",
                 "Bundle-ClassPath: ." + jars.joinToString("") { ",lib/${it.name}" },
                 "-includeresource: " + jars.joinToString(",") { "lib/${it.name}=${it.absolutePath}" },
-                "Export-Package: cloud.jengu.dbo.tenant;version=0.1.0",
+                // Two packages, and the split is load-bearing.
+                //
+                // `api` is what a host implements against: the lifecycle
+                // listener, the observer, and the facts and changes they are
+                // handed. It carries no implementation, so it can be supplied
+                // from OUTSIDE the framework and this bundle will wire to it
+                // — bnd writes that import by itself, because the
+                // implementation package uses it.
+                //
+                // The implementation package cannot be. Its code IS this
+                // bundle, and the bundle reaches HikariCP privately over
+                // Bundle-ClassPath; wiring it to somebody else's copy loads
+                // the manager from a classloader where the pool is not, and
+                // a bring-up that cannot make one fails into the trouble
+                // ledger rather than loudly. Measured: twelve minutes and no
+                // tenant serving, against forty seconds and all of them.
+                "Export-Package: cloud.jengu.dbo.tenant;version=0.1.0"
+                    + ",cloud.jengu.dbo.tenant.api;version=0.1.0",
                 // The framework delegates java.* to the boot classloader;
                 // importing it is noise at best and a resolution failure at
                 // worst.

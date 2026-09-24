@@ -8,7 +8,7 @@ plugins {
 // mount IS the spec directory). Fat bundle: fabric8 + Hikari ride privately
 // (lib/ nested jars), only the dbo package is exported.
 
-val embedded: Configuration by configurations.creating
+val embedded: Configuration = configurations.create("embedded")
 configurations.implementation.get().extendsFrom(embedded)
 
 dependencies {

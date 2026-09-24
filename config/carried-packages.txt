@@ -1,0 +1,18 @@
+# The definition packages a serving node still carries, in bytes.
+#
+# GENERATED. Re-record with:
+#     ./gradlew :core:harness:test \
+#         --tests '*WhatAServingNodeCarriesOnlyFalls*' \
+#         -Ddbo.packages.record=true
+#
+# It may fall and may not rise. A node carrying no definition
+# packages cannot populate a worker context, whatever classes it
+# holds.
+#
+# The packages are a FRAGMENT of the face, shipped beside a
+# distribution's bundle set and installed only where a node has
+# to turn a version into records. The serving set carries none,
+# which is why this reads zero — and zero here is the property
+# rather than a ceiling approaching it.
+#
+total 0

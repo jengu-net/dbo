@@ -1316,8 +1316,12 @@ public enum DboPromises implements Promise {
             + "kept where a change to either side has to face it."),
     VAL_THE_DATABASE_ANSWER_IS_ADVISORY_UNTIL_IT_IS_NOT(
             "On a write the database is asked what it makes of the document, against the same "
-            + "definitions the toolchain used, and the answer changes nothing: the verdict a "
-            + "caller receives is the toolchain's. What is kept is a tally — the two agreed, "
+            + "definitions the toolchain used, and the answer changes nothing WHERE THE TYPE "
+            + "HAS NOT DECLARED OTHERWISE: the verdict a caller receives is the toolchain's. "
+            + "Where a type declares the database and this tenant holds the rows to answer "
+            + "with, the database is asked FIRST and the toolchain is not run at all — so "
+            + "there is no second answer to compare, and the tally counts only the writes "
+            + "both answered. What is kept is a tally — the two agreed, "
             + "one of them found something the other did not, or this tenant holds no expanded "
             + "rows to compare against — by resource type and never by document, since a "
             + "document here is a person. A comparison that fails is counted and never reaches "
@@ -1338,6 +1342,37 @@ public enum DboPromises implements Promise {
             + "complex type without saying what that type holds — so a datatype's "
             + "insides are answered where a profile constrains them and are silent "
             + "where none does."),
+    VAL_A_THIRD_ANSWERER_READS_THE_INDEX(
+            "A third answerer checks a document against the definition index, in the serving "
+            + "process, with no worker context and no round trip — and what it answers is held "
+            + "against the database's own answer over everything the version publishes. It is "
+            + "not a second specification: the checks that read rows are the specification and "
+            + "this one is measured against them, because three answers nobody compares would "
+            + "be worse than two that are. How often an element may occur is counted inside the "
+            + "parent it occurs in, so the walk enters a backbone where the resource defines it "
+            + "and a datatype's own structure where it does not — one contact holding two names "
+            + "is wrong and two contacts holding one each is not. A contained resource is not "
+            + "followed: the element says only Resource, and what a document may contain is a "
+            + "question about the tenant's declaration rather than about cardinality. And "
+            + "silence is not evidence — the walk reports how far it descended, because a "
+            + "checker that never descended faults nothing and a correct corpus reads the same "
+            + "either way."),
+    VAL_THE_INDEX_IS_A_PROJECTION_OF_THE_EXPANDED_ROWS(
+            "A tenant's definitions are read into flat arrays over one interned dictionary — "
+            + "path, parent, min, max, type codes, binding and its strength, and the "
+            + "invariants — from the ROWS a definition was expanded into, and never from the "
+            + "packages a version publishes. The rows are the source because they are the "
+            + "only place all three of what this has to hold arrive together: a version's own "
+            + "structures, a tenant's own profiles, and whatever a face image carried. A "
+            + "second expansion out of the packages would be a second specification with "
+            + "nothing comparing the two. What is read is the closure of the types the tenant "
+            + "declared rather than the version: composition is followed and reference is "
+            + "not, so an element typed HumanName reaches HumanName, and one typed "
+            + "Reference(Condition) reaches Reference and stops — Condition enters only where "
+            + "the tenant declares it. What the index does not hold is the prose a model "
+            + "built for authoring carries, the short and the definition and the comment, "
+            + "because a checker never reads it and declining to hold it is most of what the "
+            + "form is."),
     TEN_A_TENANT_COMES_UP_FROM_THE_FACE_IMAGE(
             "A face is cut once per release into an image of its definitions schema, and a "
             + "tenant coming up on that face is brought up from the image rather than "
@@ -1526,7 +1561,14 @@ public enum DboPromises implements Promise {
             + "the extension point. Asking first gives the same answer: the finding is "
             + "made once and both the write and $validate read it. What arrived as "
             + "somebody else's publication is held and warned instead, like any other "
-            + "imperfect arrival."),
+            + "imperfect arrival. A TYPE MAY DECLARE OTHERWISE — `unknown: kept` — for the "
+            + "tenant taking a dialect from a sender it cannot change; what it buys is the "
+            + "document and what it costs is an element that is stored, returned and "
+            + "answerable by nothing, said once per type rather than per document so that "
+            + "accepting it is a thing a deployment knows about its feed rather than a "
+            + "thing a reader discovers. It is declared per type and never a default, "
+            + "because a tenant that tolerates a dialect in one feed has no reason to "
+            + "tolerate one everywhere."),
     VER_VALIDATION_WITHOUT_WRITING(
             "A caller can ask whether a resource would be accepted without writing it "
             + "(`[Type]/$validate`), and the answer is the write path's own: what it "

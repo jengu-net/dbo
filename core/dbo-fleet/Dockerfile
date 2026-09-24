@@ -2,7 +2,7 @@
 # Built from the installDist output: bin/ launcher + lib/ full classpath.
 # The same glibc temurin base as the operator and the serving image; the
 # reader reaches nothing but HTTP and has no native dependencies.
-FROM eclipse-temurin:21-jre
+FROM eclipse-temurin:25-jre
 
 LABEL org.opencontainers.image.description="DBO fleet reader"
 

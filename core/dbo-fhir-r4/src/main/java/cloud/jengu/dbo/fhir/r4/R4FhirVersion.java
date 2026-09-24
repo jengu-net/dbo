@@ -102,6 +102,13 @@ public final class R4FhirVersion implements FhirVersion {
 
         @Override
         public FhirStoreFacade store(ObjectStore engine, String baseUrl,
+                javax.sql.DataSource dataSource, boolean versionHeldAsRecords,
+                boolean indexFace) {
+            return served.store(engine, baseUrl, dataSource, versionHeldAsRecords, indexFace);
+        }
+
+        @Override
+        public FhirStoreFacade store(ObjectStore engine, String baseUrl,
                 cloud.jengu.dbo.core.process.Steps steps) {
             return served.store(engine, baseUrl, steps);
         }

@@ -1,7 +1,6 @@
 package cloud.jengu.dbo.fhir.element;
 
 import cloud.jengu.dbo.core.face.PayloadFraming;
-import org.hl7.fhir.r5.context.SimpleWorkerContext;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -16,18 +15,17 @@ import java.nio.charset.StandardCharsets;
  * (§1).
  *
  * <p>A member's payload is rendered rather than passed through, because the
- * ancestors have to be put back and nothing can do that without reading the
- * resource. The Bundle shape itself is written directly: it is the same in
- * every FHIR version this face serves, and building one through the element
- * model would mean holding a page.
+ * ancestors have to be put back. The Bundle shape itself is written directly:
+ * it is the same in every FHIR version this face serves, and building one
+ * through the element model would mean holding a page.
+ *
+ * <p><b>Nothing here reads a definition.</b> It held a worker context until
+ * the rendering it delegates to stopped needing one, and then held it for a
+ * while longer without reading it, which is the state a reach is in just
+ * before somebody concludes it is still required. Framing a page is writing
+ * punctuation around bytes.
  */
 final class ElementFraming implements PayloadFraming {
-
-    private final java.util.function.Supplier<SimpleWorkerContext> context;
-
-    ElementFraming(java.util.function.Supplier<SimpleWorkerContext> context) {
-        this.context = context;
-    }
 
     @Override
     public Frame frame(String frameType, Facts facts) {

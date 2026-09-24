@@ -401,6 +401,59 @@ Four questions a design has to answer, none of them rhetorical:
    whole history; a filtered one has to do that through the predicate, over
    content written before the predicate existed.
 
+### Answered, and the four turn out to be one decision
+
+The answers hang together, and they follow from refusing the first thing
+anybody reaches for: **a filter is not a predicate that travels.** It is a set
+of names, computed once, agreed between the two ends. Everything else falls
+out of that.
+
+**What travels is a manifest, not a query** (2). The objection to filtering
+upstream is that it makes one tenant execute another's query, against the rule
+that a tenant declares only against its direct upstream. A manifest is not a
+query: the dependent says *these canonicals*, the upstream selects by name, and
+nothing is executed on anyone's behalf. Filtering downstream — moving
+everything and discarding most of it — is what this exists to stop, and for a
+derived closure it is not even possible: a tenant cannot compute the closure of
+definitions it does not hold, so whoever holds them computes it. The dependent
+declares its types; the upstream answers with the names.
+
+**The manifest closes over grains, not records** (3). Terminology's grain is a
+CodeSystem together with its value sets, and that promise is proven. So the
+closure is computed in grains: a value set in it brings its code system, a code
+system brings the value sets that draw on it. A manifest that named half a
+grain would be refused where it was computed rather than producing a stream
+that breaks on arrival — which is the same shape as a tenant's spec being
+refused for declaring scim without a vault.
+
+**Catch-up is a snapshot and a cursor, never a replay** (4). Replaying an
+upstream's whole history through a predicate is the expensive and wrong answer:
+it reads everything to deliver a little, over content written before the
+predicate existed. The store already does the right one. A face image is the
+matching rows plus the feed position they were cut at, and `FaceBringUp` stands
+the consumer there — so a dependent takes the manifest's contents as they stand
+now, stands at the current cursor, and streams forward. A dependency that later
+widens fetches what it newly names, the same way, and stands where it already
+was.
+
+**A record that leaves the manifest is retracted** (1), and visibly. A
+dependent that kept it would hold what its own declaration denies, and this
+store's whole argument is that what a tenant holds follows from what it
+declared — a zone is declared, a type is declared, a handling is declared.
+Retraction goes down the existing delete path, so it is an entry in the feed
+and in the trail rather than a row quietly vanishing. Parking is for a
+CONFLICT, where a local decision differs from an upstream one; a record that
+simply left the scope is not in conflict with anything.
+
+**The one that is least settled is the last.** Retracting is destructive, and a
+definition that leaves a narrowed closure may be what some stored document was
+validated against. The honest reading is that this is an argument for refusing
+the narrowing rather than for keeping the record: a tenant that narrows below
+what it holds is asking for its own documents to become uncheckable, and that
+is a thing to be told at declaration rather than discovered at the next write.
+It is written here as the weak point so that whoever builds it looks at it
+first.
+
 ## What this does to the guide
 
 The guide's Core group is organised by store feature — records, history,
@@ -461,8 +514,18 @@ what it should produce when it gets there.
 7. Joins, which is its own subject: the five questions above first, the
    feature after. Until then the three methods refuse by name, with a test
    holding them to it.
-8. Filtered dependencies, separately and last: the four questions first, the
-   feature after.
+8. Filtered dependencies, separately and last: ~~the four questions first~~ —
+   **answered above**, and they came out as one decision: a filter is a
+   manifest of names rather than a predicate that travels, closed over grains,
+   caught up by snapshot and cursor, and what leaves it is retracted. The
+   feature after. **And a second caller for them has appeared**, which is worth
+   knowing before the four are answered:
+   [item 025](../025-a-face-toolset-of-our-own/README.md) wants a tenant to
+   stream the closure of the types it declared rather than a face's whole
+   definitional set — the same mechanism with the filter computed from a
+   declaration instead of written in one. Whatever is decided here about a
+   record that stops matching, where the filter runs, the grain and catching
+   up, is decided for that too.
 
 ## What this is not
 

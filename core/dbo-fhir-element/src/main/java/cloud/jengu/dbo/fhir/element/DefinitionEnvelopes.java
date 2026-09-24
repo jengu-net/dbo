@@ -2,18 +2,14 @@ package cloud.jengu.dbo.fhir.element;
 
 import cloud.jengu.dbo.core.api.Envelope;
 import cloud.jengu.dbo.core.api.EnvelopeValue;
-import org.hl7.fhir.utilities.json.model.JsonArray;
-import org.hl7.fhir.utilities.json.model.JsonElement;
-import org.hl7.fhir.utilities.json.model.JsonObject;
-import org.hl7.fhir.utilities.json.model.JsonPrimitive;
-import org.hl7.fhir.utilities.json.parser.JsonParser;
+import cloud.jengu.dbo.fhir.index.DefinitionRows;
+import cloud.jengu.dbo.fhir.validate.Documents;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -46,60 +42,138 @@ final class DefinitionEnvelopes {
 
     static Envelope extract(List<DefinitionParameters.Parameter> parameters, String typeName,
             byte[] payload, boolean canonical) {
-        JsonObject document;
+        Map<String, Object> document = parsed(payload, typeName);
+        Envelope envelope = new Envelope();
+        for (DefinitionParameters.Parameter parameter : parameters) {
+            String path = ElementEnvelopes.pathName(parameter.code());
+            for (Object hit : evaluate(document, typeName, parameter.expression())) {
+                add(envelope, parameter.type(), path, hit);
+            }
+        }
+        meta(envelope, document);
+        if (canonical) {
+            canonical(envelope, document);
+        }
+        return envelope;
+    }
+
+    /**
+     * The same envelope, driven by the parameters the cut COMPILED rather
+     * than by expressions written out here.
+     *
+     * <p>The generalisation. What is written out above is five types' worth
+     * of expressions and an evaluator for the FHIRPath they use, and it
+     * exists because a definition arriving at a tenant is what the tenant
+     * does not have yet — the bootstrap cannot read rows that the document
+     * itself is about to create. Every OTHER type has its parameters
+     * compiled to jsonpath when they arrive, in {@code definition_parameter},
+     * and those need no evaluator of ours at all: they are run by the same
+     * reader the checks run an invariant's condition with.
+     *
+     * <p>So the typed rules below serve both, which is the point. A token is
+     * three questions and not one, a string is held lowercased and again
+     * exactly, a date is the moment its span opens — stated once, for the
+     * bootstrap and for everything else, rather than once per front end.
+     *
+     * <p><b>A parameter whose path this cannot run indexes nothing, and that
+     * is a loss rather than a silence.</b> An envelope missing a key is a
+     * search that finds nothing while looking exactly like an answer, so the
+     * codes are returned rather than swallowed: a caller that cares can say
+     * so, and one that does not gets the same behaviour the toolchain path
+     * has for an expression it cannot evaluate.
+     */
+    static Envelope extract(List<DefinitionRows.Parameter> parameters, String typeName,
+            byte[] payload, boolean canonical, List<String> declined) {
+        Map<String, Object> document = parsed(payload, typeName);
+        Envelope envelope = new Envelope();
+        for (DefinitionRows.Parameter parameter : parameters) {
+            if (!typeName.equals(parameter.base())) {
+                continue;
+            }
+            String path = ElementEnvelopes.pathName(parameter.code());
+            for (String compiled : parameter.paths()) {
+                List<Object> hits = Documents.at(document, compiled);
+                if (hits == null) {
+                    if (declined != null && !declined.contains(parameter.code())) {
+                        declined.add(parameter.code());
+                    }
+                    continue;
+                }
+                for (Object hit : hits) {
+                    if (parameter.predicate() != null && !Boolean.TRUE.equals(
+                            Documents.holds(hit, parameter.predicate()))) {
+                        continue;
+                    }
+                    add(envelope, parameter.kind(), path, hit);
+                }
+            }
+        }
+        meta(envelope, document);
+        if (canonical) {
+            canonical(envelope, document);
+        }
+        return envelope;
+    }
+
+    /**
+     * The document, refused the way the toolchain path refuses the same
+     * bytes: a body that is not FHIR JSON is the caller's, not the server's.
+     */
+    private static Map<String, Object> parsed(byte[] payload, String typeName) {
+        Map<String, Object> document;
         try {
-            document = JsonParser.parseObject(new ByteArrayInputStream(payload));
-        } catch (IOException | RuntimeException e) {
-            // The refusal the toolchain path gives for the same bytes: a body
-            // that is not FHIR JSON is the caller's, not the server's.
+            document = Documents.read(payload);
+        } catch (RuntimeException e) {
             throw new IllegalArgumentException("body is not parseable FHIR JSON: "
                     + e.getMessage(), e);
         }
-        if (!typeName.equals(document.asString("resourceType"))) {
+        if (document == null) {
+            throw new IllegalArgumentException("body is not parseable FHIR JSON");
+        }
+        if (!typeName.equals(Documents.text(document.get("resourceType")))) {
             // The toolchain refuses a resource type it does not know, and a
             // set handed over with one is applied without it. Here the
             // document is read for exactly one type, so being any other is
             // the same refusal.
             throw new IllegalArgumentException("body is not parseable FHIR JSON: expected a "
-                    + typeName + ", found '" + document.asString("resourceType") + "'");
+                    + typeName + ", found '" + Documents.text(document.get("resourceType")) + "'");
         }
-        Envelope envelope = new Envelope();
-        for (DefinitionParameters.Parameter parameter : parameters) {
-            String path = ElementEnvelopes.pathName(parameter.code());
-            for (JsonElement hit : evaluate(document, typeName, parameter.expression())) {
-                add(envelope, parameter.type(), path, hit);
+        return document;
+    }
+
+    /** What every resource carries and no search parameter names. */
+    private static void meta(Envelope envelope, Map<String, Object> document) {
+        if (!(document.get("meta") instanceof Map<?, ?> meta)) {
+            return;
+        }
+        for (Object profile : items(meta, "profile")) {
+            String url = primitive(profile);
+            if (url != null && !url.isBlank()) {
+                envelope.value("_profile", EnvelopeValue.of(url));
             }
         }
-        if (document.hasObject("meta")) {
-            JsonObject meta = document.getJsonObject("meta");
-            for (JsonElement profile : items(meta, "profile")) {
-                String url = primitive(profile);
-                if (url != null && !url.isBlank()) {
-                    envelope.value("_profile", EnvelopeValue.of(url));
-                }
-            }
-            for (JsonElement tag : items(meta, "tag")) {
-                if (tag instanceof JsonObject coding) {
-                    ElementEnvelopes.tokenForms(envelope, "_tag",
-                            coding.asString("system"), coding.asString("code"));
-                }
+        for (Object tag : items(meta, "tag")) {
+            if (tag instanceof Map<?, ?> coding) {
+                ElementEnvelopes.tokenForms(envelope, "_tag",
+                        field(coding, "system"), field(coding, "code"));
             }
         }
-        if (canonical) {
-            String url = document.asString("url");
-            if (url != null) {
-                envelope.identifier(cloud.jengu.dbo.core.api.Identifier.CANONICAL_SYSTEM, url);
-                envelope.value("url", EnvelopeValue.of(url));
-            }
+    }
+
+    /** What a canonical resource is identified BY, beside what it is found by. */
+    private static void canonical(Envelope envelope, Map<String, Object> document) {
+        String url = Documents.text(document.get("url"));
+        if (url != null) {
+            envelope.identifier(cloud.jengu.dbo.core.api.Identifier.CANONICAL_SYSTEM, url);
+            envelope.value("url", EnvelopeValue.of(url));
         }
-        return envelope;
     }
 
     // ------------------------------------------------------------ the path
 
-    private static List<JsonElement> evaluate(JsonObject document, String typeName,
+    private static List<Object> evaluate(Map<String, Object> document, String typeName,
             String expression) {
-        List<JsonElement> hits = new ArrayList<>();
+        List<Object> hits = new ArrayList<>();
         String[] terms = expression.split("\\|");
         // FHIRPath's union is a set: a value both sides yield is yielded
         // once, and the toolchain's answer over `snapshot | differential`
@@ -120,7 +194,7 @@ final class DefinitionEnvelopes {
             if (steps.length == 0 || !steps[0].equals(typeName)) {
                 continue;
             }
-            List<JsonElement> focus = List.of(document);
+            List<Object> focus = List.of((Object) document);
             for (int i = 1; i < steps.length && !focus.isEmpty(); i++) {
                 String step = steps[i];
                 Matcher where = WHERE.matcher(step);
@@ -140,7 +214,7 @@ final class DefinitionEnvelopes {
                     focus = children(focus, type == null ? step : step + capitalised(type));
                 }
             }
-            for (JsonElement hit : focus) {
+            for (Object hit : focus) {
                 if (!union || hits.stream().noneMatch(kept -> subsumes(kept, hit))) {
                     hits.add(hit);
                 }
@@ -159,20 +233,22 @@ final class DefinitionEnvelopes {
      * exactly, because the index is promised to be the toolchain's index and
      * not a better one.
      */
-    private static boolean subsumes(JsonElement kept, JsonElement candidate) {
-        if (kept instanceof JsonPrimitive k) {
-            return candidate instanceof JsonPrimitive c && k.getValue().equals(c.getValue());
+    private static boolean subsumes(Object kept, Object candidate) {
+        String text = Documents.text(kept);
+        if (text != null) {
+            return text.equals(Documents.text(candidate));
         }
-        if (!(kept instanceof JsonObject k) || !(candidate instanceof JsonObject c)) {
+        if (!(kept instanceof Map<?, ?> k) || !(candidate instanceof Map<?, ?> c)) {
             return false;
         }
-        for (var property : k.getProperties()) {
-            JsonElement theirs = c.get(property.getName());
+        for (Map.Entry<?, ?> property : k.entrySet()) {
+            Object theirs = c.get(property.getKey());
             if (theirs == null) {
                 return false;
             }
-            List<JsonElement> mine = property.getValue() instanceof JsonArray a ? a.getItems() : List.of(property.getValue());
-            List<JsonElement> others = theirs instanceof JsonArray a ? a.getItems() : List.of(theirs);
+            List<Object> mine = property.getValue() instanceof List<?> a
+                    ? List.copyOf(a) : List.of(property.getValue());
+            List<Object> others = theirs instanceof List<?> a ? List.copyOf(a) : List.of(theirs);
             if (mine.size() != others.size()) {
                 return false;
             }
@@ -185,20 +261,20 @@ final class DefinitionEnvelopes {
         return true;
     }
 
-    private static List<JsonElement> children(List<JsonElement> focus, String name) {
-        List<JsonElement> out = new ArrayList<>();
-        for (JsonElement element : focus) {
-            if (element instanceof JsonObject object) {
+    private static List<Object> children(List<Object> focus, String name) {
+        List<Object> out = new ArrayList<>();
+        for (Object element : focus) {
+            if (element instanceof Map<?, ?> object) {
                 out.addAll(items(object, name));
             }
         }
         return out;
     }
 
-    private static List<JsonElement> filtered(List<JsonElement> focus, String field, String literal) {
-        List<JsonElement> out = new ArrayList<>();
-        for (JsonElement element : focus) {
-            if (element instanceof JsonObject object && literal.equals(object.asString(field))) {
+    private static List<Object> filtered(List<Object> focus, String name, String literal) {
+        List<Object> out = new ArrayList<>();
+        for (Object element : focus) {
+            if (element instanceof Map<?, ?> object && literal.equals(field(object, name))) {
                 out.add(element);
             }
         }
@@ -206,9 +282,9 @@ final class DefinitionEnvelopes {
     }
 
     /** Descendants reached by stepping {@code name} again and again, a level at a time. */
-    private static List<JsonElement> repeated(List<JsonElement> focus, String name) {
-        List<JsonElement> out = new ArrayList<>();
-        List<JsonElement> level = children(focus, name);
+    private static List<Object> repeated(List<Object> focus, String name) {
+        List<Object> out = new ArrayList<>();
+        List<Object> level = children(focus, name);
         while (!level.isEmpty()) {
             out.addAll(level);
             level = children(level, name);
@@ -216,12 +292,17 @@ final class DefinitionEnvelopes {
         return out;
     }
 
-    private static List<JsonElement> items(JsonObject object, String name) {
-        JsonElement value = object.get(name);
+    private static List<Object> items(Map<?, ?> object, String name) {
+        Object value = object.get(name);
         if (value == null) {
             return List.of();
         }
-        return value instanceof JsonArray array ? array.getItems() : List.of(value);
+        return value instanceof List<?> array ? List.copyOf(array) : List.of(value);
+    }
+
+    /** A member's written text, for the shapes this reads by name. */
+    private static String field(Map<?, ?> object, String name) {
+        return Documents.text(object.get(name));
     }
 
     private static String capitalised(String type) {
@@ -230,7 +311,7 @@ final class DefinitionEnvelopes {
 
     // ---------------------------------------------------------- the values
 
-    private static void add(Envelope envelope, String type, String path, JsonElement hit) {
+    private static void add(Envelope envelope, String type, String path, Object hit) {
         switch (type) {
             case "token" -> token(envelope, path, hit);
             case "string" -> {
@@ -248,8 +329,8 @@ final class DefinitionEnvelopes {
             }
             case "date" -> {
                 String value = primitive(hit);
-                if (value == null && hit instanceof JsonObject period) {
-                    value = period.asString("start");
+                if (value == null && hit instanceof Map<?, ?> period) {
+                    value = field(period, "start");
                 }
                 Instant instant = ElementEnvelopes.instant(value);
                 if (instant != null) {
@@ -280,25 +361,26 @@ final class DefinitionEnvelopes {
      * definition types; a shape this does not know indexes nothing, as the
      * toolchain path indexes nothing for an element it cannot name.
      */
-    private static void token(Envelope envelope, String path, JsonElement hit) {
-        if (!(hit instanceof JsonObject element)) {
+    private static void token(Envelope envelope, String path, Object hit) {
+        if (!(hit instanceof Map<?, ?> element)) {
             String value = primitive(hit);
             if (value != null) {
                 envelope.value(path, EnvelopeValue.token(null, value));
             }
             return;
         }
-        if (element.has("coding")) {
-            for (JsonElement coding : items(element, "coding")) {
-                if (coding instanceof JsonObject c) {
-                    ElementEnvelopes.tokenForms(envelope, path, c.asString("system"), c.asString("code"));
+        if (element.containsKey("coding")) {
+            for (Object coding : items(element, "coding")) {
+                if (coding instanceof Map<?, ?> c) {
+                    ElementEnvelopes.tokenForms(envelope, path, field(c, "system"), field(c, "code"));
                 }
             }
-        } else if (element.has("code")) {
-            ElementEnvelopes.tokenForms(envelope, path, element.asString("system"), element.asString("code"));
-        } else if (element.has("value")) {
-            String system = element.asString("system");
-            String value = element.asString("value");
+        } else if (element.containsKey("code")) {
+            ElementEnvelopes.tokenForms(envelope, path, field(element, "system"),
+                    field(element, "code"));
+        } else if (element.containsKey("value")) {
+            String system = field(element, "system");
+            String value = field(element, "value");
             if (value != null) {
                 ElementEnvelopes.tokenForms(envelope, path, system, value);
                 if (system != null) {
@@ -308,9 +390,9 @@ final class DefinitionEnvelopes {
         }
     }
 
-    private static void reference(Envelope envelope, String path, JsonElement hit) {
-        boolean isReference = hit instanceof JsonObject;
-        String reference = isReference ? ((JsonObject) hit).asString("reference") : primitive(hit);
+    private static void reference(Envelope envelope, String path, Object hit) {
+        boolean isReference = hit instanceof Map;
+        String reference = isReference ? field((Map<?, ?>) hit, "reference") : primitive(hit);
         if (reference != null) {
             int slash = reference.lastIndexOf('/');
             if (slash > 0) {
@@ -320,16 +402,14 @@ final class DefinitionEnvelopes {
                         reference.substring(slash + 1));
             }
         }
-        if (isReference && ((JsonObject) hit).hasObject("identifier")) {
-            JsonObject identifier = ((JsonObject) hit).getJsonObject("identifier");
-            if (identifier.asString("system") != null) {
-                ElementEnvelopes.tokenForms(envelope, path + "_identifier",
-                        identifier.asString("system"), identifier.asString("value"));
-            }
+        if (isReference && ((Map<?, ?>) hit).get("identifier") instanceof Map<?, ?> identifier
+                && field(identifier, "system") != null) {
+            ElementEnvelopes.tokenForms(envelope, path + "_identifier",
+                    field(identifier, "system"), field(identifier, "value"));
         }
     }
 
-    private static String primitive(JsonElement hit) {
-        return hit instanceof JsonPrimitive primitive ? primitive.getValue() : null;
+    private static String primitive(Object hit) {
+        return Documents.text(hit);
     }
 }

@@ -86,11 +86,11 @@ val commonsLoggingBridge = "org.slf4j:jcl-over-slf4j:2.0.18"
 // one bundle's wiring. The fragment re-exports the host's OWN classes at 1.7
 // versions instead — one class space, both ranges satisfied.
 val slf4jCompatFragment = ":karaf:slf4j-compat"
-val karafDist: Configuration by configurations.creating
-val dboLoggingBundles: Configuration by configurations.creating
+val karafDist: Configuration = configurations.create("karafDist")
+val dboLoggingBundles: Configuration = configurations.create("dboLoggingBundles")
 // The compat fragment, kept in its own configuration so its coordinates are
 // found beside the resolved ones.
-val dboLegacySlf4j: Configuration by configurations.creating
+val dboLegacySlf4j: Configuration = configurations.create("dboLegacySlf4j")
 
 @Suppress("UNCHECKED_CAST")
 val loggingGavs = (rootProject.extra["dboLoggingBundles"] as List<String>) + spiFlyExtension + logServiceApi + commonsLoggingBridge
@@ -121,7 +121,11 @@ fun externalCoordinate(gav: String): String {
 // Karaf's launcher finds a JVM through java_home, which reports whatever is
 // registered system-wide — Java 15 on this machine, against bundles compiled
 // for 21. The failure is an UnsupportedClassVersionError deep in an install,
-// so the console pins the same toolchain the build compiles with.
+// so the console pins a JVM rather than accepting the one it is handed. It
+// stays 21 while the rest of the runtime compiles to 25, which is the same
+// fact that took these projects out of `settings.gradle.kts`: Karaf 4.4.11
+// closes the 4.4 line and does not run on 25. Nothing here is evaluated until
+// they are included again.
 val javaToolchains = extensions.getByType<JavaToolchainService>()
 val consoleLauncher = javaToolchains.launcherFor {
     languageVersion.set(JavaLanguageVersion.of(21))

@@ -1,4 +1,27 @@
-**Open. Nothing is built. A version's definitions are parsed into a HAPI object
+**Open, and no longer "nothing is built". Seven of the nine moves on the
+critical path are done and most were closed by reading rather than by work: the snapshot is kept and travels in the face image, `_elements` is the
+same token copy a whole read is, framing held a context it had stopped
+reading, and a parameter's evaluability never read a definition at all. `ElementStore` has no serving reaches left: `_include` reads the edges the
+write extracted, and a tenant's conversion maps are loaded when a reshape asks
+rather than held for its life. Step 8 is taken: where a type declares the database and the
+tenant holds the rows, the toolchain is not run at all. What made it
+defensible was building the one check the measurement could not see going
+missing — an element the face does not define, which no document in a corpus
+of 258 correct definitions carries. The write path's share of step 9 is built — conditional
+references answered over the bytes, the stamp dropped in the same pass, the
+shape stamps read from the rows — and it moved no megabyte, which is the
+finding rather than the disappointment: a context is built at BRING-UP, and it
+is one per version per PROCESS, so no per-tenant declaration can make one go
+away while a neighbour needs it. Done is `contextBuilds() == 0` for a serving
+process. Step 0 tried to get there cheaply by offering the carried packages by
+name, and is **falsified**: measured, it is 133 MB worse, because deferring the
+parse moves it to the next tenant rather than avoiding it. The end of it is a
+runtime that carries neither the validator nor the resource jars, so a context cannot be built at all rather than merely not
+being built. What stands in the way of that is written at the foot of this
+item, and it is larger than this item.
+None of it is a megabyte yet — a context held for any
+reason is held whole — which is the point of reading the path rather than the
+list. A version's definitions are parsed into a HAPI object
 graph and held while a tenant serves. The criterion is that a new face must not
 cost another hundred megabytes; measured, **a second face costs 444**, on top of
 225 for the first. The aim is a serving process holding neither the carried
@@ -274,6 +297,26 @@ gigabyte" as a footnote.
 `aSecondFaceServed` is in `config/memory-baseline.txt` now, so the number has
 somewhere to fall. Done is when it is small enough not to be interesting.
 
+**But that number cannot be the test, and finding out why cost a measurement.**
+Every figure in that file is a delta across a forced collection on a warm JVM.
+They wander a few per cent between runs of unchanged code — the validator pool
+has read 21 and 36 on one commit — which is fine for *did this get much worse*
+and useless for *does this path build a context*. Worse, a per-tenant delta
+cannot answer the question at all: a context is one per version per process, so
+once any tenant in a JVM needs one, every other tenant in it is measured
+against a corpus that is already there.
+
+**So done is a counter.** `ElementVersion.contextBuilds()` is what a serving
+process must read **zero** for, and `WhatTheLoadedSpecificationCostsIT` asserts
+today's weaker form of it — one context per face however many tenants serve on
+it, which is the sharing that makes a second tenant cost 11 MB rather than 226.
+It is deterministic, it cannot drift, and it fails the day somebody puts a
+parse back on a path that had stopped needing one.
+
+The megabytes stay, because a sizing conversation wants them and because a
+thirty-per-cent rise is still worth failing on. They are the evidence that
+something got worse, not the evidence that something got better.
+
 ## The aim is no toolchain in the runtime
 
 101 MB is not a win, it is a smaller waste. Both paths build the same thing —
@@ -333,15 +376,16 @@ dependency between them nowhere.
 
 | # | Move | Removes | Needs |
 |---|---|---|---|
+| 0 | ~~Offer the carried packages by name instead of parsing them~~ **FALSIFIED.** Built, measured, and 133 MB worse | — | — |
 | 1 | ~~**Snapshot into the cut**~~ **Built.** The snapshot is kept in `definitions.definition_snapshot`, so the schema an image is cut from carries it and the view is handed a definition with nothing left to build | `cacheProfile`'s differential expansion, an *arrival* reach | the cut, which exists |
 | 2 | ~~**A parameter's expression checked at the cut**~~ **Not needed.** The check parses; parsing reads the text | nothing — these were never reaches | — |
 | 3 | **The three rules** — canonical absolute, uuid lowercase, identifier under `urn:ietf:rfc:3986` a full uri | the validator's own code as a reason to hold a context | nothing; two are written and proven, the third is written |
 | 4 | ~~**`_elements` from the rows**~~ **Built, and the rows were not needed.** The filter is top-level names, so the same token copy a whole read uses answers it | `ElementAncestors.projected`, one serving branch — and the context parameter with it | nothing |
-| 5 | **Framing and rendering from stored JSON** — putting the engine's facts back without the element model | three of `ElementStore`'s four serving reaches | 4, which is the same projection |
-| 6 | **Decide where `_include` resolves** | `ElementStore`'s fourth serving reach | a decision, and [item 021](../021-asking-the-store/README.md) is deciding the same thing for joins |
-| 7 | **A StructureMap checked as a program becomes an ingest concern** | the tenant context's maps on the serving path | 1–2, the same cut |
-| 8 | **Types declare `verdict: database`** | `InstanceValidator`, the largest serving reach | the database answering tier one, which it does; the divergence baseline says how far |
-| 9 | **Delete the context** | the 225 MB, and the 101 with it | 1–8, because a context held for any reason is held whole |
+| 5 | ~~**Framing and rendering from stored JSON**~~ **Closed by 4**, not by work of its own: framing already wrote the Bundle shape directly, and the rendering it delegates to stopped needing a context | three of `ElementStore`'s four serving reaches | — |
+| 6 | ~~**Decide where `_include` resolves**~~ **The edges, built.** They are extracted on write and keyed by the parameter's own name; the policy half stays with [item 021](../021-asking-the-store/README.md) | `ElementStore`'s fourth and last serving reach | — |
+| 7 | ~~**A StructureMap becomes a conversion-time concern**~~ **Built.** A reshape is an operator asking once, so the maps are loaded when one runs rather than held for a tenant's life | the tenant context's maps on the serving path | — |
+| 8 | ~~**Stop RUNNING the toolchain**~~ **Done.** The database is asked first; where it can answer, the validator is not run | `InstanceValidator`, the largest serving reach | — |
+| 9 | **Nothing in the process builds a context** — not "this tenant avoids one" | the 225 MB, and the 101 with it | 1–8, both declarations per type, AND every tenant in the JVM |
 
 **Nothing on it is the 444 MB until all of it is done**, which is the item's
 own sentence and is the reason to read the path rather than the list: there is
@@ -353,6 +397,85 @@ answering for joins, and whichever answers first answers for both. Step 8 rests
 on the divergence baseline — five divergences left, one of which needs a column
 `definitions.term_system` does not have — and that is measurement this item
 already records rather than work it has to schedule.
+
+## Step 0, built and falsified
+
+**The idea.** `FaceBase.Proxy` extends HAPI's own
+`CanonicalResourceManager.CanonicalResourceProxy`: a definition is offered to
+the context by name and `loadResource()` runs only when something asks. The
+records path already uses it and costs **101 MB**; the carried path parses
+every resource at registration and costs **225 MB**. Same content. So offering
+the carried ones the same way looked like the cheapest thing on this list —
+no new module, no second validator, no database, and a technique already in
+the tree with its traps documented.
+
+**It is 133 MB worse.** Built behind `-Ddbo.definitions.offered`, measured
+against the same scenarios:
+
+| | parsed | offered | |
+|---|---|---|---|
+| `oneServedTenantBeforeAnyWrite` | 226 | 248 | +22 |
+| `theRestOfTheValidatorPool` | 30 | 21 | −9 |
+| **`aSecondTenantOnTheSameFace`** | **11** | **135** | **+124** |
+| `aFaceRootHoldingTheVersionAsRecords` | 101 | 99 | −2 |
+| `aTenantServingFromTheFaceBase` | 4 | 13 | +9 |
+| `aSecondFaceServed` | 445 | 435 | −10 |
+| **total** | **818** | **951** | **+133** |
+
+**The 11 → 135 is the whole result.** Laziness did not avoid the parsing, it
+moved it: the first tenant no longer parses everything, so the second parses
+what the first did not. Validating a `Patient` reaches into most of the
+datatypes, so across two tenants the working set approaches the whole corpus
+anyway — and the offering costs some thousands of proxy objects, their
+canonicals and a filename map **on top** of the parsing it did not save.
+
+**And eviction cannot rescue it, which is the part worth keeping.** The obvious
+repair is a cache rather than a deferral: load on demand AND drop what has not
+been wanted lately, so what is resident at any moment is bounded even where the
+union over time is the whole corpus. HAPI ships the method for it —
+`CanonicalResourceManager.unload()`, which walks every cached resource and
+calls:
+
+```java
+public void unload() {
+  synchronized (this) {
+    if (proxy != null) {
+      resource = null;
+    }
+  }
+}
+```
+
+It is a no-op for every resource that was ever loaded. `getResource()` ends
+with `proxy = null`, so the thing that knew how to read the definition again is
+discarded the moment it is used, and `unload()` skips anything whose proxy has
+gone. **Loading destroys the reload path**, so a worker context's memory is
+monotonic by construction.
+
+That is a better explanation of 11 → 135 than the working set growing: nothing
+can ever be released, whatever is asked for. Eviction is reachable only against
+the grain — keeping a registry of proxies and calling `drop(id)` then
+registering a fresh one — and `drop` is a linear scan of several collections
+carrying two FIXME'd notes that its removals are always false on a type
+mismatch.
+
+**And the inference behind it was wrong, not merely the outcome.** The step
+was reasoned from two numbers — records 101, carried 225 — whose difference
+had never been explained, and the explanation assumed was deferred loading.
+It is not: deferring is now measured and it costs more. **Why a records-backed
+face is cheaper is still unknown.** The honest candidates are that such a
+tenant holds fewer definitions than the packages carry, or that the tooling
+packages beyond the core are not in it. Neither has been checked, and the next
+person to reach for this number should check before building on it.
+
+**What is kept.** The code stays behind the flag, default off, so the negative
+result is reproducible rather than remembered. `offeredFor` is a working lazy
+context and may be useful for something that reaches a genuinely small part of
+a face — a cut, a one-shot conversion — where the working set does not grow to
+the whole.
+
+**The divergence check was not run.** It answers whether an offered context
+gives the same answers, which only matters for a change worth keeping.
 
 **Step 2 came off the list rather than being done**, which is the second time
 reading a step has been worth more than building it. `whyNotEvaluable` builds a
@@ -394,7 +517,153 @@ had established that a logical model must declare the store's slots or a
 narrowed read throws. That was the model path talking, and
 [item 011](../011-ubl-as-a-face/README.md) says so now.
 
-**The branch points are 4 and 8.** Everything before 4 is derivation moving to
+**Step 5 was already done when step 4 landed**, which is worth recording
+because it did not look that way from the table. `ElementFraming` writes the
+Bundle shape itself — the comment says why: it is the same in every version
+this face serves, and building one through the element model would mean
+holding a page — so the only reason it held a worker context was the member
+rendering it delegates to. When that stopped taking one, the supplier stayed:
+declared, wired at two construction sites, and read by nothing. That is the
+state a reach is in just before somebody reads the table and concludes it is
+still required.
+
+So the row's three reaches were one reach counted three times, and what is
+left of `ElementStore`'s four is `_include` alone.
+
+**Steps 6 and 7 were both smaller than the table, and for the same reason
+twice.** `_include` re-derived something the write had already extracted and
+indexed — the edges are keyed by `pathName(parameter.getCode())`, which is the
+name a caller spells — so following a reference became an indexed read and
+`referencedTargets` was deleted. The maps were loaded into the object a tenant
+serves from, for a conversion that only a maintenance request ever asks for, so
+they are loaded when one is asked for instead.
+
+Neither needed the element rows, the cut, or a decision. What the table
+recorded in both cases was where the work *appeared* to be, and the reading
+found it somewhere cheaper — which is now the rule rather than the surprise:
+**five of the nine moves have come off this list by being read.**
+
+## What step 9 actually is, read out
+
+**Corrected once already, by measuring.** This section said the write path was
+what still held a context, and the write path's parse was built away — and the
+figure did not move, because a context is built at BRING-UP, by
+`expandDefinitionsHeld` asking the view to snapshot a differential profile.
+The write path was never the only builder.
+
+**And a per-tenant figure could not have shown it either way.** A context is
+one per version per process — `ElementVersion.BY_CODE` is a static map, a face
+base is one worker context per face and process — so the moment any tenant in
+a JVM touches a path that needs one, the corpus is resident for every tenant in
+it. A scenario serving one well-declared tenant among six others read 15 MB
+before the change and 15 MB after, and was deleted rather than kept as
+evidence. **The unit of saving is the process, not the tenant.**
+
+So step 9 is not "this tenant stops parsing". It is *no tenant in this process
+needs a context*, which is a property of a deployment's whole declaration
+rather than of any one type. What follows is still true and still necessary —
+it is the write path's share of it.
+
+Steps 1–8 took every reach off the SERVING path. What the **write** path held
+is one place: `payloads().read(null, payload)`. Everything it feeds is small
+except one thing.
+
+| what the parse feeds | what it needs |
+|---|---|
+| `typeOf(document)` | the JSON's own `resourceType` |
+| stripping the engine's shape extension | a token copy, which `ElementAncestors` already does on the way out |
+| `loadClaimedShapesThisTenantHolds` | `meta.profile`, read as JSON |
+| `ElementReferences.resolve` | **the substance** — 85 lines that find every `reference` whose value carries a `?`, answer it, and rewrite it |
+| `payloads().write(document)` | recomposing after that rewrite |
+| the envelope | nothing, where the type declares `extraction: database` |
+| validation | nothing, where the type declares `verdict: database` — step 8 |
+
+So the remaining build is conditional-reference resolution over the JSON tree
+rather than the element model, plus the three small ones. It is bounded and it
+is not large.
+
+**And it changes what done means for this item.** A context is avoided only for
+a tenant whose types have declared **both** `extraction: database` and
+`verdict: database`. Everything else still parses, still validates through the
+toolchain, still holds the corpus. So the 444 MB does not fall for a
+deployment; it falls for a tenant that has said both things and been measured
+into saying them — which is the shape every declaration here has, and is why
+neither was ever a default.
+
+The criterion in *What done looks like* should be read with that in mind: **a
+new face must not cost another hundred megabytes** is answerable for a fully
+declared tenant, and the honest figure for anyone else is unchanged.
+
+**The branch points are 4 and 8**, and both are done. What is left cannot be
+wrong in a way that costs memory, because no memory has moved yet — it can only
+be wrong in a way that changes what a write stores, which is why the remaining
+piece is the write path and not a deletion.
+
+## Step 8 is a decision, and here is what it rests on
+
+**`verdict: database` is built.** A type can declare it, `whoDecides` returns
+the database's own sentences — path, rule and detail — and a type declared that
+way whose definitions the tenant does not hold keeps the toolchain's answer
+rather than being accepted by silence.
+
+**And it removes nothing**, because the toolchain still runs on every write.
+That is deliberate and it is written where it is done: *the comparison above
+still runs and is still counted; what a declared verdict moves is the decision,
+not the measurement, so a tenant that switched a type can still see what the
+two made of every write.* So `InstanceValidator` — the largest serving reach —
+is held by the measurement rather than by the verdict, and the memory does not
+move until the measurement stops.
+
+**What the measurement says, over 258 documents:**
+
+| | compared | only the toolchain | only the database |
+|---|---|---|---|
+| eight types | 176 | **0** | **0** |
+| `StructureDefinition` | 40 | 2 | 0 |
+| `StructureMap` | 2 | 2 | 0 |
+| `ValueSet` | 40 | 1 | 0 |
+
+**`onlyTheDatabase` is zero everywhere.** Across every type and every document,
+the database has never refused something the toolchain accepted. The whole risk
+of switching is in one direction — under-refusing — and it is five documents.
+
+**And the five are named, which is the part that makes this a decision rather
+than a gap.** One is `cid-0`, which the toolchain cannot evaluate either and
+reports as *the name 'name' is not valid for any of the possible types*. One is
+an identifier inside `snapshot.element[].example[].value`, which no check here
+can reach: a datatype's insides are checked where a profile constrains them and
+nowhere else, and that limit is held by a test. Two are StructureMaps checked as
+programs — an unknown source context, a target path not on the type — which is
+a program checker the database is not trying to be. One is a code absent from a
+held code system, which needs `definitions.term_system` to record a system's
+`content` before the database can honestly ask.
+
+**So the question to answer is not "is the divergence zero".** It is whether a
+store may stop running a second validator when, over everything a version
+publishes, the two agree except for five documents whose disagreements are each
+accounted for and none of which is the database being wrong. Two of the five
+are the toolchain doing something this store has decided not to do; one is a
+stated limit of where checking reaches; one waits on a column.
+
+That is a promise question — it changes what a write is judged by — and it was
+not one to take while writing the step that benefits from it. **Decided, and
+taken**, with one thing built first.
+
+**The gap the measurement could not see.** `onlyTheDatabase = 0` over 258
+documents says the database never refuses what the toolchain accepts. It does
+not say the database refuses everything the toolchain does, because the corpus
+is 258 CORRECT definitions — and the one refusal a tenant silently gave up by
+declaring the database was an element the face does not define, which the walk
+never reaches and no document in the corpus carries. `dbo.unknown_in` answers
+it now: it finds `Patient.favouriteColour`, it is silent inside a datatype no
+profile constrains, and re-recording the baseline after it confirmed it accuses
+nothing in all 258.
+
+So the order inverted: the database is asked BEFORE the toolchain, and where it
+can answer — the type declared it, the canonical is known, the rows are held —
+the validator is not built or run. Where it cannot, the toolchain runs exactly
+as before, and the comparison is taken only where both answered, because
+counting a silence as agreement is a tally reporting itself. Everything before 4 is derivation moving to
 a cut that already exists, which is mechanical. Step 4 is the first thing that
 changes what a serving request does, and step 8 is the first that changes what
 a write is judged by. If either turns out to be wrong, it is wrong before any
@@ -652,6 +921,49 @@ suite keeps dying, and it is not progress: it buys a cheaper copy of the thing
 being removed. It belongs to
 [item 023](../023-the-suite-runs-out-of-heap/README.md) as relief, not here as
 a step.
+
+## The end of it: a runtime that cannot build one
+
+Measuring whether a context was built is a weaker thing than making one
+impossible, and the second is available.
+
+**The packages are already raw definitions.** `hapi-fhir-validation-resources-r5`
+"carries no classes at all — profiles, value sets and schemas under
+`org/hl7/fhir/rX/model/`", which is what the face module's own build file says
+about it. So shipping definitions as data rather than as a package saves
+nothing by itself: what costs 225 MB is not the jar, it is
+`SimpleWorkerContext` parsing those resources into an object graph. Counted
+rather than inferred — serving the first tenant on a face nothing had touched
+builds **exactly one** carried context, and that is the whole of the 444.
+
+**So the thing to remove is not the definitions, it is the ability to turn them
+into a graph.** A serving node that carries neither the validator nor the
+resource jars cannot build a context — not "does not", cannot. That is a
+property a ratchet can hold, in the same shape as the branding check:
+`dboRuntimeModules` is the distribution's bundle list, and the assertion is
+that it names no `hapi-fhir-validation` and no `validation-resources`.
+
+It also puts HAPI where this item already said it belongs. The image cutter is
+a release-time tool; it may hold the validator, the packages, a gigabyte and a
+long afternoon, because nothing is serving while it runs. What it produces is
+rows, and a serving node loads rows.
+
+**What has to be true first**, which is larger than this item and is why it is
+written as the end rather than as a step:
+
+| still needs a graph on the serving path | what would answer instead |
+|---|---|
+| parsing and composing a document | the JSON path built for step 9, for EVERY type rather than for a declared one |
+| terminology — `validateCode`, expansion | the `term_*` tables answering in full, including a system's `content` |
+| FHIRPath — invariants, search parameters, the envelope | compiled at the cut into rows, which `definition_parameter` already is in part |
+| version conversion | a process of its own; it holds no context, only the two model graphs |
+| transaction bundles | `ElementBundles`, which composes through the model |
+
+Every one of those is a serving path that a tenant cannot declare its way out
+of, because they are what the store does rather than what a type asks for. Only
+when all of them are answered does taking the validator out of the
+distribution stop being a way to break every deployment that has not declared
+everything.
 
 ## What this is not
 

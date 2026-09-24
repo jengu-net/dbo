@@ -35,6 +35,18 @@ final class ClassFile {
     /** Karaf registers an annotated action; nothing in this tree names one. */
     private static final String KARAF_SERVICE = "Lorg/apache/karaf/shell/api/action/lifecycle/Service;";
 
+    /**
+     * A catalogue is found by its annotation and never constructed.
+     *
+     * <p>The classification declares its promises and a promise never names
+     * its classifications, so nothing in this store's code names a catalogue
+     * at all — the projection reads them off the classpath by this
+     * annotation. Taught to the ledger rather than written into it as a
+     * reason, because the next catalogue would arrive with the same reason
+     * and somebody would have to write it again.
+     */
+    private static final String CATALOGUE = "Lcloud/jengu/dbo/promise/Catalogue;";
+
     private static final int ACC_PUBLIC = 0x0001;
     private static final int ACC_STATIC = 0x0008;
     private static final int ACC_SYNTHETIC = 0x1000;
@@ -99,7 +111,8 @@ final class ClassFile {
                 strings.add(text);
             }
         }
-        return new ClassFile(name, access, strings, main || strings.contains(KARAF_SERVICE));
+        return new ClassFile(name, access, strings,
+                main || strings.contains(KARAF_SERVICE) || strings.contains(CATALOGUE));
     }
 
     private static void skipMembers(DataInputStream in) throws IOException {

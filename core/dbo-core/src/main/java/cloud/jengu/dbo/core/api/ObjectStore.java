@@ -116,6 +116,25 @@ public interface ObjectStore {
      * only right when it is complete, and a cap on it is a definition the
      * tenant holds and does not know about.
      */
+    /**
+     * The reference edges this object carries, as they were extracted on
+     * write.
+     *
+     * <p>The store already derives these from every payload and keys them by
+     * the search parameter that found them, which is the same name a caller
+     * spells in an {@code _include}. So following a reference out of a record
+     * is a read of what is already indexed rather than a second walk of the
+     * document — the promise that edges "power referential reads", collected
+     * rather than re-derived.
+     *
+     * <p>Empty for an object with no references, and for one this store does
+     * not hold.
+     */
+    default List<Envelope.ReferenceEdge> edgesOf(String typeName, String id) {
+        throw new UnsupportedOperationException(
+                "this store does not hand back the edges it extracted");
+    }
+
     List<Held> inventory(String typeName, List<String> paths);
 
     /**

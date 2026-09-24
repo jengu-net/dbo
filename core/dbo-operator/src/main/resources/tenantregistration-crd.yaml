@@ -136,6 +136,13 @@ spec:
                 # records; every other tenant subscribes to one.
                 faceRoot:
                   type: boolean
+                # Writes judged from the definition index rather than from a
+                # loaded specification. Needs a face behind it, and needs its
+                # StructureDefinition to be replicated: a tenant that authors
+                # profiles has to snapshot them, and this face holds nothing
+                # that can.
+                indexFace:
+                  type: boolean
                 # Which element of a type carries the organisation a record
                 # belongs to, per type.
                 organisations:
@@ -195,6 +202,12 @@ spec:
                           what it holds.
                         type: string
                         enum: [in-process, database]
+                      # What a write does with an element this type's
+                      # definition does not declare: refused, or kept as it
+                      # arrived and answerable by nothing.
+                      unknown:
+                        type: string
+                        enum: ["refused", "kept"]
                       verdict:
                         description: >-
                           whose answer decides a write of this type. Left out,

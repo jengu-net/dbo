@@ -90,9 +90,23 @@ class TenantOsgiIT {
                 "dbo.terminology.jar",
                 // the expanded form the element face writes on arrival
                 "dbo.definitions.jar",
+                // the same rows as flat arrays and the reader over them, which
+                // the element face imports to build an envelope
+                "dbo.fhir.index.jar", "dbo.fhir.validate.jar",
                 // run records, before subscriptions and policy, which write them
                 "dbo.work.jar",
                 "dbo.subscriptions.jar",
+                // THE FRAGMENT BEFORE ITS HOST, and the order is not a style.
+                // A fragment attaches when the host RESOLVES, and starting the
+                // host resolves it: installed afterwards, this one sits at
+                // INSTALLED forever, the face finds no packages, and the
+                // tenant fails to come up with nothing in the log about a
+                // fragment. It carries the definition packages, and this
+                // container's tenant takes its face from no root and holds no
+                // version as records — so it is the case that has to build a
+                // worker context out of the specification, and a node without
+                // this cannot.
+                "dbo.fhir.packages.jar",
                 // the shared facade, before the faces that import it
                 "dbo.fhir.element.jar",
                 "dbo.fhir.r4.jar", "dbo.fhir.r5.jar", "dbo.rest.jar", "dbo.auth.jar",
@@ -130,7 +144,14 @@ class TenantOsgiIT {
                 "dbo.runner.jar",
                 // the third carrier for the lane, imported by dbo-tenant for the door
                 "dbo.stream.jar")) {
-            ctx.installBundle("file:" + System.getProperty(prop)).start();
+            org.osgi.framework.Bundle installed =
+                    ctx.installBundle("file:" + System.getProperty(prop));
+            // A FRAGMENT ATTACHES, IT DOES NOT START. Felix refuses to start
+            // one, and the refusal reads as the install list being wrong
+            // rather than as a fragment being a fragment.
+            if (installed.getHeaders().get("Fragment-Host") == null) {
+                installed.start();
+            }
         }
         tenantBundle = ctx.installBundle("file:" + System.getProperty("dbo.tenant.jar"));
         tenantBundle.start();

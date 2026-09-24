@@ -23,7 +23,8 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
         boolean pdi, cloud.jengu.dbo.policy.TenantPolicies policies,
         String zone, String broker, List<String> acceptedBrokers,
         List<Dependency> dependencies, Scim scim, List<String> mandatorySteps,
-        String managedBy, boolean faceRoot, List<Step> steps, boolean zoneRoot) {
+        String managedBy, boolean faceRoot, List<Step> steps, boolean zoneRoot,
+        boolean indexFace) {
 
     /**
      * A step this tenant offers, and the documents a run of it is over.
@@ -55,6 +56,20 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
             slots = java.util.Collections.unmodifiableMap(
                     new java.util.LinkedHashMap<>(slots));
         }
+    }
+
+    /**
+     * Without an index face: what every tenant was while a write could only be
+     * judged against a loaded specification.
+     */
+    public TenantSpec(String code, String face, List<FhirTypeConfig> types,
+            boolean pdi, cloud.jengu.dbo.policy.TenantPolicies policies,
+            String zone, String broker, List<String> acceptedBrokers,
+            List<Dependency> dependencies, Scim scim, List<String> mandatorySteps,
+            String managedBy, boolean faceRoot, List<Step> steps, boolean zoneRoot) {
+        this(code, face, types, pdi, policies, zone, broker, acceptedBrokers,
+                dependencies, scim, mandatorySteps, managedBy, faceRoot, steps, zoneRoot,
+                false);
     }
 
     /**
@@ -352,6 +367,16 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
             if ("none".equals(definition)) {
                 placed = placed.withoutADefinition();
             }
+            String unknown = Json.strOpt(t, "unknown");
+            if (unknown != null && !"refused".equals(unknown) && !"kept".equals(unknown)) {
+                throw new IllegalArgumentException(code + "/" + name
+                        + ": unknown unknown " + unknown + " — say 'kept' to hold an element "
+                        + "this type's definition does not declare, or leave it out and it "
+                        + "is refused");
+            }
+            if ("kept".equals(unknown)) {
+                placed = placed.keepingWhatItCannotRead();
+            }
             String verdict = Json.strOpt(t, "verdict");
             if (verdict != null && !"database".equals(verdict)
                     && !"toolchain".equals(verdict)) {
@@ -465,7 +490,11 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
                 Json.bool(root, "faceRoot"), List.copyOf(steps),
                 // A zone says it is one. Members name it, and naming is not
                 // appointing: see the check at bring-up.
-                Json.bool(root, "zoneRoot"));
+                Json.bool(root, "zoneRoot"),
+                // Judged from the definition index rather than from a loaded
+                // specification. Declared and not discovered, because it
+                // decides what every write of this tenant is checked against.
+                Json.bool(root, "indexFace"));
     }
 
     /**

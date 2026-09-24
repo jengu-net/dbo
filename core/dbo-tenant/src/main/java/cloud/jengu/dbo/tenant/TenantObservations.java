@@ -1,5 +1,9 @@
 package cloud.jengu.dbo.tenant;
 
+import cloud.jengu.dbo.tenant.api.Change;
+import cloud.jengu.dbo.tenant.api.TenantDomain;
+import cloud.jengu.dbo.tenant.api.TenantFacts;
+import cloud.jengu.dbo.tenant.api.TenantObserver;
 import cloud.jengu.dbo.core.api.feed.ChangeFeed;
 import cloud.jengu.dbo.core.api.feed.FeedChunk;
 import cloud.jengu.dbo.core.api.feed.FeedItem;
