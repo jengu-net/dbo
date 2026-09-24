@@ -33,6 +33,11 @@ public record WhatTheStoreStored(HttpResponse<String> response) {
         return response.body();
     }
 
+    /** The body as something to ask questions of. */
+    public WhatADocumentSays says() {
+        return new WhatADocumentSays(response.body());
+    }
+
     /**
      * The id the store gave it, off the address it answered with.
      *

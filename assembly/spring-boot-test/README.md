@@ -96,6 +96,32 @@ dbo.search("hogwarts", "Patient", "identifier=urn:rl:nid|RL-1", "TREAT");
 dbo.asking("hogwarts").work().by("a-worker").count();
 ```
 
+### Asking a document
+
+```java
+var record = dbo.says(dbo.read("hogwarts", "Patient", id));
+record.one("resourceType");        // Optional["Patient"]
+record.at("name.family");          // every family name it carries
+record.has("name");                // whether it says anything there
+```
+
+Paths are written the short way and compiled to the long one: the reader runs
+the jsonpath Postgres is handed, where a member is quoted — `$."name"."family"`
+— which is right for a store comparing its answer against the database's and
+tiresome for a test. Anything starting `$` or `@` passes through, so the full
+dialect stays reachable.
+
+`one(...)` refuses where a path selects several, because a test asking for
+*the* family name of a document carrying two has asked something the document
+does not answer. A path the reader cannot run is refused rather than answered
+empty, for the reason that distinction keeps mattering here.
+
+**There is no document builder, deliberately.** A FHIR document in a test is
+clearer as a text block — it is what a reader pastes into `curl`, and a fluent
+chain would make a sample less like the thing it demonstrates. Changing a
+document read from the store is the case a builder would earn, and no test
+needs it yet.
+
 **Two credentials, and they are not interchangeable.** `token(tenant)` is for
 records; `workToken(tenant)` may act in work. A token admitted at the step
 surface is refused by the records door — holding one is deliberately not

@@ -168,6 +168,11 @@ public final class DboTestContext implements SmartLifecycle {
                         .POST(HttpRequest.BodyPublishers.ofString(document)), token(tenant)));
     }
 
+    /** Any response, as something to ask questions of. */
+    public WhatADocumentSays says(HttpResponse<String> answered) {
+        return new WhatADocumentSays(answered.body());
+    }
+
     /** Reads one back. */
     public HttpResponse<String> read(String tenant, String typeName, String id) {
         return send(HttpRequest.newBuilder(URI.create(

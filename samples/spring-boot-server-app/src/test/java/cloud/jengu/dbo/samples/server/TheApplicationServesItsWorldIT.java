@@ -89,13 +89,19 @@ class TheApplicationServesItsWorldIT {
         // would have been asserting the opposite of what this store promises.
         String id = written.idOrFail();
         var back = dbo.read(TENANT, "Patient", id);
+        var record = dbo.says(back);
         assertAll(
                 () -> assertEquals(200, back.statusCode(),
                         "the record was not readable: " + back.body()),
-                () -> assertTrue(!back.body().contains("Kontekst"),
+                // Asked of the document rather than matched in its text: a
+                // name absent from the payload and a name that happens not to
+                // appear in a rendering are different answers.
+                () -> assertTrue(!record.has("name"),
                         "a name came back to a caller holding a system credential, so this "
                                 + "tenant's vault is not holding the person it declared it "
-                                + "would: " + back.body()));
+                                + "would: " + back.body()),
+                () -> assertEquals(java.util.Optional.of("Patient"), record.one("resourceType"),
+                        "what came back is not the record that was written: " + back.body()));
 
         // AND AN IDENTIFYING SEARCH IS REFUSED, NOT ANSWERED EMPTY. This
         // tenant holds Patient.identifier under the membrane, so the store
