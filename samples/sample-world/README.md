@@ -1,15 +1,18 @@
 # The sample world
 
-The six tenant specs every example in the guide runs against, COPIED here so
-that this application serves the same world the distribution does — the same
-tenants, the same faces, the same zone — and the only difference between the
-two is how the store is reached.
+The six tenant specs the sample applications serve, and the distribution
+serves the same six — so the only difference between the two samples is how
+the store is reached.
 
-It is a copy and not a share, deliberately: the guide includes `sample/`'s
-source, so nothing there may move until the guide has somewhere to move to.
-Which of the two is current is [one paragraph in the risks
-chapter](../../../docs/arc42-011-risks-and-technical-debt/026-two-samples-tell-one-story/README.md).
-When `sample/` retires, this becomes the only copy.
+It sits beside the applications rather than inside one because more than one
+thing is about it: the serving application bootstraps from it, and a test
+seeds what it declares from it before declaring its own. A world inside one
+application would have made the others reach into its directory.
+
+It is a copy of `sample/world`, and a copy rather than a share because the
+guide includes `sample/`'s source and nothing there may move until the guide
+has somewhere to move to. Which of the two is current is [one paragraph in the
+risks chapter](../../docs/arc42-011-risks-and-technical-debt/026-two-samples-tell-one-story/README.md).
 
 `mom.json` sits beside the others rather than inside `tenants/` on purpose: it
 is the managing tenant, and the scan loop that retracts undeclared tenants must

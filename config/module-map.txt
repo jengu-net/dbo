@@ -10,7 +10,7 @@
 #
 assembly:spring-boot-core    core:dbo-core
 assembly:spring-boot-server  assembly:spring-boot-core core:dbo-asking core:dbo-auth core:dbo-core core:dbo-definitions core:dbo-fhir-common core:dbo-maintenance core:dbo-pdi core:dbo-policy core:dbo-rest core:dbo-runner core:dbo-sync core:dbo-telemetry core:dbo-tenant core:dbo-work
-assembly:spring-boot-test    assembly:spring-boot-server assembly:spring-boot-worker
+assembly:spring-boot-test    assembly:spring-boot-server assembly:spring-boot-worker core:dbo-fhir-validate samples:spring-boot-server-app
 assembly:spring-boot-worker  assembly:spring-boot-core core:dbo-core core:dbo-runner core:dbo-telemetry core:dbo-work
 bench:runner                 core:dbo-core core:dbo-fhir-common core:dbo-fhir-r4 core:dbo-postgres core:dbo-rest
 core:conformance             core:dbo-core core:dbo-fhir-common core:dbo-fhir-r4 core:dbo-fhir-r5 core:dbo-postgres core:dbo-rest core:dbo-terminology

@@ -1,0 +1,6 @@
+# What this test needs. The world is a bootstrap: it is read once to seed what
+# the test declares, and the test's own declarations are what the runtime then
+# reads.
+dbo:
+  test:
+    world: ../../samples/sample-world

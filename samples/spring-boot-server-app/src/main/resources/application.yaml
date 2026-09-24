@@ -6,11 +6,11 @@
 dbo:
   mount: servlet
   tenants:
-    directory: world/tenants
+    directory: ../sample-world/tenants
   # The store keeps its own history in a tenant, and that one is named here
   # rather than watched: the loop that retracts undeclared tenants must not be
   # able to retract the thing that records retractions.
-  management-spec: world/mom.json
+  management-spec: ../sample-world/mom.json
 
 spring:
   application:

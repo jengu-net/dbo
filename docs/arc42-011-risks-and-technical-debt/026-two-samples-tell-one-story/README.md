@@ -55,8 +55,12 @@ to learn that from this file in one paragraph, which is the whole job it does.
 
 ## What is built
 
+- `samples/sample-world` — the six tenants both applications are about, beside
+  them rather than inside one: the serving application bootstraps from it, and
+  a test seeds what it declares from it.
+
 - `samples/spring-boot-server-app` — a Spring Boot application with one DBO
-  dependency, the sample world copied under `world/`, and a test that boots the
+  dependency, and a test that boots the
   real application and asserts its tenant answers a FHIR read on the
   application's own port and refuses a caller carrying nothing. The test uses
   the module's own world directory rather than a fixture: a test that built

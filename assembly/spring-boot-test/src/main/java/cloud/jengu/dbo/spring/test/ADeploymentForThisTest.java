@@ -82,7 +82,25 @@ public final class ADeploymentForThisTest
             derived.put("dbo.worker.auto-start", "false");
         }
 
+        // THE DECLARATIONS COME FROM THIS TEST, not from the directory. The
+        // runtime is told to expect a shared source and then waits for one to
+        // be registered, which the context below does. The directory named by
+        // dbo.test.world is read ONCE to seed it, and never again.
+        derived.put("dbo.framework.dbo.tenant.declarations.shared", "true");
         environment.getPropertySources().addFirst(new MapPropertySource(SOURCE, derived));
+
+        TheWorldThisTestDeclares declaring = TheWorldThisTestDeclares.seededFrom(
+                world.resolve("tenants"));
+        if (context instanceof org.springframework.context.support.GenericApplicationContext beans) {
+            beans.registerBean(TheWorldThisTestDeclares.class, () -> declaring);
+            beans.registerBean(DboTestContext.class, () -> new DboTestContext(
+                    declaring, beans.getBean(cloud.jengu.dbo.spring.EmbeddedRuntime.class),
+                    beans.getBean(cloud.jengu.dbo.spring.server.DboTenants.class), port));
+            return;
+        }
+        throw new IllegalStateException("this context cannot be given the test's declarations: "
+                + context.getClass().getName() + " is not a GenericApplicationContext, and the "
+                + "runtime has already been told to wait for a source nobody would register");
     }
 
     private static DboTestProperties asked(ConfigurableEnvironment environment) {

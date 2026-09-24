@@ -3,4 +3,4 @@
 # deployment the harness creates, so the harness derives them.
 dbo:
   test:
-    world: world
+    world: ../sample-world
