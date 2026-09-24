@@ -144,8 +144,14 @@ tenant with no face base, which has no expanded rows and therefore cannot
 use this face at all. So what item 025 buys is 21 MB a tenant, 65 MB of jar
 once step 11 can fire, and the property rather than the quantity — a node
 that CANNOT populate a context where today it merely happens not to. That
-third thing is what the whole comparison apparatus was for. What remains is
-the per-tenant declaration, step 10's other half, and step 11 itself.**
+third thing is what the whole comparison apparatus was for. **And the question
+that blocked both of the last two moves is settled**: an image is cut per
+CLOSURE and accepted on COVERAGE rather than equality, because the saving is
+per tenant by measurement and a face-wide image carries very nearly the whole
+corpus however narrow its tenants are. Coverage is what makes it cheap — a
+face-wide image is the widest closure there is, so a face nobody narrowed
+behaves exactly as it does today. What remains is the per-tenant declaration,
+step 10's other half, and step 11 itself.**
 
 # A face toolset of our own
 
@@ -1160,10 +1166,46 @@ measurement classes now take a directory of their own. What the evidence
 pointed at and what was actually wrong were different things, and the only
 thing that separated them was removing one and trying again.
 
-**So step 10's other half is a mechanism that works and a question nobody has
-answered**: whether an image is cut per face or per closure. Until that is
-settled, a derived dependency cannot be switched on without breaking a proven
-promise.
+**So step 10's other half is a mechanism that works and a question nobody had
+answered**: whether an image is cut per face or per closure.
+
+## The image is cut per closure, and acceptance is coverage
+
+**Answered per closure, and the measurements already taken answer it.** The
+saving this whole item rests on is per TENANT: hogwarts' eleven declared types
+reach 7.2% of r5's elements, and a face whose tenants between them declared
+every resource would reach 94% of the corpus. An image cut per face therefore
+carries very nearly the whole corpus however narrow its tenants are, so the
+derived manifest would shrink the feed and nothing else. The database, the
+expansion and the image are precisely what step 10's other half was for.
+
+**And per face stops being merely large and becomes wrong.** The first tenant
+to want a face cuts it, which is the right economy when every tenant on that
+face holds the same rows. With a derived dependency on, they do not: that
+tenant cuts ITS closure, and the next tenant on the same face with wider
+declared types loads an image missing rows it needs. Nothing reports it. The
+index judges a document against what the tenant holds, so a tenant missing the
+structures its types reach accepts documents nobody checked — which is the
+no-rows hazard the dial already has, arriving from the image side instead.
+
+**Coverage, not equality, is what an image is accepted on.** The manifest is
+already the contract, and already refuses by name rather than loading and
+hoping: it matches this release or it does not. It gains the closure it was cut
+over, and a tenant accepts an image whose closure CONTAINS the names its own
+declared types reach. Equality would cut one image per distinct set of declared
+types and share none of them; containment shares every image with every tenant
+narrower than it.
+
+**Which makes the degradation free.** A face-wide image is the widest closure
+there is, so it satisfies every tenant on that face — per-closure falls back to
+per-face rather than failing, and a face nobody has narrowed behaves exactly as
+it does today. The key is a digest over the manifest of names, which
+`DefinitionRows.manifestFor` already computes; the number of images on a face
+is bounded by its distinct closures, not by its tenants.
+
+**What this does not settle** is when the cutting happens. It stays lazy: the
+first tenant wanting a closure nobody has cut pays for it, as the first tenant
+wanting a face does now.
 
 **And one question stays open**, the one item 021 left and this case bites
 hardest on: a tenant narrowing below what its stored documents were validated
