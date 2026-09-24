@@ -1,6 +1,7 @@
 package cloud.jengu.dbo.samples.server;
 
 import cloud.jengu.dbo.spring.test.DboSpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
 import cloud.jengu.dbo.spring.test.DboTestContext;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -26,6 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * about this application.
  */
 @DboSpringBootTest
+@ActiveProfiles("test")
 class TheApplicationServesItsWorldIT {
 
     private static final String TENANT = "hogwarts";

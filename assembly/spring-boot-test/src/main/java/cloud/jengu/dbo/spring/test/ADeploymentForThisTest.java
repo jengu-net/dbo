@@ -74,7 +74,7 @@ public final class ADeploymentForThisTest
                     "http://127.0.0.1:" + port + "/t/" + tenant + "/");
             // The credential is named now and ISSUED later: only a tenant
             // that exists can register a client, and none does yet.
-            derived.put("dbo.worker.lanes[0].token.client-id", TheTenantIsServing.CLIENT);
+            derived.put("dbo.worker.lanes[0].token.client-id", TheTenantIsServing.WORK_CLIENT);
             derived.put("dbo.worker.lanes[0].token.client-secret", TheTenantIsServing.SECRET);
             // Left still until it has been. A runner polling a lane whose
             // credential does not exist yet fails every cycle and says so in

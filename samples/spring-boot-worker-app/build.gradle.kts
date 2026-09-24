@@ -23,12 +23,22 @@ dependencies {
         "org.springframework.boot:spring-boot-configuration-processor:$springBootVersion")
     runtimeOnly("ch.qos.logback:logback-classic:1.5.18")
 
-    testImplementation("org.junit.jupiter:junit-jupiter:6.0.0")
-    testImplementation("org.springframework.boot:spring-boot-test:$springBootVersion")
-    testImplementation("org.springframework:spring-test:7.0.9")
+    // A deployment to perform work for. The worker's own claim cannot be made
+    // without a tenant that has some — and the only honest source of one is
+    // the serving application beside it, started the way it starts.
+    testImplementation(project(":assembly:spring-boot-test"))
+    testImplementation(project(":samples:spring-boot-server-app"))
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
 tasks.withType<Test>().configureEach {
     useJUnitPlatform()
+}
+
+tasks.test {
+    useJUnitPlatform()
+    // A tenant comes up inside this test, which expands a FHIR version out of
+    // the specification. Stated here rather than inherited, per the rule that
+    // a test task loading the validator says its own number.
+    maxHeapSize = "3g"
 }

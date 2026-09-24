@@ -26,8 +26,19 @@ import java.util.List;
  */
 public final class TheTenantIsServing implements BeforeAllCallback {
 
-    /** The client a test's worker carries. Stable, so a rerun reuses it. */
+    /** The client a test's records calls carry. Stable, so a rerun reuses it. */
     static final String CLIENT = "dbo-test-worker";
+
+    /**
+     * The client the LANE carries, which is a different one.
+     *
+     * <p>A lane polls the step surface, and that surface admits a credential
+     * that may act in work — not the broad one. Wiring a lane with the records
+     * client is how a runner comes up, polls, is refused every cycle, and says
+     * so in a log nobody is reading while a test waits for work that will
+     * never be taken.
+     */
+    static final String WORK_CLIENT = CLIENT + "-work";
 
     static final String SECRET = "a-secret-for-" + CLIENT;
 
@@ -48,6 +59,8 @@ public final class TheTenantIsServing implements BeforeAllCallback {
                 () -> new IllegalStateException(tenant + " is serving and has no authority, so "
                         + "no credential can be issued for a worker to carry"));
         authority.ensureClient(CLIENT, SECRET, scopes(application));
+        authority.ensureClient(WORK_CLIENT, SECRET,
+                List.of(cloud.jengu.dbo.auth.Scopes.WORK));
         startTheWorker(application);
     }
 

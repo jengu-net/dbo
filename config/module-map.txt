@@ -48,4 +48,4 @@ guide                        core:dbo-promises promise sample sample:participant
 sample                       core:dbo-asking core:dbo-runner core:dbo-tenant core:dbo-work
 sample:participant           core:dbo-runner core:dbo-work
 samples:spring-boot-server-app assembly:spring-boot-server assembly:spring-boot-test
-samples:spring-boot-worker-app assembly:spring-boot-worker
+samples:spring-boot-worker-app assembly:spring-boot-test assembly:spring-boot-worker samples:spring-boot-server-app

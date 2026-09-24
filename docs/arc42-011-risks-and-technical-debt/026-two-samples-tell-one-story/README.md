@@ -80,18 +80,32 @@ to learn that from this file in one paragraph, which is the whole job it does.
   earlier, which is where it wanted to live once it was clear an integrator
   wants it too.
 
-## Two things that are documented and not proven
+## What one JVM cannot prove
 
-**The process boundary.** The samples are two applications because that is the
-deployment: work is performed by somebody else's process, reaching the store
-over HTTP with a credential the tenant issued. The test collapses them into one
-JVM, which proves the HTTP round trip and says nothing about two processes. A
-compose-level test of the same shape as `guide-on-tree` is what would, and it
-is not written.
+The applications are two processes in a deployment, and the tests collapse them
+into one Spring context — a testing economy, because two processes in one test
+would be two JVMs. Three things follow, and none of them is a defect to fix:
 
-**Running either by hand.** Neither module has a README showing a reader how to
-start the server, issue a credential and point a worker at it — which is the
-artefact somebody arriving at `samples/` actually wants.
+**The process boundary is not exercised.** The HTTP round trip is real — the
+worker builds an `HttpLane` and nothing else, so work leaves over a port and
+comes back — but nothing proves a worker in another JVM, against a server it
+did not start, performs a step.
+
+**One context has one application configuration, and the two disagree.** Both
+applications ship an `application.yaml`, and only one can be the one Spring
+loads — but it is worse than a choice between them. The worker declares
+`spring.main.web-application-type: none`, which is true of it standing alone,
+and the serving application it is tested beside needs a servlet container. So
+the worker's test states which one wins, along with its identity and poll, and
+what that test proves is the worker as configured THERE rather than as its own
+file configures it. The assertion names the executor as a literal, so a drift
+between the two copies is what fails.
+
+**And a test's own `application.yaml` shadows the application's.** Spring loads
+the first on the classpath and test resources come first, so a sample test
+written that way proves an application configured by the test rather than one
+as it ships. Both samples had that, and both now add to the application's
+configuration through a profile instead of replacing it.
 
 ## What is not
 

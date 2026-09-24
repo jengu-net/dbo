@@ -116,15 +116,35 @@ public final class DboTestContext implements SmartLifecycle {
      * time at the authority.
      */
     public String token(String tenant) {
-        return tokens.computeIfAbsent(tenant, code -> {
+        return credential(tenant, TheTenantIsServing.CLIENT,
+                List.of("system/*.read", "system/*.write"));
+    }
+
+    /**
+     * A credential that may act in WORK, which is a different one.
+     *
+     * <p>Not a wider token but a separate one, because the store insists: a
+     * token admitted at the step surface is refused by the tenant's records
+     * surface, and one admitted there has no business arriving through a run.
+     * Holding one is not holding the store, and a helper that handed out a
+     * single credential good for both would have quietly undone the split the
+     * two surfaces exist to make.
+     */
+    public String workToken(String tenant) {
+        return credential(tenant, TheTenantIsServing.WORK_CLIENT,
+                List.of(cloud.jengu.dbo.auth.Scopes.WORK));
+    }
+
+    private String credential(String tenant, String client, List<String> scopes) {
+        return tokens.computeIfAbsent(tenant + "/" + client, key -> {
+            String code = tenant;
             TenantAuthority authority = tenants.authority(code).orElseThrow(
                     () -> new IllegalStateException(code + " has no authority, so nothing can "
                             + "issue a credential for it. It is either not serving yet or not "
                             + "declared: " + tenants.serving()));
-            authority.ensureClient(TheTenantIsServing.CLIENT, TheTenantIsServing.SECRET,
-                    List.of("system/*.read", "system/*.write"));
+            authority.ensureClient(client, TheTenantIsServing.SECRET, scopes);
             TenantAuthority.TokenResult issued = authority.token(
-                    TheTenantIsServing.CLIENT, TheTenantIsServing.SECRET, null);
+                    client, TheTenantIsServing.SECRET, null);
             if (issued instanceof TenantAuthority.TokenResult.Issued minted) {
                 return minted.accessToken();
             }
@@ -213,7 +233,12 @@ public final class DboTestContext implements SmartLifecycle {
         return send(HttpRequest.newBuilder(URI.create(url)).GET(), token);
     }
 
-    private HttpResponse<String> send(HttpRequest.Builder request, String token) {
+    /**
+     * Any request, carrying a credential. For a door this has no method for
+     * yet — a test reaching one should not have to rebuild the client and the
+     * bearer to get there.
+     */
+    public HttpResponse<String> send(HttpRequest.Builder request, String token) {
         if (token != null) {
             request.header("Authorization", "Bearer " + token);
         }
