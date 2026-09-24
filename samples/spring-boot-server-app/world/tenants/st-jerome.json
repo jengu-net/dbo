@@ -1,0 +1,23 @@
+{
+  "code": "st-jerome",
+  "face": "r5",
+  "zone": "rl",
+  "audit": { "level": "writes" },
+  "dependencies": [
+    { "name": "fhir-r5", "face": true,
+      "types": ["StructureDefinition", "SearchParameter", "ValueSet", "CodeSystem"] },
+    { "name": "rl", "types": ["CodeSystem", "ValueSet"] },
+    { "name": "hogwarts", "types": ["Encounter"] }
+  ],
+  "types": [
+    { "name": "StructureDefinition", "identity": "canonical", "handling": "replicated" },
+    { "name": "SearchParameter", "identity": "canonical", "handling": "replicated" },
+    { "name": "ValueSet", "identity": "canonical", "handling": "replicated" },
+    { "name": "CodeSystem", "identity": "canonical", "handling": "replicated" },
+    { "name": "Patient", "identity": "internal", "handling": "operational" },
+    { "name": "Person", "identity": "internal", "handling": "operational" },
+    { "name": "Practitioner", "identity": "internal", "handling": "operational" },
+    { "name": "Encounter", "identity": "internal", "handling": "replicated" },
+    { "name": "Observation", "identity": "internal", "handling": "operational" }
+  ]
+}

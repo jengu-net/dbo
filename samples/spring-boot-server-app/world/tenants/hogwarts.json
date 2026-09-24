@@ -1,0 +1,35 @@
+{
+  "code": "hogwarts",
+  "face": "r5",
+  "zone": "rl",
+  "pdi": true,
+  "scim": { "system": "urn:rl:staff-directory" },
+  "audit": { "level": "writes" },
+  "retention": { "perType": {
+    "Observation": { "keepAtLeast": "P10Y", "removeAfter": "P30Y" } } },
+  "dependencies": [
+    { "name": "fhir-r5", "face": true,
+      "types": ["StructureDefinition", "SearchParameter", "ValueSet", "CodeSystem"] },
+    { "name": "rl", "types": ["CodeSystem", "ValueSet"] }
+  ],
+  "steps": [
+    { "code": "hogwarts.admission.admit", "slots": { "patient": "Patient" } }
+  ],
+  "types": [
+    { "name": "StructureDefinition", "identity": "canonical", "handling": "replicated" },
+    { "name": "SearchParameter", "identity": "canonical", "handling": "replicated" },
+    { "name": "ValueSet", "identity": "canonical", "handling": "replicated" },
+    { "name": "CodeSystem", "identity": "canonical", "handling": "replicated" },
+    { "name": "Organization", "identity": "identifier", "systems": ["urn:rl:org"],
+      "handling": "operational" },
+    { "name": "Person", "identity": "identifier",
+      "systems": ["urn:rl:nid", "urn:rl:staff-directory"],
+      "handling": "operational" },
+    { "name": "Practitioner", "identity": "identifier", "systems": ["urn:rl:nid"],
+      "handling": "operational" },
+    { "name": "PractitionerRole", "identity": "internal", "handling": "operational" },
+    { "name": "Patient", "identity": "identifier", "systems": ["urn:rl:nid"], "handling": "operational" },
+    { "name": "Encounter", "identity": "internal", "handling": "operational" },
+    { "name": "Observation", "identity": "internal", "handling": "operational" }
+  ]
+}

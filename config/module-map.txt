@@ -46,3 +46,4 @@ core:harness                 core:dbo-asking core:dbo-auth core:dbo-core core:db
 guide                        core:dbo-promises promise sample sample:participant
 sample                       core:dbo-asking core:dbo-runner core:dbo-tenant core:dbo-work
 sample:participant           core:dbo-runner core:dbo-work
+samples:spring-boot-server-app assembly:spring-boot-server

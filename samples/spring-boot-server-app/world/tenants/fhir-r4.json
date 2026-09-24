@@ -1,0 +1,11 @@
+{
+  "code": "fhir-r4",
+  "face": "r4",
+  "faceRoot": true,
+  "types": [
+    { "name": "StructureDefinition", "identity": "canonical", "handling": "operational" },
+    { "name": "SearchParameter", "identity": "canonical", "handling": "operational" },
+    { "name": "ValueSet", "identity": "canonical", "handling": "operational" },
+    { "name": "CodeSystem", "identity": "canonical", "handling": "operational" }
+  ]
+}

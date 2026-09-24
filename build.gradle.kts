@@ -340,7 +340,10 @@ subprojects {
         ":core:harness", ":core:dbo-server", ":core:conformance", ":bench:runner",
         // the guide's examples, compiled so a chapter cannot show a call that
         // no longer exists; nobody depends on them
-        ":sample", ":sample:participant")
+        ":sample", ":sample:participant",
+        // and the applications built on the Spring Boot assemblies: something
+        // to read and run rather than something to depend on
+        ":samples:spring-boot-server-app")
     if (project.path !in notALibrary) {
         apply(plugin = "maven-publish")
         apply(plugin = "signing")

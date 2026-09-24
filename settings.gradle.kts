@@ -26,6 +26,12 @@ include("core:dbo-core", "core:dbo-postgres", "core:dbo-fhir-common", "core:dbo-
 // application, with the container invisible from the outside.
 include("assembly:spring-boot-core", "assembly:spring-boot-server", "assembly:spring-boot-worker")
 
+// Applications built ON those assemblies, which is a different claim: the
+// assemblies prove the wrapper works, these prove an application can be built
+// on it. Nothing here shares anything with `sample`, which is the
+// distribution's story and the one the guide includes the source of.
+include("samples:spring-boot-server-app")
+
 dependencyResolutionManagement {
     repositories {
         mavenCentral()
