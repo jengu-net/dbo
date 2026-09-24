@@ -7,7 +7,7 @@ plugins {
     id("biz.aQute.bnd.builder")
 }
 
-val embedded: Configuration by configurations.creating
+val embedded: Configuration = configurations.create("embedded")
 configurations.implementation.get().extendsFrom(embedded)
 
 dependencies {

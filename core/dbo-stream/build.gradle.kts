@@ -8,7 +8,7 @@ plugins {
 // so one shared service needs no callback into every tenant. DBOS rides
 // private in this bundle exactly as it does in dbo-subscriptions.
 
-val embedded: Configuration by configurations.creating
+val embedded: Configuration = configurations.create("embedded")
 configurations.implementation.get().extendsFrom(embedded)
 
 dependencies {

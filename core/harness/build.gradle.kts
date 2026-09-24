@@ -55,11 +55,6 @@ val guideTestOutput = project(":guide")
         .extensions.getByType(SourceSetContainer::class.java)
         .getByName("test").output
 
-evaluationDependsOn(":karaf:commands")
-val karafCommandsTestOutput = project(":karaf:commands")
-        .extensions.getByType(SourceSetContainer::class.java)
-        .getByName("test").output
-
 dependencies {
     testRuntimeOnly(guideTestOutput)
     // Its CLASSES only, and the distinction is load-bearing. What is wanted
@@ -70,7 +65,6 @@ dependencies {
     // a recorder written for two tests. That cost 108 threads contending on
     // one list and turned a forty-minute suite into a two-hour one.
     testRuntimeOnly(dboRunnerTestOutput.classesDirs)
-    testImplementation(karafCommandsTestOutput)
     testImplementation(project(":core:dbo-core"))
     testImplementation(project(":core:dbo-promises"))
     // The reference LOCAL executor under a step service. Test-only and
@@ -122,13 +116,6 @@ dependencies {
     testImplementation(dboWorkTestOutput)
     testImplementation(dboFhirElementTestOutput)
     testImplementation(dboTenantTestOutput)
-    // The console's executor half, which is the one part of it that cannot be
-    // tested without a store: it reads a tenant's declarations and asks the
-    // same resolution the store would. Test-only and one-directional -- no
-    // main source under core/ may depend on the commands.
-    testImplementation(project(":karaf:commands"))
-    testImplementation("org.apache.karaf.shell:org.apache.karaf.shell.core:"
-            + rootProject.extra["dboKarafVersion"])
     testImplementation("org.osgi:osgi.core:8.0.0")
     testImplementation("org.testcontainers:testcontainers-postgresql:2.0.5")
     testImplementation("org.testcontainers:testcontainers-k3s:2.0.5")
@@ -137,7 +124,7 @@ dependencies {
     // slf4j-api declares Require-Capability osgi.extender=osgi.serviceloader.processor.
     // SPI-Fly is that extender: a framework extension that lets a bundle's
     // ServiceLoader lookup see providers. Without it slf4j-api will not resolve.
-    testImplementation("org.apache.aries.spifly:org.apache.aries.spifly.dynamic.framework.extension:1.3.7")
+    testImplementation("org.apache.aries.spifly:org.apache.aries.spifly.dynamic.framework.extension:1.3.8")
     testImplementation("org.apache.felix:org.apache.felix.framework:7.0.5")
     testRuntimeOnly("org.slf4j:slf4j-simple:2.0.18")
 }
@@ -253,7 +240,7 @@ tasks.test {
 // The composed promise report and the catalogue projection: both run
 // on the TEST runtime classpath, because that is where the catalogue
 // registration and the citation index live.
-val promiseReport by tasks.registering(JavaExec::class) {
+val promiseReport = tasks.register<JavaExec>("promiseReport") {
     group = "documentation"
     description = "Renders the composed promise report to build/reports/promise/report.md."
     dependsOn(tasks.named("testClasses"))
@@ -297,12 +284,12 @@ val reachModules = listOf(
     "core:dbo-scim", "core:dbo-telemetry", "core:dbo-telemetry-otlp", "core:dbo-promises",
     "core:dbo-tenant", "core:dbo-tenant-k8s", "core:dbo-fhir-common", "core:dbo-fhir-element",
     "core:dbo-fhir-r4", "core:dbo-fhir-r5", "core:dbo-logging", "core:dbo-verify",
-    "core:dbo-operator", "core:dbo-fleet", "karaf:commands",
+    "core:dbo-operator", "core:dbo-fleet",
 )
 
 fun reachProperty(module: String) = module.replace(':', '.').replace('-', '.') + ".reach.jar"
 
-val worldsLedger by tasks.registering(JavaExec::class) {
+val worldsLedger = tasks.register<JavaExec>("worldsLedger") {
     group = "documentation"
     description = "Re-records config/worlds-ledger.txt from the harness classes that build a runtime."
     dependsOn(tasks.named("testClasses"))
@@ -314,7 +301,7 @@ val worldsLedger by tasks.registering(JavaExec::class) {
     )
 }
 
-val promiseCitations by tasks.registering(JavaExec::class) {
+val promiseCitations = tasks.register<JavaExec>("promiseCitations") {
     group = "documentation"
     description = "Re-records config/promise-citations.txt from the prose in the tree."
     dependsOn(tasks.named("testClasses"))
@@ -330,7 +317,7 @@ val promiseCitations by tasks.registering(JavaExec::class) {
     args(rootProject.file("config/promise-citations.txt").absolutePath)
 }
 
-val reachLedger by tasks.registering(JavaExec::class) {
+val reachLedger = tasks.register<JavaExec>("reachLedger") {
     group = "documentation"
     description = "Re-records config/reach-ledger.txt from the built production jars."
     dependsOn(tasks.named("testClasses"))
@@ -346,7 +333,7 @@ val reachLedger by tasks.registering(JavaExec::class) {
     args(rootProject.file("config/reach-ledger.txt").absolutePath)
 }
 
-val apiLedger by tasks.registering(JavaExec::class) {
+val apiLedger = tasks.register<JavaExec>("apiLedger") {
     group = "documentation"
     description = "Re-records config/api-ledger.txt from the exported packages of every bundle."
     dependsOn(tasks.named("testClasses"))
@@ -369,7 +356,7 @@ val apiLedger by tasks.registering(JavaExec::class) {
 //
 // A report rather than a recorded artefact: it moves whenever a test moves,
 // which is what makes it worth reading and would make it noise to ratchet.
-val storyCoverage by tasks.registering(JavaExec::class) {
+val storyCoverage = tasks.register<JavaExec>("storyCoverage") {
     group = "documentation"
     description = "Reports where each story's promises are proven."
     dependsOn(tasks.named("testClasses"))
@@ -379,7 +366,7 @@ val storyCoverage by tasks.registering(JavaExec::class) {
         rootProject.file("config/worlds-ledger.txt").absolutePath)
 }
 
-val promiseProjection by tasks.registering(JavaExec::class) {
+val promiseProjection = tasks.register<JavaExec>("promiseProjection") {
     group = "documentation"
     description = "Rewrites the generated blocks: the requirement catalogue, the stories' joins and the quality tree."
     dependsOn(tasks.named("testClasses"))

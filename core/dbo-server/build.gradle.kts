@@ -5,8 +5,8 @@
 // bin/dbo-server; the dbo-tenant activator reads them via
 // BundleContext.getProperty (framework props fall back to system props).
 
-val felix: Configuration by configurations.creating
-val bundles: Configuration by configurations.creating
+val felix: Configuration = configurations.create("felix")
+val bundles: Configuration = configurations.create("bundles")
 
 dependencies {
     felix("org.apache.felix:org.apache.felix.main:7.0.5") { isTransitive = false }

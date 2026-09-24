@@ -9,7 +9,7 @@ plugins {
 // packaging task, and it is proven: DBOS runs inside a Felix embedding
 // bundle with every dependency private.
 
-val embedded: Configuration by configurations.creating
+val embedded: Configuration = configurations.create("embedded")
 configurations.implementation.get().extendsFrom(embedded)
 
 dependencies {

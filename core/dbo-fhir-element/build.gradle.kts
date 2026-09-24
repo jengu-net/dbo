@@ -14,7 +14,7 @@ plugins {
 // digest, and embedded in the bundle
 // (REQ-DBO-VER-DEFINITIONS-TRAVEL-WITH-THE-FACE).
 
-val embedded: Configuration by configurations.creating
+val embedded: Configuration = configurations.create("embedded")
 configurations.implementation.get().extendsFrom(embedded)
 
 dependencies {
@@ -126,7 +126,7 @@ val definitions = listOf(
 
 val definitionsDir = layout.buildDirectory.dir("definitions")
 
-val fetchDefinitions by tasks.registering {
+val fetchDefinitions = tasks.register("fetchDefinitions") {
     description = "Fetches the pinned FHIR definition packages and verifies their digests."
     val carried = definitions.filter { it.carried }
     inputs.property("packages",

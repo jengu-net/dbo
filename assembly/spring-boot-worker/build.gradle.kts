@@ -87,7 +87,7 @@ val serviceLoaderMediator = rootProject.extra["dboLoggingExtension"] as String
 
 val notShared = listOf<String>()
 
-val bundles: Configuration by configurations.creating
+val bundles: Configuration = configurations.create("bundles")
 
 configurations.named("runtimeOnly") { extendsFrom(bundles) }
 

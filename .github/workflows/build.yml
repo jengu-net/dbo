@@ -69,7 +69,7 @@ jobs:
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
-          java-version: "21"
+          java-version: "25"
       - uses: gradle/actions/setup-gradle@v4
       - name: Check branding
         # Branding creeps back one commit at a time, and a public repository
@@ -173,7 +173,7 @@ jobs:
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
-          java-version: "21"
+          java-version: "25"
       # After the suite rather than beside it: resolving every configuration
       # across a composite build is real work.
       - uses: gradle/actions/dependency-submission@v4
@@ -239,7 +239,7 @@ jobs:
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
-          java-version: "21"
+          java-version: "25"
       - uses: gradle/actions/setup-gradle@v4
       - name: Run the guide against the tree
         run: |
@@ -268,7 +268,7 @@ jobs:
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
-          java-version: "21"
+          java-version: "25"
       - uses: gradle/actions/setup-gradle@v4
       - name: Run the guide as tests
         run: ./gradlew :guide:test
@@ -298,7 +298,7 @@ jobs:
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
-          java-version: "21"
+          java-version: "25"
       - uses: gradle/actions/setup-gradle@v4
       - name: Build the artifacts to compare
         # assemble, not build: the suite already ran in the build job and
@@ -369,7 +369,7 @@ jobs:
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
-          java-version: "21"
+          java-version: "25"
       - name: Build the distributions
         # One invocation: the dependency graph is configured and resolved
         # once for the set rather than once each.
@@ -445,7 +445,7 @@ jobs:
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
-          java-version: "21"
+          java-version: "25"
       - uses: gradle/actions/setup-gradle@v4
       - name: Refuse to build a bundle without a signing key
         env:

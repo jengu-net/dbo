@@ -1,6 +1,6 @@
 # dbo-server — the serving distribution: standard Felix launcher
 # + the production bundle set. Same base as the fleet's other images.
-FROM eclipse-temurin:21-jre
+FROM eclipse-temurin:25-jre
 
 LABEL org.opencontainers.image.description="DBO multi-tenant FHIR server (Felix distribution)"
 

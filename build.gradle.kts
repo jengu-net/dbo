@@ -122,7 +122,7 @@ val dboRuntimeExternalBundles = listOf("org.postgresql:postgresql:42.7.13")
 val dboLoggingBundles = listOf("org.slf4j:slf4j-api:2.0.18")
 val dboLoggingModules = listOf(":core:dbo-logging")
 val dboLoggingExtension =
-    "org.apache.aries.spifly:org.apache.aries.spifly.dynamic.framework.extension:1.3.7"
+    "org.apache.aries.spifly:org.apache.aries.spifly.dynamic.framework.extension:1.3.8"
 
 // Development mode: set `dbo.dev=true` in ~/.gradle/gradle.properties. It is a
 // machine-local convenience for the Karaf console loop and never reaches CI,
@@ -320,7 +320,7 @@ subprojects {
         }
     }
     if (!isPlatform) {
-        the<JavaPluginExtension>().toolchain.languageVersion.set(JavaLanguageVersion.of(21))
+        the<JavaPluginExtension>().toolchain.languageVersion.set(JavaLanguageVersion.of(25))
     }
     group = "cloud.jengu.dbo"
     // Snapshots on main; a release build passes -Pdbo.version=X.Y.Z (the
@@ -334,9 +334,6 @@ subprojects {
     // promises a library.
     val notALibrary = setOf(
         ":core:harness", ":core:dbo-server", ":core:conformance", ":bench:runner",
-        // the development console: a stock Karaf pointed at the bundle set,
-        // not an artifact anyone consumes
-        ":karaf", ":karaf:commands", ":karaf:slf4j-compat",
         // the guide's examples, compiled so a chapter cannot show a call that
         // no longer exists; nobody depends on them
         ":sample", ":sample:participant")
@@ -486,7 +483,7 @@ subprojects {
 // the same arrangement the requirement catalogue is under, for the same
 // reason. Hung off `check` so it runs wherever the build does, rather than
 // in a lane somebody has to remember.
-val generateSkills by tasks.registering(Exec::class) {
+val generateSkills = tasks.register<Exec>("generateSkills") {
     group = "documentation"
     description = "Projects the constraints documents' skill-blocks into tools/dbo-conventions/."
     workingDir = rootDir
@@ -502,7 +499,7 @@ val generateSkills by tasks.registering(Exec::class) {
     outputs.file(layout.projectDirectory.file("CLAUDE.md"))
 }
 
-val verifySkillProjection by tasks.registering(Exec::class) {
+val verifySkillProjection = tasks.register<Exec>("verifySkillProjection") {
     group = "verification"
     description = "Fails when the committed skills or CLAUDE.md disagree with their source."
     dependsOn(generateSkills)
@@ -559,7 +556,7 @@ tasks.register<Zip>("centralBundle") {
 // file, `verifyModuleMap` refuses a committed one that disagrees with the
 // build. A new edge is a line in a diff, which is where a layering
 // violation is cheapest to notice.
-val moduleMap by tasks.registering {
+val moduleMap = tasks.register("moduleMap") {
     group = "documentation"
     description = "Records config/module-map.txt from the project dependencies."
     val out = rootProject.file("config/module-map.txt")
@@ -605,7 +602,7 @@ val moduleMap by tasks.registering {
     }
 }
 
-val verifyModuleMap by tasks.registering(Exec::class) {
+val verifyModuleMap = tasks.register<Exec>("verifyModuleMap") {
     group = "verification"
     description = "Fails when the committed module map disagrees with the build."
     dependsOn(moduleMap)
@@ -637,7 +634,7 @@ fun liniInstalled(): Boolean =
         false
     }
 
-val reRecord by tasks.registering {
+val reRecord = tasks.register("reRecord") {
     group = "documentation"
     description = "Re-records every artefact that is generated and committed beside its source."
     dependsOn(
@@ -759,7 +756,7 @@ if (hooksDir.isDirectory) {
 // reputation. This ranks them from the XML the last run left behind, and CI
 // appends the table to the run's summary, so the worklist is the top of a
 // list rather than a memory.
-val slowestTests by tasks.registering {
+val slowestTests = tasks.register("slowestTests") {
     group = "verification"
     description = "Ranks test classes by wall-clock time from the JUnit XML of the last run."
     val report = layout.buildDirectory.file("reports/slowest-tests.md")
@@ -828,7 +825,7 @@ val siteVenv = layout.buildDirectory.dir("site-venv")
 val siteSrc = layout.buildDirectory.dir("site-src")
 val siteOut = layout.buildDirectory.dir("site")
 
-val siteTools by tasks.registering(Exec::class) {
+val siteTools = tasks.register<Exec>("siteTools") {
     group = "documentation"
     description = "Creates the pinned Python environment the site is built with."
     inputs.file(siteDir.file("requirements.txt"))
@@ -938,7 +935,7 @@ fun describe(target: File) {
     }
 }
 
-val siteDiagrams by tasks.registering(Exec::class) {
+val siteDiagrams = tasks.register<Exec>("siteDiagrams") {
     group = "documentation"
     description = "Compiles site/diagrams/*.lini to site/assets/diagrams/*.svg."
     inputs.files(diagramSources(), diagramDescriptions())
@@ -957,7 +954,7 @@ val siteDiagrams by tasks.registering(Exec::class) {
 // @font-face rules thrown away. Regenerating is a deliberate act rather than
 // a build step: the output is 340kB of base64 that changes only when the
 // compiler does.
-val siteDiagramFont by tasks.registering {
+val siteDiagramFont = tasks.register("siteDiagramFont") {
     group = "documentation"
     description = "Rewrites site/assets/lini-font.css from lini's bundled faces."
     doLast {
@@ -993,7 +990,7 @@ val siteDiagramFont by tasks.registering {
     }
 }
 
-val siteDiagramsCheck by tasks.registering {
+val siteDiagramsCheck = tasks.register("siteDiagramsCheck") {
     group = "verification"
     description = "Fails when a committed diagram SVG differs from its .lini source."
     // Asked for in the same invocation as the compile, Gradle is free to run
@@ -1021,7 +1018,7 @@ val siteDiagramsCheck by tasks.registering {
     }
 }
 
-val siteAssemble by tasks.registering(Sync::class) {
+val siteAssemble = tasks.register<Sync>("siteAssemble") {
     group = "documentation"
     description = "Assembles the site's source tree from docs/ and site/."
     into(siteSrc)
@@ -1128,7 +1125,7 @@ val siteAssemble by tasks.registering(Sync::class) {
     }
 }
 
-val site by tasks.registering(Exec::class) {
+val site = tasks.register<Exec>("site") {
     group = "documentation"
     description = "Builds the site into build/site."
     dependsOn(siteTools, siteAssemble)

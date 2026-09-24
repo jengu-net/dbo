@@ -73,7 +73,7 @@ jobs:
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
-          java-version: "21"
+          java-version: "25"
       - uses: gradle/actions/setup-gradle@v4
       # The site's Python tools are pinned in site/requirements.txt and are
       # installed into a venv under build/, so this only has to provide the

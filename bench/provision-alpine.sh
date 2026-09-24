@@ -6,6 +6,10 @@
 #
 # Run once per boot. Diskless Alpine forgets everything, which is the point:
 # every run starts from the same machine.
+#
+# Alpine v3.23 or edge: the JRE below is what the distribution's bytecode
+# needs, and community carries openjdk25 from v3.23 on. On an older stick the
+# apk add fails here rather than at the first class the JVM cannot read.
 set -eu
 
 PROFILE="${1:-ram}"          # ram | nvme
@@ -21,7 +25,7 @@ echo "==> packages"
 apk update >/dev/null
 apk add --no-cache \
     "postgresql${PGVER}" "postgresql${PGVER}-contrib" \
-    openjdk21-jre-headless \
+    openjdk25-jre-headless \
     curl jq >/dev/null
 
 # ---------------------------------------------------------------- PGDATA

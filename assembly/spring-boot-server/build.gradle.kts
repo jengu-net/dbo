@@ -108,7 +108,7 @@ val serviceLoaderMediator = rootProject.extra["dboLoggingExtension"] as String
 // one entry rather than being a reason not to share the bundle at all.
 val notShared = listOf("cloud.jengu.dbo.tenant")
 
-val bundles: Configuration by configurations.creating
+val bundles: Configuration = configurations.create("bundles")
 
 configurations.named("runtimeOnly") { extendsFrom(bundles) }
 

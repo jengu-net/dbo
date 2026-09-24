@@ -15,7 +15,7 @@ into stable, testable REQ IDs lives in [req-catalogue.md](../arc42-006-runtime/r
 
 ## R1 — Java
 
-The engine is written in Java (current LTS; Java 21+ language level, virtual
+The engine is written in Java (current LTS; Java 25+ language level, virtual
 threads assumed).
 
 ## R2 — No heavyweight application framework; OSGi as the container

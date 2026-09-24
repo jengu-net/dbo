@@ -1,4 +1,10 @@
-**Not scheduled. A proposal for seeing inside a running node: development and operator tooling, never production.**
+**Detached from the build. A proposal for seeing inside a running node:
+development and operator tooling, never production — and its three projects are
+commented out of `settings.gradle.kts` while the runtime compiles to Java 25,
+because Karaf 4.4.11 closes the 4.4 line and runs on an older JVM. The tree
+under `karaf/` is untouched; the harness wiring and the one store-backed test it
+carried were removed with it, which is why `ExecutorResolution` and `Resolution`
+now read NOT REACHED in the reach ledger.**
 
 # The Karaf console — a proposal
 

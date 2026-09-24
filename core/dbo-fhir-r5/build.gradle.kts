@@ -14,7 +14,7 @@ plugins {
 // (:core:dbo-fhir-stack) that this personality imports from. What stays here is
 // R5's own validation resources — the profiles and value sets of one version.
 
-val embedded: Configuration by configurations.creating
+val embedded: Configuration = configurations.create("embedded")
 configurations.implementation.get().extendsFrom(embedded)
 
 val hapi = rootProject.extra["hapiVersion"] as String

@@ -19,6 +19,15 @@ If what you want is a store answering as quickly as possible, take [the
 container route](quickstart-docker.md) instead: two commands, no build, and
 every command on it is executed on every build of this repository.
 
+!!! warning "The console is detached from the build"
+
+    `./gradlew dev :karaf:console` does not resolve as this page stands. The
+    console's three projects are commented out of `settings.gradle.kts` while
+    the runtime moves to Java 25: Karaf 4.4.11 closes the 4.4 line and runs on
+    an older JVM than the bundles are now compiled to. The tree under `karaf/`
+    is untouched — re-including those projects is what brings this route back.
+    Until then, take [the container route](quickstart-docker.md).
+
 !!! note "Run by hand, not by CI"
 
     Unlike the container route, nothing in this repository executes the

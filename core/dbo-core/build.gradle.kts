@@ -41,7 +41,7 @@ tasks.jar {
     }
 }
 
-val verifyZeroRuntimeDeps by tasks.registering {
+val verifyZeroRuntimeDeps = tasks.register("verifyZeroRuntimeDeps") {
     val runtime = configurations.runtimeClasspath
     doLast {
         val deps = runtime.get().resolve()
