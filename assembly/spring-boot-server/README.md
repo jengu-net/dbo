@@ -10,7 +10,7 @@ OSGi.
 This document is the plan it is being built to.
 
 The host — one framework, one class space, the host's own logging, the Spring
-Boot generation — is [`../spring-boot-core`](../spring-boot-core/README.md),
+Boot generation — is [`core/dbo-embedded`](../../core/dbo-embedded/README.md),
 and those decisions are argued there rather than repeated here. The
 performing half is [`../spring-boot-worker`](../spring-boot-worker). An
 application holding both gets one framework.
@@ -229,9 +229,9 @@ bridge is the change that takes the accident away.
 
 ### 1. The module and its cargo — done
 
-### 2. The host — in `spring-boot-core`
+### 2. The host — in `core/dbo-embedded`
 
-Read its [step 2](../spring-boot-core/README.md#2-boot-a-framework-nobody-can-see).
+Read its [step 2](../../core/dbo-embedded/README.md#2-boot-a-framework-nobody-can-see).
 Nothing to build here.
 
 The API packages this assembly adds to the computed list are the ones it
@@ -477,7 +477,7 @@ through it, serves a read, withdraws it, and finds its data still there.
 ### 8. Services out, beans in
 
 Both mechanisms are the host's — [core steps 4 and
-5](../spring-boot-core/README.md#4-beans-in). This module declares what goes
+5](../../core/dbo-embedded/README.md#4-beans-in). This module declares what goes
 through them.
 
 Out, per tenant, keyed by `tenant=<code>`: `ObjectStore`, `FhirStoreFacade`,

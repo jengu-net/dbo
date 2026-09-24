@@ -1,7 +1,7 @@
 package cloud.jengu.dbo.spring.server;
 
-import cloud.jengu.dbo.spring.DboRegistrar;
-import cloud.jengu.dbo.spring.EmbeddedRuntime;
+import cloud.jengu.dbo.embedded.DboRegistrar;
+import cloud.jengu.dbo.embedded.EmbeddedRuntime;
 import com.sun.net.httpserver.HttpServer;
 import jakarta.servlet.Filter;
 import org.springframework.boot.autoconfigure.AutoConfiguration;

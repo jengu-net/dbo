@@ -31,10 +31,10 @@ val moduleBlurbs = mapOf(
     "dbo-step-probe" to "A driver bundle that contributes a step service, to prove the runner's whiteboard wires one.",
     "promise" to "Requirements as code: promises declared once, cited everywhere, composed across products.",
     "dbo-promises" to "The store's own promise catalogue: SHAPE and PDI as the pilot.",
+    "dbo-embedded" to "The store inside an ordinary JVM: boot a framework, install a bundle set, share one class space with the host.",
     "dbo-runner" to "The embeddable step runner: register step services, work arrives, outcomes and vitals go back.",
     "dbo-stream" to "The lane over the store's own stream: the same verbs, carried on the durable substrate.",
     "dbo-telemetry-otlp" to "The telemetry exporter: the seam's numbers to a collector as OTLP over HTTP, no protocol library.",
-    "spring-boot-core" to "The embedded container host both Spring Boot assemblies stand on: one framework, one class space, one package list.",
     "spring-boot-server" to "The serving runtime hosted inside a Spring Boot application: beans are extension points, the container is invisible.",
     "spring-boot-worker" to "The step runner hosted inside a Spring Boot application: a bean that performs a step, over lanes read from configuration.",
 )

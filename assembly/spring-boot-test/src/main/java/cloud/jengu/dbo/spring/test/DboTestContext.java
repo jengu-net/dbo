@@ -2,8 +2,8 @@ package cloud.jengu.dbo.spring.test;
 
 import cloud.jengu.dbo.asking.Questions;
 import cloud.jengu.dbo.auth.TenantAuthority;
-import cloud.jengu.dbo.spring.DboRegistrar;
-import cloud.jengu.dbo.spring.EmbeddedRuntime;
+import cloud.jengu.dbo.embedded.DboRegistrar;
+import cloud.jengu.dbo.embedded.EmbeddedRuntime;
 import cloud.jengu.dbo.sync.ConfigSource;
 import org.springframework.context.SmartLifecycle;
 

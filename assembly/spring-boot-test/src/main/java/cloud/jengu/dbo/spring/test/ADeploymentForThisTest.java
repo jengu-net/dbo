@@ -94,7 +94,7 @@ public final class ADeploymentForThisTest
         if (context instanceof org.springframework.context.support.GenericApplicationContext beans) {
             beans.registerBean(TheWorldThisTestDeclares.class, () -> declaring);
             beans.registerBean(DboTestContext.class, () -> new DboTestContext(
-                    declaring, beans.getBean(cloud.jengu.dbo.spring.EmbeddedRuntime.class),
+                    declaring, beans.getBean(cloud.jengu.dbo.embedded.EmbeddedRuntime.class),
                     beans.getBean(cloud.jengu.dbo.spring.server.DboTenants.class), port, beans));
             return;
         }

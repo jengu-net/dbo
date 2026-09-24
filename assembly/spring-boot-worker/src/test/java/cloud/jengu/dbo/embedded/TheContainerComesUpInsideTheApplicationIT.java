@@ -1,4 +1,4 @@
-package cloud.jengu.dbo.spring;
+package cloud.jengu.dbo.embedded;
 
 import cloud.jengu.dbo.runner.StepService;
 import org.junit.jupiter.api.AfterEach;
@@ -30,6 +30,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * resolves, and dies on first use. Asserting that every bundle reached ACTIVE
  * says nothing about it: a container where they are two classes starts
  * perfectly.
+ *
+ * <p><b>In the host's package, from the worker's module.</b> The bundle
+ * identity it reads is not API — a Bundle never leaves {@code dbo-embedded} —
+ * so the assertion has to be a neighbour. And it is the worker that carries a
+ * bundle set to install: the host deliberately has none of its own.
  *
  * <p>No store, no face, no database, and that absence is part of the claim.
  * A driver contributes a step with five bundles installed, and the container

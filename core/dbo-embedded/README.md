@@ -1,21 +1,29 @@
-# The host both assemblies stand on
+# The store inside an ordinary JVM
 
-Boot a framework, hand it a bundle set and a package list, let a Spring
-context reach what it registers, and take it all down again. Nothing here is
-specific to serving tenants or to performing steps, and nothing here is
-visible to an application: no bean this module publishes names a `Bundle`, a
+Boot a framework, hand it a bundle set and a package list, let the host reach
+what it registers, and take it all down again. Nothing here is specific to
+serving tenants or to performing steps, and nothing here is visible to the
+application: no type this module publishes names a `Bundle`, a
 `BundleContext` or a `ServiceReference`.
 
-It exists because the host is shared code from its first line, and because
-an application holding both assemblies must get **one** framework. Two Felix
-instances in one JVM each hold a copy of every bundle, and for the element
-bundle that is a parsed set of FHIR definitions — measured in the container
-harness at roughly 100 to 215 MB per framework — held twice.
+**It names no framework**, which is why it is in `core/` rather than
+`assembly/` — not one class here imports Spring or anything like it. An
+application that wants no framework embeds the store through this module
+directly, and that is the whole of what the guide calls advanced mode. The
+Spring Boot assemblies are glue on top of it, and a second assembly for
+another framework would be glue on top of the same thing.
 
-- [`../spring-boot-server`](../spring-boot-server) — tenants, their surfaces,
-  their authority.
-- [`../spring-boot-worker`](../spring-boot-worker) — step services and the
-  lanes they are offered work over.
+It is a module, rather than code each assembly keeps, because the host is
+shared from its first line — and because an application holding two
+assemblies must get **one** framework. Two Felix instances in one JVM each
+hold a copy of every bundle, and for the element bundle that is a parsed set
+of FHIR definitions — measured in the container harness at roughly 100 to
+215 MB per framework — held twice.
+
+- [`../../assembly/spring-boot-server`](../../assembly/spring-boot-server) —
+  tenants, their surfaces, their authority.
+- [`../../assembly/spring-boot-worker`](../../assembly/spring-boot-worker) —
+  step services and the lanes they are offered work over.
 
 ## The three decisions
 
@@ -159,6 +167,6 @@ Three things, and each was learnt from a failure rather than reasoned out:
 ## The commands
 
 ```
-./gradlew :assembly:spring-boot-core:test
+./gradlew :core:dbo-embedded:test
 ./verify
 ```

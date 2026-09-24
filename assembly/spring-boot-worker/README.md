@@ -8,7 +8,7 @@ This document is the plan it is being built to.
 
 The host — one framework, one class space, the host's own logging, the
 Spring Boot generation — is
-[`../spring-boot-core`](../spring-boot-core/README.md), and those decisions
+[`core/dbo-embedded`](../../core/dbo-embedded/README.md), and those decisions
 are argued there rather than repeated here. The serving half is
 [`../spring-boot-server`](../spring-boot-server), which brings tenants up. An
 application holding both gets one framework. This one states what is different here, which is
@@ -109,9 +109,9 @@ that drifts from the first, and it is why step 4 is shorter than it looks.
 
 See *What is already here*.
 
-### 2. The host — in `spring-boot-core`
+### 2. The host — in `core/dbo-embedded`
 
-Read its [step 2](../spring-boot-core/README.md#2-boot-a-framework-nobody-can-see).
+Read its [step 2](../../core/dbo-embedded/README.md#2-boot-a-framework-nobody-can-see).
 Nothing to build here. The module exists, and this one depends on it.
 
 The API packages this assembly adds to the computed list are the ones it

@@ -1,7 +1,7 @@
 package cloud.jengu.dbo.spring.worker;
 
 import cloud.jengu.dbo.runner.StepService;
-import cloud.jengu.dbo.spring.EmbeddedRuntime;
+import cloud.jengu.dbo.embedded.EmbeddedRuntime;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;

@@ -1,4 +1,4 @@
-package cloud.jengu.dbo.spring;
+package cloud.jengu.dbo.embedded;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;

@@ -1,4 +1,4 @@
-package cloud.jengu.dbo.spring;
+package cloud.jengu.dbo.embedded;
 
 import org.osgi.framework.ServiceRegistration;
 
