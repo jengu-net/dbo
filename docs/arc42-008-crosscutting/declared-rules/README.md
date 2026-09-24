@@ -68,6 +68,8 @@ another, and the two are the same face and different zones.
 ## Narrowing, in one direction
 
 Outer declares the set; inner chooses within it and may narrow, never widen.
+**The set is the outer party's**, and that is the whole of what the rule
+governs.
 
 The same shape governs four unrelated-looking things in this store:
 
@@ -86,6 +88,33 @@ inner party declares can grant it more than the outer party allowed.
 
 Restricting is a **policy, not a capability claim**: a tenant narrowing its
 brokers is declining to honour the others, not asserting they do not work.
+
+## What narrowing is not
+
+**The rule is about authority over somebody else's set, not about size.** A
+tenant grows freely in its own direction, and none of that is widening:
+
+- it declares **types of its own** — the operational data it holds, which no
+  upstream published and none of which it took from anybody;
+- it publishes **profiles of its own**, constraining a type its face defines,
+  and the store reads which is which from the definitions rather than from the
+  shape of a name: a `specialization` introduces a type, a `constraint`
+  profiles one;
+- it carries **extensions**, which is the mechanism the base standard provides
+  for exactly this — a document says more than the base foresaw without the
+  base being altered to allow it.
+
+So a tenant may hold far more than its face publishes, and be strictly inside
+the rules the whole time. What it may not do is take more of an upstream's set
+than the upstream declared, or relax something the upstream fixed. Adding a
+constraint of your own is not widening; removing one of theirs is, and that is
+the direction the rule closes.
+
+**Which is why the two never conflict.** A profile narrows the documents it
+governs while the tenant that wrote it is adding a definition nobody else had
+— one is a rule getting stricter, the other is a party holding more of its own
+— and reading both as "narrowing" is what makes the rule sound like it forbids
+ordinary work.
 
 ## Two questions with one mechanism
 
