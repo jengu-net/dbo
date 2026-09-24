@@ -4,7 +4,6 @@ import cloud.jengu.dbo.core.api.feed.ChangeFeed;
 import cloud.jengu.dbo.core.api.feed.ChangeKind;
 import cloud.jengu.dbo.core.api.feed.FeedChunk;
 import cloud.jengu.dbo.core.api.feed.FeedItem;
-import cloud.jengu.dbo.core.api.feed.FeedSelection;
 
 import cloud.jengu.dbo.core.api.Domains;
 
@@ -76,19 +75,13 @@ public final class PgChangeFeed implements ChangeFeed {
     public FeedChunk<FeedItem> read(String cursor, int limit) {
         Cursors.FeedCursor after = cursor == null
                 ? new Cursors.FeedCursor(0, 0) : Cursors.decodeFeed(cursor);
-        return readAfter(after, limit, FeedSelection.EVERYTHING);
+        return readAfter(after, limit);
     }
 
     @Override
     public FeedChunk<FeedItem> readFor(String consumer, int limit) {
         requireConsumer(consumer);
-        return readAfter(consumerCursor(consumer), limit, FeedSelection.EVERYTHING);
-    }
-
-    @Override
-    public FeedChunk<FeedItem> readFor(String consumer, int limit, FeedSelection wanted) {
-        requireConsumer(consumer);
-        return readAfter(consumerCursor(consumer), limit, wanted);
+        return readAfter(consumerCursor(consumer), limit);
     }
 
     @Override
@@ -172,53 +165,24 @@ public final class PgChangeFeed implements ChangeFeed {
      * CI). Ordered by (xact_id, seq), every future commit carries an xid at
      * or above the barrier and lands AFTER the cursor by construction.
      */
-    private FeedChunk<FeedItem> readAfter(Cursors.FeedCursor after, int limit,
-            FeedSelection wanted) {
+    private FeedChunk<FeedItem> readAfter(Cursors.FeedCursor after, int limit) {
         if (limit < 1 || limit > 10_000) {
             throw new IllegalArgumentException("limit out of range: " + limit);
         }
-        // SELECTION BY NAME, and nothing else. A type is compared to a list of
-        // type names; a canonical to a list of canonicals, and only where the
-        // item has one — an ordinary record is not withheld for being absent
-        // from a list of definition urls. No predicate travels and nothing is
-        // executed on the dependent's behalf, which is what lets the narrowing
-        // happen here rather than after everything has moved.
-        String narrowed = (wanted.types().isEmpty() ? "" : " AND o.type = ANY(?)")
-                + (wanted.canonicals().isEmpty() ? "" : """
-                         AND (NOT EXISTS (SELECT 1 FROM %s_identifier any_id
-                                           WHERE any_id.object_id = o.object_id
-                                             AND any_id.system = ?)
-                              OR EXISTS (SELECT 1 FROM %s_identifier wanted_id
-                                          WHERE wanted_id.object_id = o.object_id
-                                            AND wanted_id.system = ?
-                                            AND wanted_id.value = ANY(?)))"""
-                        .formatted(tables, tables));
         String sql = """
                 SELECT o.seq, o.object_id, o.type, o.version_id, o.kind, o.committed_at,
                        h.payload, h.deleted, h.payload_version, o.xact_id::text, h.shape
                 FROM %s_outbox o
                 JOIN %s_history h ON h.id = o.object_id AND h.version_id = o.version_id
-                WHERE (o.xact_id, o.seq) > (?::text::xid8, ?) AND %s%s
-                ORDER BY o.xact_id, o.seq LIMIT ?"""
-                .formatted(tables, historyTables, BARRIER, narrowed);
+                WHERE (o.xact_id, o.seq) > (?::text::xid8, ?) AND %s
+                ORDER BY o.xact_id, o.seq LIMIT ?""".formatted(tables, historyTables, BARRIER);
         try (Connection c = ds.getConnection()) {
             String horizon = localHorizon(c); // BEFORE the read snapshot
             try (PreparedStatement ps = c.prepareStatement(sql)) {
             ps.setString(1, Long.toString(after.xid()));
             ps.setLong(2, after.seq());
             ps.setString(3, horizon);
-            int at = 4;
-            if (!wanted.types().isEmpty()) {
-                ps.setArray(at++, c.createArrayOf("text",
-                        wanted.types().toArray(new String[0])));
-            }
-            if (!wanted.canonicals().isEmpty()) {
-                ps.setString(at++, cloud.jengu.dbo.core.api.Identifier.CANONICAL_SYSTEM);
-                ps.setString(at++, cloud.jengu.dbo.core.api.Identifier.CANONICAL_SYSTEM);
-                ps.setArray(at++, c.createArrayOf("text",
-                        wanted.canonicals().toArray(new String[0])));
-            }
-            ps.setInt(at, limit);
+            ps.setInt(4, limit);
             List<FeedItem> items = new ArrayList<>();
             long lastXid = after.xid();
             long lastSeq = after.seq();

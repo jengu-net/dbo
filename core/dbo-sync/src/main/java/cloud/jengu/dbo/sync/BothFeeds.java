@@ -80,14 +80,6 @@ final class BothFeeds implements ChangeFeed {
         return read(cursorOf(consumer), limit);
     }
 
-    // NOT NARROWED, and said rather than left to be noticed. The default
-    // answers everything, which is correct — the dependent's own guard keeps
-    // the promise that nothing undeclared is applied — and unoptimised: a
-    // dependency over two merged feeds still moves what it will discard.
-    // Narrowing here means threading the selection through the merge on both
-    // sides, which is a change to how the two cursors are interleaved rather
-    // than one predicate.
-
     @Override
     public void ack(String consumer, String cursor) {
         first.ack(consumer, sideOf(cursor, 0));

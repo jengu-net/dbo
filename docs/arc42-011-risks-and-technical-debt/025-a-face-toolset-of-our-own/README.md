@@ -1097,44 +1097,43 @@ rule, so it is worth stating as a measurement: a face whose tenants bind
 required strength to a clinical terminology would close over much more, and
 the number to watch is this one.
 
-**And the upstream now selects by it.** `ContentDependency` carries the
-manifest, and `ChangeFeed.readFor` takes a `FeedSelection` — a set of type
-names and a set of canonicals — which `PgChangeFeed` turns into a predicate on
-the outbox and the identifiers.
+**What this does not do is send it**, and an attempt to is recorded below
+because it failed in two ways worth keeping.
 
-**The filter was in the wrong place, and not only for canonicals.** Until this
-the feed answered with everything and the sync engine discarded what the
-dependency had not declared, one line — so even TYPE filtering happened at the
-dependent, and the reading, the moving and the parse of every item nobody
-wanted were done first. Item 021 had settled that a filter is a set of names
-the upstream selects by, and the code met that for neither half. It does for
-both now.
+## Sending the manifest: withdrawn, and what it cost to learn
 
-**Selection, and never execution.** A type is compared to a list of type names
-and a canonical to a list of canonicals. No expression crosses, so this is not
-one tenant running another's query against the rule that a tenant declares
-only against its direct upstream.
+The upstream was made to select by name — `ChangeFeed.readFor` taking a set of
+type names and a set of canonicals, `PgChangeFeed` turning it into a predicate
+— and it was reverted. Two findings survive it.
 
-**A canonical narrows only what has one.** A record carrying no canonical is
-not withheld for being absent from a list of definition urls — the mistake
-that would stop a tenant's patients arriving the moment its face dependency
-was derived. Asserted, because the predicate that gets this wrong is shorter
-than the one that gets it right.
+**The filter was in the wrong place for TYPES too**, which is worth keeping
+whatever happens to the manifest. The feed answered with everything and the
+sync engine discarded what the dependency had not declared, so the reading,
+the moving and the parse of every unwanted item were done first. Item 021 had
+settled that a filter is a set of names the upstream selects by, and the code
+met that for neither half.
 
-**The downstream guard stays.** The selection is an efficiency; the promise is
-that nothing undeclared is applied, whatever a feed sends. An older release
-across a network, or a transport that drops the parameter, answers with
-everything — and REQ-DBO-SYNC-DECLARED-ONLY still holds because the dependent
-still checks.
+**And a derived manifest collides with the face image.** A manifest is per
+TENANT; an image is per FACE and shared by every tenant on it. So a tenant
+reading the chain takes its closure while one brought up from the image takes
+the whole face — and
+REQ-DBO-TEN-A-TENANT-COMES-UP-FROM-THE-FACE-IMAGE promises those two hold the
+same rows table for table. That promise is proven by a test, and the test said
+so. Narrowing the image to match means an image per closure rather than per
+face, which is a different artefact from the one that exists.
 
-**What is not narrowed, said rather than left to be found.** `BothFeeds`
-merges two feeds and takes the default, so a dependency over both still moves
-what it will discard; narrowing there means threading the selection through
-the merge on both sides, which is a change to how two cursors interleave
-rather than one predicate. The HTTP feed does not carry the selection either.
-And the manifest is computed and carried but nothing yet DERIVES it into a
-tenant's dependency at bring-up — that is what turns this from a mechanism
-into the shrinking of a database.
+**The revert is because the narrowing itself regressed the chain**, not
+because of the collision. With the upstream selecting, a tenant reading the
+chain ended with 92 of the definitions it should have had — the count is in
+the failure, the cause is not yet known, and the most likely place is the
+grain: a terminology grain travels as parts, and a selection that drops a part
+leaves the rest unable to reassemble. That is a real bug in the narrowing and
+it was committed before the test that covers a whole face through the chain
+had been run.
+
+**So step 10's other half is open, and now has three things in front of it**:
+find what the selection drops, decide whether an image is cut per closure, and
+only then derive a manifest into a dependency.
 
 **And one question stays open**, the one item 021 left and this case bites
 hardest on: a tenant narrowing below what its stored documents were validated
