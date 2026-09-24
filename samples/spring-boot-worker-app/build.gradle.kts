@@ -38,7 +38,11 @@ dependencies {
     testImplementation(project(":samples:spring-boot-server-app"))
     // Assertions that name the promise they prove, so a failure says what the
     // store stopped promising rather than what a boolean was.
-    testImplementation(project(":core:dbo-proving"))
+    // An assertion that names its promise, and the catalogue the name is
+    // typed to. The assertion knows no catalogue, so a test citing this
+    // store's promises says so itself.
+    testImplementation(project(":promise:proving"))
+    testImplementation(project(":core:dbo-promises"))
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 

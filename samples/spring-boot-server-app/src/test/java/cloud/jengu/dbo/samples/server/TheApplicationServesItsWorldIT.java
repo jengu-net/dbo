@@ -2,7 +2,7 @@ package cloud.jengu.dbo.samples.server;
 
 import cloud.jengu.dbo.promises.DboPromises;
 import cloud.jengu.dbo.promises.Proving;
-import cloud.jengu.dbo.proving.Proves;
+import cloud.jengu.dbo.promise.proving.Proves;
 import cloud.jengu.dbo.spring.test.DboSpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import cloud.jengu.dbo.spring.test.DboTestContext;

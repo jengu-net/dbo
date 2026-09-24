@@ -1,9 +1,15 @@
-package cloud.jengu.dbo.proving;
+package cloud.jengu.dbo.promise.proving;
 
-import cloud.jengu.dbo.promises.DboPromises;
-import cloud.jengu.dbo.promises.Proving;
+import cloud.jengu.dbo.promise.Catalogue;
+import cloud.jengu.dbo.promise.Cites;
+import cloud.jengu.dbo.promise.Promise;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -17,14 +23,47 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * the test never declared. The second is the one that matters — without it
  * there are two places saying what proves what, and the catalogue reads only
  * one of them.
+ *
+ * <p><b>The catalogue here is this test's own</b>, declared in four lines the
+ * way {@link Cites} says an adopter declares theirs. Not decoration: an
+ * assertion library that had to name a product's promises to test itself would
+ * be one that could only serve that product.
  */
 class AnAssertionNamesWhatItProvesTest {
 
-    private static final DboPromises DECLARED = DboPromises.VAL_A_THIRD_ANSWERER_READS_THE_INDEX;
+    /** A product's catalogue, as small as one can be. */
+    @Catalogue(namespace = "TEST")
+    enum SomeonesPromises implements Promise {
+
+        A_REPORT_NAMES_THE_PROMISE("a failure says what the product stopped promising"),
+        SOMETHING_ELSE_ENTIRELY("a promise this test does not declare");
+
+        private final String text;
+
+        SomeonesPromises(String text) {
+            this.text = text;
+        }
+
+        @Override
+        public String text() {
+            return text;
+        }
+    }
+
+    /** And a product's citation, typed to it. */
+    @Cites
+    @Retention(RetentionPolicy.RUNTIME)
+    @Target(ElementType.METHOD)
+    @interface Proving {
+
+        SomeonesPromises[] value();
+    }
+
+    private static final SomeonesPromises DECLARED = SomeonesPromises.A_REPORT_NAMES_THE_PROMISE;
 
     @Test
     @DisplayName("a failure leads with the promise's code and the sentence the catalogue holds")
-    @Proving(DboPromises.VAL_A_THIRD_ANSWERER_READS_THE_INDEX)
+    @Proving(SomeonesPromises.A_REPORT_NAMES_THE_PROMISE)
     void aFailureNamesThePromise() {
         AssertionError broke = assertThrows(AssertionError.class,
                 () -> Proves.that(DECLARED, false, "the index answered nothing"));
@@ -32,7 +71,7 @@ class AnAssertionNamesWhatItProvesTest {
         assertTrue(broke.getMessage().contains(DECLARED.code()),
                 "a report that does not name the promise is the report this replaces: "
                         + broke.getMessage());
-        assertTrue(broke.getMessage().contains(DECLARED.text().substring(0, 24)),
+        assertTrue(broke.getMessage().contains(DECLARED.text()),
                 "the sentence the catalogue holds is what makes the code readable by somebody "
                         + "who does not have the catalogue open: " + broke.getMessage());
         assertTrue(broke.getMessage().contains("the index answered nothing"),
@@ -42,12 +81,13 @@ class AnAssertionNamesWhatItProvesTest {
     @Test
     @DisplayName("a promise this test did not declare is refused, because the catalogue reads "
             + "the declaration and not the assertion")
-    @Proving(DboPromises.VAL_A_THIRD_ANSWERER_READS_THE_INDEX)
+    @Proving(SomeonesPromises.A_REPORT_NAMES_THE_PROMISE)
     void anUndeclaredPromiseIsRefused() {
         AssertionError refused = assertThrows(AssertionError.class,
-                () -> Proves.that(DboPromises.SYNC_DECLARED_ONLY, true, "true, and not mine"));
+                () -> Proves.that(SomeonesPromises.SOMETHING_ELSE_ENTIRELY, true,
+                        "true, and not mine"));
 
-        assertTrue(refused.getMessage().contains(DboPromises.SYNC_DECLARED_ONLY.code()),
+        assertTrue(refused.getMessage().contains(SomeonesPromises.SOMETHING_ELSE_ENTIRELY.code()),
                 "the refusal should name what was claimed: " + refused.getMessage());
         assertTrue(refused.getMessage().contains("reads as unproven"),
                 "the refusal should say what goes wrong rather than that a check failed: "
@@ -56,7 +96,7 @@ class AnAssertionNamesWhatItProvesTest {
 
     @Test
     @DisplayName("what holds passes quietly, so a proved promise costs a test nothing to name")
-    @Proving(DboPromises.VAL_A_THIRD_ANSWERER_READS_THE_INDEX)
+    @Proving(SomeonesPromises.A_REPORT_NAMES_THE_PROMISE)
     void whatHoldsIsSilent() {
         Proves.that(DECLARED, true, "held");
         Proves.all(DECLARED,

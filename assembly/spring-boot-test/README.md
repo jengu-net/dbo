@@ -159,7 +159,7 @@ takes.
 
 ## Naming what a test proves
 
-Beside this, [`core/dbo-proving`](../../core/dbo-proving) binds an assertion to
+Beside this, [`promise/proving`](../../promise/proving) binds an assertion to
 a promise, so a failure names what the store stopped promising:
 
 ```java
