@@ -185,16 +185,6 @@ val memoryTest = tasks.register<Test>("memoryTest") {
     testClassesDirs = sourceSets.test.get().output.classesDirs
     classpath = sourceSets.test.get().runtimeClasspath
     filter.includeTestsMatching("*WhatTheLoadedSpecificationCostsIT")
-    // And what the index face costs beside it: the same question asked of the
-    // other way of holding a version's definitions, which is the measurement
-    // the dial exists for. Same task because it is the same kind of number
-    // and needs the same empty runtime; forkEvery below keeps them from
-    // measuring each other.
-    filter.includeTestsMatching("*WhatTheIndexFaceCostsIT")
-    // And its control, the same tenant with the dial off — without which
-    // the figures above attribute nothing, because a tenant brought up from
-    // a face image builds no context either way.
-    filter.includeTestsMatching("*WhatAContextServedFaceCostsIT")
     // Its own process per class, and no other class in it.
     forkEvery = 1
     // Forwarded, because the flag is read inside the test JVM and a -D on the
@@ -246,8 +236,6 @@ tasks.test {
     }
     filter.excludeTestsMatching("*ServerDistIT")
     filter.excludeTestsMatching("*WhatTheLoadedSpecificationCostsIT")
-    filter.excludeTestsMatching("*WhatTheIndexFaceCostsIT")
-    filter.excludeTestsMatching("*WhatAContextServedFaceCostsIT")
     shouldRunAfter(distTest)
     shouldRunAfter(memoryTest)
 }

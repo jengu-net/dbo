@@ -201,13 +201,22 @@ public final class ContentSyncEngine {
 
     /** One sync round: read the upstream feed, apply declared changes, ack. Returns events seen. */
     public int syncOnce(int chunkSize) {
-        FeedChunk<FeedItem> chunk = sourceFeed.readFor(consumer(), chunkSize);
+        // Asked for rather than filtered afterwards. What the upstream sends
+        // is what this dependency declared and, where its filter is derived,
+        // the canonicals it names — so the work of reading, moving and parsing
+        // what nobody wanted is not done at all.
+        FeedChunk<FeedItem> chunk = sourceFeed.readFor(consumer(), chunkSize, dependency.wanted());
         if (chunk.items().isEmpty()) {
             return 0;
         }
+        // KEPT, though the upstream was asked to narrow. The selection is an
+        // efficiency and this is the promise: a feed that cannot narrow —
+        // an older release across a network, a transport that drops the
+        // parameter — answers with everything, and nothing undeclared may be
+        // applied whatever arrives (REQ-DBO-SYNC-DECLARED-ONLY).
         List<FeedItem> declared = chunk.items().stream()
                 .filter(item -> dependency.declaredTypes().contains(item.typeName()))
-                .toList(); // REQ-DBO-SYNC-DECLARED-ONLY: nothing syncs undeclared
+                .toList();
         if (!applyTogether(declared)) {
             for (FeedItem item : declared) {
                 applyItem(item);

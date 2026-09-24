@@ -1097,43 +1097,73 @@ rule, so it is worth stating as a measurement: a face whose tenants bind
 required strength to a clinical terminology would close over much more, and
 the number to watch is this one.
 
-**What this does not do is send it**, and an attempt to is recorded below
-because it failed in two ways worth keeping.
+**And the upstream now selects by it.** `ContentDependency` carries the
+manifest, and `ChangeFeed.readFor` takes a `FeedSelection` — a set of type
+names and a set of canonicals — which `PgChangeFeed` turns into a predicate on
+the outbox and the identifiers.
 
-## Sending the manifest: withdrawn, and what it cost to learn
+**The filter was in the wrong place, and not only for canonicals.** Until this
+the feed answered with everything and the sync engine discarded what the
+dependency had not declared, one line — so even TYPE filtering happened at the
+dependent, and the reading, the moving and the parse of every item nobody
+wanted were done first. Item 021 had settled that a filter is a set of names
+the upstream selects by, and the code met that for neither half. It does for
+both now.
 
-The upstream was made to select by name — `ChangeFeed.readFor` taking a set of
-type names and a set of canonicals, `PgChangeFeed` turning it into a predicate
-— and it was reverted. Two findings survive it.
+**Selection, and never execution.** A type is compared to a list of type names
+and a canonical to a list of canonicals. No expression crosses, so this is not
+one tenant running another's query against the rule that a tenant declares
+only against its direct upstream.
 
-**The filter was in the wrong place for TYPES too**, which is worth keeping
-whatever happens to the manifest. The feed answered with everything and the
-sync engine discarded what the dependency had not declared, so the reading,
-the moving and the parse of every unwanted item were done first. Item 021 had
-settled that a filter is a set of names the upstream selects by, and the code
-met that for neither half.
+**A canonical narrows only what has one.** A record carrying no canonical is
+not withheld for being absent from a list of definition urls — the mistake
+that would stop a tenant's patients arriving the moment its face dependency
+was derived. Asserted, because the predicate that gets this wrong is shorter
+than the one that gets it right.
 
-**And a derived manifest collides with the face image.** A manifest is per
-TENANT; an image is per FACE and shared by every tenant on it. So a tenant
-reading the chain takes its closure while one brought up from the image takes
-the whole face — and
+**The downstream guard stays.** The selection is an efficiency; the promise is
+that nothing undeclared is applied, whatever a feed sends. An older release
+across a network, or a transport that drops the parameter, answers with
+everything — and REQ-DBO-SYNC-DECLARED-ONLY still holds because the dependent
+still checks.
+
+**What is not narrowed, said rather than left to be found.** `BothFeeds`
+merges two feeds and takes the default, so a dependency over both still moves
+what it will discard; narrowing there means threading the selection through
+the merge on both sides, which is a change to how two cursors interleave
+rather than one predicate. The HTTP feed does not carry the selection either.
+The HTTP feed does not carry the selection either.
+
+## The derivation, and the collision it found
+
+The manifest can be derived at bring-up, and was: the upstream holds the
+definitions, so the closure of the dependent's declared types is walked there
+and the names travel. It works. It is not switched on, and the reason is not
+caution.
+
+**A derived manifest is per TENANT; a face image is per FACE**, cut once and
+shared by every tenant on it. A tenant reading the chain would take its
+closure while one brought up from the image takes the whole face, and
 REQ-DBO-TEN-A-TENANT-COMES-UP-FROM-THE-FACE-IMAGE promises those two hold the
-same rows table for table. That promise is proven by a test, and the test said
-so. Narrowing the image to match means an image per closure rather than per
-face, which is a different artefact from the one that exists.
+same rows table for table. Narrowing the image to match means an image cut per
+CLOSURE rather than per face — a different artefact from the one that exists,
+and a decision rather than a wiring job.
 
-**The revert is because the narrowing itself regressed the chain**, not
-because of the collision. With the upstream selecting, a tenant reading the
-chain ended with 92 of the definitions it should have had — the count is in
-the failure, the cause is not yet known, and the most likely place is the
-grain: a terminology grain travels as parts, and a selection that drops a part
-leaves the rest unable to reassemble. That is a real bug in the narrowing and
-it was committed before the test that covers a whole face through the chain
-had been run.
+**And a lesson about shared state that cost more than the collision did.** The
+face-image test began failing and the evidence pointed squarely at the
+selection: a tenant reading the chain held 92 definitions where it wanted a
+thousand. It was not the selection. The measurement classes added beside this
+work cut their own face images into the directory the whole suite shares, and
+a later run loaded one. The selection was reverted for a fault it did not
+have, and restored when clearing that directory made the test pass; the
+measurement classes now take a directory of their own. What the evidence
+pointed at and what was actually wrong were different things, and the only
+thing that separated them was removing one and trying again.
 
-**So step 10's other half is open, and now has three things in front of it**:
-find what the selection drops, decide whether an image is cut per closure, and
-only then derive a manifest into a dependency.
+**So step 10's other half is a mechanism that works and a question nobody has
+answered**: whether an image is cut per face or per closure. Until that is
+settled, a derived dependency cannot be switched on without breaking a proven
+promise.
 
 **And one question stays open**, the one item 021 left and this case bites
 hardest on: a tenant narrowing below what its stored documents were validated
@@ -1397,9 +1427,35 @@ The third is what the whole comparison apparatus was built for, and it is
 worth more than the first. What it needed was an answerer that agrees, and
 there is one.
 
-**Reported rather than ratcheted, for now.** These are two readings of a dial
-nobody has declared; they belong in `config/memory-baseline.txt` when the
-declaration lands and the scenario is one a deployment has.
+**Reported rather than ratcheted, and now qualified.** These are two readings
+of a dial nobody has declared. They were taken with the face's rows ALREADY
+THERE — a face image cut by something else, in a directory the suite shares —
+and that was not known when they were taken. It matters, because:
+
+**With the dial on, a tenant does not expand its definitions at all.** The
+index is built from rows; the rows come from expanding what arrives; expanding
+uses the toolchain path that the dial replaces. Given a directory of its own
+and no image to load, the measured tenant waited two minutes and never
+produced a row. The earlier readings worked because a shared image had the
+rows already.
+
+So the figures stand for the case they were taken in — a tenant whose face was
+already expanded — and that is the deployment case, since a tenant on a face
+comes up from its image. But the index face cannot bootstrap a face, and that
+is a sharper form of the hazard already recorded here: it is not only that a
+tenant with no rows accepts everything, it is that this face prevents the rows
+from ever being made. Whatever expands a face has to be the toolchain path, or
+the expansion has to stop needing it.
+
+**The two measurement classes are withdrawn**, and the reason is worth as much
+as the numbers. They cut face images into the directory the whole suite shares,
+and a later run of the test that proves a tenant comes up from an image loaded
+one and found 92 definitions where it wanted a thousand. The evidence pointed
+at an unrelated change, which was reverted for a fault it did not have.
+Isolating their images then exposed the bootstrap problem above, which is the
+real finding and not one a measurement should be carrying. They come back when
+the measurement can state its own precondition: one tenant expands a face, a
+second comes up from it, and only the second reads the index.
 
 ## What is not known
 

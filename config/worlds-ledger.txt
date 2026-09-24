@@ -70,7 +70,5 @@ SeveralTenantsDeclaredAtOnceComeUpTogetherIT             lifecycle
 SpecDeclaredSyncIT                                       sweep
 TenantRuntimeIT                                          sweep
 ThePlaintextInFlightLeavesNoTraceIT                      deployment
-WhatAContextServedFaceCostsIT                            the control for the class above, and the same two reasons. Its own process besides, because a worker context is built once per version per process and never shrinks — the two measuring in one JVM would measure each other rather than the two faces
-WhatTheIndexFaceCostsIT                                  a heap measurement, and a global dial. The number reported is what this runtime holds, so it means nothing on a runtime other classes have used; and the face is chosen by a system property, so a shared tenant whose payloads were first built in this window would keep the index face for the rest of the run
 WhatTheLoadedSpecificationCostsIT                        first boot
 ZoneIT                                                   deployment
