@@ -29,6 +29,7 @@ core:dbo-pdi                 core:dbo-core core:dbo-promises
 core:dbo-policy              core:dbo-core core:dbo-rest core:dbo-work
 core:dbo-postgres            core:dbo-core
 core:dbo-promises            promise
+core:dbo-proving             core:dbo-promises
 core:dbo-rest                core:dbo-core core:dbo-fhir-common
 core:dbo-runner              core:dbo-core core:dbo-promises core:dbo-telemetry core:dbo-work promise
 core:dbo-scim                core:dbo-auth core:dbo-core core:dbo-pdi
@@ -47,5 +48,5 @@ core:harness                 core:dbo-asking core:dbo-auth core:dbo-core core:db
 guide                        core:dbo-promises promise sample sample:participant
 sample                       core:dbo-asking core:dbo-runner core:dbo-tenant core:dbo-work
 sample:participant           core:dbo-runner core:dbo-work
-samples:spring-boot-server-app assembly:spring-boot-server assembly:spring-boot-test
-samples:spring-boot-worker-app assembly:spring-boot-test assembly:spring-boot-worker samples:spring-boot-server-app
+samples:spring-boot-server-app assembly:spring-boot-server assembly:spring-boot-test core:dbo-proving
+samples:spring-boot-worker-app assembly:spring-boot-test assembly:spring-boot-worker core:dbo-proving samples:spring-boot-server-app

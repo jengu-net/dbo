@@ -8,6 +8,14 @@
 // Not published, for the same reason as every other sample.
 plugins {
     id("java")
+    // So a reader can run it: `./gradlew <this>:run`. The Spring Boot Gradle
+    // plugin is not used here — it adds bootJar and bootRun, and what a sample
+    // needs is a main class somebody can start, not a repackaged archive.
+    id("application")
+}
+
+application {
+    mainClass.set("cloud.jengu.dbo.samples.worker.WorkerApplication")
 }
 
 val springBootVersion = rootProject.extra["dboSpringBootVersion"] as String
@@ -28,6 +36,9 @@ dependencies {
     // the serving application beside it, started the way it starts.
     testImplementation(project(":assembly:spring-boot-test"))
     testImplementation(project(":samples:spring-boot-server-app"))
+    // Assertions that name the promise they prove, so a failure says what the
+    // store stopped promising rather than what a boolean was.
+    testImplementation(project(":core:dbo-proving"))
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 

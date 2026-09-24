@@ -1,5 +1,8 @@
 package cloud.jengu.dbo.samples.server;
 
+import cloud.jengu.dbo.promises.DboPromises;
+import cloud.jengu.dbo.promises.Proving;
+import cloud.jengu.dbo.proving.Proves;
 import cloud.jengu.dbo.spring.test.DboSpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import cloud.jengu.dbo.spring.test.DboTestContext;
@@ -38,6 +41,7 @@ class TheApplicationServesItsWorldIT {
     @Test
     @DisplayName("the tenant in this application's world answers a FHIR read on the "
             + "application's own port, and refuses a caller carrying nothing")
+    @Proving(DboPromises.CONT_EMBEDDED_IN_JVM)
     void theWorldIsServed() {
         assertTrue(dbo.until(TENANT, true, Duration.ofMinutes(6)),
                 "the tenant declared in this application's world never came up, so adding the "
@@ -47,7 +51,7 @@ class TheApplicationServesItsWorldIT {
         // bring-up costs minutes, so a test that stopped at the first
         // disagreement would spend them again for the second.
         var tenantSays = dbo.capability(TENANT);
-        assertAll(
+        Proves.all(DboPromises.CONT_EMBEDDED_IN_JVM,
                 () -> assertTrue(tenantSays.serves("Patient"), tenantSays.why("serves Patient")),
                 () -> assertTrue(tenantSays.interactionsWith("Patient").contains("create"),
                         tenantSays.why("may be written to for Patient")),

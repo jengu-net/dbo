@@ -107,6 +107,25 @@ written that way proves an application configured by the test rather than one
 as it ships. Both samples had that, and both now add to the application's
 configuration through a profile instead of replacing it.
 
+## The catalogue cannot see these proofs
+
+Both sample tests declare what they prove — `CONT_EMBEDDED_IN_JVM` for an
+application that boots the store inside its own JVM, and
+`PROC_STEP_SERVICE_EMBEDDABLE` for a bean that performs a tenant's work over
+the lane alone — and assert it through `Proves`, which refuses a promise the
+test did not declare.
+
+The requirement catalogue does not know. It is composed from the proofs the
+annotation processor writes on the harness's classpath, and these modules are
+not on it, so `req-catalogue.md` names no test under `samples/`. The
+declaration is real and the guard is real; what is missing is the projection
+reaching them.
+
+That is a change to a ratchet rather than to a sample, which is why it is
+written here instead of done in passing: either the projection learns to read
+these modules, or a promise proved in a sample is a promise the catalogue
+reports as proved by somebody else.
+
 ## What is not
 
 - the end-to-end test: a step performed through the lane, asserted on the

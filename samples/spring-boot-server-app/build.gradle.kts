@@ -10,6 +10,14 @@
 // depend on — the same reason `sample` and the harness are not published.
 plugins {
     id("java")
+    // So a reader can run it: `./gradlew <this>:run`. The Spring Boot Gradle
+    // plugin is not used here — it adds bootJar and bootRun, and what a sample
+    // needs is a main class somebody can start, not a repackaged archive.
+    id("application")
+}
+
+application {
+    mainClass.set("cloud.jengu.dbo.samples.server.ServerApplication")
 }
 
 val springBootVersion = rootProject.extra["dboSpringBootVersion"] as String
@@ -31,6 +39,9 @@ dependencies {
     // JVM, the world, a key, and a tenant that came up — all derived from
     // what `dbo.test.*` says this test needs.
     testImplementation(project(":assembly:spring-boot-test"))
+    // Assertions that name the promise they prove, so a failure says what the
+    // store stopped promising rather than what a boolean was.
+    testImplementation(project(":core:dbo-proving"))
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
@@ -38,4 +49,12 @@ tasks.withType<Test>().configureEach {
     useJUnitPlatform()
     // The R5 validator loads a whole FHIR core package to build a context.
     maxHeapSize = "2g"
+}
+
+tasks.named<JavaExec>("run") {
+    // Stated rather than inherited: this application's configuration names the
+    // world as ../sample-world, which is only that directory when the working
+    // directory is this module. A run from elsewhere would come up serving
+    // nobody and answering 404 to everything, which reads like a wrong URL.
+    workingDir = projectDir
 }

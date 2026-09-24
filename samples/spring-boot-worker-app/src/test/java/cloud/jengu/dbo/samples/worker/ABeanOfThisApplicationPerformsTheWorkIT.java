@@ -1,6 +1,9 @@
 package cloud.jengu.dbo.samples.worker;
 
 import cloud.jengu.dbo.samples.server.ServerApplication;
+import cloud.jengu.dbo.promises.DboPromises;
+import cloud.jengu.dbo.promises.Proving;
+import cloud.jengu.dbo.proving.Proves;
 import cloud.jengu.dbo.spring.test.DboSpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import cloud.jengu.dbo.spring.test.DboTestContext;
@@ -60,13 +63,15 @@ class ABeanOfThisApplicationPerformsTheWorkIT {
     @Test
     @DisplayName("work asked of a tenant is performed by the bean in this application, and the "
             + "run names this application as the executor that did it")
+    @Proving(DboPromises.PROC_STEP_SERVICE_EMBEDDABLE)
     void aBeanPerformsTheWork() throws Exception {
         assertTrue(dbo.until(TENANT, true, Duration.ofMinutes(6)),
                 "the tenant never came up, so there is no work to perform: " + dbo.serving());
 
         // The container found the step service, which is the half an
         // application controls: a bean, and an interface.
-        assertTrue(dbo.performing().containsKey(STEP),
+        Proves.that(DboPromises.PROC_STEP_SERVICE_EMBEDDABLE,
+                dbo.performing().containsKey(STEP),
                 "this application does not perform " + STEP + ", so a bean implementing "
                         + "StepService reached nothing: " + dbo.performing());
 
@@ -88,7 +93,7 @@ class ABeanOfThisApplicationPerformsTheWorkIT {
         // application does: the runner polls the lane, takes the work,
         // performs it in the bean above and answers.
         dbo.startWorking();
-        assertTrue(untilPerformed(before),
+        Proves.that(DboPromises.PROC_STEP_SERVICE_EMBEDDABLE, untilPerformed(before),
                 "no run names " + THIS_WORKER + " as its executor, so either the lane delivered "
                         + "nothing or something else performed it — and a step that ran is not "
                         + "the same claim as a step this application ran");
