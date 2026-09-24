@@ -20,6 +20,12 @@ plugins {
 }
 
 dependencies {
+    // THE PACKAGES, ON A TEST CLASSPATH. They ship as a fragment of the face,
+    // which is a container mechanism: a test runs in a plain JVM and finds
+    // resources by classpath, so a test that builds a face out of the
+    // specification needs them here. One that takes its face from records
+    // never opens them and is unaffected by their presence.
+    testRuntimeOnly(project(":core:dbo-fhir-packages"))
     testImplementation("org.junit.jupiter:junit-jupiter:5.11.4")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     // @Proving citations, for when promises start moving here.

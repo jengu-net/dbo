@@ -11,6 +11,12 @@ val embedded: Configuration = configurations.create("embedded")
 configurations.implementation.get().extendsFrom(embedded)
 
 dependencies {
+    // THE PACKAGES, ON A TEST CLASSPATH. They ship as a fragment of the face,
+    // which is a container mechanism: a test runs in a plain JVM and finds
+    // resources by classpath, so a test that builds a face out of the
+    // specification needs them here. One that takes its face from records
+    // never opens them and is unaffected by their presence.
+    testRuntimeOnly(project(":core:dbo-fhir-packages"))
     api(project(":core:dbo-core"))
     api(project(":core:dbo-fhir-common"))
     implementation(project(":core:dbo-postgres"))

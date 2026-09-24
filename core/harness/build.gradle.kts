@@ -56,6 +56,12 @@ val guideTestOutput = project(":guide")
         .getByName("test").output
 
 dependencies {
+    // THE PACKAGES, ON A TEST CLASSPATH. They ship as a fragment of the face,
+    // which is a container mechanism: a test runs in a plain JVM and finds
+    // resources by classpath, so a test that builds a face out of the
+    // specification needs them here. One that takes its face from records
+    // never opens them and is unaffected by their presence.
+    testRuntimeOnly(project(":core:dbo-fhir-packages"))
     testRuntimeOnly(guideTestOutput)
     // Its CLASSES only, and the distinction is load-bearing. What is wanted
     // is the META-INF/promise/proofs index the processor writes beside them.
