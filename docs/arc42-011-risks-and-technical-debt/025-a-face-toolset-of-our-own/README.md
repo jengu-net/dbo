@@ -133,9 +133,19 @@ registration chose it against a store that does not exist yet. It is a dial
 and not yet a declaration, and the declaration now has one more thing to
 decide — the index judges what a tenant holds as rows, so switching this
 face on for a tenant with no definitions would silently accept everything.
-What remains is that declaration, measuring what the face costs, and then
-step 11, whose ceiling is recorded at **68,646,067 bytes** and may only
-fall.**
+**And what the face costs is now measured, with a control, and it is not the
+number this item has quoted.** A tenant on the index face holds 123 MB
+against 144 on the same tenant with the dial off — about **21 MB**, stable
+over two readings — and **no worker context is built in either case**. The
+control is what makes that legible: a tenant brought up from a face image
+loads rows somebody already expanded, so the context was already gone, and
+that is item 024's work rather than this item's. The 225 MB belongs to a
+tenant with no face base, which has no expanded rows and therefore cannot
+use this face at all. So what item 025 buys is 21 MB a tenant, 65 MB of jar
+once step 11 can fire, and the property rather than the quantity — a node
+that CANNOT populate a context where today it merely happens not to. That
+third thing is what the whole comparison apparatus was for. What remains is
+the per-tenant declaration, step 10's other half, and step 11 itself.**
 
 # A face toolset of our own
 
@@ -1309,6 +1319,56 @@ the decision the measurement exists to inform — and it now has one more thing
 to decide than it did: what to do about a tenant with nothing to judge
 against.
 
+## What the face costs, measured, and it is not the number this item quotes
+
+The dial exists to measure the two faces against each other on one tenant.
+Measured, twice, in a runtime holding nothing else, with a control that is the
+same tenant and the same face with the dial off:
+
+| | index face | control | |
+|---|---|---|---|
+| empty runtime | 21 MB | 21 MB | |
+| the tenant costs | **123 MB** | **144, 145 MB** | two readings |
+| worker contexts built | **0** | **0** | |
+| the index and its codes | under 1 MB | — | 750 elements, 44 structures, 432 codes |
+
+**The control is the whole value of this measurement.** Without it the zero
+would have read as the index face removing the context, and it is not: a
+tenant brought up from a face IMAGE loads rows somebody already expanded and
+needs no toolchain to do it, so no context is built either way. That is item
+024's work, not this item's. A measurement that cannot tell the two apart is
+not evidence for either, and this one nearly was not.
+
+**So the index face saves about 21 MB here, not 225.** Stable across two
+readings, about a seventh of what the tenant holds — the validator and the
+parse machinery the toolchain path instantiates per write, which the index
+path never builds. Real, and an order of magnitude short of the figure this
+item has quoted throughout.
+
+**And the 225 MB is not reachable by this face at all**, which is the harder
+half of the finding. That figure is a tenant with no face base, which builds a
+carried context because it has to expand what it holds. Such a tenant has no
+expanded rows — so it cannot use the index face, and if it were switched on it
+would accept everything. The index face is available exactly where the context
+was already avoided.
+
+**What this item is for, restated on the evidence.** Not the 225 MB, which
+belongs to the image path. It is:
+
+- **21 MB a tenant**, on the path a deployment actually runs;
+- **65 MB of jar**, once nothing on a serving node needs the definition
+  packages, which is step 11 and is now the only place a large number is left;
+- and the property rather than the quantity: a node that CANNOT populate a
+  context, where today it merely happens not to.
+
+The third is what the whole comparison apparatus was built for, and it is
+worth more than the first. What it needed was an answerer that agrees, and
+there is one.
+
+**Reported rather than ratcheted, for now.** These are two readings of a dial
+nobody has declared; they belong in `config/memory-baseline.txt` when the
+declaration lands and the scenario is one a deployment has.
+
 ## What is not known
 
 ~~**How large a closure is.**~~ **Answered**, and above: 7.2% of a version's
@@ -1327,14 +1387,11 @@ slicing, fixed and pattern values — and the risk has moved rather than gone: a
 second implementation still either earns its keep or becomes the thing this
 item says it must not be.
 
-**Whether the THIRD answer agrees.** Two of them now do, on minima, and
-diverge on maxima with the toolchain at fault. The database has not been asked:
-`TheTwoAnswersAreComparedOverTheVersionIT` is where that happens and it needs a
-tenant. What stood in the way was that the index was a spike in a source set
-with no database, and that is gone — an index is built from a tenant's rows.
-What is left is to put the checker over it and stand it in that comparison,
-which is step 6, and until then the word "third" is a plan rather than a
-fact.
+~~**Whether the THIRD answer agrees.**~~ **Answered, and above.** It stands in
+`TheTwoAnswersAreComparedOverTheVersionIT` and agrees with the database on
+cardinality, on fixed and pattern values, on slicing, on required bindings and
+on the rules — and where the two diverge, inside a datatype no profile
+constrains, the index is the side that reaches further.
 
 **How far the agreement goes.** Minima are one check of one kind. Terminology,
 FHIRPath, slicing, and fixed and pattern values are each a place the two could
@@ -1343,8 +1400,13 @@ disagree and have not been asked to.
 **Terminology.** `validateCode` and expansion are not element checking. The
 `term_*` tables answer some of it, and nothing has compared them.
 
-**FHIRPath.** Compiling once and caching is the whole win; rebuilding per
-document would lose more than the form saves.
+~~**FHIRPath.**~~ **Answered, and it was the wrong question.** Compiling once
+was never at risk: it already happened at the cut, into
+`definition_invariant.path`, when a definition arrived. What was missing was
+an answerer that RUNS the compiled text somewhere other than Postgres, and
+68.4% of those paths now do. The 31.6% that need comparison, matching or a
+filter are what is genuinely open, and they are named where they were
+counted.
 
 ## What this is not
 
