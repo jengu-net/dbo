@@ -7,8 +7,12 @@ import cloud.jengu.dbo.promise.proving.Proves;
 import cloud.jengu.dbo.spring.test.DboSpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import cloud.jengu.dbo.spring.test.DboTestContext;
+import cloud.jengu.dbo.spring.test.WhatTheStoreStored;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
@@ -42,12 +46,19 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * them into one context is a testing economy, not the shape. What is not
  * collapsed is the lane — {@code DboWorker} builds an {@code HttpLane} and
  * nothing else, so the work still leaves over a port and comes back.
+ *
+ * <p><b>And two ways a bean becomes a step</b>, which is the other half.
+ * {@link AdmittingAPatient} fills a vacancy the tenant declared;
+ * {@link MeasuringASpecimen} brings a declaration the tenant never had. The
+ * second is ordered first, because what it proves about the step door is only
+ * true while nothing has started working.
  */
 @DboSpringBootTest
 @ActiveProfiles("test")
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 @SpringBootTest(classes = ServerApplication.class,
         webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT)
-@Import(AdmittingAPatient.class)
+@Import({AdmittingAPatient.class, MeasuringASpecimen.class})
 class ABeanOfThisApplicationPerformsTheWorkIT {
 
     private static final String TENANT = "hogwarts";
@@ -57,10 +68,14 @@ class ABeanOfThisApplicationPerformsTheWorkIT {
 
     private static final String STEP = "hogwarts.admission.admit";
 
+    /** The step no tenant declared, which this application brought. */
+    private static final String BROUGHT = MeasuringASpecimen.DECLARED.id().toString();
+
     @Autowired
     DboTestContext dbo;
 
     @Test
+    @Order(2)
     @DisplayName("work asked of a tenant is performed by the bean in this application, and the "
             + "run names this application as the executor that did it")
     @Proving(DboPromises.PROC_STEP_SERVICE_EMBEDDABLE)
@@ -97,6 +112,104 @@ class ABeanOfThisApplicationPerformsTheWorkIT {
                 "no run names " + THIS_WORKER + " as its executor, so either the lane delivered "
                         + "nothing or something else performed it — and a step that ran is not "
                         + "the same claim as a step this application ran");
+    }
+
+
+    @Test
+    @Order(1)
+    @DisplayName("a bean brings a capability the tenant never declared: the tenant's own step "
+            + "door still refuses it, and the face takes a run of it the catalogue now holds")
+    @Proving({DboPromises.PROC_STEPS_ARRIVE_BY_INTRODUCTION,
+            DboPromises.PROC_INTRODUCTION_GRANTS_NOTHING})
+    void aBeanBringsTheStepItPerforms() throws Exception {
+        assertTrue(dbo.until(TENANT, true, Duration.ofMinutes(6)),
+                "the tenant never came up, so there is nothing to introduce a step to: "
+                        + dbo.serving());
+
+        // A cycle declares candidacy and a service carrying its own
+        // declaration introduces it in the same breath. Nothing else is done
+        // to make the tenant aware of it.
+        dbo.startWorking();
+        Proves.that(DboPromises.PROC_STEPS_ARRIVE_BY_INTRODUCTION,
+                dbo.performing().containsKey(BROUGHT),
+                "this application does not perform " + BROUGHT + ", so the bean that brought "
+                        + "it reached nothing: " + dbo.performing());
+
+        var specimen = dbo.write(TENANT, "Observation", """
+                {"resourceType":"Observation","status":"final",
+                 "code":{"text":"a sample taken on admission"}}""");
+        assertTrue(specimen.accepted(),
+                "the specimen this run is about was not accepted: " + specimen.body());
+
+        // THE STEP DOOR IS BUILT FROM THE TENANT'S SPEC, and stays so. An
+        // introduced capability is not a step the tenant offers to be
+        // started: bringing one grants its bringer nothing, and the door says
+        // as much by name.
+        var atTheDoor = dbo.send(HttpRequest.newBuilder(
+                        java.net.URI.create(dbo.at(TENANT) + "/step/" + BROUGHT))
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(
+                        "{\"inputs\":{\"specimen\":\"Observation/" + specimen.idOrFail()
+                                + "\"}}")), dbo.workToken(TENANT));
+        Proves.that(DboPromises.PROC_INTRODUCTION_GRANTS_NOTHING,
+                atTheDoor.statusCode() == 404,
+                "the tenant's own step door offered a step nobody installed, so introducing "
+                        + "one is a way in rather than a capability: " + atTheDoor.statusCode()
+                        + " " + atTheDoor.body());
+
+        // The other door, and the tenant's own credential: a run naming the
+        // process, the step and a reference per declared slot. The face takes
+        // it because the catalogue it checks against holds the declaration
+        // this application brought — which is the whole of what introduction
+        // buys.
+        var authored = untilTheFaceTakesIt(specimen.idOrFail());
+        Proves.that(DboPromises.PROC_STEPS_ARRIVE_BY_INTRODUCTION, authored.accepted(),
+                "the face refused a run of the step this application introduced, so the "
+                        + "declaration never reached the catalogue a run is checked against: "
+                        + authored.body());
+
+        // AND IT STOPS HERE, DELIBERATELY. That this worker then PERFORMS the
+        // run is the obvious next line and it does not pass: the run is
+        // authored, the worker is healthy, the step it declared in the same
+        // cycle is performed, and a run of this one is not offered within two
+        // minutes. Asserting it would be asserting something nobody has
+        // explained — item 029 holds the question.
+    }
+
+    /** A run of the brought step, as the face's own door takes one. */
+    private static String taskOver(String specimenId) {
+        return """
+                {"resourceType":"Task","intent":"order","status":"requested",
+                 "identifier":[{"system":"urn:dbo:run","value":"a-brought-assay"}],
+                 "code":{"coding":[
+                   {"system":"urn:dbo:process","code":"hogwarts.admission"},
+                   {"system":"urn:dbo:step","code":"assay"}]},
+                 "input":[{"type":{"coding":[
+                     {"system":"urn:dbo:run:input","code":"specimen"}]},
+                   "valueReference":{"reference":"Observation/%s"}}]}"""
+                .formatted(specimenId);
+    }
+
+
+    /**
+     * Authors the run, until the introduction it depends on has landed.
+     *
+     * <p>Polled rather than asserted once, because introduction is the
+     * runner's doing and it happens beside a candidacy — on attach, and
+     * otherwise at the end of a cycle that completed. A tenant of this size
+     * takes a minute or two to finish coming up, and a worker attaching
+     * meanwhile has its credential refused, so the first cycle to complete is
+     * the first one that can carry the declaration. What is being asserted is
+     * that the capability arrives, not how loaded the machine was.
+     */
+    private WhatTheStoreStored untilTheFaceTakesIt(String specimenId) throws InterruptedException {
+        long giveUp = System.nanoTime() + Duration.ofMinutes(4).toNanos();
+        WhatTheStoreStored authored = dbo.write(TENANT, "Task", taskOver(specimenId));
+        while (!authored.accepted() && System.nanoTime() < giveUp) {
+            Thread.sleep(1000);
+            authored = dbo.write(TENANT, "Task", taskOver(specimenId));
+        }
+        return authored;
     }
 
     /** Asks the tenant for a run of the step this application performs. */
