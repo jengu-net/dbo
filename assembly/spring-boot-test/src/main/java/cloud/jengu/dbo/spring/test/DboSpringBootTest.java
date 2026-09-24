@@ -25,6 +25,13 @@ import java.lang.annotation.Target;
  * own configuration the shape an integrator copies rather than the shape a
  * test needed.
  *
+ * <p><b>Keep {@code dbo.test.*} the same across a module's tests.</b> A
+ * context is cached by its configuration, so tests that agree share one — one
+ * server, one set of tenants, brought up once. Tests that differ get a SECOND
+ * context, and Spring does not close the first: two tenant managers then scan,
+ * poll and stream over one database, which the store permits and nothing in a
+ * test arbitrates. It shows up as contention rather than as an error.
+ *
  * <p><b>The port is chosen before the context, not after it.</b> A worker's
  * lane is built when its bean is, so a port discovered at refresh would be
  * known too late for anything to point at it. This takes one first and tells

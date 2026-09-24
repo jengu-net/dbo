@@ -2,7 +2,6 @@ package cloud.jengu.dbo.samples.server;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInstance;
 import cloud.jengu.dbo.spring.test.DboSpringBootTest;
 import org.springframework.beans.factory.annotation.Value;
 
@@ -30,7 +29,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * wrapper again and say nothing about this application.
  */
 @DboSpringBootTest
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class TheApplicationServesItsWorldIT {
 
     private static final String TENANT = "hogwarts";

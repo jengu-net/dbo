@@ -54,9 +54,10 @@ public final class ADeploymentForThisTest
         derived.put("dbo.admin.jdbc-url", database.getJdbcUrl());
         derived.put("dbo.admin.user", database.getUsername());
         derived.put("dbo.admin.password", database.getPassword());
-        // Per run, and never a constant: a key that is the same everywhere is
-        // one somebody eventually ships.
-        derived.put("dbo.auth.kek", aKeyForThisRun());
+        // From the database rather than from here: they share a lifetime, and
+        // a key minted per context would leave a second context in this JVM
+        // unable to read the tenants the first one sealed.
+        derived.put("dbo.auth.kek", TheDatabaseForThisJvm.key());
 
         // THE PORT IS TAKEN HERE, not discovered at refresh. A worker's lane
         // is built when its bean is, so a port known only once the server is
@@ -118,9 +119,4 @@ public final class ADeploymentForThisTest
         }
     }
 
-    private static String aKeyForThisRun() {
-        byte[] key = new byte[32];
-        new SecureRandom().nextBytes(key);
-        return Base64.getEncoder().encodeToString(key);
-    }
 }

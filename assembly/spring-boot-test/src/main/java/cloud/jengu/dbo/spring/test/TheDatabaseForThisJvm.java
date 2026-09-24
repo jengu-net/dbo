@@ -24,8 +24,33 @@ final class TheDatabaseForThisJvm {
 
     private static PostgreSQLContainer<?> running;
     private static String startedFor;
+    private static String key;
 
     private TheDatabaseForThisJvm() {
+    }
+
+    /**
+     * The key every tenant in this JVM is sealed under.
+     *
+     * <p>Beside the database because it shares the database's lifetime, and
+     * that is the whole reason it is here rather than minted where it is used.
+     * A context is cached by its configuration, so a second test class with
+     * different settings gets a SECOND context — against the same database,
+     * because that is a JVM away and not a context away. A key minted per
+     * context would leave the second one holding tenant databases sealed by
+     * the first, unable to read a byte of them, and the failure would read as
+     * corrupted data rather than as the wrong key.
+     *
+     * <p>Random per JVM rather than constant, because a key that is the same
+     * everywhere is one somebody eventually ships.
+     */
+    static synchronized String key() {
+        if (key == null) {
+            byte[] minted = new byte[32];
+            new java.security.SecureRandom().nextBytes(minted);
+            key = java.util.Base64.getEncoder().encodeToString(minted);
+        }
+        return key;
     }
 
     static synchronized PostgreSQLContainer<?> get(String image) {
