@@ -2528,7 +2528,15 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 engines.add(withRuns(spec, new cloud.jengu.dbo.sync.ContentSyncEngine(
                         new cloud.jengu.dbo.sync.ContentDependency(
                                 dependency.name(), java.util.Set.copyOf(definitions),
-                                manifestFrom(from, spec)),
+                                // ONLY A FACE CHAIN. The closure is what a
+                                // declared type reaches through a version's
+                                // structures, and a zone publishes what is
+                                // true in a jurisdiction — reachable from no
+                                // structure's binding, so a face closure would
+                                // name none of it and withhold all of it.
+                                dependency.face()
+                                        ? manifestFrom(from, spec)
+                                        : java.util.Set::<String>of),
                         upstream.definitionsFeed(), runtime.engine(), on,
                         // Its bookkeeping belongs beside the rows it is about,
                         // so what a face gave this tenant — the records, their
@@ -2573,6 +2581,11 @@ public final class TenantRuntimeManager implements AutoCloseable {
         java.util.List<String> declared = spec.types().stream()
                 .map(cloud.jengu.dbo.fhir.common.FhirTypeConfig::typeName)
                 .toList();
+        // The closure is walked from canonicals and the parameters are keyed
+        // by type, so both are said rather than one derived from the other.
+        java.util.List<String> seeds = declared.stream()
+                .map(type -> "http://hl7.org/fhir/StructureDefinition/" + type)
+                .toList();
         java.util.concurrent.atomic.AtomicLong seenAt = new java.util.concurrent.atomic.AtomicLong(-1);
         java.util.concurrent.atomic.AtomicReference<java.util.Set<String>> held =
                 new java.util.concurrent.atomic.AtomicReference<>(java.util.Set.of());
@@ -2598,7 +2611,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 return held.get();
             }
             cloud.jengu.dbo.fhir.index.DefinitionRows.Manifest manifest =
-                    cloud.jengu.dbo.fhir.index.DefinitionRows.manifestFor(rows, declared);
+                    cloud.jengu.dbo.fhir.index.DefinitionRows.manifestFor(rows, seeds, declared);
             java.util.Set<String> names = new java.util.LinkedHashSet<>(manifest.structures());
             names.addAll(manifest.valueSets());
             names.addAll(manifest.codeSystems());

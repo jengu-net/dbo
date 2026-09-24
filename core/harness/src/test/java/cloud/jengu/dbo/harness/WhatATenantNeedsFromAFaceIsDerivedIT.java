@@ -75,7 +75,7 @@ class WhatATenantNeedsFromAFaceIsDerivedIT {
         for (String type : DECLARED) {
             seeds.add(PREFIX + type);
         }
-        DefinitionRows.Manifest manifest = DefinitionRows.manifestFor(source(), seeds);
+        DefinitionRows.Manifest manifest = DefinitionRows.manifestFor(source(), seeds, DECLARED);
 
         int structuresHeld = scalar(
                 "SELECT count(DISTINCT canonical) FROM definitions.definition_element");
@@ -112,7 +112,7 @@ class WhatATenantNeedsFromAFaceIsDerivedIT {
         for (String type : DECLARED) {
             seeds.add(PREFIX + type);
         }
-        DefinitionRows.Manifest manifest = DefinitionRows.manifestFor(source(), seeds);
+        DefinitionRows.Manifest manifest = DefinitionRows.manifestFor(source(), seeds, DECLARED);
 
         // Half a grain is what this must not be able to name. Asked of the
         // rows rather than of the code that built it: every system any named

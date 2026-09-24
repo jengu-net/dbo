@@ -1928,7 +1928,7 @@ cloud.jengu.dbo.fhir.index.DefinitionIndex.Invariant                   severity(
 cloud.jengu.dbo.fhir.index.DefinitionIndex.Invariant                   toString():String
 cloud.jengu.dbo.fhir.index.DefinitionRows                              class
 cloud.jengu.dbo.fhir.index.DefinitionRows                              closureOf(DataSource,Collection):Set
-cloud.jengu.dbo.fhir.index.DefinitionRows                              manifestFor(DataSource,Collection):cloud.jengu.dbo.fhir.index.DefinitionRows.Manifest
+cloud.jengu.dbo.fhir.index.DefinitionRows                              manifestFor(DataSource,Collection,Collection):cloud.jengu.dbo.fhir.index.DefinitionRows.Manifest
 cloud.jengu.dbo.fhir.index.DefinitionRows                              over(DataSource,Collection):cloud.jengu.dbo.fhir.index.DefinitionIndex
 cloud.jengu.dbo.fhir.index.DefinitionRows                              parametersFor(DataSource,Collection):List
 cloud.jengu.dbo.fhir.index.DefinitionRows.Manifest                     codeSystems():Set

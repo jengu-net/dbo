@@ -139,9 +139,25 @@ public final class DefinitionRows {
         }
     }
 
-    /** The manifest for a dependent that declares these types. */
-    public static Manifest manifestFor(DataSource ds, Collection<String> declared) {
-        Set<String> structures = closureOf(ds, declared);
+    /**
+     * The manifest for a dependent that declares these types.
+     *
+     * <p><b>Two lists, because the two halves are keyed differently.</b> A
+     * closure is walked from CANONICALS — the structures the declared types
+     * are — while a search parameter is recorded against the TYPE it is asked
+     * after. Deriving one from the other here would put the shape of a FHIR
+     * canonical inside a module whose imports are the JDK, and passing the
+     * wrong one is silent: a closure seeded with type names matches no
+     * structure, so the bindings find nothing, and the manifest comes back
+     * holding only the parameters — non-empty, so it narrows, and every
+     * structure and value set a dependent needed is withheld.
+     *
+     * @param seeds    the canonicals of the declared types
+     * @param declared the type names those canonicals are for
+     */
+    public static Manifest manifestFor(DataSource ds, Collection<String> seeds,
+            Collection<String> declared) {
+        Set<String> structures = closureOf(ds, seeds);
         Set<String> valueSets = new LinkedHashSet<>();
         Set<String> codeSystems = new LinkedHashSet<>();
         Set<String> parameters = new LinkedHashSet<>();
