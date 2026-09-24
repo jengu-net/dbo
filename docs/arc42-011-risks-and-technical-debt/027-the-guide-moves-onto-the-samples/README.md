@@ -51,28 +51,36 @@ together or the build says so — which is the good news, and the reason this is
 a real piece of work rather than a find-and-replace.
 
 **And the compose file is the deployment the chapters talk to.** It runs the
-distribution. A guide teaching the library story needs either a second
-deployment or a chapter that says plainly which of the two it is showing —
-and that choice is the first thing to settle, because every other decision
-follows from it.
+distribution, so a guide whose spine is the library story needs a second thing
+for the chapters to talk to — the application, run from the tree — and the
+compose file becomes what the deployment chapter shows.
 
-## What has to be decided first
+## What has been settled
 
-- **Does the guide teach one story or both?** Both is honest and longer: the
-  store is deployed as a distribution and embedded as a library, and a reader
-  arriving with either question deserves an answer. One is shorter and picks a
-  winner.
-- **If both, which is the spine?** The chapters are a narrative, not a
-  reference, and a narrative that switches deployment shape halfway needs a
-  reason a reader can follow.
-- **What happens to `sample/participant`?** It is a party joining from outside
-  and the worker application is not the same thing: a participant compiles
-  against the lane and nothing else, which is a line the assemblies do not
-  redraw.
+**Spring Boot is the spine.** The quick start is
+`./gradlew :samples:spring-boot-server-app:run` — a Spring Boot application
+that serves the sample world because it added a dependency. Every aspect of
+the store is then explained against an application of that shape, because
+Spring is what most developers arriving here already know.
+
+**The framework-free path is the advanced chapter, not the lesser one.** It is
+the layer the assemblies are built on, and a reader who wants no framework is
+reading a real path rather than a workaround
+([building blocks](../../arc42-005-building-blocks/README.md) states the rule).
+The distribution is likewise still taught — as deployment, which is the
+question it answers.
+
+**`sample/participant` keeps its point by being made smaller.** A party joining
+from outside is a line the assemblies do not redraw, and the worker
+application is not the same thing. What `Assay` teaches — that a step can
+declare its own capability — moves to a bean in
+`samples/spring-boot-worker-app` returning `Optional.of(DECLARED)`, which is
+the same claim in the shape a reader will write it.
 
 ## What this is not
 
-It is not the deletion of `sample/`. That is
-[item 026](../026-two-samples-tell-one-story/README.md), which lists what has
-to be true first — and this item is the largest of those things. `sample/`
-stays current until the chapters are somewhere else.
+It is not the deletion of `sample/`, which is
+[item 026](../026-two-samples-tell-one-story/README.md) — but it is what
+unblocks it. `sample/` exists because the guide compiles against it; once the
+chapters compile against `samples/` instead, nothing holds it, and it goes.
+Until then it stays current.
