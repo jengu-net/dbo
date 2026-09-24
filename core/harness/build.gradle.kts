@@ -462,7 +462,7 @@ tasks.withType<Test>().configureEach {
     )
     dependsOn(":core:dbo-terminology:jar", ":core:dbo-definitions:jar",
         ":core:dbo-fhir-r5:jar", ":core:dbo-fhir-stack:jar",
-        ":core:dbo-fhir-element:jar",
+        ":core:dbo-fhir-element:jar", ":core:dbo-fhir-packages:jar",
         ":core:dbo-fhir-common:jar", ":core:dbo-subscriptions:jar", ":core:dbo-rest:jar",
         ":core:dbo-sync:jar", ":core:dbo-maintenance:jar", ":core:dbo-tenant:jar",
         ":core:dbo-tenant-k8s:jar", ":core:dbo-auth:jar", ":core:dbo-pdi:jar", ":core:dbo-scim:jar", ":core:dbo-policy:jar",
@@ -499,6 +499,10 @@ tasks.withType<Test>().configureEach {
         "dbo.runner.jar" to "dbo-runner",
         "dbo.stream.jar" to "dbo-stream",
         "dbo.fhir.element.jar" to "dbo-fhir-element",
+        // The definitions, as a fragment of the face. Staged so a container
+        // test can install it where a tenant needs a context built, and
+        // deliberately absent from the serving bundle set.
+        "dbo.fhir.packages.jar" to "dbo-fhir-packages",
         "dbo.definitions.jar" to "dbo-definitions",
     )) {
         systemProperty(

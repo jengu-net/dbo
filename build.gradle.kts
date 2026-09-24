@@ -56,6 +56,10 @@ val dboRuntimeModules = listOf(
     // the shared facade every version is served through, and the definitions
     // it carries — before the faces that import it
     ":core:dbo-fhir-element",
+    // NOT the definition packages. They are a fragment of the face
+    // (:core:dbo-fhir-packages), installed where a tenant has to build a
+    // context and absent from a serving node — which is what makes "cannot
+    // populate one" a property rather than a habit.
     // the promise framework and the store's catalogue: leaf bundles the
     // citing modules (dbo-pdi first) import from
     ":promise", ":core:dbo-promises",

@@ -58,24 +58,45 @@ class WhatAServingNodeCarriesOnlyFallsTest {
             #
             # It may fall and may not rise. A node carrying no definition
             # packages cannot populate a worker context, whatever classes it
-            # holds, which is item 025's last move and the one that moves the
-            # megabytes. Nothing on the serving path has stopped needing them
-            # yet — ElementPayloads parses every write into an element model,
-            # and that needs a populated context whether or not anything
-            # validates — so this is a ceiling rather than the property.
+            # holds.
             #
-            # When it reaches zero, the ceiling and the property are the same
-            # statement.
+            # The packages are a FRAGMENT of the face, shipped beside a
+            # distribution's bundle set and installed only where a node has
+            # to turn a version into records. The serving set carries none,
+            # which is why this reads zero — and zero here is the property
+            # rather than a ceiling approaching it.
             #
             """;
 
+    /**
+     * The fragment the packages live in, which is not a serving bundle.
+     *
+     * <p>Named rather than discovered, because the whole claim is that this
+     * one is absent from what a node serves: a scan that decided membership
+     * by what happened to be staged would call the claim true whenever a
+     * build staged less.
+     */
+    private static final String THE_FRAGMENT = "dbo.fhir.packages.jar";
+
     @Test
-    @DisplayName("what a serving node carries in definition packages is what was recorded, and "
-            + "a release may only carry less")
+    @DisplayName("a serving node carries no definition packages at all, and the fragment that "
+            + "does carry them is not one of its bundles")
     void theCarriedPackagesOnlyFall() throws IOException {
+        // THE SCAN HAS TO FIND THE PACKAGES SOMEWHERE, or every assertion
+        // below is true of a run that staged nothing. They are in the
+        // fragment, and finding them there is what makes finding none in the
+        // serving set mean anything.
+        String fragment = System.getProperty(THE_FRAGMENT);
+        assertTrue(fragment != null && Files.exists(Path.of(fragment)),
+                "the packages fragment was not staged, so this run cannot tell a serving node "
+                        + "that carries no packages from a test that scanned nothing");
+        assertTrue(packagedIn(Path.of(fragment)) > 0,
+                "the fragment that exists to carry the definition packages carries none, so "
+                        + "nothing in this build has them and the assertions below are vacuous");
+
         Map<String, Long> carried = new TreeMap<>();
         for (String name : System.getProperties().stringPropertyNames()) {
-            if (!name.startsWith("dbo.") || !name.endsWith(".jar")) {
+            if (!name.startsWith("dbo.") || !name.endsWith(".jar") || name.equals(THE_FRAGMENT)) {
                 continue;
             }
             Path jar = Path.of(System.getProperty(name));
@@ -93,13 +114,6 @@ class WhatAServingNodeCarriesOnlyFallsTest {
         carried.forEach((module, bytes) -> observed.append(module).append(' ')
                 .append(bytes).append('\n'));
         observed.append("total ").append(total).append('\n');
-
-        // The scan has to have found the jars at all: a run that staged none
-        // would record zero and read as the property being achieved.
-        assertTrue(!carried.isEmpty(),
-                "no bundle was found to carry a definition package, which is either the goal "
-                        + "reached or a test that scanned nothing — and the second is far more "
-                        + "likely, so it fails rather than congratulating anybody");
 
         Path baseline = BASELINE.toAbsolutePath().normalize();
         if (!Files.exists(baseline) || Boolean.getBoolean("dbo.packages.record")) {

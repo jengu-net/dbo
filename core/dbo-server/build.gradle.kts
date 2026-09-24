@@ -7,9 +7,11 @@
 
 val felix: Configuration = configurations.create("felix")
 val bundles: Configuration = configurations.create("bundles")
+val facePackages: Configuration = configurations.create("facePackages")
 
 dependencies {
     felix("org.apache.felix:org.apache.felix.main:7.0.5") { isTransitive = false }
+    facePackages(project(":core:dbo-fhir-packages")) { isTransitive = false }
 
     // The bundle set lives in the root build — see dboRuntimeModules there for
     // why it is one list. module bundles only: their dependencies ride
@@ -42,6 +44,13 @@ val installDist = tasks.register<Sync>("installDist") {
     }
     from(bundles) {
         into("bundle")
+    }
+    // Beside the bundle set and not in it: bin/dbo-server installs these only
+    // where DBO_FACE_PACKAGES says this node populates a face. A node that
+    // does not cannot build a worker context at all, whatever classes it
+    // holds, because the packages are what a context is built FROM.
+    from(facePackages) {
+        into("packages")
     }
     from("src/main/dist/conf") {
         into("conf")

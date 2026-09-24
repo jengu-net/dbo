@@ -145,6 +145,13 @@ dependencies {
     val runtimeExternal = rootProject.extra["dboRuntimeExternalBundles"] as List<String>
     bundles(serviceLoaderMediator) { isTransitive = false }
     runtimeModules.forEach { bundles(project(it)) { isTransitive = false } }
+    // The definition packages, as a fragment of the face. NOT a runtime
+    // module: a serving node installs none of them and then cannot build a
+    // worker context at all. This assembly hosts the container inside
+    // somebody's application, and an application declaring a tenant that takes
+    // its face from no root has to build one — so it carries them, and a host
+    // wanting the property drops this and the line naming it in bundleIndex.
+    bundles(project(":core:dbo-fhir-packages")) { isTransitive = false }
     runtimeExternal.forEach { bundles(it) { isTransitive = false } }
 
     // Newer than the rest of this repository pins, and it has to be: Spring
@@ -188,11 +195,17 @@ dependencies {
 val bundleIndex = tasks.register("bundleIndex") {
     description = "Writes the ordered bundle set the embedded container installs."
     @Suppress("UNCHECKED_CAST")
-    val declared = listOf(serviceLoaderMediator.split(":")[1]) +
+    val declared = (listOf(serviceLoaderMediator.split(":")[1]) +
         (rootProject.extra["dboRuntimeModules"] as List<String>)
             .map { it.substringAfterLast(':') } +
         (rootProject.extra["dboRuntimeExternalBundles"] as List<String>)
-            .map { it.split(":")[1] }
+            .map { it.split(":")[1] })
+        // The packages fragment, beside its host and before it, because a
+        // fragment attaches when its host RESOLVES. It is not in the runtime
+        // module list on purpose, so it is named here rather than inherited.
+        .flatMap {
+            if (it == "dbo-fhir-element") listOf("dbo-fhir-packages", it) else listOf(it)
+        }
     val jars = bundles
     val index = layout.buildDirectory.file("generated/dbo/META-INF/dbo/bundles.index")
     inputs.files(jars)

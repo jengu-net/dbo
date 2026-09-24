@@ -53,8 +53,8 @@ public final class CarriedDefinitions {
     public static List<Carried> carried() {
         InputStream index = CarriedDefinitions.class.getResourceAsStream(INDEX);
         if (index == null) {
-            throw new IllegalStateException("this bundle carries no definitions at all — "
-                    + "the build's fetch step did not run, and no version can be served");
+            throw new IllegalStateException("this bundle carries no definition index at all — "
+                    + "the build's index step did not run, and no version can be served");
         }
         List<Carried> out = new ArrayList<>();
         try (BufferedReader reader = new BufferedReader(
@@ -353,16 +353,44 @@ public final class CarriedDefinitions {
         return packageOf(definitionPackages(code).get(0)).fhirVersion();
     }
 
-    /** The package's bytes, from this bundle and nowhere else. */
+    /**
+     * The package's bytes, from this bundle's own classpath and nowhere else.
+     *
+     * <p><b>Indexed and absent is a node, not a defect.</b> The index says
+     * which versions this runtime serves and travels with the face; the
+     * packages travel as a fragment beside it, installed where something has
+     * to build a worker context out of them. A serving node does not install
+     * it, and then it cannot populate a context whatever classes it holds —
+     * which is the property, and the reason this refuses by name instead of
+     * looking like a half-assembled bundle.
+     */
     static InputStream open(Carried carried) {
         InputStream bytes = CarriedDefinitions.class
                 .getResourceAsStream("/definitions/" + carried.file());
         if (bytes == null) {
-            throw new IllegalStateException(carried.id() + " is indexed but not carried — "
-                    + "the index and the packages come from one build step, so this means "
-                    + "the bundle was assembled from two");
+            throw new PackagesNotInstalled(carried);
         }
         return bytes;
+    }
+
+    /**
+     * Something asked this node to read a definition package and it holds
+     * none.
+     *
+     * <p>Every tenant that takes its face from records reaches none of this:
+     * the rows are already there, and what judges a write reads them. What
+     * arrives here is a tenant that has to build its face out of the
+     * specification — a face root, or one holding no version as records — on
+     * a node that was not given the specification to build it from.
+     */
+    public static class PackagesNotInstalled extends IllegalStateException {
+        public PackagesNotInstalled(Carried carried) {
+            super(carried.id() + " is indexed and not installed on this node. The definition "
+                    + "packages are a fragment of this face and this node does not carry them, "
+                    + "so it cannot build a worker context for " + carried.fhirVersion() + ". A "
+                    + "tenant that takes its face from a face root needs none of this; one that "
+                    + "builds its own needs a node with the fragment installed.");
+        }
     }
 
     /** A version whose definitions this bundle does not carry. */

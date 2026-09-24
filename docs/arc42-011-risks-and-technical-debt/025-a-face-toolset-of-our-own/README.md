@@ -150,7 +150,9 @@ CLOSURE and accepted on COVERAGE rather than equality, because the saving is
 per tenant by measurement and a face-wide image carries very nearly the whole
 corpus however narrow its tenants are. Coverage is what makes it cheap — a
 face-wide image is the widest closure there is, so a face nobody narrowed
-behaves exactly as it does today. **And the per-tenant declaration is taken**:
+behaves exactly as it does today. **And step 11 is done**: the packages are a
+bootstrap input rather than a runtime dependency, carried by a fragment a
+serving node does not install, and `config/carried-packages.txt` reads zero. **And the per-tenant declaration is taken**:
 a tenant says `indexFace` in its own spec, and the dial it replaced survives
 only for a measurement on a tenant that declared neither. Its two hazards are
 closed by construction rather than by care — a tenant whose rows have not
@@ -1174,6 +1176,53 @@ thing that separated them was removing one and trying again.
 
 **So step 10's other half is a mechanism that works and a question nobody had
 answered**: whether an image is cut per face or per closure.
+
+## Step 11: the packages are a bootstrap input, not a runtime dependency
+
+**The reframing did the work, not the packaging.** Step 11 was written as a
+node that carries no definition packages, and the first design followed that
+literally: drop them from the distribution, and a node that needs them is a
+different image. That is wrong, and the reason is the one already settled
+about face images — an artefact used once to populate something is a bootstrap
+input. A face root reads packages ONCE, to turn a version into records. Every
+tenant afterwards, including that face root across a restart, serves from the
+records. Nothing about serving needs them.
+
+So there is one image. The packages ship beside a distribution's bundle set
+rather than in it, and a node that has to populate a face installs them —
+`DBO_FACE_PACKAGES`. The default node has nothing on its classpath to build a
+context out of, which is a guarantee about what it CAN do.
+
+**The face announces versions; the fragment carries them.** Which versions this
+runtime serves was read off the tarballs on the classpath, so a bundle shipping
+none registered no face and served nobody — the whole runtime disappearing
+because its resources did. The index is metadata and travels with the face; the
+packages travel as a fragment of it. A node without the fragment announces r4,
+r5 and r6 exactly as before, serves every face-backed tenant, and refuses by
+name — `PackagesNotInstalled` — if something asks it to build a face out of a
+specification it does not hold.
+
+**A fragment, because the packages are resources and nothing else.** Attached,
+they appear on the host's own classpath at the path the host already looks in,
+so nothing needed a second mechanism to find them. Two things the container
+said that no build would have: a fragment cannot be STARTED, and it must be
+installed BEFORE its host, because it attaches when the host resolves and
+starting the host resolves it. Installed afterwards it sits at INSTALLED
+forever, the face finds no packages, and a tenant fails to come up with nothing
+in the log about a fragment.
+
+| | |
+|---|---|
+| `dbo-fhir-element` | 80 MB → 0.77 MB |
+| the serving distribution | 272 MB → 193 MB |
+| `config/carried-packages.txt` | 68,646,067 → **0** |
+| what the zero means | the property, not a ceiling approaching it |
+
+**And the ratchet had to change with it.** It refused an empty scan, because a
+run that staged nothing would record zero and read as the goal reached. Zero is
+now the expected answer, so the guard moved: the fragment must be staged and
+must carry packages, and finding them there is what makes finding none in the
+serving set mean anything.
 
 ## What the other half of step 10 has to be, and one trap in it
 

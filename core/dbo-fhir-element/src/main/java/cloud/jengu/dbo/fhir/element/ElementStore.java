@@ -1165,15 +1165,19 @@ public final class ElementStore implements FhirStoreFacade,
             String typeName, SearchParameter parameter) {
         String kind = parameter.hasType() ? parameter.getType().toCode() : null;
         String expression = parameter.getExpression();
+        // Kept even where the parameter cannot be run: the row says why, and
+        // the name is how a dependent is sent the record it was compiled from.
+        String canonical = parameter.hasUrl() ? parameter.getUrl() : null;
         if (!cloud.jengu.dbo.definitions.DefinitionParameter.extractable(kind)) {
             return new cloud.jengu.dbo.definitions.DefinitionParameter(
                     parameter.getCode(), typeName, kind, expression, List.of(), null,
-                    kind + " values are not taken apart by this store, here or anywhere else");
+                    kind + " values are not taken apart by this store, here or anywhere else",
+                    canonical);
         }
         ExpressionPaths.Selection selection = ExpressionPaths.selection(expression, typeName);
         return new cloud.jengu.dbo.definitions.DefinitionParameter(
                 parameter.getCode(), typeName, kind, expression,
-                selection.paths(), selection.predicate(), selection.why());
+                selection.paths(), selection.predicate(), selection.why(), canonical);
     }
 
     private static Set<String> codesOf(List<SearchParameter> parameters) {

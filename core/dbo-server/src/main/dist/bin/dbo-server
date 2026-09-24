@@ -52,6 +52,22 @@ case "$DBO_LOG_LEVEL" in
 esac
 FELIX_LOG_LEVEL="${DBO_FELIX_LOG_LEVEL:-$FELIX_LOG_LEVEL}"
 
+# THE DEFINITION PACKAGES ARE NOT INSTALLED UNLESS THIS NODE POPULATES A FACE.
+# They ship beside the bundle set rather than in it, so the default node has
+# nothing on its classpath to build a worker context out of — which is a
+# guarantee about what it CAN do rather than a habit it happens to keep. A
+# node that has to turn a version's packages into records sets this, and every
+# tenant reading those records afterwards needs none of it.
+#
+# A fragment attaches when its host resolves, so it is placed where auto-deploy
+# reads before anything starts, never added to a running framework.
+if [ "${DBO_FACE_PACKAGES:-}" = "true" ]; then
+  for jar in packages/*.jar; do
+    [ -e "$jar" ] || continue
+    cp "$jar" bundle/ || exit 1
+  done
+fi
+
 # Bundles that log through java.util.logging — the ServiceLoader mediator
 # among them — would otherwise print their own INFO chatter beside the JSON
 # stream in a different format entirely.

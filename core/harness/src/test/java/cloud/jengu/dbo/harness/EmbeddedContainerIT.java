@@ -91,6 +91,15 @@ class EmbeddedContainerIT {
                 "dbo.subscriptions",
                 // the index and its reader, before the facade that imports them
                 "dbo.fhir.index", "dbo.fhir.validate",
+                // the face, and the fragment carrying the definition packages
+                // it reads. This container's tenant builds its face from the
+                // specification rather than from records, so it needs them;
+                // a serving node does not install this and then cannot build
+                // a context at all, which is the whole of item 025's last
+                // move. Everything here is installed before anything starts,
+                // so a fragment attaches wherever it sits in this list — which
+                // is not true where bundles are started as they are installed.
+                "dbo.fhir.packages",
                 "dbo.fhir.element", "dbo.fhir.r4", "dbo.fhir.r5",
                 "dbo.rest")) {
             String path = System.getProperty(name + ".jar");
@@ -98,7 +107,11 @@ class EmbeddedContainerIT {
             bundles.put(name, ctx.installBundle("file:" + path));
         }
         for (Bundle b : bundles.values()) {
-            b.start();
+            // A fragment attaches rather than starts, and Felix refuses one
+            // that is asked to.
+            if (b.getHeaders().get("Fragment-Host") == null) {
+                b.start();
+            }
         }
     }
 
@@ -131,6 +144,17 @@ class EmbeddedContainerIT {
     @Proving(DboPromises.CONT_EMBEDDED_IN_JVM)
     void allProductionBundlesActivate() {
         for (Map.Entry<String, Bundle> e : bundles.entrySet()) {
+            // A FRAGMENT'S SUCCESS IS RESOLVED, and asserting it is not a
+            // weaker check than ACTIVE but a different one: a fragment that
+            // did not attach sits at INSTALLED, its resources are on nobody's
+            // classpath, and the host starts perfectly without them. RESOLVED
+            // is the state that says it attached.
+            if (e.getValue().getHeaders().get("Fragment-Host") != null) {
+                assertEquals(Bundle.RESOLVED, e.getValue().getState(),
+                        e.getKey() + " did not attach to its host, so what it carries is on "
+                                + "nobody's classpath and the host starts without it");
+                continue;
+            }
             assertEquals(Bundle.ACTIVE, e.getValue().getState(),
                     e.getKey() + " did not reach ACTIVE");
         }
