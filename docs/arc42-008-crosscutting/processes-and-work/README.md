@@ -51,8 +51,9 @@ results, publishing a product passport, applying a configuration.
 A **step** is one stage of it, and it is the unit everything else attaches to:
 who may perform it, what it consumes and produces, what it is allowed to report.
 
-A **run** is one attempt at one step. It is an ordinary record in the tenant's
-own store — not a message on a queue, not a row in a scheduler's private table.
+A **run** is one attempt at one step. It is an ordinary record in the **tenant's**
+own store — a tenant being one customer's whole world here, its own database and
+its own authority, which is [why a tenant is a database](../data-isolation/why-a-tenant-is-a-database.md) — not a message on a queue, not a row in a scheduler's private table.
 Everything else follows from that: it survives restarts of anything because it
 was never in flight; it has history, an audit trail and an owner, because every
 record here does; and it can be listed, counted and read by whoever is entitled
@@ -79,7 +80,9 @@ person. That ordering matters: it means a step nobody has automated is a normal
 state rather than a gap, and it means turning automation off is a decision
 somebody made rather than a code path that stopped being reached.
 
-**What nothing took is a person's, and it is countable** — per step, per scope.
+**What nothing took is a person's, and it is countable** — per step, and per
+**scope**, which is the part of the world a declaration applies to: everywhere,
+one country, one organisation.
 That number is the automation backlog stated as a fact rather than an opinion,
 and whoever is holding the work is told which reason applies: nothing claimed it,
 automation was switched off here, or a narrower party tried to override a step
@@ -92,8 +95,9 @@ and interpreted at runtime. A step declaration is the contract, and it says:
 
 - **what it consumes and produces** — named input slots with shape references,
   so joining a step is agreeing to an API rather than to a convention;
-- **which storage domains it reads and writes**, which is what makes its blast
-  radius checkable before it runs;
+- **which storage domains it reads and writes** — the named areas a tenant's
+  data is divided into, so what a step could touch is readable from its
+  declaration rather than from its code, and checkable before it runs;
 - **the actions it contains** — open, close, reopen — which is what roles narrow
   and what "held by a person" concretely means;
 - **its milestones, in order**, if it has any;
@@ -121,6 +125,13 @@ step, and a step that did not open itself to that is refused by name.
 **Nothing is pushed.** A **participant** — a service, an on-site appliance, a
 member organisation's own system, or a person opening a screen — asks what is
 waiting for the steps it performs and takes what it can.
+
+What it asks over is a **lane**: the one channel it has into a tenant, carrying
+every verb it is allowed — ask, take, report, read what the work names — and
+nothing else. A participant holds a lane and never a handle to the store, which
+is why the list of things it can do is short enough to write in a sentence.
+[What a participant may see](participants.md) is that list, and the lane is also
+where the three ways of reaching a tenant are made to look identical.
 
 That single decision does a great deal. A participant behind a router needs no
 inbound address. One switched off for the weekend is simply one that has not

@@ -23,7 +23,7 @@ delta rather than a design from nothing.
 - **Two catalogues already answer "is that a step"**: the tenant's own spec at
   the step door, and the composed catalogue — installed steps plus those a
   linked participant introduced — at the face's run document.
-- **The managing tenant already exists** and is already the one the store keeps
+- **The management tenant already exists** and is already the one the store keeps
   its own history in, named in configuration rather than watched, so the loop
   that retracts undeclared tenants cannot retract it.
 - **Disclosure is already recorded with a reason**, and the trail already names
@@ -34,7 +34,7 @@ delta rather than a design from nothing.
 | the desired state | today |
 |---|---|
 | a step defined once performs for every tenant | a lane is per tenant; an application names each one it performs for |
-| one unified stream at the managing tenant | a door per served tenant on the substrate, and nothing lifts work between tenants |
+| one unified stream at the management tenant | a door per served tenant on the substrate, and nothing lifts work between tenants |
 | a joiner reading every tenant's work stream | **mostly exists**: a work-domain observer is a named durable consumer over every tenant, registered as tenants arrive, resuming from the store's position |
 | the joiner unable to reach payloads | **exists, structurally**: the work stream carries the run and not the record, and an observer is handed no store and no resolvable reference |
 | queues partitioned per application-level step, waited on rather than polled | nothing partitioned; the notify-driven wait exists in the stream lane and is the mechanism to reuse |
@@ -42,7 +42,7 @@ delta rather than a design from nothing.
 | a step code belonging to exactly one level | nothing: a step is a step, and nothing would refuse the same code at both levels |
 | a feedback stream applying outcomes to the originating tenant | the participant reports over the same lane it claimed on, to that tenant directly |
 | execution state in the durable layer | the runner holds its cycle in memory; what survives is what the tenant recorded |
-| a reduced account of execution in the managing tenant | nothing; the manager level asks each node and tenant over their own doors |
+| a reduced account of execution in the management tenant | nothing; the manager level asks each node and tenant over their own doors |
 | router and processor as derived categories | a participant is sealed to or served in the clear, decided by whether it enrolled a key — not by what it asks for |
 | a data-access entry per payload access, carried home | disclosure is recorded where it happens, under the request's purpose |
 | two levels of step definition | one level, per tenant, in two catalogues |
@@ -155,7 +155,7 @@ that creates tenant databases must not be the one that creates these, or they
 arrive with tenant machinery nobody asked for — though the admin connection
 that provisions is the same one.
 
-**The managing tenant stays what it is.** It holds the joiner's own bookkeeping
+**The management tenant stays what it is.** It holds the joiner's own bookkeeping
 and the reduced account, and step queues live beside it rather than inside it —
 otherwise the tenant that records what the deployment did becomes the hottest
 database in it.
@@ -293,11 +293,11 @@ joiner that falls behind, leaving work in tenants with nobody bringing it
 forward, and that is a failure this store already sees: presence is derived from
 a cursor, and a consumer behind and not moving is not present.
 
-**2. What a unified processor is enrolled with. Settled: per tenant.** A
+**2. What an application-level processor is enrolled with. Settled: per tenant.** A
 payload is sealed to an enrolled participant, so enrolling once at fleet level
 would mean something re-seals a tenant's payload and therefore holds tenant
 keys — which is exactly what the carrier rule exists to exclude. Per tenant
-keeps the managing tenant unable to read what it moves, and makes a tenant's
+keeps the management tenant unable to read what it moves, and makes a tenant's
 authorisation a real act rather than a setting.
 
 What follows from it is a UX obligation rather than an open question: a tenant
@@ -338,7 +338,7 @@ in its own trail.
 
 **4. What the reduced account holds.** Explicitly undecided, and the constraint
 is easy to state even before the fields are: nothing about a person, because a
-managing tenant is not a place identifying data goes, and nothing a tenant's own
+management tenant is not a place identifying data goes, and nothing a tenant's own
 record is the answer to, because a second place to ask is a second answer.
 
 **5. The register, and what a row is.** Settled in shape: what a tenant reads

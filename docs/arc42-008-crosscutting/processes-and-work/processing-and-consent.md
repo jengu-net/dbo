@@ -12,6 +12,25 @@ know which way it is moving. The delta against what exists, and the decisions
 still open, are in
 [the ledger item](../../arc42-011-risks-and-technical-debt/032-one-lane-for-the-fleet/README.md).
 
+### Router or processor, and asking is what decides
+
+**An application-level step that reads only the envelope is a router.** It routes on the
+manifest, holds no key, and the store has disclosed nothing to it.
+
+**The moment it asks for a payload it is a data processor**, and the store
+records that it was. Every such access is recorded, travels home on the
+feedback stream, and lands in the originating tenant's own data-access trail.
+
+**The classification is derived, not declared**, and that is the whole point. A
+processor that had to announce itself could fail to, and an application whose
+category was a configuration value would be one where the category and the
+behaviour could disagree. Asking for data is the act; being recorded as having
+asked is its consequence.
+
+**The entry belongs to the tenant**, is written through the port that writes
+that tenant's trail, and names the **processor** as the actor — not whatever
+carried the record home. A trail that named the carrier would answer "who saw
+this" with the name of something that cannot read it.
 ### A tenant admits a step, or the deployment requires one
 
 **Most application-level steps are admitted.** The tenant declares which of the
@@ -54,7 +73,7 @@ becomes the way anything obtains access.
 
 **Required decides that a step runs, not what it may reach.** What it may work
 on is still the intersection of what its credential covers and what the step
-admits. Nothing above widens that, and a required step asked for something
+admits. Nothing here widens that, and a required step asked for something
 outside it is refused by name like anything else.
 
 
@@ -187,22 +206,3 @@ under an unapproved row is in the tenant's trail like every other, so whichever
 posture a deployment takes, the tenant's account of what was read is complete.
 
 
-### Router or processor, and asking is what decides
-
-**A unified step that reads only the envelope is a router.** It routes on the
-manifest, holds no key, and the store has disclosed nothing to it.
-
-**The moment it asks for a payload it is a data processor**, and the store
-records that it was. Every such access is recorded, travels home on the
-feedback stream, and lands in the originating tenant's own data-access trail.
-
-**The classification is derived, not declared**, and that is the whole point. A
-processor that had to announce itself could fail to, and an application whose
-category was a configuration value would be one where the category and the
-behaviour could disagree. Asking for data is the act; being recorded as having
-asked is its consequence.
-
-**The entry belongs to the tenant**, is written through the port that writes
-that tenant's trail, and names the **processor** as the actor — not whatever
-carried the record home. A trail that named the carrier would answer "who saw
-this" with the name of something that cannot read it.

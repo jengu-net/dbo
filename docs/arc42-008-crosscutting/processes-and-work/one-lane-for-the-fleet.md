@@ -35,6 +35,74 @@ deployment's own steps, which every tenant's work flows through, and the steps
 one tenant admits from one participant.
 
 
+### The work is joined into one stream, and what comes back is split out
+
+A run is a record in its own tenant's store, which is what makes "what is
+claimable" an ordinary query. A step-based subscription across a fleet
+therefore cannot be a subscription per tenant: a deployment with fifty tenants
+would have an application asking fifty doors for work it describes once.
+
+**The join is the first stage of the run's journey, not a detour around it.**
+Three stages, and each reuses something the store already does.
+
+**One: every active tenant's work is subscribed to.** A tenant already
+publishes a work stream carrying runs, claims, milestones and closes, and it is
+already consumed the way anything durable is consumed here — as a **named
+consumer** that resumes from the store's own position rather than its own, for
+every tenant rather than a list of them.
+
+The thing doing that reading is the **joiner**, and it is the only new component
+in this stage. One absent for an hour resumes where it stopped instead of
+missing the hour, and a tenant that came up a minute ago is included, because
+the consumer is registered per tenant as tenants arrive.
+
+**Two: what it read is partitioned by step**, and partitioning is the point. A
+subscriber cannot filter a durable queue cheaply while it is running, so the
+filtering is done once, on the way in, and a consumer of one step is offered
+only that step's work.
+
+**What a partition can be is decided by the durable layer, not by
+preference** — the software that keeps work safe across a restart, running on a
+database of its own that the rest of these pages calls a **substrate**. It
+offers two shapes with different costs. Its queues are
+**polled**, at an interval each queue names. Its wake-ups are **addressed to a
+destination**, and a consumer that waits to be told rather than asking is a
+long-lived workflow addressed by name — which is exactly what a tenant's door
+on the stream already is, one per tenant instead of one per step.
+
+**Where a step's queue lives is a placement decision and not a structure.** A
+step names the substrate it runs on and several steps may name one. There are
+few application-level steps and each carries every tenant's work, so a step
+under real load is worth its own database — for the contention it stops sharing
+as much as for the notifications — while a deployment running everything in one
+application points them all at one. That the two can be the same design is the
+point: a store does not know how it will be run.
+[The ledger](../../arc42-011-risks-and-technical-debt/032-one-lane-for-the-fleet/README.md)
+carries what the durable layer restricts and what each shape costs.
+
+**A wake-up is a hint, and the queue is the truth.** A notification nobody was
+listening for is not redelivered, so a consumer that missed one finds the work
+when it next looks. That costs latency and never correctness, which is the only
+reason a wake-up is safe to depend on at all.
+
+**Three: what comes back is written by the tenant's own code.** Outcomes,
+progress and metrics do not reach into a tenant's tables; they arrive at an
+administrative writeback the tenant runtime provides, and it applies them. So
+the tenant keeps control of its own record — the same rules a lane's verbs pass
+through decide whether this step may close, whether a report is in order and
+who is recorded as having performed it. **It is a third door, not a back door.**
+A writeback that bypassed those rules would be a way to write a tenant's work
+records without meeting the conditions every other writer meets.
+
+**And the carrier holds no key because the stream carries no payload.** The
+work stream carries the machinery's own bookkeeping — the run, its claim, its
+milestones — and a tenant's records are a different domain that carries only
+*that* something changed. A joiner is handed no store, no connection and no
+reference it can resolve, so it reads manifests because that is all there is to
+read. The property the whole arrangement rests on is structural rather than a
+rule somebody must remember.
+
+
 ### A tenant's own steps stay in its own tenant
 
 **A tenant may declare steps nobody else defines**, in its own descriptor, and
@@ -155,72 +223,9 @@ a consumer that is behind and not moving is not present — a different sentence
 from nothing being declared.
 
 
-### The work is joined into one stream, and what comes back is split out
-
-A run is a record in its own tenant's store, which is what makes "what is
-claimable" an ordinary query. A step-based subscription across a fleet
-therefore cannot be a subscription per tenant: a deployment with fifty tenants
-would have an application asking fifty doors for work it describes once.
-
-**The join is the first stage of the run's journey, not a detour around it.**
-Three stages, and each reuses something the store already does.
-
-**One: every active tenant's work is subscribed to.** A tenant already
-publishes a work stream carrying runs, claims, milestones and closes, and it is
-already consumed the way anything durable is consumed here — as a **named
-consumer** that resumes from the store's own position rather than its own, for
-every tenant rather than a list of them. A joiner absent for an hour resumes
-where it stopped instead of missing the hour, and a tenant that came up a minute
-ago is included because the consumer is registered per tenant as tenants arrive.
-
-**Two: what it read is partitioned by step**, and partitioning is the point. A
-subscriber cannot filter a durable queue cheaply while it is running, so the
-filtering is done once, on the way in, and a consumer of one step is offered
-only that step's work.
-
-**What a partition can be is decided by the substrate, not by preference**, and
-the durable layer here offers two shapes with different costs. Its queues are
-**polled**, at an interval each queue names. Its wake-ups are **addressed to a
-destination**, and a consumer that waits to be told rather than asking is a
-long-lived workflow addressed by name — which is exactly what a tenant's door
-on the stream already is, one per tenant instead of one per step.
-
-**Where a step's queue lives is a placement decision and not a structure.** A
-step names the substrate it runs on and several steps may name one. There are
-few application-level steps and each carries every tenant's work, so a step
-under real load is worth its own database — for the contention it stops sharing
-as much as for the notifications — while a deployment running everything in one
-application points them all at one. That the two can be the same design is the
-point: a store does not know how it will be run.
-[The ledger](../../arc42-011-risks-and-technical-debt/032-one-lane-for-the-fleet/README.md)
-carries what the substrate restricts and what each shape costs.
-
-**A wake-up is a hint, and the queue is the truth.** A notification nobody was
-listening for is not redelivered, so a consumer that missed one finds the work
-when it next looks. That costs latency and never correctness, which is the only
-reason a wake-up is safe to depend on at all.
-
-**Three: what comes back is written by the tenant's own code.** Outcomes,
-progress and metrics do not reach into a tenant's tables; they arrive at an
-administrative writeback the tenant runtime provides, and it applies them. So
-the tenant keeps control of its own record — the same rules a lane's verbs pass
-through decide whether this step may close, whether a report is in order and
-who is recorded as having performed it. **It is a third door, not a back door.**
-A writeback that bypassed those rules would be a way to write a tenant's work
-records without meeting the conditions every other writer meets.
-
-**And the carrier holds no key because the stream carries no payload.** The
-work stream carries the machinery's own bookkeeping — the run, its claim, its
-milestones — and a tenant's records are a different domain that carries only
-*that* something changed. A joiner is handed no store, no connection and no
-reference it can resolve, so it reads manifests because that is all there is to
-read. The property the whole arrangement rests on is structural rather than a
-rule somebody must remember.
-
-
 ### The execution state is the substrate's, not the JVM's
 
-**A unified step keeps nothing in memory between asks.** What it has done, how
+**An application-level step keeps nothing in memory between asks.** What it has done, how
 far it got and what it is holding live in the durable layer's own execution
 state, so a restart, a redeploy or a move to another node loses nothing and
 resumes rather than starts again. A step whose progress lived in a field would
@@ -232,10 +237,10 @@ on the store's side applies them to the originating tenant's run — so the
 tenant's own record stays the answer to *what is true right now*, exactly as it
 is today, and the unified layer never becomes a second place to ask.
 
-**And the managing tenant keeps a reduced account** of execution state, so the
+**And the management tenant keeps a reduced account** of execution state, so the
 manager level can answer across tenants without asking each of them. Reduced
 rather than a copy: what a fleet operator needs is not what a tenant holds, and
-anything about a person has no business in a managing tenant at all. Which
+anything about a person has no business in a management tenant at all. Which
 fields those are is not decided.
 
 
