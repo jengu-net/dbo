@@ -43,6 +43,8 @@ dependencies {
     // store's promises says so itself.
     testImplementation(project(":promise:proving"))
     testImplementation(project(":core:dbo-promises"))
+    // ApplicationContextRunner hands its callback an AssertJ-shaped context.
+    testImplementation("org.assertj:assertj-core:3.27.3")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 

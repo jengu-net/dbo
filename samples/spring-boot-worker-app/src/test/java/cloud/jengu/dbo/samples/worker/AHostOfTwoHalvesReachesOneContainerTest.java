@@ -1,4 +1,4 @@
-package cloud.jengu.dbo.spring.test;
+package cloud.jengu.dbo.samples.worker;
 
 import cloud.jengu.dbo.embedded.EmbeddedRuntime;
 import cloud.jengu.dbo.embedded.FrameworkContribution;
@@ -19,11 +19,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * An application that serves tenants and performs their work reaches one
  * container, with both halves' configuration in it.
  *
- * <p><b>Here because it cannot be anywhere else.</b> Each assembly's own tests
- * boot that assembly, so neither can see a host made of both — which is
- * exactly how a whole half's configuration came to be discarded without a test
- * noticing. The worker is a test dependency of this module for that one
- * reason.
+ * <p><b>Here because this application is a host of two halves.</b> Each
+ * assembly's own tests boot one assembly, so neither can see a host made of
+ * both — which is exactly how a whole half's configuration came to be discarded
+ * without a test noticing. This sample already holds both, so the property can
+ * be asserted where it is true rather than by lending an assembly to a module
+ * that does not want one: putting the worker on the test assembly's classpath
+ * made every test in it boot a worker, and a worker with no identity refuses at
+ * refresh, exactly as it should.
  *
  * <p>No container is started. A runtime bean of this test's own satisfies the
  * condition both assemblies declare theirs under, so what is asserted is the
