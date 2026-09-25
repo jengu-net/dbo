@@ -610,6 +610,56 @@ processing a tenant declined is not offered to that step, so the ordinary case
 never reaches the incident at all. The incident is what remains: a step
 reaching past what it declared, inside work it was legitimately given.
 
+### What happens between a change and its approval
+
+A register is answered once and then the deployment changes: a step that opens
+a payload is added, or one already there begins opening more. Work arrives in
+the window between the change and the tenant's answer, and something has to
+happen to it.
+
+**Only widening asks for an answer.** A row that disappears, or a step that
+stops opening a slot, leaves a tenant with less to approve than it already
+approved. Renewal is asked for when the deployment would process **more**, and
+never as a formality — a register that asks to be re-approved for a narrowing
+teaches everyone to approve without reading.
+
+**And here refusal is genuinely available**, which it is not elsewhere in this
+design. Whether a step declared what it opens is a fact about code the store
+learns from the trail after the act. Whether a tenant has approved a row is
+known **before the payload is sent**, and what is sent is sealed by the store
+to the participant meant to open it — so declining to seal is a real refusal
+rather than a request not to look.
+
+**So a deployment states, once, what it does with work whose processing is not
+yet approved.** Three postures, and the choice is itself part of the register a
+tenant reads before it joins — a deployment that could change the posture
+quietly would have made the whole register advisory.
+
+- **Approved by the agreement.** The change applies and work continues,
+  because the tenant's agreement already says the deployment may vary this.
+  Legitimate only where that is actually what was signed, and it is the posture
+  that costs the most to get wrong: the mechanism's entire value is that a
+  change in processing is visible, and this one makes it visible after the fact.
+- **Processed, and named as an incident.** Work continues and the store says,
+  by name, that a step processed under a row nobody approved. Nothing is
+  interrupted and nothing is quiet, which is the same answer this store gives
+  wherever it can classify but not prevent.
+- **Not processed until approved.** The payload is not sealed to that step, so
+  the work is not offered to it. **It is not an error and the run is not lost:**
+  it queues, as work waits here by design, and an incident names what it is
+  waiting for. A deployment that must not process without an answer chooses
+  this and accepts that an unanswered register stops work rather than widening
+  quietly.
+
+**A bounded window is the fourth shape**, and it is the two middle ones in
+sequence: process and name it for a stated period, then stop. It is what a
+deployment that can neither halt on a Friday nor process indefinitely without
+an answer actually needs, and it says so as a duration rather than as a habit.
+
+**What none of them changes** is that the access is recorded. A payload opened
+under an unapproved row is in the tenant's trail like every other, so whichever
+posture a deployment takes, the tenant's account of what was read is complete.
+
 ### Router or processor, and asking is what decides
 
 **A unified step that reads only the envelope is a router.** It routes on the

@@ -45,6 +45,7 @@ delta rather than a design from nothing.
 | a register of processing a tenant reads as a whole | nothing: a participant enrols, and no document says what it opens |
 | a step declaring that it *opens* a slot rather than carries it | a declaration names its slots and their types, and nothing distinguishes opening from routing |
 | an incident where the trail disagrees with the register | incidents exist where a mandatory step is uncontributed; nothing compares an access against a declaration |
+| a stated posture for work whose processing is not yet approved | nothing: there is no register, so no window between a change and an answer |
 | enrolment answered for a whole deployment at once, and change detectable in one comparison | enrolment is a participant offering two keys, per tenant, one at a time |
 
 **And one piece of plumbing is missing underneath all of it.** The Spring
@@ -138,7 +139,34 @@ are different things that the word does not distinguish. The concept is right;
 the risk is a tenant-facing screen that invites the legal reading of a term
 being used in an operational sense.
 
-**6. What a joined item is.** A copy in flight, bounded by the work that caused
+**6. The posture for unapproved change, and its default.** Settled in shape: a
+deployment states once what happens to work whose processing a tenant has not
+yet approved — applied under the agreement, processed and named as an incident,
+or not processed until approved — with a bounded window as the two middle
+postures in sequence. Only a widening asks for renewal.
+
+**Refusal is available here and nowhere else in this design**, which is why the
+third posture is real: approval is known before the payload is sealed, so
+declining to seal actually prevents the processing. Contrast the register-versus-trail
+incident, where the application already holds the key and only detection is
+possible.
+
+Open: **the default**, and it is not a small choice. Processing-and-naming
+keeps a deployment running and makes nothing silent, which fits how this store
+behaves everywhere it can classify but not prevent — but a default that
+processes is a default that widens. Not-processing is the safe reading and
+turns an unanswered register into stopped work, which is an outage caused by
+somebody not clicking.
+
+Open too: **whether the posture may be per row** — a new mandatory row and a
+widened existing one are different acts, and a deployment may reasonably want
+to halt for the first and continue for the second.
+
+**The constraint, whichever way those go**: the posture is part of the register
+a tenant reads before joining, and changing it is itself a change a tenant
+detects. A posture that could be set quietly makes the register advisory.
+
+**7. What a joined item is.** A copy in flight, bounded by the work that caused
 it, is the existing shape for a sealed payload and is probably right here too —
 but a run that is also a row in a managing tenant needs its lifetime stated:
 when it is removed, what happens to it on retraction, and whether an erasure
