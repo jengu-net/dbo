@@ -1,8 +1,10 @@
-**Open, and not started: a proposal awaiting approval. The desired state is
-described in [processes and work](../../arc42-008-crosscutting/processes-and-work/README.md)
-under "Where this is going". This item is the delta against what is built, the
-decisions that have to be made before anything is, and nothing else. No
-implementation plan is agreed.**
+**Open, and not started. The desired state is described beside the concept it
+grows out of — [one lane for the fleet](../../arc42-008-crosscutting/processes-and-work/one-lane-for-the-fleet.md)
+and [what a tenant agreed to](../../arc42-008-crosscutting/processes-and-work/processing-and-consent.md).
+This item is the delta against what is built, the decisions behind it, and an
+eight-step plan whose first two exist to stop the store acquiring two
+schedulers over one run. Nothing is implemented and the plan is proposed rather
+than agreed.**
 
 # One lane for the fleet, and two levels of step
 
@@ -403,6 +405,132 @@ in flight is already answered — it is the carrier form, in the same state as
 the store's own records after a shred — an item sitting in a step's substrate
 is a copy the deployment holds rather than one in transit. Whether an erasure
 reaches it, and how, is the part still to decide.
+
+## The order this becomes possible in
+
+**Eight steps, and the ordering is not taste.** Three of them exist to make a
+later one provable, and two must land before anything joins work at all or the
+store acquires two schedulers over one run. Each step says how it is proven,
+because a green build proves nothing here: the characteristic defect compiles,
+resolves and dies on first use.
+
+**Every step that adds behaviour claims or adds a REQ.** That is the house rule
+and it is also the discipline this plan needs most — a phase with no promise to
+cite is a phase nobody can tell is finished.
+
+### 0. A worker in the deployment can reach the substrate at all
+
+[Item 031](../031-a-worker-in-the-deployment-takes-the-substrate/README.md),
+and nothing here works without it: `dbo-stream` is not in the worker assembly's
+bundle set and no configuration would reach it if it were.
+
+Add the bundle; add substrate and enrolment configuration; infer the carrier
+from the shape of a lane — a base and a token is HTTP, neither is the substrate
+— and refuse at context refresh when a lane resolves to nothing.
+
+**The long pole is enrolment, not wiring.** A lane on the stream is held only by
+a participant enrolled with two keypairs, per tenant, so this step needs a way
+to enrol one from configuration or an admin door. That is most of the work and
+it is worth knowing before starting.
+
+*Proven by:* a worker in the deployment performing a tenant's work with no HTTP
+in the path, and the existing HTTP sample still green beside it.
+
+### 1. Application-level steps are declarable, and nothing runs
+
+A key of their own in the management descriptor, legal there and refused by
+name anywhere else. An entry carries the step, its slots, which of them it
+**opens**, whether it is required or admitted, its posture, and where its queue
+is to live.
+
+*Proven by:* a declaration accepted in the management descriptor and the same
+one refused in a tenant's, each by name.
+
+### 2. A step code belongs to one level, enforced
+
+The invariant the whole design rests on, and it must precede any joining: the
+same code in the management descriptor and a tenant's is refused, by the sweep
+that already reconciles declarations.
+
+**Out of order, this is the bug that produces two schedulers over one run** —
+the failure this store already describes for two sites of one tenant, where the
+deadline passing and the report being in flight are both true.
+
+*Proven by:* both declarations present, refused by name, naming both sides.
+
+### 3. Declaring a step provisions its substrate
+
+Runtime-owned databases with a durable bootstrap and nothing else — no face, no
+zone, no isolation, no authority — created through the admin connection that
+already provisions tenants, and **not** through the path that provisions a
+tenant. Placement honoured: several steps may name one substrate.
+
+Withdrawal closes the step to new work and removes nothing; removal is a
+person's act.
+
+*Proven by:* two steps sharing a substrate and one with its own; a withdrawal
+that stops intake while the substrate and its queued work remain.
+
+### 4. The joiner reads every tenant and writes the queues
+
+A work-domain observer over every tenant — a named durable consumer that
+already exists as a mechanism — filtered to the step codes the management
+descriptor declares, writing an item per run into that step's queue,
+**idempotent on the run's own identity** because no transaction spans the read
+and the write.
+
+It claims nothing. Nothing consumes yet.
+
+*Proven by:* a run authored in a tenant appearing in its step's queue; a
+tenant-private run appearing nowhere; the joiner stopped and restarted without
+duplicating an item.
+
+### 5. A bean performs work for every tenant
+
+The consumer side: a step service in a serving application is offered its
+step's queue rather than a lane per tenant, and keeps nothing between asks.
+
+*Proven by:* one bean performing work authored in two different tenants,
+naming neither, and surviving a restart mid-run.
+
+### 6. The writeback returns it through the tenant's own rules
+
+An administrative port the tenant runtime provides, applying outcomes,
+progress and metrics through the same primitive a lane's verbs pass — whether
+this step may close, whether a report is in order, who is recorded as having
+performed it.
+
+*Proven by:* a run closing in the tenant that authored it, naming the
+executor; and a report that breaks a rule refused exactly as it would be on a
+lane.
+
+### 7. The register, the trail and the incident
+
+The part a tenant sees, and the part that makes the rest legitimate. In order,
+because each needs the one before: the register derived from the declaration;
+enrolment answered for a whole deployment at once with change visible in one
+comparison; every payload opened recorded and carried home into that tenant's
+trail naming the processor; the disagreement between register and trail
+classified as an incident; and the postures — processed-and-named by default,
+per row, refusing to seal where a row says not until approved.
+
+*Proven by:* a step that opens a payload it never declared, named as an
+incident in the tenant's own account; a row declined, and that tenant's work
+not offered to that step; a row not yet approved, and the posture obeyed.
+
+## What this plan does not schedule
+
+**The reduced account**, because what it holds is undecided and the constraint
+is easier than the content: nothing about a person, nothing a tenant's own
+record already answers.
+
+**Erasure reaching an opened copy.** A sealed copy in flight is answered; a
+copy a processor has opened and holds is not, and it is a question about the
+store's promises rather than about this design.
+
+**Whether a row is a slot or something finer**, and whether *consent* is the
+word for a tenant's authorisation. Both are open above, and neither blocks a
+step below 7.
 
 ## What is deliberately not proposed
 
