@@ -40,6 +40,14 @@ dependencies {
     // put a worker into an application that did not ask for one.
     compileOnly(project(":assembly:spring-boot-worker"))
 
+    // Both halves on one test classpath, which no other module has: the
+    // property that a host assembled from two pieces reaches ONE
+    // container with BOTH their configurations cannot be seen from
+    // inside either assembly, and that is how it went unnoticed.
+    testImplementation(project(":assembly:spring-boot-worker"))
+    // ApplicationContextRunner hands its callback an AssertJ-shaped context.
+    testImplementation("org.assertj:assertj-core:3.27.3")
+
     implementation("org.springframework.boot:spring-boot-autoconfigure:$springBootVersion")
     compileOnly(
         "org.springframework.boot:spring-boot-configuration-processor:$springBootVersion")

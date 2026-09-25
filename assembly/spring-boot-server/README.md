@@ -198,14 +198,12 @@ Moving between them is configuration.
 takes work over a lane and reports over the same one, whichever carries it —
 which is why the carrier can change without a bean noticing.
 
-**One caveat, and it bites today.** Both assemblies declare the container bean
-`@ConditionalOnMissingBean` and neither declares an order, so the one Spring
-processes second does not run and its framework properties are discarded in
-silence. In practice the server wins, which costs the worker its `poll` and
-`hold` dials — measured at 2.011s against a configured 500ms. Nothing fails;
-the dial is simply read and thrown away.
-[Item 030](../../docs/arc42-011-risks-and-technical-debt/030-two-assemblies-one-runtime/README.md)
-holds it. Until it is fixed, a co-located worker runs at the defaults.
+**Each half's configuration reaches the container.** Both assemblies declare
+the container bean under a condition that it does not already exist, so one of
+them builds it — and it is built from every `FrameworkContribution` the host
+publishes rather than from the builder's own properties. A host that set one
+property to two values is refused at refresh, naming the property and both
+values, because there is no correct answer available to it.
 
 ## What this deliberately does not do
 

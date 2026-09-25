@@ -2,8 +2,10 @@ package cloud.jengu.dbo.spring.server;
 
 import cloud.jengu.dbo.embedded.DboRegistrar;
 import cloud.jengu.dbo.embedded.EmbeddedRuntime;
+import cloud.jengu.dbo.embedded.FrameworkContribution;
 import com.sun.net.httpserver.HttpServer;
 import jakarta.servlet.Filter;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -40,12 +42,23 @@ public class DboServerAutoConfiguration {
      */
     @Bean(initMethod = "start", destroyMethod = "close")
     @ConditionalOnMissingBean
-    public EmbeddedRuntime dboEmbeddedRuntime(DboServerProperties properties) {
+    public EmbeddedRuntime dboEmbeddedRuntime(DboServerProperties properties,
+            ObjectProvider<FrameworkContribution> contributions) {
         refuseToServeWithoutAnAuthority(properties);
+        // EVERY contribution, not this configuration's own. An application
+        // that also performs work carries a second one, and the container it
+        // reaches is this one — whichever half of the host happened to build
+        // it.
         return new EmbeddedRuntime(getClass().getClassLoader(),
-                properties.asFrameworkProperties(),
+                FrameworkContribution.merged(contributions.orderedStream().toList()),
                 EmbeddedRuntime.storageUnder(
                         Path.of(System.getProperty("java.io.tmpdir")), "dbo-embedded"));
+    }
+
+    /** What serving tells the container. */
+    @Bean
+    public FrameworkContribution dboServerFrameworkContribution(DboServerProperties properties) {
+        return properties::asFrameworkProperties;
     }
 
     /**
