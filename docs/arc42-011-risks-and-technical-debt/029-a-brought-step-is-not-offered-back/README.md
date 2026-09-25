@@ -1,9 +1,9 @@
-**Open, and one question. A participant introduces a step, the face accepts a
-run of it, the participant is healthy and performing the step it declared in
-the same cycle — and a run of the brought one is not offered back to it within
-two minutes. Everything up to the run being authored is proven in
-`samples/spring-boot-worker-app`; the line after it is not asserted, because
-nobody has explained it.**
+**Open, and narrowed to two filters in one method. The run is created and
+correctly shaped, the service is wired, the credential is entitled to
+everything, and the lane reads the feed runs live on — and the run is never
+OFFERED, rather than offered and not taken. What rejects it is one of the two
+conditions in `Participation.poll` nobody has yet observed: whether it reads as
+already claimed, or as not open.**
 
 # A brought step's run is not offered back
 
@@ -43,6 +43,66 @@ of the things that could have been its fault: an introduction refused while the
 store was unreachable is made again on the first cycle that completes, and a
 service the lane offers no work for costs the service beside it nothing. Twelve
 seconds, no container.
+
+## What is now known, by measurement rather than reading
+
+Probed by printing what the store holds the moment the face accepts the run,
+then asking for four minutes whether it is ever performed.
+
+**The run exists and is exactly right.**
+
+```
+key=hogwarts.admission.assay/a-brought-assay  process=hogwarts.admission
+step=assay  holder=AUTOMATION  milestone=null
+```
+
+Process and step are split the way the poll filter expects, so
+`steps.contains(run.step())` matches. `holder=AUTOMATION` means *a step is
+executing, nobody needs to do anything* — the state a run waiting for a
+participant is in, not a stalled one.
+
+**The service is wired.** `performing()` answers with both steps, the brought
+one included.
+
+**The credential is entitled to everything**, which answers the second question
+this item was filed with. The worker's lane carries the test deployment's work
+client, whose scope is `work`; `worksAsTheTenant` is `granted.contains("work")`,
+so the entitlement is `everything()` and `entitlement.narrow(steps)` is a no-op.
+
+**The lane reads the feed runs live on**, which answers the first. `laneFeed` is
+a `PgChangeFeed` over `WorkModel.DOMAIN`, and the comment above that line warns
+about exactly the failure this resembles — *a content feed polls a stream runs
+never appear in, which looks exactly like a lane with no work, for ever*. It is
+not that.
+
+**And it is never offered.** A claim that fails says so, and no `claim failed`
+is ever logged. Four minutes at a 507ms poll, after the startup transient has
+cleared, in a context where the spec-declared step is performed.
+
+## What that leaves
+
+`Participation.poll` filters a feed item four ways. Two are observed to pass;
+two have never been looked at.
+
+| filter | status |
+|---|---|
+| `steps.contains(run.step())` | passes — `assay` is in the polled set |
+| `run.item() == null` | passes — the run has no items |
+| `!run.claimed(now)` | **unobserved** |
+| `Run::open` | **unobserved** |
+
+**One difference between the two runs is worth testing first.** A tenant's own
+step is declared by `StepSurface` as `StepDeclaration.of(code, "1", "r5")` —
+the domain hardcoded to the face's. An introduced declaration carries whatever
+it declared, and the sample's says `"work"`. Both runs are then minted by the
+same `runs.of(step, PIPELINE, scope, inputs)`, so if the declaration's domain
+reaches the run's state or its openness, it is the only input that differs.
+
+**And the next probe should be fast rather than end to end.** Two runs minted
+in one harness world — one from a spec-shaped declaration, one from an
+introduced one — polled through `Participation` directly, asserting which is
+offered. That isolates the filter in seconds, where the sample costs five
+minutes a cycle to answer yes or no.
 
 ## What has not been checked
 
