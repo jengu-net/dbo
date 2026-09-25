@@ -16,12 +16,17 @@ dbo:
       name: my-worker      # who a run records as having performed it
       version: "1"
     poll: 2s
-    lanes:
+    lanes:                 # one per tenant, and a worker usually holds several
       - tenant: hogwarts
         base: https://dbo.example/t/hogwarts/
         token:
-          client-id: ${DBO_WORKER_CLIENT_ID}
-          client-secret: ${DBO_WORKER_CLIENT_SECRET}
+          client-id: ${HOGWARTS_CLIENT_ID}
+          client-secret: ${HOGWARTS_CLIENT_SECRET}
+      - tenant: st-jerome
+        base: https://dbo.example/t/st-jerome/
+        token:
+          client-id: ${ST_JEROME_CLIENT_ID}
+          client-secret: ${ST_JEROME_CLIENT_SECRET}
 ```
 
 ```java
@@ -144,7 +149,7 @@ the runner stops being offered work before it stops being able to perform it.
 A step still running when the grace expires is released with a reason rather
 than dropped: the run returns to the tenant and a later cycle takes it.
 
-## Two shapes, and which one you want
+## Where a worker runs, and which carrier it uses
 
 **Both halves in one application** is the ordinary one. It serves its tenants
 and performs their work in one process, on one container:
@@ -160,38 +165,44 @@ framework rather than starting two — which for the element bundle is the
 difference between holding a parsed set of FHIR definitions once and holding it
 twice, measured at 100 to 215 MB a copy.
 
-**A worker of its own is for scaling.** The performing side and the serving
-side have nothing in common but the lane, and they do not grow together: a
+**A worker of its own is for scaling**, and it is still part of the
+deployment. The performing side and the serving side do not grow together: a
 step that runs for a minute over a large payload wants replicas, and serving a
 FHIR read does not. So a separate application — several of them, or a pod per
-step — takes the same lanes and the same beans, stateless over the tenants it
+step — takes the same beans and the same lanes, stateless over the tenants it
 is handed. Parallel runners claiming from one lane is the design and not a
 race: a claim is the scheduler, and two runners introducing an identical
 declaration co-introduce without refusal.
 
-It is also the shape for a worker that is **not** the deployment's — a party
-performing a step for a tenant it does not run, reaching it over the lane and
-nothing else.
+**Almost every worker serves many tenants.** A lane is per tenant and the
+configuration is a list, so one worker holding a dozen of them is the ordinary
+shape rather than a special case.
 
-Neither shape changes a line of a step service, which is the point of the
-lane. Moving from one to the other is configuration.
+**A worker belonging to somebody else is the third case**, and the only one
+HTTP is for: another organisation's application performing a step for a tenant
+it does not run — a laboratory, a tenant's own edge device. It reaches the
+deployment over the lane and nothing else, with a credential that tenant
+issued, and has no business near the deployment's database.
 
-**The carrier should be the deployment's own substrate, and today it is not.**
-A worker beside the store has no business asking its own port for work: the
-natural lane is the one over the stream, which reaches the same database the
-serving half is already on — no second hop, no token round-trip against an
-authority in the same process. `StreamLane` exists and the runner cannot tell
-which carrier brought a run, which is what makes the switch invisible to a
-bean.
+So the carrier follows the organisation rather than the process boundary:
 
-What does not exist is the configuration. `DboWorker` builds an `HttpLane`
-from `dbo.worker.lanes[].base` and nothing else, so a co-located worker polls
-itself over the loopback with an ordinary credential the tenant issued. The
-stream lane is wired by `dbo-stream`'s own activator from framework
-properties, which is a host reaching a deployment's substrate from outside
-rather than an application declaring a lane.
-[Item 031](../../docs/arc42-011-risks-and-technical-debt/031-a-co-located-worker-takes-the-substrate/README.md)
-is that gap.
+| the worker | carrier |
+|---|---|
+| beside the serving half, one process | the substrate |
+| its own process, part of this deployment | the substrate |
+| another organisation's application | HTTP |
+
+**Today every worker built on this assembly polls over HTTP**, including the
+two that should be on the substrate. It is not a missing property name:
+`dbo-stream` is not in the worker assembly's bundle set, so `StreamLane` is not
+installed, and `DboWorkerProperties` carries no `dbo.framework.*` passthrough
+that would reach the activator which does install one.
+[Item 031](../../docs/arc42-011-risks-and-technical-debt/031-a-worker-in-the-deployment-takes-the-substrate/README.md)
+is that work. The runner cannot tell which carrier brought a run, so it is
+wiring and nothing a step service sees.
+
+Neither shape changes a line of a step service, which is the point of the lane.
+Moving between them is configuration.
 
 **What does not change either way** is that the worker is handed no store. It
 takes work over a lane and reports over the same one, whichever carries it —
