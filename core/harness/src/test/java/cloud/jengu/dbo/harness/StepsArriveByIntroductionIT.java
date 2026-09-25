@@ -50,7 +50,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class StepsArriveByIntroductionIT {
 
-    /** What the linked participant brings: a full declaration, actions included. */
+    /** What the participant on a lane brings: a full declaration, actions included. */
     private static final StepDeclaration BROUGHT =
             StepDeclaration.of("ee-lab.result.sign", "2.0", WorkModel.DOMAIN)
                     .containing("open")

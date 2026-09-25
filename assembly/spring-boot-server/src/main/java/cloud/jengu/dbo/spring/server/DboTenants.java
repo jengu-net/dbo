@@ -5,7 +5,7 @@ import cloud.jengu.dbo.auth.TenantAuthority;
 import cloud.jengu.dbo.core.api.ObjectStore;
 import cloud.jengu.dbo.core.api.feed.ChangeFeed;
 import cloud.jengu.dbo.fhir.common.FhirStoreFacade;
-import cloud.jengu.dbo.spring.EmbeddedRuntime;
+import cloud.jengu.dbo.embedded.EmbeddedRuntime;
 
 import java.util.List;
 import java.util.Optional;

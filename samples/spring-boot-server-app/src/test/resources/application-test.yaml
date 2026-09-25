@@ -1,0 +1,6 @@
+# What this test needs, and nothing else. Where the database is, what key the
+# tenants are sealed under and which port this comes up on are facts about the
+# deployment the harness creates, so the harness derives them.
+dbo:
+  test:
+    world: ../sample-world

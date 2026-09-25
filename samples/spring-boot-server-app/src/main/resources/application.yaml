@@ -1,0 +1,17 @@
+# What this application tells the store. Everything under `dbo` is the
+# wrapper's; everything else is an ordinary Spring Boot application's.
+#
+# There is no port for the store and no second server: `mount: servlet` puts
+# the tenants' doors on this application's own port, inside its filter chain.
+dbo:
+  mount: servlet
+  tenants:
+    directory: ../sample-world/tenants
+  # The store keeps its own history in a tenant, and that one is named here
+  # rather than watched: the loop that retracts undeclared tenants must not be
+  # able to retract the thing that records retractions.
+  management-spec: ../sample-world/mom.json
+
+spring:
+  application:
+    name: dbo-sample-server

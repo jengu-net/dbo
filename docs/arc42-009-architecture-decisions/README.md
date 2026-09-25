@@ -27,6 +27,7 @@ overturned, the new record says so and the old one's status changes.
 | [009 A refusal and an unanswered store are different](009-a-refusal-and-an-unanswered-store.md) | Resolved | processes and work |
 | [010 Why the engine is shaped this way](010-why-the-engine-is-shaped-this-way.md) | Context | the solution strategy |
 | [011 A pattern language for the store](011-a-pattern-language-for-the-store.md) | Resolved | the patterns |
+| [012 The engine takes no framework](012-the-engine-takes-no-framework.md) | Adopted | building blocks |
 
 ## The numbers a comment may still carry
 

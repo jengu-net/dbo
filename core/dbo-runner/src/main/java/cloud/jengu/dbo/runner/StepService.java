@@ -22,7 +22,7 @@ public interface StepService {
 
     /**
      * The declaration this service brings with it, when it performs a step
-     * the catalogue has not declared — a linked participant carrying
+     * the catalogue has not declared — a participant on a lane carrying
      * its own capability. Empty is the honest default: a service performing
      * an installed step brings nothing, because the module already
      * contributed it. The runner introduces it beside the candidacy, so the

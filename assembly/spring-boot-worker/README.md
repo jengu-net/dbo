@@ -1,310 +1,248 @@
-# The step runner, inside a Spring Boot application
+# Performing a tenant's work from a Spring Boot application
 
-One dependency, and a bean that implements `StepService` is a step this
-application performs. Work arrives whole; the outcome goes back. There is no
-store here and no way to get one.
+One dependency, and a bean that is a step. The application polls the tenants
+named in its configuration, performs what they offer and reports — over a
+lane, and nothing else. It is handed no store and has no way to reach one,
+which is the property that lets it run anywhere.
 
-This document is the plan it is being built to.
-
-The host — one framework, one class space, the host's own logging, the
-Spring Boot generation — is
-[`../spring-boot-core`](../spring-boot-core/README.md), and those decisions
-are argued there rather than repeated here. The serving half is
-[`../spring-boot-server`](../spring-boot-server), which brings tenants up. An
-application holding both gets one framework. This one states what is different here, which is
-mostly what is **absent**.
-
-## What is already here
-
-- `build.gradle.kts` — the module, its dependency shape, and `bundleIndex`,
-  which writes the ordered bundle set into `META-INF/dbo/bundles.index`.
-- The module is wired into `settings.gradle.kts` and publishes as
-  `cloud.jengu.dbo:dbo-spring-boot-worker`.
-
-Run `./gradlew :assembly:spring-boot-worker:bundleIndex` and read the index.
-Five bundles:
-
+```kotlin
+implementation("cloud.jengu.dbo:dbo-spring-boot-worker:0.1.0-SNAPSHOT")
 ```
-cloud.jengu.dbo.core
-cloud.jengu.dbo.work
-cloud.jengu.dbo.telemetry
-cloud.jengu.dbo.telemetry.otlp
-cloud.jengu.dbo.runner
-```
-
-**That list is the claim.** No store bundle, no face, no tenant, no
-transport beyond the runner's own. A party that performs somebody else's work
-compiles against the lane and the work vocabulary and nothing else, and a
-dependency here that `sample/participant` does not have would be this module
-saying that joining costs more than it does.
-
-The container already proves the same set from the other side:
-`ADriverBundleContributesAStepIT` installs exactly these, plus a driver
-bundle that registers a `StepService` and a `Lane`, and asserts the work is
-performed with nothing wired by hand. This module is that driver bundle,
-written in Spring.
-
-## What the sample application says about this
-
-Two files, and they are opposite ends of the same sentence.
-
-**`AdmitStep` is what an application writes**, and it is already the right
-shape. It implements `StepService`. It declares a step code. It reads
-`work.inputs()`, reports a milestone, and returns `Outcome.done` or
-`Outcome.failed`. It names no transport, no tenant and no store, and it holds
-no state between calls. The comment on it — *this is the whole of what an
-integrator writes* — is the requirement this module has to make true, because
-today it is not quite: `AdmitStep` is the whole of what an integrator writes
-**plus** `Admissions`.
-
-**`Admissions` is what an application should stop writing.** Forty lines
-that construct an `Executor` identity, construct a `StepRunner` with a hold
-and a poll duration, `register` the step, and `attach` an `HttpLane` built
-from a tenant base URI, a bearer supplier, a tenant code and a runner name.
-It is `AutoCloseable` and the caller holds it, and it exposes `cycle()` for a
-test and `start()` for a process.
-
-Every one of those is configuration, not code:
-
-| `Admissions` line | Becomes |
-|---|---|
-| `new Executor("ward-runner", "1", tenant, Scope.organisation(tenant))` | `dbo.worker.identity.*` |
-| `new StepRunner(ofMinutes(1), ofSeconds(2))` | `dbo.worker.hold` / `dbo.worker.poll` |
-| `.register(new AdmitStep())` | the bean |
-| `.attach(HttpLane.to(base.resolve("work"), bearer, tenant, name, identity))` | `dbo.worker.lanes[0].*` |
-| `close()` | the context closing |
-| `cycle()` | see step 6 |
-
-The `Supplier<String>` for the token is the part to copy rather than
-simplify. The comment says why: a runner outlives an access token, and one
-captured at construction starts failing an hour later in a way that reads
-like the store going away. A Spring property holding a literal token is the
-mistake that comment describes, and the configuration has to make the
-supplier the ordinary case and the literal the awkward one.
-
-`sample/participant` says the rest. It is smaller than the sample on purpose
-— the lane and the work vocabulary, no store, no tenant, no face — and it is
-the module this one is the Spring binding for.
-
-## How the runner is driven, and by whom
-
-The runner is not called by the application. `StepRunner.start()` runs a poll
-loop on its own thread: it asks each attached lane what work is offered,
-performs it, and reports. Nothing nudges it.
-
-In the container that loop belongs to `dbo-runner`'s activator, which is the
-whiteboard both ways: any bundle registering a `StepService` contributes a
-step, and any bundle registering a `Lane` gives it somewhere to poll. The
-activator's two dials are framework properties, `dbo.runner.poll.millis` and
-`dbo.runner.hold.millis`.
-
-So this module does **not** construct a `StepRunner`. It registers services
-and lets the activator do what it already does. That distinction is the
-difference between a Spring starter and a second implementation of the runner
-that drifts from the first, and it is why step 4 is shorter than it looks.
-
-## The steps
-
-### 1. The module and its cargo — done
-
-See *What is already here*.
-
-### 2. The host — in `spring-boot-core`
-
-Read its [step 2](../spring-boot-core/README.md#2-boot-a-framework-nobody-can-see).
-Nothing to build here. The module exists, and this one depends on it.
-
-The API packages this assembly adds to the computed list are the ones it
-compiles against — `cloud.jengu.dbo.core.*`, `cloud.jengu.dbo.work`,
-`cloud.jengu.dbo.runner` and `cloud.jengu.dbo.runner.http` — plus
-`org.slf4j`. Computed from the manifests, not listed here.
-
-*Proved by:* the host's own test, plus one here asserting the five bundles
-of this index reach `ACTIVE` with no store bundle among them — the absence is
-part of the claim, so something has to assert it.
-
-### 3. Configuration — done
-
-`@ConfigurationProperties("dbo.worker")`, in `DboWorkerProperties`.
 
 ```yaml
 dbo:
   worker:
-    poll: 2s               # dbo.runner.poll.millis
-    hold: 1m               # dbo.runner.hold.millis
     identity:
-      name: ward-runner
+      name: my-worker      # who a run records as having performed it
       version: "1"
-    lanes:
+    poll: 2s
+    lanes:                 # one per tenant, and a worker usually holds several
       - tenant: hogwarts
-        base: https://deployment.example/t/hogwarts/
-        scope: organisation        # organisation | tenant
+        base: https://dbo.example/t/hogwarts/
         token:
-          client-id: ward-runner
-          client-secret: ${WARD_SECRET}
+          client-id: ${HOGWARTS_CLIENT_ID}
+          client-secret: ${HOGWARTS_CLIENT_SECRET}
+      - tenant: st-jerome
+        base: https://dbo.example/t/st-jerome/
+        token:
+          client-id: ${ST_JEROME_CLIENT_ID}
+          client-secret: ${ST_JEROME_CLIENT_SECRET}
 ```
 
-Two things are load-bearing.
+```java
+@Component
+class AdmittingAPatient implements StepService {
 
-**The token is obtained, not configured.** `token.client-id` and
-`token.client-secret` name a client the tenant holds, and the starter signs
-in against the tenant's own authority and refreshes before expiry — the
-`Supplier<String>` the lane already takes, filled properly. A bean of type
-`DboToken` named for a lane overrides it, for an application whose process
-acts for a person and carries that person's token rather than minting its
-own. A literal `token.value` exists and is documented as what it is: fine for
-a spike, wrong for a process that runs longer than an hour.
+    @Override public String step() { return "hogwarts.admission.admit"; }
 
-**The executor identity is four fields and all four are required.** Named,
-versioned, provided and scoped — an executor that cannot be reproduced cannot
-be held to what it did. `name` and `version` come from configuration;
-`provider` and `scope` are derived from the lane's tenant, which is what
-`Admissions` does. An application that leaves `identity.name` unset is
-refused at context refresh, not defaulted to the artifact id.
+    @Override public Outcome perform(Work work) {
+        byte[] patient = work.inputs().get("patient").payload();
+        work.progress().milestone("identified", Map.of("read", 1L));
+        return Outcome.done(Map.of("admitted", 1L));
+    }
+}
+```
 
-*Proved by:* a test asserting that a lane configured with a client id and
-secret obtains a token, and that a token which expires mid-run is replaced
-without the runner noticing.
+That is the whole of what an application writes. Nothing constructs a runner,
+registers itself, attaches a lane or names a tenant in code.
+`samples/spring-boot-worker-app` is exactly this, running.
 
-### 4. Beans in: a bean that is a step — done
+## The one rule
 
-Every bean implementing `StepService` is registered as a `StepService` on the
-container's whiteboard, through `DboRegistrar` — the one line between a
-Spring bean and a whiteboard, and the only thing in these assemblies that
-knows what a service registration is.
-That is the whole of it — the step's code is on the interface, so there is no
-metadata to carry and no annotation to invent.
+**A worker is handed no store, and cannot ask for one.** What arrives is the
+run and the objects it named — there is nothing to fetch and nowhere to fetch
+it from. An application that needs a store is a server, and that is
+[the other module](../spring-boot-server).
 
-Every configured lane becomes a `Lane` service, built with
-`HttpLane.to(base.resolve("work"), tokenSupplier, tenant, identityName,
-executor)`.
+This holds even where one is in the same process. A co-located worker reaches
+its tenant over a lane like any other, because a worker that read the store
+directly when it happened to be nearby would be one that could not be moved.
 
-The activator sees both and wires them. Nothing in this module constructs a
-`StepRunner`.
+**The identity is named and versioned, and is not defaulted to an artifact
+id.** A run records who performed it and under which version, and an executor
+that cannot be reproduced cannot be held to what it did.
 
-**Two beans declaring the same step code is a refusal at context refresh.**
-The runner's `register` takes the step code as a key; a second registration
-of the same code inside a running container is a last-one-wins that an
-application author would have to discover by watching which one ran. Spring
-knows both beans at refresh and can say so.
+## Two ways a bean becomes a step
 
-*Proved by:* `ABeanIsAStepThisApplicationPerformsIT`. A bean of the shape
-`AdmitStep` has, some configuration, and a standing `ProvingLane` — nothing
-in the test constructs a runner, registers a step service or attaches a lane,
-so if the step is performed the only thing that can have wired it is the
-whiteboard. Three claims, each confirmed red by mutation: the bean's step is
-performed; two beans for one code are refused at refresh naming both; a lane
-with no way to obtain a credential is refused naming the tenant.
+**Filling a vacancy.** The tenant declares the step in its own spec and the
+bean arrives able to perform it. The step code is the tenant's, which is why
+it is a string rather than a constant the application invented.
 
-**One thing the first run found.** The container was created as a bean and
-never started, so an application bean that registered something while being
-constructed met a runtime that refused every call. It is now booted by
-`initMethod` rather than on a lifecycle: anything that takes the bean takes a
-RUNNING container. The alternative was a bean that is only sometimes what it
-says it is, and ordering an application's own constructors against a
-lifecycle phase is not something a starter gets to ask of anybody.
+**Bringing one.** A service that returns its own declaration introduces it
+beside its candidacy, so the catalogue learns it the moment presence can be
+derived:
 
-### 5. Lifecycle
+```java
+@Override public Optional<StepDeclaration> declaration() {
+    return Optional.of(StepDeclaration.of("hogwarts.admission.assay", "1", "work")
+            .taking("specimen", "Observation"));
+}
+```
 
-`SmartLifecycle`, as in the server assembly, with one difference: **a lane
-that cannot be reached is not a failure to start.**
+**Bringing one grants nothing, and that is not a footnote.** The tenant's own
+step door is built from its spec and stays so: it refuses this step by name,
+however long the application has been introducing it. A run of a brought step
+is authored by the **tenant**, through the face's door, as a Task naming the
+process, the step and a reference per declared slot — and the face takes it
+because the catalogue it checks a run against now holds the declaration. So a
+worker cannot invent work its tenant never asked for; it can only offer to do
+something the tenant may then ask for.
 
-A worker exists to be up when its tenant is up, and a deployment that
-restarts them in the wrong order should converge rather than crash-loop. So a
-lane whose tenant does not answer is registered anyway, logged once at WARN,
-and retried by the poll loop that was going to run regardless. What *is* a
-refusal is a lane the configuration got wrong — a tenant code that is not a
-tenant code, a base that is not a URI, credentials that are rejected rather
-than unreachable — because those do not converge.
+What the worker then being offered that run needs is
+[item 029](../../docs/arc42-011-risks-and-technical-debt/029-a-brought-step-is-not-offered-back/README.md),
+which is open: the run is authored and accepted and is not offered back, while
+a spec-declared step in the same cycle is performed.
 
-`stop()` unregisters the lanes first and the step services second, so the
-runner stops being offered work before it stops being able to perform it, and
-waits for an in-flight step up to a configured grace. A step still running
-when the grace expires is released with a reason rather than dropped: the
-run returns to the tenant and a later cycle takes it, which is what the
-`Outcome.failed` path already promises.
+## What the application gets
 
-*Proved by:* a test that closes the context mid-step and asserts the run is
-released rather than lost.
+```java
+@Autowired DboWorker worker;
 
-### 6. Driving one cycle, for the application's own tests
+worker.performing();   // step code -> what the container wired
+worker.lanes();        // the tenants it performs for
+worker.isRunning();
+```
 
-`Admissions.cycle()` exists because a test asks for one pass so it can say
-what happened in it. An application testing its own step services needs the
-same thing, and polling with an `Awaitility` block is a worse version of it.
+`start()` and `stop()` are `SmartLifecycle`'s and are called for you unless
+`dbo.worker.auto-start: false`.
 
-So: `DboWorker`, a bean with `cycleOnce()` and `serving()`, available only
-when the runner is configured not to start its own loop
-(`dbo.worker.auto-start: false`). Not a dial on the running loop — a loop
-that can be driven from outside while it is also driving itself is two
-schedulers over one lane.
+**There is nothing between them.** No `cycleOnce()`, no dial on the running
+loop: a loop driven from outside while it is also driving itself is two
+schedulers over one lane. A test that wants to decide *when* the asking begins
+sets `auto-start: false` and calls `start()` — which is what
+[`../spring-boot-test`](../spring-boot-test) does.
 
-*Proved by:* a test using it, which is also the recommended shape for an
-application's own step tests, and therefore the thing that ought to be
-documented rather than the thing that ought to exist.
+## The property surface
 
-### 7. Events and telemetry out
+| | |
+|---|---|
+| `dbo.worker.identity.name`, `.version` | who a run records, reproducibly |
+| `dbo.worker.poll` | how often a lane is asked (default 2s) |
+| `dbo.worker.hold` | how long a claimed run is held (default 1m) |
+| `dbo.worker.auto-start` | whether the loop starts with the context (default true) |
+| `dbo.worker.grace` | how long `stop()` waits for a step in flight (default 30s) |
+| `dbo.worker.lanes[].tenant` | the tenant code |
+| `dbo.worker.lanes[].base` | where it answers |
+| `dbo.worker.lanes[].token.client-id`, `.client-secret` | a client that tenant issued, refreshed as needed |
+| `dbo.worker.lanes[].token.value` | a bearer token instead, for a deployment that mints them elsewhere |
 
-The runner reports through the telemetry seam, and the exporter is installed
-and idle without an endpoint. Two destinations beside it:
+**The credential must be one that may act in work.** A token admitted at the
+step surface is refused by the tenant's records door, and that is the split
+the two surfaces exist to make — holding one is deliberately not holding the
+store.
 
-- **Micrometer**, where the application has a registry, conditionally. Steps
-  performed, steps failed, how long each took, per step code and tenant.
-- **Spring events**: `StepPerformed` and `StepFailed`, carrying the step
-  code, the tenant and the outcome's counts. Not the work, and not the
-  payload — a step's inputs are a tenant's data, and an event stream carrying
-  them past the application's own listeners is a second copy of somebody's
-  record in a place nobody decided to put it.
+## Starting before the tenant does
 
-`DboContainerFault` is the same event the server assembly publishes, from the
-same shared host.
+**A lane that cannot be reached is not a failure to start.** A worker exists
+to be up when its tenant is up, and a deployment that restarts them in the
+wrong order should converge rather than crash-loop. So a lane whose tenant
+does not answer is registered anyway, logged once, and retried by the poll
+loop that was going to run regardless.
 
-### 8. What proves the whole thing
+Expect that in the log of a cold start: the credential is refused while the
+tenant finishes coming up, once per cycle, and it clears. What *is* a refusal
+is configuration the worker cannot converge on — a base that is not a URI,
+credentials rejected rather than unreachable.
 
-A Spring Boot application in `src/test` that declares `AdmitStep` as a bean,
-configures one lane against a tenant from the guide's world, and performs a
-run started over that tenant's step surface.
+**Stopping is ordered.** The lanes go first and the step services second, so
+the runner stops being offered work before it stops being able to perform it.
+A step still running when the grace expires is released with a reason rather
+than dropped: the run returns to the tenant and a later cycle takes it.
 
-Four assertions: the step ran; its outcome reached the tenant; a second bean
-declaring the same code was refused at refresh; closing the context released
-an in-flight run.
+## Where a worker runs, and which carrier it uses
 
-The reachability question this module has to answer is the one the guidance
-names — *who constructs it outside a test, and where is the state it writes
-registered?* For a step service the answer must be: nobody constructs it, the
-whiteboard finds it, and what it wrote is in the tenant's run records. A test
-that constructs a `StepRunner` to prove a bean works has proved the seam,
-which was already proved nine times, and not the wiring, which is all this
-module is.
+**Both halves in one application** is the ordinary one. It serves its tenants
+and performs their work in one process, on one container:
 
-## Deliberately not done
+```kotlin
+implementation("cloud.jengu.dbo:dbo-spring-boot-server:0.1.0-SNAPSHOT")
+implementation("cloud.jengu.dbo:dbo-spring-boot-worker:0.1.0-SNAPSHOT")
+```
 
-- **No store.** If an application needs one it is a server, and that is the
-  other module. A worker reaching a store is a worker that has stopped being
-  able to run outside the deployment, which is the property the lane exists
-  to preserve.
-- **No `@Scheduled` integration.** The runner's loop is the runner's. An
-  application scheduling cycles against a loop that is already running is two
-  schedulers over one lane.
-- **No retry policy of the application's own.** A step that fails is released
-  with a reason and a later cycle may take it again. That is the tenant's
-  decision to make, recorded in the run, and a client-side retry would be a
-  second policy with no record.
-- **No step declaration from the bean.** What steps exist is a tenant's
-  declaration. A bean that could declare one would let a worker invent work
-  its tenant never asked for.
-- **No HTTP surface, and so no servlet bridge.** A worker answers nothing; it
-  polls. The server assembly's bridge mounts the runtime's surfaces in Spring
-  Web, and a worker has none to mount.
-- **No Spring Security integration.** A worker holds a credential rather than
-  checking one. What it needs is a token supplier that refreshes, which is
-  step 3, and an application that wants the tenant's authority as a Spring
+Nothing is declared to make that work. `core/dbo-embedded` unions every
+bundle set it finds on the classpath, so the two assemblies share **one**
+framework rather than starting two — which for the element bundle is the
+difference between holding a parsed set of FHIR definitions once and holding it
+twice, measured at 100 to 215 MB a copy.
+
+**A worker of its own is for scaling**, and it is still part of the
+deployment. The performing side and the serving side do not grow together: a
+step that runs for a minute over a large payload wants replicas, and serving a
+FHIR read does not. So a separate application — several of them, or a pod per
+step — takes the same beans and the same lanes, stateless over the tenants it
+is handed. Parallel runners claiming from one lane is the design and not a
+race: a claim is the scheduler, and two runners introducing an identical
+declaration co-introduce without refusal.
+
+**Almost every worker serves many tenants.** A lane is per tenant and the
+configuration is a list, so one worker holding a dozen of them is the ordinary
+shape rather than a special case.
+
+**A worker belonging to somebody else is the third case**, and the only one
+HTTP is for: another organisation's application performing a step for a tenant
+it does not run — a laboratory, a tenant's own edge device. It reaches the
+deployment over the lane and nothing else, with a credential that tenant
+issued, and has no business near the deployment's database.
+
+So the carrier follows the organisation rather than the process boundary:
+
+| the worker | carrier |
+|---|---|
+| beside the serving half, one process | the substrate |
+| its own process, part of this deployment | the substrate |
+| another organisation's application | HTTP |
+
+**Today every worker built on this assembly polls over HTTP**, including the
+two that should be on the substrate. It is not a missing property name:
+`dbo-stream` is not in the worker assembly's bundle set, so `StreamLane` is not
+installed, and `DboWorkerProperties` carries no `dbo.framework.*` passthrough
+that would reach the activator which does install one.
+[Item 031](../../docs/arc42-011-risks-and-technical-debt/031-a-worker-in-the-deployment-takes-the-substrate/README.md)
+is that work. The runner cannot tell which carrier brought a run, so it is
+wiring and nothing a step service sees.
+
+Neither shape changes a line of a step service, which is the point of the lane.
+Moving between them is configuration.
+
+**What does not change either way** is that the worker is handed no store. It
+takes work over a lane and reports over the same one, whichever carries it —
+which is why the carrier can change without a bean noticing.
+
+**Each half's configuration reaches the container.** Both assemblies declare
+the container bean under a condition that it does not already exist, so one of
+them builds it — and it is built from every `FrameworkContribution` the host
+publishes rather than from the builder's own properties. A host that set one
+property to two values is refused at refresh, naming the property and both
+values, because there is no correct answer available to it.
+
+## What this deliberately does not do
+
+- **Hold a store.** See the one rule.
+- **Integrate with `@Scheduled`.** The loop is the runner's. An application
+  scheduling cycles against a loop already running is two schedulers over one
+  lane.
+- **Carry a retry policy of its own.** A step that fails is released with a
+  reason and a later cycle may take it again. That is the tenant's decision,
+  recorded in the run; a client-side retry is a second policy with no record.
+- **Serve anything.** A worker answers nothing, it polls — so there is no
+  servlet bridge here, and nothing to mount.
+- **Integrate with Spring Security.** A worker holds a credential rather than
+  checking one. An application that wants the tenant's authority as an
   `AuthenticationProvider` is running the server assembly.
+
+## Beside this
+
+- [`core/dbo-embedded`](../../core/dbo-embedded/README.md) — the host. It
+  names no framework, so an application wanting none uses it directly.
+- [`../spring-boot-server`](../spring-boot-server) — the serving half. An
+  application holding both gets **one** framework.
+- [`../spring-boot-test`](../spring-boot-test) — testing an application built
+  on either.
 
 ## The commands
 
 ```
-./gradlew :assembly:spring-boot-worker:bundleIndex
 ./gradlew :assembly:spring-boot-worker:test
-./verify
+./gradlew :assembly:spring-boot-worker:bundleIndex   # what a host installs
+./gradlew :samples:spring-boot-worker-app:run
 ```

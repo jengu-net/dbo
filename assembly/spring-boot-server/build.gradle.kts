@@ -117,7 +117,7 @@ configurations.named("runtimeOnly") { extendsFrom(bundles) }
 dependencies {
     // The host: the framework, the computed package list, the service lookup
     // and the events. Shared rather than copied — see its README.
-    api(project(":assembly:spring-boot-core"))
+    api(project(":core:dbo-embedded"))
 
     // The API the application compiles against, on the APPLICATION's
     // classloader. The same packages are exported from the system bundle at

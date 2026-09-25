@@ -230,8 +230,8 @@ Authoring has **two doors**, and which one answers decides which steps are on
 offer. The tenant's step surface is built from the tenant's own spec, so it
 offers the work the tenant says it does; that is [Reaching data through a
 run](runs.md). A document posted to the *face* is checked against the composed
-catalogue — the installed steps and the ones linked participants introduced —
-which is where a capability that arrived over a link is found.
+catalogue — the installed steps and the ones participants introduced over a lane —
+which is where a capability that arrived over a lane is found.
 
 Either way a document naming a declared step **becomes a run**, minted through
 the same door every run comes through, and refused by name where its rules are

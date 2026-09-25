@@ -1,7 +1,8 @@
 package cloud.jengu.dbo.spring.worker;
 
 import cloud.jengu.dbo.runner.StepService;
-import cloud.jengu.dbo.spring.EmbeddedRuntime;
+import cloud.jengu.dbo.embedded.EmbeddedRuntime;
+import cloud.jengu.dbo.embedded.FrameworkContribution;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -47,13 +48,29 @@ public class DboWorkerAutoConfiguration {
      */
     @Bean(initMethod = "start", destroyMethod = "close")
     @ConditionalOnMissingBean
-    public EmbeddedRuntime dboEmbeddedRuntime(DboWorkerProperties properties) {
-        Map<String, String> framework = new LinkedHashMap<>();
-        framework.put("dbo.runner.poll.millis", String.valueOf(properties.getPoll().toMillis()));
-        framework.put("dbo.runner.hold.millis", String.valueOf(properties.getHold().toMillis()));
-        return new EmbeddedRuntime(getClass().getClassLoader(), framework,
+    public EmbeddedRuntime dboEmbeddedRuntime(
+            ObjectProvider<FrameworkContribution> contributions) {
+        // EVERY contribution, not this configuration's own. An application
+        // that also serves tenants carries a second one, and the container it
+        // reaches is this one — whichever half of the host happened to build
+        // it.
+        return new EmbeddedRuntime(getClass().getClassLoader(),
+                FrameworkContribution.merged(contributions.orderedStream().toList()),
                 EmbeddedRuntime.storageUnder(
                         Path.of(System.getProperty("java.io.tmpdir")), "dbo-embedded"));
+    }
+
+    /** What performing work tells the container. */
+    @Bean
+    public FrameworkContribution dboWorkerFrameworkContribution(DboWorkerProperties properties) {
+        return () -> {
+            Map<String, String> framework = new LinkedHashMap<>();
+            framework.put("dbo.runner.poll.millis",
+                    String.valueOf(properties.getPoll().toMillis()));
+            framework.put("dbo.runner.hold.millis",
+                    String.valueOf(properties.getHold().toMillis()));
+            return framework;
+        };
     }
 
     /**

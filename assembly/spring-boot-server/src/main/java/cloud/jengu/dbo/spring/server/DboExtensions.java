@@ -1,7 +1,7 @@
 package cloud.jengu.dbo.spring.server;
 
-import cloud.jengu.dbo.spring.DboRegistrar;
-import cloud.jengu.dbo.spring.EmbeddedRuntime;
+import cloud.jengu.dbo.embedded.DboRegistrar;
+import cloud.jengu.dbo.embedded.EmbeddedRuntime;
 import cloud.jengu.dbo.tenant.api.TenantDomain;
 import cloud.jengu.dbo.tenant.api.TenantLifecycleListener;
 import cloud.jengu.dbo.tenant.api.TenantObserver;

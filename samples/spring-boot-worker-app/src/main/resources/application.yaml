@@ -1,0 +1,29 @@
+# What this application says instead of writing the wiring.
+#
+# Everything the guide's sample once constructed by hand — an executor
+# identity, a runner with two durations, a step registration, a lane built
+# from a base URI and a bearer supplier — is here. What is left in code is the
+# step itself.
+dbo:
+  worker:
+    identity:
+      # Named and versioned, and deliberately not defaulted to an artifact id:
+      # an executor that cannot be reproduced cannot be held to what it did.
+      name: sample-admissions-worker
+      version: "1"
+    poll: 2s
+    lanes:
+      # The tenant this worker performs for, where it answers, and a client
+      # that tenant issued. There is no database here and no way to reach one:
+      # everything this application knows about the store is in these lines.
+      - tenant: hogwarts
+        base: http://127.0.0.1:8080/t/hogwarts/
+        token:
+          client-id: ${DBO_WORKER_CLIENT_ID:}
+          client-secret: ${DBO_WORKER_CLIENT_SECRET:}
+
+spring:
+  application:
+    name: dbo-sample-worker
+  main:
+    web-application-type: none

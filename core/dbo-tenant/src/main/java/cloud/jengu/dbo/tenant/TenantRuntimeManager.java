@@ -1231,7 +1231,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
         // queue — and the absence is an incident here, re-evaluated every
         // pass because the catalogue changes as modules and participants
         // come and go. The catalogue read is the COMPOSED one:
-        // installed modules plus the steps linked participants introduced
+        // installed modules plus the steps participants introduced over a lane
         // into this tenant's own store — which is exactly how the platform's
         // steps satisfy a tenant's mandatory list when it connects over the
         // link rather than by installation.

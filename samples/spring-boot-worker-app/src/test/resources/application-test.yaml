@@ -1,0 +1,35 @@
+# What this test needs, and what it has to repeat.
+#
+# ONE CONTEXT HAS ONE application.yaml. This test boots the serving
+# application and the worker in a single Spring context — a testing economy,
+# because two processes in one test would be two JVMs — and both applications
+# ship an application.yaml of their own. Only one can be THE application's
+# configuration on a classpath, so the worker's half is stated here.
+#
+# That is a real limit and not a tidy-up: what this test proves is the worker
+# as configured HERE, not the worker as its own application.yaml configures
+# it. Only a test with two processes would prove the second, and none exists.
+# AND IT CONTRADICTS THE APPLICATION IT BOOTS. This application declares
+# itself not a web application, which is true of it standing alone: a worker
+# opens no port and serves nobody. The test boots the SERVING application
+# beside it, which needs a servlet container — so the two applications'
+# configurations do not merely compete, they disagree, and the test states
+# which one wins for the duration.
+spring:
+  main:
+    web-application-type: servlet
+
+dbo:
+  test:
+    world: ../sample-world
+    lane:
+      tenant: hogwarts
+  worker:
+    identity:
+      # The same name samples/spring-boot-worker-app/src/main/resources
+      # declares. A run records who performed it, and this test asserts on
+      # exactly this string — so if the two drift, the assertion is the thing
+      # that notices.
+      name: sample-admissions-worker
+      version: "1"
+    poll: 500ms

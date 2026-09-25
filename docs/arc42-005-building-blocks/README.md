@@ -5,6 +5,41 @@ divisions the build enforces. The behaviour behind each name is in
 [the crosscutting concepts](../README.md); this page is the map, not the
 territory.
 
+## The four layers, and what each may depend on
+
+Every module is in one of four, and the rule is what a layer may depend on
+rather than what it contains.
+
+| | |
+|---|---|
+| `core/` | the store. No heavyweight framework — no Spring, no Micronaut, no application container. Names nothing outside `core/` and `promise/`. |
+| `promise/` | requirements as code: promises declared once and cited where they are kept. The same rule, for the same reason — production code cites it. |
+| `assembly/` | glue, binding the store into a development framework somebody already uses. **May** depend on a framework; depends on `core/`. Nothing in `core/` may depend on it. |
+| `samples/` | applications built on an assembly, to be read and run. Depends on whatever an application depends on. |
+
+**The direction is the whole rule.** `core/` never reaches up. An assembly is
+optional — the store is complete without one, and a framework-free application
+is not a lesser path but the layer every assembly is built on. `core/dbo-embedded`
+is that layer's edge: boot a framework, install a bundle set, share one class
+space with the host, and no framework anywhere in it.
+
+**So a module belongs to `assembly/` by what it imports, not by who calls it.**
+One that names no framework is `core/` even when an assembly is its only
+caller today — otherwise the first binding to arrive quietly claims the
+shared host, and the second one inherits a dependency on the first one's
+framework.
+
+**And that constraint is what makes the assemblies possible**, which is worth
+saying the right way round. The store takes no framework (R2), so it can be
+hosted in any of them: `assembly/spring-boot-*` exists because most developers
+know Spring, and a Micronaut assembly is a module rather than a port for
+exactly the same reason. A store that had chosen a framework internally could
+not have been glued to a second one at all.
+
+Which module names which is the module map, below, generated from the build
+rather than asserted here: nothing under `core/` or `promise/` names an
+`assembly/` module in it.
+
 ## The shapes a deployment runs
 
 Three, and the difference between them is not packaging taste.

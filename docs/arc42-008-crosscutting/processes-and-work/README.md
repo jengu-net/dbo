@@ -2,11 +2,28 @@
 
 ## What this is about
 
-A store that only answers questions is a database. This one also holds **the
-work**: what has to be done, who is entitled to do it, who is doing it now, how
-far they have got, and what happened. That is what makes it a place two parties
-who do not trust each other can both use — an exchange is a process with
-obligations, not a file drop, and somebody has to hold the record of it.
+**A store preserves what is true now. A regulator asks how it came to be
+true.** Those are different questions, and the second cannot be answered from
+the first. A record with a full version history says a value changed on
+Tuesday and who was signed in; it does not say which obligation was being
+discharged, on whose behalf, or whether anybody was entitled to discharge it.
+That is not a gap in the history. It is a gap in what was ever written down,
+because the cause was never something the store held.
+
+**The causes are processes**, and nothing else writes to a store worth
+regulating: a value is different today because somebody discharged an
+obligation, under a rule, with the right to do it. Model that and the history
+becomes legible — every change carries a reason that is itself a record, with a
+time, an owner and an entitlement behind it, readable with the same tools as
+the state it explains. Leave it out and you have an exact account of *what* is
+true and none of *how* it came to be, which is most of what the regulation was
+asking about.
+
+So this store also holds **the work**: what has to be done, who is entitled to
+do it, who is doing it now, how far they have got, and what happened. That is
+also what makes it a place two parties who do not trust each other can both
+use — an exchange is a process with obligations, not a file drop, and somebody
+has to hold the record of it.
 
 Almost none of that work happens where the store is. A sample is analysed on an
 instrument in a laboratory. A model is exported by a firm competing with the
@@ -16,7 +33,7 @@ at a screen deciding something. Some of those places are behind a router with no
 public address, some are offline for a weekend, and some belong to organisations
 that are not on speaking terms.
 
-So this document is about how work is defined, offered, taken, reported on and
+So these pages are about how work is defined, offered, taken, reported on and
 watched — across machines, buildings and organisations, without the store ever
 reaching out to any of them.
 
@@ -25,6 +42,21 @@ the domain is a face over it ([the engine and its
 faces](../engine-and-faces/README.md)). How these concepts are *rendered* — as FHIR
 resources, or as anything else — is [a face's
 business](../the-fhir-face/README.md) and deliberately not described here.
+
+## What is written where
+
+This page is the contract: what work is, how it is described, and how it
+reaches whoever does it. Four documents beside it carry the rest.
+
+| | |
+|---|---|
+| [Participants, and what they may see](participants.md) | who is out there, how presence is worked out, and what is readable against what is sealed past them |
+| [How work is watched](watching-the-work.md) | what is true now, what happened, and whether anything is wrong — three questions, three answers |
+| [One lane for the fleet](one-lane-for-the-fleet.md) | **intended, not built**: a step defined once that performs for every tenant, and what joins their work into one place |
+| [What a tenant agreed to, and what happened](processing-and-consent.md) | **intended, not built**: the register of processing a tenant reads, and what a disagreement with the trail means |
+
+The last two describe where this is going rather than where it is. Everything
+on this page, and in the first two, is what the store does today.
 
 ## The vocabulary
 
@@ -36,8 +68,9 @@ results, publishing a product passport, applying a configuration.
 A **step** is one stage of it, and it is the unit everything else attaches to:
 who may perform it, what it consumes and produces, what it is allowed to report.
 
-A **run** is one attempt at one step. It is an ordinary record in the tenant's
-own store — not a message on a queue, not a row in a scheduler's private table.
+A **run** is one attempt at one step. It is an ordinary record in the **tenant's**
+own store — a tenant being one customer's whole world here, its own database and
+its own authority, which is [why a tenant is a database](../data-isolation/why-a-tenant-is-a-database.md) — not a message on a queue, not a row in a scheduler's private table.
 Everything else follows from that: it survives restarts of anything because it
 was never in flight; it has history, an audit trail and an owner, because every
 record here does; and it can be listed, counted and read by whoever is entitled
@@ -64,11 +97,16 @@ person. That ordering matters: it means a step nobody has automated is a normal
 state rather than a gap, and it means turning automation off is a decision
 somebody made rather than a code path that stopped being reached.
 
-**What nothing took is a person's, and it is countable** — per step, per scope.
-That number is the automation backlog stated as a fact rather than an opinion,
-and whoever is holding the work is told which reason applies: nothing claimed it,
-automation was switched off here, or a narrower party tried to override a step
-that does not allow it.
+**What waits at a step is its backlog**, and it is asked for rather than
+handed out — which is the whole of how work moves here.
+
+**What nothing took is a person's, and it is countable** — per step, and per
+**scope**, which is the part of the world a declaration applies to: everywhere,
+one country, one organisation. That number is the **automation backlog** stated
+as a fact rather than an opinion: the part of a step's backlog no automation
+claimed. Whoever is holding the work is told which reason applies — nothing
+claimed it, automation was switched off here, or a narrower party tried to
+override a step that does not allow it.
 
 ## How a process is built
 
@@ -77,8 +115,9 @@ and interpreted at runtime. A step declaration is the contract, and it says:
 
 - **what it consumes and produces** — named input slots with shape references,
   so joining a step is agreeing to an API rather than to a convention;
-- **which storage domains it reads and writes**, which is what makes its blast
-  radius checkable before it runs;
+- **which storage domains it reads and writes** — the named areas a tenant's
+  data is divided into, so what a step could touch is readable from its
+  declaration rather than from its code, and checkable before it runs;
 - **the actions it contains** — open, close, reopen — which is what roles narrow
   and what "held by a person" concretely means;
 - **its milestones, in order**, if it has any;
@@ -90,7 +129,7 @@ were enough to win, any party could displace a national rule simply by declaring
 a narrower scope. Precedence *selects* among candidates; the step *grants* the
 right to override at all.
 
-A step is installed by the module that carries it, or **introduced over a link**
+A step is installed by the module that carries it, or **introduced over a lane**
 by a participant that brings its own. One id means one definition: two different
 definitions of the same id is a collision, refused by name, while two identical
 ones are a fleet and perfectly ordinary.
@@ -106,6 +145,25 @@ step, and a step that did not open itself to that is refused by name.
 **Nothing is pushed.** A **participant** — a service, an on-site appliance, a
 member organisation's own system, or a person opening a screen — asks what is
 waiting for the steps it performs and takes what it can.
+
+What it asks over is a **lane**: everything this participant may do in this
+tenant and nothing besides — ask, take, report, read what the work names.
+
+**A lane is a swimlane, not a traffic lane.** It is the band that belongs to
+one performer, and it is the only thing a participant is attached by — there is
+no second kind of attachment. (*Link* appears in these pages for two other
+things: the path between [two sites of one tenant](#two-sites-of-one-tenant),
+and a hop in the chain a run's travel is recorded as.) It says nothing about the route work travels or a line it must
+stay inside; it says *whose* work this is, which is why it carries an
+entitlement rather than a direction. So the picture is an ordinary one: the
+step is the bench, its backlog is what waits at that bench, and a lane is
+somebody's standing to work there — which bench, in which tenant, with which
+verbs.
+
+A participant holds a lane and never a handle to the store, which is why the
+list of things it can do is short enough to write in a sentence.
+[What a participant may see](participants.md) is that list, and the lane is
+also where the three ways of reaching a tenant are made to look identical.
 
 That single decision does a great deal. A participant behind a router needs no
 inbound address. One switched off for the weekend is simply one that has not
@@ -163,8 +221,8 @@ credential cannot post one.
 **Two doors mint a run, and they offer different steps.** The tenant's step
 door offers what the tenant's own spec declares — the work this tenant says
 it does. The face's run document is checked against the composed catalogue,
-which is the installed steps and the ones linked participants introduced, so
-a capability somebody brought over a link is authored there and not at the
+which is the installed steps and the ones participants introduced, so
+a capability somebody brought over a lane is authored there and not at the
 step door. Both mint through the same primitive and refuse by the same
 rules; what differs is which catalogue answers "is that a step". A router built against this store then has real
 work to claim in a real deployment, authored by the side that originates it.
@@ -176,116 +234,6 @@ happened — and nobody looks for work the store says is finished. A participant
 with durable execution underneath waits for it; a router waits for its edge. A
 wedged one then lets the claim lapse, and the run reads *released* rather than
 *done*, which is the honest state.
-
-## Who is out there
-
-Nobody registers a participant in a configuration file. A participant
-**announces itself**: which step it performs, in which version, on whose behalf,
-at what scope. Resolution walks those announcements, which is what lets a local
-implementation and a member's own system be two candidates for the same step,
-ranked by how local they are rather than by which machine they run on.
-
-**Presence is worked out, not claimed.** A participant keeping up with what it
-asked for is present; one that is behind and not moving is not — and that is a
-different sentence from "nothing is declared". Nobody sends a heartbeat, so a
-component that has frozen cannot report that it is fine. The subtlety worth
-knowing: a participant with *nothing to do* also stops moving, so silence is only
-absence when there is work waiting.
-
-**Some things cannot speak for themselves.** An instrument on a serial cable has
-no cursor and no credential; neither does a meter in a substation or a sensor in
-a container. Each is reached by something that does, and that thing reports what
-it can see behind it, however many hops away. The store keeps one row per thing
-whose state is worth knowing, at any depth, so the rule about what a state is
-exists once rather than once per reporter. What it will not do is decide whether
-a report is stale — it has no path of its own to check, and one freshness
-threshold across a serial line and a network socket would be wrong for both.
-Where something has a cursor, presence is derived from it; where it does not, the
-record carries who last saw it and when, because "where it sits" and "who to ask
-about it" are different questions.
-
-**The thing that can reach the store is the participant, and it holds the
-claim.** An instrument behind a router is routed *because* it cannot reach the
-lane, so the router claims the run, forwards it, waits, and reports — holding a
-claim on work it cannot read, which sounds strange and is exactly the point. The
-instrument holds the key and does the work. Participant versus routee is a fact
-about the attachment, not the device: a bench with its own lane is a participant,
-and the same bench behind a router is a routee.
-
-A routee that stops being reported is a statement, not a gap. A router reports
-the full set behind it, so an absence from that report is something the router
-said — distinguishable from a quiet router, whose cursor did not move. The store
-keeps a departed routee with its last attestation and marks it no longer
-reported, so "gone" reads as *last seen by X at T, absent from X's report at
-T+1*: absence with a timestamp, which is a fact.
-
-## What a participant may see and do
-
-A participant's whole world is a few verbs: ask for work, take it, report on it,
-read the documents that work names. It never holds a handle to the store, and no
-request takes a reference — so it cannot ask for data, relevant or not. It
-receives what the work it holds entitles it to, resolved by the side that
-legitimately has it.
-
-What it receives has two parts, and the split is what lets one participant serve
-many tenants without reading any of them. The **manifest** — which tenant, which
-step, the task, and *references* to the documents the work names — is readable,
-because routing on it is its job. The **payload** — the documents themselves —
-is sealed to the participant meant to open it. Whoever merely carries the work
-reads the manifest and holds no key.
-
-What it may work on is the **intersection** of what its credential covers and
-what the step admits. Neither widens the other: a step cannot grant its executor
-more than the executor already holds, and a credential cannot reach a step that
-never opened itself to that kind of participant. There is no implicit
-unrestricted — reach is stated when a participant is provisioned, so nobody's
-access depends on a parameter somebody forgot.
-
-**A participant is sealed to, and a carrier is not.** A participant offers two
-public keys when it enrols — one it is sealed to, one it signs with, because
-the curve that agrees cannot sign; the private halves never cross, so a copy
-of the enrolment records opens nothing and signs nothing. From then on each payload sent to it is sealed
-under a data key of its own, wrapped to that participant — and to nobody who
-merely carries it. That is the store's usual answer applied to transport: a
-carrier that holds no key cannot read what it moves, whatever it is told it may
-do, and the arrangement needs no trust in the carrier to hold.
-
-Three consequences are worth stating because each could have gone the other way.
-The seal is **per payload, wrapped per participant**, not per tenant — a carrier
-enrolled in a tenant would otherwise hold that tenant's key, and the carrier is
-the thing being excluded. What is sealed is the **carrier form** — the record as
-the store's own encrypted disclosure mode hands it out, identifying elements
-already under the person's key — so a sealed copy still in flight after an
-erasure is in the same state as the store's own records after a shred. And a
-sealed copy is **a copy in flight, not the record**: the store keeps the
-original, still indexes and searches it, and the copy is bounded by the work
-that caused it.
-
-What a participant holds decides how its work arrives. One that offered a
-key at enrolment is answered with a manifest and sealed payloads, and is
-refused its inputs in the clear even when it asks; one that offered none is
-served in the clear, as every participant was before there was anything to
-seal to, and is refused a seal by name. A router names its routee as the
-recipient and is sealed past: it may name only what it has declared behind
-it, naming is the forward and leaves the travel link that makes the routee
-the chain's next author, and the opening it carries home is its routee's,
-signed with the routee's own key.
-
-The lane has three carriers and a runner cannot tell which it holds:
-in-process, HTTP, and the store's own stream. The third is the one a shared
-fleet holds. The host connects to the durable substrate it already runs on,
-each served tenant opens a door there — one long-lived workflow, guarded by
-the same authority and the same participation scope as the HTTP door — and a
-verb is a message to that door with its answer an event on it. Work goes out
-and the signed openings and the result come home on the one channel, no
-tenant accepts a callback, and the verbs are encoded once for both wires so
-nothing can be served on one that the other cannot carry. The plane between
-holds no credential and nothing readable: an ask is signed with the
-participant's enrolment key rather than carrying a token, so a lane on the
-stream is held only by a participant enrolled with both keys, and the clear
-verb is refused there by name. A container given
-no substrate serves its lanes over HTTP and in-process only, as every
-container did before the fleet.
 
 ## Two sites of one tenant
 
@@ -317,125 +265,6 @@ carries them.
 The accepted consequence: an appliance that dies holding its own work keeps it
 until it returns. Moving that work is a deliberate act by a person, not something
 a clock infers from a link that is merely slow.
-
-## How it is watched
-
-Three different questions, deliberately answered by three different things.
-
-**"What is true right now?"** — the store. Runs are records, so what is claimable,
-what is stuck and who holds it are ordinary queries against the tenant's own
-data. Anything that acts on work reads this and nothing else. Across a
-deployment the same question is asked by one process outside every container,
-over the doors each node and tenant already serves: a node is asked what it is
-serving and what it has installed under the deployment's own token, because
-both answers name other tenants' existence; a tenant is asked about its work
-under a credential its own authority minted, as envelopes and never payloads,
-so the reader holds one credential per tenant and is never handed a surface
-that crosses them. Every answer is labelled with the node it came from, nothing
-is copied, and a node that did not answer is in the reading as unreachable
-rather than absent from it — the missing node being the one an operator opened
-the reading for. The union of the nodes' inventories is the network map, by
-step and version: descriptive, and never a second declaration of a step, which
-is why an inventory travels this way and not through the introduction door.
-
-**"What does this node know how to do, and who would take it?"** — the console.
-It lists the steps installed here and the steps a participant introduced, names
-the contributor of each, and answers which executor would take a given step now
-and why that one. It answers while serving no tenant at all, because the
-catalogue is what is installed rather than what is running — and a node that has
-stopped serving is exactly when somebody asks.
-
-The reading is **sequential and bounded**: every ask has a timeout and every
-outcome is recorded, so one dead node costs one timeout and one line rather
-than a hung reading. Asking in parallel buys latency and pays with a second
-failure mode; it is worth having when a deployment has enough nodes that a
-serial read is slow, and not before.
-
-**Looking and acting are separate, and so is the authority for them.** The
-process that reads a deployment can also act on it, but only through the doors
-a participant uses, and it holds the supervisory credential separately — often
-not at all. An operator needs to look far more often than to act, and looking
-must not require the authority to destroy somebody's work. This is why control
-planes that bundle both into one channel read as mostly mutations: cancel,
-delete, fork, restart. Acting here goes through the lane like every other act,
-so the rule the lane enforces is met once rather than bypassed by the tool
-built to supervise it.
-
-**"How is the fleet doing?"** — telemetry. Counts, durations and outcomes leave
-as labelled measurements for whatever collects them. This is lossy by design and
-nothing decides anything on it; it is for trends and alerting, not for state. What
-may be said there is a closed set, and a failure's own words are not in it: they
-stay on the run, in the store of the tenant whose work it was.
-
-Speaking somebody else's control protocol is deliberately not how any of this
-is offered. Those protocols' verbs are overwhelmingly mutations, so an endpoint
-speaking one holds cancel, delete, fork and retention rights over every
-executor that connects — a large authority surface acquired in order to read
-counters — and their metric payloads carry no labels, so nothing said here
-could ride them. Nor is anything synthesised so an external engine can emit on
-this store's behalf: those metrics are computed from durable rows, so
-fabricated telemetry is fabricated state, with real ids, to which recovery and
-replay then apply.
-
-Where the numbers go is the deployment's to say, never the code's. The seam has
-one exporter, installed everywhere and idle without an endpoint: given
-`dbo.telemetry.otlp.endpoint` (or the protocol's own environment variables) it
-carries counts as sums, levels as gauges and durations as histograms to an
-OpenTelemetry collector as OTLP over HTTP, rendered and sent with the JDK's own
-client so no protocol library rides in the container. Reporting is not a
-dependency of serving: every verb updates an aggregate and returns, a flusher
-posts on an interval, and a collector that is absent, slow or refusing is said
-once and costs the caller nothing. The seam finds the exporter through the
-framework, the way the logging binding is found, and a container proof asks
-the seam what it found — because an exporter that resolved and was discarded
-in silence is this repository's characteristic failure in its quietest form.
-
-**"What happened to this run, and who read what?"** — the trail, and it is one
-trail with two kinds of subject. A hop that carried the work leaves a **travel**
-entry about the *task*: the journey belongs to the work. A participant that
-opened a payload leaves an **access** entry about the *document*, landing where
-every other reading of that document lands and naming the task execution as its
-occasion. So *who has read this?* is answered from the document by somebody who
-need not know work exists, and *where did this go?* from the task; the occasion
-is the join. The machinery's own read to seal a payload records nothing, because
-a read that yields only ciphertext is not a disclosure.
-
-The entries of a run are chained, each committing to the one before, rooted in
-the task the store minted — so a participant cannot present a journey that never
-started, and a hop that skipped its own entry is exposed by the next, because
-every travel entry names who it handed to. The result that closes the run is the
-chain's last link and always was; the store checks the chain when the result
-lands, and a completion with a gap is refused and told which link. What the chain
-cannot do is compel a participant to send: an intended recipient can open a
-payload and never say so, and that limit is accepted rather than hidden — the
-data was legitimately theirs, and what is lost is the entry for an authorised
-read on a device the tenant answers for.
-
-The tenant wires a trail into its lane. A claim writes the hop on the task.
-A participant that opens a sealed document says so from where its key is,
-and that lands on the document as its access entry naming the run; for a
-participant served in the clear, the read that resolves its inputs is the
-opening and is recorded the same way, whatever the audit level. The store's
-own read to seal is recorded as nothing.
-
-Those entries are chained. Each carries the link it commits to and its own,
-the first commits to the task the store minted, and the participant signs
-the links it makes with the signing key it offered at enrolment — so a router
-cannot manufacture an edge's opening and an edge cannot deny one. The result
-that closes the run carries the head it commits to; the store walks the chain
-when the result lands, and a completion whose chain has a hole is refused and
-told which link, so the run stays owed under a named participant. A
-predecessor retention pruned reads as unchained rather than broken. What the
-chain cannot do is compel a link never made: an intended recipient can open a
-payload and never say so, and that limit is accepted rather than hidden.
-
-**The store's own housekeeping runs on this model rather than beside it.**
-Notification delivery, retention, configuration application, tenant serving,
-upstream sync — each is a declared process with runs like any other. That is a
-visibility decision more than an implementation one: an operator asking what is
-running sees the machinery in the same list as the domain work, with the same
-counts and the same holders, and a retention pass that fails is a card somebody
-can pick up rather than a line in a log.
 
 ## What this costs
 

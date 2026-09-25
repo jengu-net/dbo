@@ -1,0 +1,23 @@
+{
+  "code": "gringotts",
+  "face": "r4",
+  "zone": "rl",
+  "dependencies": [
+    { "name": "fhir-r4", "face": true,
+      "types": ["StructureDefinition", "SearchParameter", "ValueSet", "CodeSystem"] },
+    { "name": "rl", "types": ["CodeSystem"] }
+  ],
+  "types": [
+    { "name": "StructureDefinition", "identity": "canonical", "handling": "replicated" },
+    { "name": "SearchParameter", "identity": "canonical", "handling": "replicated" },
+    { "name": "ValueSet", "identity": "canonical", "handling": "replicated" },
+    { "name": "CodeSystem", "identity": "canonical", "handling": "replicated" },
+    { "name": "Organization", "identity": "identifier", "systems": ["urn:rl:org"],
+      "handling": "operational" },
+    { "name": "Practitioner", "identity": "identifier", "systems": ["urn:rl:nid"],
+      "handling": "operational" },
+    { "name": "PractitionerRole", "identity": "internal", "handling": "operational" },
+    { "name": "Patient", "identity": "identifier", "systems": ["urn:rl:nid"], "handling": "operational" },
+    { "name": "Coverage", "identity": "internal", "handling": "operational" }
+  ]
+}
