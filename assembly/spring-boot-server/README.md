@@ -139,6 +139,68 @@ distribution has a test that would catch it — a real server on a pool of one,
 two requests, and a guard reporting what it found already bound — and the same
 test over the servlet adapter does not exist yet.
 
+## Two shapes, and which one you want
+
+**Both halves in one application** is the ordinary one. It serves its tenants
+and performs their work in one process, on one container:
+
+```kotlin
+implementation("cloud.jengu.dbo:dbo-spring-boot-server:0.1.0-SNAPSHOT")
+implementation("cloud.jengu.dbo:dbo-spring-boot-worker:0.1.0-SNAPSHOT")
+```
+
+Nothing is declared to make that work. `core/dbo-embedded` unions every
+bundle set it finds on the classpath, so the two assemblies share **one**
+framework rather than starting two — which for the element bundle is the
+difference between holding a parsed set of FHIR definitions once and holding it
+twice, measured at 100 to 215 MB a copy.
+
+**A worker of its own is for scaling.** The performing side and the serving
+side have nothing in common but the lane, and they do not grow together: a
+step that runs for a minute over a large payload wants replicas, and serving a
+FHIR read does not. So a separate application — several of them, or a pod per
+step — takes the same lanes and the same beans, stateless over the tenants it
+is handed. Parallel runners claiming from one lane is the design and not a
+race: a claim is the scheduler, and two runners introducing an identical
+declaration co-introduce without refusal.
+
+It is also the shape for a worker that is **not** the deployment's — a party
+performing a step for a tenant it does not run, reaching it over the lane and
+nothing else.
+
+Neither shape changes a line of a step service, which is the point of the
+lane. Moving from one to the other is configuration.
+
+**The carrier should be the deployment's own substrate, and today it is not.**
+A worker beside the store has no business asking its own port for work: the
+natural lane is the one over the stream, which reaches the same database the
+serving half is already on — no second hop, no token round-trip against an
+authority in the same process. `StreamLane` exists and the runner cannot tell
+which carrier brought a run, which is what makes the switch invisible to a
+bean.
+
+What does not exist is the configuration. `DboWorker` builds an `HttpLane`
+from `dbo.worker.lanes[].base` and nothing else, so a co-located worker polls
+itself over the loopback with an ordinary credential the tenant issued. The
+stream lane is wired by `dbo-stream`'s own activator from framework
+properties, which is a host reaching a deployment's substrate from outside
+rather than an application declaring a lane.
+[Item 031](../../docs/arc42-011-risks-and-technical-debt/031-a-co-located-worker-takes-the-substrate/README.md)
+is that gap.
+
+**What does not change either way** is that the worker is handed no store. It
+takes work over a lane and reports over the same one, whichever carries it —
+which is why the carrier can change without a bean noticing.
+
+**One caveat, and it bites today.** Both assemblies declare the container bean
+`@ConditionalOnMissingBean` and neither declares an order, so the one Spring
+processes second does not run and its framework properties are discarded in
+silence. In practice the server wins, which costs the worker its `poll` and
+`hold` dials — measured at 2.011s against a configured 500ms. Nothing fails;
+the dial is simply read and thrown away.
+[Item 030](../../docs/arc42-011-risks-and-technical-debt/030-two-assemblies-one-runtime/README.md)
+holds it. Until it is fixed, a co-located worker runs at the defaults.
+
 ## What this deliberately does not do
 
 - **Share the application's `DataSource`.** The store manages its own
