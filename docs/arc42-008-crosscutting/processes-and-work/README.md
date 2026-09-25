@@ -563,14 +563,23 @@ ago is included because the consumer is registered per tenant as tenants arrive.
 
 **Two: what it read is partitioned by step**, and partitioning is the point. A
 subscriber cannot filter a durable queue cheaply while it is running, so the
-filtering is done once, on the way in: one queue per application-level step,
-and a consumer waits on its own. The wait is notify-driven rather than another
-poll — the substrate signals the queue and the consumer wakes — which is the
-same mechanism the lane over the stream already uses to be told a tenant has
-work. Whether that means a queue per step in one durable layer or a separate
-one per step is a question to answer by measuring contention, not in advance:
-one layer with a channel per step is the smaller thing and should be shown
-insufficient before anything heavier is built.
+filtering is done once, on the way in, and a consumer of one step is offered
+only that step's work.
+
+**What a partition can be is decided by the substrate, not by preference**, and
+the durable layer here offers two shapes with different costs. Its queues are
+**polled**, at an interval each queue names. Its wake-ups are **addressed to a
+destination**, and a consumer that waits to be told rather than asking is a
+long-lived workflow addressed by name — which is exactly what a tenant's door
+on the stream already is, one per tenant instead of one per step. Neither is
+free and the difference is latency against a workflow per partition;
+[the ledger](../../arc42-011-risks-and-technical-debt/032-one-lane-for-the-fleet/README.md)
+carries what was measured and what it restricts.
+
+**A wake-up is a hint, and the queue is the truth.** A notification nobody was
+listening for is not redelivered, so a consumer that missed one finds the work
+when it next looks. That costs latency and never correctness, which is the only
+reason a wake-up is safe to depend on at all.
 
 **Three: what comes back is written by the tenant's own code.** Outcomes,
 progress and metrics do not reach into a tenant's tables; they arrive at an

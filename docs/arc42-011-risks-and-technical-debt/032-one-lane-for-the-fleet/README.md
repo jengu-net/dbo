@@ -59,6 +59,71 @@ today even a worker inside the deployment polls over HTTP — which is
 [item 031](../031-a-worker-in-the-deployment-takes-the-substrate/README.md),
 and is a prerequisite rather than part of this.
 
+## What the durable layer actually offers
+
+Read out of `dev.dbos:transact:1.0.0`'s own sources, because the design above
+assumed a shape it does not have. **Its queues are polled. Only messages and
+events are notify-driven, and their channels are fixed.** Everything below is
+a restriction on how a step-based partition can be built, not a preference.
+
+### Queues poll, and one queue has one poller
+
+`QueueService` schedules a task per queue at a fixed rate; each queue carries a
+`pollingInterval`, **default one second**. The interval grows only after an
+exception — doubling, capped at 120 seconds — and decays back toward the
+configured value on every successful pass. So an **idle** queue keeps polling at
+its interval; the cap is a brake on a failing database, not idle backoff, and a
+step with nothing waiting is not quietly drifting to a two-minute latency.
+
+**And `partitionQueue` is not a subscription.** `queue_partition_key` partitions
+entries by workflow class so each class gets its own concurrency accounting, and
+when it is on, one poller walks every partition of that queue in a loop. It
+divides limits, not consumers.
+
+### Notification is three fixed channels, and every process hears all of them
+
+The migration installs two triggers, and the listener opens one connection:
+
+| table | channel | payload |
+|---|---|---|
+| `notifications` | `dbos_notifications_channel` | `destination_uuid::topic` |
+| `workflow_events` | `dbos_workflow_events_channel` | `workflow_uuid::key` |
+| — | `dbos_streams_channel` | — |
+
+**The channel names are library constants**, so a channel per step is not
+available. Every instance connected to that database receives every
+notification on all three and matches the payload against its own waiters
+locally. The consequence to size before building: notification volume is
+proportional to *all* work across *all* tenants and *all* steps, and every
+process pays to discard what is not its own.
+
+**Postgres scopes notification to a database.** So a separate database per step
+is the only thing that narrows that fan-out — and it costs a listener
+connection, a pool, and the schema's migrations each. It is an answer to a
+measured notification volume and to nothing else.
+
+**And it can be switched off.** `useListenNotify` decides whether the triggers
+are installed at all; without them the same code degrades to polling, so
+nothing may depend on a wake-up arriving.
+
+### What follows for the joiner
+
+**If step-based consumption must be notify-driven, the partition is a
+long-lived workflow per step**, addressed by workflow id, woken by `send` to a
+topic or by an event key. That is not a new mechanism to invent — it is exactly
+the shape of the door a tenant already opens on the stream, one per tenant,
+re-keyed to one per step. Its restrictions: a consumer is a workflow that is
+running, one `recv` at a time, so parallelism for a hot step means several
+workflows rather than several threads.
+
+**If a second of latency is acceptable, a queue per step is much less
+machinery** — and a second is already better than this store's own runner
+default of two. That is the version to build first, and the notify-driven door
+is what a measured latency requirement would buy.
+
+**Either way the joiner is unchanged**, because the partition is chosen where
+the item is written and not where it is read.
+
 ## The decisions, before anything is built
 
 Each of these changes what gets written. None is settled.
