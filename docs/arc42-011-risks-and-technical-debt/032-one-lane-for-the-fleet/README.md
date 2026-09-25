@@ -35,7 +35,11 @@ delta rather than a design from nothing.
 |---|---|
 | a step defined once performs for every tenant | a lane is per tenant; an application names each one it performs for |
 | one unified stream at the managing tenant | a door per served tenant on the substrate, and nothing lifts work between tenants |
-| a joiner, and a splitter | neither; no component moves a run out of its tenant or a result back in |
+| a joiner reading every tenant's work stream | **mostly exists**: a work-domain observer is a named durable consumer over every tenant, registered as tenants arrive, resuming from the store's position |
+| the joiner unable to reach payloads | **exists, structurally**: the work stream carries the run and not the record, and an observer is handed no store and no resolvable reference |
+| queues partitioned per application-level step, waited on rather than polled | nothing partitioned; the notify-driven wait exists in the stream lane and is the mechanism to reuse |
+| an administrative writeback the tenant's own code applies | a participant reports over the lane it claimed on; there is no writeback port for work performed elsewhere |
+| a step code belonging to exactly one level | nothing: a step is a step, and nothing would refuse the same code at both levels |
 | a feedback stream applying outcomes to the originating tenant | the participant reports over the same lane it claimed on, to that tenant directly |
 | execution state in the durable layer | the runner holds its cycle in memory; what survives is what the tenant recorded |
 | a reduced account of execution in the managing tenant | nothing; the manager level asks each node and tenant over their own doors |
@@ -59,19 +63,25 @@ and is a prerequisite rather than part of this.
 
 Each of these changes what gets written. None is settled.
 
-**1. Where the claim lives once work is joined.** Today a claim is a
-conditional write in the tenant's own store and that is what makes it the
-scheduler. Two candidates, and they fail differently:
+**1. Where the claim lives once work is joined. Dissolved, and it needed an
+invariant rather than an answer.** The question assumed one run could be
+contested from two sides. It cannot be, if a step code belongs to **one level**:
+a run of an application-level step is never offered on its tenant's lane, and a
+tenant-level run never reaches the unified queues. Each side then settles its own
+— the tenant's lane by conditional write as today, an application-level run by
+the durable layer handing its item to exactly one consumer — and the tenant
+learns who is performing it when the first report arrives.
 
-- the claim stays in the tenant and the joiner holds it while the unified item
-  is in flight — one authority, and the joiner becomes something that can die
-  holding claims on many tenants' work;
-- the claim moves to the unified stream and the tenant's row becomes an account
-  — two places that can both believe they are advancing a run, which is the
-  hazard this chapter already names for two sites of one tenant.
+**So the work is that invariant.** The store has to refuse, by name, a tenant
+declaring a step the deployment defines and the reverse. Without it this design
+has two schedulers over one run, which is the hazard already described for two
+sites of one tenant.
 
-The first keeps the existing invariant. It needs the joiner's own liveness to
-be a first-class thing, because its lapse is now many tenants' problem.
+**And the joiner claims nothing**, because observing is not claiming — so
+nothing dies holding claims across many tenants. What replaces that failure is a
+joiner that falls behind, leaving work in tenants with nobody bringing it
+forward, and that is a failure this store already sees: presence is derived from
+a cursor, and a consumer behind and not moving is not present.
 
 **2. What a unified processor is enrolled with. Settled: per tenant.** A
 payload is sealed to an enrolled participant, so enrolling once at fleet level

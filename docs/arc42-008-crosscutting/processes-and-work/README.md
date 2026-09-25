@@ -466,6 +466,38 @@ So the two catalogues this chapter already describes become two **levels**: the
 deployment's own steps, which every tenant's work flows through, and the steps
 one tenant admits from one participant.
 
+### Which side settles who does the work
+
+A claim is what settles it: two participants may see one run, taking it is a
+conditional write that exactly one wins, and the loser takes the next run. That
+does not change. What the two levels change is **where the contest happens**,
+and the answer only works because there is no contest that spans them.
+
+**A step code belongs to one level and not both.** A run of an application-level
+step is never offered on its tenant's own lane, and a run of a tenant-level step
+never reaches the unified queues. That has to be an invariant the store
+enforces, refusing by name where a tenant declares a step the deployment
+defines, or the reverse — because two schedulers over one run is precisely the
+condition this chapter warns about for two sites of one tenant, where *the
+deadline passed* and *the report is in flight* can both be true and the work
+gets done twice.
+
+**With the levels disjoint, each side settles its own.** A tenant-level run is
+claimed on the tenant's lane as it is today. An application-level run is settled
+where its queue is: the durable layer hands an item to exactly one consumer, and
+that is the same statement a conditional write makes, in the place the item
+lives. The tenant learns who is performing it when the first report arrives
+through the writeback, and its record is the answer to *what is true right now*
+exactly as before.
+
+**The failure this replaces one with is worth naming.** Nothing now dies holding
+claims across many tenants — the joiner claims nothing, because observing is not
+claiming. What can go wrong instead is that the joiner falls behind or stops, and
+then work sits in tenants with nobody bringing it forward. That is the failure
+the store is already equipped to see: presence here is derived from a cursor, and
+a consumer that is behind and not moving is not present — a different sentence
+from nothing being declared.
+
 ### A tenant admits a step, or the deployment requires one
 
 **Most application-level steps are admitted.** The tenant declares which of the
@@ -518,20 +550,44 @@ claimable" an ordinary query. A step-based subscription across a fleet
 therefore cannot be a subscription per tenant: a deployment with fifty tenants
 would have an application asking fifty doors for work it describes once.
 
-**A joiner lifts work into the managing tenant's own durable layer** as one
-stream of processable items — a task's manifest, and references to the
-documents the work names. **A splitter returns what came back** to the tenant
-whose run it was. The managing tenant is the right place because it is already
-the one the store keeps its own history in, and its durable layer is already
-what carries work that must not be lost.
+**The join is the first stage of the run's journey, not a detour around it.**
+Three stages, and each reuses something the store already does.
 
-**The managing tenant is a carrier, and a carrier holds no key.** It reads
-manifests, because routing on them is its job, and it cannot read payloads,
-because they are sealed to whoever will open them. That is not a new rule for
-this path — it is the rule this chapter already states about anything that
-merely carries work, applied one hop further out. It is also why a unified
-stream is safe to build at all: the thing in the middle is excluded by
-construction rather than by being trusted.
+**One: every active tenant's work is subscribed to.** A tenant already
+publishes a work stream carrying runs, claims, milestones and closes, and it is
+already consumed the way anything durable is consumed here — as a **named
+consumer** that resumes from the store's own position rather than its own, for
+every tenant rather than a list of them. A joiner absent for an hour resumes
+where it stopped instead of missing the hour, and a tenant that came up a minute
+ago is included because the consumer is registered per tenant as tenants arrive.
+
+**Two: what it read is partitioned by step**, and partitioning is the point. A
+subscriber cannot filter a durable queue cheaply while it is running, so the
+filtering is done once, on the way in: one queue per application-level step,
+and a consumer waits on its own. The wait is notify-driven rather than another
+poll — the substrate signals the queue and the consumer wakes — which is the
+same mechanism the lane over the stream already uses to be told a tenant has
+work. Whether that means a queue per step in one durable layer or a separate
+one per step is a question to answer by measuring contention, not in advance:
+one layer with a channel per step is the smaller thing and should be shown
+insufficient before anything heavier is built.
+
+**Three: what comes back is written by the tenant's own code.** Outcomes,
+progress and metrics do not reach into a tenant's tables; they arrive at an
+administrative writeback the tenant runtime provides, and it applies them. So
+the tenant keeps control of its own record — the same rules a lane's verbs pass
+through decide whether this step may close, whether a report is in order and
+who is recorded as having performed it. **It is a third door, not a back door.**
+A writeback that bypassed those rules would be a way to write a tenant's work
+records without meeting the conditions every other writer meets.
+
+**And the carrier holds no key because the stream carries no payload.** The
+work stream carries the machinery's own bookkeeping — the run, its claim, its
+milestones — and a tenant's records are a different domain that carries only
+*that* something changed. A joiner is handed no store, no connection and no
+reference it can resolve, so it reads manifests because that is all there is to
+read. The property the whole arrangement rests on is structural rather than a
+rule somebody must remember.
 
 ### The execution state is the substrate's, not the JVM's
 
