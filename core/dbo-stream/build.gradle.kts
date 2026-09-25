@@ -59,6 +59,17 @@ tasks.jar {
                 // private stack's optional reach.
                 "Import-Package: " + listOf(
                     "javax.naming;resolution:=optional",
+                    // NOT optional, and the one import here that a running
+                    // container needs rather than tolerates: every connection
+                    // the driver in lib/ opens goes through
+                    // javax.net.SocketFactory, TLS or not. It was absent for
+                    // as long as that copy was never the one used — a pool
+                    // built from a driver class NAME got whichever copy
+                    // DriverManager or the thread context loader had, and that
+                    // one resolved javax.net somewhere else. The moment this
+                    // bundle opened a connection with its own driver, the
+                    // participant container said so on the first pool.
+                    "javax.net",
                     "javax.net.ssl;resolution:=optional",
                     "javax.crypto;resolution:=optional",
                     "javax.crypto.spec;resolution:=optional",

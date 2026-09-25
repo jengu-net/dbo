@@ -6,13 +6,21 @@ import cloud.jengu.dbo.work.Scope;
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;
 
+import javax.sql.DataSource;
+
+import java.io.PrintWriter;
 import java.security.KeyFactory;
 import java.security.PrivateKey;
 import java.security.spec.PKCS8EncodedKeySpec;
+import java.sql.Connection;
+import java.sql.Driver;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Hashtable;
 import java.util.List;
+import java.util.Properties;
+import java.util.logging.Logger;
 
 /**
  * The host's half of this bundle: it fills the runner's whiteboard from
@@ -95,15 +103,31 @@ public final class Activator implements BundleActivator {
         // already reads it by: there is one of these per deployment, and a
         // host pointed at a second one would be reaching a different store.
         com.zaxxer.hikari.HikariConfig pool = new com.zaxxer.hikari.HikariConfig();
-        pool.setJdbcUrl(required(context, "dbo.substrate.url"));
-        pool.setUsername(context.getProperty("dbo.substrate.user"));
-        pool.setPassword(context.getProperty("dbo.substrate.password"));
         pool.setPoolName("dbo-lane-substrate");
-        // Named rather than discovered. The driver this bundle uses is its
-        // own private copy, in lib/ beside DBOS's — it is not the container's
-        // shared driver bundle and it never registered itself with
-        // DriverManager, so a pool left to find a driver by URL finds none.
-        pool.setDriverClassName("org.postgresql.Driver");
+        // THE DRIVER THIS BUNDLE IS WIRED TO, resolved here rather than named
+        // for Hikari to find.
+        //
+        // A driver class NAME is resolved globally: Hikari scans the drivers
+        // DriverManager has registered and then falls back to the thread
+        // context loader. Both reach outside this bundle. Under an
+        // application built on the Spring Boot assemblies the store's jars are
+        // on the application's own classpath, that copy of the driver
+        // registered itself with DriverManager, and the pool was built from it
+        // — while `org.postgresql.PGConnection`, which this bundle imports,
+        // came from the container's driver bundle. The two are one name and
+        // two classes, and the unwrap DBOS needs to reach LISTEN cannot
+        // succeed across them, so every wake-up degrades to a poll.
+        //
+        // Resolving the driver the same way the interface is resolved is what
+        // makes the pair agree, whichever way this bundle is wired: to the
+        // container's driver bundle where one exists, and to the copy in lib/
+        // in a participant's container where none does. The import is optional
+        // for that reason, and this keeps both of its homes self-consistent
+        // rather than only the one that happens to be tested.
+        pool.setDataSource(new OnThisBundlesDriver(
+                required(context, "dbo.substrate.url"),
+                context.getProperty("dbo.substrate.user"),
+                context.getProperty("dbo.substrate.password")));
         com.zaxxer.hikari.HikariDataSource source = new com.zaxxer.hikari.HikariDataSource(pool);
         substrate = source;
         try {
@@ -193,6 +217,102 @@ public final class Activator implements BundleActivator {
             // should be able to land.
             throw new IllegalStateException("'" + property + "' is not a base64 PKCS#8 "
                     + algorithm + " private key, so this host cannot hold a lane", unreadable);
+        }
+    }
+
+    /**
+     * A {@link DataSource} over the driver this bundle's own wiring resolves.
+     *
+     * <p>Small on purpose: what it exists to do is decide WHICH copy of the
+     * driver opens the connection, which a class name handed to a pool does
+     * not decide. Everything else about pooling stays Hikari's.
+     */
+    private static final class OnThisBundlesDriver implements DataSource {
+
+        private final Driver driver;
+        private final String url;
+        private final String user;
+        private final String password;
+
+        OnThisBundlesDriver(String url, String user, String password) {
+            this.url = url;
+            this.user = user;
+            this.password = password;
+            try {
+                // Class.forName HERE, so the loader is this bundle's and the
+                // package is the one it imports — the same resolution that
+                // gives it org.postgresql.PGConnection.
+                this.driver = (Driver) Class.forName("org.postgresql.Driver")
+                        .getDeclaredConstructor().newInstance();
+            } catch (ReflectiveOperationException unreachable) {
+                throw new IllegalStateException("this bundle carries a PostgreSQL driver and "
+                        + "imports the package a container's driver bundle exports, and "
+                        + "neither answered — so a lane on the substrate cannot open one",
+                        unreachable);
+            }
+        }
+
+        @Override
+        public Connection getConnection() throws SQLException {
+            return getConnection(user, password);
+        }
+
+        @Override
+        public Connection getConnection(String asUser, String withPassword) throws SQLException {
+            Properties properties = new Properties();
+            if (asUser != null) {
+                properties.setProperty("user", asUser);
+            }
+            if (withPassword != null) {
+                properties.setProperty("password", withPassword);
+            }
+            Connection open = driver.connect(url, properties);
+            if (open == null) {
+                // A driver returning null means the URL is not its own, which
+                // here means the substrate was given an address for something
+                // that is not PostgreSQL.
+                throw new SQLException("not a PostgreSQL address: " + url);
+            }
+            return open;
+        }
+
+        @Override
+        public PrintWriter getLogWriter() {
+            return null;
+        }
+
+        @Override
+        public void setLogWriter(PrintWriter out) {
+            // The runtime has one logging binding and a driver's own writer is
+            // not it.
+        }
+
+        @Override
+        public void setLoginTimeout(int seconds) {
+            // Held by the pool, which is the thing that waits.
+        }
+
+        @Override
+        public int getLoginTimeout() {
+            return 0;
+        }
+
+        @Override
+        public Logger getParentLogger() {
+            return Logger.getLogger(Logger.GLOBAL_LOGGER_NAME);
+        }
+
+        @Override
+        public <T> T unwrap(Class<T> iface) throws SQLException {
+            if (iface.isInstance(this)) {
+                return iface.cast(this);
+            }
+            throw new SQLException("cannot unwrap to " + iface.getName());
+        }
+
+        @Override
+        public boolean isWrapperFor(Class<?> iface) {
+            return iface.isInstance(this);
         }
     }
 }
