@@ -126,6 +126,25 @@ sets `auto-start: false` and calls `start()` — which is what
 | `dbo.worker.lanes[].base` | where it answers |
 | `dbo.worker.lanes[].token.client-id`, `.client-secret` | a client that tenant issued, refreshed as needed |
 | `dbo.worker.lanes[].token.value` | a bearer token instead, for a deployment that mints them elsewhere |
+| `dbo.worker.substrate.url`, `.user`, `.password` | the deployment's own substrate, where a lane is carried by it |
+| `dbo.worker.substrate.participant` | the name this worker enrolled under, which is its cursor on each feed |
+| `dbo.worker.substrate.provider` | whose code this is, which a run records |
+| `dbo.worker.substrate.sealing-key`, `.signing-key` | the PRIVATE halves of the pair this worker enrolled with |
+
+**A lane with no `base` is carried by the substrate**, and that is inferred
+rather than named: a base and a credential is a lane into somebody else's
+deployment reached over a port; neither is a lane into the store this
+application is part of, reached over the database it already runs on. A
+property saying which would be a third thing to keep agreeing with the two that
+already decide it.
+
+**The substrate needs an enrolment rather than a credential**, because that
+plane carries no token: an ask is signed, and a payload is sealed to the
+participant. The tenant holds the public halves against this worker's client
+record — `POST /t/{code}/oidc/admin/clients` takes them as `public_key` and
+`signing_key` — and this application holds the private halves. Missing any of
+them is refused at refresh, because a worker with no key is not a participant
+running late; it is one that was never enrolled.
 
 **The baseline is the default, and usually right.** An executor at the baseline
 is *the rule* for a step and every step admits it. An executor at an

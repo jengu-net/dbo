@@ -87,6 +87,15 @@ public final class DboWorker implements SmartLifecycle {
             performing.add(registrar.register(StepService.class, step, Map.of()));
         }
         for (DboWorkerProperties.Lane declared : properties.getLanes()) {
+            if (declared.overTheSubstrate()) {
+                // The container builds this one. The stream bundle reads the
+                // tenants it is a host for and opens a door on the substrate
+                // for each, registering the lane on the same whiteboard this
+                // registers an HTTP one on — so the runner is handed it without
+                // this knowing, which is the whole point of a lane having
+                // carriers a runner cannot tell apart.
+                continue;
+            }
             // The baseline unless this application said otherwise. A step is
             // not overridable by default and the baseline is the only scope
             // every step admits, so a worker scoped to an organisation by

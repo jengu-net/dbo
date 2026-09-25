@@ -35,6 +35,12 @@ val workerModules = listOf(
     // each class beside the application and another inside a bundle. The
     // boot-time check names it; this is the answer to it.
     ":core:dbo-telemetry",
+    // The carrier a worker inside the deployment uses: a lane over the store's
+    // own substrate rather than over its own port. Installed unconditionally
+    // and inert unless configured — the activator reads the tenants it is a
+    // host for and returns where there are none, so an application that only
+    // holds HTTP lanes pays a bundle and nothing else.
+    ":core:dbo-stream",
 )
 
 // Not on anybody's COMPILE path — an application compiles against the API
@@ -67,6 +73,12 @@ val sharedWithTheApplication = listOf(
     // each class beside the application and another inside a bundle. The
     // boot-time check names it; this is the answer to it.
     ":core:dbo-telemetry",
+    // The carrier a worker inside the deployment uses: a lane over the store's
+    // own substrate rather than over its own port. Installed unconditionally
+    // and inert unless configured — the activator reads the tenants it is a
+    // host for and returns where there are none, so an application that only
+    // holds HTTP lanes pays a bundle and nothing else.
+    ":core:dbo-stream",
 )
 
 // The ServiceLoader mediator, first and never started.

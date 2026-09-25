@@ -69,8 +69,37 @@ public class DboWorkerAutoConfiguration {
                     String.valueOf(properties.getPoll().toMillis()));
             framework.put("dbo.runner.hold.millis",
                     String.valueOf(properties.getHold().toMillis()));
+            if (!properties.anyLaneOverTheSubstrate()) {
+                // The stream bundle is installed either way and reads the
+                // tenants it is a host for; naming none is how it stays inert.
+                return framework;
+            }
+            DboWorkerProperties.Substrate on = properties.getSubstrate();
+            framework.put("dbo.substrate.url", on.getUrl());
+            put(framework, "dbo.substrate.user", on.getUser());
+            put(framework, "dbo.substrate.password", on.getPassword());
+            framework.put("dbo.lane.tenants", properties.tenantsOverTheSubstrate());
+            framework.put("dbo.lane.participant", on.getParticipant());
+            framework.put("dbo.lane.sealing.key", on.getSealingKey());
+            framework.put("dbo.lane.signing.key", on.getSigningKey());
+            framework.put("dbo.lane.executor.version", properties.getIdentity().getVersion());
+            framework.put("dbo.lane.executor.provider", on.getProvider());
+            // The baseline is left unsaid rather than said, because the
+            // container reads an absent scope as the baseline and the baseline
+            // is the only scope every step admits.
+            if (properties.getIdentity().getScope() == DboWorkerProperties.Scope.ORGANISATION) {
+                framework.put("dbo.lane.scope", "organisation:"
+                        + properties.tenantsOverTheSubstrate());
+            }
             return framework;
         };
+    }
+
+    /** Left out rather than sent empty: an absent property is not a blank one. */
+    private static void put(Map<String, String> into, String name, String value) {
+        if (value != null && !value.isBlank()) {
+            into.put(name, value);
+        }
     }
 
     /**
@@ -189,8 +218,11 @@ public class DboWorkerAutoConfiguration {
             if (lane.getTenant() == null || lane.getTenant().isBlank()) {
                 wrong.add("a lane declares no tenant");
             }
-            if (lane.getBase() == null) {
-                wrong.add(named + " declares no base, so there is nowhere to be offered work");
+            if (lane.overTheSubstrate()) {
+                // Carried by the deployment's own substrate: no port to reach
+                // and no token to carry, because that plane holds neither. What
+                // it needs instead is the enrolment, checked once below.
+                continue;
             }
             DboWorkerProperties.Token token = lane.getToken();
             boolean carries = token != null && token.getValue() != null
@@ -198,14 +230,56 @@ public class DboWorkerAutoConfiguration {
             boolean signsIn = token != null && token.getClientId() != null
                     && token.getClientSecret() != null;
             if (!carries && !signsIn) {
-                wrong.add(named + " has no client and secret to sign in with and no token to "
-                        + "carry, so it could never be offered work");
+                wrong.add(named + " names a base and so is reached over HTTP, and it has no "
+                        + "client and secret to sign in with and no token to carry, so it could "
+                        + "never be offered work");
             }
         }
+        wrong.addAll(whatTheSubstrateIsMissing(properties));
         if (!wrong.isEmpty()) {
             throw new IllegalStateException("this worker's lanes cannot be used as configured: "
                     + String.join("; ", wrong));
         }
+    }
+
+    /**
+     * What a lane on the substrate needs and has not been given.
+     *
+     * <p>Refused here rather than converged on, for the reason an unreachable
+     * tenant is not refused: a tenant that is not answering yet will answer,
+     * and a missing enrolment key never will. The plane between carries no
+     * token, so an ask is signed with the private half of a key whose public
+     * half the tenant holds against this participant — and a worker with no
+     * such key is not a participant that is late, it is one that was never
+     * enrolled.
+     */
+    private static List<String> whatTheSubstrateIsMissing(DboWorkerProperties properties) {
+        if (!properties.anyLaneOverTheSubstrate()) {
+            return List.of();
+        }
+        DboWorkerProperties.Substrate on = properties.getSubstrate();
+        List<String> missing = new ArrayList<>();
+        if (on.getUrl() == null || on.getUrl().isBlank()) {
+            missing.add("a lane names no base and so is carried by the substrate, and "
+                    + "dbo.worker.substrate.url says where that substrate is");
+        }
+        if (on.getParticipant() == null || on.getParticipant().isBlank()) {
+            missing.add("dbo.worker.substrate.participant is the name this worker enrolled "
+                    + "under, and it is its cursor on every feed it reads");
+        }
+        if (on.getProvider() == null || on.getProvider().isBlank()) {
+            missing.add("dbo.worker.substrate.provider names whose code this is, which a run "
+                    + "records because a provider can be withdrawn");
+        }
+        if (on.getSealingKey() == null || on.getSealingKey().isBlank()) {
+            missing.add("dbo.worker.substrate.sealing-key is the private half of the key this "
+                    + "participant is sealed to, and that plane hands nothing over in the clear");
+        }
+        if (on.getSigningKey() == null || on.getSigningKey().isBlank()) {
+            missing.add("dbo.worker.substrate.signing-key is the private half of the key it "
+                    + "signs asks with, and that plane carries no token to present instead");
+        }
+        return missing;
     }
 
     /**

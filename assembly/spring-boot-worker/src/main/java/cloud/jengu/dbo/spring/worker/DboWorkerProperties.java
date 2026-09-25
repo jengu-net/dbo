@@ -51,6 +51,9 @@ public class DboWorkerProperties {
     /** The tenants this worker performs work for. */
     private List<Lane> lanes = new ArrayList<>();
 
+    /** The deployment's own substrate, where any lane is carried by it. */
+    private Substrate substrate = new Substrate();
+
     public Identity getIdentity() {
         return identity;
     }
@@ -100,6 +103,25 @@ public class DboWorkerProperties {
     }
 
     /** Named and versioned, because a run records who performed it. */
+    public Substrate getSubstrate() {
+        return substrate;
+    }
+
+    public void setSubstrate(Substrate substrate) {
+        this.substrate = substrate;
+    }
+
+    /** Whether any lane is carried by the substrate rather than over HTTP. */
+    public boolean anyLaneOverTheSubstrate() {
+        return lanes.stream().anyMatch(Lane::overTheSubstrate);
+    }
+
+    /** The tenants whose lanes the substrate carries, as the container names them. */
+    public String tenantsOverTheSubstrate() {
+        return lanes.stream().filter(Lane::overTheSubstrate)
+                .map(Lane::getTenant).collect(java.util.stream.Collectors.joining(","));
+    }
+
     public static class Identity {
 
         private String name;
@@ -142,6 +164,93 @@ public class DboWorkerProperties {
      * a step is not overridable by default. So this defaults to the baseline
      * and an application says otherwise when it means to.
      */
+    /**
+     * The deployment's own substrate, and what this worker enrolled as.
+     *
+     * <p>Needed only where a lane is carried by the substrate. The keys are the
+     * PRIVATE halves, base64 PKCS#8, of a pair whose public halves the tenant
+     * holds against this participant's client record: the plane between carries
+     * no token, so an ask is signed rather than presented, and a payload is
+     * sealed to the participant rather than handed over in the clear.
+     */
+    public static class Substrate {
+
+        /** Where the deployment's own durable layer lives. */
+        private String url;
+
+        private String user;
+
+        private String password;
+
+        /** The name this worker enrolled under, which is its cursor on each feed. */
+        private String participant;
+
+        /** Whose code this is: a provider can be withdrawn, so a run names it. */
+        private String provider;
+
+        /** The private half of the key this participant is sealed to. */
+        private String sealingKey;
+
+        /** The private half of the key it signs its asks with. */
+        private String signingKey;
+
+        public String getUrl() {
+            return url;
+        }
+
+        public void setUrl(String url) {
+            this.url = url;
+        }
+
+        public String getUser() {
+            return user;
+        }
+
+        public void setUser(String user) {
+            this.user = user;
+        }
+
+        public String getPassword() {
+            return password;
+        }
+
+        public void setPassword(String password) {
+            this.password = password;
+        }
+
+        public String getParticipant() {
+            return participant;
+        }
+
+        public void setParticipant(String participant) {
+            this.participant = participant;
+        }
+
+        public String getProvider() {
+            return provider;
+        }
+
+        public void setProvider(String provider) {
+            this.provider = provider;
+        }
+
+        public String getSealingKey() {
+            return sealingKey;
+        }
+
+        public void setSealingKey(String sealingKey) {
+            this.sealingKey = sealingKey;
+        }
+
+        public String getSigningKey() {
+            return signingKey;
+        }
+
+        public void setSigningKey(String signingKey) {
+            this.signingKey = signingKey;
+        }
+    }
+
     public enum Scope {
 
         /**
@@ -164,11 +273,30 @@ public class DboWorkerProperties {
         /** The tenant's code, as the deployment declared it. */
         private String tenant;
 
-        /** Where that tenant answers, for example {@code https://host/t/code/}. */
+        /**
+         * Where that tenant answers, for example {@code https://host/t/code/}.
+         *
+         * <p>Absent means this lane is carried by the deployment's substrate
+         * rather than over HTTP — see {@link #overTheSubstrate()}.
+         */
         private URI base;
 
         /** A client this tenant holds, and its secret. */
         private Token token = new Token();
+
+        /**
+         * Whether this lane is carried by the substrate rather than by HTTP.
+         *
+         * <p><b>Inferred from what the lane was given rather than named.</b> A
+         * base and a credential is a lane into somebody else's deployment,
+         * reached over a port; neither is a lane into the store this
+         * application is part of, reached over the database it already runs on.
+         * A property saying which would be a third thing to keep consistent
+         * with the two that already decide it.
+         */
+        public boolean overTheSubstrate() {
+            return base == null;
+        }
 
         public String getTenant() {
             return tenant;

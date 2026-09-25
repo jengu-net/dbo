@@ -63,9 +63,12 @@ class TheContainerComesUpInsideTheApplicationIT {
         // through the Bundles behind it: a claim about what the container is
         // doing should be made in the words it says it in.
         Map<String, String> states = runtime.states();
-        assertEquals(6, states.size(),
-                "installed " + states.keySet() + ", and this assembly names six: five of its "
-                        + "own and the ServiceLoader mediator they resolve through");
+        assertEquals(7, states.size(),
+                "installed " + states.keySet() + ", and this assembly names seven: six of its "
+                        + "own and the ServiceLoader mediator they resolve through. The stream "
+                        + "bundle is one of the six and is here whether or not a lane uses it — "
+                        + "installed and inert, because it reads the tenants it is a host for "
+                        + "and returns where a worker named none");
         // The mediator ATTACHES; it is an extension of the system bundle and
         // has no lifecycle of its own. Asserting it runs would be asserting
         // the wrong thing about the one entry here that is not ours.
