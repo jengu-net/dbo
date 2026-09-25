@@ -1,10 +1,11 @@
-**Open, and the lane is now exonerated too. A fast probe mints two runs that
-differ only in the declaration they came from — one as a tenant's own surface
-declares a step, one as a participant introduces one — and the lane offers
-both. So it is not the filters, not the declaration's domain, not the
-entitlement and not the feed. What is left is the one thing the sample does
-that the probe does not: the run is authored through the FACE's document door
-rather than minted directly.**
+**Open, and every mechanism is now exonerated. Six candidates have been tested
+and none reproduces it: the poll's filters, the declaration's domain, the
+entitlement, the feed's domain, the face's document door, and the executor's
+scope. Two harness probes do in eighty-five seconds what the sample takes five
+minutes to fail at, and both pass. What remains is not a mechanism but a
+setting: the sample is an embedded container polling continuously against a
+tenant under concurrent write load, and nothing in the harness reproduces
+that.**
 
 # A brought step's run is not offered back
 
@@ -102,19 +103,50 @@ hypothesis this item carried:
 And the declaration's domain decides nothing: an introduced step's run is
 offered exactly as an installed step's is.
 
-## What is left, and it is one difference
+## What the second probe settled
 
-The probe mints with `runs.of(...)`. **The sample does not** — its run is
-authored through the face's document door, `WorkProjection.create`, which reads
-a Task, resolves the step against the composed catalogue, and then mints. The
-step door does the same for the tenant's own steps and its runs are performed.
+`AFaceAuthoredRunReachesTheLaneIT` takes the remaining difference — how the run
+came to exist — and varies only that. One tenant, one step a participant
+introduces over its own lane, and two doors: a run authored through the face's
+document door, and a run of the same step minted directly. Then the lane is
+asked what it offers.
 
-So the next thing to hold against each other is the two doors on a real tenant,
-not two declarations in a bare world: author one run through `POST /step/<id>`
-and one through `POST /fhir/Task`, for steps that differ only in which
-catalogue declared them, and ask the lane what it offers. If the face-authored
-run is missing, the fault is in that path and the lane was never the place to
-look — which is what this probe has now established.
+**It offers both.** Thirty-four seconds. So the face's document door is not it
+either, and neither is anything about a step being introduced rather than
+installed.
+
+**And the executor's scope is eliminated with it.** That probe declares its
+executor at an organisation, as the worker assembly does rather than at the
+baseline a participant performing its own brought step would use — and it
+changes nothing about what is offered.
+
+## What is left is not a mechanism
+
+Six candidates, each plausible from reading, each wrong under measurement:
+
+| candidate | eliminated by |
+|---|---|
+| the poll's four filters | the first probe |
+| the declaration's domain | the first probe |
+| the credential's entitlement | reading `worksAsTheTenant` against the test deployment's client |
+| the feed's domain | `laneFeed` is over `WorkModel.DOMAIN`, where runs are written |
+| the face's document door | the second probe |
+| the executor's scope | the second probe |
+
+What the harness does not reproduce is the sample's **setting**: an embedded
+container, a runner polling every 507ms from context start, and a tenant doing
+heavy concurrent work — the same bring-up logs a reindex of 6,379 records and
+several definition syncs. The probes author a run into a quiet tenant and ask
+once.
+
+**So the next move is instrumentation rather than another probe.** Something in
+that setting stops a run reaching a participant that is polling for it, and the
+cheapest way to see it is to log, inside `Participation.poll` on a sample run,
+what the chunk contained and where the cursor stood — rather than to keep
+guessing which condition it was from the outside. The hypothesis worth carrying
+in is a cursor advanced past a row that committed after it was read, which is
+the classic hazard of a sequence-ordered feed under concurrent writers, and
+which a quiet tenant cannot show.
 
 ## What has not been checked
 
