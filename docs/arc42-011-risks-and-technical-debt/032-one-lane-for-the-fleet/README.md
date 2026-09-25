@@ -42,6 +42,10 @@ delta rather than a design from nothing.
 | router and processor as derived categories | a participant is sealed to or served in the clear, decided by whether it enrolled a key — not by what it asks for |
 | a data-access entry per payload access, carried home | disclosure is recorded where it happens, under the request's purpose |
 | two levels of step definition | one level, per tenant, in two catalogues |
+| a register of processing a tenant reads as a whole | nothing: a participant enrols, and no document says what it opens |
+| a step declaring that it *opens* a slot rather than carries it | a declaration names its slots and their types, and nothing distinguishes opening from routing |
+| an incident where the trail disagrees with the register | incidents exist where a mandatory step is uncontributed; nothing compares an access against a declaration |
+| enrolment answered for a whole deployment at once, and change detectable in one comparison | enrolment is a participant offering two keys, per tenant, one at a time |
 
 **And one piece of plumbing is missing underneath all of it.** The Spring
 worker assembly builds an HTTP lane and nothing else: `dbo-stream` is absent
@@ -68,19 +72,17 @@ scheduler. Two candidates, and they fail differently:
 The first keeps the existing invariant. It needs the joiner's own liveness to
 be a first-class thing, because its lapse is now many tenants' problem.
 
-**2. What a unified processor is enrolled with.** This decides whether the
-carrier property holds at all. A payload is sealed to an enrolled participant.
+**2. What a unified processor is enrolled with. Settled: per tenant.** A
+payload is sealed to an enrolled participant, so enrolling once at fleet level
+would mean something re-seals a tenant's payload and therefore holds tenant
+keys — which is exactly what the carrier rule exists to exclude. Per tenant
+keeps the managing tenant unable to read what it moves, and makes a tenant's
+authorisation a real act rather than a setting.
 
-- **Per tenant.** The processor enrols with each tenant it may process for, the
-  managing tenant stays a pure carrier, and the property holds unchanged. The
-  cost is enrolment as a provisioning step per tenant, which is also what makes
-  a tenant's consent real.
-- **Once, at fleet level.** Something must then re-seal a tenant's payload to
-  the fleet's key, and whatever re-seals holds tenant keys — which is precisely
-  what the carrier rule exists to exclude.
-
-The first is the only one consistent with what this store already promises. It
-should be stated as a rule and not left to a deployment.
+What follows from it is a UX obligation rather than an open question: a tenant
+must be able to do it **all at once**, and to see in one comparison whether
+what a deployment does with its data has changed since it last looked. Enrolment
+being per tenant must not become enrolment one step at a time.
 
 **3. What may be required, and what the word costs.** Settled in shape: a
 tenant **admits** most application-level steps, and the deployment **requires**
@@ -118,7 +120,25 @@ is easy to state even before the fields are: nothing about a person, because a
 managing tenant is not a place identifying data goes, and nothing a tenant's own
 record is the answer to, because a second place to ask is a second answer.
 
-**5. What a joined item is.** A copy in flight, bounded by the work that caused
+**5. The register, and what a row is.** Settled in shape: what a tenant reads
+is a register of processing — one row per application-level step that opens a
+payload — and a step that only routes on the envelope is not on it. A row is a
+declaration made in advance, made where a step already declares what it takes,
+so what is added is whether a slot is opened or only carried.
+
+Open: **the granularity of a row**. A slot is the obvious unit because it
+already exists and already names a type. Whether that is enough — against, say,
+declaring which elements of a document are opened — decides how precise an
+incident can be, and a register nobody can read is worth as little as one
+nobody can act on.
+
+Open too: **whether "consent" is the word.** It is the tenant authorising
+processing under an agreement, not a data subject's lawful basis, and the two
+are different things that the word does not distinguish. The concept is right;
+the risk is a tenant-facing screen that invites the legal reading of a term
+being used in an operational sense.
+
+**6. What a joined item is.** A copy in flight, bounded by the work that caused
 it, is the existing shape for a sealed payload and is probably right here too —
 but a run that is also a row in a managing tenant needs its lifetime stated:
 when it is removed, what happens to it on retraction, and whether an erasure

@@ -553,6 +553,63 @@ rather than a copy: what a fleet operator needs is not what a tenant holds, and
 anything about a person has no business in a managing tenant at all. Which
 fields those are is not decided.
 
+### What a tenant consents to is a register, not a list of steps
+
+A tenant does not read the deployment's steps to know what happens to its data.
+Most of them never touch it. **What it reads is a register of processing**, one
+row per application-level step that opens a payload, and nothing else is on it.
+
+**A carrier is not on the register.** A step that routes on the envelope
+discloses nothing, so listing it would pad the one document whose whole value
+is that it is short. What a tenant needs to account for is who *opened*
+something, and a register that also named everything that carried it would bury
+that.
+
+**Each row is a declaration made in advance.** A step that intends to open a
+payload says so, and says it where it already says what it takes — a
+declaration already names its slots and their types, so what is added is
+whether the step opens a slot or only routes it. From that, one row: the step,
+what it opens, whether the deployment requires it or the tenant may decline it,
+and what requires it.
+
+**Granted once, and for every tenant at once.** Enrolment is per tenant,
+because that is what keeps the thing in the middle unable to read anything —
+but a tenant should not perform it one step at a time. The register is
+answered as a whole, and a tenant reads the whole of it as a whole: what the
+deployment processes, which rows it may decline, and **whether anything has
+changed since it last looked**. A change in what a deployment does with data is
+one comparison rather than a diff somebody has to assemble.
+
+### Declaring is not the same as being recorded
+
+**The trail happens regardless.** Every payload a step opens is recorded and
+lands in that tenant's own data-access trail, whether the step declared it,
+whether it was granted, and whether anybody is reading. Recording is a
+consequence of asking and nothing turns it off.
+
+**So the register and the trail are two different documents**, and comparing
+them is the point. The register is what the code said it would do. The trail is
+what it did.
+
+**A disagreement is an incident: the code does not follow the consent.** Two
+shapes, one meaning:
+
+- a step opened a payload it never declared;
+- a step opened one under a row the tenant declined.
+
+Neither is refused in flight. The application is enrolled, so it holds the key
+and can open what it was sent — no cryptography can prevent a processor from
+processing, and a store that pretended otherwise would be describing a
+protection it does not have. What it can do is notice, name the step, and say
+which tenant's data it was. That is the same answer this store already gives
+for a mandatory step nobody contributes: the honest state, classified, rather
+than an enforcement it cannot perform.
+
+**Declining an optional row is a routing decision first.** Work whose
+processing a tenant declined is not offered to that step, so the ordinary case
+never reaches the incident at all. The incident is what remains: a step
+reaching past what it declared, inside work it was legitimately given.
+
 ### Router or processor, and asking is what decides
 
 **A unified step that reads only the envelope is a router.** It routes on the
