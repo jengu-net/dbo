@@ -151,20 +151,27 @@ declining to seal actually prevents the processing. Contrast the register-versus
 incident, where the application already holds the key and only detection is
 possible.
 
-Open: **the default**, and it is not a small choice. Processing-and-naming
-keeps a deployment running and makes nothing silent, which fits how this store
-behaves everywhere it can classify but not prevent — but a default that
-processes is a default that widens. Not-processing is the safe reading and
-turns an unanswered register into stopped work, which is an outage caused by
-somebody not clicking.
+**Settled: processed-and-named is the default, and a row may state its own.**
+The default neither stops work nor hides that work happened; a halting default
+would turn an unanswered register into an outage caused by nobody clicking. The
+cost is accepted rather than argued away — the unapproved case runs — so the
+incident carries the weight: it names the step, the tenant and the row, and
+stands until the row is approved rather than being a notice that scrolls past.
+Per row, because a brand-new row and a widened one are different acts, and a
+deployment may halt for the first without stopping everything else.
 
-Open too: **whether the posture may be per row** — a new mandatory row and a
-widened existing one are different acts, and a deployment may reasonably want
-to halt for the first and continue for the second.
+**What is left is the incident's own behaviour**, and it is the part the
+default rests on. It has to be visible where a tenant looks rather than only in
+a fleet operator's console, it has to clear when the row is approved, and it
+should say how long the row has been unapproved — an incident that reads the
+same on day one and day ninety is one nobody acts on, and this default is only
+honest if somebody does.
 
-**The constraint, whichever way those go**: the posture is part of the register
-a tenant reads before joining, and changing it is itself a change a tenant
-detects. A posture that could be set quietly makes the register advisory.
+**The constraint that holds it together**: a posture is part of the register a
+tenant reads before joining — the deployment's and each row's alike — and
+changing one is itself a change a tenant detects. A deployment able to move a
+row from *not until approved* to *processed and named* would otherwise have
+found a way to approve its own widening.
 
 **7. What a joined item is.** A copy in flight, bounded by the work that caused
 it, is the existing shape for a sealed payload and is probably right here too —

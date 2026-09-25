@@ -656,6 +656,25 @@ sequence: process and name it for a stated period, then stop. It is what a
 deployment that can neither halt on a Friday nor process indefinitely without
 an answer actually needs, and it says so as a duration rather than as a habit.
 
+**Processed-and-named is what a deployment gets if it says nothing.** It is the
+posture that neither stops work nor hides that work happened, and a default
+that halted would make an unanswered register an outage caused by nobody
+clicking. What it costs is that the unapproved case runs, so the incident is
+the pressure: it names the step, the tenant and the row, and it stands until
+the row is approved rather than being a notice that scrolls past.
+
+**And a row may state its own.** The deployment's posture covers the rows that
+state none, so a single new row that must not run before it is approved says
+so, beside itself, without stopping everything else. A new row and a widened
+one are different acts and a deployment may treat them differently.
+
+**A row's posture is part of the row.** It is read with the register, and
+changing it is one of the changes a tenant detects — because a deployment that
+could move a row from *not until approved* to *processed and named* would have
+found a way to approve its own widening. The register's protection is that
+everything about it, including how it behaves when unanswered, is visible
+before a tenant joins and never changes quietly afterwards.
+
 **What none of them changes** is that the access is recorded. A payload opened
 under an unapproved row is in the tenant's trail like every other, so whichever
 posture a deployment takes, the tenant's account of what was read is complete.
