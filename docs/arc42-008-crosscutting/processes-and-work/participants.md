@@ -72,7 +72,21 @@ access depends on a parameter somebody forgot.
 **A participant is sealed to, and a carrier is not.** A participant offers two
 public keys when it enrols — one it is sealed to, one it signs with, because
 the curve that agrees cannot sign; the private halves never cross, so a copy
-of the enrolment records opens nothing and signs nothing. From then on each payload sent to it is sealed
+of the enrolment records opens nothing and signs nothing.
+
+**The private halves are the participant's own custody, and never the store's.**
+An application that performs work states them — the worker IS the participant,
+and its enrolment is what makes it that one. It is tempting to read that as an
+untidiness, and to want a worker's keys kept where the store keeps its own key
+material. It is not untidy, and moving them would not rearrange the guarantee:
+it would delete it. What a signature buys is that a carrier cannot manufacture
+a participant's ask and a participant cannot deny one it signed, and both rest
+on exactly one fact — that nobody but the participant holds the half that
+signs. The store is the party the signature is shown to. A store able to
+produce that signature is a store whose evidence means nothing, including
+against itself. So where an application reads its private halves from — an
+environment variable, a mounted secret, a file — is a deployment's business,
+and the store's business is never to be told. From then on each payload sent to it is sealed
 under a data key of its own, wrapped to that participant — and to nobody who
 merely carries it. That is the store's usual answer applied to transport: a
 carrier that holds no key cannot read what it moves, whatever it is told it may

@@ -102,8 +102,20 @@ public final class Activator implements BundleActivator {
         // The deployment's own substrate, under the name the serving side
         // already reads it by: there is one of these per deployment, and a
         // host pointed at a second one would be reaching a different store.
+        List<String> codes = codesIn(tenants);
         com.zaxxer.hikari.HikariConfig pool = new com.zaxxer.hikari.HikariConfig();
         pool.setPoolName("dbo-lane-substrate");
+        // SIZED FROM THE LANES IT CARRIES, because what it holds is per lane
+        // and not per host. Each lane opens its own durable connection over
+        // this one pool and each of those keeps a connection to listen on, so
+        // the floor is one per lane and is reached and held for as long as the
+        // host runs. The pool's default is ten whatever it was asked to carry,
+        // which is wrong in both directions at once: a host holding one lane
+        // keeps nine connections nobody asked for on a substrate there is one
+        // of per deployment, and a host holding a dozen — which is the
+        // ordinary case, because almost every worker serves many tenants —
+        // runs out and waits on a listener that will not be given up.
+        pool.setMaximumPoolSize(codes.size() * 3 + 2);
         // THE DRIVER THIS BUNDLE IS WIRED TO, resolved here rather than named
         // for Hikari to find.
         //
@@ -131,11 +143,7 @@ public final class Activator implements BundleActivator {
         com.zaxxer.hikari.HikariDataSource source = new com.zaxxer.hikari.HikariDataSource(pool);
         substrate = source;
         try {
-            for (String tenant : tenants.split(",")) {
-                String code = tenant.trim();
-                if (code.isEmpty()) {
-                    continue;
-                }
+            for (String code : codes) {
                 StreamLane lane = StreamLane.holding(source, code, participant, identity,
                         sealing, signing);
                 held.add(lane);
@@ -177,6 +185,24 @@ public final class Activator implements BundleActivator {
             }
             substrate = null;
         }
+    }
+
+    /**
+     * The tenants named, read once.
+     *
+     * <p>Read before the pool rather than while opening lanes, because the
+     * pool has to be sized for how many there are and a list counted after it
+     * was built is a list that could not inform it.
+     */
+    private static List<String> codesIn(String tenants) {
+        List<String> codes = new ArrayList<>();
+        for (String tenant : tenants.split(",")) {
+            String code = tenant.trim();
+            if (!code.isEmpty()) {
+                codes.add(code);
+            }
+        }
+        return codes;
     }
 
     private static String required(BundleContext context, String property) {
