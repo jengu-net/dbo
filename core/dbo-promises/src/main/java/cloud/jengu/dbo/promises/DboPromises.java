@@ -233,7 +233,7 @@ public enum DboPromises implements Promise {
             + "work is — the holder, and when a milestone is recorded the step's own word "
             + "for it with its derived position — in every version the face serves."),
 
-    PROC_STEPS_ARRIVE_BY_INTRODUCTION("A linked participant introduces the step "
+    PROC_STEPS_ARRIVE_BY_INTRODUCTION("A participant on a lane introduces the step "
             + "declarations it brings beside its own candidacy; the catalogue records "
             + "them with the introducer's name, and every consumer of the catalogue — "
             + "validation, actions, milestones, the mandatory-steps classification — "
@@ -246,7 +246,7 @@ public enum DboPromises implements Promise {
             + "or thrown races (DBOS runs parallel consumers, and a fleet is not a "
             + "conflict), and re-introduction by the same participant replaces."),
 
-    PROC_INTRODUCTION_GRANTS_NOTHING("A step introduced over the link grants its "
+    PROC_INTRODUCTION_GRANTS_NOTHING("A step introduced over a lane grants its "
             + "introducer nothing: the declaration binds the introducer exactly as it "
             + "binds anybody, and what it may take stays the intersection of its scopes "
             + "and what the step admits."),
@@ -660,7 +660,7 @@ public enum DboPromises implements Promise {
             + "a monitoring stack would have made observability a dependency of serving."),
 
     PROC_A_NODE_ANSWERS_ITS_CATALOGUE("A node says what it knows how to do — the steps "
-            + "installed in it and the steps a linked participant introduced, each with the "
+            + "installed in it and the steps a participant introduced over a lane, each with the "
             + "party that contributed it, in which version, and which executor would take it "
             + "here now. It answers while serving no tenant at all, because the catalogue is "
             + "what is installed rather than what is running, and a node that has stopped "

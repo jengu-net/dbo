@@ -129,7 +129,7 @@ were enough to win, any party could displace a national rule simply by declaring
 a narrower scope. Precedence *selects* among candidates; the step *grants* the
 right to override at all.
 
-A step is installed by the module that carries it, or **introduced over a link**
+A step is installed by the module that carries it, or **introduced over a lane**
 by a participant that brings its own. One id means one definition: two different
 definitions of the same id is a collision, refused by name, while two identical
 ones are a fleet and perfectly ordinary.
@@ -150,7 +150,10 @@ What it asks over is a **lane**: everything this participant may do in this
 tenant and nothing besides — ask, take, report, read what the work names.
 
 **A lane is a swimlane, not a traffic lane.** It is the band that belongs to
-one performer. It says nothing about the route work travels or a line it must
+one performer, and it is the only thing a participant is attached by — there is
+no second kind of attachment. (*Link* appears in these pages for two other
+things: the path between [two sites of one tenant](#two-sites-of-one-tenant),
+and a hop in the chain a run's travel is recorded as.) It says nothing about the route work travels or a line it must
 stay inside; it says *whose* work this is, which is why it carries an
 entitlement rather than a direction. So the picture is an ordinary one: the
 step is the bench, its backlog is what waits at that bench, and a lane is
@@ -218,8 +221,8 @@ credential cannot post one.
 **Two doors mint a run, and they offer different steps.** The tenant's step
 door offers what the tenant's own spec declares — the work this tenant says
 it does. The face's run document is checked against the composed catalogue,
-which is the installed steps and the ones linked participants introduced, so
-a capability somebody brought over a link is authored there and not at the
+which is the installed steps and the ones participants introduced, so
+a capability somebody brought over a lane is authored there and not at the
 step door. Both mint through the same primitive and refuse by the same
 rules; what differs is which catalogue answers "is that a step". A router built against this store then has real
 work to claim in a real deployment, authored by the side that originates it.
