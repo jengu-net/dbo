@@ -466,6 +466,51 @@ So the two catalogues this chapter already describes become two **levels**: the
 deployment's own steps, which every tenant's work flows through, and the steps
 one tenant admits from one participant.
 
+### A tenant admits a step, or the deployment requires one
+
+**Most application-level steps are admitted.** The tenant declares which of the
+deployment's steps its work flows through, so the application still names no
+tenant — what it performs for is decided by the tenants that admitted it, and
+the joiner filters on their declarations. A subscription by step and a tenant's
+consent are both kept that way.
+
+**Some are required, and a tenant cannot refuse them and still be a tenant
+here.** Retention that must be swept, an erasure that must propagate, integrity
+that must be checked, work that must be metered: a deployment that could be
+opted out of one tenant at a time cannot make any promise about itself. So the
+refusal exists, and it is at the level of the system rather than the step —
+declining means not being a tenant of this deployment. That is an agreement
+about processing and operation, and it is signed by joining.
+
+**Two different words, because they are two different facts.** A tenant's spec
+already declares the steps *its* work cannot do without, and what that list
+decides is classification: a mandatory step nothing contributes is an incident.
+A required step is the other direction — the deployment's obligation on the
+tenant — and it is declared where the deployment's own configuration is, never
+in a tenant's spec. Nothing can quietly become required for one tenant, and the
+set is one list a reader can enumerate.
+
+**Required is not hidden, and enrolment is what makes that true.** A required
+step enrols with each tenant exactly as an admitted one does. So its payloads
+are sealed under that tenant's own enrolment and the thing in the middle still
+holds no key; the step appears in the tenant's catalogue, marked as required and
+naming what requires it; and every payload it reads lands in that tenant's own
+data-access trail, naming the step. **A tenant that cannot refuse can still
+account for every disclosure**, and it can read the required set before it
+joins, which is what makes joining a choice. Cannot refuse never means cannot
+see.
+
+**And requiring a router is a smaller act than requiring a processor.** A
+router reads only the envelope, so requiring one is operational. A processor
+decrypts, so requiring one is data processing and the agreement names that step
+specifically rather than covering it by category. Without that line, *required*
+becomes the way anything obtains access.
+
+**Required decides that a step runs, not what it may reach.** What it may work
+on is still the intersection of what its credential covers and what the step
+admits. Nothing above widens that, and a required step asked for something
+outside it is refused by name like anything else.
+
 ### The work is joined into one stream, and what comes back is split out
 
 A run is a record in its own tenant's store, which is what makes "what is

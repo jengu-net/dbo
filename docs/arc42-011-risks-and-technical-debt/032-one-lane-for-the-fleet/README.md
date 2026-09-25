@@ -82,13 +82,36 @@ carrier property holds at all. A payload is sealed to an enrolled participant.
 The first is the only one consistent with what this store already promises. It
 should be stated as a rule and not left to a deployment.
 
-**3. Whether a tenant may refuse an application-level step.** "Performs for
-every tenant" can mean the deployment's steps apply by virtue of being
-installed, or that each tenant still declares which it admits. For a
-multi-tenant store the second looks necessary — it is a consent question rather
-than a wiring one — and it sits awkwardly with a subscription that is by step
-and never by tenant. Both can be true if the tenant's declaration is what the
-joiner filters on, so that the application still names no tenant.
+**3. What may be required, and what the word costs.** Settled in shape: a
+tenant **admits** most application-level steps, and the deployment **requires**
+a few. An admitted step keeps the subscription by step — the joiner filters on
+what tenants declared, so the application still names none of them. A required
+step cannot be refused per step; the refusal is per system, and declining means
+not being a tenant here. It is an agreement about processing and operation,
+signed by joining.
+
+What is open is the boundary, and it matters because *required* is the word
+everything will want. Two constraints are proposed:
+
+- **Required is declared with the deployment's configuration**, never in a
+  tenant's spec, so nothing becomes required for one tenant quietly and the set
+  is enumerable. It also must be readable before a tenant joins, or "if it wants
+  to be in the system" is not a choice.
+- **A required processor is a heavier act than a required router.** A router
+  reads only the envelope, so requiring one is operational — retention sweeps,
+  erasure propagation, integrity checks, metering. A processor decrypts, so the
+  agreement names that step specifically rather than covering it by category.
+
+**And the word collides with one already in use.** A tenant's spec already
+declares `mandatorySteps` — the steps *its own* work cannot do without — and
+that list decides classification: an incident where nothing contributes one.
+Required is the other direction and must not reuse that field, or an obligation
+and an incident become the same declaration.
+
+Required decides **that** a step runs, never what it may reach: the
+intersection of credential and step stands, and enrolment still happens per
+tenant, so a tenant that cannot refuse can still account for every disclosure
+in its own trail.
 
 **4. What the reduced account holds.** Explicitly undecided, and the constraint
 is easy to state even before the fields are: nothing about a person, because a
