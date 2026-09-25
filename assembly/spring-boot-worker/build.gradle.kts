@@ -119,7 +119,7 @@ dependencies {
     testImplementation("org.springframework:spring-test:7.0.9")
     // ApplicationContextRunner's own assertions are AssertJ-typed, so the
     // context it hands back will not even compile without it on the path.
-    testImplementation("org.assertj:assertj-core:3.27.3")
+    testImplementation("org.assertj:assertj-core:3.27.7")
     // A binding, so the test sees what an application would see: every line
     // the container logs, made by the application's own LoggerFactory.
     testRuntimeOnly("ch.qos.logback:logback-classic:1.5.18")
