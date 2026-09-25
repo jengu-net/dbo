@@ -124,6 +124,49 @@ spec:
                         type: object
                         additionalProperties:
                           type: string
+                # Steps the DEPLOYMENT performs for every tenant that admits
+                # them, declared in the management tenant's registration and
+                # refused in anybody else's. Declared here all the same: the
+                # management tenant is a tenant registration like any other,
+                # and a key the API server does not know is not an invalid
+                # field but a rejected registration — the whole tenant, not
+                # the line.
+                fleetSteps:
+                  type: array
+                  items:
+                    type: object
+                    required: [code, slots]
+                    properties:
+                      code:
+                        type: string
+                      # The types these name belong to the tenants whose work
+                      # the step performs, not to the tenant declaring it.
+                      slots:
+                        type: object
+                        additionalProperties:
+                          type: string
+                      # Which of those slots it OPENS rather than carries. A
+                      # step that opens none is a router and discloses
+                      # nothing; the register a tenant reads is generated from
+                      # this list.
+                      opens:
+                        type: array
+                        items:
+                          type: string
+                      # Whether a tenant may decline it. Required is an
+                      # agreement signed by joining, and is said here so the
+                      # set is enumerable and readable before anyone joins.
+                      required:
+                        type: boolean
+                      # What happens to work whose processing a tenant has not
+                      # yet approved. Absent is processed-and-named.
+                      posture:
+                        type: string
+                        enum: [applied, processed-and-named, not-until-approved]
+                      # Where this step's queue lives. Absent is the
+                      # deployment's own; several steps may name one.
+                      substrate:
+                        type: string
                 # Steps this tenant must have available before it serves.
                 mandatorySteps:
                   type: array

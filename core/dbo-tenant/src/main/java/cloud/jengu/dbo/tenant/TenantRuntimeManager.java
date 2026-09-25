@@ -1122,6 +1122,12 @@ public final class TenantRuntimeManager implements AutoCloseable {
             try {
                 TenantSpec spec = TenantSpec.parse(new String(declaration.payload(),
                         java.nio.charset.StandardCharsets.UTF_8));
+                // This sweep is the ordinary tenants' road. The management
+                // tenant arrives through configuration and never through
+                // here, which is the same reason the sweep that retracts
+                // tenants cannot retract it — so a fleet step reaching this
+                // line is one declared by somebody who may not.
+                TenantSpec.onlyTheDeploymentDeclaresFleetSteps(spec);
                 declared.add(spec.code());
                 // It parsed and it is being served, so a later refusal of the
                 // same file is news rather than a repeat.

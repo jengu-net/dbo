@@ -282,7 +282,8 @@ performer was removed is not decided.
 
 ## The decisions, before anything is built
 
-Each of these changes what gets written. None is settled.
+Each of these changes what gets written. Three are settled, one is dissolved,
+and the rest are open — each says which below.
 
 **1. Where the claim lives once work is joined. Dissolved, and it needed an
 invariant rather than an answer.** The question assumed one run could be
@@ -446,13 +447,34 @@ in the path, and the existing HTTP sample still green beside it.
 
 ### 1. Application-level steps are declarable, and nothing runs
 
-A key of their own in the management descriptor, legal there and refused by
-name anywhere else. An entry carries the step, its slots, which of them it
-**opens**, whether it is required or admitted, its posture, and where its queue
-is to live.
+**Done.** `fleetSteps` in the management descriptor, carrying the step, its
+slots, which of them it **opens**, whether it is required or admitted, its
+posture and where its queue is to live. An ordinary tenant declaring one is
+refused by name — naming the tenant, the key, the steps, and where a step it
+offers itself does go.
 
-*Proven by:* a declaration accepted in the management descriptor and the same
-one refused in a tenant's, each by name.
+Three things the writing settled that the plan had not:
+
+- **`fleet.` is not checked against the declaring tenant's types.** A tenant's
+  own step refuses a slot naming a type it does not hold, and copying that
+  here would have refused every real declaration: the types belong to the
+  tenants whose work the step performs, and the management tenant holds none of
+  them.
+- **The rule lives with the declaration and is applied by the sweep.** The
+  parser cannot know which tenant manages the deployment — both files are the
+  same document type read by the same code — but the sweep can, because the
+  management tenant arrives through configuration and never travels that road.
+  That is the same fact that keeps the sweep from retracting it.
+- **A step that opens nothing is a router, and that falls out of the
+  declaration** rather than being a category somebody assigns. It is what makes
+  *required* mean two different weights without a second field.
+
+*Proven by:* `ADeploymentDeclaresItsOwnStepsTest`, claiming
+`REQ-DBO-PROC-AN-APPLICATION-STEP-IS-THE-DEPLOYMENTS-TO-DECLARE` — the
+declaration read from the management descriptor, the same one refused for a
+tenant by name, an unstated posture defaulting rather than being nothing, a
+slot opened but not taken refused, and a slot over a type the declarer does not
+hold accepted.
 
 ### 2. A step code belongs to one level, enforced
 
@@ -561,5 +583,7 @@ application participates, and the tenant-level step stays for that reason.
   than how.
 - And the thing to prove first, before a joiner exists: that a step service
   reached over the stream and one reached over HTTP are indistinguishable in a
-  deployment, which the harness proves for the lane and no test proves for an
-  application built on the assemblies.
+  deployment — **done**. The harness proved it for the lane, and
+  `TheWorkArrivesOverTheSubstrateIT` now proves it for an application built on
+  the assemblies: the same application, the same bean and the same step as the
+  HTTP test beside it, with one word changed.

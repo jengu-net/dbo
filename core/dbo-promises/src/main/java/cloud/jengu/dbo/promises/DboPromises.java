@@ -578,6 +578,25 @@ public enum DboPromises implements Promise {
             + "work already held alone, and says the same thing to an operator asking who "
             + "would run the step as it does to the runner asking to take it."),
 
+    /**
+     * The first of the two that hold the level invariant up. This one makes
+     * the declaration possible and legal in exactly one file; the other
+     * refuses one code declared at both levels. They are separate because
+     * declaring is not running: nothing consumes a fleet step yet, and a
+     * design whose invariant arrived after its joiner would have acquired two
+     * schedulers over one run in between.
+     */
+    PROC_AN_APPLICATION_STEP_IS_THE_DEPLOYMENTS_TO_DECLARE(
+            "A step the deployment performs for every tenant is declared in the management "
+            + "tenant's own descriptor and nowhere else, under a key of its own: what it "
+            + "takes, which of those it OPENS rather than carries, whether a tenant admits "
+            + "it or joining required it, what happens to work whose processing is not yet "
+            + "approved, and where its queue lives. An ordinary tenant declaring one is "
+            + "refused by name, naming the key and the tenant — a tenant declares the steps "
+            + "it offers, and what the deployment does to every tenant's data is not among "
+            + "them. Slots are not checked against the declaring tenant's own types, because "
+            + "the types belong to the tenants whose work it performs."),
+
     PROC_A_LANE_OVER_THE_STREAM(
             "A lane runs over the store's own stream, full duplex, beside in-process and "
             + "HTTP: work goes out and travel, access and result events come home as they "

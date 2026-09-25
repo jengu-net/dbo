@@ -24,7 +24,7 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
         String zone, String broker, List<String> acceptedBrokers,
         List<Dependency> dependencies, Scim scim, List<String> mandatorySteps,
         String managedBy, boolean faceRoot, List<Step> steps, boolean zoneRoot,
-        boolean indexFace) {
+        boolean indexFace, List<FleetStep> fleetSteps) {
 
     /**
      * A step this tenant offers, and the documents a run of it is over.
@@ -56,6 +56,171 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
             slots = java.util.Collections.unmodifiableMap(
                     new java.util.LinkedHashMap<>(slots));
         }
+    }
+
+    /**
+     * A step the DEPLOYMENT performs, for every tenant that admits it.
+     *
+     * <p>Its own key rather than more properties on {@code steps}, because a
+     * field meaning one thing in a tenant's declaration and another in the
+     * management tenant's is how {@code mandatorySteps} came to mean two
+     * things. It also makes the refusal easy to say: an ordinary tenant may
+     * not declare one of these AT ALL, which is clearer against a key that has
+     * no business in its file than against extra properties on a key that has.
+     *
+     * <p>Declared here and nowhere else, so that what a deployment does with
+     * every tenant's data is one document rather than an audit — the register
+     * a tenant reads, the queues that carry the work and the invariant that a
+     * code belongs to one level are all derived from this one entry.
+     *
+     * <p><b>Slots are not checked against the declaring tenant's types</b>,
+     * unlike a tenant's own step. The types a fleet step is over belong to the
+     * tenants whose work it performs, and the management tenant holds none of
+     * them; checking them here would refuse every real declaration.
+     *
+     * @param code      the step's own name, as a run of it is addressed
+     * @param slots     slot name to the type it takes, in declaration order
+     * @param opens     the slots it OPENS rather than carries — the register a
+     *                  tenant reads is these and only these, because a step
+     *                  that reads an envelope discloses nothing
+     * @param required  whether a tenant may decline it. Admitted is the
+     *                  ordinary case; required is an agreement signed by
+     *                  joining, and is declared HERE rather than in a tenant's
+     *                  file so the set is enumerable and readable before
+     *                  anyone joins
+     * @param posture   what happens to work whose processing a tenant has not
+     *                  yet approved
+     * @param substrate where this step's queue lives; absent means the
+     *                  deployment's own. Several steps may name one
+     */
+    public record FleetStep(String code, java.util.Map<String, String> slots,
+            Set<String> opens, boolean required, Posture posture, String substrate) {
+
+        /**
+         * What a deployment does with work it has not been approved to process.
+         *
+         * <p>Stated once per step rather than once per deployment because a
+         * brand-new row and a widened one are different acts, and a deployment
+         * may halt for the first without stopping everything else.
+         */
+        public enum Posture {
+            /** Processed under the agreement the tenant signed by joining. */
+            APPLIED,
+            /**
+             * Processed, and the fact recorded as an incident that stands
+             * until the row is approved. The default, and the cost is accepted
+             * rather than argued away: a halting default would turn a register
+             * nobody answered into an outage nobody caused.
+             */
+            PROCESSED_AND_NAMED,
+            /**
+             * Not processed at all until approved. Refusal is real here and
+             * nowhere else in this design, because approval is known before
+             * the payload is sealed — so declining to seal actually prevents
+             * the processing rather than detecting it afterwards.
+             */
+            NOT_UNTIL_APPROVED;
+
+            static Posture of(String wire, String code) {
+                if (wire == null || wire.isBlank()) {
+                    return PROCESSED_AND_NAMED;
+                }
+                for (Posture posture : values()) {
+                    if (posture.name().equalsIgnoreCase(wire.replace('-', '_'))) {
+                        return posture;
+                    }
+                }
+                throw new IllegalArgumentException(code + ": '" + wire + "' is not a posture "
+                        + "for unapproved processing. It is one of 'applied', "
+                        + "'processed-and-named' or 'not-until-approved', or absent for "
+                        + "'processed-and-named'");
+            }
+        }
+
+        public FleetStep {
+            if (code == null || code.isBlank()) {
+                throw new IllegalArgumentException("a fleet step declares a code");
+            }
+            if (slots.isEmpty()) {
+                throw new IllegalArgumentException(code + ": a step with no slots is over "
+                        + "nothing, and a run of it would reach nothing — declare what it "
+                        + "takes, or do not declare the step");
+            }
+            slots = java.util.Collections.unmodifiableMap(
+                    new java.util.LinkedHashMap<>(slots));
+            opens = Set.copyOf(opens);
+            for (String opened : opens) {
+                if (!slots.containsKey(opened)) {
+                    // A slot it opens and does not take is a register row
+                    // about nothing, and the register is the whole reason
+                    // this is declared rather than discovered.
+                    throw new IllegalArgumentException(code + ": it opens slot '" + opened
+                            + "' and does not take it. What a step opens is a subset of what "
+                            + "it is over; this takes " + new java.util.TreeSet<>(slots.keySet()));
+                }
+            }
+            if (posture == null) {
+                posture = Posture.PROCESSED_AND_NAMED;
+            }
+        }
+
+        /**
+         * Whether this step reads anything a tenant's register must show.
+         *
+         * <p>A step that opens nothing is a router: it reads the envelope and
+         * moves the work, and discloses nothing to anybody. That is why
+         * requiring one is an operational act and requiring a processor is
+         * not.
+         */
+        public boolean isProcessor() {
+            return !opens.isEmpty();
+        }
+    }
+
+    /**
+     * The rule that an ordinary tenant declares no step the deployment
+     * performs, applied by whoever knows which tenant is which.
+     *
+     * <p>It lives here, with the declaration, and is called from the sweep
+     * that turns declarations into tenants — because the rule is about what a
+     * file may say and the sweep is the only reader that knows whose file it
+     * is. The parser cannot: a management descriptor and a tenant's are the
+     * same document type, read by the same code, and which is which is a fact
+     * about the deployment's configuration rather than about the text.
+     *
+     * <p><b>Refused rather than ignored.</b> A deployment-level step sitting
+     * in a tenant's file reads as a thing being done, and the tenant would
+     * have every reason to believe its data was being processed that way. It
+     * is also half the invariant the rest of this design rests on — one code
+     * belongs to one level — and a declaration is much the cheaper place to
+     * see the contradiction than two schedulers reaching for one run.
+     */
+    public static void onlyTheDeploymentDeclaresFleetSteps(TenantSpec spec) {
+        if (spec.fleetSteps().isEmpty()) {
+            return;
+        }
+        throw new IllegalArgumentException("tenant '" + spec.code() + "' declares "
+                + spec.fleetSteps().stream().map(FleetStep::code).sorted().toList()
+                + " under 'fleetSteps', and a tenant may not: those are steps the DEPLOYMENT "
+                + "performs for every tenant that admits them, declared in the management "
+                + "tenant's own descriptor and nowhere else. A step this tenant offers itself "
+                + "goes under 'steps'.");
+    }
+
+    /**
+     * Without steps the deployment performs for every tenant: what every
+     * tenant was while the only steps that existed were the ones a tenant
+     * offered itself.
+     */
+    public TenantSpec(String code, String face, List<FhirTypeConfig> types,
+            boolean pdi, cloud.jengu.dbo.policy.TenantPolicies policies,
+            String zone, String broker, List<String> acceptedBrokers,
+            List<Dependency> dependencies, Scim scim, List<String> mandatorySteps,
+            String managedBy, boolean faceRoot, List<Step> steps, boolean zoneRoot,
+            boolean indexFace) {
+        this(code, face, types, pdi, policies, zone, broker, acceptedBrokers,
+                dependencies, scim, mandatorySteps, managedBy, faceRoot, steps, zoneRoot,
+                indexFace, List.of());
     }
 
     /**
@@ -480,6 +645,35 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
                 steps.add(new Step(stepCode, slots));
             }
         }
+        // The steps the DEPLOYMENT performs, which only the management
+        // tenant's declaration may carry. Parsed for every spec and refused
+        // for the others where a declaration becomes a tenant, rather than
+        // here: this is the one reader that cannot know which tenant manages
+        // the deployment, and a refusal that cannot name the rule it is
+        // enforcing is worse than the one that can.
+        List<FleetStep> fleetSteps = new java.util.ArrayList<>();
+        {
+            java.util.Set<String> seen = new java.util.HashSet<>();
+            for (Object one : Json.array(root, "fleetSteps")) {
+                String stepCode = Json.str(one, "code");
+                cloud.jengu.dbo.core.process.StepId.of(stepCode);
+                if (!seen.add(stepCode)) {
+                    throw new IllegalArgumentException(code + ": fleet step '" + stepCode
+                            + "' is declared twice, and a run addressed by that name could "
+                            + "not say which was meant");
+                }
+                java.util.Map<String, String> slots = new java.util.LinkedHashMap<>();
+                if (Json.objOpt(one, "slots") instanceof java.util.Map<?, ?> named) {
+                    named.forEach((slot, type) -> slots.put(String.valueOf(slot),
+                            String.valueOf(type)));
+                }
+                fleetSteps.add(new FleetStep(stepCode, slots,
+                        Set.copyOf(Json.strings(one, "opens")),
+                        Json.bool(one, "required"),
+                        FleetStep.Posture.of(Json.strOpt(one, "posture"), stepCode),
+                        Json.strOpt(one, "substrate")));
+            }
+        }
         return new TenantSpec(code, face, types, pdi,
                 cloud.jengu.dbo.policy.TenantPolicies.parse(root),
                 Json.strOpt(root, "zone"), Json.strOpt(root, "broker"),
@@ -494,7 +688,8 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
                 // Judged from the definition index rather than from a loaded
                 // specification. Declared and not discovered, because it
                 // decides what every write of this tenant is checked against.
-                Json.bool(root, "indexFace"));
+                Json.bool(root, "indexFace"),
+                List.copyOf(fleetSteps));
     }
 
     /**

@@ -136,6 +136,15 @@ public record SpecChange(Kind kind, List<String> fields) {
         }
         // Mandatory steps classify incidents and gate nothing, so a tenant
         // reads the new list the moment it holds it.
+        // The steps the deployment performs. Only the management tenant may
+        // declare them, and nothing consumes them yet — declaring is not
+        // running, which is the whole of what this step of the design is. So
+        // a change to them changes nothing about a serving tenant today. It
+        // becomes a rebuild the moment declaring provisions a queue, and this
+        // line is where that will be said.
+        if (!Objects.equals(serving.fleetSteps(), declared.fleetSteps())) {
+            hot.add("fleetSteps");
+        }
         if (!Objects.equals(serving.mandatorySteps(), declared.mandatorySteps())) {
             hot.add("mandatorySteps");
         }
