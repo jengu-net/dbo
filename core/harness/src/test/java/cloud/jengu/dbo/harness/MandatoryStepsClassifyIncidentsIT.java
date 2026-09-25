@@ -88,7 +88,7 @@ class MandatoryStepsClassifyIncidentsIT {
                 {"code":"ootel","face":"r4",
                  "mandatorySteps":["lab.result.sign"],"types":[
                   {"name":"Patient","identity":"internal","handling":"operational"}]}""");
-        // its mandatory step will arrive by INTRODUCTION over the link
+        // its mandatory step will arrive by INTRODUCTION over a lane
         Files.writeString(dir.resolve("sisse.json"), """
                 {"code":"sisse","face":"r4",
                  "mandatorySteps":["ee-lab.result.sign"],"types":[
@@ -156,7 +156,7 @@ class MandatoryStepsClassifyIncidentsIT {
 
     /** The emergent catalogue's payoff: the platform's steps arrive as introductions. */
     @Test
-    @DisplayName("a mandatory step satisfied by a linked participant's introduction clears "
+    @DisplayName("a mandatory step satisfied by an introduction over a lane clears "
             + "the incident, without anything installed")
     @cloud.jengu.dbo.promises.Proving({
             cloud.jengu.dbo.promises.DboPromises.PROC_STEPS_ARRIVE_BY_INTRODUCTION,
@@ -165,7 +165,7 @@ class MandatoryStepsClassifyIncidentsIT {
         assertEquals(Set.of("ee-lab.result.sign"), manager.stepIncidents().get("sisse"),
                 "nothing installed contributes it, so the incident is open");
 
-        // The participant connects over the link and introduces its step
+        // The participant connects over a lane and introduces its step
         // into THIS tenant's own store — no module, no restart.
         new cloud.jengu.dbo.work.Introductions(
                 manager.runtime("sisse").orElseThrow().engine(), Steps.of())
@@ -175,7 +175,7 @@ class MandatoryStepsClassifyIncidentsIT {
         assertFalse(manager.stepIncidents().containsKey("sisse"),
                 "the composed catalogue counts introductions, so the mandatory claim is "
                         + "satisfied the way the platform's own steps will satisfy it — "
-                        + "over the link: " + manager.stepIncidents());
+                        + "over a lane: " + manager.stepIncidents());
     }
 
     /** A typo must be refused at parse, not left silently unmatched forever. */

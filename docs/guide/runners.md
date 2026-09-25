@@ -85,7 +85,7 @@ authored. **On the face, not at the step door.** The tenant's step door is built
 tenant's own spec, so it offers the work the tenant says it does. A document
 posted to the face is checked against the composed catalogue — the installed
 steps *and* the ones participants introduced — which is where a capability
-that arrived over a link is found. [Reaching data through a run](runs.md) is
+that arrived over a lane is found. [Reaching data through a run](runs.md) is
 that door.
 
 And the hospital authors it, not the laboratory. Bringing a step grants its

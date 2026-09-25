@@ -277,7 +277,7 @@ public interface Lane {
 
     /**
      * Brings the step this participant performs into the catalogue —
-     * the declaration arriving over the link instead of by installation.
+     * the declaration arriving over a lane instead of by installation.
      * Abstract, not defaulted: a lane that quietly dropped an
      * introduction would leave the participant declaring candidacy for a
      * step the catalogue never learned. The introducer is this lane's

@@ -18,7 +18,7 @@ import java.util.Set;
 import java.util.TreeSet;
 
 /**
- * The catalogue's second door: steps introduced over the link.
+ * The catalogue's second door: steps introduced over a lane.
  *
  * <p>The groundwork left this door open on purpose — a step id is opaque and
  * globally stable, fixed with the record rather than the catalogue, so a
@@ -54,7 +54,7 @@ public final class Introductions {
     public record Introduced(StepDeclaration step, String introducer) {}
 
     /**
-     * Records a step arriving over the link, or re-records it.
+     * Records a step arriving over a lane, or re-records it.
      *
      * <p><b>Scaling must be possible</b>, and scaling here means parallel
      * runners: replicas of one participant each introduce the step they

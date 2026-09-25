@@ -22,7 +22,7 @@ delta rather than a design from nothing.
   as the HTTP door, and the plane between carries no credential.
 - **Two catalogues already answer "is that a step"**: the tenant's own spec at
   the step door, and the composed catalogue — installed steps plus those a
-  linked participant introduced — at the face's run document.
+  participant introduced over a lane — at the face's run document.
 - **The management tenant already exists** and is already the one the store keeps
   its own history in, named in configuration rather than watched, so the loop
   that retracts undeclared tenants cannot retract it.

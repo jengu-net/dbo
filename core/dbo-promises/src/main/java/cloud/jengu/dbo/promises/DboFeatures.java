@@ -59,7 +59,7 @@ public enum DboFeatures implements Feature {
                     DboPromises.PROC_TASK_SAYS_WHERE_THE_WORK_IS)),
 
     THE_CATALOGUE_LEARNS("The catalogue is built up, not ported: installed modules "
-            + "contribute by being installed, and linked participants introduce the "
+            + "contribute by being installed, and participants on a lane introduce the "
             + "steps they bring — one collision rule across both doors, and nothing "
             + "granted by walking through either.",
             List.of(DboPromises.PROC_STEPS_ARRIVE_BY_INTRODUCTION,

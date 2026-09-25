@@ -13,9 +13,9 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * A step declaration that arrived over the link.
+ * A step declaration that arrived over a lane.
  *
- * <p>Modules contribute by being installed; a linked participant is the
+ * <p>Modules contribute by being installed; a participant on a lane is the
  * second contributor kind, and its contribution is this record: the full
  * declaration — id, version, domains, shapes, actions, slots, milestones —
  * with the introducer's name as provenance. Same catalogue, second door,
