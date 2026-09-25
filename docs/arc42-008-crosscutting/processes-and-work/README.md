@@ -97,13 +97,16 @@ person. That ordering matters: it means a step nobody has automated is a normal
 state rather than a gap, and it means turning automation off is a decision
 somebody made rather than a code path that stopped being reached.
 
+**What waits at a step is its backlog**, and it is asked for rather than
+handed out — which is the whole of how work moves here.
+
 **What nothing took is a person's, and it is countable** — per step, and per
 **scope**, which is the part of the world a declaration applies to: everywhere,
-one country, one organisation.
-That number is the automation backlog stated as a fact rather than an opinion,
-and whoever is holding the work is told which reason applies: nothing claimed it,
-automation was switched off here, or a narrower party tried to override a step
-that does not allow it.
+one country, one organisation. That number is the **automation backlog** stated
+as a fact rather than an opinion: the part of a step's backlog no automation
+claimed. Whoever is holding the work is told which reason applies — nothing
+claimed it, automation was switched off here, or a narrower party tried to
+override a step that does not allow it.
 
 ## How a process is built
 
@@ -143,12 +146,21 @@ step, and a step that did not open itself to that is refused by name.
 member organisation's own system, or a person opening a screen — asks what is
 waiting for the steps it performs and takes what it can.
 
-What it asks over is a **lane**: the one channel it has into a tenant, carrying
-every verb it is allowed — ask, take, report, read what the work names — and
-nothing else. A participant holds a lane and never a handle to the store, which
-is why the list of things it can do is short enough to write in a sentence.
-[What a participant may see](participants.md) is that list, and the lane is also
-where the three ways of reaching a tenant are made to look identical.
+What it asks over is a **lane**: everything this participant may do in this
+tenant and nothing besides — ask, take, report, read what the work names.
+
+**A lane is a swimlane, not a traffic lane.** It is the band that belongs to
+one performer. It says nothing about the route work travels or a line it must
+stay inside; it says *whose* work this is, which is why it carries an
+entitlement rather than a direction. So the picture is an ordinary one: the
+step is the bench, its backlog is what waits at that bench, and a lane is
+somebody's standing to work there — which bench, in which tenant, with which
+verbs.
+
+A participant holds a lane and never a handle to the store, which is why the
+list of things it can do is short enough to write in a sentence.
+[What a participant may see](participants.md) is that list, and the lane is
+also where the three ways of reaching a tenant are made to look identical.
 
 That single decision does a great deal. A participant behind a router needs no
 inbound address. One switched off for the weekend is simply one that has not
