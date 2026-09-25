@@ -530,11 +530,25 @@ One source, so a change in what the deployment does with data is a change in
 one file — which is what makes *has anything changed since I last looked* a
 comparison rather than an audit.
 
-**What a withdrawal means is not settled.** A tenant's retraction means it, and
-the same question here has an answer the store has not chosen: a step removed
-from the declaration while its queue still holds work has to stop being joined
-to, drain, and then go — and what happens to work that outlives the draining is
-the part that needs deciding rather than assuming.
+**Withdrawing an application-level step closes it to new work, and nothing
+else.** A tenant's retraction means it; this one deliberately does not. The
+joiner stops lifting runs for that step the moment the declaration changes, and
+what is already queued is still performed — because that work belongs to
+tenants who believe it is being done, and dropping it would be a store losing
+runs to tidy up its own configuration.
+
+**The substrate it leaves behind is removed by a person.** Not by the sweep
+that reconciles declarations, and not on a timer: it is rare, it is
+irreversible, and until it is drained it holds work. That is the same judgement
+this store makes about moving work away from an appliance that cannot be
+reached — a deliberate act by somebody, rather than something a clock infers.
+
+**And it touches no tenant.** A step's substrate is the runtime's own; what it
+holds is a copy of work in flight, and the run itself is a record in the tenant
+that authored it. So removing one destroys copies and no records. What a tenant
+sees is its runs no longer progressing — which is the state it is in, and which
+the store already reads as *not moving* rather than as finished. Declare the
+step again and they are joined again.
 
 ### Which side settles who does the work
 

@@ -246,11 +246,28 @@ is the `mandatorySteps` collision again, and the refusal — *an ordinary tenant
 may not declare an application-level step* — is clearer against a key that has
 no business being there than against extra properties on a key that does.
 
-**Open: what a withdrawal does.** A tenant's retraction means it, and this has
-no answer yet. A step removed while its queue holds work must stop being joined
-to, drain, and then go; what happens to work still queued when the draining ends
-is the decision, and it is the same question a tenant's own retraction answers
-for records.
+**Settled: a withdrawal closes the step to new work and removes nothing.** The
+joiner stops lifting runs for it at once; what is queued is still performed,
+because that work belongs to tenants who believe it is being done. The substrate
+is then removed **by a person**, not by the sweep and not on a timer — rare,
+irreversible, and holding work until drained, which is the same judgement this
+store already makes about moving work away from an appliance nobody can reach.
+
+**It is deliberately not a retraction.** A tenant's retraction means it; this
+one must not, because a configuration change that discarded runs would be the
+store losing work to tidy itself up.
+
+**And it is safe because a joined item is a copy.** The run is a record in the
+tenant that authored it and the queue holds a copy bounded by the work, so
+removing a substrate destroys copies and no records. A tenant sees its runs stop
+progressing, which is the state they are in and which this store already reads
+as *not moving* rather than as done. Re-declaring the step joins them again.
+
+**What that leaves open is narrow**: a run already reported as progressing when
+its substrate goes has a tenant-side record of work in flight that will never
+advance. Progress being evidence rather than a tick is what makes it visible,
+but whether the store should say more than *not moving* about a run whose
+performer was removed is not decided.
 
 ## The decisions, before anything is built
 
@@ -376,11 +393,16 @@ changing one is itself a change a tenant detects. A deployment able to move a
 row from *not until approved* to *processed and named* would otherwise have
 found a way to approve its own widening.
 
-**7. What a joined item is.** A copy in flight, bounded by the work that caused
-it, is the existing shape for a sealed payload and is probably right here too —
-but a run that is also a row in a managing tenant needs its lifetime stated:
-when it is removed, what happens to it on retraction, and whether an erasure
-reaches it.
+**7. What a joined item is. Mostly settled by the withdrawal rule: a copy.**
+That is what makes removing a step's substrate destroy no records, and it is the
+existing shape for a sealed payload —
+but one question survives it. A copy in a
+queue is bounded by the work that caused it; a copy that has been **opened** by
+a processor is the case an erasure has to reach, and where a sealed copy still
+in flight is already answered — it is the carrier form, in the same state as
+the store's own records after a shred — an item sitting in a step's substrate
+is a copy the deployment holds rather than one in transit. Whether an erasure
+reaches it, and how, is the part still to decide.
 
 ## What is deliberately not proposed
 
