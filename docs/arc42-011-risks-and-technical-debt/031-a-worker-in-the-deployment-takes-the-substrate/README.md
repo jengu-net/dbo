@@ -1,10 +1,10 @@
-**Open, and wider than it looks. A worker that is part of the deployment should
-take its work over the DBOS substrate — whether it shares the serving process
-or runs as its own for scaling. An application built on
-`assembly/spring-boot-worker` cannot: `dbo-stream` is not in its bundle set, so
-`StreamLane` is not installed, and there is no configuration that would reach
-it if it were. Every Spring worker polls over HTTP, which is the carrier meant
-for somebody else's application.**
+**Open, and most of the way there. The wiring is built and the carrier works
+up to its last hop: `dbo-stream` is in the worker's bundle set, a lane with no
+base is carried by the substrate, both halves point at one database, and the
+tenant opens its door. What fails is the signature — an ask is refused 401 on
+a plane where a signature is what a token would have been, while the tenant
+demonstrably holds the enrolled public key. The end-to-end test exists and is
+disabled on that one line.**
 
 # A worker in the deployment takes the substrate
 
@@ -68,6 +68,62 @@ what a worker looks like: **almost every worker serves many tenants.** The
 runner is stateless over the tenants whose lanes it is handed, the lane list is
 already a list, and `StreamLane` is already one per tenant over one substrate
 pool.
+
+## Where it actually stands
+
+**Built, and working:**
+
+- `:core:dbo-stream` is in the worker assembly's bundle set, installed and
+  inert — the activator reads the tenants it is a host for and returns where a
+  worker named none, so an HTTP-only application pays a bundle and nothing else.
+- A lane with **no base** is carried by the substrate. The carrier is inferred
+  from what the lane was given rather than named, because a base and a
+  credential already say which one it is.
+- `dbo.worker.substrate.*` carries the substrate and the enrolment, and reaches
+  the container through the contribution seam rather than a second mechanism.
+- The **serving side** gained `dbo.substrate.*` too, which it needed and did not
+  have: `manager.substrate(…)` is what opens a tenant's door on the stream, so
+  without it there was nothing for a participant to connect to. That was missing
+  from this item's own analysis.
+- An incomplete enrolment is refused at refresh, unlike an unreachable tenant,
+  and for the opposite reason: a tenant that is not answering yet will answer,
+  and a missing key never will.
+- `assembly/spring-boot-test` derives all of it from one word,
+  `dbo.test.lane.carrier: substrate` — a substrate database of its own, a
+  keypair per JVM, and the public halves enrolled once the tenant is serving.
+
+**Observed working end to end:** the stream lane is built and attached, the
+tenant's door opens, and the two find each other on one substrate. The failure
+moved twice under measurement — first *no door is open on the stream*, then,
+once the door existed, a refusal.
+
+## The one thing left
+
+```
+lane cycle failed: tenant=hogwarts
+  hogwarts: release-lapsed refused (401) — an ask on the stream is signed by
+  the participant's enrolment key
+```
+
+**And the tenant holds the key.** Probed directly at the point of enrolment:
+`enrolledHasSigningKey=true`, scopes `[work]`, on the tenant the lane is into.
+So `authority.signingKey(participant)` is present and
+`key.verifies(signed, signature)` is what returns false — the signature does
+not check out against the public half the tenant was given.
+
+**What that narrows it to**, since both halves come from one keypair made once
+per JVM: either the private half the container parses is not the private half of
+that pair, or the bytes signed are not the bytes verified. The next probe is at
+that seam and nowhere else — log the public key the door checks against beside
+the one derived from the key the activator parsed, in one run, and they either
+match or they do not.
+
+**One more defect was found on the way and is not this one.** The durable
+layer's notification listener logs `Cannot unwrap to org.postgresql.PGConnection`
+— 1,809 times in a four-minute run. It is pooled connections and a driver the
+stream bundle carries privately: the listener degrades to polling, so
+correctness holds and latency and noise do not. Worth its own item once this one
+is closed.
 
 ## What has to be decided
 

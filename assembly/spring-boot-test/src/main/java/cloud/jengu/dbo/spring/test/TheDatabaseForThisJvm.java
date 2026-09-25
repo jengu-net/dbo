@@ -53,6 +53,42 @@ final class TheDatabaseForThisJvm {
         return key;
     }
 
+    /**
+     * A database of its own for the deployment's durable substrate.
+     *
+     * <p>Beside the tenants rather than among them: the substrate is the
+     * deployment's, carrying work between a serving node and the participants
+     * inside it, and a tenant's database is one tenant's world. Created once
+     * per JVM, like the container it lives in.
+     */
+    static synchronized String substrateUrl() {
+        if (substrate == null) {
+            PostgreSQLContainer<?> db = running;
+            if (db == null) {
+                throw new IllegalStateException("no database is running yet, so there is nowhere "
+                        + "to make a substrate \u2014 this is asked for after the container starts");
+            }
+            try (java.sql.Connection open = java.sql.DriverManager.getConnection(
+                    db.getJdbcUrl(), db.getUsername(), db.getPassword());
+                    java.sql.Statement make = open.createStatement()) {
+                make.execute("CREATE DATABASE " + SUBSTRATE);
+            } catch (java.sql.SQLException already) {
+                // Made by an earlier context in this JVM, which is the ordinary
+                // case: contexts are cached per configuration and this is not.
+                if (!"42P04".equals(already.getSQLState())) {
+                    throw new IllegalStateException("the substrate database could not be made: "
+                            + already.getMessage(), already);
+                }
+            }
+            substrate = db.getJdbcUrl().replaceFirst("/[^/?]+(\\?|$)", "/" + SUBSTRATE + "$1");
+        }
+        return substrate;
+    }
+
+    private static final String SUBSTRATE = "dbo_substrate";
+
+    private static String substrate;
+
     static synchronized PostgreSQLContainer<?> get(String image) {
         if (running == null) {
             running = new PostgreSQLContainer<>(image);

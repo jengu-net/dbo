@@ -29,6 +29,18 @@ public final class DboTestProperties {
     /** What the credential that worker carries is allowed to do. */
     public static final String LANE_SCOPES = "dbo.test.lane.scopes";
 
+    /**
+     * How the lane is carried: {@code http} by default, or {@code substrate}.
+     *
+     * <p>A test says which because the two are different claims. Over HTTP a
+     * participant is somebody else's application reaching this deployment
+     * through a port; over the substrate it is part of the deployment, reading
+     * the database the serving side already runs on. Everything that differs
+     * — a base and a credential against an enrolment and a substrate URL —
+     * is derived from this one word.
+     */
+    public static final String LANE_CARRIER = "dbo.test.lane.carrier";
+
     private static final String DEFAULT_IMAGE = "postgres:17-alpine";
 
     private static final List<String> DEFAULT_SCOPES =
@@ -37,9 +49,13 @@ public final class DboTestProperties {
     private final String image;
     private final String world;
     private final String laneTenant;
+
+    private final boolean laneOverTheSubstrate;
     private final List<String> laneScopes;
 
-    DboTestProperties(String image, String world, String laneTenant, List<String> laneScopes) {
+    DboTestProperties(String image, String world, String laneTenant, List<String> laneScopes,
+            boolean laneOverTheSubstrate) {
+        this.laneOverTheSubstrate = laneOverTheSubstrate;
         this.image = image == null || image.isBlank() ? DEFAULT_IMAGE : image;
         this.world = world;
         this.laneTenant = laneTenant;
@@ -66,6 +82,11 @@ public final class DboTestProperties {
     }
 
     /** Null where nothing in this context performs work. */
+    /** Whether the lane this test declares is carried by the substrate. */
+    public boolean laneOverTheSubstrate() {
+        return laneOverTheSubstrate;
+    }
+
     public String laneTenant() {
         return laneTenant == null || laneTenant.isBlank() ? null : laneTenant;
     }

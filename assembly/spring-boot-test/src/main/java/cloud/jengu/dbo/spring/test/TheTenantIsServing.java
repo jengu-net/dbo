@@ -59,8 +59,26 @@ public final class TheTenantIsServing implements BeforeAllCallback {
                 () -> new IllegalStateException(tenant + " is serving and has no authority, so "
                         + "no credential can be issued for a worker to carry"));
         authority.ensureClient(CLIENT, SECRET, scopes(application));
-        authority.ensureClient(WORK_CLIENT, SECRET,
-                List.of(cloud.jengu.dbo.auth.Scopes.WORK));
+        if (overTheSubstrate(application)) {
+            // ITS OWN CLIENT, not the one a token is carried on. An enrolled
+            // participant and a client that signs in are different things, and
+            // a record made once without keys is not given them later — so
+            // sharing an id with the HTTP tests in this JVM would leave the
+            // enrolment silently absent and every ask refused on its
+            // signature.
+            // The PUBLIC halves, against the participant the worker carries the
+            // private ones for. The plane between holds no token, so what
+            // admits an ask there is a signature this record can check — and a
+            // participant with no record on the tenant is not late, it is
+            // unknown.
+            authority.ensureClient(ENROLLED, SECRET,
+                    List.of(cloud.jengu.dbo.auth.Scopes.WORK),
+                    cloud.jengu.dbo.core.api.seal.ParticipantKey.of(sealingOfThisJvm.getPublic()),
+                    cloud.jengu.dbo.core.api.seal.SigningKey.of(signingOfThisJvm.getPublic()));
+        } else {
+            authority.ensureClient(WORK_CLIENT, SECRET,
+                    List.of(cloud.jengu.dbo.auth.Scopes.WORK));
+        }
         startTheWorker(application);
     }
 
@@ -81,6 +99,40 @@ public final class TheTenantIsServing implements BeforeAllCallback {
                 + "be about. It is declared in the world at "
                 + DboTestProperties.WORLD + ", and a tenant that is declared and not serving has "
                 + "said why in the log above this line.");
+    }
+
+    /**
+     * The pair this JVM enrols with, made once.
+     *
+     * <p>Once per JVM rather than per context for the reason the key is: the
+     * enrolment lives on a tenant in a database that outlives a context, so a
+     * second context minting a second pair would hold private halves the
+     * tenant has never heard of.
+     */
+    /** The participant a lane on the substrate is held by, enrolled with keys. */
+    static final String ENROLLED = "dbo-test-enrolled-participant";
+
+    private static final java.security.KeyPair sealingOfThisJvm =
+            cloud.jengu.dbo.core.api.seal.KeyWrap.newParticipantKeyPair();
+
+    private static final java.security.KeyPair signingOfThisJvm =
+            cloud.jengu.dbo.core.api.seal.SigningKey.newKeyPair();
+
+    /** The private half this worker is sealed to, as the container takes it. */
+    static String sealingKeyOfThisJvm() {
+        return java.util.Base64.getEncoder()
+                .encodeToString(sealingOfThisJvm.getPrivate().getEncoded());
+    }
+
+    /** The private half it signs its asks with. */
+    static String signingKeyOfThisJvm() {
+        return java.util.Base64.getEncoder()
+                .encodeToString(signingOfThisJvm.getPrivate().getEncoded());
+    }
+
+    private static boolean overTheSubstrate(ApplicationContext application) {
+        return "substrate".equalsIgnoreCase(application.getEnvironment()
+                .getProperty(DboTestProperties.LANE_CARRIER, "http"));
     }
 
     private static List<String> scopes(ApplicationContext application) {

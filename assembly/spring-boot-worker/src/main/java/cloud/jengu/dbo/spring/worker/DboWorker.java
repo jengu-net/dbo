@@ -155,6 +155,13 @@ public final class DboWorker implements SmartLifecycle {
             Map<String, Supplier<String>> supplied) {
         Map<String, Supplier<String>> byTenant = new HashMap<>();
         for (DboWorkerProperties.Lane lane : properties.getLanes()) {
+            if (lane.overTheSubstrate()) {
+                // Nothing to sign in with and nowhere to do it: that plane
+                // carries no token, and an ask on it is signed with the
+                // enrolment key instead. A credential built here would be one
+                // obtained from a door this lane never speaks to.
+                continue;
+            }
             Supplier<String> own = supplied.get(lane.getTenant());
             if (own != null) {
                 byTenant.put(lane.getTenant(), own);

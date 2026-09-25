@@ -70,15 +70,39 @@ public final class ADeploymentForThisTest
         String tenant = asked.laneTenant();
         if (tenant != null) {
             derived.put("dbo.worker.lanes[0].tenant", tenant);
-            derived.put("dbo.worker.lanes[0].base",
-                    "http://127.0.0.1:" + port + "/t/" + tenant + "/");
-            // The credential is named now and ISSUED later: only a tenant
-            // that exists can register a client, and none does yet.
-            derived.put("dbo.worker.lanes[0].token.client-id", TheTenantIsServing.WORK_CLIENT);
-            derived.put("dbo.worker.lanes[0].token.client-secret", TheTenantIsServing.SECRET);
-            // Left still until it has been. A runner polling a lane whose
-            // credential does not exist yet fails every cycle and says so in
-            // a log nobody is reading.
+            if (asked.laneOverTheSubstrate()) {
+                // NO BASE, which is how a lane says it is carried by the
+                // deployment's own substrate. The serving half is pointed at
+                // the same one, because a door and the participant reading it
+                // have to be on one database or there is nothing between them.
+                String substrate = TheDatabaseForThisJvm.substrateUrl();
+                derived.put("dbo.substrate.url", substrate);
+                derived.put("dbo.substrate.user", database.getUsername());
+                derived.put("dbo.substrate.password", database.getPassword());
+                derived.put("dbo.worker.substrate.url", substrate);
+                derived.put("dbo.worker.substrate.user", database.getUsername());
+                derived.put("dbo.worker.substrate.password", database.getPassword());
+                derived.put("dbo.worker.substrate.participant", TheTenantIsServing.ENROLLED);
+                derived.put("dbo.worker.substrate.provider", "cloud.jengu.test");
+                // The PRIVATE halves. Their public halves are enrolled against
+                // this participant once the tenant is serving, because only a
+                // tenant that exists holds a client record to put them on.
+                derived.put("dbo.worker.substrate.sealing-key",
+                        TheTenantIsServing.sealingKeyOfThisJvm());
+                derived.put("dbo.worker.substrate.signing-key",
+                        TheTenantIsServing.signingKeyOfThisJvm());
+            } else {
+                derived.put("dbo.worker.lanes[0].base",
+                        "http://127.0.0.1:" + port + "/t/" + tenant + "/");
+                // The credential is named now and ISSUED later: only a tenant
+                // that exists can register a client, and none does yet.
+                derived.put("dbo.worker.lanes[0].token.client-id",
+                        TheTenantIsServing.WORK_CLIENT);
+                derived.put("dbo.worker.lanes[0].token.client-secret", TheTenantIsServing.SECRET);
+            }
+            // Left still until the credential or the enrolment exists. A
+            // runner polling a lane that cannot yet be held fails every cycle
+            // and says so in a log nobody is reading.
             derived.put("dbo.worker.auto-start", "false");
         }
 
@@ -108,7 +132,9 @@ public final class ADeploymentForThisTest
                 environment.getProperty(DboTestProperties.IMAGE),
                 environment.getProperty(DboTestProperties.WORLD),
                 environment.getProperty(DboTestProperties.LANE_TENANT),
-                scopes(environment));
+                scopes(environment),
+                "substrate".equalsIgnoreCase(
+                        environment.getProperty(DboTestProperties.LANE_CARRIER, "http")));
     }
 
     @SuppressWarnings("unchecked")

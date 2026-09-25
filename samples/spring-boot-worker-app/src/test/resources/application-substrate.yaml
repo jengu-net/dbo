@@ -1,0 +1,21 @@
+# The same deployment, with the lane carried by the store's own substrate.
+#
+# One word differs from the http profile — dbo.test.lane.carrier — and
+# everything that follows from it is derived: no base and no credential, a
+# substrate URL both halves point at, and an enrolment whose public halves the
+# tenant holds against this worker's client record.
+spring:
+  main:
+    web-application-type: servlet
+
+dbo:
+  test:
+    world: ../sample-world
+    lane:
+      tenant: hogwarts
+      carrier: substrate
+  worker:
+    identity:
+      name: sample-admissions-worker
+      version: "1"
+    poll: 500ms

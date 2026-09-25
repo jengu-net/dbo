@@ -30,6 +30,9 @@ public class DboServerProperties {
     /** The spec of the tenant this deployment's own history lives in. */
     private String managementSpec;
 
+    /** The durable substrate a tenant's stream door is opened on, where there is one. */
+    private Substrate substrate = new Substrate();
+
     private Tenants tenants = new Tenants();
 
     private Http http = new Http();
@@ -61,6 +64,9 @@ public class DboServerProperties {
         put(said, "dbo.tenant.admin.url", admin.getJdbcUrl());
         put(said, "dbo.tenant.admin.user", admin.getUser());
         put(said, "dbo.tenant.admin.password", admin.getPassword());
+        put(said, "dbo.substrate.url", substrate.getUrl());
+        put(said, "dbo.substrate.user", substrate.getUser());
+        put(said, "dbo.substrate.password", substrate.getPassword());
         if (mount == Mount.SERVLET) {
             // What makes the tenant activator wait for a server rather than
             // bind a port of its own. Said by the deployment rather than
@@ -133,6 +139,14 @@ public class DboServerProperties {
 
     public void setAuth(Auth auth) {
         this.auth = auth;
+    }
+
+    public Substrate getSubstrate() {
+        return substrate;
+    }
+
+    public void setSubstrate(Substrate substrate) {
+        this.substrate = substrate;
     }
 
     public Admin getAdmin() {
@@ -246,6 +260,49 @@ public class DboServerProperties {
      * promises rest on, and the application's transaction manager in that
      * path would be in the way of a single-transaction write.
      */
+    /**
+     * The deployment's own durable substrate, where it has one.
+     *
+     * <p>Each served tenant then opens a door on it beside its HTTP door, for
+     * a participant inside the deployment that connects to the substrate and
+     * to nothing else. Absent means this node serves lanes over HTTP and
+     * in-process only, as every node did before the fleet — so it is left
+     * unset rather than defaulted, because a URL guessed here would be a
+     * second store nobody meant to reach.
+     */
+    public static class Substrate {
+
+        private String url;
+
+        private String user;
+
+        private String password;
+
+        public String getUrl() {
+            return url;
+        }
+
+        public void setUrl(String url) {
+            this.url = url;
+        }
+
+        public String getUser() {
+            return user;
+        }
+
+        public void setUser(String user) {
+            this.user = user;
+        }
+
+        public String getPassword() {
+            return password;
+        }
+
+        public void setPassword(String password) {
+            this.password = password;
+        }
+    }
+
     public static class Admin {
 
         private String jdbcUrl;
