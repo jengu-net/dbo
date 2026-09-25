@@ -1,9 +1,10 @@
-**Open, and narrowed to two filters in one method. The run is created and
-correctly shaped, the service is wired, the credential is entitled to
-everything, and the lane reads the feed runs live on — and the run is never
-OFFERED, rather than offered and not taken. What rejects it is one of the two
-conditions in `Participation.poll` nobody has yet observed: whether it reads as
-already claimed, or as not open.**
+**Open, and the lane is now exonerated too. A fast probe mints two runs that
+differ only in the declaration they came from — one as a tenant's own surface
+declares a step, one as a participant introduces one — and the lane offers
+both. So it is not the filters, not the declaration's domain, not the
+entitlement and not the feed. What is left is the one thing the sample does
+that the probe does not: the run is authored through the FACE's document door
+rather than minted directly.**
 
 # A brought step's run is not offered back
 
@@ -79,30 +80,41 @@ not that.
 is ever logged. Four minutes at a 507ms poll, after the startup transient has
 cleared, in a context where the spec-declared step is performed.
 
-## What that leaves
+## What the fast probe settled
 
-`Participation.poll` filters a feed item four ways. Two are observed to pass;
-two have never been looked at.
+`ARunIsOfferedWhicheverDoorDeclaredItsStepIT` mints two runs in one world that
+differ in exactly one input — the declaration they came from. One is shaped as
+`StepSurface` shapes a tenant's own (`of(code, "1", "r5")`, the face's domain
+hardcoded); the other is introduced and carries its own (`work`), as the
+sample's bean does. Both are then minted by the same call, and the lane is asked
+what it offers.
+
+**It offers both.** Fifty-one seconds, and it eliminates every remaining
+hypothesis this item carried:
 
 | filter | status |
 |---|---|
-| `steps.contains(run.step())` | passes — `assay` is in the polled set |
-| `run.item() == null` | passes — the run has no items |
-| `!run.claimed(now)` | **unobserved** |
-| `Run::open` | **unobserved** |
+| `steps.contains(run.step())` | passes |
+| `run.item() == null` | passes |
+| `!run.claimed(now)` | **passes** — a fresh run has no assignment |
+| `Run::open` | **passes** — `holder != NOBODY`, and a fresh run is AUTOMATION |
 
-**One difference between the two runs is worth testing first.** A tenant's own
-step is declared by `StepSurface` as `StepDeclaration.of(code, "1", "r5")` —
-the domain hardcoded to the face's. An introduced declaration carries whatever
-it declared, and the sample's says `"work"`. Both runs are then minted by the
-same `runs.of(step, PIPELINE, scope, inputs)`, so if the declaration's domain
-reaches the run's state or its openness, it is the only input that differs.
+And the declaration's domain decides nothing: an introduced step's run is
+offered exactly as an installed step's is.
 
-**And the next probe should be fast rather than end to end.** Two runs minted
-in one harness world — one from a spec-shaped declaration, one from an
-introduced one — polled through `Participation` directly, asserting which is
-offered. That isolates the filter in seconds, where the sample costs five
-minutes a cycle to answer yes or no.
+## What is left, and it is one difference
+
+The probe mints with `runs.of(...)`. **The sample does not** — its run is
+authored through the face's document door, `WorkProjection.create`, which reads
+a Task, resolves the step against the composed catalogue, and then mints. The
+step door does the same for the tenant's own steps and its runs are performed.
+
+So the next thing to hold against each other is the two doors on a real tenant,
+not two declarations in a bare world: author one run through `POST /step/<id>`
+and one through `POST /fhir/Task`, for steps that differ only in which
+catalogue declared them, and ask the lane what it offers. If the face-authored
+run is missing, the fault is in that path and the lane was never the place to
+look — which is what this probe has now established.
 
 ## What has not been checked
 
