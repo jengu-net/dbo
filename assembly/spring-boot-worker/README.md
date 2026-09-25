@@ -88,10 +88,10 @@ because the catalogue it checks a run against now holds the declaration. So a
 worker cannot invent work its tenant never asked for; it can only offer to do
 something the tenant may then ask for.
 
-What the worker then being offered that run needs is
-[item 029](../../docs/arc42-011-risks-and-technical-debt/029-a-brought-step-is-not-offered-back/README.md),
-which is open: the run is authored and accepted and is not offered back, while
-a spec-declared step in the same cycle is performed.
+**And the executor performing it is at the baseline**, which is what bringing a
+step means: the rule for it rather than a variation on somebody else's. That is
+this module's default, and asking for an organisation while declaring a step
+here is refused at refresh — see the property surface below.
 
 ## What the application gets
 
@@ -117,6 +117,7 @@ sets `auto-start: false` and calls `start()` — which is what
 | | |
 |---|---|
 | `dbo.worker.identity.name`, `.version` | who a run records, reproducibly |
+| `dbo.worker.identity.scope` | `baseline` (default) or `organisation` — see below |
 | `dbo.worker.poll` | how often a lane is asked (default 2s) |
 | `dbo.worker.hold` | how long a claimed run is held (default 1m) |
 | `dbo.worker.auto-start` | whether the loop starts with the context (default true) |
@@ -125,6 +126,18 @@ sets `auto-start: false` and calls `start()` — which is what
 | `dbo.worker.lanes[].base` | where it answers |
 | `dbo.worker.lanes[].token.client-id`, `.client-secret` | a client that tenant issued, refreshed as needed |
 | `dbo.worker.lanes[].token.value` | a bearer token instead, for a deployment that mints them elsewhere |
+
+**The baseline is the default, and usually right.** An executor at the baseline
+is *the rule* for a step and every step admits it. An executor at an
+organisation is a local variation, which a step admits only where it declared
+itself overridable — and not overridable is the default. So a worker scoped to
+an organisation has its claims refused by every ordinary step, one run at a
+time.
+
+**A step this application brings must be at the baseline**, because bringing a
+step is being the rule for it rather than varying somebody else's. Configure
+both and the context refuses at refresh, naming the step, instead of leaving
+the store to refuse each claim where nobody is reading.
 
 **The credential must be one that may act in work.** A token admitted at the
 step surface is refused by the tenant's records door, and that is the split

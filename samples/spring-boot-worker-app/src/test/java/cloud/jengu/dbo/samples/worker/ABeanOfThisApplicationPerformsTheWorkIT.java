@@ -71,6 +71,9 @@ class ABeanOfThisApplicationPerformsTheWorkIT {
     /** The step no tenant declared, which this application brought. */
     private static final String BROUGHT = MeasuringASpecimen.DECLARED.id().toString();
 
+    /** A run records process and step apart, so a question about one names the step. */
+    private static final String BARE = BROUGHT.substring(BROUGHT.lastIndexOf('.') + 1);
+
     @Autowired
     DboTestContext dbo;
 
@@ -162,18 +165,31 @@ class ABeanOfThisApplicationPerformsTheWorkIT {
         // it because the catalogue it checks against holds the declaration
         // this application brought — which is the whole of what introduction
         // buys.
+        long before = dbo.asking(TENANT).work().ofStep(BARE).by(THIS_WORKER).count();
         var authored = untilTheFaceTakesIt(specimen.idOrFail());
         Proves.that(DboPromises.PROC_STEPS_ARRIVE_BY_INTRODUCTION, authored.accepted(),
                 "the face refused a run of the step this application introduced, so the "
                         + "declaration never reached the catalogue a run is checked against: "
                         + authored.body());
 
-        // AND IT STOPS HERE, DELIBERATELY. That this worker then PERFORMS the
-        // run is the obvious next line and it does not pass: the run is
-        // authored, the worker is healthy, the step it declared in the same
-        // cycle is performed, and a run of this one is not offered within two
-        // minutes. Asserting it would be asserting something nobody has
-        // explained — item 029 holds the question.
+        Proves.that(DboPromises.PROC_STEPS_ARRIVE_BY_INTRODUCTION,
+                untilPerformed(BARE, before, Duration.ofMinutes(3)),
+                "no run of " + BROUGHT + " names " + THIS_WORKER + ", so a bean brought a "
+                        + "capability, the tenant authored work of it, and the work never came "
+                        + "back to whoever brought it");
+    }
+
+    /** Waits for a run of one step this application performed. */
+    private boolean untilPerformed(String bareStep, long before, Duration give)
+            throws InterruptedException {
+        long giveUp = System.nanoTime() + give.toNanos();
+        while (System.nanoTime() < giveUp) {
+            if (dbo.asking(TENANT).work().ofStep(bareStep).by(THIS_WORKER).count() > before) {
+                return true;
+            }
+            Thread.sleep(1000);
+        }
+        return false;
     }
 
     /** A run of the brought step, as the face's own door takes one. */

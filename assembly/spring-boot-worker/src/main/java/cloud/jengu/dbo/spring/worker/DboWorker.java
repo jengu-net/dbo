@@ -87,9 +87,16 @@ public final class DboWorker implements SmartLifecycle {
             performing.add(registrar.register(StepService.class, step, Map.of()));
         }
         for (DboWorkerProperties.Lane declared : properties.getLanes()) {
+            // The baseline unless this application said otherwise. A step is
+            // not overridable by default and the baseline is the only scope
+            // every step admits, so a worker scoped to an organisation by
+            // default is one whose claims are refused by every step that never
+            // opened itself to being varied.
             Executor identity = new Executor(properties.getIdentity().getName(),
                     properties.getIdentity().getVersion(), declared.getTenant(),
-                    Scope.organisation(declared.getTenant()));
+                    properties.getIdentity().getScope() == DboWorkerProperties.Scope.ORGANISATION
+                            ? Scope.organisation(declared.getTenant())
+                            : Scope.BASELINE);
             Lane lane = HttpLane.to(declared.getBase().resolve("work"),
                     tokens.get(declared.getTenant()), declared.getTenant(),
                     properties.getIdentity().getName(), identity);

@@ -106,6 +106,9 @@ public class DboWorkerProperties {
 
         private String version = "1";
 
+        /** The baseline, because it is the only scope every step admits. */
+        private Scope scope = Scope.BASELINE;
+
         public String getName() {
             return name;
         }
@@ -121,6 +124,38 @@ public class DboWorkerProperties {
         public void setVersion(String version) {
             this.version = version;
         }
+
+        public Scope getScope() {
+            return scope;
+        }
+
+        public void setScope(Scope scope) {
+            this.scope = scope;
+        }
+    }
+
+    /**
+     * What an executor is declaring itself to be for the steps it performs.
+     *
+     * <p>The baseline always may perform a step — it is not an override, it is
+     * the rule — while anything more local may only where the step said so, and
+     * a step is not overridable by default. So this defaults to the baseline
+     * and an application says otherwise when it means to.
+     */
+    public enum Scope {
+
+        /**
+         * The rule for the step, which is what a participant performing one is.
+         * A service that brings its own declaration must be this: bringing a
+         * step is not varying somebody else's.
+         */
+        BASELINE,
+
+        /**
+         * A local variation for this tenant, which only a step that opened
+         * itself to being overridden will admit.
+         */
+        ORGANISATION
     }
 
     /** One tenant this worker is offered work by. */

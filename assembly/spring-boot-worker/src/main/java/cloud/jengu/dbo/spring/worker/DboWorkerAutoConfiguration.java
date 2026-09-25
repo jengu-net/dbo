@@ -90,6 +90,7 @@ public class DboWorkerAutoConfiguration {
         List<StepService> performing = steps.orderedStream().toList();
         refuseADuplicateStep(performing);
         refuseALaneThatCannotBeUsed(properties);
+        refuseAnOverrideOfAStepThisApplicationBrought(performing, properties);
         if (performing.isEmpty()) {
             // Not a refusal: a worker with no steps yet is an application
             // part-way through being written, and failing its context would
@@ -142,6 +143,38 @@ public class DboWorkerAutoConfiguration {
      * not converge is a lane with no tenant code, no address, or no way to
      * obtain a credential, and those are refused where the author can see it.
      */
+    /**
+     * A step this application brought is not one it varies.
+     *
+     * <p>The baseline is the rule for a step and always admitted; anything more
+     * local is an override, which a step admits only where it said so, and not
+     * overridable is the default. So an application that carries its own
+     * declaration and asks to act at an organisation has said two things that
+     * cannot both be true — and the store would tell it so one claim at a time,
+     * on a run that a feed cursor has already moved past.
+     *
+     * <p>Said here instead, once, with the step named, because the author is
+     * looking at the configuration now and will not be looking at a log later.
+     */
+    private static void refuseAnOverrideOfAStepThisApplicationBrought(
+            List<StepService> performing, DboWorkerProperties properties) {
+        if (properties.getIdentity().getScope() != DboWorkerProperties.Scope.ORGANISATION) {
+            return;
+        }
+        List<String> brought = performing.stream()
+                .filter(step -> step.declaration().isPresent())
+                .map(StepService::step)
+                .toList();
+        if (!brought.isEmpty()) {
+            throw new IllegalStateException("dbo.worker.identity.scope is 'organisation', and "
+                    + brought + " " + (brought.size() == 1 ? "is a step" : "are steps")
+                    + " this application brings its own declaration for. Bringing a step is "
+                    + "being the rule for it, not varying somebody else's, and a step is not "
+                    + "overridable by default \u2014 so every claim of it would be refused. Leave "
+                    + "the scope at its default, or do not declare the step here.");
+        }
+    }
+
     private static void refuseALaneThatCannotBeUsed(DboWorkerProperties properties) {
         if (properties.getIdentity().getName() == null
                 || properties.getIdentity().getName().isBlank()) {
