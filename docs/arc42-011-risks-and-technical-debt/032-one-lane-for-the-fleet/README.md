@@ -106,6 +106,66 @@ measured notification volume and to nothing else.
 are installed at all; without them the same code degrades to polling, so
 nothing may depend on a wake-up arriving.
 
+### A database per step, and when that is the cheap answer
+
+**The shape of the load decides this, and the expected shape favours it.** A
+few application-level steps, each carrying every tenant's work, is the profile
+where a database per step is cheap: the *benefit* scales with load per step and
+the *cost* scales with the number of steps. The opposite profile — many steps,
+each lightly used — would invert it, and that is the reading to revisit if the
+number of application-level steps ever stops being small.
+
+**Four things it buys, and only the first is unavailable elsewhere.**
+
+- **Notification isolation**, which nothing else provides. The channels are
+  library constants and Postgres scopes them to a database, so this is the only
+  way a step's consumers stop hearing every other step's traffic.
+- **Contention isolation.** The durable layer's own tables — workflow status,
+  notifications, operation outputs — are exactly what a hot step hammers. A
+  database each gives independent vacuum, independent write-ahead log and
+  independent lock contention, which is worth more than the notification saving
+  under real load.
+- **Independent failure and upgrade.** A step that floods does not stall the
+  others, and a migration is per step rather than per fleet.
+- **A move later without redesign.** A step that outgrows the server moves to
+  its own Postgres instance by changing where it points.
+
+**What it costs is connections, and the cost is per participating process.**
+Each durable-layer instance holds **one dedicated connection permanently** for
+its listener, plus a pool — so a process taking part in *M* step databases holds
+*M* listeners and *M* pools before it does any work.
+
+**That is the pairing worth noticing**: this cost is small exactly where a
+separate worker application serves one step, which is already the shape scaling
+takes here — one database, one listener, one pool per worker. It is large in
+the all-in-one embedded server, which would hold every step's connections at
+once to perform steps it may barely use.
+
+**So placement should be configuration, not structure.** A step names the
+substrate its queue lives on, and several steps may name one. A deployment that
+runs everything in one application points them all at one; a deployment scaling
+a step gives it its own. The joiner has to resolve *where does this step's queue
+live* in either case, so designing for it is nearly free, and deciding it now
+would bake a topology into a store that does not know how it will be run.
+
+**And these are not tenants.** A step's database is owned by the runtime and
+carries a durable-layer bootstrap and nothing else: no face, no zone, no
+personal-data isolation, no store schema, no authority. The provisioning path
+that creates tenant databases must not be the one that creates these, or they
+arrive with tenant machinery nobody asked for — though the admin connection
+that provisions is the same one.
+
+**The managing tenant stays what it is.** It holds the joiner's own bookkeeping
+and the reduced account, and step queues live beside it rather than inside it —
+otherwise the tenant that records what the deployment did becomes the hottest
+database in it.
+
+**Two consequences to design for rather than discover.** The joiner writes into
+a different database from the one it read, so there is no transaction spanning
+the two: delivery is at-least-once and the write has to be idempotent on the
+run's own identity. And anything that answers across steps — the reduced
+account, a fleet view — reads *M* databases rather than one.
+
 ### What follows for the joiner
 
 **If step-based consumption must be notify-driven, the partition is a

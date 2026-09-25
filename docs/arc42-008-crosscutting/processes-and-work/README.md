@@ -571,10 +571,17 @@ the durable layer here offers two shapes with different costs. Its queues are
 **polled**, at an interval each queue names. Its wake-ups are **addressed to a
 destination**, and a consumer that waits to be told rather than asking is a
 long-lived workflow addressed by name — which is exactly what a tenant's door
-on the stream already is, one per tenant instead of one per step. Neither is
-free and the difference is latency against a workflow per partition;
-[the ledger](../../arc42-011-risks-and-technical-debt/032-one-lane-for-the-fleet/README.md)
-carries what was measured and what it restricts.
+on the stream already is, one per tenant instead of one per step.
+
+**Where a step's queue lives is a placement decision and not a structure.** A
+step names the substrate it runs on and several steps may name one. There are
+few application-level steps and each carries every tenant's work, so a step
+under real load is worth its own database — for the contention it stops sharing
+as much as for the notifications — while a deployment running everything in one
+application points them all at one. That the two can be the same design is the
+point: a store does not know how it will be run.
+[The ledger](../../arc42-011-risks-and-technical-debt/032-one-lane-for-the-fleet/README.md)
+carries what the substrate restricts and what each shape costs.
 
 **A wake-up is a hint, and the queue is the truth.** A notification nobody was
 listening for is not redelivered, so a consumer that missed one finds the work
