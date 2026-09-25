@@ -1,10 +1,12 @@
-**Open, and diagnosed. Two defects, found by instrumenting the poll and the
-claim. A settled refusal crosses the lane as HTTP 500, so a participant reads it
-as a transient fault, carries on, and loses the run for good because the feed
-cursor has already passed it — which breaks
-REQ-DBO-PROC-REFUSED-IS-NOT-UNANSWERED by name. And the worker assembly scopes
-every executor to the tenant's organisation, which for a step the application
-itself brought is asking to vary its own step, and is correctly refused.**
+**Open on one half. The refusal is fixed: `Runs.NotAdmitted` was a plain
+`RuntimeException`, which the verb surface does not recognise, so a settled
+refusal left as a 500 and reached the participant as *the store did not answer*
+— the opposite recovery, and a run lost for good because a feed cursor is
+acknowledged either way. It is an `IllegalStateException` now, and
+`AFaceAuthoredRunReachesTheLaneIT#anInadmissibleClaimIsARefusal` fails without
+that change. What remains is why it refused: the worker assembly scopes every
+executor to the tenant's organisation, which for a step the application itself
+brought is asking to vary its own step.**
 
 # A refusal on the lane arrives as a fault, and the run is lost
 
@@ -39,7 +41,7 @@ So the store refused exactly as it promises to, the participant was told the
 store had broken, and the run it was holding an offer for went past the cursor
 and was never offered again.
 
-## Defect one: a refusal crosses as an unanswered call
+## Defect one, fixed: a refusal crossed as an unanswered call
 
 **This is the serious half, and it is a promise violated rather than a gap.**
 REQ-DBO-PROC-REFUSED-IS-NOT-UNANSWERED says a refusal and an unanswered call
@@ -51,8 +53,22 @@ would back off from work it is entitled to*.
 becomes a 500, and `WireLane` turns 5xx into "did not complete" — which is the
 right mapping for a 500 and the wrong answer about this exception.
 `ALaneOverHttpIsIndistinguishableIT#aRefusalIsNotAnUnansweredCall` already
-proves the property for the refusals that are mapped; `NotAdmitted` is not one
+proved the property for the refusals that were mapped; `NotAdmitted` was not one
 of them.
+
+**Fixed by making it an `IllegalStateException`**, which is what the verb
+surface already recognises — its catch says *what a lane refuses, said as a
+refusal*. Nothing caught the old type, so the change is the superclass and a
+comment saying why it matters. The test that would have caught it now sits in
+the probe that found it, and was watched failing first: without the change it
+reports `claim did not complete (500)`, which is the whole defect in one line.
+
+**One thing that test got wrong on the first attempt** is worth keeping, because
+it would have passed for the wrong reason. It relied on a sibling test having
+introduced the step — and a catalogue with no declaration for a step admits
+every executor, there being nothing to check against. So it passed when it ran
+second and proved nothing when it ran first. The introduction is in the fixture
+now.
 
 **And the cost is not just a misleading log.** Because the offer came off a
 feed whose cursor is already acknowledged, a refusal that reads as transient is
@@ -100,10 +116,14 @@ is logged; the window in the run I checked ended before the claim was reached.
 The lesson is the cheaper one: read the captured output of a run that got far
 enough, rather than a run that stopped early.
 
-## What proves it, once fixed
+## What is left
 
-- A lane verb refused for admission crosses as a refusal, beside the existing
-  case in `ALaneOverHttpIsIndistinguishableIT`.
-- A bean that brings its own step performs its work in
-  `samples/spring-boot-worker-app`, which is the assertion that test stops short
-  of today.
+The sample still does not perform its brought step, and now says why in one
+line instead of reporting a 500: *step 'hogwarts.admission.assay' does not admit
+an executor at scope organisation:hogwarts*. That is defect two, and it is a
+decision rather than a repair — a lane has one identity and scope belongs per
+step.
+
+**What will prove it**: a bean that brings its own step performs its work in
+`samples/spring-boot-worker-app`, which is the assertion that test stops short
+of today.

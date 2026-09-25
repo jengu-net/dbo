@@ -1,5 +1,6 @@
 package cloud.jengu.dbo.harness;
 
+import cloud.jengu.dbo.core.api.StoreUnreachableException;
 import cloud.jengu.dbo.core.process.StepDeclaration;
 import cloud.jengu.dbo.runner.Lane;
 import cloud.jengu.dbo.runner.Outcome;
@@ -12,6 +13,8 @@ import cloud.jengu.dbo.work.Run;
 import cloud.jengu.dbo.work.Runs;
 import cloud.jengu.dbo.work.Scope;
 import cloud.jengu.dbo.work.WorkModel;
+import cloud.jengu.dbo.promises.DboPromises;
+import cloud.jengu.dbo.promises.Proving;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
@@ -29,6 +32,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -80,18 +85,22 @@ class AFaceAuthoredRunReachesTheLaneIT {
         tenant = SharedTenants.of(SharedTenants.Shape.R4_INTERNAL, 6);
         laneUri = URI.create(tenant.base() + "/work");
         runs = new Runs(tenant.engine());
+        introduceTheStep();
     }
 
-    @Test
-    @DisplayName("a run authored through the face's document door is offered on the lane, as a "
-            + "run of the same step minted directly is")
-    void bothDoorsReachTheLane() throws Exception {
-        Lane lane = HttpLane.to(laneUri, () -> work(), tenant.code(), "two-door-probe",
+    /**
+     * The step, brought as a participant brings one.
+     *
+     * <p>In the fixture rather than in the test that needs it first, because a
+     * catalogue with no declaration for a step admits every executor — there is
+     * nothing to check against — so a test relying on another to have
+     * introduced it passes for the wrong reason when it runs second and proves
+     * nothing when it runs first.
+     */
+    private static void introduceTheStep() {
+        Lane introducing = HttpLane.to(laneUri, () -> work(), tenant.code(), "two-door-probe",
                 new Executor("two-door-probe", "1", tenant.code(),
                         Scope.organisation(tenant.code())));
-
-        // The step has to be in the catalogue before the face will take a run
-        // of it, and introducing it is the participant's own act.
         try (StepRunner runner = new StepRunner(Duration.ofMinutes(5), Duration.ofMillis(50))) {
             runner.register(new StepService() {
                 @Override
@@ -109,9 +118,18 @@ class AFaceAuthoredRunReachesTheLaneIT {
                     return Outcome.done();
                 }
             });
-            runner.attach(lane);
+            runner.attach(introducing);
             runner.cycle();
         }
+    }
+
+    @Test
+    @DisplayName("a run authored through the face's document door is offered on the lane, as a "
+            + "run of the same step minted directly is")
+    void bothDoorsReachTheLane() throws Exception {
+        Lane lane = HttpLane.to(laneUri, () -> work(), tenant.code(), "two-door-probe",
+                new Executor("two-door-probe", "1", tenant.code(),
+                        Scope.organisation(tenant.code())));
 
         // DOOR ONE: the face's document door, which is the only door a brought
         // step has — the step door is built from the tenant's spec.
@@ -141,6 +159,34 @@ class AFaceAuthoredRunReachesTheLaneIT {
                         + "asked for, of a step its catalogue admits — and if it never reaches "
                         + "the lane while a directly minted run of the SAME step does, that is "
                         + "why a bean bringing its own capability performs nothing (item 029)");
+    }
+
+
+    @Test
+    @DisplayName("a claim the step does not admit is refused as settled, not reported as a "
+            + "store that did not answer")
+    @Proving(DboPromises.PROC_REFUSED_IS_NOT_UNANSWERED)
+    void anInadmissibleClaimIsARefusal() throws Exception {
+        Lane lane = HttpLane.to(laneUri, () -> work(), tenant.code(), "not-admitted-probe",
+                // An organisation, where a participant performing the step it
+                // brought is the baseline. The step never opened itself to
+                // being varied, so this claim cannot be admitted — which is
+                // correct, and the only question is how it arrives.
+                new Executor("not-admitted-probe", "1", tenant.code(),
+                        Scope.organisation(tenant.code())));
+
+        Run waiting = runs.pipeline(PROCESS, STEP, PROCESS + "/" + STEP + "/not-admitted",
+                List.of(WorkModel.DOMAIN));
+
+        IllegalStateException refused = assertThrows(IllegalStateException.class,
+                () -> lane.claim(waiting, Duration.ofMinutes(1)));
+
+        assertFalse(refused instanceof StoreUnreachableException,
+                "the store decided about this caller and said so, and a participant told the "
+                        + "store did not answer asks again for ever: " + refused.getMessage());
+        assertTrue(refused.getMessage().contains("does not admit")
+                        && refused.getMessage().contains(STEP),
+                "a refusal names what it refuses and for whom: " + refused.getMessage());
     }
 
     private static HttpResponse<String> post(String url, String token, String body)

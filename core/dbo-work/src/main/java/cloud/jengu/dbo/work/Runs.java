@@ -120,8 +120,18 @@ public final class Runs {
      * <p>Half of "what a participant may claim is the intersection of its
      * scopes and what the step admits"; the other half — what the credential
      * holds — is the lane's, because only the host knows the credential.
+     *
+     * <p><b>An {@link IllegalStateException} because that is how a lane tells
+     * a refusal from a fault</b> (REQ-DBO-PROC-REFUSED-IS-NOT-UNANSWERED).
+     * This was a plain {@code RuntimeException}, which the verb surface does
+     * not recognise, so it left as a 500 and reached the participant as <i>the
+     * store did not answer</i> — a transient fault, about which the only
+     * correct behaviour is to ask again. It is the opposite: settled, and
+     * asking again is wrong. What made it worse than a misleading message is
+     * that an offer comes off a feed whose cursor is acknowledged either way,
+     * so a run refused this way was never offered to anybody again.
      */
-    public static final class NotAdmitted extends RuntimeException {
+    public static final class NotAdmitted extends IllegalStateException {
         NotAdmitted(String stepId, Executor by, String overridable) {
             super("step '" + stepId + "' does not admit an executor at scope "
                     + by.scope().wire() + " ('" + by.name() + "'); it is "
