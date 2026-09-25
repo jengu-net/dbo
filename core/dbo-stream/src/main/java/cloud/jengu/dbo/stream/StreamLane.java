@@ -45,6 +45,14 @@ public final class StreamLane extends WireLane implements AutoCloseable {
      * signed with the signing key, because the plane it crosses holds no
      * token; every payload arrives sealed to the other, because that plane
      * holds nothing readable.
+     *
+     * <p><b>The participant is the credential here</b>, which it is not over
+     * HTTP: there a token says who is asking and the participant is only the
+     * cursor's name, and here the enrolment the signature is checked against
+     * is both. So an executor named differently from the participant is
+     * admitted exactly when a differently named one would be over HTTP — when
+     * the enrolment speaks for the whole tenant. An enrolment bounded to
+     * steps may work only as itself, and a lane that holds one reports as it.
      */
     public static StreamLane holding(DataSource substrate, String tenant, String participant,
             Executor identity, java.security.PrivateKey privateKey,
@@ -53,7 +61,11 @@ public final class StreamLane extends WireLane implements AutoCloseable {
             throw new IllegalArgumentException("a lane on the stream is held by a participant "
                     + "enrolled with both keys: one it signs with, one it is sealed to");
         }
-        return new StreamLane(new Substrate(substrate, tenant, identity.name(), signingKey),
+        // THE PARTICIPANT, not the executor. What the door checks a signature
+        // against is the enrolment the ask names, and a worker records runs
+        // under a name of its own — so an ask carrying the executor's name
+        // asks the tenant about an enrolment it has never heard of.
+        return new StreamLane(new Substrate(substrate, tenant, participant, signingKey),
                 tenant, participant, identity, null, privateKey, signingKey);
     }
 

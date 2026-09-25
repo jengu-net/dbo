@@ -6,12 +6,12 @@ import cloud.jengu.dbo.promises.Proving;
 import cloud.jengu.dbo.samples.server.ServerApplication;
 import cloud.jengu.dbo.spring.test.DboSpringBootTest;
 import cloud.jengu.dbo.spring.test.DboTestContext;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.net.http.HttpRequest;
@@ -38,11 +38,21 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * one, because a tenant's records door is HTTP and this test writes through it
  * — but nothing the worker does goes over it, which is what a participant
  * beside the store should never have needed.
+ *
+ * <p><b>Its world is released when this class ends.</b> {@code DboSpringBootTest}
+ * says to keep {@code dbo.test.*} the same across a module's tests so one
+ * context serves them all, and the class beside this one is the case that
+ * cannot: the carrier is the single thing it varies, so the two configurations
+ * differ and Spring builds a second context without closing the first. Two
+ * tenant managers then serve one world over one database — which the store
+ * permits, and which this machine does not carry: the second manager's tenants
+ * do not finish coming up, and the class that waits for one reports a tenant
+ * that never arrived rather than the contention that kept it.
+ *
+ * <p>So each of the two releases its own, and one world is alive at a time.
+ * The cost is a bring-up neither shares, which they were never going to share.
  */
-@Disabled("item 031: the lane is built and the tenant's door opens, and an ask on it is "
-        + "refused 401 on its signature while the tenant demonstrably holds the enrolled "
-        + "public key. Kept rather than deleted because everything up to that point works "
-        + "and this is what will assert it.")
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 @DboSpringBootTest
 @ActiveProfiles("substrate")
 @SpringBootTest(classes = ServerApplication.class,

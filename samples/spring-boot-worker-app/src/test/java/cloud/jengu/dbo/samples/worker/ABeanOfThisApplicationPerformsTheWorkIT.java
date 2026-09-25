@@ -5,6 +5,7 @@ import cloud.jengu.dbo.promises.DboPromises;
 import cloud.jengu.dbo.promises.Proving;
 import cloud.jengu.dbo.promise.proving.Proves;
 import cloud.jengu.dbo.spring.test.DboSpringBootTest;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 import cloud.jengu.dbo.spring.test.DboTestContext;
 import cloud.jengu.dbo.spring.test.WhatTheStoreStored;
@@ -52,7 +53,21 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * {@link MeasuringASpecimen} brings a declaration the tenant never had. The
  * second is ordered first, because what it proves about the step door is only
  * true while nothing has started working.
+ *
+ * <p><b>Its world is released when this class ends.</b> {@code DboSpringBootTest}
+ * says to keep {@code dbo.test.*} the same across a module's tests so one
+ * context serves them all, and the class beside this one is the case that
+ * cannot: the carrier is the single thing it varies, so the two configurations
+ * differ and Spring builds a second context without closing the first. Two
+ * tenant managers then serve one world over one database — which the store
+ * permits, and which this machine does not carry: the second manager's tenants
+ * do not finish coming up, and the class that waits for one reports a tenant
+ * that never arrived rather than the contention that kept it.
+ *
+ * <p>So each of the two releases its own, and one world is alive at a time.
+ * The cost is a bring-up neither shares, which they were never going to share.
  */
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 @DboSpringBootTest
 @ActiveProfiles("test")
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)

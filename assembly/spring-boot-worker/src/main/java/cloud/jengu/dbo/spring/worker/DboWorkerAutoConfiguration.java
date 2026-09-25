@@ -82,6 +82,11 @@ public class DboWorkerAutoConfiguration {
             framework.put("dbo.lane.participant", on.getParticipant());
             framework.put("dbo.lane.sealing.key", on.getSealingKey());
             framework.put("dbo.lane.signing.key", on.getSigningKey());
+            // The worker's own name, not the enrolment's. A run records who
+            // performed it, and over HTTP that is this same field — so a lane
+            // the substrate carries has to write the same word on the run or
+            // the carrier is something the runs can be read apart by.
+            framework.put("dbo.lane.executor.name", properties.getIdentity().getName());
             framework.put("dbo.lane.executor.version", properties.getIdentity().getVersion());
             framework.put("dbo.lane.executor.provider", on.getProvider());
             // The baseline is left unsaid rather than said, because the

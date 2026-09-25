@@ -186,7 +186,7 @@ class AStreamLaneIsToldItHasWorkIT {
                         + "cycle and this test would prove nothing");
 
         try (StepRunner runner = new StepRunner(Duration.ofMinutes(10), NEVER_POLLED_IN_TIME);
-                StreamLane stream = StreamLane.holding(substrate, TENANT, "analyser-on-the-stream",
+                StreamLane stream = StreamLane.holding(substrate, TENANT, "analyser",
                         executor("analyser"), sealing.getPrivate(), signing.getPrivate())) {
             assertTrue(stream.wakeups().isPresent(),
                     "the stream lane offers no wake-ups, so nothing below can be true of it");

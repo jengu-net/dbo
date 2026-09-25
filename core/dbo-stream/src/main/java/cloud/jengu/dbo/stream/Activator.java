@@ -48,6 +48,21 @@ public final class Activator implements BundleActivator {
     static final String TENANTS = "dbo.lane.tenants";
     /** The participant name this host enrolled under — its cursor on each tenant's feed. */
     static final String PARTICIPANT = "dbo.lane.participant";
+    /**
+     * Who the runs this host closes are recorded as.
+     *
+     * <p>Separate from {@link #PARTICIPANT}, and that separation is the whole
+     * point: the participant is the enrolment the signature is checked
+     * against, and the executor is the worker a run names. Over HTTP they are
+     * already two — a credential authenticates and {@code dbo.worker.identity}
+     * is written on the run — and a carrier that collapsed them would put the
+     * enrolment's name on every run it closed, which is the one difference a
+     * runner could tell its carriers apart by.
+     *
+     * <p>Absent means the participant, because a host that does not say what
+     * it reports as reports as itself.
+     */
+    static final String EXECUTOR_NAME = "dbo.lane.executor.name";
     /** The private half of the key the participant is sealed to, base64 PKCS#8. */
     static final String SEALING_KEY = "dbo.lane.sealing.key";
     /** The private half of the key the participant signs with, base64 PKCS#8. */
@@ -69,7 +84,10 @@ public final class Activator implements BundleActivator {
             return;
         }
         String participant = required(context, PARTICIPANT);
-        Executor identity = new Executor(participant, required(context, EXECUTOR_VERSION),
+        String executor = context.getProperty(EXECUTOR_NAME);
+        Executor identity = new Executor(
+                executor == null || executor.isBlank() ? participant : executor,
+                required(context, EXECUTOR_VERSION),
                 required(context, EXECUTOR_PROVIDER), scope(context.getProperty(SCOPE)));
         PrivateKey sealing = privateKey("X25519", required(context, SEALING_KEY), SEALING_KEY);
         PrivateKey signing = privateKey("Ed25519", required(context, SIGNING_KEY), SIGNING_KEY);

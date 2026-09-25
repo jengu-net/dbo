@@ -65,11 +65,10 @@ delta rather than a design from nothing.
 | enrolment answered for a whole deployment at once, and change detectable in one comparison | enrolment is a participant offering two keys, per tenant, one at a time |
 
 **And one piece of plumbing is missing underneath all of it.** The Spring
-worker assembly builds an HTTP lane and nothing else: `dbo-stream` is absent
-from its bundle set, and its properties carry no substrate configuration. So
-today even a worker inside the deployment polls over HTTP — which is
-[item 031](../031-a-worker-in-the-deployment-takes-the-substrate/README.md),
-and is a prerequisite rather than part of this.
+worker assembly built an HTTP lane and nothing else, so even a worker inside
+the deployment polled over HTTP. That is no longer so: `dbo-stream` is in its
+bundle set, a lane with no base is carried by the substrate, and a worker's
+own name is recorded on the runs it closes. This item's prerequisite is met.
 
 ## What the durable layer actually offers
 
@@ -430,9 +429,8 @@ cite is a phase nobody can tell is finished.
 
 ### 0. A worker in the deployment can reach the substrate at all
 
-[Item 031](../031-a-worker-in-the-deployment-takes-the-substrate/README.md),
-and nothing here works without it: `dbo-stream` is not in the worker assembly's
-bundle set and no configuration would reach it if it were.
+Done, and nothing here works without it: `dbo-stream` is in the worker
+assembly's bundle set and `dbo.worker.substrate.*` reaches it.
 
 Add the bundle; add substrate and enrolment configuration; infer the carrier
 from the shape of a lane — a base and a token is HTTP, neither is the substrate
@@ -558,7 +556,7 @@ application participates, and the tenant-level step stays for that reason.
 
 ## What has to be true before this starts
 
-- Item 031: a worker in the deployment can take the substrate at all.
+- A worker in the deployment can take the substrate at all — done.
 - Decisions 1, 2 and 3 answered, because each changes what is written rather
   than how.
 - And the thing to prove first, before a joiner exists: that a step service

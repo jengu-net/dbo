@@ -169,7 +169,7 @@ class ALaneOverTheStreamIsIndistinguishableIT {
         Run overHttp = runFor("over-http");
         Run overStream = runFor("over-stream");
         try (StepRunner runner = new StepRunner(Duration.ofMinutes(5), Duration.ofMillis(50));
-                StreamLane stream = StreamLane.holding(substrate, TENANT, "analyser-on-the-stream",
+                StreamLane stream = StreamLane.holding(substrate, TENANT, "analyser",
                         executor("analyser"), sealing.getPrivate(), signing.getPrivate())) {
             runner.register(service);
             runner.attach(HttpLane.holding(laneUri, () -> token("analyser", "analyser-secret"),
