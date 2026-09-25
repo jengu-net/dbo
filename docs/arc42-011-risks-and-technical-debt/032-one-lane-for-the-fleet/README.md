@@ -1,10 +1,20 @@
 **Open, and not started. The desired state is described beside the concept it
 grows out of — [one lane for the fleet](../../arc42-008-crosscutting/processes-and-work/one-lane-for-the-fleet.md)
 and [what a tenant agreed to](../../arc42-008-crosscutting/processes-and-work/processing-and-consent.md).
-This item is the delta against what is built, the decisions behind it, and an
-eight-step plan whose first two exist to stop the store acquiring two
-schedulers over one run. Nothing is implemented and the plan is proposed rather
-than agreed.**
+This item is the delta against what is built, the decisions behind it, and
+**[the plan](#the-plan-eight-steps-in-the-order-they-become-possible)** —
+eight steps whose first two exist to stop the store acquiring two schedulers
+over one run. Nothing is implemented and the plan is proposed rather than
+agreed.**
+
+| | what it is |
+|---|---|
+| [What is already true](#what-is-already-true) | how much of this exists |
+| [What does not exist](#what-does-not-exist) | the delta, as a table |
+| [What the durable layer actually offers](#what-the-durable-layer-actually-offers) | its queues poll, its channels are fixed, and what that restricts |
+| [Where a step is declared](#where-an-application-level-step-is-declared) | the management tenant's descriptor, and what an entry carries |
+| [The decisions](#the-decisions-before-anything-is-built) | seven, four settled, three open |
+| **[The plan](#the-plan-eight-steps-in-the-order-they-become-possible)** | **eight steps, each with how it is proven** |
 
 # One lane for the fleet, and two levels of step
 
@@ -406,7 +416,7 @@ the store's own records after a shred — an item sitting in a step's substrate
 is a copy the deployment holds rather than one in transit. Whether an erasure
 reaches it, and how, is the part still to decide.
 
-## The order this becomes possible in
+## The plan: eight steps, in the order they become possible
 
 **Eight steps, and the ordering is not taste.** Three of them exist to make a
 later one provable, and two must land before anything joins work at all or the
