@@ -437,6 +437,106 @@ running sees the machinery in the same list as the domain work, with the same
 counts and the same holders, and a retention pass that fails is a card somebody
 can pick up rather than a line in a log.
 
+## Where this is going
+
+**Nothing in this section is built.** It is the model the rest of this chapter
+is growing into, and it is here rather than only in the ledger because a reader
+who has just learned how work reaches a participant today deserves to know
+which way it is moving. What is true now is everything above this line;
+[the delta, and the decisions still open](../../arc42-011-risks-and-technical-debt/032-one-lane-for-the-fleet/README.md)
+is where the difference is written down.
+
+### A step is defined at one of two levels
+
+**An application-level step is defined once and performs for every tenant.** A
+bean in a serving application says which step it performs and nothing about
+whose. The subscription is **by step, never by tenant**: an application that
+admits patients admits them for every tenant the deployment serves, and adding
+a tenant adds no configuration to it. These are the steps the manager level
+knows about, can count, and can report on.
+
+**A tenant-level step is a direct subscription to one tenant**, reached over
+HTTP, and it is what a participant outside the deployment holds. It is not
+managed at the manager level and does not appear on the unified stream. That is
+not a lesser form — it is how another organisation's system participates, how a
+tenant's own appliance does, and how a laboratory performs a step for a tenant
+it does not run. The two levels answer different questions and both stay.
+
+So the two catalogues this chapter already describes become two **levels**: the
+deployment's own steps, which every tenant's work flows through, and the steps
+one tenant admits from one participant.
+
+### The work is joined into one stream, and what comes back is split out
+
+A run is a record in its own tenant's store, which is what makes "what is
+claimable" an ordinary query. A step-based subscription across a fleet
+therefore cannot be a subscription per tenant: a deployment with fifty tenants
+would have an application asking fifty doors for work it describes once.
+
+**A joiner lifts work into the managing tenant's own durable layer** as one
+stream of processable items — a task's manifest, and references to the
+documents the work names. **A splitter returns what came back** to the tenant
+whose run it was. The managing tenant is the right place because it is already
+the one the store keeps its own history in, and its durable layer is already
+what carries work that must not be lost.
+
+**The managing tenant is a carrier, and a carrier holds no key.** It reads
+manifests, because routing on them is its job, and it cannot read payloads,
+because they are sealed to whoever will open them. That is not a new rule for
+this path — it is the rule this chapter already states about anything that
+merely carries work, applied one hop further out. It is also why a unified
+stream is safe to build at all: the thing in the middle is excluded by
+construction rather than by being trusted.
+
+### The execution state is the substrate's, not the JVM's
+
+**A unified step keeps nothing in memory between asks.** What it has done, how
+far it got and what it is holding live in the durable layer's own execution
+state, so a restart, a redeploy or a move to another node loses nothing and
+resumes rather than starts again. A step whose progress lived in a field would
+make a rolling restart a data-loss event.
+
+**Feedback comes home on a stream of its own.** Outcomes, progress and the
+metrics a supervisor reads travel back over a dedicated channel, and something
+on the store's side applies them to the originating tenant's run — so the
+tenant's own record stays the answer to *what is true right now*, exactly as it
+is today, and the unified layer never becomes a second place to ask.
+
+**And the managing tenant keeps a reduced account** of execution state, so the
+manager level can answer across tenants without asking each of them. Reduced
+rather than a copy: what a fleet operator needs is not what a tenant holds, and
+anything about a person has no business in a managing tenant at all. Which
+fields those are is not decided.
+
+### Router or processor, and asking is what decides
+
+**A unified step that reads only the envelope is a router.** It routes on the
+manifest, holds no key, and the store has disclosed nothing to it.
+
+**The moment it asks for a payload it is a data processor**, and the store
+records that it was. Every such access is recorded, travels home on the
+feedback stream, and lands in the originating tenant's own data-access trail.
+
+**The classification is derived, not declared**, and that is the whole point. A
+processor that had to announce itself could fail to, and an application whose
+category was a configuration value would be one where the category and the
+behaviour could disagree. Asking for data is the act; being recorded as having
+asked is its consequence.
+
+**The entry belongs to the tenant**, is written through the port that writes
+that tenant's trail, and names the **processor** as the actor — not whatever
+carried the record home. A trail that named the carrier would answer "who saw
+this" with the name of something that cannot read it.
+
+### What does not change
+
+Nothing above alters the contract this chapter describes. Nothing is pushed; a
+claim is still what settles who is doing the work and it still expires;
+progress is still evidence rather than a tick; a run still ends closed or
+released; and work is still authored on the tenant's own surface and never on
+the lane. What changes is how many doors an application asks, and where the
+execution state of the deployment's own steps lives.
+
 ## What this costs
 
 **Everything here is late.** A participant learns there is work when it next

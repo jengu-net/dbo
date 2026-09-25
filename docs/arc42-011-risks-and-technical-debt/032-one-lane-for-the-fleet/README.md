@@ -1,0 +1,126 @@
+**Open, and not started: a proposal awaiting approval. The desired state is
+described in [processes and work](../../arc42-008-crosscutting/processes-and-work/README.md)
+under "Where this is going". This item is the delta against what is built, the
+decisions that have to be made before anything is, and nothing else. No
+implementation plan is agreed.**
+
+# One lane for the fleet, and two levels of step
+
+## What is already true
+
+More of the model exists than its absence suggests, which is why this is a
+delta rather than a design from nothing.
+
+- **One participant already serves many tenants without reading any of them.**
+  The manifest is readable and the payload is sealed to whoever opens it, and a
+  carrier holding no key is the existing rule rather than a new one.
+- **The lane already has three carriers** — in-process, HTTP, and the store's
+  own stream — and a runner cannot tell which it holds. So changing how work
+  arrives changes nothing a step service sees.
+- **The stream carrier already runs on the deployment's substrate**, with a
+  door per served tenant, guarded by the same authority and participation scope
+  as the HTTP door, and the plane between carries no credential.
+- **Two catalogues already answer "is that a step"**: the tenant's own spec at
+  the step door, and the composed catalogue — installed steps plus those a
+  linked participant introduced — at the face's run document.
+- **The managing tenant already exists** and is already the one the store keeps
+  its own history in, named in configuration rather than watched, so the loop
+  that retracts undeclared tenants cannot retract it.
+- **Disclosure is already recorded with a reason**, and the trail already names
+  the run a disclosure happened under.
+
+## What does not exist
+
+| the desired state | today |
+|---|---|
+| a step defined once performs for every tenant | a lane is per tenant; an application names each one it performs for |
+| one unified stream at the managing tenant | a door per served tenant on the substrate, and nothing lifts work between tenants |
+| a joiner, and a splitter | neither; no component moves a run out of its tenant or a result back in |
+| a feedback stream applying outcomes to the originating tenant | the participant reports over the same lane it claimed on, to that tenant directly |
+| execution state in the durable layer | the runner holds its cycle in memory; what survives is what the tenant recorded |
+| a reduced account of execution in the managing tenant | nothing; the manager level asks each node and tenant over their own doors |
+| router and processor as derived categories | a participant is sealed to or served in the clear, decided by whether it enrolled a key — not by what it asks for |
+| a data-access entry per payload access, carried home | disclosure is recorded where it happens, under the request's purpose |
+| two levels of step definition | one level, per tenant, in two catalogues |
+
+**And one piece of plumbing is missing underneath all of it.** The Spring
+worker assembly builds an HTTP lane and nothing else: `dbo-stream` is absent
+from its bundle set, and its properties carry no substrate configuration. So
+today even a worker inside the deployment polls over HTTP — which is
+[item 031](../031-a-worker-in-the-deployment-takes-the-substrate/README.md),
+and is a prerequisite rather than part of this.
+
+## The decisions, before anything is built
+
+Each of these changes what gets written. None is settled.
+
+**1. Where the claim lives once work is joined.** Today a claim is a
+conditional write in the tenant's own store and that is what makes it the
+scheduler. Two candidates, and they fail differently:
+
+- the claim stays in the tenant and the joiner holds it while the unified item
+  is in flight — one authority, and the joiner becomes something that can die
+  holding claims on many tenants' work;
+- the claim moves to the unified stream and the tenant's row becomes an account
+  — two places that can both believe they are advancing a run, which is the
+  hazard this chapter already names for two sites of one tenant.
+
+The first keeps the existing invariant. It needs the joiner's own liveness to
+be a first-class thing, because its lapse is now many tenants' problem.
+
+**2. What a unified processor is enrolled with.** This decides whether the
+carrier property holds at all. A payload is sealed to an enrolled participant.
+
+- **Per tenant.** The processor enrols with each tenant it may process for, the
+  managing tenant stays a pure carrier, and the property holds unchanged. The
+  cost is enrolment as a provisioning step per tenant, which is also what makes
+  a tenant's consent real.
+- **Once, at fleet level.** Something must then re-seal a tenant's payload to
+  the fleet's key, and whatever re-seals holds tenant keys — which is precisely
+  what the carrier rule exists to exclude.
+
+The first is the only one consistent with what this store already promises. It
+should be stated as a rule and not left to a deployment.
+
+**3. Whether a tenant may refuse an application-level step.** "Performs for
+every tenant" can mean the deployment's steps apply by virtue of being
+installed, or that each tenant still declares which it admits. For a
+multi-tenant store the second looks necessary — it is a consent question rather
+than a wiring one — and it sits awkwardly with a subscription that is by step
+and never by tenant. Both can be true if the tenant's declaration is what the
+joiner filters on, so that the application still names no tenant.
+
+**4. What the reduced account holds.** Explicitly undecided, and the constraint
+is easy to state even before the fields are: nothing about a person, because a
+managing tenant is not a place identifying data goes, and nothing a tenant's own
+record is the answer to, because a second place to ask is a second answer.
+
+**5. What a joined item is.** A copy in flight, bounded by the work that caused
+it, is the existing shape for a sealed payload and is probably right here too —
+but a run that is also a row in a managing tenant needs its lifetime stated:
+when it is removed, what happens to it on retraction, and whether an erasure
+reaches it.
+
+## What is deliberately not proposed
+
+**Not a second answer to "what is true right now".** The tenant's own record
+stays it. A unified layer that could be asked instead would be a cache of
+work-in-progress, and the chapter's whole answer to how this is watched rests on
+there being one place.
+
+**Not an orchestrator.** Nothing here names one. The unified stream carries
+work that was authored on a tenant's own surface, in the order claims settle,
+exactly as a lane does today.
+
+**Not a replacement for the HTTP lane.** It is how another organisation's
+application participates, and the tenant-level step stays for that reason.
+
+## What has to be true before this starts
+
+- Item 031: a worker in the deployment can take the substrate at all.
+- Decisions 1, 2 and 3 answered, because each changes what is written rather
+  than how.
+- And the thing to prove first, before a joiner exists: that a step service
+  reached over the stream and one reached over HTTP are indistinguishable in a
+  deployment, which the harness proves for the lane and no test proves for an
+  application built on the assemblies.
