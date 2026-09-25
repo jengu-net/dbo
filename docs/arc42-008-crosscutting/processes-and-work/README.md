@@ -2,11 +2,28 @@
 
 ## What this is about
 
-A store that only answers questions is a database. This one also holds **the
-work**: what has to be done, who is entitled to do it, who is doing it now, how
-far they have got, and what happened. That is what makes it a place two parties
-who do not trust each other can both use — an exchange is a process with
-obligations, not a file drop, and somebody has to hold the record of it.
+**A store preserves what is true now. A regulator asks how it came to be
+true.** Those are different questions, and the second cannot be answered from
+the first. A record with a full version history says a value changed on
+Tuesday and who was signed in; it does not say which obligation was being
+discharged, on whose behalf, or whether anybody was entitled to discharge it.
+That is not a gap in the history. It is a gap in what was ever written down,
+because the cause was never something the store held.
+
+**The causes are processes**, and nothing else writes to a store worth
+regulating: a value is different today because somebody discharged an
+obligation, under a rule, with the right to do it. Model that and the history
+becomes legible — every change carries a reason that is itself a record, with a
+time, an owner and an entitlement behind it, readable with the same tools as
+the state it explains. Leave it out and you have an exact account of *what* is
+true and none of *how* it came to be, which is most of what the regulation was
+asking about.
+
+So this store also holds **the work**: what has to be done, who is entitled to
+do it, who is doing it now, how far they have got, and what happened. That is
+also what makes it a place two parties who do not trust each other can both
+use — an exchange is a process with obligations, not a file drop, and somebody
+has to hold the record of it.
 
 Almost none of that work happens where the store is. A sample is analysed on an
 instrument in a laboratory. A model is exported by a firm competing with the
