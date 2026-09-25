@@ -466,6 +466,44 @@ So the two catalogues this chapter already describes become two **levels**: the
 deployment's own steps, which every tenant's work flows through, and the steps
 one tenant admits from one participant.
 
+### Where the two levels are declared
+
+**A tenant declares its own steps in its own descriptor**, which is where the
+step door's catalogue already comes from. **The deployment declares its
+application-level steps in the descriptor of the tenant that represents it** —
+the management tenant, the one the store already keeps its own history in and
+already names rather than watches. So the deployment's own declaration lives
+where the deployment's own record lives, and not in a properties file: a step
+catalogue in configuration would provision databases as a side effect of a
+config refresh, which is the argument this store already makes about declaring
+tenants.
+
+**Declaring one is what prepares it.** The queues an application-level step
+consumes, and the substrate they live on, are made ready when the step is
+declared and changed when the declaration changes — the same act, at the same
+moment, as a tenant's database being made ready when the tenant is declared.
+Where a step's queue lives is part of its entry, so a deployment that wants a
+step to itself says so beside the step rather than somewhere else.
+
+**And the levels become checkable at the declaration.** One step code in both
+descriptors is refused by name, which is where the invariant belongs: the same
+sweep that reconciles what a deployment says it serves can see both lists, and
+a contradiction is caught when it is written rather than when two schedulers
+reach for one run.
+
+**The register is derived from the same declaration**, not maintained beside
+it. What a step takes, and which of those it opens rather than carries, is said
+once where the step is declared; the rows a tenant reads are generated from it.
+One source, so a change in what the deployment does with data is a change in
+one file — which is what makes *has anything changed since I last looked* a
+comparison rather than an audit.
+
+**What a withdrawal means is not settled.** A tenant's retraction means it, and
+the same question here has an answer the store has not chosen: a step removed
+from the declaration while its queue still holds work has to stop being joined
+to, drain, and then go — and what happens to work that outlives the draining is
+the part that needs deciding rather than assuming.
+
 ### Which side settles who does the work
 
 A claim is what settles it: two participants may see one run, taking it is a

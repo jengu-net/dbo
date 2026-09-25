@@ -184,6 +184,48 @@ is what a measured latency requirement would buy.
 **Either way the joiner is unchanged**, because the partition is chosen where
 the item is written and not where it is read.
 
+## Where an application-level step is declared
+
+**In the management tenant's descriptor**, which already exists, is already a
+tenant spec, and already carries a `steps` field that the sample's `mom.json`
+leaves empty. So the deployment's own declaration needs no new home: it goes
+where the deployment's own record goes.
+
+**Declaring is provisioning.** A step's queues and the substrate they sit on are
+prepared when the step is declared and reconciled when the declaration changes,
+exactly as a tenant's database is prepared when the tenant is declared — and the
+placement decision lives in the step's own entry, so "this one gets its own
+database" is said beside the step.
+
+**It makes the level invariant checkable where it is written.** One code in both
+the management descriptor and a tenant's is a contradiction a sweep can see, and
+refusing it at declaration is cheaper by far than discovering it as two
+schedulers reaching for one run.
+
+**And it gives the register one source.** What a step takes and which of those
+it opens is declared once; the rows a tenant reads are generated from that. A
+change in what the deployment does with data is then a change in one file, which
+is what makes change detection a comparison rather than an audit.
+
+### What it needs that a tenant's `steps` does not carry
+
+An application-level entry says more than a tenant's does: which slots it
+**opens** rather than carries, whether it is **required** or admitted, its
+**posture** when unapproved, and **where its queue lives**. Those are the facts
+the register, the consent and the provisioning are all derived from.
+
+**Which argues for its own key rather than widening `steps`.** A field that
+means one thing in a tenant's descriptor and another in the management tenant's
+is the `mandatorySteps` collision again, and the refusal — *an ordinary tenant
+may not declare an application-level step* — is clearer against a key that has
+no business being there than against extra properties on a key that does.
+
+**Open: what a withdrawal does.** A tenant's retraction means it, and this has
+no answer yet. A step removed while its queue holds work must stop being joined
+to, drain, and then go; what happens to work still queued when the draining ends
+is the decision, and it is the same question a tenant's own retraction answers
+for records.
+
 ## The decisions, before anything is built
 
 Each of these changes what gets written. None is settled.
