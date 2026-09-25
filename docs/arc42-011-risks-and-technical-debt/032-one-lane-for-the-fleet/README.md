@@ -207,6 +207,32 @@ it opens is declared once; the rows a tenant reads are generated from that. A
 change in what the deployment does with data is then a change in one file, which
 is what makes change detection a comparison rather than an audit.
 
+### A tenant's own steps need none of this
+
+A tenant-level step runs on the durable layer its tenant already has — every
+tenant launches one and migrates its own schema at bring-up — so it costs no
+substrate, no provisioning and no placement. Its consumers are remote and poll
+the tenant's door over HTTP, which they were doing anyway.
+
+**Which means the joiner filters at the join.** A tenant's work stream carries
+every run it has, private ones included, so the joiner lifts only the runs whose
+step the management descriptor declares. It knows which those are from the same
+document that provisioned their queues, and a run it does not lift is simply
+left where it belongs.
+
+**And the carriers fall out of the levels.** The stream carrier is held only by
+a participant enrolled with both keys, which is what an application-level
+consumer inside the deployment is. An HTTP participant carries a credential and
+may be enrolled or not, which is what a tenant's own remote participant is. The
+two levels therefore differ in who may hold the lane as well as in who declares
+the step.
+
+**What must not be overclaimed** is what private means. The deployment does not
+define, schedule, prepare or list a tenant's own steps — but it hosts the tenant,
+so it can observe that one ran. The protection is the same one the store gives
+everywhere: the payload is sealed to whoever opens it, and no application-level
+step ever opens a private step's work, so nothing about it reaches a register.
+
 ### What it needs that a tenant's `steps` does not carry
 
 An application-level entry says more than a tenant's does: which slots it

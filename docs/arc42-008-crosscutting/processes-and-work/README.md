@@ -466,6 +466,38 @@ So the two catalogues this chapter already describes become two **levels**: the
 deployment's own steps, which every tenant's work flows through, and the steps
 one tenant admits from one participant.
 
+### A tenant's own steps stay in its own tenant
+
+**A tenant may declare steps nobody else defines**, in its own descriptor, and
+they never leave it. They run on the durable layer that tenant already has —
+every tenant runs one — so a private step costs no substrate, no provisioning
+and no placement decision. Nothing is joined, nothing is partitioned, and no
+queue is prepared for it anywhere.
+
+**That works because its consumers are already remote.** A participant
+performing a tenant-level step reaches the tenant over HTTP and asks for work;
+it is a party outside the deployment, or a tenant's own appliance, and it was
+polling a door anyway. The machinery the unified stream exists to remove — one
+subscription per tenant for a step defined once across all of them — is not a
+cost it ever paid, because the step is defined in one tenant and performed for
+one tenant.
+
+**So the two levels sit on two substrates**, and each is the cheap answer for
+its own case. An application-level step is declared once, joined from every
+tenant, and consumed from a queue on a runtime-owned substrate by something
+inside the deployment. A tenant-level step is declared by one tenant, stays in
+its durable layer, and is consumed over the lane by somebody outside.
+
+**What private means, said exactly.** The deployment does not define the step,
+does not schedule it, does not prepare anything for it, and does not list it at
+the manager level. It is not a claim that the operator cannot observe that the
+step ran: the tenant's work stream is the tenant's own bookkeeping, and the
+deployment is what hosts it. What the operator cannot see is the **data** — the
+payload is sealed to the participant that opens it, and a private step's
+processing therefore never appears on any register because no application-level
+step ever opens it. Privacy here is about who may read, which is the store's
+usual answer, rather than about what a host can be prevented from noticing.
+
 ### Where the two levels are declared
 
 **A tenant declares its own steps in its own descriptor**, which is where the
