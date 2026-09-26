@@ -613,6 +613,19 @@ public enum DboPromises implements Promise {
             + "serving while it is refused: what is wrong is the pair, and the tenant may not "
             + "be the side that changed."),
 
+    PROC_DECLARING_A_STEP_PREPARES_ITS_SUBSTRATE(
+            "Declaring a step the deployment performs prepares the substrate its queue lives "
+            + "on, the way declaring a tenant prepares its database — a runtime-owned "
+            + "database carrying a durable bootstrap and nothing else: no face, no zone, no "
+            + "personal-data isolation, no store schema, no authority. It is made through the "
+            + "admin connection that provisions tenants and never through the path that "
+            + "provisions one, because a thing that is not a tenant must not look like one to "
+            + "everything downstream. Placement is the deployment's: a step names the "
+            + "substrate it wants, several steps may name one and share it, and a step naming "
+            + "none gets its own. A withdrawal closes the step and removes nothing — what was "
+            + "queued belongs to tenants who believe it is being done, and dropping the "
+            + "database is a person's act."),
+
     PROC_A_LANE_OVER_THE_STREAM(
             "A lane runs over the store's own stream, full duplex, beside in-process and "
             + "HTTP: work goes out and travel, access and result events come home as they "

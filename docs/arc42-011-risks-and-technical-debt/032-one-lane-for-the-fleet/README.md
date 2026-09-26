@@ -512,16 +512,36 @@ contradiction for everybody in it.
 
 ### 3. Declaring a step provisions its substrate
 
-Runtime-owned databases with a durable bootstrap and nothing else — no face, no
-zone, no isolation, no authority — created through the admin connection that
-already provisions tenants, and **not** through the path that provisions a
-tenant. Placement honoured: several steps may name one substrate.
+**Done, with one honest boundary.** Declaring a fleet step prepares the
+database its queue will live on, through `stepSubstrate` on the provisioning
+seam — the same admin connection that makes a tenant's database, and
+deliberately not the method that makes one. Placement is honoured: two steps
+naming `retention` share a pool and a database, and a step naming nothing gets
+its own. Withdrawing a step leaves the database standing.
 
-Withdrawal closes the step to new work and removes nothing; removal is a
-person's act.
+**`step_` beside `tenant_`.** The prefix is not decoration: it makes the two
+namespaces unable to collide, and it means somebody reading `\l` can tell
+which databases hold a person's records and which hold a queue.
 
-*Proven by:* two steps sharing a substrate and one with its own; a withdrawal
-that stops intake while the substrate and its queued work remain.
+**The boundary: what is created is empty, and the durable bootstrap is not put
+there by this step.** `dbo-tenant` has no durable layer — DBOS is privately
+embedded in `dbo-stream` and `dbo-subscriptions` — and giving the tenant module
+one to migrate a schema it never reads would be a dependency bought for a
+side effect. The durable layer migrates its own schema when something first
+opens the substrate, which is step 4's business and its only writer. So this
+step makes the database and step 4 makes it durable, and the test asserts the
+emptiness rather than glossing it: a substrate carrying tables would mean it had
+gone through the tenant path.
+
+**A provisioner that does not make these says so**, in the same words this
+seam already uses for a tenant's storage somebody else prepares, and the
+deployment carries on with the steps declared and nowhere to put their work.
+Saying that is the joiner's job when it has one.
+
+*Proven by:* `DeclaringAStepPreparesItsSubstrateIT`, claiming
+`REQ-DBO-PROC-DECLARING-A-STEP-PREPARES-ITS-SUBSTRATE` — two steps sharing one
+substrate and one with its own, the databases present and carrying no schema,
+and a withdrawn step whose substrate stays.
 
 ### 4. The joiner reads every tenant and writes the queues
 

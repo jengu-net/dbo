@@ -165,6 +165,18 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
         }
 
         /**
+         * Which substrate this step's queue lives on.
+         *
+         * <p>Its own name when it named none, so "no placement stated" means
+         * a substrate of its own rather than a shared default. A deployment
+         * running everything in one application points several steps at one
+         * name; a deployment scaling a step leaves it alone.
+         */
+        public String substrateName() {
+            return substrate == null || substrate.isBlank() ? code : substrate;
+        }
+
+        /**
          * Whether this step reads anything a tenant's register must show.
          *
          * <p>A step that opens nothing is a router: it reads the envelope and
@@ -720,5 +732,37 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
 
     public String databaseName() {
         return databaseName(code);
+    }
+
+    /**
+     * The Postgres database name for a step's substrate.
+     *
+     * <p>Derived the same way a tenant's is and prefixed differently on
+     * purpose: {@code step_} beside {@code tenant_} means a person reading
+     * `\l` can tell which databases hold somebody's records and which hold a
+     * queue, and it makes the two namespaces unable to collide — a step named
+     * after a tenant is not a tenant's database.
+     *
+     * <p><b>These are not tenants.</b> What is created is a database the
+     * runtime owns, carrying a durable-layer bootstrap and nothing else: no
+     * face, no zone, no personal-data isolation, no store schema, no
+     * authority. Nothing here derives a tenant's anything from it.
+     */
+    public static String substrateDatabaseName(String substrate) {
+        String name = "step_" + substrate.replace('-', '_').replace('.', '_');
+        if (name.length() <= 63) {
+            return name;
+        }
+        try {
+            byte[] digest = java.security.MessageDigest.getInstance("SHA-256")
+                    .digest(substrate.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            StringBuilder hash = new StringBuilder();
+            for (int i = 0; i < 6; i++) {
+                hash.append(String.format("%02x", digest[i]));
+            }
+            return name.substring(0, 50) + "_" + hash;
+        } catch (java.security.NoSuchAlgorithmException e) {
+            throw new IllegalStateException(e);
+        }
     }
 }

@@ -36,37 +36,42 @@ public final class LocalDatabasePerTenantProvisioner implements TenantDatabasePr
         this.password = password;
     }
 
+    /**
+     * A step's substrate: the database, and a pool onto it.
+     *
+     * <p>Everything a tenant's provisioning does beyond the CREATE DATABASE is
+     * deliberately absent — no schema, no bootstrap client, no secret in
+     * custody. What goes into it is a durable-layer bootstrap, and the durable
+     * layer migrates its own schema when something first opens it, which is
+     * the only writer this database will ever have.
+     */
+    @Override
+    public DataSource stepSubstrate(String substrate) {
+        String dbName = TenantSpec.substrateDatabaseName(substrate);
+        createIfAbsent(dbName, "the substrate for fleet step queues '" + substrate + "'");
+        // Keyed by the DATABASE and not by the step, because several steps may
+        // name one substrate and each of them asking would otherwise open a
+        // pool of its own onto the same database — which is the connection
+        // cost this placement decision exists to let a deployment control.
+        return pools.computeIfAbsent("substrate:" + dbName, key -> {
+            HikariConfig config = new HikariConfig();
+            config.setDriverClassName("org.postgresql.Driver");
+            config.setJdbcUrl(tenantUrl(dbName));
+            config.setUsername(user);
+            config.setPassword(password);
+            // Smaller than a tenant's eight: what holds a connection here is
+            // the durable layer's listener and the work it hands out, not a
+            // face serving reads.
+            config.setMaximumPoolSize(4);
+            config.setPoolName("dbo-step-" + dbName);
+            return new HikariDataSource(config);
+        });
+    }
+
     @Override
     public TenantDatabase provision(TenantSpec spec) {
         String dbName = spec.databaseName(); // Postgres-safe, collision-free
-        // Asked before created: Postgres has no CREATE DATABASE IF NOT
-        // EXISTS in any version, and it logs an ERROR whenever it raises one,
-        // whether or not the client catches it — so the catch-and-attach path,
-        // correct as it is, put "database already exists" into the server log
-        // on every boot after the first. The common re-attach now asks and
-        // skips; two provisioners racing still land on 42P04, which the
-        // handler below absorbs — the catch is what makes this correct, the
-        // guard only makes it quiet.
-        try (Connection c = adminConnection()) {
-            boolean exists;
-            try (PreparedStatement ps = c.prepareStatement(
-                    "SELECT 1 FROM pg_database WHERE datname = ?")) {
-                ps.setString(1, dbName);
-                try (java.sql.ResultSet rs = ps.executeQuery()) {
-                    exists = rs.next();
-                }
-            }
-            if (!exists) {
-                try (PreparedStatement ps = c.prepareStatement("CREATE DATABASE " + dbName)) {
-                    ps.execute();
-                }
-            }
-        } catch (SQLException e) {
-            if (!DUPLICATE_DATABASE.equals(e.getSQLState())) {
-                throw new IllegalStateException("provisioning failed for " + spec.code(), e);
-            }
-            // lost the race to another provisioner: attach (idempotent)
-        }
+        createIfAbsent(dbName, "tenant '" + spec.code() + "'");
         applyTimeouts(dbName);
         DataSource pool = pools.computeIfAbsent(spec.code(), code -> {
             HikariConfig config = new HikariConfig();
@@ -379,6 +384,46 @@ public final class LocalDatabasePerTenantProvisioner implements TenantDatabasePr
 
     private static String quoteIdent(String ident) {
         return "\"" + ident.replace("\"", "\"\"") + "\"";
+    }
+
+    /**
+     * The database, made once, for whoever is asking.
+     *
+     * <p>Asked before created: Postgres has no CREATE DATABASE IF NOT EXISTS
+     * in any version, and it logs an ERROR whenever it raises one, whether or
+     * not the client catches it — so the catch-and-attach path, correct as it
+     * is, put "database already exists" into the server log on every boot
+     * after the first. The common re-attach now asks and skips; two
+     * provisioners racing still land on 42P04, which the handler below
+     * absorbs — the catch is what makes this correct, the guard only makes it
+     * quiet.
+     *
+     * <p>{@code whose} is only for the failure message, and it is a parameter
+     * because the two callers are not the same kind of thing: one is a
+     * tenant's storage and the other is a queue's, and a reader of the
+     * exception has to be told which.
+     */
+    private void createIfAbsent(String dbName, String whose) {
+        try (Connection c = adminConnection()) {
+            boolean exists;
+            try (PreparedStatement ps = c.prepareStatement(
+                    "SELECT 1 FROM pg_database WHERE datname = ?")) {
+                ps.setString(1, dbName);
+                try (java.sql.ResultSet rs = ps.executeQuery()) {
+                    exists = rs.next();
+                }
+            }
+            if (!exists) {
+                try (PreparedStatement ps = c.prepareStatement("CREATE DATABASE " + dbName)) {
+                    ps.execute();
+                }
+            }
+        } catch (SQLException e) {
+            if (!DUPLICATE_DATABASE.equals(e.getSQLState())) {
+                throw new IllegalStateException("provisioning failed for " + whose, e);
+            }
+            // lost the race to another provisioner: attach (idempotent)
+        }
     }
 
     private String tenantUrl(String dbName) {

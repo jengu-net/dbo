@@ -35,6 +35,33 @@ public interface TenantDatabaseProvisioner {
     TenantDatabase provision(TenantSpec spec);
 
     /**
+     * Prepare (or attach to) the substrate a fleet step's queue lives on.
+     * Idempotent.
+     *
+     * <p><b>Not the tenant path, deliberately.</b> What this makes is a
+     * database the runtime owns, carrying a durable-layer bootstrap and
+     * nothing else — no face, no zone, no personal-data isolation, no store
+     * schema, no authority, no bootstrap credential. Going through
+     * {@link #provision} would give it every one of those and make a thing
+     * that is not a tenant look exactly like one to everything downstream,
+     * starting with erasure.
+     *
+     * <p>It is the same admin connection, because a deployment that can make
+     * a tenant's database can make this one and a second credential to
+     * administer would be a second thing to rotate.
+     *
+     * <p>The default says the deployment's storage is somebody else's to
+     * prepare, which is the honest answer wherever databases are operator-made
+     * rather than created on demand — the same answer this interface already
+     * gives for a tenant whose storage has not arrived.
+     */
+    default DataSource stepSubstrate(String substrate) {
+        throw new NotProvisionedYet("the substrate '" + substrate + "' a fleet step's queue "
+                + "lives on is not made by this provisioner, so an operator provisions it and "
+                + "points the deployment at it");
+    }
+
+    /**
      * Erasure-by-drop (REQ-DBO-TEN-ERASURE-BY-DROP). Distinct from service
      * retraction: removing a tenant's spec only retracts serving; only this
      * call destroys data.

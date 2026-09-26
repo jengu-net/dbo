@@ -2854,6 +2854,7 @@ cloud.jengu.dbo.promises.DboPromises                                   PROC_CONF
 cloud.jengu.dbo.promises.DboPromises                                   PROC_CONFIG_WITHDRAWAL_IS_DECLARED:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_CONTENT_CHANGES_INSIDE_WORK:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_CORRELATION_TRAVELS_OPAQUE:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   PROC_DECLARING_A_STEP_PREPARES_ITS_SUBSTRATE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_DOMAIN_CODE_FILTER:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_DONE_MEANS_DONE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_ENTITLEMENT_IS_DECLARED_NOT_DEFAULTED:cloud.jengu.dbo.promises.DboPromises
@@ -3852,6 +3853,7 @@ cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner               release(S
 cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner               rpClientId(String):void
 cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner               rpClientSecret(String):String
 cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner               rpRedirectUris(List):void
+cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner               stepSubstrate(String):DataSource
 cloud.jengu.dbo.tenant.MaintenanceHandler                              ATTESTATION_HEADER:String
 cloud.jengu.dbo.tenant.MaintenanceHandler                              KIND_HEADER:String
 cloud.jengu.dbo.tenant.MaintenanceHandler                              OWNER_KEY_HEADER:String
@@ -3892,6 +3894,7 @@ cloud.jengu.dbo.tenant.TenantDatabaseProvisioner                       deprovisi
 cloud.jengu.dbo.tenant.TenantDatabaseProvisioner                       interface
 cloud.jengu.dbo.tenant.TenantDatabaseProvisioner                       provision(cloud.jengu.dbo.tenant.TenantSpec):cloud.jengu.dbo.tenant.TenantDatabaseProvisioner.TenantDatabase
 cloud.jengu.dbo.tenant.TenantDatabaseProvisioner                       release(String):void
+cloud.jengu.dbo.tenant.TenantDatabaseProvisioner                       stepSubstrate(String):DataSource
 cloud.jengu.dbo.tenant.TenantDatabaseProvisioner.NotProvisionedYet     class
 cloud.jengu.dbo.tenant.TenantDatabaseProvisioner.NotProvisionedYet     new(String)
 cloud.jengu.dbo.tenant.TenantDatabaseProvisioner.TenantDatabase        DEFAULT_RP_CLIENT_ID:String
@@ -3946,6 +3949,7 @@ cloud.jengu.dbo.tenant.TenantRuntimeManager                            serveRunt
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            shapesRound():int
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            start(long):void
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            stepIncidents():Map
+cloud.jengu.dbo.tenant.TenantRuntimeManager                            stepSubstrates():Map
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            streamsOf(String):List
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            streamsTogether(int):void
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            substrate(DataSource):void
@@ -4019,6 +4023,7 @@ cloud.jengu.dbo.tenant.TenantSpec                                      policies(
 cloud.jengu.dbo.tenant.TenantSpec                                      record
 cloud.jengu.dbo.tenant.TenantSpec                                      scim():cloud.jengu.dbo.tenant.TenantSpec.Scim
 cloud.jengu.dbo.tenant.TenantSpec                                      steps():List
+cloud.jengu.dbo.tenant.TenantSpec                                      substrateDatabaseName(String):String
 cloud.jengu.dbo.tenant.TenantSpec                                      toString():String
 cloud.jengu.dbo.tenant.TenantSpec                                      types():List
 cloud.jengu.dbo.tenant.TenantSpec                                      zone():String
@@ -4043,6 +4048,7 @@ cloud.jengu.dbo.tenant.TenantSpec.FleetStep                            record
 cloud.jengu.dbo.tenant.TenantSpec.FleetStep                            required():boolean
 cloud.jengu.dbo.tenant.TenantSpec.FleetStep                            slots():Map
 cloud.jengu.dbo.tenant.TenantSpec.FleetStep                            substrate():String
+cloud.jengu.dbo.tenant.TenantSpec.FleetStep                            substrateName():String
 cloud.jengu.dbo.tenant.TenantSpec.FleetStep                            toString():String
 cloud.jengu.dbo.tenant.TenantSpec.FleetStep.Posture                    APPLIED:cloud.jengu.dbo.tenant.TenantSpec.FleetStep.Posture
 cloud.jengu.dbo.tenant.TenantSpec.FleetStep.Posture                    NOT_UNTIL_APPROVED:cloud.jengu.dbo.tenant.TenantSpec.FleetStep.Posture

@@ -442,6 +442,15 @@ public final class TenantRuntimeManager implements AutoCloseable {
      * deployment says what it performs.
      */
     private volatile Set<String> fleetStepCodes = Set.of();
+    /**
+     * The substrate each declared fleet step's queue lives on, by step code.
+     *
+     * <p>Several steps may share one, so the pools behind these are shared
+     * too — placement is what a deployment turns to trade connection cost
+     * against isolation, and it would not be a dial if naming one substrate
+     * twice opened two.
+     */
+    private final Map<String, javax.sql.DataSource> stepSubstrates = new ConcurrentHashMap<>();
     /** Where each tenant's ask-to-apply door is mounted, for the same teardown. */
     private final Map<String, String> configurationContexts = new ConcurrentHashMap<>();
     /** One per tenant whose face delivers notifications; closed when the tenant goes. */
@@ -1046,7 +1055,52 @@ public final class TenantRuntimeManager implements AutoCloseable {
         fleetStepCodes = spec.fleetSteps().stream()
                 .map(TenantSpec.FleetStep::code)
                 .collect(java.util.stream.Collectors.toUnmodifiableSet());
+        provisionStepSubstrates(spec);
         return spec.code();
+    }
+
+    /**
+     * Declaring a step prepares the substrate its queue will live on.
+     *
+     * <p><b>Declaring is provisioning</b>, the same way a tenant's database is
+     * prepared when the tenant is declared — so a step that exists has
+     * somewhere for its work to sit before any work exists, rather than a
+     * joiner discovering at the first run that it has nowhere to put it.
+     *
+     * <p><b>A withdrawal takes nothing away.</b> A step gone from the
+     * descriptor stops being performed and its substrate stays, holding
+     * whatever was queued — because that work belongs to tenants who believe
+     * it is being done, and a configuration change that discarded runs would
+     * be the store losing work to tidy itself up. Removing the database is a
+     * person's act: rare, irreversible, and theirs.
+     *
+     * <p>A provisioner that does not make these says so and the deployment
+     * carries on without them, which is the same answer it gives for a
+     * tenant's storage somebody else prepares. The steps are declared either
+     * way; what is missing is where to put their work, and the joiner is what
+     * will have to say so.
+     */
+    private void provisionStepSubstrates(TenantSpec spec) {
+        for (TenantSpec.FleetStep step : spec.fleetSteps()) {
+            String substrate = step.substrateName();
+            try {
+                stepSubstrates.put(step.code(), provisioner.stepSubstrate(substrate));
+            } catch (TenantDatabaseProvisioner.NotProvisionedYet notOurs) {
+                LOG.info("fleet step declared with no substrate of ours: step={} substrate={}",
+                        step.code(), substrate);
+            }
+        }
+    }
+
+    /**
+     * Where each declared fleet step's work is to be queued.
+     *
+     * <p>Two steps naming one substrate answer with the SAME DataSource,
+     * which is the property placement exists for: a deployment running
+     * everything in one application points them at one name and pays for one.
+     */
+    public Map<String, javax.sql.DataSource> stepSubstrates() {
+        return Map.copyOf(stepSubstrates);
     }
 
     /** One deterministic reconciliation round. Returns codes currently served. */
