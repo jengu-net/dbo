@@ -187,6 +187,15 @@ subprojects {
             if (name == "test") {
                 (findProperty("dboTestHeap") as String?)?.let { maxHeapSize = it }
             }
+            // The collector, on EVERY test JVM rather than only the main
+            // suites: a task that fixed its own small heap did so because the
+            // machine is tight, which is the same reason this is here.
+            // Generational Shenandoah reclaims concurrently and ages young
+            // objects, which is the shape of what a bring-up does to a heap —
+            // build a validator, read a corpus, drop most of it. The pauses it
+            // removes were being paid inside bring-up waits that a loaded
+            // machine already fails.
+            jvmArgs("-XX:+UseShenandoahGC", "-XX:ShenandoahGCMode=generational")
             // Opt-in GC logging, for measuring what the suite actually holds.
             // A property rather than a hand-edit, for the same reason the heap
             // dial is one: the number that matters is the one measured at the
@@ -251,7 +260,13 @@ subprojects {
             // to dials that LOOKED set, and the cure is the task stating its
             // own effective numbers where a log reader sees them.
             doFirst {
-                logger.lifecycle("test jvm: maxHeapSize={} parallelismOverride={} telemetry={}",
+                logger.lifecycle("test jvm: gc={} maxHeapSize={} parallelismOverride={} "
+                        + "telemetry={}",
+                        // The FORK's flags, not this JVM's collector: a daemon
+                        // reporting its own would be the same lie this block
+                        // exists to catch — a dial that looks set.
+                        jvmArgs.filter { it.contains("Shenandoah") }
+                            .ifEmpty { listOf("default (none asked for)") },
                         maxHeapSize,
                         systemProperties[
                             "junit.jupiter.execution.parallel.config.fixed.parallelism"]
