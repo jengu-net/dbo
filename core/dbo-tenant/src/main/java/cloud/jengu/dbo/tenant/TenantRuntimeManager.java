@@ -431,6 +431,17 @@ public final class TenantRuntimeManager implements AutoCloseable {
     private final Map<String, Trouble> trouble = new ConcurrentHashMap<>();
     /** The tenant this deployment's own history lives in. */
     private volatile String managementCode;
+    /**
+     * The step codes the DEPLOYMENT declared, held so the sweep can see a
+     * tenant claiming one.
+     *
+     * <p>Kept here rather than read from the management runtime each pass
+     * because the invariant has to hold from the first sweep, and the first
+     * sweep can run before anything would have read that tenant's store. It is
+     * set where the management tenant is declared, which is the one place a
+     * deployment says what it performs.
+     */
+    private volatile Set<String> fleetStepCodes = Set.of();
     /** Where each tenant's ask-to-apply door is mounted, for the same teardown. */
     private final Map<String, String> configurationContexts = new ConcurrentHashMap<>();
     /** One per tenant whose face delivers notifications; closed when the tenant goes. */
@@ -1032,6 +1043,9 @@ public final class TenantRuntimeManager implements AutoCloseable {
             LOG.info("management tenant up: code={}", spec.code());
         }
         managementCode = spec.code();
+        fleetStepCodes = spec.fleetSteps().stream()
+                .map(TenantSpec.FleetStep::code)
+                .collect(java.util.stream.Collectors.toUnmodifiableSet());
         return spec.code();
     }
 
@@ -1122,13 +1136,26 @@ public final class TenantRuntimeManager implements AutoCloseable {
             try {
                 TenantSpec spec = TenantSpec.parse(new String(declaration.payload(),
                         java.nio.charset.StandardCharsets.UTF_8));
+                // DECLARED FIRST, REFUSED SECOND, and the order is the whole
+                // of whether a refusal can be read. A file that declares a
+                // tenant declares it whether or not the store will serve it,
+                // and this pass drops the trouble ledger's entry for any code
+                // nothing declares — so a refusal raised before this line is
+                // swept away in the same pass that raised it, leaving a tenant
+                // that does not serve and no reason anywhere. It also decides
+                // what happens to a tenant ALREADY serving when the deployment
+                // grows a colliding code: declared, so it is not retracted,
+                // and refused, so the contradiction is on the ledger against
+                // it. What is wrong is the pair of declarations, and taking
+                // the tenant down would punish whichever side did not change.
+                declared.add(spec.code());
                 // This sweep is the ordinary tenants' road. The management
                 // tenant arrives through configuration and never through
-                // here, which is the same reason the sweep that retracts
-                // tenants cannot retract it — so a fleet step reaching this
-                // line is one declared by somebody who may not.
+                // here, which is the same reason the retraction loop below
+                // skips it — so a fleet step reaching this line is one
+                // declared by somebody who may not.
                 TenantSpec.onlyTheDeploymentDeclaresFleetSteps(spec);
-                declared.add(spec.code());
+                aStepCodeBelongsToOneLevel(spec);
                 // It parsed and it is being served, so a later refusal of the
                 // same file is news rather than a repeat.
                 refusals.applied(named);
@@ -1444,6 +1471,51 @@ public final class TenantRuntimeManager implements AutoCloseable {
                     change.fields(), change.says()));
         }
         return List.copyOf(said);
+    }
+
+    /**
+     * One step code belongs to one level, and a tenant claiming the
+     * deployment's is refused naming both sides.
+     *
+     * <p><b>This is the invariant the joining design rests on</b>, and it has
+     * to hold before anything joins work rather than after. A code declared at
+     * both levels is a run two schedulers reach for: the tenant's own lane
+     * offers it by conditional write, the deployment's queue hands it to a
+     * consumer, and both are correct about a run only one of them should have
+     * seen. That is the failure this store already describes for two sites of
+     * one tenant, where the deadline passing and the report being in flight
+     * are both true — and a declaration is a far cheaper place to see it.
+     *
+     * <p>It reads the deployment's side from what the management tenant
+     * declared and the tenant's side from the declaration in hand, so it
+     * answers for a tenant that arrives after the deployment said what it
+     * performs AND for one that was already serving when it did: the sweep
+     * re-reads every declaration each pass, so a deployment that grows a code
+     * a serving tenant offers is refused on the next one, against that tenant,
+     * by name. The tenant keeps serving while it is refused — what is wrong is
+     * the pair of declarations, and taking a tenant down for a contradiction
+     * it may not have caused would be the store punishing the wrong side.
+     */
+    private void aStepCodeBelongsToOneLevel(TenantSpec spec) {
+        if (fleetStepCodes.isEmpty()) {
+            return;
+        }
+        List<String> both = spec.steps().stream()
+                .map(TenantSpec.Step::code)
+                .filter(fleetStepCodes::contains)
+                .sorted()
+                .toList();
+        if (both.isEmpty()) {
+            return;
+        }
+        throw new IllegalArgumentException("tenant '" + spec.code() + "' offers " + both
+                + " under 'steps', and the deployment declares the same "
+                + (both.size() == 1 ? "code" : "codes") + " under 'fleetSteps' in the "
+                + "management tenant '" + managementCode + "'. A step code belongs to ONE "
+                + "level: a run of it would be offered on this tenant's own lane and handed "
+                + "to the deployment's consumer, and both would be right about a run only "
+                + "one of them should have seen. Rename one of them, or drop it from the "
+                + "side that should not perform it.");
     }
 
     /** The tenant a spec file declares, when it parses — for a state to belong to. */

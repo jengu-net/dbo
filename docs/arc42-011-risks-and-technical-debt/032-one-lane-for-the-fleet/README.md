@@ -478,15 +478,37 @@ hold accepted.
 
 ### 2. A step code belongs to one level, enforced
 
-The invariant the whole design rests on, and it must precede any joining: the
-same code in the management descriptor and a tenant's is refused, by the sweep
-that already reconciles declarations.
+**Done.** A tenant offering a code the management descriptor declares under
+`fleetSteps` is refused by the sweep that reconciles declarations, naming the
+tenant, the code, the management tenant and both keys. It answers whichever
+side arrived second, because every declaration is read again each pass.
 
 **Out of order, this is the bug that produces two schedulers over one run** —
 the failure this store already describes for two sites of one tenant, where the
 deadline passing and the report being in flight are both true.
 
-*Proven by:* both declarations present, refused by name, naming both sides.
+**What the writing settled: declared first, refused second.** The pass drops
+the trouble ledger's entry for any code nothing declares, so a refusal raised
+before the tenant is added to the declared set is swept away in the same pass
+that raised it — leaving a tenant that does not serve and no reason anywhere.
+The first attempt did exactly that, and the test caught it. The order also
+decides what happens to a tenant **already serving** when the deployment grows
+a colliding code: declared, so the retraction loop leaves it alone, and refused,
+so the contradiction is on the ledger against it. It keeps serving, because
+what is wrong is the pair of declarations and taking the tenant down would
+punish whichever side did not change.
+
+*Proven by:* `AStepCodeBelongsToOneLevelIT`, claiming
+`REQ-DBO-PROC-A-STEP-CODE-BELONGS-TO-ONE-LEVEL` — both declarations present and
+the tenant refused with both sides named; a tenant offering a step of its own
+untouched, so the rule refuses a collision rather than the act of declaring;
+and the renamed step serving, with the ledger entry gone, so the refusal names
+something somebody can act on rather than a dead end.
+
+A world of its own, recorded in the worlds ledger as **sweep**: the claim is
+about what a deployment-wide pass refuses, and it needs two declarations that
+contradict each other — which a shared world cannot carry without carrying the
+contradiction for everybody in it.
 
 ### 3. Declaring a step provisions its substrate
 

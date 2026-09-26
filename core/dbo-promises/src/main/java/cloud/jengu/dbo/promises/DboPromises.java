@@ -597,6 +597,22 @@ public enum DboPromises implements Promise {
             + "them. Slots are not checked against the declaring tenant's own types, because "
             + "the types belong to the tenants whose work it performs."),
 
+    /**
+     * The other half, and the one with a deadline: it has to hold before
+     * anything joins work. A code at both levels is not a configuration
+     * mistake that shows up as a bad answer — it is two schedulers reaching
+     * for one run, each correct, which is the failure this store already
+     * describes for two sites of one tenant.
+     */
+    PROC_A_STEP_CODE_BELONGS_TO_ONE_LEVEL(
+            "A step code is the deployment's or a tenant's and never both. A tenant offering "
+            + "a code the management tenant declares under 'fleetSteps' is refused by the "
+            + "sweep that reconciles declarations, naming the tenant, the code and the "
+            + "management tenant — and it is refused whichever side arrived second, because "
+            + "every declaration is read again each pass. A tenant already serving keeps "
+            + "serving while it is refused: what is wrong is the pair, and the tenant may not "
+            + "be the side that changed."),
+
     PROC_A_LANE_OVER_THE_STREAM(
             "A lane runs over the store's own stream, full duplex, beside in-process and "
             + "HTTP: work goes out and travel, access and result events come home as they "

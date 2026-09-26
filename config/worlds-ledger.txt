@@ -44,6 +44,7 @@ AHostHoldsALaneByInstallingABundleIT                     container
 ALaneOverTheStreamIsIndistinguishableIT                  deployment
 ALargePayloadTravelsByReferenceIT                        whole plane
 AShutdownIsQuietIT                                       lifecycle
+AStepCodeBelongsToOneLevelIT                             sweep
 AStoreWithoutSuperuserStillMountsIT                      sweep
 AStreamKeepsMovingWhileATenantComesUpIT                  lifecycle
 AStreamLaneIsToldItHasWorkIT                             deployment
