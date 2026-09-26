@@ -626,6 +626,28 @@ public enum DboPromises implements Promise {
             + "queued belongs to tenants who believe it is being done, and dropping the "
             + "database is a person's act."),
 
+    PROC_THE_JOINER_OFFERS_EVERY_TENANTS_WORK(
+            "One observer reads every tenant's work feed as a named durable consumer and "
+            + "offers each run of a step the deployment performs into that step's queue, on "
+            + "the substrate that step named. A run of a step the deployment does not perform "
+            + "is left where it belongs, which is what the two levels are made of. It CLAIMS "
+            + "nothing — the run stays offered on nothing and a joiner that falls behind reads "
+            + "as a cursor that is not moving rather than as work nobody wanted — and it "
+            + "CONSUMES nothing, holding a writer rather than an executor, so it polls no "
+            + "queue and holds no listener. Offering is idempotent on the run's own identity, "
+            + "because no transaction spans reading a tenant's feed and writing to a step's "
+            + "substrate: a restart or a lost acknowledgement re-offers and writes no second "
+            + "item."),
+
+    PROC_ONE_BEAN_PERFORMS_FOR_EVERY_TENANT(
+            "A step the deployment performs is offered to an application as ITS STEP'S QUEUE "
+            + "rather than as a lane per tenant: one consumer, whatever the deployment's size, "
+            + "handed items that happen to name different tenants. The bean names no tenant "
+            + "and is not told which exist, so a tenant joining needs nothing redeployed. It "
+            + "keeps nothing between asks — every call is answered from the item it was handed "
+            + "— which is what lets a consumer be restarted mid-run and carry on, and what "
+            + "makes several of them a way to perform a hot step faster."),
+
     PROC_A_LANE_OVER_THE_STREAM(
             "A lane runs over the store's own stream, full duplex, beside in-process and "
             + "HTTP: work goes out and travel, access and result events come home as they "

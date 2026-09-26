@@ -110,16 +110,29 @@ class DeclaringAStepPreparesItsSubstrateIT {
         // Not a tenant: nothing provisioned it as one, so it holds none of
         // what a tenant's database holds. Asked of the database rather than of
         // the code, because the claim is about what was created.
+        //
+        // A DURABLE BOOTSTRAP AND NOTHING ELSE, which is two assertions and
+        // not one. The joiner migrates each substrate as it is built, so
+        // `dbos` is here and is supposed to be; what must not be here is any
+        // schema of the store's — that would mean this went through the path
+        // that provisions a tenant and is now a thing which is not a tenant
+        // looking exactly like one.
         try (Connection c = manager.stepSubstrates().get(ALONE).getConnection();
                 PreparedStatement ps = c.prepareStatement(
-                        "SELECT count(*) FROM information_schema.tables "
-                                + "WHERE table_schema NOT IN ('pg_catalog','information_schema')");
+                        "SELECT table_schema, count(*) FROM information_schema.tables "
+                                + "WHERE table_schema NOT IN ('pg_catalog','information_schema') "
+                                + "GROUP BY table_schema");
                 ResultSet rs = ps.executeQuery()) {
-            rs.next();
-            assertEquals(0, rs.getInt(1),
-                    "a step's substrate came up carrying tables, so it went through the path "
-                            + "that provisions a tenant and is now a thing that is not a "
-                            + "tenant looking exactly like one");
+            java.util.Map<String, Integer> bySchema = new java.util.LinkedHashMap<>();
+            while (rs.next()) {
+                bySchema.put(rs.getString(1), rs.getInt(2));
+            }
+            assertTrue(bySchema.containsKey("dbos"),
+                    "the substrate carries no durable layer, so a step declared has a "
+                            + "database and still nowhere for its work to go: " + bySchema);
+            assertEquals(java.util.Set.of("dbos"), bySchema.keySet(),
+                    "a step's substrate carries a schema that is not the durable layer's, so "
+                            + "it went through the path that provisions a tenant: " + bySchema);
         }
 
         assertTrue(TenantSpec.substrateDatabaseName(ALONE).startsWith("step_"),

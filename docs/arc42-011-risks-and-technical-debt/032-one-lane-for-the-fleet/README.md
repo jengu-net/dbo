@@ -523,6 +523,14 @@ its own. Withdrawing a step leaves the database standing.
 namespaces unable to collide, and it means somebody reading `\l` can tell
 which databases hold a person's records and which hold a queue.
 
+**And it names the step, not the deployment**, which assumes a deployment owns
+its Postgres instance — the same assumption `tenant_<code>` has always made.
+Two deployments sharing an instance would share a step's queue and perform
+each other's work. That surfaced as two test classes naming one step and
+counting each other's items, which is the cheap version of it; the expensive
+version is two fleets on one server, and what rules it out today is the
+assumption rather than the name.
+
 **The boundary: what is created is empty, and the durable bootstrap is not put
 there by this step.** `dbo-tenant` has no durable layer — DBOS is privately
 embedded in `dbo-stream` and `dbo-subscriptions` — and giving the tenant module
@@ -545,25 +553,85 @@ and a withdrawn step whose substrate stays.
 
 ### 4. The joiner reads every tenant and writes the queues
 
-A work-domain observer over every tenant — a named durable consumer that
-already exists as a mechanism — filtered to the step codes the management
-descriptor declares, writing an item per run into that step's queue,
-**idempotent on the run's own identity** because no transaction spans the read
-and the write.
+**Done.** `StepJoiner` reads each tenant's work feed as the named durable
+consumer `fleet-joiner` and offers each run of a declared step into that
+step's queue on the substrate the step named. A run of a step the deployment
+does not perform has nowhere to go, and being left there **is** the filter the
+two levels are made of.
 
-It claims nothing. Nothing consumes yet.
+**It claims nothing and consumes nothing**, and the second half turned out to
+be something the library gives rather than something to build: a `DBOSClient`
+over the substrate writes to the durable layer **without being an executor** —
+no registered workflow, no queue polling, no permanently held listener. A
+joiner that launched a full durable runtime per substrate would hold a listener
+and a pool for every step in the deployment, which is the connection cost
+[item 034](../034-where-a-workers-substrate-and-keys-come-from/README.md)
+measured.
 
-*Proven by:* a run authored in a tenant appearing in its step's queue; a
-tenant-private run appearing nowhere; the joiner stopped and restarted without
-duplicating an item.
+**Idempotence is also the library's**, not a table to keep: one row per
+workflow id, so the id is derived from the run's own identity and a re-offer
+after a restart or a lost acknowledgement writes no second item. The ack is
+taken **after** the offers, so a crash between them re-offers rather than
+skips — which the workflow id makes harmless, and which is the direction to
+fail in when only one is available.
+
+**And the durable bootstrap lands here**, which closes step 3's boundary:
+the joiner runs `MigrationManager.runMigrations` on each substrate as it is
+built. The module that provisions databases still has no durable layer and
+still does not need one.
+
+**Two things only a running test could have found.**
+
+- `EnqueueOptions(workflowName, queueName)`, in that order. Reversed — which
+  compiles — every item is filed under a queue called `perform` with the step
+  code as its name, which is a backlog no consumer of that step will ever look
+  in.
+- The run's identity is the **feed item's object id**, not an `id` in the
+  payload: a stored object's id is the store's and the record does not repeat
+  it. Read from the payload it is null, and a null in the workflow id makes
+  every run of a tenant one item.
+
+*Proven by:* `TheJoinerOffersEveryTenantsWorkIT`, claiming
+`REQ-DBO-PROC-THE-JOINER-OFFERS-EVERY-TENANTS-WORK` — a run of a declared step
+in that step's queue naming the tenant and the run, a run of the tenant's own
+step in no queue at all, and the cursor put back so the same runs are read
+again ending in one item. The third asserts it re-read **before** it asserts
+the count, because a reset that quietly did nothing would make the count true
+for the wrong reason.
 
 ### 5. A bean performs work for every tenant
 
-The consumer side: a step service in a serving application is offered its
-step's queue rather than a lane per tenant, and keeps nothing between asks.
+**Done.** `StepConsumer` registers a step's queue on its substrate and
+launches a durable executor; an application hands it a bean per step and names
+no tenant anywhere. Work authored in two tenants is performed by one bean,
+which is the whole claim: a bean holding a lane per tenant would hold twenty
+lanes, twenty cursors and twenty things to go wrong, and would need
+redeploying whenever a tenant joined.
 
-*Proven by:* one bean performing work authored in two different tenants,
-naming neither, and surviving a restart mid-run.
+**The contract had to change, and the measurement is why.** The plan said one
+shared workflow class dispatching on the step; what a probe showed is that the
+durable layer records the **implementation's** class name, not the
+interface's. A consumer registering an application's own bean as the workflow
+would therefore put a class name from somebody's application into the queue —
+which the joiner writing the item cannot know. So the shared class is
+`FleetPerformer`, concrete and this bundle's, holding a registry of which bean
+performs which step. The name is a constant because the class is ours; the
+dispatch is a lookup because the step is an argument.
+
+**The two ends agree without having been introduced**, which is the property
+worth having: the joiner writes with a client that registers nothing, the
+consumer registers a queue and a class, and the item moves because both name
+the same two strings.
+
+**An item for a step nothing here performs is left alone** rather than
+failing. A substrate may carry several steps' queues and a process may be
+registered for one of them, so an unregistered step has to look like an item
+nobody has taken yet.
+
+*Proven by:* `OneBeanPerformsForEveryTenantIT`, claiming
+`REQ-DBO-PROC-ONE-BEAN-PERFORMS-FOR-EVERY-TENANT` — one bean performing work
+authored in two tenants and naming neither, and a consumer closed and rebuilt
+with work authored while it was gone, which is performed when it returns.
 
 ### 6. The writeback returns it through the tenant's own rules
 

@@ -451,6 +451,12 @@ public final class TenantRuntimeManager implements AutoCloseable {
      * twice opened two.
      */
     private final Map<String, javax.sql.DataSource> stepSubstrates = new ConcurrentHashMap<>();
+    /**
+     * The one observer that offers every tenant's work to the step that
+     * performs it. Null where the deployment declares no fleet step, which is
+     * every deployment that has not asked for one.
+     */
+    private volatile cloud.jengu.dbo.stream.StepJoiner joiner;
     /** Where each tenant's ask-to-apply door is mounted, for the same teardown. */
     private final Map<String, String> configurationContexts = new ConcurrentHashMap<>();
     /** One per tenant whose face delivers notifications; closed when the tenant goes. */
@@ -1056,6 +1062,19 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 .map(TenantSpec.FleetStep::code)
                 .collect(java.util.stream.Collectors.toUnmodifiableSet());
         provisionStepSubstrates(spec);
+        // Built once the substrates are known, because what it is FOR is the
+        // map from a step to where that step's work goes — and it bootstraps
+        // each substrate's durable layer on the way, which is the half of
+        // "a database carrying a durable bootstrap and nothing else" that the
+        // module provisioning databases cannot do.
+        if (!stepSubstrates.isEmpty() && joiner == null) {
+            joiner = new cloud.jengu.dbo.stream.StepJoiner(stepSubstrates);
+            // Tenants already serving when the deployment said what it
+            // performs are followed now; the rest are followed as they come
+            // up. A deployment declaring its steps after its tenants are up is
+            // the ordinary restart order, not an edge case.
+            runtimes.forEach((code, runtime) -> followForJoining(code, null));
+        }
         return spec.code();
     }
 
@@ -1090,6 +1109,27 @@ public final class TenantRuntimeManager implements AutoCloseable {
                         step.code(), substrate);
             }
         }
+    }
+
+    /**
+     * This tenant's work becomes visible to the step that performs it.
+     *
+     * <p>The WORK domain's feed, which is where runs are: a joiner reading the
+     * content feed would poll a stream runs never appear in, and look exactly
+     * like a deployment whose steps nobody ever asks for.
+     */
+    private void followForJoining(String code, TenantRuntime unused) {
+        cloud.jengu.dbo.stream.StepJoiner following = joiner;
+        if (following == null) {
+            return;
+        }
+        following.follow(code, new cloud.jengu.dbo.postgres.PgChangeFeed(
+                tenantDataSources.get(code), cloud.jengu.dbo.work.WorkModel.DOMAIN));
+    }
+
+    /** The joiner, for a test that needs one deterministic pass. */
+    public java.util.Optional<cloud.jengu.dbo.stream.StepJoiner> stepJoiner() {
+        return java.util.Optional.ofNullable(joiner);
     }
 
     /**
@@ -1223,6 +1263,11 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 if (serving == null) {
                     long began = System.nanoTime();
                     bringUp(spec);
+                    // Its work is offered to the steps the deployment
+                    // performs from here on. After bring-up, because what is
+                    // followed is the tenant's own database and there is none
+                    // before it.
+                    followForJoining(spec.code(), null);
                     states.put(spec.code(), TenantState.State.SERVING);
                     factsOf(spec.code()).ifPresent(facts -> reached(TenantPoint.SERVING, facts));
                     reportedFailures.removeIf(k -> k.startsWith(named + ":"));
@@ -3570,6 +3615,13 @@ public final class TenantRuntimeManager implements AutoCloseable {
     }
 
     private void takeDown(String code, String because) {
+        // Stop reading it, and leave its cursor where it is. A tenant coming
+        // back reads on from what it had offered rather than from the top,
+        // which is the same property every other durable consumer here has.
+        cloud.jengu.dbo.stream.StepJoiner following = joiner;
+        if (following != null) {
+            following.unfollow(code);
+        }
         TenantRuntime runtime = runtimes.remove(code);
         // Goes with the runtime: a tenant that is not served has no keys for
         // the sweep to prune, and holding its authority would keep the whole
