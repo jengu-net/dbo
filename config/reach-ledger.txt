@@ -29,6 +29,7 @@ cloud.jengu.dbo.maintenance.ReferenceClosure                             NOT REA
 cloud.jengu.dbo.promises.Proving                                         the annotation a test cites a promise with — read by the projection, never by the runtime
 cloud.jengu.dbo.runner.ProvingLane                                       an external consumer — implementors prove their own step services with it, which is the whole of what it is for. The driver-probe bundle names it too and deliberately does not count: a probe is not production reach, and a ledger a probe could satisfy is one anybody could satisfy by writing one
 cloud.jengu.dbo.stream.FleetPerformer                                    REASON MISSING
+cloud.jengu.dbo.stream.LaneWriteback                                     REASON MISSING
 cloud.jengu.dbo.stream.StepConsumer                                      REASON MISSING
 cloud.jengu.dbo.sync.http.HttpLanes                                      an external consumer: a host that drives a tenant's replication over HTTP from its own process, which is why it is not built in this one
 cloud.jengu.dbo.tenant.k8s.SpecDirSync                                   NOT REACHED — the spec mount for a process with no ConfigMap volume, and the operator builds none

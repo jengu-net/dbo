@@ -635,14 +635,62 @@ with work authored while it was gone, which is performed when it returns.
 
 ### 6. The writeback returns it through the tenant's own rules
 
-An administrative port the tenant runtime provides, applying outcomes,
-progress and metrics through the same primitive a lane's verbs pass — whether
-this step may close, whether a report is in order, who is recorded as having
-performed it.
+**Done.** `fleetLane` on the tenant runtime hands out an ordinary lane, built
+from the **same factory the tenant's own doors are built from** and entitled
+to one step. `LaneWriteback` turns it into the narrow `Reporting` a performer
+gets. Every verb is the lane's, so an outcome from a fleet consumer meets the
+rules an outcome from a participant on a port meets.
 
-*Proven by:* a run closing in the tenant that authored it, naming the
-executor; and a report that breaks a rule refused exactly as it would be on a
-lane.
+**Administrative only in who may obtain it.** A fleet consumer is inside the
+deployment, so nothing physically stops it writing to a tenant's store; if it
+did, a tenant's rules about its own work would hold for everybody except the
+party doing most of it. The lane is what makes that impossible rather than
+merely discouraged.
+
+**The identity is the caller's.** A run records the performer, and a
+deployment stamping its own name on work a bean did would lose the one field a
+run cannot be re-derived from — which is what item 031 paid for on the
+substrate carrier, arriving here by another road.
+
+**It claims before it reports.** A report on a run nobody holds is refused,
+and rightly: the hold is what says whose account of the work counts. The joiner
+claims nothing precisely so the claim happens here, where the work is done.
+
+**A live handle cannot cross a queue.** Workflow arguments are serialised and
+read back by whichever process takes the item, possibly after a restart — so
+what travels is four strings and the reporting handle is made on the far side
+from them. That is why the workflow interface and the bean interface are two
+interfaces.
+
+*Proven by:* `TheWritebackPassesTheTenantsRulesIT`, claiming
+`REQ-DBO-PROC-THE-WRITEBACK-PASSES-THE-TENANTS-RULES` — a run closing in the
+tenant that authored it, carrying the tally and naming the performer the
+application gave; and a step declaring `open` and not `close` refusing a close,
+naming the action.
+
+**The refusal test goes through the writeback and not through the queue**, on
+purpose: that an item reaches a consumer is step five's claim and is proven
+there, and a test that can fail two ways proves neither.
+
+### What is not answered, and the substrate-sharing decision rests on it
+
+**Can one executor serve several steps' queues?** Two steps sharing a
+substrate is the placement decision this design turns to trade connection cost
+against isolation, and it assumes one consumer can poll both queues. Measured,
+it did not: with two queues registered on one executor, items in the first ran
+and items in the second sat `ENQUEUED` for ever. A consumer of its own for the
+second queue did not help, nor did enqueuing after it was already running.
+
+The one hard clue is that the row that ran carries an `application_version`
+and an `executor_id` and the row that sat carries **null for both**, so the
+matching rule between a client's enqueue and an executor's claim is not yet
+understood — `EnqueueOptions.withAppVersion` exists and nothing here sets it.
+
+Until that is answered, **a consumer serves one step**, and the connection
+arithmetic [item 034](../034-where-a-workers-substrate-and-keys-come-from/README.md)
+cares about is one listener and one pool per step rather than per substrate.
+That is a worse position than the design assumed and it is where the next
+measurement belongs.
 
 ### 7. The register, the trail and the incident
 

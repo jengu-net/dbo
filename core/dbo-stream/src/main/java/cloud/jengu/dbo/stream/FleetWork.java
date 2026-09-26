@@ -54,7 +54,67 @@ public final class FleetWork {
      * opens it rather than to whoever carries it.
      */
     public interface Performer {
+        void perform(String tenant, String step, String runId, String runKey,
+                Reporting reporting);
+    }
+
+    /**
+     * What the durable layer actually calls, and why it is not
+     * {@link Performer}.
+     *
+     * <p>A workflow's arguments are SERIALISED — they sit in the queue as
+     * data and are read back by whichever process takes the item, possibly
+     * after a restart. A live handle cannot travel that way. So what crosses
+     * is four strings, and the handle a performer reports through is resolved
+     * on the far side from them. Handing a performer the lane in the item
+     * would compile and fail the moment a consumer picked up work it had not
+     * itself enqueued.
+     */
+    public interface Work {
         void perform(String tenant, String step, String runId, String runKey);
+    }
+
+    /**
+     * How a performer says what happened, and the only way it can.
+     *
+     * <p>Every verb here is the tenant's own lane's, so an outcome from a
+     * fleet consumer passes exactly the rules an outcome from a participant on
+     * a port passes: whether this step may be closed by a machine, whether
+     * the report is in order, and who is recorded as having performed it. A
+     * writeback that wrote to the store directly would be the one place in
+     * this design where a tenant's rules did not reach a tenant's run.
+     *
+     * <p>Narrow on purpose. A performer is handed what it needs to report and
+     * not a lane, because a lane can also poll, claim and declare — and a
+     * consumer that could claim would be a consumer that could take work
+     * nobody offered it.
+     */
+    public interface Reporting {
+
+        /** Done, with what it counted. */
+        void closed(java.util.Map<String, Long> tally);
+
+        /** Got somewhere, and is still going. */
+        void checkpoint(java.util.Map<String, Long> counts);
+
+        /**
+         * Did not finish, and says why. A release rather than a close, because
+         * a run that read as done is the one outcome a record exists to
+         * prevent.
+         */
+        void released(String reason);
+    }
+
+    /**
+     * Where a performer's report goes: the tenant that authored the run.
+     *
+     * <p>Resolved per item rather than held, because a consumer performs work
+     * for every tenant and holding a lane into each of them is the thing this
+     * design replaced.
+     */
+    @FunctionalInterface
+    public interface Writeback {
+        java.util.Optional<Reporting> reporting(String tenant, String step, String runKey);
     }
 
     /**

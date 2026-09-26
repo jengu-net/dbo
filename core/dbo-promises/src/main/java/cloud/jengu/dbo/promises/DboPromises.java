@@ -648,6 +648,17 @@ public enum DboPromises implements Promise {
             + "— which is what lets a consumer be restarted mid-run and carry on, and what "
             + "makes several of them a way to perform a hot step faster."),
 
+    PROC_THE_WRITEBACK_PASSES_THE_TENANTS_RULES(
+            "Work the deployment performed for a tenant is reported back through that "
+            + "tenant's OWN lane, so an outcome from a fleet consumer meets exactly the rules "
+            + "an outcome from a participant on a port meets: whether a machine may close this "
+            + "step, whether the report is in order for the state the run is in, and who is "
+            + "recorded as having performed it. The run closes in the tenant that authored it, "
+            + "naming the executor the application gave rather than the deployment's own name, "
+            + "and a report that breaks one of that tenant's rules is refused exactly as it "
+            + "would be on a lane. The performer claims before it reports, because the hold is "
+            + "what says whose account of the work counts."),
+
     PROC_A_LANE_OVER_THE_STREAM(
             "A lane runs over the store's own stream, full duplex, beside in-process and "
             + "HTTP: work goes out and travel, access and result events come home as they "

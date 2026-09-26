@@ -29,14 +29,18 @@ import java.util.Set;
 public final class StepConsumer implements AutoCloseable {
 
     private final DBOS dbos;
-    private final FleetPerformer performer = new FleetPerformer();
+    private final FleetPerformer performer;
 
     /**
      * @param substrate where the steps' queues live — several steps sharing
      *                  one substrate share this consumer
      * @param steps     the step codes performed here, whose queues are polled
+     * @param writeback where a performer's report goes — the tenant that
+     *                  authored the run, resolved per item
      */
-    public StepConsumer(DataSource substrate, Set<String> steps) {
+    public StepConsumer(DataSource substrate, Set<String> steps,
+            FleetWork.Writeback writeback) {
+        this.performer = new FleetPerformer(writeback);
         this.dbos = new DBOS(DBOSConfig.defaults("dbo-fleet-consumer")
                 .withDataSource(substrate)
                 .withDatabaseSchema("dbos")
@@ -49,7 +53,7 @@ public final class StepConsumer implements AutoCloseable {
         }
         // Registered as the interface and implemented by OUR class, which is
         // what makes the recorded class name the constant both ends know.
-        dbos.registerProxy(FleetWork.Performer.class, performer);
+        dbos.registerProxy(FleetWork.Work.class, performer);
         dbos.launch();
     }
 

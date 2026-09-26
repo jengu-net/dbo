@@ -127,8 +127,9 @@ class OneBeanPerformsForEveryTenantIT {
 
         // The application's side, and all of it: one consumer over the step's
         // substrate, one bean, and no tenant named anywhere in either.
-        consumer = new StepConsumer(manager.stepSubstrates().get(STEP), Set.of(STEP));
-        consumer.performing(STEP, (tenant, step, runId, runKey) ->
+        consumer = new StepConsumer(manager.stepSubstrates().get(STEP), Set.of(STEP),
+                writeback());
+        consumer.performing(STEP, (tenant, step, runId, runKey, reporting) ->
                 performed.add(tenant + "/" + runKey));
 
         assertTrue(until(() -> performed.size() >= 2),
@@ -154,13 +155,29 @@ class OneBeanPerformsForEveryTenantIT {
         authorRunIn(ONE);
         manager.stepJoiner().orElseThrow().joinOnce(100);
 
-        consumer = new StepConsumer(manager.stepSubstrates().get(STEP), Set.of(STEP));
-        consumer.performing(STEP, (tenant, step, runId, runKey) ->
+        consumer = new StepConsumer(manager.stepSubstrates().get(STEP), Set.of(STEP),
+                writeback());
+        consumer.performing(STEP, (tenant, step, runId, runKey, reporting) ->
                 performed.add(tenant + "/" + runKey));
 
         assertTrue(until(() -> !performed.isEmpty()),
                 "work offered while the consumer was down was not performed when it came "
                         + "back, so a restart loses whatever was in flight");
+    }
+
+    /**
+     * Where a report would go. This class is about the consumer side and not
+     * about the writeback, so the beans here report nothing — but a consumer
+     * cannot be built without one, and handing it a real one keeps this test
+     * honest about what an application actually assembles.
+     */
+    private cloud.jengu.dbo.stream.FleetWork.Writeback writeback() {
+        return new cloud.jengu.dbo.stream.LaneWriteback(
+                (tenant, step) -> manager.fleetLane(tenant, step,
+                        new cloud.jengu.dbo.work.Executor("fleet-test", "1",
+                                "cloud.jengu.test", cloud.jengu.dbo.work.Scope.BASELINE)),
+                (tenant, runKey) -> new Runs(manager.runtime(tenant).orElseThrow().engine())
+                        .byKey(runKey));
     }
 
     private void authorRunIn(String tenant) {

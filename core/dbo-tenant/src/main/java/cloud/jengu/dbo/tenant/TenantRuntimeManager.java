@@ -457,6 +457,19 @@ public final class TenantRuntimeManager implements AutoCloseable {
      * every deployment that has not asked for one.
      */
     private volatile cloud.jengu.dbo.stream.StepJoiner joiner;
+    /**
+     * How a lane into each tenant is built, kept so work performed for the
+     * fleet can be reported back through it.
+     *
+     * <p>The SAME factory the tenant's own doors are built from, and that is
+     * the whole of step six: an outcome arriving from a fleet consumer passes
+     * the rules a report on a lane passes — whether this step may be closed by
+     * a machine, whether a report is in order, who is recorded as having
+     * performed it. A writeback with a path of its own would be a second
+     * opinion about all three.
+     */
+    private final Map<String, cloud.jengu.dbo.runner.http.LaneHandler.Lanes> laneFactories =
+            new ConcurrentHashMap<>();
     /** Where each tenant's ask-to-apply door is mounted, for the same teardown. */
     private final Map<String, String> configurationContexts = new ConcurrentHashMap<>();
     /** One per tenant whose face delivers notifications; closed when the tenant goes. */
@@ -1125,6 +1138,33 @@ public final class TenantRuntimeManager implements AutoCloseable {
         }
         following.follow(code, new cloud.jengu.dbo.postgres.PgChangeFeed(
                 tenantDataSources.get(code), cloud.jengu.dbo.work.WorkModel.DOMAIN));
+    }
+
+    /**
+     * A lane into a tenant for work the deployment performed for it.
+     *
+     * <p>The administrative port step six asks for, and it is administrative
+     * only in who may obtain it: what comes back is an ordinary lane, entitled
+     * to one step, and every verb on it is checked the way it would be for a
+     * participant that had reached the tenant over a port. A consumer that
+     * closed a run some other way would be the one place in this design where
+     * a tenant's rules did not apply to a tenant's run.
+     *
+     * <p><b>The identity is the caller's</b>, not this runtime's. What
+     * performed the work is an application, and a run records the performer —
+     * so a deployment that stamped its own name on work a bean did would lose
+     * the one field a run cannot be re-derived from. That is the lesson item
+     * 031 paid for on the substrate carrier, arriving here by a different
+     * road.
+     */
+    public java.util.Optional<cloud.jengu.dbo.runner.Lane> fleetLane(
+            String tenant, String stepCode, cloud.jengu.dbo.work.Executor identity) {
+        cloud.jengu.dbo.runner.http.LaneHandler.Lanes factory = laneFactories.get(tenant);
+        if (factory == null) {
+            return java.util.Optional.empty();
+        }
+        return java.util.Optional.of(factory.laneFor(identity.name(), identity,
+                cloud.jengu.dbo.runner.Lane.Entitlement.ofSteps(stepCode)));
     }
 
     /** The joiner, for a test that needs one deterministic pass. */
@@ -2543,6 +2583,9 @@ public final class TenantRuntimeManager implements AutoCloseable {
             }
             sharedServer.createContext(workPath, new cloud.jengu.dbo.runner.http.LaneHandler(
                     workPath, new WorkGrants(authority), laneFactory));
+            // Kept for the writeback, after the doors are mounted from it: a
+            // fleet consumer reports through this and nothing else.
+            laneFactories.put(spec.code(), laneFactory);
             workContexts.put(spec.code(), workPath);
             // The step door stood here too, behind `!spec.steps().isEmpty()`.
             // Same conversion, same place below.

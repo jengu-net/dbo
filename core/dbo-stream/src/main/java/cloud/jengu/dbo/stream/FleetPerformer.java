@@ -23,12 +23,18 @@ import java.util.concurrent.ConcurrentHashMap;
  * anything about a run between asks would be a consumer that cannot be
  * restarted, which is the one thing work that crosses a queue has to survive.
  */
-public final class FleetPerformer implements FleetWork.Performer {
+public final class FleetPerformer implements FleetWork.Work {
 
     private static final Logger LOG = LoggerFactory.getLogger("dbo.fleet");
 
     /** Which bean performs which step. Configuration, and the only thing held. */
     private final Map<String, FleetWork.Performer> beans = new ConcurrentHashMap<>();
+    /** Where a report goes, resolved per item because a consumer serves every tenant. */
+    private final FleetWork.Writeback writeback;
+
+    public FleetPerformer(FleetWork.Writeback writeback) {
+        this.writeback = writeback;
+    }
 
     /** The bean that performs this step, from now on. */
     public void performing(String stepCode, FleetWork.Performer bean) {
@@ -44,6 +50,16 @@ public final class FleetPerformer implements FleetWork.Performer {
      * what an unregistered consumer looks like from the queue's side — an item
      * nobody has taken yet.
      */
+    /**
+     * One item, with the report's destination resolved here.
+     *
+     * <p>Four strings and nothing else, because that is what a queue can
+     * hold: the handle a performer reports through is made on this side from
+     * them, and never travels. A tenant gone while its work sat in the queue
+     * has no lane to report through, which is not the bean's problem to
+     * discover halfway through — the item is left for a pass when the tenant
+     * is back, which is what an item nobody has taken yet already looks like.
+     */
     @Override
     @Workflow(name = "perform")
     public void perform(String tenant, String step, String runId, String runKey) {
@@ -52,6 +68,12 @@ public final class FleetPerformer implements FleetWork.Performer {
             LOG.debug("no bean here performs {}: tenant={} run={}", step, tenant, runId);
             return;
         }
-        bean.perform(tenant, step, runId, runKey);
+        java.util.Optional<FleetWork.Reporting> reporting =
+                writeback.reporting(tenant, step, runKey);
+        if (reporting.isEmpty()) {
+            LOG.info("no lane into {} for {}, so its work waits: run={}", tenant, step, runId);
+            return;
+        }
+        bean.perform(tenant, step, runId, runKey, reporting.get());
     }
 }
