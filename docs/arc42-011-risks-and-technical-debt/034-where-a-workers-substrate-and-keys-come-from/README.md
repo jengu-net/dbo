@@ -99,6 +99,15 @@ demand is one held connection per tenant whose door is on the stream, and it is
 built before any tenant is up. Deriving it needs either a stated expectation or
 a pool that grows, and that is a decision rather than an arithmetic.
 
+### The per-step fear was unfounded
+
+An earlier reading of item 032 held that a consumer could serve only one step,
+which would have made this arithmetic one listener and one pool **per step**
+rather than per substrate. It was a defect in the consumer rather than a limit
+of the durable layer, and it is fixed: two steps sharing a substrate are served
+by one consumer. The dial this item is about — place steps together and pay
+once, or apart and pay per — works as designed.
+
 ### And a ceiling to check before it is met
 
 The serving side's pool needs one held connection per tenant whose door is on

@@ -729,6 +729,17 @@ public enum DboPromises implements Promise {
             + "nobody clicking. Per row, so a deployment may halt for a new row without "
             + "stopping everything else."),
 
+    PROC_A_CONSUMER_TAKES_ONLY_ITS_OWN_STEPS(
+            "A consumer dequeues the queues of the steps it serves and no others. Several steps "
+            + "share a substrate on purpose, and a process listens to every queue registered in "
+            + "its system database unless it says otherwise — so a consumer deployed for one "
+            + "step would otherwise take another step's work, find nothing here that performs "
+            + "it, and drain a tenant's queue into a process that never did the work. Two "
+            + "consumers on one substrate each perform their own step and neither loses the "
+            + "other's. A bean offered for a step a consumer does not serve is refused when it "
+            + "is offered, rather than silently never being called, and an item for a step "
+            + "nothing here performs is a fault rather than a quiet success."),
+
     PROC_A_LANE_OVER_THE_STREAM(
             "A lane runs over the store's own stream, full duplex, beside in-process and "
             + "HTTP: work goes out and travel, access and result events come home as they "

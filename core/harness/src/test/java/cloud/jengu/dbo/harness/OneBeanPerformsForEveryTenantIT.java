@@ -31,6 +31,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -61,7 +62,12 @@ class OneBeanPerformsForEveryTenantIT {
      * makes; a test suite does not.
      */
     private static final String STEP = "fleet.tidying.sweep";
+    /** A second step on the SAME substrate, which is what placement is for. */
+    private static final String BESIDE_IT = "fleet.tidying.expire";
 
+    private static final StepDeclaration EXPIRE =
+            StepDeclaration.of(BESIDE_IT, "1.0", WorkModel.DOMAIN)
+                    .taking("record", "https://meristem.example/shape/record");
     private static final StepDeclaration SWEEP =
             StepDeclaration.of(STEP, "1.0", WorkModel.DOMAIN)
                     .taking("record", "https://meristem.example/shape/record");
@@ -88,8 +94,12 @@ class OneBeanPerformsForEveryTenantIT {
         Files.writeString(managementSpec, """
                 {"code":"registry","face":"r4","types":[
                    {"name":"Basic","identity":"internal","handling":"operational"}],
-                 "fleetSteps":[{"code":"%s","slots":{"record":"Basic"},"opens":["record"]}]}"""
-                .formatted(STEP));
+                 "fleetSteps":[
+                   {"code":"%s","slots":{"record":"Basic"},"opens":["record"],
+                    "substrate":"tidying"},
+                   {"code":"%s","slots":{"record":"Basic"},"opens":["record"],
+                    "substrate":"tidying"}]}"""
+                .formatted(STEP, BESIDE_IT));
         manager.manages(managementSpec);
 
         for (String tenant : List.of(ONE, TWO)) {
@@ -127,8 +137,12 @@ class OneBeanPerformsForEveryTenantIT {
 
         // The application's side, and all of it: one consumer over the step's
         // substrate, one bean, and no tenant named anywhere in either.
-        consumer = new StepConsumer(manager.stepSubstrates().get(STEP), Set.of(STEP),
-                writeback());
+        // BOTH STEPS, because a consumer polls the queues it was built with
+        // and registering a bean later does not add one. Which is also the
+        // placement claim: two steps sharing a substrate are served by one
+        // consumer, one listener and one pool.
+        consumer = new StepConsumer(manager.stepSubstrates().get(STEP),
+                Set.of(STEP, BESIDE_IT), writeback());
         consumer.performing(STEP, (tenant, step, runId, runKey, reporting) ->
                 performed.add(tenant + "/" + runKey));
 
@@ -155,8 +169,8 @@ class OneBeanPerformsForEveryTenantIT {
         authorRunIn(ONE);
         manager.stepJoiner().orElseThrow().joinOnce(100);
 
-        consumer = new StepConsumer(manager.stepSubstrates().get(STEP), Set.of(STEP),
-                writeback());
+        consumer = new StepConsumer(manager.stepSubstrates().get(STEP),
+                Set.of(STEP, BESIDE_IT), writeback());
         consumer.performing(STEP, (tenant, step, runId, runKey, reporting) ->
                 performed.add(tenant + "/" + runKey));
 
@@ -180,12 +194,98 @@ class OneBeanPerformsForEveryTenantIT {
                         .byKey(runKey));
     }
 
+    @Test
+    @Order(3)
+    @DisplayName("one consumer serves every step on the substrate it was given, and takes work "
+            + "that arrives while it is already running")
+    @Proving(DboPromises.PROC_DECLARING_A_STEP_PREPARES_ITS_SUBSTRATE)
+    void oneConsumerServesTheSubstratesQueues() throws Exception {
+        // WHAT PLACEMENT IS FOR. Two steps naming one substrate share a
+        // database and a pool, and that trade is only real if one consumer can
+        // serve both their queues — otherwise a deployment pays a listener and
+        // a pool per STEP however it places them, and naming a substrate buys
+        // nothing.
+        //
+        // And it takes work that arrives while it is up, which is the other
+        // half: a consumer that drained only what existed when it launched
+        // would make the whole lane a startup activity.
+        performed.clear();
+        assertEquals(manager.stepSubstrates().get(STEP),
+                manager.stepSubstrates().get(BESIDE_IT),
+                "the two steps named one substrate and got two, so this proves nothing about "
+                        + "serving both from one consumer");
+
+        // BOTH beans recording the same way, so what is counted is which STEP
+        // performed rather than which of two spellings a bean happened to use.
+        consumer.performing(STEP, (tenant, step, runId, runKey, reporting) ->
+                performed.add(step + "|" + runKey));
+        consumer.performing(BESIDE_IT, (tenant, step, runId, runKey, reporting) ->
+                performed.add(step + "|" + runKey));
+
+        authorRunIn(ONE, SWEEP);
+        authorRunIn(ONE, EXPIRE);
+        manager.stepJoiner().orElseThrow().joinOnce(200);
+
+        assertTrue(until(() -> performed.size() >= 2),
+                "one consumer did not perform both steps' work from the substrate they share: "
+                        + performed);
+        assertEquals(Set.of(STEP, BESIDE_IT),
+                performed.stream().map(done -> done.split("\\|")[0])
+                        .collect(java.util.stream.Collectors.toSet()),
+                "the two items performed were not one of each step: " + performed);
+    }
+
+    @Test
+    @Order(4)
+    @DisplayName("two consumers on one substrate each take only their own step's work, and "
+            + "neither drains the other's")
+    @Proving(DboPromises.PROC_A_CONSUMER_TAKES_ONLY_ITS_OWN_STEPS)
+    void aConsumerTakesOnlyItsOwnSteps() throws Exception {
+        consumer.close();
+        performed.clear();
+        java.util.concurrent.ConcurrentLinkedQueue<String> other =
+                new java.util.concurrent.ConcurrentLinkedQueue<>();
+
+        // TWO PROCESSES' WORTH, on one substrate: the shape a deployment takes
+        // when it scales one step and leaves the other alone. Each registers
+        // its own step, and a queue registered by either is visible to both in
+        // the system database — which is exactly the trap.
+        try (StepConsumer mine = new StepConsumer(manager.stepSubstrates().get(STEP),
+                        Set.of(STEP), writeback());
+                StepConsumer theirs = new StepConsumer(manager.stepSubstrates().get(BESIDE_IT),
+                        Set.of(BESIDE_IT), writeback())) {
+            mine.performing(STEP, (t, step, runId, runKey, r) -> performed.add(step));
+            theirs.performing(BESIDE_IT, (t, step, runId, runKey, r) -> other.add(step));
+
+            assertThrows(IllegalArgumentException.class,
+                    () -> mine.performing(BESIDE_IT, (t, step, runId, runKey, r) -> { }),
+                    "a bean was accepted for a step this consumer does not poll, so it would "
+                            + "sit there correct and never be called");
+
+            authorRunIn(ONE, SWEEP);
+            authorRunIn(ONE, EXPIRE);
+            manager.stepJoiner().orElseThrow().joinOnce(200);
+
+            assertTrue(until(() -> !performed.isEmpty() && !other.isEmpty()),
+                    "one of the two steps' work never arrived: mine=" + performed
+                            + " theirs=" + other);
+            assertEquals(List.of(STEP), List.copyOf(performed),
+                    "a consumer performed work of a step it does not serve: " + performed);
+            assertEquals(List.of(BESIDE_IT), List.copyOf(other),
+                    "a consumer performed work of a step it does not serve: " + other);
+        }
+    }
+
     private void authorRunIn(String tenant) {
+        authorRunIn(tenant, SWEEP);
+    }
+
+    private void authorRunIn(String tenant, StepDeclaration step) {
         var engine = manager.runtime(tenant).orElseThrow().engine();
         String record = engine.put(PutRequest.create("Basic",
                 "{\"resourceType\":\"Basic\",\"code\":{\"text\":\"r\"}}"
                         .getBytes(StandardCharsets.UTF_8))).id();
-        new Runs(engine).of(SWEEP, RunKind.PIPELINE, STEP + "/" + record,
+        new Runs(engine).of(step, RunKind.PIPELINE, step.id() + "/" + record,
                 Map.of("record", "Basic/" + record));
     }
 

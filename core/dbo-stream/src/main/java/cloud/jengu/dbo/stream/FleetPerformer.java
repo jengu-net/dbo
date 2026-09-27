@@ -44,11 +44,11 @@ public final class FleetPerformer implements FleetWork.Work {
     /**
      * One item.
      *
-     * <p>An item for a step nothing here performs is not an error and must not
-     * fail the workflow: a substrate may carry several steps' queues and a
-     * process may be registered for one of them. It is left alone, which is
-     * what an unregistered consumer looks like from the queue's side — an item
-     * nobody has taken yet.
+     * <p>An item for a step nothing here performs is a FAULT and says so. A
+     * consumer dequeues only the queues of the steps it serves, so such an item
+     * cannot arrive in a deployment that is wired correctly — and the quiet
+     * alternative is the expensive one: marking it done would drain a tenant's
+     * work into a process that never performed it.
      */
     /**
      * One item, with the report's destination resolved here.
@@ -65,8 +65,15 @@ public final class FleetPerformer implements FleetWork.Work {
     public void perform(String tenant, String step, String runId, String runKey) {
         FleetWork.Performer bean = beans.get(step);
         if (bean == null) {
-            LOG.debug("no bean here performs {}: tenant={} run={}", step, tenant, runId);
-            return;
+            // LOUD, not quiet. A consumer listens to its own steps' queues and
+            // to nothing else, so an item for a step nothing here performs
+            // means the listening is wrong — and returning quietly would mark
+            // the workflow done, drain the queue and lose a tenant's work
+            // without anybody being told. Failing leaves the item where
+            // somebody can see it.
+            throw new IllegalStateException("this consumer took an item for '" + step
+                    + "' and performs no such step, so its queue listening and the queues it "
+                    + "registered disagree: tenant=" + tenant + " run=" + runId);
         }
         java.util.Optional<FleetWork.Reporting> reporting =
                 writeback.reporting(tenant, step, runKey);

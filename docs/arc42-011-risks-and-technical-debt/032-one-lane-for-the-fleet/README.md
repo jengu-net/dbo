@@ -675,25 +675,52 @@ naming the action.
 purpose: that an item reaches a consumer is step five's claim and is proven
 there, and a test that can fail two ways proves neither.
 
-### What is not answered, and the substrate-sharing decision rests on it
+### The substrate-sharing decision holds, and what looked like a limit was a defect
 
-**Can one executor serve several steps' queues?** Two steps sharing a
-substrate is the placement decision this design turns to trade connection cost
-against isolation, and it assumes one consumer can poll both queues. Measured,
-it did not: with two queues registered on one executor, items in the first ran
-and items in the second sat `ENQUEUED` for ever. A consumer of its own for the
-second queue did not help, nor did enqueuing after it was already running.
+**It was recorded here that one executor could not serve several steps'
+queues**, on the evidence of items sitting `ENQUEUED` for ever. That was
+wrong, and the correction matters because the placement decision rests on it.
 
-The one hard clue is that the row that ran carries an `application_version`
-and an `executor_id` and the row that sat carries **null for both**, so the
-matching rule between a client's enqueue and an executor's claim is not yet
-understood — `EnqueueOptions.withAppVersion` exists and nothing here sets it.
+Three probes killed every version of the theory: a running consumer **does**
+take newly enqueued work; one consumer **does** serve two queues; and two
+consumers sharing a DBOS application name on one substrate do **not**
+interfere. What actually happened was a consumer built for one step being
+handed a bean for a second — and `performing` registers a BEAN, not a QUEUE, so
+nothing was listening to the second queue. Correct behaviour of the durable
+layer, and a defect here.
 
-Until that is answered, **a consumer serves one step**, and the connection
-arithmetic [item 034](../034-where-a-workers-substrate-and-keys-come-from/README.md)
-cares about is one listener and one pool per step rather than per substrate.
-That is a worse position than the design assumed and it is where the next
-measurement belongs.
+**So placement is a real dial**: two steps naming one substrate are served by
+one consumer, one listener and one pool, which is what
+[item 034](../034-where-a-workers-substrate-and-keys-come-from/README.md)'s
+arithmetic assumed all along.
+
+### And the fix uncovered a way to lose work
+
+A process listens to **every queue registered in its system database** unless
+it says otherwise. Several steps share a substrate on purpose — so a consumer
+deployed for one step would dequeue another step's item, find no bean for it,
+and, as this was first written, return quietly. The workflow would read done,
+the queue would look drained, and a tenant's work would have been taken by a
+process that never performed it.
+
+Three changes, and each closes a way of being silently wrong:
+
+- a consumer **listens to its own steps' queues only**, through
+  `withListenQueues`;
+- a bean offered for a step a consumer does not serve is **refused when it is
+  offered**, rather than sitting there correct and never being called;
+- an item for a step nothing here performs is a **fault**, not a quiet success.
+
+### Queue partitioning, which the plan did not consider
+
+The durable layer can partition a queue by a key and applies its flow control
+**per partition**. A fleet step carries every tenant's work, so without it one
+tenant's backlog decides how long every other tenant waits.
+
+**The tenant is the partition.** It costs nothing at the enqueue — the key is
+the tenant already in the item — and it means a busy tenant slows itself rather
+than the fleet. It also makes *at most one task at a time per tenant* a setting
+rather than a redesign, if a step ever needs it.
 
 ### 7. The register, the trail and the incident
 

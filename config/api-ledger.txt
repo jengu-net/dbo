@@ -2832,6 +2832,7 @@ cloud.jengu.dbo.promises.DboPromises                                   PROC_AN_U
 cloud.jengu.dbo.promises.DboPromises                                   PROC_AUDIT_REPLICATES_AS_RECORDED:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_AUTOMATION_IS_A_DECLARED_SWITCH:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_AUTOMATION_IS_DECLARED:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   PROC_A_CONSUMER_TAKES_ONLY_ITS_OWN_STEPS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_DEPARTED_ROUTEE_IS_A_STATEMENT:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_DISAGREEMENT_IS_AN_INCIDENT_NOT_A_REFUSAL:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_FAULT_THE_CALLER_IS_NOT_TOLD_IS_STILL_RECORDED:cloud.jengu.dbo.promises.DboPromises

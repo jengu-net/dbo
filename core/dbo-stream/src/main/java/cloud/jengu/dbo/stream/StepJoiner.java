@@ -175,13 +175,21 @@ public final class StepJoiner implements AutoCloseable {
         DBOSClient writer = clients.computeIfAbsent(substrate, DBOSClient::new);
         try {
             writer.enqueueWorkflow(
-                    // (workflowName, queueName), in that order — reversed,
-                    // this compiles and files every item under a queue called
-                    // 'perform' with the step code as its name, which is a
-                    // backlog no consumer of that step will ever look in.
-                    new DBOSClient.EnqueueOptions(FleetWork.METHOD, FleetWork.queueFor(code))
-                            .withClassName(FleetWork.PERFORMER)
-                            .withWorkflowId(FleetWork.idFor(tenant, runId)),
+                    // (workflowName, className, queueName) — the three-argument
+                    // form, because the two-argument one takes the queue second
+                    // and reversing it compiles: every item would file under a
+                    // queue called 'perform' with the step code as its name,
+                    // which is a backlog no consumer of that step looks in.
+                    // Naming all three makes that mistake unavailable.
+                    new DBOSClient.EnqueueOptions(FleetWork.METHOD, FleetWork.PERFORMER,
+                                    FleetWork.queueFor(code))
+                            .withWorkflowId(FleetWork.idFor(tenant, runId))
+                            // THE TENANT IS THE PARTITION. A step carries every
+                            // tenant's work, and flow control applies per
+                            // partition — so one tenant with a large backlog
+                            // waits for itself rather than putting every other
+                            // tenant behind it.
+                            .withQueuePartitionKey(tenant),
                     FleetWork.itemFor(tenant, code, runId, runKey));
         } catch (RuntimeException alreadyThere) {
             // One row per workflow id is the durable layer's own rule, and a
