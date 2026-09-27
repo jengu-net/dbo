@@ -33,7 +33,13 @@ public final class FleetRegister {
      *
      * @param step     the step that opens it
      * @param slot     the slot's name, as the step declares it
-     * @param type     what fills it
+     * @param type     what fills it, in the form the step declared — so
+     *                 {@code Reference(Organization)} is one of THIS tenant's
+     *                 Organizations being opened, and a bare
+     *                 {@code Organization} is one handed to the step with the
+     *                 run and never held here. A tenant deciding about a row
+     *                 is deciding about its own data, and the two cases are
+     *                 not the same decision
      * @param required whether this tenant may decline the step at all
      * @param posture  what happens to work whose processing is not yet
      *                 authorised

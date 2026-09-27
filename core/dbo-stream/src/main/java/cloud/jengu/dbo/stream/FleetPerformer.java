@@ -81,12 +81,12 @@ public final class FleetPerformer implements FleetWork.Work {
                     + "' and performs no such step, so its queue listening and the queues it "
                     + "registered disagree: tenant=" + tenant + " run=" + runId);
         }
-        java.util.Optional<FleetWork.Reporting> reporting =
-                writeback.reporting(tenant, step, runKey);
-        if (reporting.isEmpty()) {
+        java.util.Optional<FleetWork.Taken> taken = writeback.take(tenant, step, runKey);
+        if (taken.isEmpty()) {
             LOG.info("no lane into {} for {}, so its work waits: run={}", tenant, step, runId);
             return;
         }
-        bean.perform(tenant, step, runId, runKey, reporting.get());
+        bean.perform(tenant, step, runId, runKey, taken.get().inputs(),
+                taken.get().reporting());
     }
 }

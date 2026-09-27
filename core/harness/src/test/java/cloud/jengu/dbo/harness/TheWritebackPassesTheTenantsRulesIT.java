@@ -140,7 +140,7 @@ class TheWritebackPassesTheTenantsRulesIT {
         // and a consumer reaches the queues on the database it was given.
         consumer = new StepConsumer(manager.stepSubstrates().get(STEP), Set.of(STEP, JUDGED),
                 writeback());
-        consumer.performing(STEP, (tenant, step, runId, runKey, reporting) ->
+        consumer.performing(STEP, (tenant, step, runId, runKey, inputs, reporting) ->
                 reporting.closed(Map.of("swept", 1L)));
 
         assertTrue(until(() -> runs().byKey(authored.key())
@@ -172,7 +172,8 @@ class TheWritebackPassesTheTenantsRulesIT {
         // make this test fail for the other reason as well as this one, and a
         // test that can fail two ways proves neither.
         FleetWork.Reporting reporting = writeback()
-                .reporting(TENANT, JUDGED, authored.key())
+                .take(TENANT, JUDGED, authored.key())
+                .map(FleetWork.Taken::reporting)
                 .orElseThrow(() -> new AssertionError(
                         "no lane into the tenant for a run it authored, so nothing could be "
                                 + "reported and nothing refused"));

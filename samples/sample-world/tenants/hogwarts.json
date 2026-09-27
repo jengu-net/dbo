@@ -13,7 +13,7 @@
     { "name": "rl", "types": ["CodeSystem", "ValueSet"] }
   ],
   "steps": [
-    { "code": "hogwarts.admission.admit", "slots": { "patient": "Patient" } }
+    { "code": "hogwarts.admission.admit", "slots": { "patient": "Reference(Patient)" } }
   ],
   "types": [
     { "name": "StructureDefinition", "identity": "canonical", "handling": "replicated" },

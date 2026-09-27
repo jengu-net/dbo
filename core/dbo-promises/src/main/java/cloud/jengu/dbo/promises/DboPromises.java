@@ -671,6 +671,16 @@ public enum DboPromises implements Promise {
             + "participant can ask for work it cannot do and a fleet step asked for by one "
             + "external application is performed by a bean inside the deployment."),
 
+    PROC_A_FLEET_PERFORMER_IS_HANDED_ITS_OBJECTS(
+            "A fleet performer is handed the run's slots RESOLVED — the objects themselves, not "
+            + "the references the run was authored with — on the hold it just took, because the "
+            + "claim is what entitles it both to the data and to reporting. Its working context "
+            + "is the item it was given: it runs outside the store, has no route into the "
+            + "tenant and no verb that takes a reference, so a slot delivered as a reference "
+            + "would be a slot it could do nothing with. Which is also what referring is FOR: "
+            + "whoever authored the run named data it need not hold, need not be entitled to "
+            + "read and never put on the wire, and the store resolved it where it already was."),
+
     PROC_THE_WRITEBACK_PASSES_THE_TENANTS_RULES(
             "Work the deployment performed for a tenant is reported back through that "
             + "tenant's OWN lane, so an outcome from a fleet consumer meets exactly the rules "

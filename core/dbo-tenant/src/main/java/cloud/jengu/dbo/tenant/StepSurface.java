@@ -210,14 +210,28 @@ final class StepSurface implements HttpHandler {
             named.forEach((slot, reference) ->
                     inputs.put(String.valueOf(slot), String.valueOf(reference)));
         }
-        // The slot's declared type is a promise about what a run of it is
+        // The slot's declared shape is a promise about what a run of it is
         // over, so a reference of another type is refused here rather than
         // becoming a run that can reach something the step never described.
         for (Map.Entry<String, String> slot : slots.entrySet()) {
+            cloud.jengu.dbo.core.process.SlotShape shape =
+                    cloud.jengu.dbo.core.process.SlotShape.of(slot.getValue());
+            if (!shape.referred() || shape.many()) {
+                // DECLARABLE, NOT YET CARRIED. A slot filled with objects
+                // rather than references, or with several of either, is read
+                // and refused by name — because the alternative while it is
+                // being built is a run that is created, looks right, and
+                // arrives at a performer with the slot empty.
+                fail(exchange, 501, "not_implemented", "slot '" + slot.getKey() + "' is "
+                        + "declared '" + shape.declared() + "', and a run over objects given "
+                        + "with it, or over several of anything, is not carried yet: this "
+                        + "store starts runs over 'Reference(<Type>)' slots");
+                return;
+            }
             String reference = inputs.get(slot.getKey());
-            if (reference != null && !reference.startsWith(slot.getValue() + "/")) {
+            if (reference != null && !reference.startsWith(shape.type() + "/")) {
                 fail(exchange, 400, "invalid_request", "slot '" + slot.getKey() + "' takes "
-                        + slot.getValue() + " and was given '" + reference + "'");
+                        + shape.declared() + " and was given '" + reference + "'");
                 return;
             }
         }
@@ -239,7 +253,12 @@ final class StepSurface implements HttpHandler {
     private StepDeclaration declaration(String code, Map<String, String> slots) {
         StepDeclaration declaration = StepDeclaration.of(code, "1", "r5");
         for (Map.Entry<String, String> slot : slots.entrySet()) {
-            declaration = declaration.taking(slot.getKey(), slot.getValue());
+            // THE TYPE. What the engine holds per slot is the shape a payload
+            // is checked against, and 'Reference(Organization)' is not a shape
+            // anything is: the declared form is the DECLARATION's, and what
+            // ends up in the slot is an Organization either way.
+            declaration = declaration.taking(slot.getKey(),
+                    cloud.jengu.dbo.core.process.SlotShape.of(slot.getValue()).type());
         }
         return declaration;
     }
@@ -368,7 +387,10 @@ final class StepSurface implements HttpHandler {
     private String metadata(Map<String, String> slots) {
         StringBuilder types = new StringBuilder();
         if (slots != null) {
-            slots.values().stream().distinct().forEach(type -> {
+            slots.values().stream()
+                    .map(declared -> cloud.jengu.dbo.core.process.SlotShape.of(declared).type())
+                    .distinct()
+                    .forEach(type -> {
                 if (types.length() > 0) {
                     types.append(',');
                 }

@@ -129,8 +129,10 @@ class ABeanIsFoundRatherThanWiredIT {
 
     @Test
     @Order(1)
-    @DisplayName("a bean registered before the declaration was read is performing work after it")
-    @Proving(DboPromises.PROC_A_BEAN_IS_FOUND_RATHER_THAN_WIRED)
+    @DisplayName("a bean registered before the declaration was read is performing work after "
+            + "it, and is handed the object the run referred to")
+    @Proving({DboPromises.PROC_A_BEAN_IS_FOUND_RATHER_THAN_WIRED,
+            DboPromises.PROC_A_FLEET_PERFORMER_IS_HANDED_ITS_OBJECTS})
     void heldThenTakenUp() throws Exception {
         authorRunOf(SWEEP);
         assertTrue(manager.stepJoiner().orElseThrow().joinOnce(100) >= 1,
@@ -140,6 +142,16 @@ class ABeanIsFoundRatherThanWiredIT {
                 "the bean registered before the deployment declared its steps was never "
                         + "called, so an application whose beans come up first performs "
                         + "nothing — which is the ordinary order under an assembly");
+
+        // AND IT WAS HANDED THE OBJECT. Being called is not the claim: a
+        // performer runs outside the store with no route into the tenant, so a
+        // bean called with an empty map has been given the fact that there is
+        // work and nothing to do it with — which looks identical from here
+        // unless the slot is asserted.
+        assertTrue(swept.stream().anyMatch(done -> done.endsWith("[record]")),
+                "the bean was called with no slots, so the run's inputs were never resolved "
+                        + "and the reference it was authored with reached a process that "
+                        + "cannot resolve one: " + swept);
     }
 
     @Test
@@ -181,8 +193,13 @@ class ABeanIsFoundRatherThanWiredIT {
 
             @Override
             public void perform(String tenant, String code, String runId, String runKey,
+                    java.util.Map<String, cloud.jengu.dbo.core.api.StoredObject> inputs,
                     FleetWork.Reporting reporting) {
-                into.add(tenant + "/" + runKey);
+                // THE SLOT, not just the fact of being called. A bean handed
+                // an empty map would look exactly like a bean handed its work,
+                // and the whole point of reaching it is that it can do
+                // something — so what is recorded is that the object arrived.
+                into.add(tenant + "/" + runKey + "/" + inputs.keySet());
             }
         };
     }

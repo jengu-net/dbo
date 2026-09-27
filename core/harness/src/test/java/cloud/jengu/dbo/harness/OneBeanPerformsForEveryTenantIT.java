@@ -143,7 +143,7 @@ class OneBeanPerformsForEveryTenantIT {
         // consumer, one listener and one pool.
         consumer = new StepConsumer(manager.stepSubstrates().get(STEP),
                 Set.of(STEP, BESIDE_IT), writeback());
-        consumer.performing(STEP, (tenant, step, runId, runKey, reporting) ->
+        consumer.performing(STEP, (tenant, step, runId, runKey, inputs, reporting) ->
                 performed.add(tenant + "/" + runKey));
 
         assertTrue(until(() -> performed.size() >= 2),
@@ -171,7 +171,7 @@ class OneBeanPerformsForEveryTenantIT {
 
         consumer = new StepConsumer(manager.stepSubstrates().get(STEP),
                 Set.of(STEP, BESIDE_IT), writeback());
-        consumer.performing(STEP, (tenant, step, runId, runKey, reporting) ->
+        consumer.performing(STEP, (tenant, step, runId, runKey, inputs, reporting) ->
                 performed.add(tenant + "/" + runKey));
 
         assertTrue(until(() -> !performed.isEmpty()),
@@ -217,9 +217,9 @@ class OneBeanPerformsForEveryTenantIT {
 
         // BOTH beans recording the same way, so what is counted is which STEP
         // performed rather than which of two spellings a bean happened to use.
-        consumer.performing(STEP, (tenant, step, runId, runKey, reporting) ->
+        consumer.performing(STEP, (tenant, step, runId, runKey, inputs, reporting) ->
                 performed.add(step + "|" + runKey));
-        consumer.performing(BESIDE_IT, (tenant, step, runId, runKey, reporting) ->
+        consumer.performing(BESIDE_IT, (tenant, step, runId, runKey, inputs, reporting) ->
                 performed.add(step + "|" + runKey));
 
         authorRunIn(ONE, SWEEP);
@@ -254,11 +254,11 @@ class OneBeanPerformsForEveryTenantIT {
                         Set.of(STEP), writeback());
                 StepConsumer theirs = new StepConsumer(manager.stepSubstrates().get(BESIDE_IT),
                         Set.of(BESIDE_IT), writeback())) {
-            mine.performing(STEP, (t, step, runId, runKey, r) -> performed.add(step));
-            theirs.performing(BESIDE_IT, (t, step, runId, runKey, r) -> other.add(step));
+            mine.performing(STEP, (t, step, runId, runKey, inputs, r) -> performed.add(step));
+            theirs.performing(BESIDE_IT, (t, step, runId, runKey, inputs, r) -> other.add(step));
 
             assertThrows(IllegalArgumentException.class,
-                    () -> mine.performing(BESIDE_IT, (t, step, runId, runKey, r) -> { }),
+                    () -> mine.performing(BESIDE_IT, (t, step, runId, runKey, inputs, r) -> { }),
                     "a bean was accepted for a step this consumer does not poll, so it would "
                             + "sit there correct and never be called");
 

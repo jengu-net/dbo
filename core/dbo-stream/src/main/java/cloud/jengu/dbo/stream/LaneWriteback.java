@@ -56,7 +56,7 @@ public final class LaneWriteback implements FleetWork.Writeback {
     }
 
     @Override
-    public Optional<FleetWork.Reporting> reporting(String tenant, String step, String runKey) {
+    public Optional<FleetWork.Taken> take(String tenant, String step, String runKey) {
         Optional<Lane> lane = lanes.into(tenant, step);
         Optional<Run> run = finder.byKey(tenant, runKey);
         if (lane.isEmpty() || run.isEmpty()) {
@@ -72,7 +72,13 @@ public final class LaneWriteback implements FleetWork.Writeback {
             // run is the thing the hold exists to stop.
             return Optional.empty();
         }
-        return Optional.of(new OnTheLane(lane.get(), held.get()));
+        // RESOLVED HERE, on the hold that was just taken. The performer is in
+        // another process with no route into this tenant and no verb that
+        // takes a reference, so a slot handed over as the reference the run
+        // was authored with is a slot it can do nothing at all with — which is
+        // what "the working context is the message" means from its side.
+        return Optional.of(new FleetWork.Taken(lane.get().inputs(held.get()),
+                new OnTheLane(lane.get(), held.get())));
     }
 
     /** Each verb the lane's own, and the run it was given. */

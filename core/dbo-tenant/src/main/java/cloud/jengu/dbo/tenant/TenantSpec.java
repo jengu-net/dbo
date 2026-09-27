@@ -56,6 +56,18 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
             }
             slots = java.util.Collections.unmodifiableMap(
                     new java.util.LinkedHashMap<>(slots));
+            // READ HERE so a malformed form is refused where it was
+            // written. Every other reader takes the shape apart again, and a
+            // declaration that parses in one place and not another is a
+            // tenant that comes up and then cannot start any of its work.
+            slots.forEach((slot, declared) -> {
+                try {
+                    cloud.jengu.dbo.core.process.SlotShape.of(declared);
+                } catch (IllegalArgumentException wrong) {
+                    throw new IllegalArgumentException(code + ": slot '" + slot + "' — "
+                            + wrong.getMessage(), wrong);
+                }
+            });
         }
     }
 
@@ -149,6 +161,15 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
             }
             slots = java.util.Collections.unmodifiableMap(
                     new java.util.LinkedHashMap<>(slots));
+            // As above: refused where it was written.
+            slots.forEach((slot, declared) -> {
+                try {
+                    cloud.jengu.dbo.core.process.SlotShape.of(declared);
+                } catch (IllegalArgumentException wrong) {
+                    throw new IllegalArgumentException(code + ": slot '" + slot + "' — "
+                            + wrong.getMessage(), wrong);
+                }
+            });
             opens = Set.copyOf(opens);
             for (String opened : opens) {
                 if (!slots.containsKey(opened)) {
@@ -679,9 +700,16 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
                             String.valueOf(type)));
                 }
                 for (java.util.Map.Entry<String, String> slot : slots.entrySet()) {
-                    if (!held.contains(slot.getValue())) {
+                    // THE TYPE, not the declared form. A slot may be written
+                    // Reference(Organization) or Organization[], and what has
+                    // to be a type this tenant holds is what is inside either
+                    // — checking the whole string would refuse every slot that
+                    // said anything beyond a bare type.
+                    cloud.jengu.dbo.core.process.SlotShape shape =
+                            cloud.jengu.dbo.core.process.SlotShape.of(slot.getValue());
+                    if (!held.contains(shape.type())) {
                         throw new IllegalArgumentException(code + ": step '" + stepCode
-                                + "' takes '" + slot.getValue() + "' in slot '" + slot.getKey()
+                                + "' takes '" + shape.type() + "' in slot '" + slot.getKey()
                                 + "', and this tenant does not declare that type. It holds: "
                                 + new java.util.TreeSet<>(held));
                     }

@@ -6,6 +6,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
 /**
@@ -42,15 +43,36 @@ public final class CheckingTheDirectory implements FleetWork.Performer {
 
     @Override
     public void perform(String tenant, String step, String runId, String runKey,
+            Map<String, cloud.jengu.dbo.core.api.StoredObject> inputs,
             FleetWork.Reporting reporting) {
         // The tenant is told, not asked about. A fleet step is handed the code
         // of whichever tenant authored the run, and there is no list of them
         // anywhere in this application.
-        LOG.info("checking the directory: tenant={} run={}", tenant, runKey);
+        //
+        // THE OBJECT ARRIVES WHOLE, and this is the half worth looking at. The
+        // run named a Reference(Organization) — a reference, because whoever
+        // asked for this run need not have held the organisation or been
+        // entitled to read it. What arrives here is the organisation itself,
+        // resolved by the store against the hold this performer took. There is
+        // nothing to fetch and nowhere to fetch it from: this application runs
+        // outside the store and has no verb that takes a reference, so a slot
+        // delivered as a reference would be a slot it could do nothing with.
+        byte[] payload = inputs.get("org").payload();
+        String directory = new String(payload, StandardCharsets.UTF_8);
+        LOG.info("checking the directory: tenant={} run={} bytes={}",
+                tenant, runKey, payload.length);
+
+        if (!directory.contains("\"resourceType\":\"Organization\"")) {
+            // Returning a refusal and throwing are the same thing: the run is
+            // released with the reason and a later cycle may take it again.
+            throw new IllegalStateException("slot 'org' did not carry an Organization");
+        }
 
         // The report goes back through that tenant's OWN lane, so it meets the
         // rules an outcome from a participant on a port meets — including
-        // whether a machine may close this step at all.
-        reporting.closed(Map.of("checked", 1L));
+        // whether a machine may close this step at all. The count is evidence
+        // rather than a heartbeat: it says what was read, in something
+        // somebody can act on.
+        reporting.closed(Map.of("checked", 1L, "bytes", (long) payload.length));
     }
 }

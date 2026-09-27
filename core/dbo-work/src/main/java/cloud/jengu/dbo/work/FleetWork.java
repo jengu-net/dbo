@@ -1,5 +1,9 @@
 package cloud.jengu.dbo.work;
 
+import cloud.jengu.dbo.core.api.StoredObject;
+
+import java.util.Map;
+
 /**
  * What a joined item is, said once for the side that writes it and the side
  * that performs it.
@@ -65,7 +69,27 @@ public final class FleetWork {
     @FunctionalInterface
     public interface Doing {
         void perform(String tenant, String step, String runId, String runKey,
-                Reporting reporting);
+                Map<String, StoredObject> inputs, Reporting reporting);
+    }
+
+    /**
+     * What a performer is handed of the run: the objects, and where to report.
+     *
+     * <p>Together because they come of one act. The claim is what entitles
+     * this performer to both — to the data because it holds the run, and to
+     * reporting because the hold is what says whose account of the work
+     * counts — so resolving the inputs anywhere other than beside the claim
+     * would be reading a tenant's records on nobody's authority.
+     *
+     * @param inputs    the run's slots, resolved: the objects themselves, not
+     *                  the references the run named. A performer runs outside
+     *                  the store and has no verb that takes a reference, so a
+     *                  slot delivered as the reference it was authored with
+     *                  would be a slot the performer can do nothing with
+     * @param reporting where its account of the work goes
+     */
+    public record Taken(Map<String, StoredObject> inputs,
+            Reporting reporting) {
     }
 
     public interface Performer extends Doing {
@@ -93,8 +117,9 @@ public final class FleetWork {
 
             @Override
             public void perform(String tenant, String code, String runId, String runKey,
+                    Map<String, StoredObject> inputs,
                     Reporting reporting) {
-                doing.perform(tenant, code, runId, runKey, reporting);
+                doing.perform(tenant, code, runId, runKey, inputs, reporting);
             }
         };
     }
@@ -155,7 +180,7 @@ public final class FleetWork {
      */
     @FunctionalInterface
     public interface Writeback {
-        java.util.Optional<Reporting> reporting(String tenant, String step, String runKey);
+        java.util.Optional<Taken> take(String tenant, String step, String runKey);
     }
 
     /**

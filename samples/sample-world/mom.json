@@ -6,7 +6,7 @@
       "handling": "operational" }
   ],
   "fleetSteps": [
-    { "code": "fleet.directory.check", "slots": { "org": "Organization" },
+    { "code": "fleet.directory.check", "slots": { "org": "Reference(Organization)" },
       "opens": ["org"], "substrate": "directory" }
   ]
 }
