@@ -709,6 +709,41 @@ per row, refusing to seal where a row says not until approved.
 incident in the tenant's own account; a row declined, and that tenant's work
 not offered to that step; a row not yet approved, and the posture obeyed.
 
+**The register and the incident are done, and so is the second of those three.**
+
+**The register is DERIVED, never stored.** Rows come from the management
+tenant's declaration and from what this tenant declined, so what the deployment
+does and what a tenant reads cannot drift apart — a register kept as records
+beside the declaration would be a second place to ask, and the first time they
+disagreed a tenant would have no way to know which was true. One row per
+**opened slot**: a step that only reads the envelope discloses nothing and is
+not on it, which is what makes requiring a router an operational act and
+requiring a processor something else.
+
+**The incident is computed from the tenant's own records**, for the same
+reason. The evidence is already there — the access entry the store writes when a
+participant reports an opening — so the incident is a reading of the trail
+rather than a second record beside it.
+
+**And the asymmetry the design rests on became concrete while proving it.** A
+processor is sealed TO; it opens where the store cannot see; what lands on the
+document is what the participant *says it did*, signed with the key it enrolled.
+The store is told, it does not permit. That is precisely why a disagreement
+between register and trail can only ever be an incident — and the test reports
+the opening the way a real processor does, manifest head and signature and all,
+rather than reaching past the mechanism to write an entry.
+
+*That part proven by:* `ATenantReadsWhatIsOpenedOfItsDataIT`, claiming
+`REQ-DBO-PROC-A-TENANT-READS-WHAT-IS-OPENED-OF-ITS-DATA` and
+`REQ-DBO-PROC-A-DISAGREEMENT-IS-AN-INCIDENT-NOT-A-REFUSAL`.
+
+**One thing the proof needed by hand**, and it names the remaining dependency
+exactly: the performer had to be **enrolled on the tenant** before any of this
+could happen, because the access entry only exists on the sealed path. Enrolling
+an application-level processor per tenant is the part of step 7 that is not
+built, so the test does it directly — what the register and the incident DO is
+proven, what enrols them is not.
+
 **The second of those three is done.** A tenant admits a step by saying
 nothing and declines it with one line, and a declined step is offered that
 tenant's work at all — the run stays where it is, exactly as a run of a step

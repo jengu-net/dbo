@@ -450,6 +450,8 @@ public final class TenantRuntimeManager implements AutoCloseable {
      * agreement if a tenant can write one line and be out of it.
      */
     private volatile Set<String> requiredStepCodes = Set.of();
+    /** The declarations themselves, which the register is a reading of. */
+    private volatile List<TenantSpec.FleetStep> declaredFleetSteps = List.of();
     /**
      * The substrate each declared fleet step's queue lives on, by step code.
      *
@@ -1082,6 +1084,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
         fleetStepCodes = spec.fleetSteps().stream()
                 .map(TenantSpec.FleetStep::code)
                 .collect(java.util.stream.Collectors.toUnmodifiableSet());
+        declaredFleetSteps = spec.fleetSteps();
         requiredStepCodes = spec.fleetSteps().stream()
                 .filter(TenantSpec.FleetStep::required)
                 .map(TenantSpec.FleetStep::code)
@@ -1178,6 +1181,35 @@ public final class TenantRuntimeManager implements AutoCloseable {
         }
         return java.util.Optional.of(factory.laneFor(identity.name(), identity,
                 cloud.jengu.dbo.runner.Lane.Entitlement.ofSteps(stepCode)));
+    }
+
+    /**
+     * The register this tenant reads: every payload the deployment opens of
+     * its data.
+     *
+     * <p>Derived on the spot from the declaration and from what this tenant
+     * declined, because that is the only way the register and the thing it
+     * describes cannot drift apart.
+     */
+    public List<FleetRegister.Row> fleetRegister(String tenant) {
+        return FleetRegister.of(declaredFleetSteps, declinedBy(tenant));
+    }
+
+    /**
+     * Where this tenant's trail disagrees with the register it was shown.
+     *
+     * <p>An incident rather than a refusal, because an enrolled processor holds
+     * the key and no cryptography stops a party that can decrypt from
+     * decrypting. Read from the tenant's own records, so the account a tenant
+     * acts on and the evidence behind it are one thing.
+     */
+    public List<RegisterVersusTrail.Incident> fleetDisagreements(String tenant) {
+        TenantRuntime serving = runtimes.get(tenant);
+        if (serving == null) {
+            return List.of();
+        }
+        return RegisterVersusTrail.of(fleetRegister(tenant), fleetStepCodes,
+                serving.engine());
     }
 
     /** What this tenant wrote down that it will not have done to its data. */

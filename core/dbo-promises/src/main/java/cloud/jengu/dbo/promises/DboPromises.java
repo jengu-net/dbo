@@ -670,6 +670,26 @@ public enum DboPromises implements Promise {
             + "Declining applies while the tenant serves, because withdrawing authorisation "
             + "must not cost an outage."),
 
+    PROC_A_TENANT_READS_WHAT_IS_OPENED_OF_ITS_DATA(
+            "A tenant reads a register of every payload the deployment opens of its data: one "
+            + "row per SLOT a step opens, naming the step, the slot, the type, whether it may "
+            + "be declined and what happens to work not yet authorised. A step that only reads "
+            + "the envelope is not on it, because it discloses nothing. The register is DERIVED "
+            + "from the deployment's declaration and the tenant's own, never stored beside "
+            + "them, so what the deployment does and what a tenant reads cannot drift apart — "
+            + "and a step the tenant declined contributes no rows, because a step declined and "
+            + "a step not performed are one fact from the tenant's side."),
+
+    PROC_A_DISAGREEMENT_IS_AN_INCIDENT_NOT_A_REFUSAL(
+            "Where the trail disagrees with the register, the store says so as an incident in "
+            + "the tenant's own account, naming who opened what, in which slot of which step, "
+            + "and on what occasion. It cannot be a refusal: an enrolled processor holds the "
+            + "key to what was sealed to it and no cryptography stops a party that can decrypt "
+            + "from decrypting, so detection is the honest guarantee and is offered as one. The "
+            + "comparison is computed from the tenant's own records rather than stored beside "
+            + "them, because a stored incident would be a second place to ask and the first "
+            + "disagreement between the two would leave a tenant unable to say which was true."),
+
     PROC_A_LANE_OVER_THE_STREAM(
             "A lane runs over the store's own stream, full duplex, beside in-process and "
             + "HTTP: work goes out and travel, access and result events come home as they "
