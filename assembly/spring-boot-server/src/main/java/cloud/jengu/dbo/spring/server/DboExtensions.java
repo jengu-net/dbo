@@ -40,7 +40,8 @@ public final class DboExtensions implements AutoCloseable {
     private final List<DboRegistrar.Registration> registered = new ArrayList<>();
 
     DboExtensions(EmbeddedRuntime runtime, List<TenantLifecycleListener> listeners,
-            List<TenantObserver> observers) {
+            List<TenantObserver> observers,
+            List<cloud.jengu.dbo.work.FleetWork.Performer> performers) {
         List<String> wrong = new ArrayList<>();
         Map<TenantLifecycleListener, Map<String, String>> listening = new LinkedHashMap<>();
         for (TenantLifecycleListener listener : listeners) {
@@ -77,6 +78,27 @@ public final class DboExtensions implements AutoCloseable {
             on.put(TenantDomain.CONSUMER, said.consumer());
             watching.put(observer, on);
         }
+        // The fleet's half. A tenant-level step is polled for by a runner; a
+        // fleet step is offered by the deployment's own joiner and performed
+        // once for every tenant. Both arrive here as a bean and neither names
+        // anything of the runtime's.
+        Map<cloud.jengu.dbo.work.FleetWork.Performer, Map<String, String>> performing =
+                new LinkedHashMap<>();
+        for (cloud.jengu.dbo.work.FleetWork.Performer performer : performers) {
+            DboFleetStep said = AnnotationUtils.findAnnotation(performer.getClass(),
+                    DboFleetStep.class);
+            if (said == null) {
+                wrong.add(performer.getClass().getName() + " performs a fleet step and carries "
+                        + "no @" + DboFleetStep.class.getSimpleName() + ", so every run it "
+                        + "closed across the fleet would name no behaviour and no provider");
+                continue;
+            }
+            Map<String, String> on = new LinkedHashMap<>();
+            on.put("dbo.executor.name", performer.step());
+            on.put("dbo.executor.version", said.version());
+            on.put("dbo.executor.provider", said.provider());
+            performing.put(performer, on);
+        }
         if (!wrong.isEmpty()) {
             throw new IllegalStateException("a bean cannot be taken up as an extension point: "
                     + String.join("; ", wrong));
@@ -86,9 +108,11 @@ public final class DboExtensions implements AutoCloseable {
                 TenantLifecycleListener.class, listener, on)));
         watching.forEach((observer, on) -> registered.add(registrar.register(
                 TenantObserver.class, observer, on)));
+        performing.forEach((performer, on) -> registered.add(registrar.register(
+                cloud.jengu.dbo.work.FleetWork.Performer.class, performer, on)));
         if (!registered.isEmpty()) {
-            LOG.info("extension points: listeners={} observers={}",
-                    listening.size(), watching.size());
+            LOG.info("extension points: listeners={} observers={} fleet-steps={}",
+                    listening.size(), watching.size(), performing.size());
         }
     }
 

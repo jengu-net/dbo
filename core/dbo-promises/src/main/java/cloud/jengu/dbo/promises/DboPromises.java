@@ -648,6 +648,17 @@ public enum DboPromises implements Promise {
             + "— which is what lets a consumer be restarted mid-run and carry on, and what "
             + "makes several of them a way to perform a hot step faster."),
 
+    PROC_A_BEAN_IS_FOUND_RATHER_THAN_WIRED(
+            "An application performs a fleet step by registering a bean that names its own "
+            + "step, and nothing else: the container builds the consumer, the durable layer "
+            + "and the pool, and builds one per SUBSTRATE so two steps placed together are "
+            + "served by one. The two arrivals are order-independent — a bean registered "
+            + "before the deployment has read its declaration is held and taken up when the "
+            + "step is declared, because under an assembly the application's beans ordinarily "
+            + "come first. A bean whose step is never declared stays held and is named by the "
+            + "deployment as awaiting a declaration, because a bean nothing will ever offer "
+            + "work is indistinguishable from a step with nothing to do."),
+
     PROC_THE_WRITEBACK_PASSES_THE_TENANTS_RULES(
             "Work the deployment performed for a tenant is reported back through that "
             + "tenant's OWN lane, so an outcome from a fleet consumer meets exactly the rules "

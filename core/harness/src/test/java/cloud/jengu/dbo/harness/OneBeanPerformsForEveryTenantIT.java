@@ -4,7 +4,7 @@ import cloud.jengu.dbo.core.api.PutRequest;
 import cloud.jengu.dbo.core.process.StepDeclaration;
 import cloud.jengu.dbo.promises.DboPromises;
 import cloud.jengu.dbo.promises.Proving;
-import cloud.jengu.dbo.stream.FleetWork;
+import cloud.jengu.dbo.work.FleetWork;
 import cloud.jengu.dbo.stream.StepConsumer;
 import cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner;
 import cloud.jengu.dbo.tenant.TenantRuntimeManager;
@@ -185,7 +185,7 @@ class OneBeanPerformsForEveryTenantIT {
      * cannot be built without one, and handing it a real one keeps this test
      * honest about what an application actually assembles.
      */
-    private cloud.jengu.dbo.stream.FleetWork.Writeback writeback() {
+    private cloud.jengu.dbo.work.FleetWork.Writeback writeback() {
         return new cloud.jengu.dbo.stream.LaneWriteback(
                 (tenant, step) -> manager.fleetLane(tenant, step,
                         new cloud.jengu.dbo.work.Executor("fleet-test", "1",

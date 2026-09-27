@@ -1,5 +1,6 @@
 package cloud.jengu.dbo.stream;
 
+import cloud.jengu.dbo.work.FleetWork;
 import cloud.jengu.dbo.core.api.feed.ChangeFeed;
 import cloud.jengu.dbo.core.api.feed.FeedChunk;
 import cloud.jengu.dbo.core.api.feed.FeedItem;

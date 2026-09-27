@@ -1,5 +1,6 @@
 package cloud.jengu.dbo.stream;
 
+import cloud.jengu.dbo.work.FleetWork;
 import cloud.jengu.dbo.runner.Lane;
 import cloud.jengu.dbo.work.Run;
 

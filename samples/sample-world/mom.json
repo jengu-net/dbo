@@ -4,5 +4,9 @@
   "types": [
     { "name": "Organization", "identity": "identifier", "systems": ["urn:rl:org"],
       "handling": "operational" }
+  ],
+  "fleetSteps": [
+    { "code": "fleet.directory.check", "slots": { "org": "Organization" },
+      "opens": ["org"], "substrate": "directory" }
   ]
 }

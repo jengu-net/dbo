@@ -4,7 +4,7 @@ import cloud.jengu.dbo.core.api.PutRequest;
 import cloud.jengu.dbo.core.process.StepDeclaration;
 import cloud.jengu.dbo.promises.DboPromises;
 import cloud.jengu.dbo.promises.Proving;
-import cloud.jengu.dbo.stream.FleetWork;
+import cloud.jengu.dbo.work.FleetWork;
 import cloud.jengu.dbo.stream.StepJoiner;
 import cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner;
 import cloud.jengu.dbo.tenant.TenantRuntimeManager;

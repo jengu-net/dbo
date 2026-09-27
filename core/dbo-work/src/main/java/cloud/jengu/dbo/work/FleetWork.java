@@ -1,4 +1,4 @@
-package cloud.jengu.dbo.stream;
+package cloud.jengu.dbo.work;
 
 /**
  * What a joined item is, said once for the side that writes it and the side
@@ -53,9 +53,50 @@ public final class FleetWork {
      * second place the record lives, and the payload is sealed to whoever
      * opens it rather than to whoever carries it.
      */
-    public interface Performer {
+    /**
+     * The doing, without the declaring.
+     *
+     * <p>Split out because the two are answered by different things. What a
+     * bean performs is a fact about the bean, and belongs on it. How the work
+     * is done is a function, and a caller that already knows the step — a
+     * test, or a consumer being told a pairing — has no reason to write a
+     * class to say it twice.
+     */
+    @FunctionalInterface
+    public interface Doing {
         void perform(String tenant, String step, String runId, String runKey,
                 Reporting reporting);
+    }
+
+    public interface Performer extends Doing {
+
+        /**
+         * Which step this bean performs.
+         *
+         * <p>Declared by the bean, the way a tenant-level {@code StepService}
+         * declares its own — so an application writes a bean and nothing else,
+         * and the container is what finds it. Without this a consumer has to
+         * be told the pairing by whoever constructs it, which means an
+         * application constructing a consumer, which is the thing an assembly
+         * exists to prevent.
+         */
+        String step();
+    }
+
+    /** That function, as a bean performing that step. */
+    public static Performer performing(String step, Doing doing) {
+        return new Performer() {
+            @Override
+            public String step() {
+                return step;
+            }
+
+            @Override
+            public void perform(String tenant, String code, String runId, String runKey,
+                    Reporting reporting) {
+                doing.perform(tenant, code, runId, runKey, reporting);
+            }
+        };
     }
 
     /**

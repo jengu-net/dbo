@@ -4,7 +4,7 @@ import cloud.jengu.dbo.core.api.PutRequest;
 import cloud.jengu.dbo.core.process.StepDeclaration;
 import cloud.jengu.dbo.promises.DboPromises;
 import cloud.jengu.dbo.promises.Proving;
-import cloud.jengu.dbo.stream.FleetWork;
+import cloud.jengu.dbo.work.FleetWork;
 import cloud.jengu.dbo.stream.LaneWriteback;
 import cloud.jengu.dbo.stream.StepConsumer;
 import cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner;
@@ -191,7 +191,7 @@ class TheWritebackPassesTheTenantsRulesIT {
                 "the run closed anyway, so the refusal was a message rather than a rule");
     }
 
-    private cloud.jengu.dbo.stream.FleetWork.Writeback writeback() {
+    private cloud.jengu.dbo.work.FleetWork.Writeback writeback() {
         return new LaneWriteback(
                 (tenant, step) -> manager.fleetLane(tenant, step, performer()),
                 (tenant, runKey) -> new Runs(

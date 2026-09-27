@@ -73,6 +73,11 @@ public final class Activator implements BundleActivator {
     private TenantRuntimeManager manager;
     private ServiceTracker<TenantLifecycleListener, TenantLifecycleListener> lifecycle;
     private ServiceTracker<TenantObserver, TenantObserver> observers;
+    private ServiceTracker<cloud.jengu.dbo.work.FleetWork.Performer,
+            cloud.jengu.dbo.work.FleetWork.Performer> performers;
+    /** What each taken-up bean is withdrawn by, when its bundle goes. */
+    private final Map<cloud.jengu.dbo.work.FleetWork.Performer, AutoCloseable> performing =
+            new ConcurrentHashMap<>();
     private final Map<String, List<ServiceRegistration<?>>> tenantRegistrations = new ConcurrentHashMap<>();
 
     /**
@@ -229,6 +234,68 @@ public final class Activator implements BundleActivator {
                     }
                 });
         observers.open();
+        // THE FLEET'S HALF OF THE SAME WHITEBOARD. A tenant-level step arrives
+        // as a StepService the runner polls for; a fleet step arrives as this,
+        // and the difference is only which side offers the work. Both are a
+        // bean registered by an application bundle that names nothing here.
+        performers = new ServiceTracker<>(ctx, cloud.jengu.dbo.work.FleetWork.Performer.class,
+                new ServiceTrackerCustomizer<>() {
+                    @Override
+                    public cloud.jengu.dbo.work.FleetWork.Performer addingService(
+                            ServiceReference<cloud.jengu.dbo.work.FleetWork.Performer> ref) {
+                        cloud.jengu.dbo.work.FleetWork.Performer bean = ctx.getService(ref);
+                        try {
+                            performing.put(bean, manager.performing(bean, executorOn(ref)));
+                        } catch (RuntimeException e) {
+                            LOG.error("a fleet performer was not taken up: step={}",
+                                    bean.step(), e);
+                        }
+                        return bean;
+                    }
+
+                    @Override
+                    public void modifiedService(
+                            ServiceReference<cloud.jengu.dbo.work.FleetWork.Performer> ref,
+                            cloud.jengu.dbo.work.FleetWork.Performer bean) {
+                    }
+
+                    @Override
+                    public void removedService(
+                            ServiceReference<cloud.jengu.dbo.work.FleetWork.Performer> ref,
+                            cloud.jengu.dbo.work.FleetWork.Performer bean) {
+                        AutoCloseable held = performing.remove(bean);
+                        if (held != null) {
+                            try {
+                                held.close();
+                            } catch (Exception letGo) {
+                                // Withdrawing. Nothing left to tell.
+                            }
+                        }
+                        ctx.ungetService(ref);
+                    }
+                });
+        performers.open();
+    }
+
+    /**
+     * Who the runs this bean closes are recorded as.
+     *
+     * <p>Read from the service's own properties, so an application says it
+     * once where it registers the bean rather than implementing another
+     * method for it. Absent, the step code stands in: a run has to name an
+     * executor, and a deployment that never said what it performs as is
+     * better recorded under the step than under nothing.
+     */
+    private static cloud.jengu.dbo.work.Executor executorOn(
+            ServiceReference<cloud.jengu.dbo.work.FleetWork.Performer> ref) {
+        Object name = ref.getProperty("dbo.executor.name");
+        Object version = ref.getProperty("dbo.executor.version");
+        Object provider = ref.getProperty("dbo.executor.provider");
+        return new cloud.jengu.dbo.work.Executor(
+                name == null ? "fleet" : String.valueOf(name),
+                version == null ? "1" : String.valueOf(version),
+                provider == null ? "unnamed" : String.valueOf(provider),
+                cloud.jengu.dbo.work.Scope.BASELINE);
     }
 
     @Override
@@ -677,6 +744,13 @@ public final class Activator implements BundleActivator {
         // its way down.
         if (lifecycle != null) {
             lifecycle.close();
+        }
+        if (performers != null) {
+            // Before the manager goes: closing the tracker withdraws each
+            // bean, and a bean withdrawn afterwards would be withdrawn from a
+            // consumer that has already shut down.
+            performers.close();
+            performers = null;
         }
         if (observers != null) {
             observers.close();

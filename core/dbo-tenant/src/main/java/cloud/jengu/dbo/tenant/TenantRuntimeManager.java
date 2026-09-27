@@ -506,6 +506,24 @@ public final class TenantRuntimeManager implements AutoCloseable {
      */
     private volatile cloud.jengu.dbo.stream.StepJoiner joiner;
     /**
+     * One consumer per substrate, built when the first bean for a step on it
+     * arrives.
+     *
+     * <p>Keyed by substrate and not by step, because a consumer serves every
+     * step its substrate carries and two of them on one database would each
+     * dequeue the other's work. Built lazily for the same reason the joiner is
+     * built at all: a listener connection and a pool are what a consumer
+     * costs, and a deployment that declares a step nothing here performs
+     * should not pay them.
+     */
+    private final Map<String, cloud.jengu.dbo.stream.StepConsumer> consumers =
+            new ConcurrentHashMap<>();
+    /**
+     * The beans this deployment performs with, by step, whether or not the
+     * step they name is declared yet.
+     */
+    private final Map<String, Offered> offered = new ConcurrentHashMap<>();
+    /**
      * How a lane into each tenant is built, kept so work performed for the
      * fleet can be reported back through it.
      *
@@ -1141,6 +1159,10 @@ public final class TenantRuntimeManager implements AutoCloseable {
             // the ordinary restart order, not an edge case.
             runtimes.forEach((code, runtime) -> followForJoining(code, null));
         }
+        // Beans that arrived before the declaration did. Taking them up here
+        // rather than only on registration is what makes the two arrivals
+        // order-independent.
+        Set.copyOf(offered.keySet()).forEach(this::takeUp);
         return spec.code();
     }
 
@@ -1377,6 +1399,129 @@ public final class TenantRuntimeManager implements AutoCloseable {
     private Set<String> declinedBy(String code) {
         TenantRuntime serving = runtimes.get(code);
         return serving == null ? Set.of() : serving.spec().declines();
+    }
+
+    /**
+     * A bean of this deployment performs the step it names, for every tenant.
+     *
+     * <p>The other half of the whiteboard the joiner feeds. A deployment
+     * declares a step and provisions its substrate; an application registers a
+     * bean saying which step it performs; and this is where the two meet. The
+     * application constructs nothing — no consumer, no durable layer, no pool
+     * — for the same reason a tenant-level worker constructs no runner: the
+     * wiring is the container's, and an application writing it is an
+     * application that has to be changed when the wiring is.
+     *
+     * <p>Refused for a step this deployment never declared, because a bean
+     * accepted for one would sit correct and be called by nothing — the queue
+     * it would be fed from does not exist.
+     *
+     * @param bean     what performs the work, naming its own step
+     * @param identity who the runs it closes are recorded as
+     * @return how to stop performing it
+     */
+    public AutoCloseable performing(cloud.jengu.dbo.work.FleetWork.Performer bean,
+            cloud.jengu.dbo.work.Executor identity) {
+        String code = bean.step();
+        // HELD, THEN TAKEN UP. A bundle registering a bean and a deployment
+        // declaring its steps are two arrivals in no fixed order: the
+        // application's bundle may resolve before the declaration is read, and
+        // under a Spring assembly it ordinarily does. Refusing here would make
+        // whether an application works depend on bundle start order, which is
+        // the shape of defect that passes every test and fails on somebody
+        // else's machine.
+        offered.put(code, new Offered(bean, identity));
+        takeUp(code);
+        return () -> {
+            offered.remove(code);
+            cloud.jengu.dbo.stream.StepConsumer serving = consumerFor(code);
+            if (serving != null) {
+                serving.stopPerforming(code);
+            }
+        };
+    }
+
+    /** A bean this deployment holds, and who its runs are recorded as. */
+    private record Offered(cloud.jengu.dbo.work.FleetWork.Performer bean,
+            cloud.jengu.dbo.work.Executor identity) {
+    }
+
+    /**
+     * Gives the bean for one step to the consumer that serves its substrate,
+     * building that consumer if this is the first bean on it.
+     *
+     * <p>Returns quietly where the step is not declared here, because that is
+     * the ordinary state of a bean that arrived before the declaration did.
+     * A bean naming a step this deployment never declares stays held and is
+     * never called, and {@link #fleetDisagreements()} is where that shows.
+     */
+    private synchronized void takeUp(String code) {
+        Offered holding = offered.get(code);
+        javax.sql.DataSource substrate = stepSubstrates.get(code);
+        TenantSpec.FleetStep declared = declaredFleetSteps.stream()
+                .filter(step -> step.code().equals(code))
+                .findFirst()
+                .orElse(null);
+        if (holding == null || substrate == null || declared == null) {
+            return;
+        }
+        cloud.jengu.dbo.work.Executor identity = holding.identity();
+        cloud.jengu.dbo.work.FleetWork.Performer bean = holding.bean();
+        // EVERY STEP ON THAT SUBSTRATE, not just this one. The consumer's
+        // queues are fixed when it launches, so a consumer built for one step
+        // could never take up a bean for the step beside it — and both steps
+        // named one substrate precisely to share this.
+        Set<String> together = declaredFleetSteps.stream()
+                .filter(step -> step.substrateName().equals(declared.substrateName()))
+                .map(TenantSpec.FleetStep::code)
+                .collect(java.util.stream.Collectors.toUnmodifiableSet());
+        cloud.jengu.dbo.stream.StepConsumer consumer = consumers.computeIfAbsent(
+                declared.substrateName(),
+                name -> new cloud.jengu.dbo.stream.StepConsumer(substrate, together,
+                        writebackAs(identity)));
+        consumer.performing(bean);
+        LOG.info("fleet step performed here: step={} substrate={} by={}",
+                code, declared.substrateName(), bean.getClass().getName());
+    }
+
+    /**
+     * Steps a bean here performs that this deployment does not declare.
+     *
+     * <p>Empty in a deployment whose declaration and whose application agree,
+     * which is the only reason it can be read as an answer. A code in here is
+     * either a bean that arrived first — true for a moment at every startup —
+     * or a bean that will never be called, and the two look the same until
+     * the declaration has been read. What makes it worth asking is that the
+     * second case is otherwise perfectly quiet.
+     */
+    public Set<String> awaitingDeclaration() {
+        return offered.keySet().stream()
+                .filter(code -> !stepSubstrates.containsKey(code))
+                .collect(java.util.stream.Collectors.toUnmodifiableSet());
+    }
+
+    /** The consumer serving that step's substrate, or null while none is built. */
+    private cloud.jengu.dbo.stream.StepConsumer consumerFor(String code) {
+        return declaredFleetSteps.stream()
+                .filter(step -> step.code().equals(code))
+                .findFirst()
+                .map(step -> consumers.get(step.substrateName()))
+                .orElse(null);
+    }
+
+    /**
+     * Where a performer's report goes: the tenant's own lane, every time.
+     *
+     * <p>Built per registration so the executor on the run is the one that
+     * registered, and not a name this manager invented.
+     */
+    private cloud.jengu.dbo.work.FleetWork.Writeback writebackAs(
+            cloud.jengu.dbo.work.Executor identity) {
+        return new cloud.jengu.dbo.stream.LaneWriteback(
+                (tenant, step) -> fleetLane(tenant, step, identity),
+                (tenant, runKey) -> runtime(tenant)
+                        .map(runtime -> new cloud.jengu.dbo.work.Runs(runtime.engine()))
+                        .flatMap(runs -> runs.byKey(runKey)));
     }
 
     /** The joiner, for a test that needs one deterministic pass. */
@@ -4391,6 +4536,16 @@ public final class TenantRuntimeManager implements AutoCloseable {
         // a teardown that logs like a crash is where a real crash goes to hide.
         stopped(scanner);
         stopped(reconciler);
+        // Before the tenants, because a consumer still polling has work in
+        // hand to report through a lane into a tenant that is going.
+        consumers.values().forEach(consumer -> {
+            try {
+                consumer.close();
+            } catch (RuntimeException letGo) {
+                // Shutting down; one that will not close cannot stop the rest.
+            }
+        });
+        consumers.clear();
         for (String code : Set.copyOf(runtimes.keySet())) {
             takeDown(code, null);
         }

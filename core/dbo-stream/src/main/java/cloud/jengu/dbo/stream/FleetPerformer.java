@@ -1,5 +1,6 @@
 package cloud.jengu.dbo.stream;
 
+import cloud.jengu.dbo.work.FleetWork;
 import dev.dbos.transact.workflow.Workflow;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,6 +40,11 @@ public final class FleetPerformer implements FleetWork.Work {
     /** The bean that performs this step, from now on. */
     public void performing(String stepCode, FleetWork.Performer bean) {
         beans.put(stepCode, bean);
+    }
+
+    /** Withdraws it, leaving the step performed by nothing here. */
+    public void stopPerforming(String stepCode) {
+        beans.remove(stepCode);
     }
 
     /**

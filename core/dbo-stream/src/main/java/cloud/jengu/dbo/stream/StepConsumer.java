@@ -1,5 +1,6 @@
 package cloud.jengu.dbo.stream;
 
+import cloud.jengu.dbo.work.FleetWork;
 import dev.dbos.transact.DBOS;
 import dev.dbos.transact.config.DBOSConfig;
 import dev.dbos.transact.workflow.Queue;
@@ -87,6 +88,16 @@ public final class StepConsumer implements AutoCloseable {
      * store is built to refuse: something constructed, plausible, and reachable
      * by nothing.
      */
+    public void performing(FleetWork.Performer bean) {
+        performing(bean.step(), bean);
+    }
+
+    /** The same, for a caller that already knows the pairing. */
+    public void performing(String stepCode, FleetWork.Doing doing) {
+        performing(stepCode, FleetWork.performing(stepCode, doing));
+    }
+
+    /** The same, for a caller naming the step itself. */
     public void performing(String stepCode, FleetWork.Performer bean) {
         if (!serving.contains(stepCode)) {
             throw new IllegalArgumentException("this consumer was built to serve " + serving
@@ -95,6 +106,19 @@ public final class StepConsumer implements AutoCloseable {
                     + "own, or give the bean to the consumer that serves it.");
         }
         performer.performing(stepCode, bean);
+    }
+
+    /**
+     * That bean is gone.
+     *
+     * <p>The queue keeps being polled, because this consumer serves the other
+     * steps on its substrate and they have not gone anywhere. An item for the
+     * withdrawn step is refused the way an item for a step nothing ever
+     * performed is — released with a reason, and taken again by whoever
+     * performs it next.
+     */
+    public void stopPerforming(String stepCode) {
+        performer.stopPerforming(stepCode);
     }
 
     @Override
