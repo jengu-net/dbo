@@ -90,11 +90,16 @@ public final class DboExtensions implements AutoCloseable {
             if (said == null) {
                 wrong.add(performer.getClass().getName() + " performs a fleet step and carries "
                         + "no @" + DboFleetStep.class.getSimpleName() + ", so every run it "
-                        + "closed across the fleet would name no behaviour and no provider");
+                        + "closed across the fleet would name no executor, no behaviour and "
+                        + "no provider");
                 continue;
             }
             Map<String, String> on = new LinkedHashMap<>();
-            on.put("dbo.executor.name", performer.step());
+            // WHO PERFORMED IT. Not the step code — a run already records the
+            // step, and an executor repeating it would answer "what ran"
+            // twice and "who ran it" never, which is the question a fleet
+            // step makes worth asking since one bean answers for every tenant.
+            on.put("dbo.executor.name", said.name());
             on.put("dbo.executor.version", said.version());
             on.put("dbo.executor.provider", said.provider());
             performing.put(performer, on);

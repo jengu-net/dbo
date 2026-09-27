@@ -659,6 +659,18 @@ public enum DboPromises implements Promise {
             + "deployment as awaiting a declaration, because a bean nothing will ever offer "
             + "work is indistinguishable from a step with nothing to do."),
 
+    PROC_A_PARTICIPANT_ASKS_FOR_WORK_IT_NEED_NOT_PERFORM(
+            "A participant is an initiator as well as a performer: on the same credential and "
+            + "the same enrolment it holds a lane with, it authors a run by asking the "
+            + "TENANT's own step door — which is where every run is authored, because the run "
+            + "belongs to the tenant it is about and this store schedules nothing on a "
+            + "tenant's behalf. The door takes a step the DEPLOYMENT declared as readily as "
+            + "one the tenant did, and still refuses one a participant merely introduced, "
+            + "since what separates them is who wrote the declaration down rather than who "
+            + "performs it. What takes the run is then decided by entitlement, so a "
+            + "participant can ask for work it cannot do and a fleet step asked for by one "
+            + "external application is performed by a bean inside the deployment."),
+
     PROC_THE_WRITEBACK_PASSES_THE_TENANTS_RULES(
             "Work the deployment performed for a tenant is reported back through that "
             + "tenant's OWN lane, so an outcome from a fleet consumer meets exactly the rules "

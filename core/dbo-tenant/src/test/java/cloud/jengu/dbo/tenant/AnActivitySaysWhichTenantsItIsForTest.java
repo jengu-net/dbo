@@ -40,14 +40,14 @@ class AnActivitySaysWhichTenantsItIsForTest {
         return PublishedFacts.of(TenantSpec.parse("""
                 {"code":"hogwarts","face":"r5","zone":"rl",
                  "types":[{"name":"Patient","identity":"internal","handling":"operational"}]}"""),
-                holding(true));
+                holding(true), false);
     }
 
     private static TenantFacts faceRoot() {
         return PublishedFacts.of(TenantSpec.parse("""
                 {"code":"fhir-r5","face":"r5","faceRoot":true,
                  "types":[{"name":"StructureDefinition","identity":"canonical","handling":"operational"}]}"""),
-                holding(false));
+                holding(false), false);
     }
 
     /** The resolved facts, varying only the one these tests are about. */
@@ -95,7 +95,7 @@ class AnActivitySaysWhichTenantsItIsForTest {
                 {"code":"rl-on-r4","face":"r4",
                  "dependencies":[{"name":"fhir-r4","face":true,"types":["ValueSet"]}],
                  "types":[{"name":"ValueSet","identity":"canonical","handling":"replicated"}]}"""),
-                holding(false))
+                holding(false), false)
                 .properties().get(TenantFacts.HOLDS_RECORDS_IN_FACE_DOMAIN));
     }
 
@@ -167,11 +167,11 @@ class AnActivitySaysWhichTenantsItIsForTest {
                  "steps":[{"code":"hogwarts.admission.admit","slots":{"patient":"Patient"}}],
                  "types":[{"name":"Person","identity":"internal","handling":"operational"},
                           {"name":"Patient","identity":"internal","handling":"operational"}]}"""),
-                new TenantFacts.Resolved(true, true, true, true));
+                new TenantFacts.Resolved(true, true, true, true), false);
         TenantFacts gadgets = PublishedFacts.of(TenantSpec.parse("""
                 {"code":"widgets","face":"r5",
                  "types":[{"name":"Device","identity":"internal","handling":"operational"}]}"""),
-                new TenantFacts.Resolved(true, true, false, false));
+                new TenantFacts.Resolved(true, true, false, false), false);
 
         TenantActivities activities = new TenantActivities();
         List<String> mounted = new ArrayList<>();

@@ -25,11 +25,12 @@ import java.util.Map;
  * <p><b>Nothing here constructs anything.</b> No consumer, no durable layer,
  * no pool, no queue — the container builds those from the declaration, finds
  * this bean because it says which step it performs, and hands it work. The
- * annotation carries the one pair the code cannot supply and a run has to
- * record: which behaviour this is, and whose.
+ * annotation carries what the code cannot supply and a run has to record:
+ * who performed it, which behaviour that is, and whose code it is.
  */
 @Component
-@DboFleetStep(version = "1.0", provider = "cloud.jengu.dbo.samples")
+@DboFleetStep(name = "sample-directory-checker", version = "1.0",
+        provider = "cloud.jengu.dbo.samples")
 public final class CheckingTheDirectory implements FleetWork.Performer {
 
     private static final Logger LOG = LoggerFactory.getLogger("dbo.sample.fleet");

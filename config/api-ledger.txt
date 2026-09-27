@@ -2840,6 +2840,7 @@ cloud.jengu.dbo.promises.DboPromises                                   PROC_A_FA
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_HOST_HOLDS_A_LANE_WHEREVER_IT_IS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_LANE_OVER_THE_STREAM:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_NODE_ANSWERS_ITS_CATALOGUE:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   PROC_A_PARTICIPANT_ASKS_FOR_WORK_IT_NEED_NOT_PERFORM:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_PARTICIPANT_OFFERS_ITS_KEY_AT_ENROLMENT:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_PROCESSOR_IS_ENROLLED_PER_TENANT:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_ROUTED_TREE_TRAVELS_AS_A_LANE_VERB:cloud.jengu.dbo.promises.DboPromises
@@ -3956,6 +3957,13 @@ cloud.jengu.dbo.tenant.SpecChange.Kind                                 REWIRE:cl
 cloud.jengu.dbo.tenant.SpecChange.Kind                                 enum
 cloud.jengu.dbo.tenant.SpecChange.Kind                                 valueOf(String):cloud.jengu.dbo.tenant.SpecChange.Kind
 cloud.jengu.dbo.tenant.SpecChange.Kind                                 values():cloud.jengu.dbo.tenant.SpecChange.Kind[]
+cloud.jengu.dbo.tenant.StepSurface.Fleet.Offer                         equals(Object):boolean
+cloud.jengu.dbo.tenant.StepSurface.Fleet.Offer                         hashCode():int
+cloud.jengu.dbo.tenant.StepSurface.Fleet.Offer                         new(Map,String)
+cloud.jengu.dbo.tenant.StepSurface.Fleet.Offer                         record
+cloud.jengu.dbo.tenant.StepSurface.Fleet.Offer                         refusedBecause():String
+cloud.jengu.dbo.tenant.StepSurface.Fleet.Offer                         slots():Map
+cloud.jengu.dbo.tenant.StepSurface.Fleet.Offer                         toString():String
 cloud.jengu.dbo.tenant.TenantDatabaseProvisioner                       deprovision(String):void
 cloud.jengu.dbo.tenant.TenantDatabaseProvisioner                       interface
 cloud.jengu.dbo.tenant.TenantDatabaseProvisioner                       provision(cloud.jengu.dbo.tenant.TenantSpec):cloud.jengu.dbo.tenant.TenantDatabaseProvisioner.TenantDatabase

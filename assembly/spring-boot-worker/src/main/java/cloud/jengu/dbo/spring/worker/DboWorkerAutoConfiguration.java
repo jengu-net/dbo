@@ -117,6 +117,23 @@ public class DboWorkerAutoConfiguration {
      * log nobody is reading at four in the morning. Spring knows every bean
      * at refresh and can tell the author instead.
      */
+    /**
+     * How this application asks for work, as against performing it.
+     *
+     * <p>Always present, because a participant that holds a lane can author a
+     * run on it and needing a second dependency to do so would make the two
+     * halves look like two capabilities. An application that only performs
+     * work never injects this and pays nothing for it.
+     */
+    @Bean
+    @ConditionalOnMissingBean
+    public DboInitiator dboInitiator(DboWorkerProperties properties,
+            ObjectProvider<TenantToken> tokens) {
+        Map<String, Supplier<String>> supplied = new LinkedHashMap<>();
+        tokens.forEach(token -> supplied.put(token.tenant(), token));
+        return new DboInitiator(properties, DboWorker.tokensFor(properties, supplied));
+    }
+
     @Bean
     @ConditionalOnMissingBean
     public DboWorker dboWorker(EmbeddedRuntime runtime, DboWorkerProperties properties,

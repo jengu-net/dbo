@@ -562,6 +562,11 @@ public final class TenantRuntimeManager implements AutoCloseable {
     private volatile long lastSweepMillis;
     private volatile Thread scanner;
     private volatile Thread reconciler;
+    /**
+     * What drives the joiner. Null in a deployment that declares no fleet
+     * step, which is every deployment that has not asked for one.
+     */
+    private volatile Thread joining;
     private volatile boolean running;
 
     /**
@@ -986,10 +991,10 @@ public final class TenantRuntimeManager implements AutoCloseable {
                     String runPath = "/t/" + code + "/run";
                     sharedServer.createContext(startPath, new StepSurface(tenant.authority(),
                             tenant.laneRuns(), tenant.runtime().store(), tenant.spec().steps(),
-                            runPath, true));
+                            runPath, true, code, this::offerOf));
                     sharedServer.createContext(runPath, new StepSurface(tenant.authority(),
                             tenant.laneRuns(), tenant.runtime().store(), tenant.spec().steps(),
-                            runPath, false));
+                            runPath, false, code, this::offerOf));
                     stepContexts.put(code, java.util.List.of(startPath, runPath));
                     return null;
                 });
@@ -1482,6 +1487,39 @@ public final class TenantRuntimeManager implements AutoCloseable {
         consumer.performing(bean);
         LOG.info("fleet step performed here: step={} substrate={} by={}",
                 code, declared.substrateName(), bean.getClass().getName());
+    }
+
+    /**
+     * What the deployment offers one tenant of one step, for its own door.
+     *
+     * <p>Every refusal here is a thing the tenant said, which is why they are
+     * separate answers rather than one absence. A step this deployment never
+     * declared is not found; a step the tenant declined, or one whose register
+     * row it has not authorised while the step's posture says to wait, is
+     * found and refused with what the tenant would have to change. Collapsing
+     * the three into a 404 would leave a tenant unable to tell "the
+     * deployment does not do this" from "you told us not to".
+     */
+    private StepSurface.Fleet.Offer offerOf(String tenant, String stepCode) {
+        TenantSpec.FleetStep declared = declaredFleetSteps.stream()
+                .filter(step -> step.code().equals(stepCode))
+                .findFirst()
+                .orElse(null);
+        if (declared == null) {
+            return null;
+        }
+        if (declinedBy(tenant).contains(stepCode)) {
+            return new StepSurface.Fleet.Offer(declared.slots(), "this tenant declines '"
+                    + stepCode + "', so the deployment performs none of its work: remove it "
+                    + "from 'declines' in this tenant's declaration to ask for it");
+        }
+        if (withheldFrom(tenant).contains(stepCode)) {
+            return new StepSurface.Fleet.Offer(declared.slots(), "'" + stepCode + "' opens "
+                    + "data of this tenant under a register row it has not authorised, and "
+                    + "the step is declared not to process until it is: authorise the row in "
+                    + "this tenant's declaration to ask for it");
+        }
+        return new StepSurface.Fleet.Offer(declared.slots(), null);
     }
 
     /**
@@ -2627,7 +2665,11 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 holdsRecordsInFaceDomain(declared.registrations(), version.domain()),
                 authority != null,
                 vaults.get(spec.code()) != null,
-                identityTypeOf(spec) != null));
+                identityTypeOf(spec) != null),
+                // FROM THE SPEC IN HAND, not from the serving runtime: this runs
+                // during bring-up, and the runtime whose declines would be
+                // read is the one being built.
+                !fleetStepCodes.isEmpty() && !spec.declines().containsAll(fleetStepCodes));
         java.util.List<AutoCloseable> leftBehind = new java.util.ArrayList<>(
                 activities.runAt(TenantPoint.DISPATCH,
                         new TenantActivities.Provisioned(facts, db.dataSource(), store,
@@ -4492,6 +4534,38 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 }
             }
         });
+        // A THIRD, for the same reason there are two. Offering the fleet's
+        // work reads every tenant's feed and can be an afternoon behind; a
+        // bring-up is somebody else's storage and secret. Sharing the
+        // reconciler's thread would have made a tenant that is catching up
+        // delay the offering of everything, and a substrate that is slow
+        // delay every stream — both invisibly.
+        //
+        // AND WITHOUT IT NOTHING DRIVES THE JOINER AT ALL. joinOnce was
+        // called only by tests, so a run of a fleet step authored in a real
+        // deployment sat in its tenant's feed being correct: declared,
+        // provisioned, matched by a consumer that was listening, and offered
+        // by nothing.
+        joining = Thread.ofVirtual().name("dbo-tenant-joiner").start(() -> {
+            while (running) {
+                try {
+                    // ASKED EACH PASS rather than captured: the joiner is
+                    // built when the deployment reads its declaration, which
+                    // may be after this loop started.
+                    cloud.jengu.dbo.stream.StepJoiner offering = joiner;
+                    if (offering != null) {
+                        offering.joinOnce(100);
+                    }
+                    Thread.sleep(pollMillis);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    return;
+                } catch (Throwable e) {
+                    // as above: one pass's failure is not the end of offering
+                    LOG.warn("a joining pass failed; the deployment keeps offering", e);
+                }
+            }
+        });
         reconciler = Thread.ofVirtual().name("dbo-tenant-reconciler").start(() -> {
             while (running) {
                 try {
@@ -4536,6 +4610,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
         // a teardown that logs like a crash is where a real crash goes to hide.
         stopped(scanner);
         stopped(reconciler);
+        stopped(joining);
         // Before the tenants, because a consumer still polling has work in
         // hand to report through a lane into a tenant that is going.
         consumers.values().forEach(consumer -> {

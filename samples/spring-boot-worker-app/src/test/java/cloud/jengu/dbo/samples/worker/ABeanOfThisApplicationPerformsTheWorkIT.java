@@ -73,7 +73,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 @SpringBootTest(classes = ServerApplication.class,
         webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT)
-@Import({AdmittingAPatient.class, MeasuringASpecimen.class})
+@Import({AdmittingAPatient.class, MeasuringASpecimen.class,
+        AskingForADirectoryCheck.class})
 class ABeanOfThisApplicationPerformsTheWorkIT {
 
     private static final String TENANT = "hogwarts";
@@ -89,8 +90,24 @@ class ABeanOfThisApplicationPerformsTheWorkIT {
     /** A run records process and step apart, so a question about one names the step. */
     private static final String BARE = BROUGHT.substring(BROUGHT.lastIndexOf('.') + 1);
 
+    /** What the DEPLOYMENT declared in mom.json, and performs for every tenant. */
+    private static final String FLEET_STEP = AskingForADirectoryCheck.STEP;
+
+    /**
+     * Who performs it, as {@code CheckingTheDirectory}'s own annotation says.
+     * If the two drift, this assertion is the thing that notices.
+     */
+    private static final String THE_DEPLOYMENT = "sample-directory-checker";
+
+    /** A run records process and step apart, so the question names the step. */
+    private static final String FLEET_BARE =
+            FLEET_STEP.substring(FLEET_STEP.lastIndexOf('.') + 1);
+
     @Autowired
     DboTestContext dbo;
+
+    @Autowired
+    AskingForADirectoryCheck asking;
 
     @Test
     @Order(2)
@@ -192,6 +209,70 @@ class ABeanOfThisApplicationPerformsTheWorkIT {
                 "no run of " + BROUGHT + " names " + THIS_WORKER + ", so a bean brought a "
                         + "capability, the tenant authored work of it, and the work never came "
                         + "back to whoever brought it");
+    }
+
+    @Test
+    @Order(3)
+    @DisplayName("this application asks the tenant for a run of a step it cannot perform, and "
+            + "the deployment performs it — one participant as initiator and as executor")
+    @Proving(DboPromises.PROC_A_PARTICIPANT_ASKS_FOR_WORK_IT_NEED_NOT_PERFORM)
+    void aParticipantAsksForWorkItDoesNotPerform() throws Exception {
+        assertTrue(dbo.until(TENANT, true, Duration.ofMinutes(6)),
+                "the tenant never came up, so there is nothing to ask it for: " + dbo.serving());
+
+        // THIS APPLICATION PERFORMS NO SUCH STEP, asserted before asking. The
+        // claim is that a participant can author work somebody else does, and
+        // it would be worth nothing if this application turned out to be the
+        // somebody else.
+        Proves.that(DboPromises.PROC_A_PARTICIPANT_ASKS_FOR_WORK_IT_NEED_NOT_PERFORM,
+                !dbo.performing().containsKey(FLEET_STEP),
+                "this application performs " + FLEET_STEP + " itself, so nothing here shows "
+                        + "that a participant can ask for work it does not do: "
+                        + dbo.performing());
+
+        var organisation = dbo.write(TENANT, "Organization", """
+                {"resourceType":"Organization","name":"Hogwarts Infirmary",
+                 "identifier":[{"system":"urn:rl:org","value":"RL-ORG-1"}]}""");
+        assertTrue(organisation.accepted(),
+                "the organisation this run is about was not accepted: " + organisation.body());
+
+        long before = dbo.asking(TENANT).work().ofStep(FLEET_BARE).by(THE_DEPLOYMENT).count();
+
+        // THE TENANT'S OWN DOOR, with this application's own work credential.
+        // The step is the deployment's; the run is the tenant's; the asking is
+        // this participant's. 201 is the door accepting a step the tenant
+        // never declared and never could — which is exactly what it refuses
+        // for an INTRODUCED step in the test above, and the difference is who
+        // wrote the declaration down.
+        var started = asking.about(TENANT, organisation.idOrFail());
+        Proves.that(DboPromises.PROC_A_PARTICIPANT_ASKS_FOR_WORK_IT_NEED_NOT_PERFORM,
+                started.accepted(),
+                "the tenant would not start a run of the deployment's own step asked for by a "
+                        + "participant: " + started.status() + " " + started.body());
+
+        // And now nothing else is done. The joiner reads the tenant's feed on
+        // its own beat, the item reaches the step's queue, the bean in the
+        // serving application performs it and reports back through this
+        // tenant's lane — none of which this application asked for or knows
+        // about.
+        Proves.that(DboPromises.PROC_A_PARTICIPANT_ASKS_FOR_WORK_IT_NEED_NOT_PERFORM,
+                untilTheDeploymentPerformedIt(before),
+                "no run names " + THE_DEPLOYMENT + " as its executor, so a participant asked "
+                        + "for fleet work and it was never offered, never performed, or never "
+                        + "reported back — and from here those look the same");
+    }
+
+    /** Waits for a run the DEPLOYMENT performed, however long the beat is. */
+    private boolean untilTheDeploymentPerformedIt(long before) throws InterruptedException {
+        long giveUp = System.nanoTime() + Duration.ofMinutes(3).toNanos();
+        while (System.nanoTime() < giveUp) {
+            if (dbo.asking(TENANT).work().ofStep(FLEET_BARE).by(THE_DEPLOYMENT).count()
+                    > before) {
+                return true;
+            }
+            Thread.sleep(1000);
+        }
+        return false;
     }
 
     /** Waits for a run of one step this application performed. */

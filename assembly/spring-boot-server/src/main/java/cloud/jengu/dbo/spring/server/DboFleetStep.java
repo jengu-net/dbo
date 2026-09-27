@@ -27,6 +27,18 @@ import java.lang.annotation.Target;
 @Target(ElementType.TYPE)
 public @interface DboFleetStep {
 
+    /**
+     * Who performed it, as every run this bean closes will record.
+     *
+     * <p>Stated rather than taken from the application's name, because the
+     * name is ambient: it is a property, it differs between a deployment and
+     * a test of it, and a run recorded under whichever one happened to be on
+     * the environment is a run whose executor cannot be relied on. This is
+     * the field a question like "which of our things closed this" is answered
+     * from, so it belongs beside the code it names.
+     */
+    String name();
+
     /** Which behaviour this is — what changed when the step's code changed. */
     String version();
 

@@ -67,14 +67,44 @@ final class StepSurface implements HttpHandler {
      */
     private final String runPath;
     private final boolean starting;
+    /** This tenant's code, for asking what the deployment offers it. */
+    private final String tenant;
+    /** What the deployment performs, asked per request rather than held. */
+    private final Fleet fleet;
+
+    /**
+     * What the DEPLOYMENT declares, for this tenant, right now.
+     *
+     * <p>Asked per request and not captured when the door was built, because
+     * both answers move under it: a deployment's declaration is re-read on
+     * every sweep, and whether a tenant may start a step depends on what that
+     * tenant declined and on which register rows it has authorised — which is
+     * a thing a tenant changes precisely in order to change this.
+     */
+    @FunctionalInterface
+    interface Fleet {
+
+        /**
+         * @return what the step takes and whether this tenant may start it, or
+         *         null where the deployment declares no such step
+         */
+        Offer offer(String tenant, String stepCode);
+
+        /** The step's slots, and why it is not startable here if it is not. */
+        record Offer(Map<String, String> slots, String refusedBecause) {
+        }
+    }
 
     StepSurface(TenantAuthority authority, Runs runs, FhirStoreFacade store,
-            List<TenantSpec.Step> steps, String runPath, boolean starting) {
+            List<TenantSpec.Step> steps, String runPath, boolean starting,
+            String tenant, Fleet fleet) {
         this.authority = authority;
         this.runs = runs;
         this.store = store;
         this.runPath = runPath;
         this.starting = starting;
+        this.tenant = tenant;
+        this.fleet = fleet;
         steps.forEach(step -> declared.put(step.code(), step));
     }
 
@@ -143,10 +173,35 @@ final class StepSurface implements HttpHandler {
             return;
         }
         TenantSpec.Step step = declared.get(stepCode);
-        if (step == null) {
-            fail(exchange, 404, "not_found", "this tenant offers no step '" + stepCode
-                    + "'; it offers: " + declared.keySet());
-            return;
+        Map<String, String> slots;
+        if (step != null) {
+            slots = step.slots();
+        } else {
+            // THE DEPLOYMENT'S, and only if it declared one. A tenant's work
+            // stream is where a run of a fleet step has to be authored — the
+            // joiner reads tenants and nothing else — so the tenant's own door
+            // is where it is asked for, and the run belongs to the tenant that
+            // asked exactly as its own runs do.
+            //
+            // This is NOT the same as a step a participant introduced. An
+            // introduction is a capability somebody brought and grants its
+            // bringer nothing, so the door keeps refusing those by name; a
+            // fleet step was declared by the deployment, in the deployment's
+            // own record, before any participant said anything.
+            Fleet.Offer offered = fleet.offer(tenant, stepCode);
+            if (offered == null) {
+                fail(exchange, 404, "not_found", "this tenant offers no step '" + stepCode
+                        + "'; it offers: " + declared.keySet());
+                return;
+            }
+            if (offered.refusedBecause() != null) {
+                // 409 rather than 403: nothing is wrong with the credential.
+                // The deployment performs this step and this tenant has said
+                // something about it, so the state of the pair is what refuses.
+                fail(exchange, 409, "refused", offered.refusedBecause());
+                return;
+            }
+            slots = offered.slots();
         }
         Object body = Json.parse(new String(exchange.getRequestBody().readAllBytes(),
                 StandardCharsets.UTF_8));
@@ -158,7 +213,7 @@ final class StepSurface implements HttpHandler {
         // The slot's declared type is a promise about what a run of it is
         // over, so a reference of another type is refused here rather than
         // becoming a run that can reach something the step never described.
-        for (Map.Entry<String, String> slot : step.slots().entrySet()) {
+        for (Map.Entry<String, String> slot : slots.entrySet()) {
             String reference = inputs.get(slot.getKey());
             if (reference != null && !reference.startsWith(slot.getValue() + "/")) {
                 fail(exchange, 400, "invalid_request", "slot '" + slot.getKey() + "' takes "
@@ -168,7 +223,7 @@ final class StepSurface implements HttpHandler {
         }
         String scope = Optional.ofNullable(Json.strOpt(body, "scope"))
                 .orElseGet(cloud.jengu.dbo.core.UuidV7::newId);
-        Run run = runs.of(declaration(step), RunKind.PIPELINE, scope, inputs);
+        Run run = runs.of(declaration(stepCode, slots), RunKind.PIPELINE, scope, inputs);
         // The key as well as the id, because they answer different questions
         // and only one of them is this surface's. The id addresses the
         // context; the key is the name the rest of the work model is asked by
@@ -181,9 +236,9 @@ final class StepSurface implements HttpHandler {
     }
 
     /** What the engine is handed: the slots, with the face type as the shape. */
-    private StepDeclaration declaration(TenantSpec.Step step) {
-        StepDeclaration declaration = StepDeclaration.of(step.code(), "1", "r5");
-        for (Map.Entry<String, String> slot : step.slots().entrySet()) {
+    private StepDeclaration declaration(String code, Map<String, String> slots) {
+        StepDeclaration declaration = StepDeclaration.of(code, "1", "r5");
+        for (Map.Entry<String, String> slot : slots.entrySet()) {
             declaration = declaration.taking(slot.getKey(), slot.getValue());
         }
         return declaration;
@@ -225,9 +280,20 @@ final class StepSurface implements HttpHandler {
             return;
         }
         Run run = found.get();
-        TenantSpec.Step step = declared.get(run.process() + "." + run.step());
         if ("metadata".equals(segments[2])) {
-            respond(exchange, 200, metadata(step));
+            // The run's own step, whichever level declared it: a context over
+            // a fleet run answers for the types that run reaches exactly as a
+            // context over one of the tenant's own does, because a capability
+            // statement that went blank for half the runs would read as a
+            // context that reaches nothing.
+            String code = run.process() + "." + run.step();
+            TenantSpec.Step own = declared.get(code);
+            Map<String, String> slots = own != null ? own.slots() : null;
+            if (slots == null) {
+                Fleet.Offer offered = fleet.offer(tenant, code);
+                slots = offered == null ? null : offered.slots();
+            }
+            respond(exchange, 200, metadata(slots));
             return;
         }
         if (segments.length != 4) {
@@ -299,10 +365,10 @@ final class StepSurface implements HttpHandler {
     }
 
     /** What this context answers for: the step's types, and no others. */
-    private String metadata(TenantSpec.Step step) {
+    private String metadata(Map<String, String> slots) {
         StringBuilder types = new StringBuilder();
-        if (step != null) {
-            step.slots().values().stream().distinct().forEach(type -> {
+        if (slots != null) {
+            slots.values().stream().distinct().forEach(type -> {
                 if (types.length() > 0) {
                     types.append(',');
                 }
