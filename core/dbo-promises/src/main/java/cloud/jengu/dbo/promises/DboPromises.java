@@ -706,12 +706,28 @@ public enum DboPromises implements Promise {
             "A tenant authorises a register by writing down which one it read — the register's "
             + "own digest, one value for the whole of it — so authorising is answerable all at "
             + "once and a tenant approving rows one at a time could never be sure it had "
-            + "finished. Whether what the deployment does with its data has changed since is "
-            + "then ONE COMPARISON rather than an audit. The digest covers every field a tenant "
+            + "finished — and every row is named individually inside that act, so the store can "
+            + "still say which single row is new or widened. Whether what the deployment does "
+            + "with its data has changed since is then ONE COMPARISON rather than an audit. The digest covers every field a tenant "
             + "would decide on, including the posture, so a deployment cannot move a row from "
             + "not-until-approved to processed-and-named without the tenant's copy ceasing to "
             + "match — which would be a deployment approving its own widening. Never having "
             + "read a register is a different answer from having read a different one."),
+
+    PROC_AN_UNAUTHORISED_ROW_OBEYS_ITS_POSTURE(
+            "What happens to work under a row a tenant has not authorised is the row's own "
+            + "posture, stated by the deployment where the row is declared. A row that says NOT "
+            + "UNTIL APPROVED has that tenant's work withheld from the step entirely — refusal "
+            + "is real here and nowhere else in this design, because approval is known before "
+            + "anything is sealed, so not offering the work actually prevents the processing. A "
+            + "row that says PROCESSED AND NAMED runs, and the cost is carried by an incident "
+            + "that stands until the row is authorised: it names the tenant, the step and what "
+            + "is being opened, and says how long, because an incident reading the same on day "
+            + "one and day ninety is one nobody acts on. A row that says APPLIED runs under the "
+            + "agreement and raises nothing. Processed-and-named is the default, because a "
+            + "halting default would turn an unanswered register into an outage caused by "
+            + "nobody clicking. Per row, so a deployment may halt for a new row without "
+            + "stopping everything else."),
 
     PROC_A_LANE_OVER_THE_STREAM(
             "A lane runs over the store's own stream, full duplex, beside in-process and "

@@ -176,13 +176,16 @@ spec:
                   type: array
                   items:
                     type: string
-                # Which register this tenant authorised, as that register's
-                # own digest. One value for the whole of it: enrolment is per
-                # tenant and answerable all at once, so a tenant reads the
-                # register and writes down which one it agreed to. Absent means
-                # it has not read one yet.
+                # Which rows of the register this tenant authorised, each by
+                # its own digest. All at once and per row, which sound opposed
+                # and are not: a tenant reads one register and writes down every
+                # row of it in one act, and because the rows are named
+                # individually the store can still say which single one is new
+                # or widened. Empty means it has read none.
                 authorised:
-                  type: string
+                  type: array
+                  items:
+                    type: string
                 # Steps this tenant must have available before it serves.
                 mandatorySteps:
                   type: array

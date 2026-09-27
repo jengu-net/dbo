@@ -152,11 +152,16 @@ class AProcessorIsEnrolledPerTenantIT {
                 "a tenant that never read a register is being told whether it changed, and "
                         + "never having read one is a different answer");
 
-        String asItIs = FleetRegister.digestOf(manager.fleetRegister(ONE));
+        // EVERY ROW IT READ, in one act. That is what authorising is: all at
+        // once from the tenant's side, and individually named so the store can
+        // still say which single row is new when the deployment adds one.
+        String asItIs = manager.fleetRegister(ONE).stream()
+                .map(row -> '"' + row.digest() + '"')
+                .collect(java.util.stream.Collectors.joining(","));
         Files.writeString(dir.resolve(ONE + ".json"), """
                 {"code":"%s","face":"r4","types":[
                    {"name":"Basic","identity":"internal","handling":"operational"}],
-                 "authorised":"%s"}"""
+                 "authorised":[%s]}"""
                 .formatted(ONE, asItIs));
         manager.scanOnce();
 

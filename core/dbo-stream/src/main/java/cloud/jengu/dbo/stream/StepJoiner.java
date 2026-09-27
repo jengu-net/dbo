@@ -61,14 +61,18 @@ public final class StepJoiner implements AutoCloseable {
     /** The tenants being read, by code. */
     private final Map<String, ChangeFeed> following = new ConcurrentHashMap<>();
     /**
-     * What each tenant declined, by code.
+     * What this tenant's work must not be offered to, asked once per pass.
      *
-     * <p>Held beside the feed rather than asked for per item, because it is a
-     * fact about a declaration and a declaration does not change inside a
-     * pass. A tenant that declines a step later is followed again with the new
-     * set, which is what a redeclaration already is.
+     * <p><b>Asked rather than held</b>, and the difference is a class of bug
+     * rather than a preference. A tenant declines a step, or authorises a row
+     * that was being withheld, by changing its own declaration — and that
+     * change applies while it serves, precisely so withdrawing or granting
+     * authorisation costs no outage. A set captured when the tenant was first
+     * followed would go stale at exactly the moment it mattered: the tenant
+     * would authorise a row and its work would stay withheld until something
+     * restarted.
      */
-    private final Map<String, Set<String>> declined = new ConcurrentHashMap<>();
+    private final java.util.function.Function<String, Set<String>> notOffered;
 
     /**
      * @param substrateOf step code to the substrate its queue lives on — the
@@ -76,8 +80,10 @@ public final class StepJoiner implements AutoCloseable {
      *                    the deployment does not perform is left where it
      *                    belongs by having nowhere to go
      */
-    public StepJoiner(Map<String, DataSource> substrateOf) {
+    public StepJoiner(Map<String, DataSource> substrateOf,
+            java.util.function.Function<String, Set<String>> notOffered) {
         this.substrateOf = Map.copyOf(substrateOf);
+        this.notOffered = notOffered;
         // The durable bootstrap, here rather than where the database was
         // made: the module that provisions tenants has no durable layer and
         // buying it one to migrate a schema it never reads would be a
@@ -90,21 +96,14 @@ public final class StepJoiner implements AutoCloseable {
         }
     }
 
-    /** Read this tenant's work from now on, minus what it declined. */
-    public void follow(String tenant, ChangeFeed workFeed, Set<String> declines) {
-        following.put(tenant, workFeed);
-        declined.put(tenant, Set.copyOf(declines));
-    }
-
-    /** The same, for a tenant that declined nothing. */
+    /** Read this tenant's work from now on. */
     public void follow(String tenant, ChangeFeed workFeed) {
-        follow(tenant, workFeed, Set.of());
+        following.put(tenant, workFeed);
     }
 
     /** Stop reading it — a tenant taken down, its cursor left where it is. */
     public void unfollow(String tenant) {
         following.remove(tenant);
-        declined.remove(tenant);
     }
 
     /**
@@ -128,6 +127,9 @@ public final class StepJoiner implements AutoCloseable {
         if (chunk.items().isEmpty()) {
             return 0;
         }
+        // Once per pass, not per item: a declaration does not change inside a
+        // pass, and asking per item would read a tenant's spec for every run.
+        Set<String> withheld = notOffered.apply(tenant);
         int offered = 0;
         for (FeedItem item : chunk.items()) {
             if (!cloud.jengu.dbo.work.WorkModel.TYPE.equals(item.typeName()) || item.deleted()) {
@@ -135,7 +137,7 @@ public final class StepJoiner implements AutoCloseable {
             }
             Map<String, Object> run = asMap(item.payload());
             String code = codeOf(run);
-            if (code != null && declined.getOrDefault(tenant, Set.of()).contains(code)) {
+            if (code != null && withheld.contains(code)) {
                 // THE TENANT SAID NOT TO. Its run stays where it is, offered to
                 // nothing, exactly as a run of a step the deployment does not
                 // perform does — because from the tenant's side those are the

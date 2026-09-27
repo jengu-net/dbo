@@ -2828,6 +2828,7 @@ cloud.jengu.dbo.promises.DboPromises                                   PRM_PROOF
 cloud.jengu.dbo.promises.DboPromises                                   PRM_REGISTERED_AT_COMPILE_TIME:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PRM_STATUS_IS_DERIVED:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_AN_APPLICATION_STEP_IS_THE_DEPLOYMENTS_TO_DECLARE:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   PROC_AN_UNAUTHORISED_ROW_OBEYS_ITS_POSTURE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_AUDIT_REPLICATES_AS_RECORDED:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_AUTOMATION_IS_A_DECLARED_SWITCH:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_AUTOMATION_IS_DECLARED:cloud.jengu.dbo.promises.DboPromises
@@ -3463,9 +3464,8 @@ cloud.jengu.dbo.stream.StepJoiner                                      CONSUMER:
 cloud.jengu.dbo.stream.StepJoiner                                      class
 cloud.jengu.dbo.stream.StepJoiner                                      close():void
 cloud.jengu.dbo.stream.StepJoiner                                      follow(String,cloud.jengu.dbo.core.api.feed.ChangeFeed):void
-cloud.jengu.dbo.stream.StepJoiner                                      follow(String,cloud.jengu.dbo.core.api.feed.ChangeFeed,Set):void
 cloud.jengu.dbo.stream.StepJoiner                                      joinOnce(int):int
-cloud.jengu.dbo.stream.StepJoiner                                      new(Map)
+cloud.jengu.dbo.stream.StepJoiner                                      new(Map,Function)
 cloud.jengu.dbo.stream.StepJoiner                                      unfollow(String):void
 cloud.jengu.dbo.stream.StreamAsk                                       bytesOf(Object):String
 cloud.jengu.dbo.stream.StreamAsk                                       class
@@ -3885,6 +3885,8 @@ cloud.jengu.dbo.tenant.FleetHandler                                    new(cloud
 cloud.jengu.dbo.tenant.FleetRegister                                   class
 cloud.jengu.dbo.tenant.FleetRegister                                   digestOf(List):String
 cloud.jengu.dbo.tenant.FleetRegister                                   of(List,Set):List
+cloud.jengu.dbo.tenant.FleetRegister                                   unapproved(List,Set):List
+cloud.jengu.dbo.tenant.FleetRegister.Row                               digest():String
 cloud.jengu.dbo.tenant.FleetRegister.Row                               equals(Object):boolean
 cloud.jengu.dbo.tenant.FleetRegister.Row                               hashCode():int
 cloud.jengu.dbo.tenant.FleetRegister.Row                               new(String,String,String,boolean,cloud.jengu.dbo.tenant.TenantSpec.FleetStep.Posture)
@@ -4036,6 +4038,8 @@ cloud.jengu.dbo.tenant.TenantRuntimeManager                            substrate
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            syncRound():int
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            tenantStates():List
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            troubles():Map
+cloud.jengu.dbo.tenant.TenantRuntimeManager                            unapprovedProcessing(String):List
+cloud.jengu.dbo.tenant.TenantRuntimeManager                            unapprovedRows(String):List
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            wakeupsFor(String):Optional
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            whatTheVersionCouldNotCarry(String):List
 cloud.jengu.dbo.tenant.TenantRuntimeManager.AuthorityConfig            brokerSecrets():Map
@@ -4077,7 +4081,7 @@ cloud.jengu.dbo.tenant.TenantRuntimeManager.TenantRuntime              spec():cl
 cloud.jengu.dbo.tenant.TenantRuntimeManager.TenantRuntime              store():cloud.jengu.dbo.fhir.common.FhirStoreFacade
 cloud.jengu.dbo.tenant.TenantRuntimeManager.TenantRuntime              toString():String
 cloud.jengu.dbo.tenant.TenantSpec                                      acceptedBrokers():List
-cloud.jengu.dbo.tenant.TenantSpec                                      authorised():String
+cloud.jengu.dbo.tenant.TenantSpec                                      authorised():Set
 cloud.jengu.dbo.tenant.TenantSpec                                      broker():String
 cloud.jengu.dbo.tenant.TenantSpec                                      code():String
 cloud.jengu.dbo.tenant.TenantSpec                                      databaseName():String
@@ -4107,7 +4111,7 @@ cloud.jengu.dbo.tenant.TenantSpec                                      new(Strin
 cloud.jengu.dbo.tenant.TenantSpec                                      new(String,String,List,boolean,cloud.jengu.dbo.policy.TenantPolicies,String,String,List,List,cloud.jengu.dbo.tenant.TenantSpec.Scim,List,String,boolean,List,boolean,boolean)
 cloud.jengu.dbo.tenant.TenantSpec                                      new(String,String,List,boolean,cloud.jengu.dbo.policy.TenantPolicies,String,String,List,List,cloud.jengu.dbo.tenant.TenantSpec.Scim,List,String,boolean,List,boolean,boolean,List)
 cloud.jengu.dbo.tenant.TenantSpec                                      new(String,String,List,boolean,cloud.jengu.dbo.policy.TenantPolicies,String,String,List,List,cloud.jengu.dbo.tenant.TenantSpec.Scim,List,String,boolean,List,boolean,boolean,List,Set)
-cloud.jengu.dbo.tenant.TenantSpec                                      new(String,String,List,boolean,cloud.jengu.dbo.policy.TenantPolicies,String,String,List,List,cloud.jengu.dbo.tenant.TenantSpec.Scim,List,String,boolean,List,boolean,boolean,List,Set,String)
+cloud.jengu.dbo.tenant.TenantSpec                                      new(String,String,List,boolean,cloud.jengu.dbo.policy.TenantPolicies,String,String,List,List,cloud.jengu.dbo.tenant.TenantSpec.Scim,List,String,boolean,List,boolean,boolean,List,Set,Set)
 cloud.jengu.dbo.tenant.TenantSpec                                      onlyTheDeploymentDeclaresFleetSteps(cloud.jengu.dbo.tenant.TenantSpec):void
 cloud.jengu.dbo.tenant.TenantSpec                                      parse(String):cloud.jengu.dbo.tenant.TenantSpec
 cloud.jengu.dbo.tenant.TenantSpec                                      pdi():boolean
@@ -4175,6 +4179,20 @@ cloud.jengu.dbo.tenant.TenantState.State                               enum
 cloud.jengu.dbo.tenant.TenantState.State                               valueOf(String):cloud.jengu.dbo.tenant.TenantState.State
 cloud.jengu.dbo.tenant.TenantState.State                               values():cloud.jengu.dbo.tenant.TenantState.State[]
 cloud.jengu.dbo.tenant.TenantState.State                               wire():String
+cloud.jengu.dbo.tenant.UnapprovedProcessing                            class
+cloud.jengu.dbo.tenant.UnapprovedProcessing                            of(String,List,cloud.jengu.dbo.core.api.ObjectStore):List
+cloud.jengu.dbo.tenant.UnapprovedProcessing.Incident                   days():long
+cloud.jengu.dbo.tenant.UnapprovedProcessing.Incident                   equals(Object):boolean
+cloud.jengu.dbo.tenant.UnapprovedProcessing.Incident                   hashCode():int
+cloud.jengu.dbo.tenant.UnapprovedProcessing.Incident                   new(String,String,String,String,Optional)
+cloud.jengu.dbo.tenant.UnapprovedProcessing.Incident                   record
+cloud.jengu.dbo.tenant.UnapprovedProcessing.Incident                   says():String
+cloud.jengu.dbo.tenant.UnapprovedProcessing.Incident                   since():Optional
+cloud.jengu.dbo.tenant.UnapprovedProcessing.Incident                   slot():String
+cloud.jengu.dbo.tenant.UnapprovedProcessing.Incident                   step():String
+cloud.jengu.dbo.tenant.UnapprovedProcessing.Incident                   tenant():String
+cloud.jengu.dbo.tenant.UnapprovedProcessing.Incident                   toString():String
+cloud.jengu.dbo.tenant.UnapprovedProcessing.Incident                   type():String
 cloud.jengu.dbo.tenant.api.Change                                      committedAt():Instant
 cloud.jengu.dbo.tenant.api.Change                                      content():Optional
 cloud.jengu.dbo.tenant.api.Change                                      deleted():boolean

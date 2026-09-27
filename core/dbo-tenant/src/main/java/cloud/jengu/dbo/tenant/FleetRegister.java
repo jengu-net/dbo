@@ -40,6 +40,26 @@ public final class FleetRegister {
      */
     public record Row(String step, String slot, String type, boolean required,
             TenantSpec.FleetStep.Posture posture) {
+
+        /**
+         * This row as one value, which is what a tenant authorises.
+         *
+         * <p><b>Per row, because a brand-new row and a widened one are
+         * different acts.</b> A tenant authorises a whole register in one act —
+         * it writes down every row it read — and the store can still say which
+         * single row is unapproved, so a deployment may halt for a new row
+         * without stopping everything else.
+         *
+         * <p>Over every field a tenant would decide on, the posture included.
+         * A digest that ignored the posture would let a deployment move a row
+         * from <i>not until approved</i> to <i>processed and named</i> while the
+         * tenant's copy still matched, which is precisely how a deployment
+         * would approve its own widening.
+         */
+        public String digest() {
+            return digestOver(step + '\u0000' + slot + '\u0000' + type + '\u0000'
+                    + required + '\u0000' + posture);
+        }
     }
 
     private FleetRegister() {
@@ -65,17 +85,25 @@ public final class FleetRegister {
      */
     public static String digestOf(List<Row> rows) {
         StringBuilder canonical = new StringBuilder();
-        for (Row row : rows) {
-            canonical.append(row.step()).append('\u0000')
-                    .append(row.slot()).append('\u0000')
-                    .append(row.type()).append('\u0000')
-                    .append(row.required()).append('\u0000')
-                    .append(row.posture()).append('\n');
-        }
+        rows.forEach(row -> canonical.append(row.digest()).append('\n'));
+        return digestOver(canonical.toString());
+    }
+
+    /** Which rows this tenant has not authorised: the new ones and the widened. */
+    public static List<Row> unapproved(List<Row> rows, Set<String> authorised) {
+        return rows.stream().filter(row -> !authorised.contains(row.digest())).toList();
+    }
+
+    private static String digestOver(String canonical) {
         try {
             byte[] digest = java.security.MessageDigest.getInstance("SHA-256")
-                    .digest(canonical.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));
-            return java.util.Base64.getUrlEncoder().withoutPadding().encodeToString(digest);
+                    .digest(canonical.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            // Short, because these are written into a tenant's own declaration
+            // by hand as often as by a tool, and a file nobody can read is a
+            // file nobody checks. Sixteen characters of SHA-256 is far more
+            // than enough to tell two rows of one register apart.
+            return java.util.Base64.getUrlEncoder().withoutPadding()
+                    .encodeToString(digest).substring(0, 16);
         } catch (java.security.NoSuchAlgorithmException impossible) {
             throw new IllegalStateException("SHA-256 is part of the platform", impossible);
         }

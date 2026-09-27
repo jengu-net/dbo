@@ -1134,7 +1134,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
         // "a database carrying a durable bootstrap and nothing else" that the
         // module provisioning databases cannot do.
         if (!stepSubstrates.isEmpty() && joiner == null) {
-            joiner = new cloud.jengu.dbo.stream.StepJoiner(stepSubstrates);
+            joiner = new cloud.jengu.dbo.stream.StepJoiner(stepSubstrates, this::notOfferedTo);
             // Tenants already serving when the deployment said what it
             // performs are followed now; the rest are followed as they come
             // up. A deployment declaring its steps after its tenants are up is
@@ -1190,8 +1190,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
             return;
         }
         following.follow(code, new cloud.jengu.dbo.postgres.PgChangeFeed(
-                tenantDataSources.get(code), cloud.jengu.dbo.work.WorkModel.DOMAIN),
-                declinedBy(code));
+                tenantDataSources.get(code), cloud.jengu.dbo.work.WorkModel.DOMAIN));
     }
 
     /**
@@ -1273,11 +1272,76 @@ public final class TenantRuntimeManager implements AutoCloseable {
      */
     public java.util.Optional<Boolean> fleetRegisterChanged(String tenant) {
         TenantRuntime serving = runtimes.get(tenant);
-        if (serving == null || serving.spec().authorised() == null) {
+        if (serving == null || serving.spec().authorised().isEmpty()) {
             return java.util.Optional.empty();
         }
-        return java.util.Optional.of(!serving.spec().authorised()
-                .equals(FleetRegister.digestOf(fleetRegister(tenant))));
+        return java.util.Optional.of(!unapprovedRows(tenant).isEmpty());
+    }
+
+    /**
+     * Which rows this tenant has not authorised — the new ones and the widened.
+     *
+     * <p>Per row rather than per register, because what a deployment may do
+     * about an unapproved row depends on the row: halting for a brand-new one
+     * while the rest of the register carries on is the behaviour decision six
+     * asks for, and a single value over the whole register could not express
+     * it.
+     */
+    public List<FleetRegister.Row> unapprovedRows(String tenant) {
+        TenantRuntime serving = runtimes.get(tenant);
+        return serving == null ? List.of()
+                : FleetRegister.unapproved(fleetRegister(tenant), serving.spec().authorised());
+    }
+
+    /**
+     * Which steps this tenant's work must not reach, because a row it opens is
+     * unapproved and that row says not until it is.
+     *
+     * <p><b>Refusal is available here and nowhere else in this design</b>, and
+     * the reason is the order of events: approval is known BEFORE anything is
+     * sealed, so declining to offer the work actually prevents the processing.
+     * Everywhere downstream the processor already holds the key and only
+     * detection is possible.
+     *
+     * <p>It refuses by not offering rather than by refusing to seal later. The
+     * effect is the same and the failure is cleaner: work never claimed cannot
+     * be work held by a performer that is then told it may not look.
+     */
+    /**
+     * Every row this tenant's work is going through without authorisation.
+     *
+     * <p>The other half of the posture, and the half that carries the cost of
+     * the default running: an incident that stands until the row is authorised,
+     * names what is being opened, and says how long.
+     */
+    public List<UnapprovedProcessing.Incident> unapprovedProcessing(String tenant) {
+        TenantRuntime serving = runtimes.get(tenant);
+        return serving == null ? List.of()
+                : UnapprovedProcessing.of(tenant, unapprovedRows(tenant), serving.engine());
+    }
+
+    /**
+     * What this tenant's work is not offered to, answered each pass.
+     *
+     * <p>Two different facts and one instruction. A tenant DECLINED a step, or
+     * it has not yet authorised a row the deployment says may not run until it
+     * does — and the register is where the difference is readable. From the
+     * joiner's side both mean: leave this tenant's work where it is.
+     */
+    private Set<String> notOfferedTo(String tenant) {
+        Set<String> notOffered = new java.util.LinkedHashSet<>(declinedBy(tenant));
+        notOffered.addAll(withheldFrom(tenant));
+        return notOffered;
+    }
+
+    Set<String> withheldFrom(String tenant) {
+        Set<String> withheld = new java.util.LinkedHashSet<>();
+        for (FleetRegister.Row row : unapprovedRows(tenant)) {
+            if (row.posture() == TenantSpec.FleetStep.Posture.NOT_UNTIL_APPROVED) {
+                withheld.add(row.step());
+            }
+        }
+        return withheld;
     }
 
     /**

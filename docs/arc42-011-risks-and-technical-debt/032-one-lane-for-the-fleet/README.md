@@ -774,9 +774,44 @@ different one.
 `REQ-DBO-PROC-A-PROCESSOR-IS-ENROLLED-PER-TENANT` and
 `REQ-DBO-PROC-A-TENANT-AUTHORISES-A-REGISTER-AND-SEES-IT-CHANGE`.
 
-**What is left of step 7 is now only the two postures**, and they are ordinary
-work: the enrolment they waited on exists, so *not until approved* has a record
-to refuse to seal to and *processed and named* has an incident to raise.
+**Step 7 is complete.** The postures obey, and building them changed one thing
+that had been committed a step earlier.
+
+**Authorisation had to become per ROW.** It was one digest over the whole
+register, which can say *something changed* and not *which row* — and decision
+six needs the second, because a deployment may halt for a brand-new row without
+stopping everything else. So a tenant now writes down every row it read, each by
+its own digest: all at once, because a tenant approving rows one at a time could
+never be sure it had finished, and per row, because the store must still be able
+to name the one that is new. The two sounded opposed and were not.
+
+**Not until approved withholds the work entirely**, rather than sealing it and
+refusing later. The effect is the same and the failure is cleaner: work never
+claimed cannot be work held by a performer that is then told it may not look.
+This is the one real refusal in the design, and it is real only because approval
+is known BEFORE anything is sealed.
+
+**Processed and named runs, and the incident carries the cost.** It names the
+tenant, the step and what is opened, stands until the row is authorised, and
+says how long — from the tenant's own records rather than a clock this store
+keeps, because the earliest run of that step is durable across restarts and a
+remembered timestamp would reset every time the deployment did.
+
+**Applied raises nothing**, which the first attempt got wrong: it reported every
+row as unauthorised, including the ones running under terms the tenant agreed to
+by joining. Crying wolf about a deployment that stated its terms up front is
+exactly how an incident stops being acted on.
+
+**And the withheld set is ASKED each pass, never cached.** The first attempt
+held it from when the tenant was followed, so authorising a row left its work
+withheld until something restarted — stale at precisely the moment it mattered,
+since the whole point of classifying these fields `hot` is that granting or
+withdrawing authorisation costs no outage.
+
+*Proven by:* `AnUnauthorisedRowObeysItsPostureIT`, claiming
+`REQ-DBO-PROC-AN-UNAUTHORISED-ROW-OBEYS-ITS-POSTURE` — three postures and three
+answers; the withheld row raising no incident because nothing happened under it;
+and authorising one row releasing that step while the other's incident stands.
 
 **The second of those three is done.** A tenant admits a step by saying
 nothing and declines it with one line, and a declined step is offered that

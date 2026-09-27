@@ -25,7 +25,7 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
         List<Dependency> dependencies, Scim scim, List<String> mandatorySteps,
         String managedBy, boolean faceRoot, List<Step> steps, boolean zoneRoot,
         boolean indexFace, List<FleetStep> fleetSteps, Set<String> declines,
-        String authorised) {
+        Set<String> authorised) {
 
     /**
      * A step this tenant offers, and the documents a run of it is over.
@@ -233,7 +233,7 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
             boolean indexFace, List<FleetStep> fleetSteps, Set<String> declines) {
         this(code, face, types, pdi, policies, zone, broker, acceptedBrokers,
                 dependencies, scim, mandatorySteps, managedBy, faceRoot, steps, zoneRoot,
-                indexFace, fleetSteps, declines, null);
+                indexFace, fleetSteps, declines, Set.of());
     }
 
     /**
@@ -741,14 +741,20 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
                 // is the exception — and a step the deployment REQUIRES cannot
                 // be among them, which is refused where the levels meet.
                 Set.copyOf(Json.strings(root, "declines")),
-                // WHICH REGISTER THIS TENANT AUTHORISED, as the register's own
-                // digest. One value for the whole of it, because enrolment is
-                // per tenant and has to be answerable all at once: a tenant
-                // approving rows one at a time could never be sure it had
-                // finished, and a deployment could widen what it opens by
-                // adding a row nobody noticed. Absent means it has not read one
-                // yet, which is a real state and not a default to paper over.
-                Json.strOpt(root, "authorised"));
+                // WHICH ROWS THIS TENANT AUTHORISED, each by its own digest.
+                //
+                // All at once AND per row, which sound opposed and are not: a
+                // tenant reads one register and writes down every row of it in
+                // one act, so it is never left unsure whether it has finished —
+                // and because the rows are individually named, the store can
+                // still say which single one is new or widened. A deployment may
+                // then halt for that row without stopping everything else, which
+                // is what decision six asks for and what one digest over the
+                // whole register could not give.
+                //
+                // Empty means it has read none, which is a real state and a
+                // different answer from having read a different one.
+                Set.copyOf(Json.strings(root, "authorised")));
     }
 
     /**
