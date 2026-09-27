@@ -58,6 +58,21 @@ tasks.jar {
                 // computed: the container's own packages, and none of the
                 // private stack's optional reach.
                 "Import-Package: " + listOf(
+                    // ITS OWN EXPORTED PACKAGE, so the export is SUBSTITUTABLE.
+                    //
+                    // An assembly may share this package with the application:
+                    // the system bundle then exports it and every bundle that
+                    // imports it wires to the application's copy, which is
+                    // what holds one class space. A bundle that exports
+                    // without importing opts out of that for its OWN code —
+                    // so the door a tenant runtime constructs would be the
+                    // application's class and the lane this bundle's activator
+                    // constructs would be this bundle's, two classes with one
+                    // name, and anything passing an instance between them
+                    // fails on first use. Where nothing else exports it the
+                    // import resolves to this bundle's own export and nothing
+                    // changes.
+                    "cloud.jengu.dbo.stream;version=\"[0.1,1)\"",
                     "javax.naming;resolution:=optional",
                     // NOT optional, and the one import here that a running
                     // container needs rather than tolerates: every connection

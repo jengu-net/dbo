@@ -80,6 +80,11 @@ public final class BundleSet {
             return header == null ? "" : header;
         }
 
+        String imports() {
+            String header = manifest.getMainAttributes().getValue("Import-Package");
+            return header == null ? "" : header;
+        }
+
         /**
          * Whether this one attaches to another bundle rather than running.
          *

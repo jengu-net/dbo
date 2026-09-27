@@ -68,6 +68,7 @@ final class SharedPackages {
                     + "provides");
         }
         refuseAnOpenSet(shared, bundles);
+        refuseAnExportThatIsNotSubstitutable(shared, bundles);
         if (slf4j != null) {
             // The whole of the logging bridge. The application already has a
             // binding, and two providers of org.slf4j in one framework is a
@@ -83,6 +84,58 @@ final class SharedPackages {
         versions.forEach((name, version) -> declared.add(
                 version == null ? name : name + ";version=\"" + version + "\""));
         return String.join(",", declared);
+    }
+
+    /**
+     * Refuses a shared package whose own bundle does not import it.
+     *
+     * <p>Sharing works by SUBSTITUTION. The system bundle exports the package,
+     * and a bundle that both exports and imports it has its import wired to
+     * the system bundle — bundle zero wins a tie — so the bundle's own code,
+     * every other bundle, and the application outside the framework all hold
+     * one class.
+     *
+     * <p>A bundle that exports without importing opts out of that for itself
+     * alone. It keeps its own copy while everything else wires to the
+     * application's, and the result is two classes with one name in one JVM.
+     * Nothing fails at boot: the container starts, every bundle resolves, and
+     * the first instance that crosses between them meets a cast that cannot
+     * succeed.
+     *
+     * <p>That is not hypothetical either. `dbo-stream` exported its package
+     * without importing it: a door constructed by the tenant runtime was the
+     * application's class and a lane constructed by the same bundle's own
+     * activator was the bundle's, measured as two loaders in one JVM, with
+     * every test passing.
+     *
+     * <p>Checked here rather than by a test over the bundles, because the set
+     * an assembly shares is the assembly's own and this is the one place that
+     * knows both halves: which packages are shared, and what the bundles
+     * carrying them actually declare.
+     */
+    private static void refuseAnExportThatIsNotSubstitutable(java.util.Set<String> shared,
+            List<BundleSet.Found> bundles) {
+        java.util.SortedSet<String> kept = new java.util.TreeSet<>();
+        for (BundleSet.Found bundle : bundles) {
+            java.util.Set<String> imported = new java.util.HashSet<>();
+            for (String clause : clausesOf(bundle.imports())) {
+                imported.add(nameOf(clause));
+            }
+            for (String clause : clausesOf(bundle.exports())) {
+                String name = nameOf(clause);
+                if (shared.contains(name) && !imported.contains(name)) {
+                    kept.add(name + " (exported by " + bundle.symbolicName() + ")");
+                }
+            }
+        }
+        if (!kept.isEmpty()) {
+            throw new IllegalStateException("a shared package is exported by a bundle that does "
+                    + "not import it, so that bundle would keep its own copy while every other "
+                    + "bundle and the application wire to the system bundle's — two classes "
+                    + "with one name, resolving cleanly and failing on the first instance that "
+                    + "crosses between them: " + kept + ". Add the package to that bundle's "
+                    + "Import-Package so its export is substitutable.");
+        }
     }
 
     /**

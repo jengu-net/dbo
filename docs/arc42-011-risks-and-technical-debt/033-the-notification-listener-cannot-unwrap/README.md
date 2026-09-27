@@ -1,16 +1,13 @@
-**Open, and down to one half of two. The smaller half is fixed and measured:
-a lane's pool resolved its driver by NAME, which is resolved globally, so it
-was built from the application's copy while the same bundle asked the
-container's for the interface. It resolves the driver through its own wiring
-now, and the probe that found the crossing reports `unwrap=OK` for the lane
-where it reported `FAILED`. The half that
-is left is the reason there were two copies to choose between: under an
-application built on the Spring Boot assemblies `dbo-stream` is loaded TWICE,
-once as a bundle and once from the application's own classpath, and every door
-is the classpath's copy asking the classpath's interface and being handed the
-bundle's connection. The shipped distribution has none of it. What the
-remaining warnings report is a second class space, which the assemblies are
-supposed not to have.**
+**Open, and down to one crossing. Two of the three are fixed and each was
+smaller than it looked: a lane's pool named its driver by string, which is
+resolved globally, and `dbo-stream` exported its package without importing it,
+so its export was not substitutable and its own code kept a copy while
+everything else wired to the application's. One class space now, proven. What
+remains is the driver package itself — `org.postgresql` is NOT in any
+assembly's shared set, so the application's copy and the container's driver
+bundle's copy are two classes, and a door whose code is now the application's
+asks the application's interface of a connection the tenant's pool made from
+the bundle's. The warning is still there.**
 
 # The notification listener cannot unwrap a pooled connection
 
@@ -119,23 +116,72 @@ a line, because the assemblies are the shape an integrator copies.
 Correctness, today. The poll underneath is what the listener sits on top of,
 by design, and the fallback is the ordinary path rather than a degraded one.
 
-## What has to be decided
+## What it turned out to be, and the question was wrongly put
 
-Whether the assemblies should stop putting the store's bundles on the
-application classpath, or whether the container should be told those packages
-are the system bundle's. It is a packaging decision with a blast radius, and
-the three container tests are what would say whether an answer resolves.
+The question asked whether the assemblies should stop putting the store's
+bundles on the application classpath, or whether the container should be told
+those packages are the system bundle's. **It already is**, deliberately, and
+that mechanism is the whole of how an application and a container hold one
+class space: an assembly names the packages it shares, the system bundle
+exports them, and a bundle whose export is SUBSTITUTABLE — exported and
+imported both — has its own import wired to the system bundle, so the bundle's
+code, every other bundle and the application outside the framework hold one
+class.
 
-Worth deciding beside it: `AHostOfTwoHalvesReachesOneContainerTest` passes
-while this is true. Whatever is chosen, that test is not asserting what its
-name claims, and a test that would have caught this is part of the answer
-rather than an afterthought to it.
+**`dbo-stream` exported `cloud.jengu.dbo.stream` and did not import it.** Its
+hand-written closed `Import-Package` suppressed the substitutable import bnd
+would otherwise emit, so it opted out of the mechanism for its own code alone
+— while `dbo-tenant`, which re-exports the same package substitutably, wired to
+the application's copy. That is the two classes: a door the tenant runtime
+constructs and a lane this bundle's activator constructs, measured as two
+loaders in one JVM, with nothing failing at boot.
 
-## What proving the rest looks like
+One clause fixes it. Measured after: the door and the lane report the same
+class on the same loader.
 
-A run of `:samples:spring-boot-worker-app:test` whose output contains the line
-zero times — it still contains it, from the doors — with `AStreamLaneIsToldItHasWorkIT`,
-which depends on the wake-up actually arriving, still passing, and the three
-container tests still green. All three are needed: the warning can be silenced
-by switching notification off, and that is the fix this item is not asking
-for.
+**And it did not silence the warning**, which is the finding rather than a
+disappointment. Merging the class space for `cloud.jengu.dbo.stream` moved the
+door's code onto the application's classloader — so the door now asks for
+`org.postgresql.PGConnection` as the APPLICATION resolves it, while the
+connection it is handed comes from `dbo-tenant`'s pool, built with the
+container's driver bundle. `org.postgresql` is in no assembly's shared set, so
+those are two classes, and the unwrap still cannot succeed.
+
+So the crossing is now in one place and has one shape: **the driver package is
+not shared while the code that unwraps it is**. The candidates are to share
+`org.postgresql` the way the store's own packages are shared, or to have the
+door resolve its interface the same way its connection was made — the second
+being what fixed the lane. Which is right is not obvious: the driver bundle
+carries a large surface, and sharing a third party's package is a different
+act from sharing one's own.
+
+**And the refusal is at boot, where the set is computed.** `SharedPackages`
+already refuses a shared set that is not closed over what its own API refers
+to; it now also refuses a shared package whose exporting bundle does not import
+it, naming the package and the bundle. Proven both ways — removing the clause
+makes the container refuse to start rather than start wrongly.
+
+Checked at boot rather than by a test walking every bundle, and the difference
+matters: whether a package is shared is an **assembly's** decision, so a bundle
+cannot know whether it is in that set. A test over every bundle would demand
+substitutable exports from seven that have never been shared and have never
+been a problem.
+
+**One correction to this item's own note.** It said
+`AHostOfTwoHalvesReachesOneContainerTest` was not asserting what its name
+claims. That was unfair: its javadoc says plainly that no container is started
+and what it asserts is the wiring of two assemblies' configuration. The
+class-space claim lives in `EmbeddedContainerIT`, and what was missing was not
+an honest test but the boot check above.
+
+## What is proven, and what is not
+
+**Proven:** the door and the lane report one class on one loader where they
+reported two; the container refuses to start when the clause is removed; the
+three container tests are green with it in place.
+
+**Not proven, because it is not true yet:** the warning is gone. A run of
+`:samples:spring-boot-worker-app:test` still carries it, from the doors. That
+is what the remaining crossing costs, and it is the measure this item closes
+on — with `AStreamLaneIsToldItHasWorkIT` still passing, so that notification
+was made to work rather than switched off.
