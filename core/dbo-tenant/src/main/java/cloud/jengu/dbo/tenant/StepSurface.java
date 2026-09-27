@@ -205,39 +205,33 @@ final class StepSurface implements HttpHandler {
         }
         Object body = Json.parse(new String(exchange.getRequestBody().readAllBytes(),
                 StandardCharsets.UTF_8));
-        Map<String, String> inputs = new LinkedHashMap<>();
+        Map<String, Object> given = new LinkedHashMap<>();
         if (Json.objOpt(body, "inputs") instanceof Map<?, ?> named) {
-            named.forEach((slot, reference) ->
-                    inputs.put(String.valueOf(slot), String.valueOf(reference)));
+            named.forEach((slot, filled) -> given.put(String.valueOf(slot), filled));
         }
         // The slot's declared shape is a promise about what a run of it is
-        // over, so a reference of another type is refused here rather than
-        // becoming a run that can reach something the step never described.
+        // over, so anything else is refused here rather than becoming a run
+        // that can reach something the step never described.
+        Map<String, cloud.jengu.dbo.work.RunSlot> inputs = new LinkedHashMap<>();
         for (Map.Entry<String, String> slot : slots.entrySet()) {
             cloud.jengu.dbo.core.process.SlotShape shape =
                     cloud.jengu.dbo.core.process.SlotShape.of(slot.getValue());
-            if (!shape.referred() || shape.many()) {
-                // DECLARABLE, NOT YET CARRIED. A slot filled with objects
-                // rather than references, or with several of either, is read
-                // and refused by name — because the alternative while it is
-                // being built is a run that is created, looks right, and
-                // arrives at a performer with the slot empty.
-                fail(exchange, 501, "not_implemented", "slot '" + slot.getKey() + "' is "
-                        + "declared '" + shape.declared() + "', and a run over objects given "
-                        + "with it, or over several of anything, is not carried yet: this "
-                        + "store starts runs over 'Reference(<Type>)' slots");
-                return;
+            Object filled = given.get(slot.getKey());
+            if (filled == null) {
+                // Left to the engine, which refuses an unfilled slot by name
+                // and is the one place that rule lives.
+                continue;
             }
-            String reference = inputs.get(slot.getKey());
-            if (reference != null && !reference.startsWith(shape.type() + "/")) {
-                fail(exchange, 400, "invalid_request", "slot '" + slot.getKey() + "' takes "
-                        + shape.declared() + " and was given '" + reference + "'");
+            try {
+                inputs.put(slot.getKey(), fill(slot.getKey(), shape, filled));
+            } catch (IllegalArgumentException wrong) {
+                fail(exchange, 400, "invalid_request", wrong.getMessage());
                 return;
             }
         }
         String scope = Optional.ofNullable(Json.strOpt(body, "scope"))
                 .orElseGet(cloud.jengu.dbo.core.UuidV7::newId);
-        Run run = runs.of(declaration(stepCode, slots), RunKind.PIPELINE, scope, inputs);
+        Run run = runs.filling(declaration(stepCode, slots), RunKind.PIPELINE, scope, inputs);
         // The key as well as the id, because they answer different questions
         // and only one of them is this surface's. The id addresses the
         // context; the key is the name the rest of the work model is asked by
@@ -247,6 +241,84 @@ final class StepSurface implements HttpHandler {
         respond(exchange, 201, "{\"run\":" + quote(run.id()) + ",\"key\":" + quote(run.key())
                 + ",\"step\":" + quote(stepCode)
                 + ",\"context\":" + quote(runPath + "/" + run.id() + "/fhir") + "}");
+    }
+
+    /**
+     * One slot, read against what it was declared to take.
+     *
+     * <p>The request's shape and the declaration's have to agree, and this is
+     * the only place they are compared: a reference where an object was
+     * declared reaches a performer as a string it cannot resolve, and an
+     * object where a reference was declared is data nobody asked to be sent.
+     * Both are refused by name.
+     *
+     * <p>An object is checked for being the declared type and nothing more.
+     * Whether it is a VALID one of them is the face's question, asked where a
+     * payload is at hand against the profiles that tenant holds — and asking
+     * it here would be a second validator, differing.
+     */
+    private static cloud.jengu.dbo.work.RunSlot fill(String name,
+            cloud.jengu.dbo.core.process.SlotShape shape, Object filled) {
+        if (filled instanceof List<?> several) {
+            if (!shape.many()) {
+                throw new IllegalArgumentException("slot '" + name + "' takes "
+                        + shape.declared() + " — one of them — and was given a list");
+            }
+            if (several.isEmpty()) {
+                throw new IllegalArgumentException("slot '" + name + "' was given an empty "
+                        + "list, and an unfilled slot is not a filled one: every declared "
+                        + "slot is mandatory");
+            }
+            List<String> values = new java.util.ArrayList<>();
+            for (Object one : several) {
+                values.add(value(name, shape, one));
+            }
+            return shape.referred()
+                    ? cloud.jengu.dbo.work.RunSlot.referringTo(values)
+                    : cloud.jengu.dbo.work.RunSlot.givenAll(values);
+        }
+        if (shape.many()) {
+            throw new IllegalArgumentException("slot '" + name + "' takes " + shape.declared()
+                    + " and was given one value rather than a list of them");
+        }
+        String one = value(name, shape, filled);
+        return shape.referred()
+                ? cloud.jengu.dbo.work.RunSlot.referring(one)
+                : cloud.jengu.dbo.work.RunSlot.given(one);
+    }
+
+    /** One value of a slot: a reference of the declared type, or an object of it. */
+    private static String value(String name,
+            cloud.jengu.dbo.core.process.SlotShape shape, Object one) {
+        if (shape.referred()) {
+            if (one instanceof Map<?, ?>) {
+                throw new IllegalArgumentException("slot '" + name + "' takes "
+                        + shape.declared() + " and was given an object. A reference names "
+                        + "something this tenant already holds; to send the object itself the "
+                        + "step declares the slot '" + shape.type() + "'");
+            }
+            String reference = String.valueOf(one);
+            if (!reference.startsWith(shape.type() + "/")) {
+                throw new IllegalArgumentException("slot '" + name + "' takes "
+                        + shape.declared() + " and was given '" + reference + "'");
+            }
+            return reference;
+        }
+        if (!(one instanceof Map<?, ?> object)) {
+            throw new IllegalArgumentException("slot '" + name + "' takes " + shape.declared()
+                    + " — the object itself — and was given '" + one + "'. To name something "
+                    + "this tenant already holds, the step declares the slot 'Reference("
+                    + shape.type() + ")'");
+        }
+        Object said = object.get("resourceType");
+        if (!shape.type().equals(String.valueOf(said))) {
+            throw new IllegalArgumentException("slot '" + name + "' takes " + shape.declared()
+                    + " and was given a '" + said + "'");
+        }
+        // The wire writer, because this module has a parser and no renderer.
+        // A parsed object written back is the same object: what came in was
+        // JSON and the maps and lists it became carry nothing else.
+        return cloud.jengu.dbo.core.wire.RecordWire.write(object);
     }
 
     /** What the engine is handed: the slots, with the face type as the shape. */

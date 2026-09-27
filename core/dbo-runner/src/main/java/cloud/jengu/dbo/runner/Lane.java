@@ -329,7 +329,34 @@ public interface Lane {
      * <p>Empty today: a claimable run names no inputs yet, and
      * an empty map is the honest answer rather than a placeholder.
      */
-    Map<String, StoredObject> inputs(Run run);
+    Map<String, java.util.List<StoredObject>> inputs(Run run);
+
+    /**
+     * What the manifest calls each slot's values.
+     *
+     * <p>A reference names itself. A given object does not go here at all: the
+     * manifest is readable by whoever carries the work, so a token stands in
+     * its place and the object travels as a sealed payload under that name.
+     */
+    /**
+     * Whether this run names that input, by the name the wire calls it.
+     *
+     * <p>Asked through the tokens rather than the recorded values, because for
+     * a referred slot the two are the same string and for a given one they are
+     * not: what travels is a token, what is recorded is the object, and a
+     * check against the object would refuse every opening of something given
+     * with the run.
+     */
+    private static boolean names(Run run, String reference) {
+        return run.inputs().entrySet().stream()
+                .anyMatch(slot -> slot.getValue().tokens(slot.getKey()).contains(reference));
+    }
+
+    private static Map<String, java.util.List<String>> named(Run run) {
+        Map<String, java.util.List<String>> named = new java.util.LinkedHashMap<>();
+        run.inputs().forEach((slot, filled) -> named.put(slot, filled.tokens(slot)));
+        return named;
+    }
 
     /**
      * The same inputs as work leaves the tenant: a manifest anybody carrying
@@ -737,7 +764,7 @@ public interface Lane {
             }
 
             @Override
-            public Map<String, StoredObject> inputs(Run run) {
+            public Map<String, java.util.List<StoredObject>> inputs(Run run) {
                 // The read the javadoc above promises to guard: a run this
                 // identity has not claimed is refused, because the claim is
                 // the entitlement — not the asking.
@@ -762,7 +789,8 @@ public interface Lane {
                     throw new IllegalStateException(tenant + ": '" + identity.name()
                             + "' enrolled with a key, and its inputs travel sealed");
                 }
-                Map<String, StoredObject> resolved = new java.util.LinkedHashMap<>();
+                Map<String, java.util.List<StoredObject>> resolved =
+                        new java.util.LinkedHashMap<>();
                 if (objects != null) {
                     // This read IS the opening, today: the objects arrive in
                     // the clear, so resolving them is the moment the participant
@@ -773,12 +801,26 @@ public interface Lane {
                     String outer = cloud.jengu.dbo.core.api.Caller.run();
                     cloud.jengu.dbo.core.api.Caller.setRun(current.key());
                     try {
-                        current.inputs().forEach((slot, reference) -> {
-                            int slash = reference.indexOf('/');
-                            if (slash > 0 && reference.indexOf('/', slash + 1) < 0) {
-                                objects.get(reference.substring(0, slash),
-                                                reference.substring(slash + 1))
-                                        .ifPresent(object -> resolved.put(slot, object));
+                        current.inputs().forEach((slot, filled) -> {
+                            java.util.List<StoredObject> held = new java.util.ArrayList<>();
+                            for (String value : filled.values()) {
+                                if (!filled.referred()) {
+                                    // Already here. A given object was carried
+                                    // by the run and there is nothing to look
+                                    // up — which is the whole difference
+                                    // between the two forms from this side.
+                                    held.add(cloud.jengu.dbo.work.RunSlot.asObject(value));
+                                    continue;
+                                }
+                                int slash = value.indexOf('/');
+                                if (slash > 0 && value.indexOf('/', slash + 1) < 0) {
+                                    objects.get(value.substring(0, slash),
+                                                    value.substring(slash + 1))
+                                            .ifPresent(held::add);
+                                }
+                            }
+                            if (!held.isEmpty()) {
+                                resolved.put(slot, java.util.List.copyOf(held));
                             }
                         });
                     } finally {
@@ -853,14 +895,30 @@ public interface Lane {
                     // is used, through opened().
                     cloud.jengu.dbo.core.api.Disclosure.toSeal();
                     try {
-                        current.inputs().forEach((slot, reference) -> {
-                            int slash = reference.indexOf('/');
-                            if (slash > 0 && reference.indexOf('/', slash + 1) < 0) {
-                                objects.get(reference.substring(0, slash),
-                                                reference.substring(slash + 1))
-                                        .ifPresent(object -> payload.add(
-                                                cloud.jengu.dbo.work.SealedPayload.seal(
-                                                        slot, reference, object, recipients)));
+                        current.inputs().forEach((slot, filled) -> {
+                            for (int at = 0; at < filled.values().size(); at++) {
+                                String value = filled.values().get(at);
+                                if (!filled.referred()) {
+                                    // SEALED LIKE ANY OTHER, under the token
+                                    // the manifest names it by. The manifest
+                                    // is readable by whoever carries the work,
+                                    // so the object goes here and its name
+                                    // goes there.
+                                    payload.add(cloud.jengu.dbo.work.SealedPayload.seal(
+                                            slot, cloud.jengu.dbo.work.RunSlot.token(slot, at),
+                                            cloud.jengu.dbo.work.RunSlot.asObject(value),
+                                            recipients));
+                                    continue;
+                                }
+                                int slash = value.indexOf('/');
+                                if (slash > 0 && value.indexOf('/', slash + 1) < 0) {
+                                    String reference = value;
+                                    objects.get(value.substring(0, slash),
+                                                    value.substring(slash + 1))
+                                            .ifPresent(object -> payload.add(
+                                                    cloud.jengu.dbo.work.SealedPayload.seal(
+                                                            slot, reference, object, recipients)));
+                                }
                             }
                         });
                     } finally {
@@ -872,7 +930,7 @@ public interface Lane {
                         // because that is the name a fleet routes on.
                         new cloud.jengu.dbo.work.Manifest(tenant,
                                 current.process() + "." + current.step(), current.key(),
-                                current.inputs(), List.copyOf(recipients.keySet()),
+                                named(current), List.copyOf(recipients.keySet()),
                                 head(current)),
                         payload);
             }
@@ -881,7 +939,7 @@ public interface Lane {
             public cloud.jengu.dbo.work.SealedPayload identified(Run run, String reference,
                     String purpose) {
                 Run current = claimedByThisIdentity(run);
-                if (!current.inputs().containsValue(reference)) {
+                if (!names(current, reference)) {
                     throw new IllegalStateException(tenant + ": run '" + current.key()
                             + "' names no input '" + reference + "' to identify");
                 }
@@ -921,7 +979,7 @@ public interface Lane {
                             + "' is not a Type/id");
                 }
                 String slot = current.inputs().entrySet().stream()
-                        .filter(input -> reference.equals(input.getValue()))
+                        .filter(input -> input.getValue().values().contains(reference))
                         .map(Map.Entry::getKey).findFirst().orElseThrow();
                 // The read that reassembles, performed HERE: the run is named
                 // so the entry lands on the document with this run as its
@@ -968,7 +1026,7 @@ public interface Lane {
             public String opened(Run run, String reference,
                     cloud.jengu.dbo.work.RunChain.Link link) {
                 Run current = claimedByThisIdentity(run);
-                if (!current.inputs().containsValue(reference)) {
+                if (!names(current, reference)) {
                     throw new IllegalStateException(tenant + ": run '" + current.key()
                             + "' names no input '" + reference + "' to have opened");
                 }

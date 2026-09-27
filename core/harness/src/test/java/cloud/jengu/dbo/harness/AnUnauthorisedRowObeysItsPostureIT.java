@@ -88,11 +88,11 @@ class AnUnauthorisedRowObeysItsPostureIT {
                 {"code":"registry","face":"r4","types":[
                    {"name":"Basic","identity":"internal","handling":"operational"}],
                  "fleetSteps":[
-                   {"code":"%s","slots":{"record":"Basic"},"opens":["record"],
+                   {"code":"%s","slots":{"record":"Reference(Basic)"},"opens":["record"],
                     "substrate":"postures"},
-                   {"code":"%s","slots":{"record":"Basic"},"opens":["record"],
+                   {"code":"%s","slots":{"record":"Reference(Basic)"},"opens":["record"],
                     "posture":"not-until-approved","substrate":"postures"},
-                   {"code":"%s","slots":{"record":"Basic"},"opens":["record"],
+                   {"code":"%s","slots":{"record":"Reference(Basic)"},"opens":["record"],
                     "posture":"applied","substrate":"postures"}]}"""
                 .formatted(NAMED, WITHHELD, APPLIED));
         manager.manages(managementSpec);
@@ -158,7 +158,11 @@ class AnUnauthorisedRowObeysItsPostureIT {
         UnapprovedProcessing.Incident said = standing.stream()
                 .filter(one -> NAMED.equals(one.step())).findFirst().orElseThrow();
         assertEquals("record", said.slot());
-        assertEquals("Basic", said.type());
+        // THE DECLARED FORM, not the bare type: a tenant deciding about a
+        // row is deciding about its OWN data, and Reference(Basic) says
+        // that is what is opened where a bare Basic would mean an object
+        // handed to the step and never held here.
+        assertEquals("Reference(Basic)", said.type());
         assertTrue(said.since().isPresent(),
                 "the incident cannot say when this started, so it reads the same on day one "
                         + "and day ninety and nobody acts on it: " + said.says());

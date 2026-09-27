@@ -102,9 +102,9 @@ class ABeanIsFoundRatherThanWiredIT {
                 {"code":"reg","face":"r4","types":[
                    {"name":"Basic","identity":"internal","handling":"operational"}],
                  "fleetSteps":[
-                   {"code":"%s","slots":{"record":"Basic"},"opens":["record"],
+                   {"code":"%s","slots":{"record":"Reference(Basic)"},"opens":["record"],
                     "substrate":"found"},
-                   {"code":"%s","slots":{"record":"Basic"},"opens":["record"],
+                   {"code":"%s","slots":{"record":"Reference(Basic)"},"opens":["record"],
                     "substrate":"found"}]}"""
                 .formatted(STEP, BESIDE_IT));
         manager.manages(managementSpec);
@@ -183,6 +183,66 @@ class ABeanIsFoundRatherThanWiredIT {
                         + "thing that can tell the difference");
     }
 
+    @Test
+    @Order(4)
+    @DisplayName("a participant asks the tenant's own door for a run of the DEPLOYMENT's step, "
+            + "and the door takes it as readily as one the tenant declared")
+    @Proving(DboPromises.PROC_A_PARTICIPANT_ASKS_FOR_WORK_IT_NEED_NOT_PERFORM)
+    void theDoorTakesAStepTheDeploymentDeclared() throws Exception {
+        // A CREDENTIAL THAT MAY ACT IN WORK, which is all an initiator needs.
+        // There is no second enrolment for asking as against performing: the
+        // participant that may take work of a step may ask for work of it.
+        // 'work', not 'work/<step>'. The step-scoped grant is what a lane
+        // claims with; the step DOOR admits a credential that may act in work
+        // at all, and the two are deliberately not the same scope.
+        manager.authority(TENANT).ensureClient("asker", "asker-secret",
+                java.util.List.of(cloud.jengu.dbo.auth.Scopes.WORK, "work/" + STEP));
+        String record = manager.runtime(TENANT).orElseThrow().engine()
+                .put(PutRequest.create("Basic",
+                        "{\"resourceType\":\"Basic\",\"code\":{\"text\":\"r\"}}"
+                                .getBytes(StandardCharsets.UTF_8))).id();
+
+        var answered = post("/t/" + TENANT + "/step/" + STEP,
+                "{\"inputs\":{\"record\":\"Basic/" + record + "\"}}");
+
+        // 201: the tenant never declared this step and never could — a step
+        // code belongs to one level — and its door starts a run of it anyway,
+        // because the DEPLOYMENT declared it. That is the difference from a
+        // step a participant merely introduced, which the door goes on
+        // refusing.
+        assertEquals(201, answered.statusCode(),
+                "the tenant's own door would not start a run of the deployment's step, so "
+                        + "there is nowhere for fleet work to be authored and the joiner reads "
+                        + "tenants: " + answered.body());
+
+        var unknown = post("/t/" + TENANT + "/step/" + NEVER_DECLARED,
+                "{\"inputs\":{\"record\":\"Basic/" + record + "\"}}");
+        assertEquals(404, unknown.statusCode(),
+                "the door started a run of a step no level declares, so asking for one is a "
+                        + "way in rather than a capability: " + unknown.body());
+    }
+
+    /** As a participant reaches the door: a work credential, and JSON. */
+    private java.net.http.HttpResponse<String> post(String path, String body) throws Exception {
+        String form = "grant_type=client_credentials&client_id=asker"
+                + "&client_secret=asker-secret";
+        java.net.http.HttpClient http = java.net.http.HttpClient.newHttpClient();
+        String base = "http://127.0.0.1:" + manager.port();
+        String granted = http.send(java.net.http.HttpRequest.newBuilder(
+                                java.net.URI.create(base + "/t/" + TENANT + "/oidc/token"))
+                        .header("Content-Type", "application/x-www-form-urlencoded")
+                        .POST(java.net.http.HttpRequest.BodyPublishers.ofString(form)).build(),
+                java.net.http.HttpResponse.BodyHandlers.ofString()).body();
+        java.util.regex.Matcher found = java.util.regex.Pattern
+                .compile("\"access_token\":\"([^\"]+)\"").matcher(granted);
+        assertTrue(found.find(), granted);
+        return http.send(java.net.http.HttpRequest.newBuilder(java.net.URI.create(base + path))
+                        .header("Content-Type", "application/json")
+                        .header("Authorization", "Bearer " + found.group(1))
+                        .POST(java.net.http.HttpRequest.BodyPublishers.ofString(body)).build(),
+                java.net.http.HttpResponse.BodyHandlers.ofString());
+    }
+
     /** A bean that records what it was handed and reports nothing. */
     private FleetWork.Performer bean(String step, ConcurrentLinkedQueue<String> into) {
         return new FleetWork.Performer() {
@@ -193,7 +253,8 @@ class ABeanIsFoundRatherThanWiredIT {
 
             @Override
             public void perform(String tenant, String code, String runId, String runKey,
-                    java.util.Map<String, cloud.jengu.dbo.core.api.StoredObject> inputs,
+                    java.util.Map<String,
+                            java.util.List<cloud.jengu.dbo.core.api.StoredObject>> inputs,
                     FleetWork.Reporting reporting) {
                 // THE SLOT, not just the fact of being called. A bean handed
                 // an empty map would look exactly like a bean handed its work,

@@ -84,9 +84,9 @@ class ATenantReadsWhatIsOpenedOfItsDataIT {
                 {"code":"registry","face":"r4","types":[
                    {"name":"Basic","identity":"internal","handling":"operational"}],
                  "fleetSteps":[
-                   {"code":"%s","slots":{"record":"Basic"},"opens":["record"],
+                   {"code":"%s","slots":{"record":"Reference(Basic)"},"opens":["record"],
                     "required":true,"substrate":"reading"},
-                   {"code":"%s","slots":{"record":"Basic"},"substrate":"reading"}]}"""
+                   {"code":"%s","slots":{"record":"Reference(Basic)"},"substrate":"reading"}]}"""
                 .formatted(PROCESSOR, ROUTER));
         manager.manages(managementSpec);
 
@@ -140,7 +140,8 @@ class ATenantReadsWhatIsOpenedOfItsDataIT {
         FleetRegister.Row row = register.get(0);
         assertEquals(PROCESSOR, row.step());
         assertEquals("record", row.slot());
-        assertEquals("Basic", row.type());
+        // The declared form, which is what says whose data it is.
+        assertEquals("Reference(Basic)", row.type());
         assertTrue(row.required(),
                 "the row does not say the tenant cannot decline it, which is the first thing "
                         + "somebody deciding needs to know");
@@ -200,7 +201,7 @@ class ATenantReadsWhatIsOpenedOfItsDataIT {
         // enrolled. That asymmetry is the whole reason a disagreement is an
         // incident rather than a refusal — the store is told, it does not
         // permit.
-        String reference = held.inputs().get("record");
+        String reference = held.inputs().get("record").one();
         String previous = work.manifest().head();
         String link = cloud.jengu.dbo.work.RunChain.accessLink(
                 previous, held.key(), reference, "performing-bean");
@@ -224,7 +225,7 @@ class ATenantReadsWhatIsOpenedOfItsDataIT {
     }
 
     private List<TenantSpec.FleetStep> declaredSteps() {
-        return List.of(new TenantSpec.FleetStep(PROCESSOR, Map.of("record", "Basic"),
+        return List.of(new TenantSpec.FleetStep(PROCESSOR, Map.of("record", "Reference(Basic)"),
                 java.util.Set.of("record"), true,
                 TenantSpec.FleetStep.Posture.PROCESSED_AND_NAMED, "reading"));
     }

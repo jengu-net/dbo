@@ -159,8 +159,8 @@ class ALaneOverTheStreamIsIndistinguishableIT {
             @Override
             public Outcome perform(Work work) {
                 Map<String, String> inputs = new java.util.TreeMap<>();
-                work.inputs().forEach((slot, object) -> inputs.put(slot,
-                        new String(object.payload(), StandardCharsets.UTF_8)));
+                work.inputs().forEach((slot, objects) -> inputs.put(slot,
+                        new String(objects.get(0).payload(), StandardCharsets.UTF_8)));
                 seen.put(work.run().key(), inputs);
                 return Outcome.done(Map.of("assayed", 1L));
             }
@@ -211,7 +211,7 @@ class ALaneOverTheStreamIsIndistinguishableIT {
         Run closed = runs.byKey(run.key()).orElseThrow();
         assertEquals(Holder.NOBODY, closed.holder(), "closed on the head the opening left");
         List<String> chain = entries(WorkModel.TYPE, closed.id());
-        String specimen = run.inputs().get("specimen").substring("Basic/".length());
+        String specimen = run.inputs().get("specimen").one().substring("Basic/".length());
         assertTrue(chain.stream().anyMatch(e -> e.contains("\"code\":\"travel\"")), chain.toString());
         assertTrue(entries("Basic", specimen).stream()
                         .anyMatch(e -> e.contains("\"code\":\"access\"")

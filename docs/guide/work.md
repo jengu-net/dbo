@@ -93,9 +93,38 @@ type:
 
 ```json title="sample/world/tenants/hogwarts.json"
 "steps": [
-  { "code": "hogwarts.admission.admit", "slots": { "patient": "Patient" } }
+  { "code": "hogwarts.admission.admit", "slots": { "patient": "Reference(Patient)" } }
 ]
 ```
+
+### What fills a slot
+
+A slot says which of four things fills it, in FHIR's own notation:
+
+| Declared | What fills it |
+|---|---|
+| `Reference(Patient)` | one patient this tenant already holds |
+| `Patient` | one patient given with the run, held by nothing else |
+| `Reference(Patient)[]` | several of the first |
+| `Patient[]` | several of the second |
+
+**Referring is what this store adds.** Whoever asks for a run names a record
+without holding it, without being entitled to read it, and without sending it:
+the store resolves the reference where the data already is, and whoever
+performs the step is handed the object. That is why a worker in another
+organisation can be given work about a patient it has never seen and could not
+have fetched.
+
+**Giving is for what has no record.** A proposal, a draft, a document that
+arrived with the request — there is nothing for a reference to point at. It
+travels with the run and is opened by whoever performs it, and this store
+writes it nowhere. A step that decides it should be kept writes it as its own
+act, on its own entitlement, so *this arrived* and *this was kept* stay two
+statements rather than one silent one.
+
+A slot is one or the other and never both, which is why the run records it
+without saying which: a string is a reference, an object is one given here, and
+an array is several of whichever.
 
 It sits in the tenant file beside the types, because it is the same kind of
 statement: what this tenant holds, and what this tenant *does*.

@@ -222,6 +222,26 @@ public final class Runs {
      */
     public Run of(cloud.jengu.dbo.core.process.StepDeclaration step, RunKind kind, String scope,
             Map<String, String> inputs) {
+        // ONE REFERENCE EACH, which is what a slot meant before it could mean
+        // anything else. Kept as its own overload rather than made the general
+        // case: almost every caller fills a slot with one reference, and asking
+        // each to say so twice would be ceremony over the ordinary thing.
+        Map<String, RunSlot> filled = new LinkedHashMap<>();
+        inputs.forEach((slot, reference) -> filled.put(slot, RunSlot.referring(reference)));
+        return filling(step, kind, scope, filled);
+    }
+
+    /**
+     * The same, for slots that carry objects, or several of anything.
+     *
+     * <p>What a slot may hold is the step's to declare and this does not check
+     * it: the declaration lives where the step is declared, and the door that
+     * takes a request is where a request is measured against it. What is
+     * checked here is what has always been checked here — that the slots
+     * filled are the slots declared, and that none is left empty.
+     */
+    public Run filling(cloud.jengu.dbo.core.process.StepDeclaration step, RunKind kind,
+            String scope, Map<String, RunSlot> inputs) {
         for (String slot : inputs.keySet()) {
             if (!step.slots().containsKey(slot)) {
                 throw new IllegalArgumentException(step.id() + " declares no slot '" + slot
@@ -237,13 +257,13 @@ public final class Runs {
         }
         // Kept in DECLARATION order regardless of how the caller's map
         // iterates — the projection renders slots in the step's order.
-        Map<String, String> filled = new LinkedHashMap<>();
-        step.slots().keySet().forEach(slot -> filled.put(slot, inputs.get(slot)));
+        Map<String, RunSlot> ordered = new LinkedHashMap<>();
+        step.slots().keySet().forEach(slot -> ordered.put(slot, inputs.get(slot)));
         String key = step.id() + "/" + scope;
         return byKey(key).orElseGet(() -> write(new State(key, step.id().processId(),
                 step.id().step(), kind, Holder.AUTOMATION, null, null, null, Map.of(), null,
                 List.copyOf(step.writes()), null, Run.Produced.NOTHING, step.version(),
-                java.util.Collections.unmodifiableMap(filled))));
+                java.util.Collections.unmodifiableMap(ordered))));
     }
 
     /**
@@ -964,7 +984,12 @@ public final class Runs {
     private record State(String key, String process, String step, RunKind kind, Holder holder,
             String parent, String correlation, String trace, Map<String, Long> tally, Run.Item item,
             List<String> domains, Run.Assignment assignment, Run.Produced produced,
-            String stepVersion, Map<String, String> inputs, Run.Milestone milestone) {
+            String stepVersion, Map<String, RunSlot> inputs, Run.Milestone milestone) {
+
+        /** A reference is a string; an object is itself. */
+        private static String value(RunSlot slot, String raw) {
+            return slot.referred() ? Json.quoted(raw) : raw;
+        }
 
         /** The pre-inputs shape — every run that fills no slots. */
         State(String key, String process, String step, RunKind kind, Holder holder,
@@ -979,7 +1004,7 @@ public final class Runs {
         State(String key, String process, String step, RunKind kind, Holder holder,
                 String parent, String correlation, String trace, Map<String, Long> tally, Run.Item item,
                 List<String> domains, Run.Assignment assignment, Run.Produced produced,
-                String stepVersion, Map<String, String> inputs) {
+                String stepVersion, Map<String, RunSlot> inputs) {
             this(key, process, step, kind, holder, parent, correlation, trace, tally, item,
                     domains, assignment, produced, stepVersion, inputs, null);
         }
@@ -1074,9 +1099,23 @@ public final class Runs {
             if (!inputs.isEmpty()) {
                 json.append(",\"inputs\":{");
                 boolean first = true;
-                for (Map.Entry<String, String> slot : inputs.entrySet()) {
-                    json.append(first ? "" : ",").append(Json.quoted(slot.getKey()))
-                            .append(':').append(Json.quoted(slot.getValue()));
+                for (Map.Entry<String, RunSlot> slot : inputs.entrySet()) {
+                    json.append(first ? "" : ",").append(Json.quoted(slot.getKey())).append(':');
+                    RunSlot filled = slot.getValue();
+                    // A given object is written as the object it is, not as a
+                    // string holding one: the run's record and the request that
+                    // authored it are then the same shape, and a reader needs
+                    // no marker to tell a reference from an object.
+                    if (filled.many()) {
+                        json.append('[');
+                        for (int at = 0; at < filled.values().size(); at++) {
+                            json.append(at == 0 ? "" : ",")
+                                    .append(value(filled, filled.values().get(at)));
+                        }
+                        json.append(']');
+                    } else {
+                        json.append(value(filled, filled.one()));
+                    }
                     first = false;
                 }
                 json.append('}');

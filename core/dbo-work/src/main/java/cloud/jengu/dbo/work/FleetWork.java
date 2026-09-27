@@ -69,7 +69,7 @@ public final class FleetWork {
     @FunctionalInterface
     public interface Doing {
         void perform(String tenant, String step, String runId, String runKey,
-                Map<String, StoredObject> inputs, Reporting reporting);
+                Map<String, java.util.List<StoredObject>> inputs, Reporting reporting);
     }
 
     /**
@@ -88,8 +88,31 @@ public final class FleetWork {
      *                  would be a slot the performer can do nothing with
      * @param reporting where its account of the work goes
      */
-    public record Taken(Map<String, StoredObject> inputs,
+    public record Taken(Map<String, java.util.List<StoredObject>> inputs,
             Reporting reporting) {
+    }
+
+    /**
+     * The object in a slot that holds one.
+     *
+     * <p>Here rather than left to the caller for the reason {@code Work} has
+     * the same: a step declaring one object should not have to write "the
+     * first of them", because the declaration said there is one. Refused when
+     * there are several, so a performer written for a single slot and handed a
+     * repeating one is told rather than quietly processing a member of it.
+     */
+    public static StoredObject one(Map<String, java.util.List<StoredObject>> inputs,
+            String slot) {
+        java.util.List<StoredObject> held = inputs.get(slot);
+        if (held == null || held.isEmpty()) {
+            throw new IllegalStateException("this run filled no slot '" + slot
+                    + "'; it filled: " + inputs.keySet());
+        }
+        if (held.size() != 1) {
+            throw new IllegalStateException("slot '" + slot + "' holds " + held.size()
+                    + " objects and was asked for one");
+        }
+        return held.get(0);
     }
 
     public interface Performer extends Doing {
@@ -117,7 +140,7 @@ public final class FleetWork {
 
             @Override
             public void perform(String tenant, String code, String runId, String runKey,
-                    Map<String, StoredObject> inputs,
+                    Map<String, java.util.List<StoredObject>> inputs,
                     Reporting reporting) {
                 doing.perform(tenant, code, runId, runKey, inputs, reporting);
             }

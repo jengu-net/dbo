@@ -671,6 +671,19 @@ public enum DboPromises implements Promise {
             + "participant can ask for work it cannot do and a fleet step asked for by one "
             + "external application is performed by a bean inside the deployment."),
 
+    PROC_A_SLOT_IS_REFERRED_OR_GIVEN_AND_MAY_REPEAT(
+            "A slot declares what fills it in FHIR's own notation: 'Reference(T)' for one the "
+            + "tenant already holds, a bare 'T' for one given with the run, and '[]' for "
+            + "several of either. A reference is resolved by the store where the data already "
+            + "is, so whoever authors the run need not hold it, be entitled to read it, or send "
+            + "it. A given object has no record, no id and no version: it travels with the run, "
+            + "is opened by whoever performs the step, and is written to the store by nobody "
+            + "unless that step decides it should be and does so as its own act. A slot is "
+            + "homogeneous, so the run records it without a marker — a string is a reference, "
+            + "an object is given, an array is several — and the door refuses a request whose "
+            + "shape is not the one declared, naming the slot and what it takes. Order within a "
+            + "repeating slot is kept, because a list somebody sent is a list they meant."),
+
     PROC_A_FLEET_PERFORMER_IS_HANDED_ITS_OBJECTS(
             "A fleet performer is handed the run's slots RESOLVED — the objects themselves, not "
             + "the references the run was authored with — on the hold it just took, because the "

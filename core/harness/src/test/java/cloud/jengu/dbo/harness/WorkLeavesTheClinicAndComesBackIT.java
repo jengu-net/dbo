@@ -165,7 +165,9 @@ class WorkLeavesTheClinicAndComesBackIT {
                 () -> new AssertionError("the posted task did not become a run"));
         assertEquals(ASSAY, run.process() + "." + run.step(),
                 "the run names the step the task asked for");
-        assertEquals(Map.of("specimen", "Basic/" + specimenId), run.inputs(),
+        assertEquals(Map.of("specimen",
+                        cloud.jengu.dbo.work.RunSlot.referring("Basic/" + specimenId)),
+                run.inputs(),
                 "the declared slot is filled by what the task named: " + run.inputs());
     }
 
@@ -249,12 +251,12 @@ class WorkLeavesTheClinicAndComesBackIT {
     @Proving(DboPromises.PROC_INPUTS_ARRIVE_WITH_THE_WORK)
     void theInputsArriveWithTheWork() {
         Run held = runs.byKey(runKey).orElseThrow();
-        Map<String, StoredObject> inputs = bench.inputs(held);
+        Map<String, java.util.List<StoredObject>> inputs = bench.inputs(held);
 
         assertTrue(inputs.containsKey("specimen"),
                 "the slot the step declared was resolved by the party that holds the "
                         + "objects: " + inputs.keySet());
-        assertEquals(specimenId, inputs.get("specimen").id(),
+        assertEquals(specimenId, inputs.get("specimen").get(0).id(),
                 "and it is the document the task named, not one the bench asked for");
     }
 

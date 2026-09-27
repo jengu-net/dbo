@@ -135,7 +135,10 @@ class WorkTravelsSealedIT {
         assertTrue(wire.contains("\"tenant\":\"" + TENANT + "\"")
                         && wire.contains("\"step\":\"" + STEP + "\"")
                         && wire.contains("\"run\":\"" + held.key() + "\"")
-                        && wire.contains("\"specimen\":\"Basic/" + specimen + "\""),
+                        // A LIST, because a slot may repeat and the manifest
+                        // says so uniformly rather than one way for one value
+                        // and another for several.
+                        && wire.contains("\"specimen\":[\"Basic/" + specimen + "\"]"),
                 "the manifest is readable — tenant, step, task, references — because "
                         + "routing on it is its job: " + wire);
         assertFalse(wire.contains(MARKER),
@@ -146,9 +149,9 @@ class WorkTravelsSealedIT {
                 "the data key is wrapped to the analyser, and to nobody else: " + wire);
 
         // The analyser's view: the same verb, opened where the key is.
-        Map<String, StoredObject> inputs = lane.inputs(held);
+        Map<String, java.util.List<StoredObject>> inputs = lane.inputs(held);
         assertEquals(1, inputs.size(), inputs.toString());
-        assertTrue(new String(inputs.get("specimen").payload(), StandardCharsets.UTF_8)
+        assertTrue(new String(inputs.get("specimen").get(0).payload(), StandardCharsets.UTF_8)
                 .contains(MARKER), "the analyser, holding the private half, reads the document");
 
         // The trail: the sealing reads recorded nothing on the document —

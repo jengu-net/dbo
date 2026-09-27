@@ -95,9 +95,9 @@ class OneBeanPerformsForEveryTenantIT {
                 {"code":"registry","face":"r4","types":[
                    {"name":"Basic","identity":"internal","handling":"operational"}],
                  "fleetSteps":[
-                   {"code":"%s","slots":{"record":"Basic"},"opens":["record"],
+                   {"code":"%s","slots":{"record":"Reference(Basic)"},"opens":["record"],
                     "substrate":"tidying"},
-                   {"code":"%s","slots":{"record":"Basic"},"opens":["record"],
+                   {"code":"%s","slots":{"record":"Reference(Basic)"},"opens":["record"],
                     "substrate":"tidying"}]}"""
                 .formatted(STEP, BESIDE_IT));
         manager.manages(managementSpec);

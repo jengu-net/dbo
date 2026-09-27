@@ -172,7 +172,7 @@ class DeclaringAStepPreparesItsSubstrateIT {
         for (String step : steps) {
             declared.append(declared.isEmpty() ? "" : ",")
                     .append("{\"code\":\"").append(step)
-                    .append("\",\"slots\":{\"record\":\"Observation\"}")
+                    .append("\",\"slots\":{\"record\":\"Reference(Observation)\"}")
                     .append(step.startsWith("fleet.retention.") ? ",\"substrate\":\"retention\"" : "")
                     .append("}");
         }

@@ -82,9 +82,9 @@ class ATenantAdmitsOrDeclinesWhatIsDoneToItIT {
                 {"code":"registry","face":"r4","types":[
                    {"name":"Basic","identity":"internal","handling":"operational"}],
                  "fleetSteps":[
-                   {"code":"%s","slots":{"record":"Basic"},"opens":["record"],
+                   {"code":"%s","slots":{"record":"Reference(Basic)"},"opens":["record"],
                     "substrate":"admitting"},
-                   {"code":"%s","slots":{"record":"Basic"},"required":true,
+                   {"code":"%s","slots":{"record":"Reference(Basic)"},"required":true,
                     "substrate":"admitting"}]}"""
                 .formatted(OPTIONAL_STEP, REQUIRED_STEP));
         manager.manages(managementSpec);

@@ -209,7 +209,7 @@ class AProcessorIsEnrolledPerTenantIT {
         for (String step : steps) {
             declared.append(declared.isEmpty() ? "" : ",")
                     .append("{\"code\":\"").append(step)
-                    .append("\",\"slots\":{\"record\":\"Basic\"},\"opens\":[\"record\"],")
+                    .append("\",\"slots\":{\"record\":\"Reference(Basic)\"},\"opens\":[\"record\"],")
                     .append("\"substrate\":\"enrolling\"}");
         }
         return """

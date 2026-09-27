@@ -48,7 +48,17 @@ class RecordWireCarriesTheRecordAsDeclaredTest {
                     new Executor("bench-7", "1.2", "cloud.jengu.test", Scope.BASELINE),
                     "the step's own", Instant.parse("2026-08-29T10:15:30Z")),
             new Run.Produced(List.of("Observation/o1/2"), Map.of("Observation", 2L), 1L),
-            "1.0", Map.of("specimen", "Specimen/s1"),
+            // ALL THREE SHAPES, because the wire is where a repeat or a given
+            // object would be quietly flattened: a map of one value per slot
+            // encoded the first and dropped the rest, and this is the cheapest
+            // place for that to fail.
+            "1.0", Map.of(
+                    "specimen", cloud.jengu.dbo.work.RunSlot.referring("Specimen/s1"),
+                    "proposed", cloud.jengu.dbo.work.RunSlot.given(
+                            "{\"resourceType\":\"Basic\"}"),
+                    "notes", cloud.jengu.dbo.work.RunSlot.givenAll(List.of(
+                            "{\"resourceType\":\"Basic\",\"id\":\"a\"}",
+                            "{\"resourceType\":\"Basic\",\"id\":\"b\"}"))),
             new Run.Milestone("validated", 2, 3));
 
     @Test

@@ -48,7 +48,7 @@ public final class Assay implements StepService {
         // The slot is the one the declaration named. Nothing else arrives,
         // and there is no verb here that takes a reference — so a step
         // cannot reach past what the run filled for it.
-        byte[] specimen = work.inputs().get("specimen").payload();
+        byte[] specimen = work.input("specimen").payload();
         if (new String(specimen, StandardCharsets.UTF_8).isBlank()) {
             return Outcome.failed("the specimen arrived empty");
         }

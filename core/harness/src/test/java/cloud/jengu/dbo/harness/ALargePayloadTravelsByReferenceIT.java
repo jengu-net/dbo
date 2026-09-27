@@ -178,7 +178,7 @@ class ALargePayloadTravelsByReferenceIT {
         try (StreamLane lane = StreamLane.holding(substrate, TENANT, "imager", executor(),
                 sealing.getPrivate(), signing.getPrivate())) {
             Run held = lane.claim(heavy, Duration.ofMinutes(5)).orElseThrow();
-            byte[] arrived = lane.inputs(held).get("scan").payload();
+            byte[] arrived = lane.inputs(held).get("scan").get(0).payload();
             // Against the record itself, byte for byte. Not by pulling the
             // text back out with a regex: a greedy match over a payload-sized
             // string backtracks, which costs time quadratic in the document
@@ -192,7 +192,7 @@ class ALargePayloadTravelsByReferenceIT {
             lane.closed(held);
 
             Run also = lane.claim(light, Duration.ofMinutes(5)).orElseThrow();
-            assertTrue(new String(lane.inputs(also).get("scan").payload(), StandardCharsets.UTF_8)
+            assertTrue(new String(lane.inputs(also).get("scan").get(0).payload(), StandardCharsets.UTF_8)
                     .contains(MARKER), "the small document did not arrive");
             lane.closed(also);
         }

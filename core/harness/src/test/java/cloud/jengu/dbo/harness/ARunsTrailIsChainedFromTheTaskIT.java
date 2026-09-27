@@ -301,7 +301,7 @@ class ARunsTrailIsChainedFromTheTaskIT {
     }
 
     private static String reference(Run run, String slot) {
-        return run.inputs().get(slot);
+        return run.inputs().get(slot).one();
     }
 
     /** The run's chain entries as recorded, in the order they were written. */

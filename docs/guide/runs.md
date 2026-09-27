@@ -22,7 +22,7 @@ kind of statement — what this tenant does, and over what:
 
 ```json title="sample/world/tenants/hogwarts.json"
 "steps": [
-  { "code": "hogwarts.admission.admit", "slots": { "patient": "Patient" } }
+  { "code": "hogwarts.admission.admit", "slots": { "patient": "Reference(Patient)" } }
 ]
 ```
 

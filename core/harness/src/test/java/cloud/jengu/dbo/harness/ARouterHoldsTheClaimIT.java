@@ -187,7 +187,7 @@ class ARouterHoldsTheClaimIT {
                 () -> gateway.sealed(held));
         assertTrue(itself.getMessage().contains("'gateway' offered no key"), itself.getMessage());
 
-        String reference = held.inputs().get("specimen");
+        String reference = held.inputs().get("specimen").one();
         IllegalStateException forged = assertThrows(IllegalStateException.class,
                 () -> gateway.opened(held, reference, new RunChain.Link("access",
                         RunChain.root(held), "x", "somebody-else", reference, "sig")));

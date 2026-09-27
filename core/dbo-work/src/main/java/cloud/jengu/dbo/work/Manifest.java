@@ -22,7 +22,20 @@ import java.util.Map;
  * @param recipients the participants the payload beside this is wrapped to
  * @param head       the head of the run's chain as the store holds it, which the next link commits to
  */
-public record Manifest(String tenant, String step, String run, Map<String, String> inputs,
+public record Manifest(String tenant, String step, String run,
+        /*
+         * A LIST PER SLOT, always, even where the slot holds one. The run's own
+         * record writes a single value bare and a repeat as an array, because
+         * that is what the request that authored it looked like; this cannot,
+         * because the wire decodes a record's map against one declared value
+         * type and "a string or a list of them" is not one. Uniform here is the
+         * honest answer to that: a reader of a manifest handles one shape.
+         *
+         * A given object is NOT in here. This is what whoever carries the work
+         * may read, so a token stands in its place and the object travels as a
+         * sealed payload under that name.
+         */
+        Map<String, List<String>> inputs,
         List<String> recipients, String head) {
 
     public Manifest {

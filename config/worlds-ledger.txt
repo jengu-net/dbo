@@ -33,7 +33,7 @@
 # allowance to the actual count; the build fails above it.
 #
 # undecided-allowed: 0
-ABeanIsFoundRatherThanWiredIT                            REASON MISSING
+ABeanIsFoundRatherThanWiredIT                            deployment
 ABlobIsTenantDataIT                                      lifecycle
 AChangeCanBeAskedAboutBeforeItIsMadeIT                   deployment
 ADefinitionIsExpandedWhenItArrivesIT                     first boot

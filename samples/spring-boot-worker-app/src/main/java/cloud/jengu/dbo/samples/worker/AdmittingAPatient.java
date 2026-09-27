@@ -34,7 +34,7 @@ public final class AdmittingAPatient implements StepService {
         // The work arrives whole — the run, and the objects it named. There is
         // nothing to fetch and nowhere to fetch it from, which is what makes
         // "no store here" a design rather than a restriction.
-        byte[] patient = work.inputs().get("patient").payload();
+        byte[] patient = work.input("patient").payload();
         String admitted = new String(patient, StandardCharsets.UTF_8);
 
         // Progress is evidence rather than a heartbeat: it says how far this

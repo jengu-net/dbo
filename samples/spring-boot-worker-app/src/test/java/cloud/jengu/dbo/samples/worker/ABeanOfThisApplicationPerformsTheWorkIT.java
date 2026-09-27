@@ -213,9 +213,11 @@ class ABeanOfThisApplicationPerformsTheWorkIT {
 
     @Test
     @Order(3)
-    @DisplayName("this application asks the tenant for a run of a step it cannot perform, and "
-            + "the deployment performs it — one participant as initiator and as executor")
-    @Proving(DboPromises.PROC_A_PARTICIPANT_ASKS_FOR_WORK_IT_NEED_NOT_PERFORM)
+    @DisplayName("this application asks the tenant for a run of a step it cannot perform, over "
+            + "a referred object, a given one and a list of them, and the deployment performs it")
+    @Proving({DboPromises.PROC_A_PARTICIPANT_ASKS_FOR_WORK_IT_NEED_NOT_PERFORM,
+            DboPromises.PROC_A_SLOT_IS_REFERRED_OR_GIVEN_AND_MAY_REPEAT,
+            DboPromises.PROC_A_FLEET_PERFORMER_IS_HANDED_ITS_OBJECTS})
     void aParticipantAsksForWorkItDoesNotPerform() throws Exception {
         assertTrue(dbo.until(TENANT, true, Duration.ofMinutes(6)),
                 "the tenant never came up, so there is nothing to ask it for: " + dbo.serving());
@@ -244,6 +246,10 @@ class ABeanOfThisApplicationPerformsTheWorkIT {
         // never declared and never could — which is exactly what it refuses
         // for an INTRODUCED step in the test above, and the difference is who
         // wrote the declaration down.
+        // THREE SHAPES IN ONE RUN: the organisation by reference, a proposed
+        // one given with the run, and two notes given as a list. The performer
+        // throws unless all three arrive as the declared type, so a run that
+        // closes below is a run whose every slot was carried and resolved.
         var started = asking.about(TENANT, organisation.idOrFail());
         Proves.that(DboPromises.PROC_A_PARTICIPANT_ASKS_FOR_WORK_IT_NEED_NOT_PERFORM,
                 started.accepted(),

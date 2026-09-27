@@ -145,7 +145,7 @@ class NothingReadableLandsInTheSubstrateIT {
         try (StreamLane lane = StreamLane.holding(substrate, TENANT, "analyser", executor(),
                 sealing.getPrivate(), signing.getPrivate())) {
             Run held = lane.claim(run, Duration.ofMinutes(5)).orElseThrow();
-            assertTrue(new String(lane.inputs(held).get("specimen").payload(), StandardCharsets.UTF_8)
+            assertTrue(new String(lane.inputs(held).get("specimen").get(0).payload(), StandardCharsets.UTF_8)
                     .contains(MARKER), "the analyser read the document, on its side");
             lane.closed(held);
         }

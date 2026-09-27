@@ -33,8 +33,8 @@ class ADeploymentDeclaresItsOwnStepsTest {
             {"code":"%s","face":"r5","types":[
                {"name":"Basic","identity":"internal","handling":"operational"}],
              "fleetSteps":[
-               {"code":"fleet.retention.sweep","slots":{"record":"Basic"}},
-               {"code":"fleet.coding.normalise","slots":{"record":"Basic"},
+               {"code":"fleet.retention.sweep","slots":{"record":"Reference(Basic)"}},
+               {"code":"fleet.coding.normalise","slots":{"record":"Reference(Basic)"},
                 "opens":["record"],"required":true,
                 "posture":"not-until-approved","substrate":"normalising"}]}""";
 
@@ -115,7 +115,7 @@ class ADeploymentDeclaresItsOwnStepsTest {
                 () -> TenantSpec.parse("""
                         {"code":"mom","face":"r5","types":[
                            {"name":"Basic","identity":"internal","handling":"operational"}],
-                         "fleetSteps":[{"code":"fleet.coding.x","slots":{"record":"Basic"},
+                         "fleetSteps":[{"code":"fleet.coding.x","slots":{"record":"Reference(Basic)"},
                            "opens":["somethingElse"]}]}"""));
 
         assertTrue(refused.getMessage().contains("somethingElse")
@@ -132,7 +132,7 @@ class ADeploymentDeclaresItsOwnStepsTest {
                 () -> TenantSpec.parse("""
                         {"code":"mom","face":"r5","types":[
                            {"name":"Basic","identity":"internal","handling":"operational"}],
-                         "fleetSteps":[{"code":"fleet.coding.x","slots":{"record":"Basic"},
+                         "fleetSteps":[{"code":"fleet.coding.x","slots":{"record":"Reference(Basic)"},
                            "posture":"whenever"}]}"""));
 
         assertTrue(refused.getMessage().contains("whenever")

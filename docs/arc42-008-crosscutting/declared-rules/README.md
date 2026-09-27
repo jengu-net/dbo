@@ -20,7 +20,7 @@ is written there, and nothing about it is discovered by reading a class:
     { "name": "rl", "types": ["CodeSystem", "ValueSet"] }
   ],
   "steps": [
-    { "code": "hogwarts.admission.admit", "slots": { "patient": "Patient" } }
+    { "code": "hogwarts.admission.admit", "slots": { "patient": "Reference(Patient)" } }
   ],
   "types": [
     { "name": "Patient", "identity": "identifier", "systems": ["urn:rl:nid"],

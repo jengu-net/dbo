@@ -18,7 +18,7 @@ public record Run(String id, long versionId, String key, String process, String 
         RunKind kind, Holder holder, String parent, String correlation, String trace,
         Map<String, Long> tally, Item item, java.util.List<String> domains,
         Assignment assignment, Produced produced, String stepVersion,
-        Map<String, String> inputs, Milestone milestone) {
+        Map<String, RunSlot> inputs, Milestone milestone) {
 
     /**
      * A run named only by its key, for a verb whose lane reads the store's
@@ -192,10 +192,9 @@ public record Run(String id, long versionId, String key, String process, String 
         }
         // Slot order is declaration order and the projection renders it, so
         // the copy keeps it — Map.copyOf would forget.
-        Map<String, String> inputs = new LinkedHashMap<>();
+        Map<String, RunSlot> inputs = new LinkedHashMap<>();
         if (((Map<?, ?>) json).get("inputs") instanceof Map<?, ?> slots) {
-            slots.forEach((slot, reference) ->
-                    inputs.put(slot.toString(), reference.toString()));
+            slots.forEach((slot, filled) -> inputs.put(slot.toString(), slotOf(filled)));
         }
         Milestone milestone = null;
         if (((Map<?, ?>) json).get("milestone") instanceof Map<?, ?> raw) {
@@ -211,6 +210,50 @@ public record Run(String id, long versionId, String key, String process, String 
                 Map.copyOf(tally), item, java.util.List.copyOf(domains), assignment(json),
                 produced(json), optional(json, "stepVersion"),
                 java.util.Collections.unmodifiableMap(inputs), milestone);
+    }
+
+    /**
+     * One slot, read back from what the run recorded.
+     *
+     * <p>No marker is needed and none is written: a slot is homogeneous, so a
+     * string can only be a reference and an object can only be one given with
+     * the run. A list is several of whichever its members are.
+     *
+     * <p>A bare string is also every run authored before slots could be
+     * anything else, which is why that case reads as one reference rather than
+     * being refused.
+     */
+    private static RunSlot slotOf(Object filled) {
+        if (filled instanceof java.util.List<?> several) {
+            if (several.isEmpty()) {
+                throw new IllegalArgumentException("a slot recorded with no values");
+            }
+            java.util.List<String> values = new java.util.ArrayList<>();
+            boolean referred = !(several.get(0) instanceof Map<?, ?>);
+            for (Object one : several) {
+                if (one instanceof Map<?, ?> object) {
+                    if (referred) {
+                        throw new IllegalArgumentException("a slot mixes references and objects, "
+                                + "and no declaration can say that: a slot is Reference(T)[] or "
+                                + "T[], never both");
+                    }
+                    values.add(Json.render(object));
+                } else {
+                    if (!referred) {
+                        throw new IllegalArgumentException("a slot mixes objects and references, "
+                                + "and no declaration can say that: a slot is Reference(T)[] or "
+                                + "T[], never both");
+                    }
+                    values.add(one.toString());
+                }
+            }
+            return new RunSlot(referred ? RunSlot.Kind.REFERRED : RunSlot.Kind.GIVEN,
+                    values, true);
+        }
+        if (filled instanceof Map<?, ?> object) {
+            return RunSlot.given(Json.render(object));
+        }
+        return RunSlot.referring(filled.toString());
     }
 
     @SuppressWarnings("unchecked")

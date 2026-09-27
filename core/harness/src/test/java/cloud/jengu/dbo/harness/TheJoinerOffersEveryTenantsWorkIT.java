@@ -87,7 +87,7 @@ class TheJoinerOffersEveryTenantsWorkIT {
         Files.writeString(managementSpec, """
                 {"code":"registry","face":"r4","types":[
                    {"name":"Basic","identity":"internal","handling":"operational"}],
-                 "fleetSteps":[{"code":"%s","slots":{"record":"Basic"},"opens":["record"]}]}"""
+                 "fleetSteps":[{"code":"%s","slots":{"record":"Reference(Basic)"},"opens":["record"]}]}"""
                 .formatted(FLEET_STEP));
         manager.manages(managementSpec);
 

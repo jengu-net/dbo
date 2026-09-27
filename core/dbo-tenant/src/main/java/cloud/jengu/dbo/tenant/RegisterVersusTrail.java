@@ -107,7 +107,11 @@ public final class RegisterVersusTrail {
     private static String slotHolding(Run run, String type, String id) {
         String reference = type + "/" + id;
         for (var slot : run.inputs().entrySet()) {
-            if (reference.equals(slot.getValue())) {
+            // ANY OF THEM: a slot may hold several references, and matching
+            // the whole fill against one reference would find nothing — which
+            // reads as a document nobody opened rather than as a register that
+            // stopped noticing.
+            if (slot.getValue().values().contains(reference)) {
                 return slot.getKey();
             }
         }

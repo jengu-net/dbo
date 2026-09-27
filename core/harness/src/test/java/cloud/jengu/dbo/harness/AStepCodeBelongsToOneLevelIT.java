@@ -69,7 +69,7 @@ class AStepCodeBelongsToOneLevelIT {
                 {"code":"registry","face":"r4","types":[
                    {"name":"Observation","identity":"internal","handling":"operational"}],
                  "fleetSteps":[{"code":"%s",
-                   "slots":{"record":"Observation"},"opens":["record"]}]}"""
+                   "slots":{"record":"Reference(Observation)"},"opens":["record"]}]}"""
                 .formatted(CONTESTED));
         management = manager.manages(managementSpec);
     }
@@ -93,7 +93,7 @@ class AStepCodeBelongsToOneLevelIT {
         Files.writeString(dir.resolve("claims-it.json"), """
                 {"code":"claims-it","face":"r4","types":[
                    {"name":"Observation","identity":"internal","handling":"operational"}],
-                 "steps":[{"code":"%s","slots":{"record":"Observation"}}]}"""
+                 "steps":[{"code":"%s","slots":{"record":"Reference(Observation)"}}]}"""
                 .formatted(CONTESTED));
         manager.scanOnce();
 
@@ -122,7 +122,7 @@ class AStepCodeBelongsToOneLevelIT {
         Files.writeString(dir.resolve("offers-its-own.json"), """
                 {"code":"offers-its-own","face":"r4","types":[
                    {"name":"Observation","identity":"internal","handling":"operational"}],
-                 "steps":[{"code":"clinic.review.read","slots":{"record":"Observation"}}]}""");
+                 "steps":[{"code":"clinic.review.read","slots":{"record":"Reference(Observation)"}}]}""");
         UntilServed.scan(manager, "offers-its-own");
 
         assertTrue(manager.codes().contains("offers-its-own"),
@@ -141,7 +141,7 @@ class AStepCodeBelongsToOneLevelIT {
                 {"code":"claims-it","face":"r4","types":[
                    {"name":"Observation","identity":"internal","handling":"operational"}],
                  "steps":[{"code":"clinic.registry.normalise",
-                   "slots":{"record":"Observation"}}]}""");
+                   "slots":{"record":"Reference(Observation)"}}]}""");
         UntilServed.scan(manager, "claims-it");
 
         assertTrue(manager.codes().contains("claims-it"),

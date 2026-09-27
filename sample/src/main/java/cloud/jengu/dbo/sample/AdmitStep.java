@@ -19,7 +19,7 @@ public final class AdmitStep implements StepService {
     public Outcome perform(Work work) {
         // The work arrives whole: the run, and the objects it named. There is
         // nothing to fetch and nowhere to fetch it from.
-        byte[] patient = work.inputs().get("patient").payload();
+        byte[] patient = work.input("patient").payload();
         String admitted = new String(patient, StandardCharsets.UTF_8);
 
         // Long work says how far it has got. The counts extend the claim —

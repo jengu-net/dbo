@@ -88,8 +88,8 @@ class TheWritebackPassesTheTenantsRulesIT {
                 {"code":"registry","face":"r4","types":[
                    {"name":"Basic","identity":"internal","handling":"operational"}],
                  "fleetSteps":[
-                   {"code":"%s","slots":{"record":"Basic"},"opens":["record"],"substrate":"writeback"},
-                   {"code":"%s","slots":{"record":"Basic"},"opens":["record"],"substrate":"writeback"}]}"""
+                   {"code":"%s","slots":{"record":"Reference(Basic)"},"opens":["record"],"substrate":"writeback"},
+                   {"code":"%s","slots":{"record":"Reference(Basic)"},"opens":["record"],"substrate":"writeback"}]}"""
                 .formatted(STEP, JUDGED));
         manager.manages(managementSpec);
 

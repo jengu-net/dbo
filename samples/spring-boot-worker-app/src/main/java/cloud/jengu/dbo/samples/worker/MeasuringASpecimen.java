@@ -68,7 +68,7 @@ public final class MeasuringASpecimen implements StepService {
         // here that takes a reference, so a step cannot reach past what the
         // run filled for it — which is what makes a brought step safe to
         // accept from somebody who is not the tenant.
-        byte[] specimen = work.inputs().get("specimen").payload();
+        byte[] specimen = work.input("specimen").payload();
         if (new String(specimen, StandardCharsets.UTF_8).isBlank()) {
             return Outcome.failed("the specimen arrived empty");
         }

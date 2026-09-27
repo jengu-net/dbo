@@ -250,7 +250,7 @@ class ARemoteLaneIsIndistinguishableIT {
         }
 
         @Override
-        public Map<String, StoredObject> inputs(Run run) {
+        public Map<String, java.util.List<StoredObject>> inputs(Run run) {
             // The resolved objects cross; the store that resolved them does
             // not, which is the whole shape of the verb.
             return across("inputs", () -> farSide.inputs(run));

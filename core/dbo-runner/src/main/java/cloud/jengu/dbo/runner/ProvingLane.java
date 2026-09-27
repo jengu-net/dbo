@@ -70,7 +70,7 @@ public final class ProvingLane implements Lane {
     }
 
     private final String stepId;
-    private final Map<String, StoredObject> inputs;
+    private final Map<String, java.util.List<StoredObject>> inputs;
     /**
      * Whoever asked to be told to look again. Concurrent because the runner
      * subscribes on its own thread while a test fires from its own — the rest
@@ -97,7 +97,8 @@ public final class ProvingLane implements Lane {
     private String reason;
     private int performed;
 
-    private ProvingLane(String stepId, Map<String, StoredObject> inputs, boolean wakeable,
+    private ProvingLane(String stepId, Map<String, java.util.List<StoredObject>> inputs,
+            boolean wakeable,
             boolean quiet) {
         this.stepId = stepId;
         this.inputs = Map.copyOf(inputs);
@@ -119,7 +120,8 @@ public final class ProvingLane implements Lane {
     public static final class Offer {
 
         private final String stepId;
-        private final Map<String, StoredObject> inputs = new LinkedHashMap<>();
+        private final Map<String, java.util.List<StoredObject>> inputs =
+                new LinkedHashMap<>();
         private boolean wakeable;
         private boolean quiet;
 
@@ -157,9 +159,21 @@ public final class ProvingLane implements Lane {
 
         /** One input, as the work will carry it: a name, a type and its bytes. */
         public Offer with(String name, String typeName, String payload) {
-            inputs.put(name, new StoredObject(java.util.UUID.randomUUID().toString(), typeName,
-                    1, Instant.now(), payload.getBytes(StandardCharsets.UTF_8), false,
-                    null, null, null));
+            inputs.computeIfAbsent(name, slot -> new java.util.ArrayList<>())
+                    .add(new StoredObject(java.util.UUID.randomUUID().toString(), typeName,
+                            1, Instant.now(), payload.getBytes(StandardCharsets.UTF_8), false,
+                            null, null, null));
+            return this;
+        }
+
+        /**
+         * The same again for one slot, which is how a repeating slot is
+         * proven: a step declaring {@code T[]} is handed several, and calling
+         * this twice is how an implementor arranges that.
+         */
+        public Offer given(String name, String payload) {
+            inputs.computeIfAbsent(name, slot -> new java.util.ArrayList<>())
+                    .add(cloud.jengu.dbo.work.RunSlot.asObject(payload));
             return this;
         }
 
@@ -329,7 +343,7 @@ public final class ProvingLane implements Lane {
     }
 
     @Override
-    public Map<String, StoredObject> inputs(Run run) {
+    public Map<String, java.util.List<StoredObject>> inputs(Run run) {
         return inputs;
     }
 

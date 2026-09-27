@@ -234,7 +234,7 @@ public class WireLane implements Lane {
     }
 
     @Override
-    public Map<String, StoredObject> inputs(Run run) {
+    public Map<String, java.util.List<StoredObject>> inputs(Run run) {
         if (holding != null) {
             // What this participant holds decides how its work arrives. The
             // far side refuses the clear verb to a keyed identity anyway;
@@ -245,10 +245,20 @@ public class WireLane implements Lane {
     }
 
     /** The clear verb as such — what a keyless participant asks, and what a keyed one never does. */
-    protected Map<String, StoredObject> inputsInTheClear(Run run) {
+    protected Map<String, java.util.List<StoredObject>> inputsInTheClear(Run run) {
         Map<String, Object> body = verb();
         body.put(LaneVerbs.RUN, RecordWire.encode(run));
-        return RecordWire.decodeMap(post(LaneVerbs.INPUTS, body), StoredObject.class);
+        // A LIST PER SLOT, because a slot may repeat. Walked rather than
+        // decoded in one call: the answer is a map of LISTS, and asking the
+        // wire for a map of one type reads each list as that type — which is
+        // the flattening a repeat introduces, and it fails loudly rather than
+        // quietly only because nothing can decode a list as a record.
+        Map<String, java.util.List<StoredObject>> resolved = new LinkedHashMap<>();
+        if (post(LaneVerbs.INPUTS, body) instanceof Map<?, ?> slots) {
+            slots.forEach((slot, node) -> resolved.put(String.valueOf(slot),
+                    RecordWire.decodeList(node, StoredObject.class)));
+        }
+        return java.util.Collections.unmodifiableMap(resolved);
     }
 
     @Override
@@ -326,8 +336,9 @@ public class WireLane implements Lane {
      * document at a time and the saying before the handing on: a document
      * the service receives is one whose opening the tenant already holds.
      */
-    private Map<String, StoredObject> open(cloud.jengu.dbo.work.SealedWork work, Run run) {
-        Map<String, StoredObject> resolved = new LinkedHashMap<>();
+    private Map<String, java.util.List<StoredObject>> open(
+            cloud.jengu.dbo.work.SealedWork work, Run run) {
+        Map<String, java.util.List<StoredObject>> resolved = new LinkedHashMap<>();
         // The manifest says where the chain stands; every opening from here
         // commits to that, then to the one before it.
         if (work.manifest().head() != null) {
@@ -342,7 +353,12 @@ public class WireLane implements Lane {
                         + "' cannot open " + payload.reference() + " with the key it holds", cannot);
             }
             opened(run, payload.reference(), linkFor(run, payload.reference()));
-            resolved.put(payload.slot(), document);
+            // ACCUMULATED, not replaced. Payloads arrive in the order the
+            // slot was filled, and a repeating slot is several of them under
+            // one name — putting each would leave the last and lose the rest,
+            // silently, which is the shape of defect a repeat introduces.
+            resolved.computeIfAbsent(payload.slot(), slot -> new java.util.ArrayList<>())
+                    .add(document);
         }
         return java.util.Collections.unmodifiableMap(resolved);
     }

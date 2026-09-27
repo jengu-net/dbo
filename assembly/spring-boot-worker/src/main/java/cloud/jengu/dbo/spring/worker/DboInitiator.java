@@ -8,6 +8,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
 
@@ -48,6 +49,58 @@ public final class DboInitiator {
         this.tokens = Map.copyOf(tokens);
     }
 
+    /**
+     * How one slot is filled.
+     *
+     * <p>A type rather than a string, because a reference and an object cannot
+     * be told apart once both are strings: {@code "Organization/123"} is a
+     * reference and {@code "{\"resourceType\":…}"} is an object, and a caller
+     * that meant one while the wire read the other would have the run refused
+     * at the door at best and filled wrongly at worst. Saying which is meant
+     * costs one word and removes the guess.
+     */
+    public record Slot(Kind kind, List<String> values, boolean many) {
+
+        /** Whether the values are references or the objects themselves. */
+        public enum Kind { REFERENCE, OBJECT }
+
+        /** One reference, to something the tenant already holds. */
+        public static Slot reference(String reference) {
+            return new Slot(Kind.REFERENCE, List.of(reference), false);
+        }
+
+        /** Several references. */
+        public static Slot references(List<String> references) {
+            return new Slot(Kind.REFERENCE, List.copyOf(references), true);
+        }
+
+        /** One object, sent with the run: its JSON, as this application has it. */
+        public static Slot object(String json) {
+            return new Slot(Kind.OBJECT, List.of(json), false);
+        }
+
+        /** Several such objects, in the order they are meant to be read. */
+        public static Slot objects(List<String> json) {
+            return new Slot(Kind.OBJECT, List.copyOf(json), true);
+        }
+
+        /** What goes in the request: a quoted reference, or the object itself. */
+        private String rendered() {
+            StringBuilder out = new StringBuilder();
+            if (many) {
+                out.append('[');
+            }
+            for (int at = 0; at < values.size(); at++) {
+                out.append(at == 0 ? "" : ",")
+                        .append(kind == Kind.REFERENCE ? quote(values.get(at)) : values.get(at));
+            }
+            if (many) {
+                out.append(']');
+            }
+            return out.toString();
+        }
+    }
+
     /** What the tenant answered, and the run it named if it started one. */
     public record Started(int status, String run, String key, String body) {
 
@@ -75,6 +128,25 @@ public final class DboInitiator {
      *               {@code slot -> "Type/id"}
      */
     public Started start(String tenant, String step, Map<String, String> inputs) {
+        // ONE REFERENCE EACH, which is what almost every run is over. Its own
+        // method rather than the general one: naming the shape of every slot to
+        // fill three with references would be ceremony over the ordinary thing.
+        Map<String, Slot> filled = new java.util.LinkedHashMap<>();
+        inputs.forEach((slot, reference) -> filled.put(slot, Slot.reference(reference)));
+        return starting(tenant, step, filled);
+    }
+
+    /**
+     * The same, for slots that carry objects, or several of anything.
+     *
+     * <p>What each slot may hold is the step's to declare and this does not
+     * check it. The tenant's door does, against the declaration, and answers
+     * 400 naming the slot and what it takes — which is a better place for the
+     * rule than a copy of it here that could disagree.
+     *
+     * @param inputs a {@link Slot} per slot the step declares
+     */
+    public Started starting(String tenant, String step, Map<String, Slot> inputs) {
         DboWorkerProperties.Lane lane = properties.getLanes().stream()
                 .filter(declared -> declared.getTenant().equals(tenant))
                 .findFirst()
@@ -93,11 +165,11 @@ public final class DboInitiator {
         }
         Supplier<String> token = tokens.get(tenant);
         StringBuilder named = new StringBuilder();
-        inputs.forEach((slot, reference) -> {
+        inputs.forEach((slot, filled) -> {
             if (named.length() > 0) {
                 named.append(',');
             }
-            named.append(quote(slot)).append(':').append(quote(reference));
+            named.append(quote(slot)).append(':').append(filled.rendered());
         });
         HttpRequest.Builder request = HttpRequest.newBuilder(
                         URI.create(lane.getBase().toString().replaceAll("/+$", "")

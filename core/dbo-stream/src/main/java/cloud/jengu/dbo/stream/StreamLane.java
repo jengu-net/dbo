@@ -81,7 +81,8 @@ public final class StreamLane extends WireLane implements AutoCloseable {
      * {@code inputs} goes sealed — and the door refuses it; this exists so a
      * test can show the refusal rather than assume it.
      */
-    public java.util.Map<String, cloud.jengu.dbo.core.api.StoredObject> askedInTheClear(
+    public java.util.Map<String, java.util.List<cloud.jengu.dbo.core.api.StoredObject>>
+            askedInTheClear(
             cloud.jengu.dbo.work.Run run) {
         return inputsInTheClear(run);
     }

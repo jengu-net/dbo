@@ -117,7 +117,7 @@ class AStepServiceIsProvedWithoutAStoreTest {
         List<String> sawInputs = new ArrayList<>();
 
         StepRunner runner = runnerFor(lane, work -> {
-            sawInputs.add(new String(work.inputs().get("specimen").payload(),
+            sawInputs.add(new String(work.input("specimen").payload(),
                     StandardCharsets.UTF_8));
             return Outcome.done();
         });
