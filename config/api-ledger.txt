@@ -2838,6 +2838,7 @@ cloud.jengu.dbo.promises.DboPromises                                   PROC_A_HO
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_LANE_OVER_THE_STREAM:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_NODE_ANSWERS_ITS_CATALOGUE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_PARTICIPANT_OFFERS_ITS_KEY_AT_ENROLMENT:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   PROC_A_PROCESSOR_IS_ENROLLED_PER_TENANT:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_ROUTED_TREE_TRAVELS_AS_A_LANE_VERB:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_RUN_ANSWERS_ONLY_FOR_ITS_INPUTS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_RUN_CONTEXT_ENDS_WITH_ITS_RUN:cloud.jengu.dbo.promises.DboPromises
@@ -2845,6 +2846,7 @@ cloud.jengu.dbo.promises.DboPromises                                   PROC_A_RU
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_STEP_CODE_BELONGS_TO_ONE_LEVEL:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_STEP_GRANTS_THE_RIGHT_TO_OVERRIDE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_TENANT_ADMITS_OR_DECLINES_WHAT_IS_DONE_TO_IT:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   PROC_A_TENANT_AUTHORISES_A_REGISTER_AND_SEES_IT_CHANGE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_TENANT_READS_WHAT_IS_OPENED_OF_ITS_DATA:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_TRACKABLE_MAY_ROUTE_OTHERS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_WAKE_UP_IS_NOT_HOW_WORK_ARRIVES:cloud.jengu.dbo.promises.DboPromises
@@ -3881,6 +3883,7 @@ cloud.jengu.dbo.tenant.FleetHandler                                    class
 cloud.jengu.dbo.tenant.FleetHandler                                    handle(HttpExchange):void
 cloud.jengu.dbo.tenant.FleetHandler                                    new(cloud.jengu.dbo.auth.TenantAuthority,cloud.jengu.dbo.work.Trackables,cloud.jengu.dbo.work.Runs,String)
 cloud.jengu.dbo.tenant.FleetRegister                                   class
+cloud.jengu.dbo.tenant.FleetRegister                                   digestOf(List):String
 cloud.jengu.dbo.tenant.FleetRegister                                   of(List,Set):List
 cloud.jengu.dbo.tenant.FleetRegister.Row                               equals(Object):boolean
 cloud.jengu.dbo.tenant.FleetRegister.Row                               hashCode():int
@@ -4008,6 +4011,7 @@ cloud.jengu.dbo.tenant.TenantRuntimeManager                            factsOf(S
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            fleetDisagreements(String):List
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            fleetLane(String,String,cloud.jengu.dbo.work.Executor):Optional
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            fleetRegister(String):List
+cloud.jengu.dbo.tenant.TenantRuntimeManager                            fleetRegisterChanged(String):Optional
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            manages(Path):String
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            new(Path,cloud.jengu.dbo.tenant.TenantDatabaseProvisioner,String,int,cloud.jengu.dbo.tenant.TenantRuntimeManager.Listener)
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            new(Path,cloud.jengu.dbo.tenant.TenantDatabaseProvisioner,String,int,cloud.jengu.dbo.tenant.TenantRuntimeManager.Listener,cloud.jengu.dbo.tenant.TenantRuntimeManager.AuthorityConfig)
@@ -4015,6 +4019,7 @@ cloud.jengu.dbo.tenant.TenantRuntimeManager                            new(Path,
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            new(Path,cloud.jengu.dbo.tenant.TenantDatabaseProvisioner,String,int,cloud.jengu.dbo.tenant.TenantRuntimeManager.Listener,cloud.jengu.dbo.tenant.TenantRuntimeManager.AuthorityConfig,cloud.jengu.dbo.fhir.common.FhirVersions,cloud.jengu.dbo.core.process.Steps)
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            new(Path,cloud.jengu.dbo.tenant.TenantDatabaseProvisioner,String,int,cloud.jengu.dbo.tenant.TenantRuntimeManager.Listener,cloud.jengu.dbo.tenant.TenantRuntimeManager.AuthorityConfig,cloud.jengu.dbo.fhir.common.FhirVersions,cloud.jengu.dbo.core.process.Steps,HttpServer)
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            port():int
+cloud.jengu.dbo.tenant.TenantRuntimeManager                            processor(cloud.jengu.dbo.tenant.TenantRuntimeManager.Processor):void
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            pruneSigningKeys():int
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            redeclarations():Map
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            runtime(String):Optional
@@ -4048,6 +4053,14 @@ cloud.jengu.dbo.tenant.TenantRuntimeManager.AuthorityConfig            upstream(
 cloud.jengu.dbo.tenant.TenantRuntimeManager.Listener                   interface
 cloud.jengu.dbo.tenant.TenantRuntimeManager.Listener                   tenantDown(String):void
 cloud.jengu.dbo.tenant.TenantRuntimeManager.Listener                   tenantUp(cloud.jengu.dbo.tenant.TenantRuntimeManager.TenantRuntime):void
+cloud.jengu.dbo.tenant.TenantRuntimeManager.Processor                  equals(Object):boolean
+cloud.jengu.dbo.tenant.TenantRuntimeManager.Processor                  hashCode():int
+cloud.jengu.dbo.tenant.TenantRuntimeManager.Processor                  name():String
+cloud.jengu.dbo.tenant.TenantRuntimeManager.Processor                  new(String,cloud.jengu.dbo.core.api.seal.ParticipantKey,cloud.jengu.dbo.core.api.seal.SigningKey)
+cloud.jengu.dbo.tenant.TenantRuntimeManager.Processor                  record
+cloud.jengu.dbo.tenant.TenantRuntimeManager.Processor                  sealing():cloud.jengu.dbo.core.api.seal.ParticipantKey
+cloud.jengu.dbo.tenant.TenantRuntimeManager.Processor                  signing():cloud.jengu.dbo.core.api.seal.SigningKey
+cloud.jengu.dbo.tenant.TenantRuntimeManager.Processor                  toString():String
 cloud.jengu.dbo.tenant.TenantRuntimeManager.TenantRuntime              authority():cloud.jengu.dbo.auth.TenantAuthority
 cloud.jengu.dbo.tenant.TenantRuntimeManager.TenantRuntime              blobs():cloud.jengu.dbo.core.api.BlobStore
 cloud.jengu.dbo.tenant.TenantRuntimeManager.TenantRuntime              definitionsFeed():cloud.jengu.dbo.core.api.feed.ChangeFeed
@@ -4064,6 +4077,7 @@ cloud.jengu.dbo.tenant.TenantRuntimeManager.TenantRuntime              spec():cl
 cloud.jengu.dbo.tenant.TenantRuntimeManager.TenantRuntime              store():cloud.jengu.dbo.fhir.common.FhirStoreFacade
 cloud.jengu.dbo.tenant.TenantRuntimeManager.TenantRuntime              toString():String
 cloud.jengu.dbo.tenant.TenantSpec                                      acceptedBrokers():List
+cloud.jengu.dbo.tenant.TenantSpec                                      authorised():String
 cloud.jengu.dbo.tenant.TenantSpec                                      broker():String
 cloud.jengu.dbo.tenant.TenantSpec                                      code():String
 cloud.jengu.dbo.tenant.TenantSpec                                      databaseName():String
@@ -4093,6 +4107,7 @@ cloud.jengu.dbo.tenant.TenantSpec                                      new(Strin
 cloud.jengu.dbo.tenant.TenantSpec                                      new(String,String,List,boolean,cloud.jengu.dbo.policy.TenantPolicies,String,String,List,List,cloud.jengu.dbo.tenant.TenantSpec.Scim,List,String,boolean,List,boolean,boolean)
 cloud.jengu.dbo.tenant.TenantSpec                                      new(String,String,List,boolean,cloud.jengu.dbo.policy.TenantPolicies,String,String,List,List,cloud.jengu.dbo.tenant.TenantSpec.Scim,List,String,boolean,List,boolean,boolean,List)
 cloud.jengu.dbo.tenant.TenantSpec                                      new(String,String,List,boolean,cloud.jengu.dbo.policy.TenantPolicies,String,String,List,List,cloud.jengu.dbo.tenant.TenantSpec.Scim,List,String,boolean,List,boolean,boolean,List,Set)
+cloud.jengu.dbo.tenant.TenantSpec                                      new(String,String,List,boolean,cloud.jengu.dbo.policy.TenantPolicies,String,String,List,List,cloud.jengu.dbo.tenant.TenantSpec.Scim,List,String,boolean,List,boolean,boolean,List,Set,String)
 cloud.jengu.dbo.tenant.TenantSpec                                      onlyTheDeploymentDeclaresFleetSteps(cloud.jengu.dbo.tenant.TenantSpec):void
 cloud.jengu.dbo.tenant.TenantSpec                                      parse(String):cloud.jengu.dbo.tenant.TenantSpec
 cloud.jengu.dbo.tenant.TenantSpec                                      pdi():boolean

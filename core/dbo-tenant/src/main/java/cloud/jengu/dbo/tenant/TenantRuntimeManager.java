@@ -411,6 +411,44 @@ public final class TenantRuntimeManager implements AutoCloseable {
     private final Map<String, cloud.jengu.dbo.stream.StreamDoor> doors =
             new java.util.concurrent.ConcurrentHashMap<>();
     private volatile javax.sql.DataSource substrate;
+    /**
+     * The application-level processor this deployment enrols on every tenant
+     * that admits a step it opens.
+     *
+     * <p>PUBLIC HALVES ONLY, which is the whole of why this can be the
+     * deployment's to hand over: what a tenant records is what it will seal
+     * to, and a copy of that record opens nothing. The private halves are the
+     * processor's own and never reach here, exactly as item 034 settled for a
+     * worker's.
+     */
+    private volatile Processor processor;
+
+    /**
+     * Who performs the deployment's steps, and what a tenant seals to it.
+     *
+     * @param name    the participant name the processor is enrolled under —
+     *                the same name a run will record as having performed the
+     *                work, because a tenant reading its trail should find one
+     *                name and not two
+     * @param sealing the public half a payload is wrapped to
+     * @param signing the public half an opening it reports is checked against
+     */
+    public record Processor(String name,
+            cloud.jengu.dbo.core.api.seal.ParticipantKey sealing,
+            cloud.jengu.dbo.core.api.seal.SigningKey signing) {
+    }
+
+    /**
+     * The processor this deployment performs fleet steps with.
+     *
+     * <p>Optional, like the substrate: a deployment that declares no steps
+     * needs none, and one that declares steps and names no processor has
+     * declared work nothing will perform — which the register still shows, so
+     * a tenant is not misled about what is happening to its data.
+     */
+    public void processor(Processor performing) {
+        this.processor = performing;
+    }
 
     /**
      * The durable substrate this container opens each tenant's stream door
@@ -1184,6 +1222,65 @@ public final class TenantRuntimeManager implements AutoCloseable {
     }
 
     /**
+     * The processor enrolled on this tenant, for everything at once.
+     *
+     * <p><b>Per tenant, which is decision two and not an implementation
+     * detail.</b> A payload is sealed to an enrolled participant, so enrolling
+     * once at fleet level would mean something re-seals a tenant's payload and
+     * therefore holds tenant keys — which is exactly what the carrier rule
+     * exists to exclude. Per tenant keeps the management tenant unable to read
+     * what it moves.
+     *
+     * <p><b>And all at once.</b> One record per tenant covers every step on
+     * that tenant's register, because enrolment being per tenant must not
+     * become enrolment one step at a time: a tenant answering per step could
+     * never be sure it had finished.
+     *
+     * <p>A tenant that declined everything is still enrolled, and that is
+     * deliberate rather than sloppy — what decides whether work reaches a step
+     * is the decline, checked at the join, and a record that exists and is
+     * never sealed to costs nothing. Making enrolment conditional would mean a
+     * tenant changing its mind had to wait for a bring-up.
+     */
+    private void enrolTheProcessor(TenantSpec spec) {
+        Processor performing = processor;
+        if (performing == null || declaredFleetSteps.isEmpty()) {
+            return;
+        }
+        // A SECRET NOBODY HOLDS, and it has to be said or it reads as a bug.
+        // This record exists to be sealed to and to have a signature checked
+        // against it; the processor never signs in, because the plane its asks
+        // cross carries no token — that is what the enrolment keys are for. So
+        // the secret is minted, written once and forgotten, which is stronger
+        // than a known one: a credential nobody holds cannot be used by
+        // anybody who obtains a copy of this record.
+        byte[] unheld = new byte[32];
+        new java.security.SecureRandom().nextBytes(unheld);
+        authority(spec.code()).ensureClient(performing.name(),
+                java.util.Base64.getUrlEncoder().withoutPadding().encodeToString(unheld),
+                List.of(cloud.jengu.dbo.auth.Scopes.WORK),
+                performing.sealing(), performing.signing());
+        LOG.info("processor enrolled: tenant={} processor={}", spec.code(), performing.name());
+    }
+
+    /**
+     * Whether the register changed since this tenant last authorised one.
+     *
+     * <p>ONE COMPARISON, which is what the register being a single value is
+     * for: a tenant does not audit rows, it asks whether what it agreed to is
+     * still what is happening. Empty means it has never read one, which is a
+     * different answer from *changed* and has to stay one.
+     */
+    public java.util.Optional<Boolean> fleetRegisterChanged(String tenant) {
+        TenantRuntime serving = runtimes.get(tenant);
+        if (serving == null || serving.spec().authorised() == null) {
+            return java.util.Optional.empty();
+        }
+        return java.util.Optional.of(!serving.spec().authorised()
+                .equals(FleetRegister.digestOf(fleetRegister(tenant))));
+    }
+
+    /**
      * The register this tenant reads: every payload the deployment opens of
      * its data.
      *
@@ -1359,6 +1456,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
                     // performs from here on. After bring-up, because what is
                     // followed is the tenant's own database and there is none
                     // before it.
+                    enrolTheProcessor(spec);
                     followForJoining(spec.code(), null);
                     states.put(spec.code(), TenantState.State.SERVING);
                     factsOf(spec.code()).ifPresent(facts -> reached(TenantPoint.SERVING, facts));

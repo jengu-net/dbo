@@ -46,6 +46,42 @@ public final class FleetRegister {
     }
 
     /**
+     * The whole register as one value, so a tenant sees a change as a
+     * comparison rather than an audit.
+     *
+     * <p><b>This is what a tenant authorises.</b> Enrolment is per tenant and
+     * has to be answerable all at once — a tenant approving rows one at a time
+     * would be a tenant that can never be sure it has finished, and a
+     * deployment that could widen what it opens by adding a row nobody
+     * noticed. So the act is: read the register, authorise THIS register, and
+     * write down which one it was.
+     *
+     * <p>Derived from the rows in declaration order, over every field a tenant
+     * would care about — so adding a slot, opening one that was only carried,
+     * making a step required or changing a posture all move it. A digest that
+     * ignored the posture would let a deployment move a row from *not until
+     * approved* to *processed and named* without the tenant's copy changing,
+     * which is precisely the way a deployment could approve its own widening.
+     */
+    public static String digestOf(List<Row> rows) {
+        StringBuilder canonical = new StringBuilder();
+        for (Row row : rows) {
+            canonical.append(row.step()).append('\u0000')
+                    .append(row.slot()).append('\u0000')
+                    .append(row.type()).append('\u0000')
+                    .append(row.required()).append('\u0000')
+                    .append(row.posture()).append('\n');
+        }
+        try {
+            byte[] digest = java.security.MessageDigest.getInstance("SHA-256")
+                    .digest(canonical.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            return java.util.Base64.getUrlEncoder().withoutPadding().encodeToString(digest);
+        } catch (java.security.NoSuchAlgorithmException impossible) {
+            throw new IllegalStateException("SHA-256 is part of the platform", impossible);
+        }
+    }
+
+    /**
      * The rows this tenant would read, from the deployment's declaration and
      * its own.
      *

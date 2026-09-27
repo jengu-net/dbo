@@ -153,6 +153,13 @@ public record SpecChange(Kind kind, List<String> fields) {
         if (!Objects.equals(serving.declines(), declared.declines())) {
             hot.add("declines");
         }
+        // Which register the tenant authorised. Hot for the same reason
+        // declining is: authorising what a deployment does with your data must
+        // not cost an outage, and neither must reading a changed one and
+        // authorising that.
+        if (!Objects.equals(serving.authorised(), declared.authorised())) {
+            hot.add("authorised");
+        }
         if (!Objects.equals(serving.mandatorySteps(), declared.mandatorySteps())) {
             hot.add("mandatorySteps");
         }

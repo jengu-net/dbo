@@ -737,12 +737,46 @@ rather than reaching past the mechanism to write an entry.
 `REQ-DBO-PROC-A-TENANT-READS-WHAT-IS-OPENED-OF-ITS-DATA` and
 `REQ-DBO-PROC-A-DISAGREEMENT-IS-AN-INCIDENT-NOT-A-REFUSAL`.
 
-**One thing the proof needed by hand**, and it names the remaining dependency
-exactly: the performer had to be **enrolled on the tenant** before any of this
-could happen, because the access entry only exists on the sealed path. Enrolling
-an application-level processor per tenant is the part of step 7 that is not
-built, so the test does it directly — what the register and the incident DO is
-proven, what enrols them is not.
+~~One thing the proof needed by hand~~ — **and it is built now.** The performer
+had to be enrolled on the tenant before any of this could happen, because the
+access entry exists only on the sealed path.
+
+**Per-tenant enrolment is done.** A deployment names one processor with the
+PUBLIC halves of its keys, and every tenant it performs for holds its own
+enrolment record: the key a payload is sealed to, and the key an opening it
+reports is checked against. Per tenant rather than once for the fleet, because
+enrolling at fleet level would mean something re-seals a tenant's payload and
+therefore holds tenant keys — the thing the carrier rule exists to exclude.
+
+**One record covers every step on that tenant's register**, so adding a step
+needs no second act from the tenant: enrolment being per tenant must not become
+enrolment one step at a time, and a tenant answering per step could never be
+sure it had finished.
+
+**The credential it carries is held by nobody**, and that is worth stating
+because it reads as a bug. The record exists to be sealed to and to have a
+signature checked against it; the processor never signs in, because the plane
+its asks cross carries no token. So the secret is minted, written once and
+forgotten — stronger than a known one, since a credential nobody holds cannot
+be used by whoever obtains a copy of the record.
+
+**And a tenant authorises a register rather than rows.** It writes down which
+register it read, as that register's own digest — one value for the whole of it —
+so authorising is answerable all at once and *has what the deployment does
+changed since I looked* is one comparison rather than an audit. The digest
+covers the posture too, so a deployment cannot move a row from *not until
+approved* to *processed and named* without the tenant's copy ceasing to match,
+which is exactly how a deployment would otherwise approve its own widening.
+Never having read a register stays a different answer from having read a
+different one.
+
+*Proven by:* `AProcessorIsEnrolledPerTenantIT`, claiming
+`REQ-DBO-PROC-A-PROCESSOR-IS-ENROLLED-PER-TENANT` and
+`REQ-DBO-PROC-A-TENANT-AUTHORISES-A-REGISTER-AND-SEES-IT-CHANGE`.
+
+**What is left of step 7 is now only the two postures**, and they are ordinary
+work: the enrolment they waited on exists, so *not until approved* has a record
+to refuse to seal to and *processed and named* has an incident to raise.
 
 **The second of those three is done.** A tenant admits a step by saying
 nothing and declines it with one line, and a declined step is offered that

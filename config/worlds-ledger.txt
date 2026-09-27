@@ -43,6 +43,7 @@ AFaceRootHoldsItsVersionAsRecordsIT                      lifecycle
 AHostHoldsALaneByInstallingABundleIT                     container
 ALaneOverTheStreamIsIndistinguishableIT                  deployment
 ALargePayloadTravelsByReferenceIT                        whole plane
+AProcessorIsEnrolledPerTenantIT                          deployment
 AShutdownIsQuietIT                                       lifecycle
 AStepCodeBelongsToOneLevelIT                             sweep
 AStoreWithoutSuperuserStillMountsIT                      sweep

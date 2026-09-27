@@ -690,6 +690,29 @@ public enum DboPromises implements Promise {
             + "them, because a stored incident would be a second place to ask and the first "
             + "disagreement between the two would leave a tenant unable to say which was true."),
 
+    PROC_A_PROCESSOR_IS_ENROLLED_PER_TENANT(
+            "An application performing the deployment's steps is enrolled on EACH tenant it "
+            + "performs for, with the public halves of the keys a payload is sealed to and an "
+            + "opening is checked against. Per tenant rather than once for the fleet, because a "
+            + "payload is sealed to an enrolled participant and enrolling at fleet level would "
+            + "mean something re-seals a tenant's payload and therefore holds tenant keys — the "
+            + "thing the carrier rule exists to exclude. One record per tenant covers every step "
+            + "on that tenant's register, because enrolment being per tenant must not become "
+            + "enrolment one step at a time. Only public halves reach the store, so a copy of "
+            + "the record opens nothing, and the credential it carries is minted and held by "
+            + "nobody: the processor is authenticated by its signature and never signs in."),
+
+    PROC_A_TENANT_AUTHORISES_A_REGISTER_AND_SEES_IT_CHANGE(
+            "A tenant authorises a register by writing down which one it read — the register's "
+            + "own digest, one value for the whole of it — so authorising is answerable all at "
+            + "once and a tenant approving rows one at a time could never be sure it had "
+            + "finished. Whether what the deployment does with its data has changed since is "
+            + "then ONE COMPARISON rather than an audit. The digest covers every field a tenant "
+            + "would decide on, including the posture, so a deployment cannot move a row from "
+            + "not-until-approved to processed-and-named without the tenant's copy ceasing to "
+            + "match — which would be a deployment approving its own widening. Never having "
+            + "read a register is a different answer from having read a different one."),
+
     PROC_A_LANE_OVER_THE_STREAM(
             "A lane runs over the store's own stream, full duplex, beside in-process and "
             + "HTTP: work goes out and travel, access and result events come home as they "

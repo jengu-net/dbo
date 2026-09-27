@@ -24,7 +24,8 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
         String zone, String broker, List<String> acceptedBrokers,
         List<Dependency> dependencies, Scim scim, List<String> mandatorySteps,
         String managedBy, boolean faceRoot, List<Step> steps, boolean zoneRoot,
-        boolean indexFace, List<FleetStep> fleetSteps, Set<String> declines) {
+        boolean indexFace, List<FleetStep> fleetSteps, Set<String> declines,
+        String authorised) {
 
     /**
      * A step this tenant offers, and the documents a run of it is over.
@@ -217,6 +218,22 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
                 + "performs for every tenant that admits them, declared in the management "
                 + "tenant's own descriptor and nowhere else. A step this tenant offers itself "
                 + "goes under 'steps'.");
+    }
+
+    /**
+     * Without an authorisation on record: what every tenant was before a
+     * deployment could open anything of its data, and what one still is until
+     * it has read the register once.
+     */
+    public TenantSpec(String code, String face, List<FhirTypeConfig> types,
+            boolean pdi, cloud.jengu.dbo.policy.TenantPolicies policies,
+            String zone, String broker, List<String> acceptedBrokers,
+            List<Dependency> dependencies, Scim scim, List<String> mandatorySteps,
+            String managedBy, boolean faceRoot, List<Step> steps, boolean zoneRoot,
+            boolean indexFace, List<FleetStep> fleetSteps, Set<String> declines) {
+        this(code, face, types, pdi, policies, zone, broker, acceptedBrokers,
+                dependencies, scim, mandatorySteps, managedBy, faceRoot, steps, zoneRoot,
+                indexFace, fleetSteps, declines, null);
     }
 
     /**
@@ -723,7 +740,15 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
                 // an agreement into a per-step click. What a tenant writes down
                 // is the exception — and a step the deployment REQUIRES cannot
                 // be among them, which is refused where the levels meet.
-                Set.copyOf(Json.strings(root, "declines")));
+                Set.copyOf(Json.strings(root, "declines")),
+                // WHICH REGISTER THIS TENANT AUTHORISED, as the register's own
+                // digest. One value for the whole of it, because enrolment is
+                // per tenant and has to be answerable all at once: a tenant
+                // approving rows one at a time could never be sure it had
+                // finished, and a deployment could widen what it opens by
+                // adding a row nobody noticed. Absent means it has not read one
+                // yet, which is a real state and not a default to paper over.
+                Json.strOpt(root, "authorised"));
     }
 
     /**

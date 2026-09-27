@@ -176,6 +176,13 @@ spec:
                   type: array
                   items:
                     type: string
+                # Which register this tenant authorised, as that register's
+                # own digest. One value for the whole of it: enrolment is per
+                # tenant and answerable all at once, so a tenant reads the
+                # register and writes down which one it agreed to. Absent means
+                # it has not read one yet.
+                authorised:
+                  type: string
                 # Steps this tenant must have available before it serves.
                 mandatorySteps:
                   type: array
