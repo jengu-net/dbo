@@ -32,8 +32,8 @@ Structured per [arc42](https://arc42.org/).
 - [arc42-004-solution-strategy](arc42-004-solution-strategy/README.md) — the
   decisions the store is built on, as they stand
 - [arc42-005-building-blocks](arc42-005-building-blocks/README.md) — layering (§1):
-  the module map, what the build enforces about it, and the store chain a
-  tenant's bring-up assembles
+  the module map, what the build enforces about it, the store chain a
+  tenant's bring-up assembles, and the one block this store did not write
 - [arc42-006-runtime](arc42-006-runtime/README.md) — [REQ catalogue](arc42-006-runtime/req-catalogue.md)
 - [arc42-007-deployment](arc42-007-deployment/README.md) — scaling/routing (§5),
   [tenant provisioning](arc42-007-deployment/tenant-provisioning.md) (§4),
@@ -50,7 +50,10 @@ Structured per [arc42](https://arc42.org/).
   [change, and who is listening](arc42-008-crosscutting/change-and-who-is-listening/README.md)
   (§6, §10 — one feed primitive behind paging, subscriptions, dependent copies
   and appliance sync),
-  [processes and work](arc42-008-crosscutting/processes-and-work/README.md) (§8) and
+  [processes and work](arc42-008-crosscutting/processes-and-work/README.md) (§8),
+  including [the durable layer](arc42-008-crosscutting/processes-and-work/the-durable-layer.md)
+  (what the store asks of the one block it did not write, and what it
+  deliberately does not), and
   [the FHIR face](arc42-008-crosscutting/the-fhir-face/README.md) (every concept above
   as a FHIR client sees it — readable on its own),
   [running it](arc42-008-crosscutting/running-it/README.md) (§11 — embedding,

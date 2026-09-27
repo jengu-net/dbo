@@ -1,5 +1,9 @@
 # Processes and work
 
+What carries work between processes — the durable layer, where it is embedded
+and what this store does and does not ask of it — is
+[the durable layer](the-durable-layer.md).
+
 ## What this is about
 
 **A store preserves what is true now. A regulator asks how it came to be

@@ -168,6 +168,42 @@ forwards what it has no opinion about. `ObjectStore` deliberately declares no
 default methods: a default that a wrapper could inherit would let it discard
 an argument silently, and the failure would be toward permissive.
 
+## The one block this store did not write
+
+`dev.dbos:transact` — DBOS's Java library — is the only third-party runtime
+of any size inside the store's own layer, and it is there for the part that is
+hardest to get right and least interesting to own: making a piece of work
+survive the process that was doing it. It keeps workflow state in Postgres
+tables of its own, so a workflow half done when a process died is resumed by
+whatever picks it up next and a step already taken is not taken again.
+
+**It is a library, not a service.** No deployment of this store runs a DBOS
+server. What runs is a Java object in a process, pointed at a database, and the
+durability is the table it writes.
+
+**It is embedded privately, in two bundles.** `dbo-subscriptions` and
+`dbo-stream` each carry DBOS and its whole dependency closure in `lib/` as
+non-exported packages, so nothing Spring-adjacent reaches the container's
+wiring and each bundle's exports stay DBO-owned types. That packaging is
+[the first decision record](../arc42-009-architecture-decisions/001-dbos-runs-inside-a-bundle.md),
+adopted after every scenario was proven on Felix against a real Postgres —
+including the one that matters most here, that `DBOS` is an instantiable class
+rather than a singleton, so several run in one JVM over separate databases.
+
+**One package is deliberately shared with the container**, and it is the
+exception that proves what private embedding costs. `org.postgresql` is
+imported from the driver bundle, because DBOS unwraps a pooled connection to
+`org.postgresql.PGConnection` to reach `LISTEN`: a private copy makes the class
+it asks for and the class the connection implements two classes with one name,
+the unwrap can never succeed, and the listener degrades to polling for ever.
+What has to agree is the interface two parties pass an object across. The rest
+of the driver stays private.
+
+Where it sits in the layering is ordinary — both bundles are `core/`, and
+nothing above them knows it is there. What the store asks of it, what it
+deliberately does not ask of it, and the three places it is used are
+[the durable layer](../arc42-008-crosscutting/processes-and-work/the-durable-layer.md).
+
 ## Where the rules about all this are written
 
 - **Imports are computed.** Every bundle with source lets bnd derive
