@@ -1,0 +1,265 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-485.254 -361.8 970.508 723.6" width="970.508" height="723.6" class="lini lini-scope-e4402bf3" role="img" aria-labelledby="dbos-words-and-ours-title dbos-words-and-ours-desc">
+  <title id="dbos-words-and-ours-title">DBOS's words and this store's</title>
+  <desc id="dbos-words-and-ours-desc">Two panels. The upper one holds the two words that mean different things in the two vocabularies — "step" and "workflow" — each shown as one word over two meanings rather than as a mapping, because a mapping is what the panel exists to deny: in DBOS a step is a checkpointed unit inside a workflow, and here it is a declared unit of work a participant performs. The lower panel is the rest of the vocabulary, each DBOS name paired by an arrow with what it is called here: queue, partition key, executor, client, system database, send and receive, events, listen queues, migration and workflow id. Beneath both, the names that have no counterpart in either direction.</desc>
+  <style>
+    @layer lini.defaults {
+      :root, .lini-scope-e4402bf3 { color-scheme: light dark; --lini-bg: #fbfaf8; --lini-body: #2c3a47; --lini-faint: #8695a3; --lini-fill: light-dark(white, #26262b); --lini-font-weight: 500; --lini-ink: #111a24; --lini-line: #e3e0da; --lini-muted: #5d6c7b; --lini-panel: #ffffff; --lini-seal: #14532d; --lini-seal-soft: #e7f0e9; --lini-stroke: #444444; --lini-warn: #8c2f1a; --lini-warn-soft: #f7e8e4; }
+      .lini-scope-e4402bf3[data-theme="dark"], [data-theme="dark"] .lini-scope-e4402bf3 { color-scheme: dark; }
+      .lini-scope-e4402bf3[data-theme="light"], [data-theme="light"] .lini-scope-e4402bf3 { color-scheme: light; }
+    }
+    .lini-scope-e4402bf3 { font-family: "Google Sans"; font-size: 15px; font-weight: var(--lini-font-weight); color: var(--lini-body); }
+    .lini-scope-e4402bf3 .lini-block { fill: none; stroke: none; stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-e4402bf3 .lini-line { fill: none; stroke: var(--lini-stroke); stroke-width: 2; stroke-dasharray: none; }
+    .lini-scope-e4402bf3 .lini-text { fill: currentColor; stroke: none; text-anchor: middle; }
+    .lini-scope-e4402bf3 .lini-box { fill: var(--lini-fill); stroke: var(--lini-stroke); stroke-width: 2; }
+    .lini-scope-e4402bf3 .lini-t { color: var(--lini-body); font-size: 13px; }
+    .lini-scope-e4402bf3 .lini-small { color: var(--lini-muted); font-size: 12px; }
+    .lini-scope-e4402bf3 .lini-cap { color: var(--lini-ink); font-weight: 600; }
+    .lini-scope-e4402bf3 .lini-eyebrow { color: var(--lini-faint); font-size: 11px; font-weight: bold; }
+    .lini-scope-e4402bf3 .lini-panel { fill: var(--lini-panel); stroke: var(--lini-line); stroke-width: 1.5; }
+    .lini-scope-e4402bf3 .lini-warnpanel { fill: var(--lini-warn-soft); stroke: var(--lini-warn); stroke-width: 1.5; }
+    .lini-scope-e4402bf3 .lini-theirs { fill: var(--lini-bg); stroke: var(--lini-line); stroke-width: 1.25; color: var(--lini-body); font-size: 12.5px; }
+    .lini-scope-e4402bf3 .lini-ours { fill: var(--lini-seal-soft); stroke: var(--lini-seal); color: var(--lini-seal); font-weight: 600; }
+    .lini-scope-e4402bf3 .lini-word { color: var(--lini-warn); font-size: 15px; font-weight: bold; }
+    .lini-scope-e4402bf3 .lini-side { fill: var(--lini-panel); stroke: var(--lini-line); stroke-width: 1.25; }
+    .lini-scope-e4402bf3 .lini-oursside { fill: var(--lini-seal-soft); stroke: var(--lini-seal); }
+    .lini-scope-e4402bf3 .lini-sidecap { color: var(--lini-faint); font-size: 11px; font-weight: bold; }
+    .lini-scope-e4402bf3 .lini-ourscap { color: var(--lini-seal); }
+    .lini-scope-e4402bf3 .lini-arrow { stroke: var(--lini-faint); stroke-width: 1.25; }
+    .lini-scope-e4402bf3 .lini-marker { fill: var(--lini-stroke); stroke: none; }
+  </style>
+  <defs/>
+  <g class="lini-scene">
+    <g class="lini-node lini-eyebrow lini-t lini-block" transform="translate(-296.3805,-352.3)">
+      <rect x="-184.8735" y="-5.5" width="369.747" height="11" rx="0" ry="0"/>
+      <text class="lini-text" x="0" y="0" dy="0.358em" dx="0 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2">TWO FALSE FRIENDS, AND THE REST OF THE VOCABULARY</text>
+    </g>
+    <g class="lini-node lini-block" transform="translate(-481.254,-342.8)">
+    </g>
+    <g class="lini-node lini-warnpanel lini-box lini-block" transform="translate(-90.504,-216)">
+      <rect x="-390" y="-122.05" width="780" height="244.1" rx="9" ry="9"/>
+      <g class="lini-node lini-col lini-block" transform="translate(0,0)">
+        <rect x="-376" y="-108.05" width="752" height="216.1" rx="0" ry="0"/>
+        <g class="lini-node lini-cap lini-t lini-block" transform="translate(-205.8365,-101.55)">
+          <rect x="-170.1635" y="-6.5" width="340.327" height="13" rx="0" ry="0"/>
+          <text class="lini-text" x="0" y="0" dy="0.358em">One word, two meanings — these are the ones that bite</text>
+        </g>
+        <g class="lini-node lini-block" transform="translate(0,0.5)">
+          <rect x="-376" y="-83.55" width="752" height="167.1" rx="0" ry="0"/>
+          <g class="lini-node lini-word lini-t lini-block" transform="translate(-193,-76.05)">
+            <rect x="-21.9" y="-7.5" width="43.8" height="15" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">&quot;step&quot;</text>
+          </g>
+          <g class="lini-node lini-word lini-t lini-block" transform="translate(193,-76.05)">
+            <rect x="-39.8025" y="-7.5" width="79.605" height="15" rx="0" ry="0"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">&quot;workflow&quot;</text>
+          </g>
+          <g class="lini-node lini-side lini-box lini-block" transform="translate(-193,-25.525)">
+            <rect x="-172" y="-32.4" width="344" height="64.8" rx="6" ry="6"/>
+            <g class="lini-node lini-col lini-block" transform="translate(-8.944,0)">
+              <rect x="-151.056" y="-22.4" width="302.112" height="44.8" rx="0" ry="0"/>
+              <g class="lini-node lini-sidecap lini-t lini-block" transform="translate(-126.2765,-16.9)">
+                <rect x="-24.7795" y="-5.5" width="49.559" height="11" rx="0" ry="0"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em" dx="0 0.8 0.8 0.8 0.8 0.8 0.8">IN DBOS</text>
+              </g>
+              <g class="lini-node lini-sidetext lini-small lini-t lini-block" transform="translate(0,8)">
+                <rect x="-151.056" y="-14.4" width="302.112" height="28.8" rx="0" ry="0"/>
+                <text class="lini-text" x="0" y="0"><tspan x="0" y="-2.904">a checkpointed unit inside a workflow, replayed rather</tspan><tspan x="-102.51" dy="14.4">than re-executed</tspan></text>
+              </g>
+            </g>
+          </g>
+          <g class="lini-node lini-side lini-box lini-block" transform="translate(193,-25.525)">
+            <rect x="-172" y="-24" width="344" height="48" rx="6" ry="6"/>
+            <g class="lini-node lini-col lini-block" transform="translate(-97.93,0)">
+              <rect x="-62.07" y="-14" width="124.14" height="28" rx="0" ry="0"/>
+              <g class="lini-node lini-sidecap lini-t lini-block" transform="translate(-37.2905,-8.5)">
+                <rect x="-24.7795" y="-5.5" width="49.559" height="11" rx="0" ry="0"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em" dx="0 0.8 0.8 0.8 0.8 0.8 0.8">IN DBOS</text>
+              </g>
+              <g class="lini-node lini-sidetext lini-small lini-t lini-block" transform="translate(0,8)">
+                <rect x="-62.07" y="-6" width="124.14" height="12" rx="0" ry="0"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em">one durable execution</text>
+              </g>
+            </g>
+          </g>
+          <g class="lini-node lini-oursside lini-side lini-box lini-block" transform="translate(-193,50.525)">
+            <rect x="-172" y="-32.4" width="344" height="64.8" rx="6" ry="6"/>
+            <g class="lini-node lini-col lini-block" transform="translate(-30.466,0)">
+              <rect x="-129.534" y="-22.4" width="259.068" height="44.8" rx="0" ry="0"/>
+              <g class="lini-node lini-ourscap lini-sidecap lini-t lini-block" transform="translate(-86.6685,-16.9)">
+                <rect x="-42.8655" y="-5.5" width="85.731" height="11" rx="0" ry="0"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em" dx="0 0.8 0.8 0.8 0.8 0.8 0.8 0.8 0.8 0.8 0.8 0.8 0.8">IN THIS STORE</text>
+              </g>
+              <g class="lini-node lini-sidetext lini-small lini-t lini-block" transform="translate(0,8)">
+                <rect x="-129.534" y="-14.4" width="259.068" height="28.8" rx="0" ry="0"/>
+                <text class="lini-text" x="0" y="0"><tspan x="0" y="-2.904">a declared unit of work a participant performs,</tspan><tspan x="-40.038" dy="14.4">addressed module.process.step</tspan></text>
+              </g>
+            </g>
+          </g>
+          <g class="lini-node lini-oursside lini-side lini-box lini-block" transform="translate(193,50.525)">
+            <rect x="-172" y="-32.4" width="344" height="64.8" rx="6" ry="6"/>
+            <g class="lini-node lini-col lini-block" transform="translate(-7.6,0)">
+              <rect x="-152.4" y="-22.4" width="304.8" height="44.8" rx="0" ry="0"/>
+              <g class="lini-node lini-ourscap lini-sidecap lini-t lini-block" transform="translate(-109.5345,-16.9)">
+                <rect x="-42.8655" y="-5.5" width="85.731" height="11" rx="0" ry="0"/>
+                <text class="lini-text" x="0" y="0" dy="0.358em" dx="0 0.8 0.8 0.8 0.8 0.8 0.8 0.8 0.8 0.8 0.8 0.8 0.8">IN THIS STORE</text>
+              </g>
+              <g class="lini-node lini-sidetext lini-small lini-t lini-block" transform="translate(0,8)">
+                <rect x="-152.4" y="-14.4" width="304.8" height="28.8" rx="0" ry="0"/>
+                <text class="lini-text" x="0" y="0"><tspan x="0" y="-2.904">nothing is called one. A verb a door serves, or one fleet</tspan><tspan x="-77.556" dy="14.4">item a performer performs</tspan></text>
+              </g>
+            </g>
+          </g>
+        </g>
+        <g class="lini-node lini-small lini-t lini-block" transform="translate(-50.878,102.05)">
+          <rect x="-325.122" y="-6" width="650.244" height="12" rx="0" ry="0"/>
+          <text class="lini-text" x="0" y="0" dy="0.358em">Both spellings are live in one file: a door runs a lane verb as a DBOS step, and the verb it is serving is about a dbo step.</text>
+        </g>
+      </g>
+    </g>
+    <g class="lini-node lini-block" transform="translate(-481.254,-86.2)">
+    </g>
+    <g class="lini-node lini-eyebrow lini-t lini-block" transform="translate(-363.974,-73.7)">
+      <rect x="-117.28" y="-5.5" width="234.56" height="11" rx="0" ry="0"/>
+      <text class="lini-text" x="0" y="0" dy="0.358em" dx="0 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2 1.2">AND THE NAMES THAT MAP CLEANLY</text>
+    </g>
+    <g class="lini-node lini-block" transform="translate(-481.254,-64.2)">
+    </g>
+    <g class="lini-node lini-panel lini-box lini-block" transform="translate(-84.504,136.8)">
+      <rect x="-396" y="-196.25" width="792" height="392.5" rx="9" ry="9"/>
+      <g class="lini-node lini-col lini-block" transform="translate(0,0)">
+        <rect x="-382" y="-182.25" width="764" height="364.5" rx="0" ry="0"/>
+        <g class="lini-node lini-block" transform="translate(0,0)">
+          <rect x="-382" y="-182.25" width="764" height="364.5" rx="0" ry="0"/>
+          <g class="lini-node lini-theirs lini-box lini-block" transform="translate(-180.8375,-167.625)">
+            <rect x="-30.2125" y="-14" width="60.425" height="28" rx="6" ry="6"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">queue</text>
+          </g>
+          <g class="lini-node lini-arrow lini-line" transform="translate(-127,-167.625)">
+            <line x1="0" y1="0" x2="23.5" y2="0"/>
+            <polygon class="lini-marker lini-marker-arrow" points="26,0 20,3 20,-3" style="fill: var(--lini-faint)"/>
+          </g>
+          <g class="lini-node lini-ours lini-theirs lini-box lini-block" transform="translate(4.6687,-167.625)">
+            <rect x="-82.0438" y="-14" width="164.0875" height="28" rx="6" ry="6"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">one fleet step&apos;s backlog</text>
+          </g>
+          <g class="lini-node lini-theirs lini-box lini-block" transform="translate(-218.875,-130.375)">
+            <rect x="-68.25" y="-14" width="136.5" height="28" rx="6" ry="6"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">queue partition key</text>
+          </g>
+          <g class="lini-node lini-arrow lini-line" transform="translate(-127,-130.375)">
+            <line x1="0" y1="0" x2="23.5" y2="0"/>
+            <polygon class="lini-marker lini-marker-arrow" points="26,0 20,3 20,-3" style="fill: var(--lini-faint)"/>
+          </g>
+          <g class="lini-node lini-ours lini-theirs lini-box lini-block" transform="translate(-34.675,-130.375)">
+            <rect x="-42.7" y="-14" width="85.4" height="28" rx="6" ry="6"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">the tenant</text>
+          </g>
+          <g class="lini-node lini-theirs lini-box lini-block" transform="translate(-188.6188,-93.125)">
+            <rect x="-37.9937" y="-14" width="75.9875" height="28" rx="6" ry="6"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">executor</text>
+          </g>
+          <g class="lini-node lini-arrow lini-line" transform="translate(-127,-93.125)">
+            <line x1="0" y1="0" x2="23.5" y2="0"/>
+            <polygon class="lini-marker lini-marker-arrow" points="26,0 20,3 20,-3" style="fill: var(--lini-faint)"/>
+          </g>
+          <g class="lini-node lini-ours lini-theirs lini-box lini-block" transform="translate(70.975,-93.125)">
+            <rect x="-148.35" y="-14" width="296.7" height="28" rx="6" ry="6"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">a tenant&apos;s durable layer, a door, or a consumer</text>
+          </g>
+          <g class="lini-node lini-theirs lini-box lini-block" transform="translate(-196.8812,-55.875)">
+            <rect x="-46.2563" y="-14" width="92.5125" height="28" rx="6" ry="6"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">DBOSClient</text>
+          </g>
+          <g class="lini-node lini-arrow lini-line" transform="translate(-127,-55.875)">
+            <line x1="0" y1="0" x2="23.5" y2="0"/>
+            <polygon class="lini-marker lini-marker-arrow" points="26,0 20,3 20,-3" style="fill: var(--lini-faint)"/>
+          </g>
+          <g class="lini-node lini-ours lini-theirs lini-box lini-block" transform="translate(64.7188,-55.875)">
+            <rect x="-142.0938" y="-14" width="284.1875" height="28" rx="6" ry="6"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">the joiner&apos;s writer: offers, consumes nothing</text>
+          </g>
+          <g class="lini-node lini-theirs lini-box lini-block" transform="translate(-212.05,-18.625)">
+            <rect x="-61.425" y="-14" width="122.85" height="28" rx="6" ry="6"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">system database</text>
+          </g>
+          <g class="lini-node lini-arrow lini-line" transform="translate(-127,-18.625)">
+            <line x1="0" y1="0" x2="23.5" y2="0"/>
+            <polygon class="lini-marker lini-marker-arrow" points="26,0 20,3 20,-3" style="fill: var(--lini-faint)"/>
+          </g>
+          <g class="lini-node lini-ours lini-theirs lini-box lini-block" transform="translate(-25.725,-18.625)">
+            <rect x="-51.65" y="-14" width="103.3" height="28" rx="6" ry="6"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">the substrate</text>
+          </g>
+          <g class="lini-node lini-theirs lini-box lini-block" transform="translate(-194.5,18.625)">
+            <rect x="-43.875" y="-14" width="87.75" height="28" rx="6" ry="6"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">send / recv</text>
+          </g>
+          <g class="lini-node lini-arrow lini-line" transform="translate(-127,18.625)">
+            <line x1="0" y1="0" x2="23.5" y2="0"/>
+            <polygon class="lini-marker lini-marker-arrow" points="26,0 20,3 20,-3" style="fill: var(--lini-faint)"/>
+          </g>
+          <g class="lini-node lini-ours lini-theirs lini-box lini-block" transform="translate(34.3312,18.625)">
+            <rect x="-111.7062" y="-14" width="223.4125" height="28" rx="6" ry="6"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">an ask on the stream, lane to door</text>
+          </g>
+          <g class="lini-node lini-theirs lini-box lini-block" transform="translate(-219.4625,55.875)">
+            <rect x="-68.8375" y="-14" width="137.675" height="28" rx="6" ry="6"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">setEvent / getEvent</text>
+          </g>
+          <g class="lini-node lini-arrow lini-line" transform="translate(-127,55.875)">
+            <line x1="0" y1="0" x2="23.5" y2="0"/>
+            <polygon class="lini-marker lini-marker-arrow" points="26,0 20,3 20,-3" style="fill: var(--lini-faint)"/>
+          </g>
+          <g class="lini-node lini-ours lini-theirs lini-box lini-block" transform="translate(40.1625,55.875)">
+            <rect x="-117.5375" y="-14" width="235.075" height="28" rx="6" ry="6"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">the door&apos;s answer, and the wake-up</text>
+          </g>
+          <g class="lini-node lini-theirs lini-box lini-block" transform="translate(-200.9125,93.125)">
+            <rect x="-50.2875" y="-14" width="100.575" height="28" rx="6" ry="6"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">listen queues</text>
+          </g>
+          <g class="lini-node lini-arrow lini-line" transform="translate(-127,93.125)">
+            <line x1="0" y1="0" x2="23.5" y2="0"/>
+            <polygon class="lini-marker lini-marker-arrow" points="26,0 20,3 20,-3" style="fill: var(--lini-faint)"/>
+          </g>
+          <g class="lini-node lini-ours lini-theirs lini-box lini-block" transform="translate(26.5687,93.125)">
+            <rect x="-103.9437" y="-14" width="207.8875" height="28" rx="6" ry="6"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">which steps a consumer serves</text>
+          </g>
+          <g class="lini-node lini-theirs lini-box lini-block" transform="translate(-190.5875,130.375)">
+            <rect x="-39.9625" y="-14" width="79.925" height="28" rx="6" ry="6"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">migration</text>
+          </g>
+          <g class="lini-node lini-arrow lini-line" transform="translate(-127,130.375)">
+            <line x1="0" y1="0" x2="23.5" y2="0"/>
+            <polygon class="lini-marker lini-marker-arrow" points="26,0 20,3 20,-3" style="fill: var(--lini-faint)"/>
+          </g>
+          <g class="lini-node lini-ours lini-theirs lini-box lini-block" transform="translate(55.9187,130.375)">
+            <rect x="-133.2937" y="-14" width="266.5875" height="28" rx="6" ry="6"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">the durable bootstrap a substrate carries</text>
+          </g>
+          <g class="lini-node lini-theirs lini-box lini-block" transform="translate(-196.5437,167.625)">
+            <rect x="-45.9188" y="-14" width="91.8375" height="28" rx="6" ry="6"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">workflow id</text>
+          </g>
+          <g class="lini-node lini-arrow lini-line" transform="translate(-127,167.625)">
+            <line x1="0" y1="0" x2="23.5" y2="0"/>
+            <polygon class="lini-marker lini-marker-arrow" points="26,0 20,3 20,-3" style="fill: var(--lini-faint)"/>
+          </g>
+          <g class="lini-node lini-ours lini-theirs lini-box lini-block" transform="translate(30.9187,167.625)">
+            <rect x="-108.2937" y="-14" width="216.5875" height="28" rx="6" ry="6"/>
+            <text class="lini-text" x="0" y="0" dy="0.358em">what makes an offer idempotent</text>
+          </g>
+        </g>
+      </g>
+    </g>
+    <g class="lini-node lini-block" transform="translate(-481.254,339.8)">
+    </g>
+    <g class="lini-node lini-small lini-t lini-block" transform="translate(0,351.8)">
+      <rect x="-481.254" y="-6" width="962.508" height="12" rx="0" ry="0"/>
+      <text class="lini-text" x="0" y="0" dy="0.358em">No counterpart either way: DBOS has no tenant, participant, enrolment or register — it carries them as opaque strings. This store has no DBOS step and does not expose one.</text>
+    </g>
+  </g>
+  <g class="lini-links"/>
+</svg>

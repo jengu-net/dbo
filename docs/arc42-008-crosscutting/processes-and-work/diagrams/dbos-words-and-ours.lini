@@ -1,0 +1,154 @@
+{
+  // Two vocabularies, one bridge — and the point of the figure is the top
+  // band, not the table. A reader arriving from DBOS's documentation knows
+  // most of these names; the two that mean something else here are the ones
+  // that will bite, so they are drawn as a CROSSING and everything that maps
+  // cleanly is drawn as a quiet pair beneath them.
+
+  // The site's palette. dbo.css maps every one of these onto its own --dbo-*
+  // and wins, because Lini's defaults sit in a cascade layer — so these
+  // values are only what the figure looks like opened away from the site.
+  --ink: #111a24;   --body: #2c3a47;      --muted: #5d6c7b;  --faint: #8695a3;
+  --panel: #ffffff; --line: #e3e0da;      --accent: #a8641b; --bg: #fbfaf8;
+  --seal: #14532d;  --seal-soft: #e7f0e9; --accent-soft: #f6efe4;
+  --warn: #8c2f1a;  --warn-soft: #f7e8e4;
+
+  // Lini's own default stroke is a THREE-digit hex pair, and a three-digit
+  // hex is indistinguishable from an issue reference to the branding ratchet
+  // — which strips the six-digit form and cannot strip this one. Stating the
+  // colour at full length keeps the check honest rather than loosened.
+  --stroke: #444444;
+  font-family: "Google Sans"; color: --body;
+
+  |t::block|       { font-size: 13; color: --body; }
+  |small::t|       { font-size: 12; color: --muted; }
+  |cap::t|         { font-weight: semibold; color: --ink; }
+  |eyebrow::t|     { font-size: 11; font-weight: bold; letter-spacing: 1.2;
+                     text-transform: uppercase; color: --faint; }
+  |col::block|     { layout: flow; direction: column; align: start; gap: 6; }
+
+  |panel::box|     { radius: 9; fill: --panel; stroke: --line; stroke-width: 1.5;
+                     padding: 14; align: start; }
+  |warnpanel::box| { radius: 9; fill: --warn-soft; stroke: --warn; stroke-width: 1.5;
+                     padding: 14; align: start; }
+
+  // A term as each side says it. `theirs` is DBOS's word, `ours` is this
+  // store's; a `clash` is a word both use for different things.
+  |theirs::box| { radius: 6; fill: --bg; stroke: --line; stroke-width: 1.25;
+                  height: 28; padding: 0 12; justify: center; align: center;
+                  font-size: 12.5; color: --body; }
+  |ours::theirs| { fill: --seal-soft; stroke: --seal; color: --seal;
+                   font-weight: semibold; }
+  |clash::theirs| { fill: --panel; stroke: --warn; color: --warn;
+                    font-weight: semibold; }
+  |word::t|     { font-size: 15; font-weight: bold; color: --warn; }
+  // A width floor on all four, so two meanings of one word are the same size
+  // and the eye compares them rather than their boxes.
+  |side::box|   { radius: 6; fill: --panel; stroke: --line; stroke-width: 1.25;
+                  padding: 10 12; align: start; width: 344; }
+  |oursside::side| { fill: --seal-soft; stroke: --seal; }
+  |sidecap::t|  { font-size: 11; font-weight: bold; letter-spacing: 0.8;
+                  text-transform: uppercase; color: --faint; }
+  |ourscap::sidecap| { color: --seal; }
+  // WRAPS. An explicit width is a floor, so a long line grows the box past
+  // its grid column and out of the panel; max-width is what caps it.
+  |sidetext::small| { max-width: 318; justify: start; }
+
+  // Geometry rather than a glyph: the bundled face has no arrow, so a text
+  // arrow would be drawn by whatever font the reader happens to have.
+  |arrow::line| { points: 0 0, 26 0; marker-end: arrow;
+                  stroke: --faint; stroke-width: 1.25; }
+
+  |-| { stroke: --line; stroke-width: 1.25; }
+
+  layout: flow; direction: column; align: start; width: 780;
+  padding: 4; gap: 0; clearance: 6;
+}
+
+|eyebrow| "Two false friends, and the rest of the vocabulary"
+|block| { height: 8 } []
+
+|warnpanel| { width: 780; padding: 14 } [ |col| { width: 752; gap: 12 } [
+  |cap| "One word, two meanings — these are the ones that bite"
+
+  // Drawn as ONE WORD OVER TWO MEANINGS rather than left-mapping-to-right.
+  // A three-column row reads as a mapping however it is labelled, and a
+  // mapping is the precise thing this band exists to deny.
+  |block| { layout: grid; columns: 366, 366; gap: 10 20 } [
+    |word| "\"step\""
+    |word| "\"workflow\""
+
+    |side| [ |col| { gap: 5 } [
+      |sidecap| "in DBOS"
+      |sidetext| "a checkpointed unit inside a workflow, replayed rather than re-executed"
+    ] ]
+    |side| [ |col| { gap: 5 } [
+      |sidecap| "in DBOS"
+      |sidetext| "one durable execution"
+    ] ]
+
+    |oursside| [ |col| { gap: 5 } [
+      |ourscap| "in this store"
+      |sidetext| "a declared unit of work a participant performs, addressed module.process.step"
+    ] ]
+    |oursside| [ |col| { gap: 5 } [
+      |ourscap| "in this store"
+      |sidetext| "nothing is called one. A verb a door serves, or one fleet item a performer performs"
+    ] ]
+  ]
+
+  |small| "Both spellings are live in one file: a door runs a lane verb as a DBOS step, and the verb it is serving is about a dbo step."
+] ]
+
+|block| { height: 14 } []
+
+|eyebrow| "And the names that map cleanly"
+|block| { height: 8 } []
+
+|panel| { width: 780; padding: 14 } [ |col| { width: 752; gap: 10 } [
+  |block| { layout: grid; columns: 232, 60, 460; gap: 8 6;
+            align: end, center, start } [
+    |theirs| "queue"
+    |arrow| {} []
+    |ours| "one fleet step's backlog"
+
+    |theirs| "queue partition key"
+    |arrow| {} []
+    |ours| "the tenant"
+
+    |theirs| "executor"
+    |arrow| {} []
+    |ours| "a tenant's durable layer, a door, or a consumer"
+
+    |theirs| "DBOSClient"
+    |arrow| {} []
+    |ours| "the joiner's writer: offers, consumes nothing"
+
+    |theirs| "system database"
+    |arrow| {} []
+    |ours| "the substrate"
+
+    |theirs| "send / recv"
+    |arrow| {} []
+    |ours| "an ask on the stream, lane to door"
+
+    |theirs| "setEvent / getEvent"
+    |arrow| {} []
+    |ours| "the door's answer, and the wake-up"
+
+    |theirs| "listen queues"
+    |arrow| {} []
+    |ours| "which steps a consumer serves"
+
+    |theirs| "migration"
+    |arrow| {} []
+    |ours| "the durable bootstrap a substrate carries"
+
+    |theirs| "workflow id"
+    |arrow| {} []
+    |ours| "what makes an offer idempotent"
+  ]
+] ]
+
+|block| { height: 12 } []
+|small| "No counterpart either way: DBOS has no tenant, participant, enrolment or register — it carries them as opaque strings. This store has no DBOS step and does not expose one."

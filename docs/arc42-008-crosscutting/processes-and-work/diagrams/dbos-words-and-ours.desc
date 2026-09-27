@@ -1,0 +1,10 @@
+DBOS's words and this store's
+Two panels. The upper one holds the two words that mean different things in
+the two vocabularies — "step" and "workflow" — each shown as one word over two
+meanings rather than as a mapping, because a mapping is what the panel exists
+to deny: in DBOS a step is a checkpointed unit inside a workflow, and here it
+is a declared unit of work a participant performs. The lower panel is the rest
+of the vocabulary, each DBOS name paired by an arrow with what it is called
+here: queue, partition key, executor, client, system database, send and
+receive, events, listen queues, migration and workflow id. Beneath both, the
+names that have no counterpart in either direction.

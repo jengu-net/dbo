@@ -119,6 +119,10 @@ called a workflow.
 | migration | the **durable bootstrap** a step substrate carries |
 | workflow id | what makes an offer idempotent: `fleet:<tenant>:<run>` for an item, `<tenant>:<generation>` for a door |
 
+--8<-- "assets/diagrams/dbos-words-and-ours.svg"
+
+<p class="diagram-caption">The two words at the top are drawn as one word over two meanings rather than as a mapping, because a mapping is exactly what they are not.</p>
+
 ### What has no counterpart, in either direction
 
 DBOS has no idea of a **tenant**, a **participant**, an **enrolment** or a
