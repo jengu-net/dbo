@@ -83,6 +83,50 @@ Two halves use it very differently, and the asymmetry is deliberate:
   pool, which is the price of performing work and is why where a step's queue
   lives is a deployment's decision.
 
+## DBOS's words and this store's
+
+DBOS has its own documentation with its own vocabulary, and a reader arriving
+from it will recognise most of these names. Two of them mean something else
+here, and they are the reason this table exists rather than a link.
+
+### The two false friends
+
+**`step`.** In DBOS a step is a checkpointed unit INSIDE a workflow —
+`dbos.runStep(…)`, replayed rather than re-executed after a crash. In this
+store a **step** is a declared unit of work a participant performs, addressed
+`module.process.step`, with slots, a version and declared actions. They are
+unrelated, and both spellings are live in the same files: `StreamDoor` runs a
+lane verb as a DBOS step, and the verb it is serving is about a dbo step.
+
+**`workflow`.** In DBOS, one durable execution. Here it is two different
+things depending on which use you are reading: a **verb a door serves** on the
+stream, and **one fleet item** a performer performs. Nothing in this store is
+called a workflow.
+
+### The rest of the vocabulary
+
+| DBOS | in this store |
+|---|---|
+| queue | one fleet step's backlog — one queue per step |
+| queue partition key | the **tenant**, so one tenant's backlog is its own |
+| executor, `DBOS` instance | a tenant's durable layer, a door on the stream, or a step's consumer |
+| `DBOSClient` | the joiner's writer: offers work, consumes nothing |
+| system database | the **substrate** — a deployment's own, or a step's |
+| application name | `dbo-subscriptions-<domain>`, `dbo-lane-door-<tenant>`, `dbo-lane-<tenant>-<participant>`, `dbo-fleet-consumer` |
+| `send` / `recv` | an **ask** on the stream, from a lane to a door |
+| `setEvent` / `getEvent` | the door's **answer**, and the **wake-up** a lane waits on |
+| listen queues | which steps a consumer serves |
+| migration | the **durable bootstrap** a step substrate carries |
+| workflow id | what makes an offer idempotent: `fleet:<tenant>:<run>` for an item, `<tenant>:<generation>` for a door |
+
+### What has no counterpart, in either direction
+
+DBOS has no idea of a **tenant**, a **participant**, an **enrolment** or a
+**register** — those are this store's, and it carries them as opaque strings in
+an item. This store has no idea of a DBOS **step**, and does not expose one:
+what a participant declares and performs is a dbo step, and the checkpointing
+inside a verb is an implementation detail of the carrier.
+
 ## What the store relies on, precisely
 
 **One row per workflow id.** Offering the same run twice writes one item, which
