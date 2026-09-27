@@ -69,6 +69,23 @@ public final class DboInitiator {
             return new Slot(Kind.REFERENCE, List.of(reference), false);
         }
 
+        /**
+         * One reference, written as a search the tenant resolves.
+         *
+         * <p>What this is FOR: an application that knows a record by something
+         * about it — an identifier, a business key — and not by the id this
+         * store gave it. It need not look the id up first, and need not be
+         * able to: the tenant resolves the search against its own records when
+         * the run is authored, and the run then records what it matched.
+         *
+         * <p>Refused if it matches none, or if it matches several and the slot
+         * takes one. Both come back as a 400 saying which, because a run over
+         * whichever record came back first is a run nobody can account for.
+         */
+        public static Slot matching(String query) {
+            return new Slot(Kind.REFERENCE, List.of(query), false);
+        }
+
         /** Several references. */
         public static Slot references(List<String> references) {
             return new Slot(Kind.REFERENCE, List.copyOf(references), true);

@@ -246,11 +246,13 @@ class ABeanOfThisApplicationPerformsTheWorkIT {
         // never declared and never could — which is exactly what it refuses
         // for an INTRODUCED step in the test above, and the difference is who
         // wrote the declaration down.
-        // THREE SHAPES IN ONE RUN: the organisation by reference, a proposed
-        // one given with the run, and two notes given as a list. The performer
-        // throws unless all three arrive as the declared type, so a run that
-        // closes below is a run whose every slot was carried and resolved.
-        var started = asking.about(TENANT, organisation.idOrFail());
+        // THREE SHAPES IN ONE RUN: the organisation named by the identifier
+        // this application knows — never by the id, which it has no credential
+        // to look up — a proposed organisation given with the run, and two
+        // notes given as a list. The performer throws unless all three arrive
+        // as the declared type, so a run that closes below is a run whose
+        // every slot was carried and resolved.
+        var started = asking.about(TENANT, "RL-ORG-1");
         Proves.that(DboPromises.PROC_A_PARTICIPANT_ASKS_FOR_WORK_IT_NEED_NOT_PERFORM,
                 started.accepted(),
                 "the tenant would not start a run of the deployment's own step asked for by a "

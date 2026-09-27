@@ -126,6 +126,34 @@ A slot is one or the other and never both, which is why the run records it
 without saying which: a string is a reference, an object is one given here, and
 an array is several of whichever.
 
+### A reference can be a search
+
+A referred slot is filled by `Patient/01a0…` or by a search:
+
+```json
+{ "inputs": { "patient": "Patient?identifier=urn:rl:nid|38102030405" } }
+```
+
+Which is what a caller usually has. It knows the person by their national
+identifier, not by the id this store happened to give the record, and looking
+the id up first would mean a credential for the records surface — which a
+worker deliberately does not hold.
+
+**The search is resolved when the run is authored, and the run records what it
+matched.** Not when the work is performed: a run that kept the query would be
+over whatever matched at the moment somebody got round to it, two performers
+could be handed different sets, and the register could not say what was opened.
+
+**Matching none, or several where one was declared, is refused** — with the
+count, so the caller can narrow it. A run over whichever record came back first
+is a run nobody can account for. A slot declared `Patient[]` takes however many
+there are.
+
+It buys no reach. The narrowing is compiled by the face's own search compiler
+and run by the engine, so every rule a search on the records surface meets is
+met here: an identifying element needs a stated purpose, in the same
+`Purpose-Of-Use` header, and is refused by name rather than answered empty.
+
 It sits in the tenant file beside the types, because it is the same kind of
 statement: what this tenant holds, and what this tenant *does*.
 

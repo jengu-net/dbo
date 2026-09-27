@@ -684,6 +684,19 @@ public enum DboPromises implements Promise {
             + "shape is not the one declared, naming the slot and what it takes. Order within a "
             + "repeating slot is kept, because a list somebody sent is a list they meant."),
 
+    PROC_A_REFERENCE_MAY_BE_A_SEARCH(
+            "A referred slot is filled by 'Type/id' or by a search — 'Organization?identifier="
+            + "urn:x|1' — so whoever authors a run can name a record by something they know "
+            + "rather than by an id they would have to look up first. The search is resolved at "
+            + "the DOOR and the run records the references it matched, because what the work is "
+            + "over is fixed when the work is created: resolved at claim time instead, two "
+            + "performers could be handed different sets and the register could not say what "
+            + "was opened. A slot that takes one and matched none or several is refused, saying "
+            + "how many, rather than picking one. It buys no reach: the narrowing is compiled "
+            + "by the face's own search compiler and run by the engine, so an identifying "
+            + "element still needs a stated purpose and is still refused by name rather than "
+            + "answered empty."),
+
     PROC_A_FLEET_PERFORMER_IS_HANDED_ITS_OBJECTS(
             "A fleet performer is handed the run's slots RESOLVED — the objects themselves, not "
             + "the references the run was authored with — on the hold it just took, because the "

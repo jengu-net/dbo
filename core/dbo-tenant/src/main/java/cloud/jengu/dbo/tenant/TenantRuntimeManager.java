@@ -990,10 +990,12 @@ public final class TenantRuntimeManager implements AutoCloseable {
                     String startPath = "/t/" + code + "/step";
                     String runPath = "/t/" + code + "/run";
                     sharedServer.createContext(startPath, new StepSurface(tenant.authority(),
-                            tenant.laneRuns(), tenant.runtime().store(), tenant.spec().steps(),
+                            tenant.laneRuns(), tenant.runtime().store(),
+                            tenant.runtime().engine(), tenant.spec().steps(),
                             runPath, true, code, this::offerOf));
                     sharedServer.createContext(runPath, new StepSurface(tenant.authority(),
-                            tenant.laneRuns(), tenant.runtime().store(), tenant.spec().steps(),
+                            tenant.laneRuns(), tenant.runtime().store(),
+                            tenant.runtime().engine(), tenant.spec().steps(),
                             runPath, false, code, this::offerOf));
                     stepContexts.put(code, java.util.List.of(startPath, runPath));
                     return null;

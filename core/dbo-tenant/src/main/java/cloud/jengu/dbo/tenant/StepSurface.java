@@ -57,6 +57,15 @@ final class StepSurface implements HttpHandler {
     private final TenantAuthority authority;
     private final Runs runs;
     private final FhirStoreFacade store;
+    /**
+     * The engine, for turning a search into the references a run is over.
+     *
+     * <p>Beside the facade rather than instead of it: the facade compiles a
+     * face's search parameters into criteria — the same compiler the records
+     * surface uses — and the engine is what runs them. Compiling here and
+     * matching somewhere else would be two answers to one question.
+     */
+    private final cloud.jengu.dbo.core.api.ObjectStore engine;
     private final Map<String, TenantSpec.Step> declared = new LinkedHashMap<>();
     /**
      * Where a run of a step answers, named rather than derived from the
@@ -96,11 +105,13 @@ final class StepSurface implements HttpHandler {
     }
 
     StepSurface(TenantAuthority authority, Runs runs, FhirStoreFacade store,
+            cloud.jengu.dbo.core.api.ObjectStore engine,
             List<TenantSpec.Step> steps, String runPath, boolean starting,
             String tenant, Fleet fleet) {
         this.authority = authority;
         this.runs = runs;
         this.store = store;
+        this.engine = engine;
         this.runPath = runPath;
         this.starting = starting;
         this.tenant = tenant;
@@ -125,6 +136,28 @@ final class StepSurface implements HttpHandler {
             // does on the records surface.
             cloud.jengu.dbo.core.api.Caller.set(admitted.clientId());
             if (starting) {
+                // THE SAME HEADER THE RECORDS SURFACE TAKES, for the same
+                // reason and under the same rule. A slot may be filled by a
+                // search, and a search that would match on an identifying
+                // element is refused without a stated purpose — so the caller
+                // needs somewhere to state one, and inventing a second way of
+                // saying it would be a second rule to keep in step.
+                //
+                // It widens nothing. What may be read was decided by the
+                // scopes above; the purpose decides what is revealed and what
+                // the trail records.
+                String stated = exchange.getRequestHeaders().getFirst("Purpose-Of-Use");
+                if (stated != null && !stated.isBlank()) {
+                    if (!cloud.jengu.dbo.core.api.Disclosure.statable(stated)) {
+                        // Refused rather than dropped: serving without it
+                        // would answer as though nobody matched.
+                        fail(exchange, 400, "invalid_request", "Purpose-Of-Use must be a "
+                                + "PurposeOfUse code such as TREAT or PATRQT");
+                        return;
+                    }
+                    cloud.jengu.dbo.core.api.Disclosure.set(
+                            cloud.jengu.dbo.core.api.Disclosure.Mode.INCLUDE, stated.trim());
+                }
                 start(exchange, relative);
             } else {
                 read(exchange, relative);
@@ -137,6 +170,9 @@ final class StepSurface implements HttpHandler {
             // Cleared on the way out, because the thread is reused: a run left
             // behind would occasion the next request's read.
             cloud.jengu.dbo.core.api.Caller.clear();
+            // As above: the thread is reused, and a purpose left behind would
+            // be stated over somebody else's request.
+            cloud.jengu.dbo.core.api.Disclosure.clear();
             exchange.close();
         }
     }
@@ -257,7 +293,7 @@ final class StepSurface implements HttpHandler {
      * payload is at hand against the profiles that tenant holds — and asking
      * it here would be a second validator, differing.
      */
-    private static cloud.jengu.dbo.work.RunSlot fill(String name,
+    private cloud.jengu.dbo.work.RunSlot fill(String name,
             cloud.jengu.dbo.core.process.SlotShape shape, Object filled) {
         if (filled instanceof List<?> several) {
             if (!shape.many()) {
@@ -271,20 +307,98 @@ final class StepSurface implements HttpHandler {
             }
             List<String> values = new java.util.ArrayList<>();
             for (Object one : several) {
-                values.add(value(name, shape, one));
+                // A SEARCH MAY EXPAND. Each value is one thing the caller
+                // wrote and any number of things the store holds, and a
+                // repeating slot takes them all in the order they were asked
+                // for and then matched.
+                values.addAll(valuesOf(name, shape, one));
             }
             return shape.referred()
                     ? cloud.jengu.dbo.work.RunSlot.referringTo(values)
                     : cloud.jengu.dbo.work.RunSlot.givenAll(values);
         }
         if (shape.many()) {
-            throw new IllegalArgumentException("slot '" + name + "' takes " + shape.declared()
-                    + " and was given one value rather than a list of them");
+            // One value where a list was declared is still a list — a search
+            // filling a repeating slot is the ordinary way to write one.
+            return cloud.jengu.dbo.work.RunSlot.referringTo(valuesOf(name, shape, filled));
         }
-        String one = value(name, shape, filled);
+        List<String> one = valuesOf(name, shape, filled);
+        if (one.size() != 1) {
+            throw new IllegalArgumentException("slot '" + name + "' takes " + shape.declared()
+                    + " — one of them — and the search given for it matched " + one.size()
+                    + ". Narrow it until it names one, or declare the slot "
+                    + shape.declared() + "[] if the step is over however many there are");
+        }
         return shape.referred()
-                ? cloud.jengu.dbo.work.RunSlot.referring(one)
-                : cloud.jengu.dbo.work.RunSlot.given(one);
+                ? cloud.jengu.dbo.work.RunSlot.referring(one.get(0))
+                : cloud.jengu.dbo.work.RunSlot.given(one.get(0));
+    }
+
+    /**
+     * One value the caller wrote, as the values the run will record.
+     *
+     * <p>One of them, except where it is a search: {@code Organization?…} is
+     * resolved HERE, at the door, into the references it matched, and the run
+     * records those. Which is the same rule the rest of the model already
+     * keeps — what the work is over is fixed when the work is created — and
+     * it is what makes a search usable at all: resolved at claim time instead,
+     * two performers could be handed different sets, a re-claim after a
+     * release could see different data, and the register could not say what
+     * was opened.
+     *
+     * <p><b>It buys no reach.</b> The narrowing is compiled by the face's own
+     * search compiler and run by the engine, so every rule a search on the
+     * records surface meets is met here — an identifying element still needs a
+     * stated purpose, and is still refused by name rather than answered empty.
+     */
+    private List<String> valuesOf(String name,
+            cloud.jengu.dbo.core.process.SlotShape shape, Object one) {
+        if (!shape.referred() || one instanceof Map<?, ?>) {
+            return List.of(value(name, shape, one));
+        }
+        String written = String.valueOf(one);
+        int query = written.indexOf('?');
+        if (query < 0) {
+            return List.of(value(name, shape, written));
+        }
+        String type = written.substring(0, query);
+        if (!shape.type().equals(type)) {
+            throw new IllegalArgumentException("slot '" + name + "' takes " + shape.declared()
+                    + " and was given a search for '" + type + "'");
+        }
+        Map<String, String> params = new LinkedHashMap<>();
+        for (String pair : written.substring(query + 1).split("&")) {
+            if (pair.isBlank()) {
+                continue;
+            }
+            int is = pair.indexOf('=');
+            if (is < 0) {
+                throw new IllegalArgumentException("slot '" + name + "': '" + pair
+                        + "' is not a search parameter");
+            }
+            params.put(decoded(pair.substring(0, is)), decoded(pair.substring(is + 1)));
+        }
+        if (params.isEmpty()) {
+            throw new IllegalArgumentException("slot '" + name + "' was given a search with no "
+                    + "parameters, which is every " + type + " this tenant holds");
+        }
+        List<String> found = new java.util.ArrayList<>();
+        for (cloud.jengu.dbo.core.api.StoredObject matched
+                : engine.select(store.narrow(type, params))) {
+            found.add(type + "/" + matched.id());
+        }
+        if (found.isEmpty()) {
+            // Said as nothing matched, which is what happened. A slot left
+            // unfilled is refused by the engine a moment later and would read
+            // as the caller having forgotten it.
+            throw new IllegalArgumentException("slot '" + name + "': the search '" + written
+                    + "' matched nothing, so there is nothing for this run to be over");
+        }
+        return found;
+    }
+
+    private static String decoded(String value) {
+        return java.net.URLDecoder.decode(value, StandardCharsets.UTF_8);
     }
 
     /** One value of a slot: a reference of the declared type, or an object of it. */

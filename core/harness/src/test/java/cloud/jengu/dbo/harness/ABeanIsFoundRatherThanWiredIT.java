@@ -222,6 +222,75 @@ class ABeanIsFoundRatherThanWiredIT {
                         + "way in rather than a capability: " + unknown.body());
     }
 
+    @Test
+    @Order(5)
+    @DisplayName("a slot is filled by a search, and the run records what it matched rather "
+            + "than the search")
+    @Proving(DboPromises.PROC_A_REFERENCE_MAY_BE_A_SEARCH)
+    void aReferenceMayBeASearch() throws Exception {
+        manager.authority(TENANT).ensureClient("asker", "asker-secret",
+                java.util.List.of(cloud.jengu.dbo.auth.Scopes.WORK, "work/" + STEP));
+        // Two records, so that "it matched one" is a fact about the search
+        // rather than about there being only one Basic in the tenant.
+        String wanted = basicWith("the-one-wanted");
+        basicWith("another-entirely");
+
+        var answered = post("/t/" + TENANT + "/step/" + STEP,
+                "{\"inputs\":{\"record\":\"Basic?code=the-one-wanted\"}}");
+        assertEquals(201, answered.statusCode(),
+                "a slot filled by a search was not taken, so naming a record by what is known "
+                        + "about it is not a way to author work: " + answered.body());
+
+        // THE RUN RECORDS THE REFERENCE, not the search. What the work is over
+        // is fixed when the work is created: a run that kept the query would
+        // be over whatever matched at the moment somebody got round to it.
+        String key = between(answered.body(), "\"key\":\"", "\"");
+        cloud.jengu.dbo.work.Run authored =
+                new cloud.jengu.dbo.work.Runs(manager.runtime(TENANT).orElseThrow().engine())
+                        .byKey(key).orElseThrow(() -> new AssertionError("no run " + key));
+        assertEquals(java.util.List.of("Basic/" + wanted),
+                authored.inputs().get("record").values(),
+                "the run did not record the reference the search matched, so what it is over "
+                        + "can still change underneath it");
+    }
+
+    @Test
+    @Order(6)
+    @DisplayName("a search matching several fills no slot that takes one, and says how many")
+    @Proving(DboPromises.PROC_A_REFERENCE_MAY_BE_A_SEARCH)
+    void aSearchThatMatchesSeveralIsRefused() throws Exception {
+        manager.authority(TENANT).ensureClient("asker", "asker-secret",
+                java.util.List.of(cloud.jengu.dbo.auth.Scopes.WORK, "work/" + STEP));
+        basicWith("two-of-these");
+        basicWith("two-of-these");
+
+        var answered = post("/t/" + TENANT + "/step/" + STEP,
+                "{\"inputs\":{\"record\":\"Basic?code=two-of-these\"}}");
+
+        // Refused rather than resolved to the first. A run over one of two
+        // matches is a run over whichever the index happened to return, and
+        // nothing downstream could tell that had happened.
+        assertEquals(400, answered.statusCode(),
+                "a search matching two filled a slot that takes one, so a run was authored "
+                        + "over whichever came back first: " + answered.body());
+        assertTrue(answered.body().contains("matched 2"),
+                "the refusal does not say how many it matched, which is the one thing the "
+                        + "caller needs to narrow it: " + answered.body());
+    }
+
+    /** A Basic whose code text is searchable, and its id. */
+    private String basicWith(String code) {
+        return manager.runtime(TENANT).orElseThrow().engine()
+                .put(PutRequest.create("Basic",
+                        ("{\"resourceType\":\"Basic\",\"code\":{\"coding\":[{\"code\":\""
+                                + code + "\"}]}}").getBytes(StandardCharsets.UTF_8))).id();
+    }
+
+    private static String between(String body, String after, String before) {
+        int from = body.indexOf(after) + after.length();
+        return body.substring(from, body.indexOf(before, from));
+    }
+
     /** As a participant reaches the door: a work credential, and JSON. */
     private java.net.http.HttpResponse<String> post(String path, String body) throws Exception {
         String form = "grant_type=client_credentials&client_id=asker"

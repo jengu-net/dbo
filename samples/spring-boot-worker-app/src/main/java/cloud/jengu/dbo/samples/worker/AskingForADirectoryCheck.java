@@ -48,13 +48,14 @@ public final class AskingForADirectoryCheck {
      * whole of what this method is for.
      *
      * @param tenant         whose directory it is
-     * @param organisationId the Organization this run is about, named by
-     *                       REFERENCE. This application has never read it and
-     *                       may not be entitled to: it names the hospital's own
-     *                       record, the store resolves it where it already is,
-     *                       and the object never goes over this wire
+     * @param identifier the Organization this run is about, named by what
+     *                   this application KNOWS about it rather than by the id
+     *                   this store gave it. It has never read the record and
+     *                   may not be entitled to: the hospital resolves the
+     *                   search against its own records, records what it
+     *                   matched, and the object never goes over this wire
      */
-    public DboInitiator.Started about(String tenant, String organisationId) {
+    public DboInitiator.Started about(String tenant, String identifier) {
         // GIVEN, not referred. This has no record anywhere — it is what this
         // application proposes the entry should say, and there is nothing for a
         // reference to point at. It is sent with the run, read by whoever
@@ -71,7 +72,12 @@ public final class AskingForADirectoryCheck {
                 note("telephone number is the one for the greenhouses"));
 
         return initiator.starting(tenant, STEP, Map.of(
-                "org", DboInitiator.Slot.reference("Organization/" + organisationId),
+                // BY WHAT IT KNOWS. An id would have had to be looked up
+                // first, over a surface this application holds no credential
+                // for — the work credential it polls with is refused by the
+                // hospital's records door, deliberately.
+                "org", DboInitiator.Slot.matching(
+                        "Organization?identifier=urn:rl:org|" + identifier),
                 "proposed", DboInitiator.Slot.object(proposed),
                 "notes", DboInitiator.Slot.objects(notes)));
     }
