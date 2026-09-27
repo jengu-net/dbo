@@ -60,6 +60,15 @@ public final class StepJoiner implements AutoCloseable {
     private final Map<DataSource, DBOSClient> clients = new ConcurrentHashMap<>();
     /** The tenants being read, by code. */
     private final Map<String, ChangeFeed> following = new ConcurrentHashMap<>();
+    /**
+     * What each tenant declined, by code.
+     *
+     * <p>Held beside the feed rather than asked for per item, because it is a
+     * fact about a declaration and a declaration does not change inside a
+     * pass. A tenant that declines a step later is followed again with the new
+     * set, which is what a redeclaration already is.
+     */
+    private final Map<String, Set<String>> declined = new ConcurrentHashMap<>();
 
     /**
      * @param substrateOf step code to the substrate its queue lives on — the
@@ -81,14 +90,21 @@ public final class StepJoiner implements AutoCloseable {
         }
     }
 
-    /** Read this tenant's work from now on. */
-    public void follow(String tenant, ChangeFeed workFeed) {
+    /** Read this tenant's work from now on, minus what it declined. */
+    public void follow(String tenant, ChangeFeed workFeed, Set<String> declines) {
         following.put(tenant, workFeed);
+        declined.put(tenant, Set.copyOf(declines));
+    }
+
+    /** The same, for a tenant that declined nothing. */
+    public void follow(String tenant, ChangeFeed workFeed) {
+        follow(tenant, workFeed, Set.of());
     }
 
     /** Stop reading it — a tenant taken down, its cursor left where it is. */
     public void unfollow(String tenant) {
         following.remove(tenant);
+        declined.remove(tenant);
     }
 
     /**
@@ -119,6 +135,15 @@ public final class StepJoiner implements AutoCloseable {
             }
             Map<String, Object> run = asMap(item.payload());
             String code = codeOf(run);
+            if (code != null && declined.getOrDefault(tenant, Set.of()).contains(code)) {
+                // THE TENANT SAID NOT TO. Its run stays where it is, offered to
+                // nothing, exactly as a run of a step the deployment does not
+                // perform does — because from the tenant's side those are the
+                // same fact: this is not being done to my data. Declining a
+                // step the deployment REQUIRES never reaches here; it is
+                // refused where the declaration is read.
+                continue;
+            }
             DataSource substrate = code == null ? null : substrateOf.get(code);
             if (substrate == null) {
                 // A run of a step this deployment does not perform. Left where

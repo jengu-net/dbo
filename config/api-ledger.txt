@@ -2843,6 +2843,7 @@ cloud.jengu.dbo.promises.DboPromises                                   PROC_A_RU
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_RUN_NAMES_WHAT_IT_PRODUCED:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_STEP_CODE_BELONGS_TO_ONE_LEVEL:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_STEP_GRANTS_THE_RIGHT_TO_OVERRIDE:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   PROC_A_TENANT_ADMITS_OR_DECLINES_WHAT_IS_DONE_TO_IT:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_TRACKABLE_MAY_ROUTE_OTHERS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_WAKE_UP_IS_NOT_HOW_WORK_ARRIVES:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_CATALOGUE_IN_STORE:cloud.jengu.dbo.promises.DboPromises
@@ -3458,6 +3459,7 @@ cloud.jengu.dbo.stream.StepJoiner                                      CONSUMER:
 cloud.jengu.dbo.stream.StepJoiner                                      class
 cloud.jengu.dbo.stream.StepJoiner                                      close():void
 cloud.jengu.dbo.stream.StepJoiner                                      follow(String,cloud.jengu.dbo.core.api.feed.ChangeFeed):void
+cloud.jengu.dbo.stream.StepJoiner                                      follow(String,cloud.jengu.dbo.core.api.feed.ChangeFeed,Set):void
 cloud.jengu.dbo.stream.StepJoiner                                      joinOnce(int):int
 cloud.jengu.dbo.stream.StepJoiner                                      new(Map)
 cloud.jengu.dbo.stream.StepJoiner                                      unfollow(String):void
@@ -4036,6 +4038,7 @@ cloud.jengu.dbo.tenant.TenantSpec                                      broker():
 cloud.jengu.dbo.tenant.TenantSpec                                      code():String
 cloud.jengu.dbo.tenant.TenantSpec                                      databaseName():String
 cloud.jengu.dbo.tenant.TenantSpec                                      databaseName(String):String
+cloud.jengu.dbo.tenant.TenantSpec                                      declines():Set
 cloud.jengu.dbo.tenant.TenantSpec                                      dependencies():List
 cloud.jengu.dbo.tenant.TenantSpec                                      equals(Object):boolean
 cloud.jengu.dbo.tenant.TenantSpec                                      face():String
@@ -4059,6 +4062,7 @@ cloud.jengu.dbo.tenant.TenantSpec                                      new(Strin
 cloud.jengu.dbo.tenant.TenantSpec                                      new(String,String,List,boolean,cloud.jengu.dbo.policy.TenantPolicies,String,String,List,List,cloud.jengu.dbo.tenant.TenantSpec.Scim,List,String,boolean,List,boolean)
 cloud.jengu.dbo.tenant.TenantSpec                                      new(String,String,List,boolean,cloud.jengu.dbo.policy.TenantPolicies,String,String,List,List,cloud.jengu.dbo.tenant.TenantSpec.Scim,List,String,boolean,List,boolean,boolean)
 cloud.jengu.dbo.tenant.TenantSpec                                      new(String,String,List,boolean,cloud.jengu.dbo.policy.TenantPolicies,String,String,List,List,cloud.jengu.dbo.tenant.TenantSpec.Scim,List,String,boolean,List,boolean,boolean,List)
+cloud.jengu.dbo.tenant.TenantSpec                                      new(String,String,List,boolean,cloud.jengu.dbo.policy.TenantPolicies,String,String,List,List,cloud.jengu.dbo.tenant.TenantSpec.Scim,List,String,boolean,List,boolean,boolean,List,Set)
 cloud.jengu.dbo.tenant.TenantSpec                                      onlyTheDeploymentDeclaresFleetSteps(cloud.jengu.dbo.tenant.TenantSpec):void
 cloud.jengu.dbo.tenant.TenantSpec                                      parse(String):cloud.jengu.dbo.tenant.TenantSpec
 cloud.jengu.dbo.tenant.TenantSpec                                      pdi():boolean

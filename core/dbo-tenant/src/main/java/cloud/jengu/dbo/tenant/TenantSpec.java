@@ -24,7 +24,7 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
         String zone, String broker, List<String> acceptedBrokers,
         List<Dependency> dependencies, Scim scim, List<String> mandatorySteps,
         String managedBy, boolean faceRoot, List<Step> steps, boolean zoneRoot,
-        boolean indexFace, List<FleetStep> fleetSteps) {
+        boolean indexFace, List<FleetStep> fleetSteps, Set<String> declines) {
 
     /**
      * A step this tenant offers, and the documents a run of it is over.
@@ -217,6 +217,21 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
                 + "performs for every tenant that admits them, declared in the management "
                 + "tenant's own descriptor and nowhere else. A step this tenant offers itself "
                 + "goes under 'steps'.");
+    }
+
+    /**
+     * Without anything declined: what every tenant was while a deployment's
+     * steps were admitted by saying nothing, which is still the default.
+     */
+    public TenantSpec(String code, String face, List<FhirTypeConfig> types,
+            boolean pdi, cloud.jengu.dbo.policy.TenantPolicies policies,
+            String zone, String broker, List<String> acceptedBrokers,
+            List<Dependency> dependencies, Scim scim, List<String> mandatorySteps,
+            String managedBy, boolean faceRoot, List<Step> steps, boolean zoneRoot,
+            boolean indexFace, List<FleetStep> fleetSteps) {
+        this(code, face, types, pdi, policies, zone, broker, acceptedBrokers,
+                dependencies, scim, mandatorySteps, managedBy, faceRoot, steps, zoneRoot,
+                indexFace, fleetSteps, Set.of());
     }
 
     /**
@@ -701,7 +716,14 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
                 // specification. Declared and not discovered, because it
                 // decides what every write of this tenant is checked against.
                 Json.bool(root, "indexFace"),
-                List.copyOf(fleetSteps));
+                List.copyOf(fleetSteps),
+                // ADMITTED BY SAYING NOTHING, which is the ordinary case: a
+                // deployment's steps are what it does for every tenant that
+                // joined, and a tenant listing each one it accepts would turn
+                // an agreement into a per-step click. What a tenant writes down
+                // is the exception — and a step the deployment REQUIRES cannot
+                // be among them, which is refused where the levels meet.
+                Set.copyOf(Json.strings(root, "declines")));
     }
 
     /**

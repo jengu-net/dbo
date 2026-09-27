@@ -145,6 +145,14 @@ public record SpecChange(Kind kind, List<String> fields) {
         if (!Objects.equals(serving.fleetSteps(), declared.fleetSteps())) {
             hot.add("fleetSteps");
         }
+        // What a tenant declines is read by the joiner each time the tenant is
+        // followed, and following is what a redeclaration already redoes — so
+        // it applies while the tenant serves. It is also the field a tenant is
+        // most likely to change about a serving tenant, and a change that
+        // needed a rebuild would make withdrawing consent cost an outage.
+        if (!Objects.equals(serving.declines(), declared.declines())) {
+            hot.add("declines");
+        }
         if (!Objects.equals(serving.mandatorySteps(), declared.mandatorySteps())) {
             hot.add("mandatorySteps");
         }

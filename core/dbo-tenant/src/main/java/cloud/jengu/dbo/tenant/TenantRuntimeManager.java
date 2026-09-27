@@ -443,6 +443,14 @@ public final class TenantRuntimeManager implements AutoCloseable {
      */
     private volatile Set<String> fleetStepCodes = Set.of();
     /**
+     * The steps the deployment REQUIRES, which a tenant may not decline.
+     *
+     * <p>Held beside the codes because declining one is the refusal that gives
+     * decision three its teeth: an agreement signed by joining is not an
+     * agreement if a tenant can write one line and be out of it.
+     */
+    private volatile Set<String> requiredStepCodes = Set.of();
+    /**
      * The substrate each declared fleet step's queue lives on, by step code.
      *
      * <p>Several steps may share one, so the pools behind these are shared
@@ -1074,6 +1082,10 @@ public final class TenantRuntimeManager implements AutoCloseable {
         fleetStepCodes = spec.fleetSteps().stream()
                 .map(TenantSpec.FleetStep::code)
                 .collect(java.util.stream.Collectors.toUnmodifiableSet());
+        requiredStepCodes = spec.fleetSteps().stream()
+                .filter(TenantSpec.FleetStep::required)
+                .map(TenantSpec.FleetStep::code)
+                .collect(java.util.stream.Collectors.toUnmodifiableSet());
         provisionStepSubstrates(spec);
         // Built once the substrates are known, because what it is FOR is the
         // map from a step to where that step's work goes — and it bootstraps
@@ -1137,7 +1149,8 @@ public final class TenantRuntimeManager implements AutoCloseable {
             return;
         }
         following.follow(code, new cloud.jengu.dbo.postgres.PgChangeFeed(
-                tenantDataSources.get(code), cloud.jengu.dbo.work.WorkModel.DOMAIN));
+                tenantDataSources.get(code), cloud.jengu.dbo.work.WorkModel.DOMAIN),
+                declinedBy(code));
     }
 
     /**
@@ -1165,6 +1178,12 @@ public final class TenantRuntimeManager implements AutoCloseable {
         }
         return java.util.Optional.of(factory.laneFor(identity.name(), identity,
                 cloud.jengu.dbo.runner.Lane.Entitlement.ofSteps(stepCode)));
+    }
+
+    /** What this tenant wrote down that it will not have done to its data. */
+    private Set<String> declinedBy(String code) {
+        TenantRuntime serving = runtimes.get(code);
+        return serving == null ? Set.of() : serving.spec().declines();
     }
 
     /** The joiner, for a test that needs one deterministic pass. */
@@ -1290,6 +1309,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 // declared by somebody who may not.
                 TenantSpec.onlyTheDeploymentDeclaresFleetSteps(spec);
                 aStepCodeBelongsToOneLevel(spec);
+                aRequiredStepCannotBeDeclined(spec);
                 // It parsed and it is being served, so a later refusal of the
                 // same file is news rather than a repeat.
                 refusals.applied(named);
@@ -1655,6 +1675,37 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 + "to the deployment's consumer, and both would be right about a run only "
                 + "one of them should have seen. Rename one of them, or drop it from the "
                 + "side that should not perform it.");
+    }
+
+    /**
+     * What a tenant may decline, and what it may not.
+     *
+     * <p>Most of a deployment's steps are admitted by saying nothing and
+     * declined by one line. A few are <b>required</b>, and the refusal is per
+     * system rather than per step: declining one means not being a tenant here.
+     * Refused at the declaration, naming the step and saying where the
+     * requirement is written, because an agreement a tenant can leave by
+     * editing its own file is not an agreement.
+     *
+     * <p>Said where the levels already meet, beside the rule that one code
+     * belongs to one level — both are the same kind of contradiction between
+     * two files, and a reader looking for one will find the other.
+     */
+    private void aRequiredStepCannotBeDeclined(TenantSpec spec) {
+        List<String> refusedAnyway = spec.declines().stream()
+                .filter(requiredStepCodes::contains)
+                .sorted()
+                .toList();
+        if (refusedAnyway.isEmpty()) {
+            return;
+        }
+        throw new IllegalArgumentException("tenant '" + spec.code() + "' declines "
+                + refusedAnyway + ", and the deployment requires "
+                + (refusedAnyway.size() == 1 ? "it" : "them") + ": a required step is agreed "
+                + "by joining, so declining one is declining to be a tenant here rather than "
+                + "a setting. It is declared required in the management tenant '"
+                + managementCode + "', which is where the set of them can be read before "
+                + "anybody joins.");
     }
 
     /** The tenant a spec file declares, when it parses — for a state to belong to. */

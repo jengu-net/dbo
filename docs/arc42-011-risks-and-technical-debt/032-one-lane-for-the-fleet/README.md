@@ -359,17 +359,20 @@ payload — and a step that only routes on the envelope is not on it. A row is a
 declaration made in advance, made where a step already declares what it takes,
 so what is added is whether a slot is opened or only carried.
 
-Open: **the granularity of a row**. A slot is the obvious unit because it
-already exists and already names a type. Whether that is enough — against, say,
-declaring which elements of a document are opened — decides how precise an
-incident can be, and a register nobody can read is worth as little as one
-nobody can act on.
+**Settled: a row is a SLOT.** It already exists and already names a type, and
+step one's `opens` already carries slot names — but the deciding argument is
+the trail. Access is recorded per DOCUMENT, so slot rows and trail entries line
+up one to one and a disagreement between them is computable by comparison,
+which is the whole mechanism the incident rests on. Anything finer — which
+elements of a document are opened — would have no counterpart in the trail, so
+the comparison would have to be invented separately before an incident could
+mean anything.
 
-Open too: **whether "consent" is the word.** It is the tenant authorising
-processing under an agreement, not a data subject's lawful basis, and the two
-are different things that the word does not distinguish. The concept is right;
-the risk is a tenant-facing screen that invites the legal reading of a term
-being used in an operational sense.
+**Settled: the word is AUTHORISATION, not consent.** It is the tenant
+authorising processing under an agreement it signed by joining, and *consent*
+names a data subject's lawful basis in every reader's mind. In a store that
+holds health data, a tenant-facing screen inviting that reading of an
+operational term is a confusion that costs more than the familiarity buys.
 
 **6. The posture for unapproved change, and its default.** Settled in shape: a
 deployment states once what happens to work whose processing a tenant has not
@@ -706,6 +709,34 @@ per row, refusing to seal where a row says not until approved.
 incident in the tenant's own account; a row declined, and that tenant's work
 not offered to that step; a row not yet approved, and the posture obeyed.
 
+**The second of those three is done.** A tenant admits a step by saying
+nothing and declines it with one line, and a declined step is offered that
+tenant's work at all — the run stays where it is, exactly as a run of a step
+the deployment does not perform does, because from the tenant's side those are
+one fact. Declining applies while the tenant serves, classified `hot`, because
+withdrawing authorisation must not cost an outage.
+
+**And the required case has its teeth.** Declining a step the deployment
+declares required is refused at the declaration, naming the step and saying it
+is written in the management tenant where the set can be read before anybody
+joins. An agreement a tenant can leave by editing its own file is not an
+agreement, which is what decision three was really asserting.
+
+*That part proven by:* `ATenantAdmitsOrDeclinesWhatIsDoneToItIT`, claiming
+`REQ-DBO-PROC-A-TENANT-ADMITS-OR-DECLINES-WHAT-IS-DONE-TO-IT`.
+
+**What is left of step 7, and why.** The register itself and the incident are
+now unblocked by the grain decision and are ordinary work. The two postures
+that turn on sealing are not: nothing in steps 4 to 6 seals or carries a
+payload — the joiner sends the run by identity and a performer is handed four
+strings — so *refusing to seal where a row says not until approved* has nothing
+to refuse yet. A performer opens through `Lane.inputs`, which already records
+the access on the document naming the opener in that tenant's own trail, so the
+third part of step 7 is the existing mechanism rather than new work. What has
+to be built before the postures can be is **per-tenant enrolment of an
+application-level processor**, which decision two settled in shape and no step
+below 7 schedules.
+
 ## What this plan does not schedule
 
 **The reduced account**, because what it holds is undecided and the constraint
@@ -716,9 +747,11 @@ record already answers.
 copy a processor has opened and holds is not, and it is a question about the
 store's promises rather than about this design.
 
-**Whether a row is a slot or something finer**, and whether *consent* is the
-word for a tenant's authorisation. Both are open above, and neither blocks a
-step below 7.
+~~Whether a row is a slot or something finer, and whether *consent* is the
+word.~~ **Both settled** — a row is a slot, because the trail records access
+per document and the comparison is what an incident is; and the word is
+authorisation, because consent names a data subject's basis and this is a
+tenant's.
 
 ## What is deliberately not proposed
 

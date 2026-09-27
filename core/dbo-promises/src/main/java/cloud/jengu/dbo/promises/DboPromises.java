@@ -659,6 +659,17 @@ public enum DboPromises implements Promise {
             + "would be on a lane. The performer claims before it reports, because the hold is "
             + "what says whose account of the work counts."),
 
+    PROC_A_TENANT_ADMITS_OR_DECLINES_WHAT_IS_DONE_TO_IT(
+            "A step the deployment performs is admitted by a tenant saying nothing and "
+            + "declined by one line, and a declined step is not offered that tenant's work at "
+            + "all — the run stays where it is, exactly as a run of a step the deployment does "
+            + "not perform does, because from the tenant's side those are one fact. A few steps "
+            + "the deployment REQUIRES, and declining one of those is refused by name at the "
+            + "declaration, saying where the requirement is written: an agreement signed by "
+            + "joining is not an agreement if a tenant can leave it by editing its own file. "
+            + "Declining applies while the tenant serves, because withdrawing authorisation "
+            + "must not cost an outage."),
+
     PROC_A_LANE_OVER_THE_STREAM(
             "A lane runs over the store's own stream, full duplex, beside in-process and "
             + "HTTP: work goes out and travel, access and result events come home as they "

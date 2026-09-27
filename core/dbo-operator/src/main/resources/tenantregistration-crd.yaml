@@ -167,6 +167,15 @@ spec:
                       # deployment's own; several steps may name one.
                       substrate:
                         type: string
+                # Steps the deployment performs that THIS tenant will not
+                # have done to its data. Admitted by saying nothing, which is
+                # the ordinary case; a step the deployment declares required
+                # cannot be listed here and the declaration is refused if it
+                # is.
+                declines:
+                  type: array
+                  items:
+                    type: string
                 # Steps this tenant must have available before it serves.
                 mandatorySteps:
                   type: array

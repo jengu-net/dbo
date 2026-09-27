@@ -48,6 +48,7 @@ AStepCodeBelongsToOneLevelIT                             sweep
 AStoreWithoutSuperuserStillMountsIT                      sweep
 AStreamKeepsMovingWhileATenantComesUpIT                  lifecycle
 AStreamLaneIsToldItHasWorkIT                             deployment
+ATenantAdmitsOrDeclinesWhatIsDoneToItIT                  deployment
 ATenantAuthorsItsOwnSearchParameterIT                    sweep
 ATenantComesUpFromTheFaceImageIT                         deployment
 ATenantDeclaredDifferentlyIsNoticedIT                    sweep
