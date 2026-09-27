@@ -136,28 +136,17 @@ final class StepSurface implements HttpHandler {
             // does on the records surface.
             cloud.jengu.dbo.core.api.Caller.set(admitted.clientId());
             if (starting) {
-                // THE SAME HEADER THE RECORDS SURFACE TAKES, for the same
-                // reason and under the same rule. A slot may be filled by a
-                // search, and a search that would match on an identifying
-                // element is refused without a stated purpose — so the caller
-                // needs somewhere to state one, and inventing a second way of
-                // saying it would be a second rule to keep in step.
+                // NO PURPOSE IS STATED HERE, and none is accepted. A slot may
+                // be filled by a search, and a stated purpose is what opens an
+                // exact lookup on an identifying element through the vault —
+                // so accepting one would make this door a way to ask whether a
+                // person with a given number is here, on a credential the
+                // tenant's own records surface refuses.
                 //
-                // It widens nothing. What may be read was decided by the
-                // scopes above; the purpose decides what is revealed and what
-                // the trail records.
-                String stated = exchange.getRequestHeaders().getFirst("Purpose-Of-Use");
-                if (stated != null && !stated.isBlank()) {
-                    if (!cloud.jengu.dbo.core.api.Disclosure.statable(stated)) {
-                        // Refused rather than dropped: serving without it
-                        // would answer as though nobody matched.
-                        fail(exchange, 400, "invalid_request", "Purpose-Of-Use must be a "
-                                + "PurposeOfUse code such as TREAT or PATRQT");
-                        return;
-                    }
-                    cloud.jengu.dbo.core.api.Disclosure.set(
-                            cloud.jengu.dbo.core.api.Disclosure.Mode.INCLUDE, stated.trim());
-                }
+                // Cleared rather than merely left alone: this thread serves the
+                // records surface too, and a purpose another request set and
+                // did not clear would be in force over this search.
+                cloud.jengu.dbo.core.api.Disclosure.clear();
                 start(exchange, relative);
             } else {
                 read(exchange, relative);
@@ -383,9 +372,22 @@ final class StepSurface implements HttpHandler {
                     + "parameters, which is every " + type + " this tenant holds");
         }
         List<String> found = new java.util.ArrayList<>();
-        for (cloud.jengu.dbo.core.api.StoredObject matched
-                : engine.select(store.narrow(type, params))) {
-            found.add(type + "/" + matched.id());
+        try {
+            for (cloud.jengu.dbo.core.api.StoredObject matched
+                    : engine.select(store.narrow(type, params))) {
+                found.add(type + "/" + matched.id());
+            }
+        } catch (cloud.jengu.dbo.core.api.IdentifyingSearchRefusedException identifying) {
+            // ANSWERED IN THIS DOOR'S OWN WORDS. The engine's refusal says to
+            // state a purpose, which is true of the records surface and false
+            // here: this door states none and accepts none, so repeating that
+            // advice would send the caller round a loop it cannot leave.
+            throw new IllegalArgumentException("slot '" + name + "': this door does not match "
+                    + "on an identifying element, and no stated purpose will change that — "
+                    + "asking whether somebody is here is not something a credential for work "
+                    + "may do. Name the record by '" + type + "/<id>', or find it on this "
+                    + "tenant's records surface with a credential for that. (" 
+                    + identifying.getMessage() + ")", identifying);
         }
         if (found.isEmpty()) {
             // Said as nothing matched, which is what happened. A slot left

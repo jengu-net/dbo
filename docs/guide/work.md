@@ -149,10 +149,18 @@ count, so the caller can narrow it. A run over whichever record came back first
 is a run nobody can account for. A slot declared `Patient[]` takes however many
 there are.
 
-It buys no reach. The narrowing is compiled by the face's own search compiler
-and run by the engine, so every rule a search on the records surface meets is
-met here: an identifying element needs a stated purpose, in the same
-`Purpose-Of-Use` header, and is refused by name rather than answered empty.
+**It buys no reach, and a search on an identifying element is refused here
+outright.** The narrowing is compiled by the face's own search compiler and run
+by the engine, and this door states no purpose and accepts none — so
+`Patient?identifier=…` on a tenant behind the membrane is refused, and a
+`Purpose-Of-Use` header does not open it.
+
+That is deliberate rather than an omission. On the records surface a stated
+purpose is exactly what turns an identifying search into an exact lookup
+through the vault; accepting one here would make the step door a way to ask
+*is this person here*, on a credential the tenant's own records surface
+refuses. Name the record by id, or find it on the records surface with a
+credential for that.
 
 It sits in the tenant file beside the types, because it is the same kind of
 statement: what this tenant holds, and what this tenant *does*.

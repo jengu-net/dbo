@@ -693,9 +693,12 @@ public enum DboPromises implements Promise {
             + "performers could be handed different sets and the register could not say what "
             + "was opened. A slot that takes one and matched none or several is refused, saying "
             + "how many, rather than picking one. It buys no reach: the narrowing is compiled "
-            + "by the face's own search compiler and run by the engine, so an identifying "
-            + "element still needs a stated purpose and is still refused by name rather than "
-            + "answered empty."),
+            + "by the face's own search compiler and run by the engine, and this door states no "
+            + "purpose and accepts none — so a search that would match on an identifying "
+            + "element is refused here outright, in the door's own words, and stating a purpose "
+            + "does not open it. Asking whether somebody is here is not something a credential "
+            + "for work may do, and on the records surface a stated purpose is exactly what "
+            + "turns that question into an exact lookup through the vault."),
 
     PROC_A_FLEET_PERFORMER_IS_HANDED_ITS_OBJECTS(
             "A fleet performer is handed the run's slots RESOLVED — the objects themselves, not "

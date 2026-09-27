@@ -58,6 +58,8 @@ class ABeanIsFoundRatherThanWiredIT {
     private static final String BESIDE_IT = "fleet.found.expire";
     /** Declared by no deployment anywhere, which is the point of it. */
     private static final String NEVER_DECLARED = "fleet.found.nothing";
+    /** Over a type whose identifier is an identifying element. */
+    private static final String OVER_A_PERSON = "fleet.found.person";
 
     private static final StepDeclaration SWEEP =
             StepDeclaration.of(STEP, "1.0", WorkModel.DOMAIN)
@@ -105,13 +107,20 @@ class ABeanIsFoundRatherThanWiredIT {
                    {"code":"%s","slots":{"record":"Reference(Basic)"},"opens":["record"],
                     "substrate":"found"},
                    {"code":"%s","slots":{"record":"Reference(Basic)"},"opens":["record"],
+                    "substrate":"found"},
+                   {"code":"%s","slots":{"who":"Reference(Person)"},"opens":["who"],
                     "substrate":"found"}]}"""
-                .formatted(STEP, BESIDE_IT));
+                .formatted(STEP, BESIDE_IT, OVER_A_PERSON));
         manager.manages(managementSpec);
 
+        // BEHIND THE MEMBRANE, and holding a Person keyed by a number. Both
+        // are for the last two tests: what makes a search identifying is the
+        // element it matches on, and only a tenant with pdi has any.
         Files.writeString(dir.resolve(TENANT + ".json"), """
-                {"code":"%s","face":"r4","types":[
-                   {"name":"Basic","identity":"internal","handling":"operational"}]}"""
+                {"code":"%s","face":"r4","pdi":true,"types":[
+                   {"name":"Basic","identity":"internal","handling":"operational"},
+                   {"name":"Person","identity":"identifier",
+                    "systems":["urn:found:nid"],"handling":"operational"}]}"""
                 .formatted(TENANT));
         UntilServed.scan(manager, TENANT);
         runs = new Runs(manager.runtime(TENANT).orElseThrow().engine());
@@ -278,6 +287,42 @@ class ABeanIsFoundRatherThanWiredIT {
                         + "caller needs to narrow it: " + answered.body());
     }
 
+    @Test
+    @Order(7)
+    @DisplayName("a search on an identifying element is refused at the door, whatever purpose "
+            + "is stated")
+    @Proving(DboPromises.PROC_A_REFERENCE_MAY_BE_A_SEARCH)
+    void anIdentifyingSearchIsRefusedHere() throws Exception {
+        manager.authority(TENANT).ensureClient("asker", "asker-secret",
+                java.util.List.of(cloud.jengu.dbo.auth.Scopes.WORK, "work/" + OVER_A_PERSON));
+        // Somebody who IS here, so that the refusal is about the question
+        // rather than about there being nobody to find.
+        manager.runtime(TENANT).orElseThrow().engine().put(PutRequest.create("Person",
+                ("{\"resourceType\":\"Person\",\"identifier\":[{\"system\":\"urn:found:nid\","
+                        + "\"value\":\"38102030405\"}]}").getBytes(StandardCharsets.UTF_8)));
+
+        var refused = post("/t/" + TENANT + "/step/" + OVER_A_PERSON,
+                "{\"inputs\":{\"who\":\"Person?identifier=urn:found:nid|38102030405\"}}");
+
+        assertEquals(400, refused.statusCode(),
+                "the door matched on an identifying element, so a credential for work can ask "
+                        + "whether a person with a given number is here: " + refused.body());
+        assertTrue(refused.body().contains("no stated purpose will change that"),
+                "the refusal does not say that stating a purpose is not the way through, so a "
+                        + "caller will try one: " + refused.body());
+
+        // AND A PURPOSE DOES NOT OPEN IT. This is the whole claim: on the
+        // records surface a stated purpose turns an identifying search into an
+        // exact lookup through the vault, and this door states none and accepts
+        // none — so the header is inert here rather than a way round.
+        var withPurpose = post("/t/" + TENANT + "/step/" + OVER_A_PERSON,
+                "{\"inputs\":{\"who\":\"Person?identifier=urn:found:nid|38102030405\"}}",
+                "TREAT");
+        assertEquals(400, withPurpose.statusCode(),
+                "stating a purpose opened an identifying search at the step door, so the "
+                        + "refusal above is advice rather than a rule: " + withPurpose.body());
+    }
+
     /** A Basic whose code text is searchable, and its id. */
     private String basicWith(String code) {
         return manager.runtime(TENANT).orElseThrow().engine()
@@ -293,6 +338,12 @@ class ABeanIsFoundRatherThanWiredIT {
 
     /** As a participant reaches the door: a work credential, and JSON. */
     private java.net.http.HttpResponse<String> post(String path, String body) throws Exception {
+        return post(path, body, null);
+    }
+
+    /** The same, stating a purpose — which this door is supposed to ignore. */
+    private java.net.http.HttpResponse<String> post(String path, String body, String purpose)
+            throws Exception {
         String form = "grant_type=client_credentials&client_id=asker"
                 + "&client_secret=asker-secret";
         java.net.http.HttpClient http = java.net.http.HttpClient.newHttpClient();
@@ -305,10 +356,14 @@ class ABeanIsFoundRatherThanWiredIT {
         java.util.regex.Matcher found = java.util.regex.Pattern
                 .compile("\"access_token\":\"([^\"]+)\"").matcher(granted);
         assertTrue(found.find(), granted);
-        return http.send(java.net.http.HttpRequest.newBuilder(java.net.URI.create(base + path))
-                        .header("Content-Type", "application/json")
-                        .header("Authorization", "Bearer " + found.group(1))
-                        .POST(java.net.http.HttpRequest.BodyPublishers.ofString(body)).build(),
+        var asking = java.net.http.HttpRequest.newBuilder(java.net.URI.create(base + path))
+                .header("Content-Type", "application/json")
+                .header("Authorization", "Bearer " + found.group(1));
+        if (purpose != null) {
+            asking.header("Purpose-Of-Use", purpose);
+        }
+        return http.send(
+                asking.POST(java.net.http.HttpRequest.BodyPublishers.ofString(body)).build(),
                 java.net.http.HttpResponse.BodyHandlers.ofString());
     }
 
