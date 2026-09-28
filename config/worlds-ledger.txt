@@ -77,7 +77,6 @@ ScimNeedsTheMembraneIT                                   sweep
 SeveralTenantsDeclaredAtOnceComeUpTogetherIT             lifecycle
 SpecDeclaredSyncIT                                       sweep
 TenantRuntimeIT                                          sweep
-TheJoinerOffersEveryTenantsWorkIT                        deployment
 ThePlaintextInFlightLeavesNoTraceIT                      deployment
 TheWritebackPassesTheTenantsRulesIT                      deployment
 WhatTheLoadedSpecificationCostsIT                        first boot

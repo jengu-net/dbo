@@ -491,6 +491,104 @@ public final class SharedTenants {
     }
 
     /** The tenant of this shape, brought up on first ask and shared after it. */
+    /**
+     * A step the shared DEPLOYMENT performs, declared once for every class that
+     * needs one.
+     *
+     * <p>Nine classes each built a runtime of their own for this, and the
+     * reason each gave was true in isolation — a shared runtime that declares
+     * no fleet step cannot serve a class about fleet steps. What none of them
+     * said is that they all wanted the SAME extra configuration, so nine full
+     * bring-ups paid for one management tenant. They existed one per step of
+     * the plan that built them, proven as each was written, and nobody folded
+     * them afterwards.
+     *
+     * <p><b>Declared all at once, because declaring replaces.</b>
+     * {@code manages()} takes one document and the deployment performs what it
+     * says — so there is no adding a step later, and a catalogue here is not
+     * tidiness but the only shape that works. Which is no loss: what this
+     * deployment performs is now readable in one place instead of nine.
+     *
+     * <p>A step is named for the class that asks it, because a substrate is a
+     * DATABASE named from the step code and two classes counting items on one
+     * queue would count each other's. What may be shared is the world; what
+     * must not be shared is anything claimed by identity.
+     */
+    public enum Fleet {
+
+        /** For the class about the joiner lifting a declared step's runs. */
+        JOINED("fleet.joined.sweep", "{\"record\":\"Reference(Basic)\"}", "[\"record\"]", ""),
+
+        /** Beside it, on the same substrate, for the placement claim. */
+        JOINED_BESIDE("fleet.joined.expire", "{\"record\":\"Reference(Basic)\"}",
+                "[\"record\"]", ",\"substrate\":\"joined\""),
+
+        /** For the class about a report meeting the tenant's own rules. */
+        WRITTEN_BACK("fleet.written.sweep", "{\"record\":\"Reference(Basic)\"}",
+                "[\"record\"]", ""),
+
+        /** A step whose declaration admits opening and not closing. */
+        WRITTEN_BACK_JUDGED("fleet.written.judge", "{\"record\":\"Reference(Basic)\"}",
+                "[\"record\"]", "");
+
+        private final String code;
+        private final String slots;
+        private final String opens;
+        private final String extras;
+
+        Fleet(String code, String slots, String opens, String extras) {
+            this.code = code;
+            this.slots = slots;
+            this.opens = opens;
+            this.extras = extras;
+        }
+
+        public String code() {
+            return code;
+        }
+
+        private String declared() {
+            return "{\"code\":\"" + code + "\",\"slots\":" + slots
+                    + ",\"opens\":" + opens + extras + "}";
+        }
+    }
+
+    /** Whether the management tenant has been declared yet. */
+    private static boolean managing;
+
+    /**
+     * The shared deployment, declaring every step in {@link Fleet}.
+     *
+     * <p>Idempotent and once: the second caller gets the same declaration
+     * rather than a second one replacing the first. Called by any class that
+     * needs a fleet step, before it authors a run of one.
+     *
+     * <p>Nothing here starts a loop. The shared runtime drives its passes
+     * explicitly — {@code scanOnce}, and a class's own {@code joinOnce} — which
+     * is what makes one declaration safe to share: a joiner nobody asked to run
+     * cannot lift a neighbour's work while that neighbour is asserting about it.
+     */
+    public static synchronized void deploymentPerforms() {
+        if (managing) {
+            return;
+        }
+        try {
+            String steps = java.util.Arrays.stream(Fleet.values())
+                    .map(Fleet::declared)
+                    .collect(java.util.stream.Collectors.joining(","));
+            Path spec = Files.createTempDirectory("dbo-shared-management")
+                    .resolve("sharedregistry.json");
+            Files.writeString(spec, """
+                    {"code":"sharedregistry","face":"r4","types":[
+                       {"name":"Basic","identity":"internal","handling":"operational"}],
+                     "fleetSteps":[%s]}""".formatted(steps));
+            MANAGER.manages(spec);
+            managing = true;
+        } catch (Exception e) {
+            throw new IllegalStateException("the shared deployment did not declare its steps", e);
+        }
+    }
+
     public static synchronized Tenant of(Shape shape) {
         return of(shape, 1);
     }

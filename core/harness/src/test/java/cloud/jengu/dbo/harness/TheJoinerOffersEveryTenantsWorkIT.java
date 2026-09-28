@@ -52,9 +52,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class TheJoinerOffersEveryTenantsWorkIT {
 
-    private static final String TENANT = "joinhost";
-    /** What the DEPLOYMENT performs. */
-    private static final String FLEET_STEP = "fleet.retention.sweep";
+    /** What the DEPLOYMENT performs, from the shared catalogue. */
+    private static final String FLEET_STEP = SharedTenants.Fleet.JOINED.code();
     /** What the TENANT performs, which is none of the deployment's business. */
     private static final String OWN_STEP = "clinic.review.read";
 
@@ -65,48 +64,22 @@ class TheJoinerOffersEveryTenantsWorkIT {
             StepDeclaration.of(OWN_STEP, "1.0", WorkModel.DOMAIN)
                     .taking("record", "https://meristem.example/shape/record");
 
-    PostgreSQLContainer<?> postgres;
-    LocalDatabasePerTenantProvisioner provisioner;
-    TenantRuntimeManager manager;
+    static SharedTenants.Tenant tenant;
+    static String TENANT;
     Runs runs;
     String fleetRunId;
 
     @BeforeAll
-    void up() throws Exception {
-        postgres = SharedPostgres.get();
-        Path dir = Files.createTempDirectory("dbo-joiner");
-        provisioner = new LocalDatabasePerTenantProvisioner(
-                SharedPostgres.urlFor("TheJoinerOffersEveryTenantsWorkIT"),
-                postgres.getUsername(), postgres.getPassword());
-        byte[] kek = new byte[32];
-        new java.security.SecureRandom().nextBytes(kek);
-        manager = new TenantRuntimeManager(dir, provisioner, "127.0.0.1", 0, null,
-                new TenantRuntimeManager.AuthorityConfig(kek, null));
-
-        Path managementSpec = Files.createTempDirectory("dbo-management").resolve("registry.json");
-        Files.writeString(managementSpec, """
-                {"code":"registry","face":"r4","types":[
-                   {"name":"Basic","identity":"internal","handling":"operational"}],
-                 "fleetSteps":[{"code":"%s","slots":{"record":"Reference(Basic)"},"opens":["record"]}]}"""
-                .formatted(FLEET_STEP));
-        manager.manages(managementSpec);
-
-        Files.writeString(dir.resolve(TENANT + ".json"), """
-                {"code":"%s","face":"r4","types":[
-                   {"name":"Basic","identity":"internal","handling":"operational"}]}"""
-                .formatted(TENANT));
-        UntilServed.scan(manager, TENANT);
-        runs = new Runs(manager.runtime(TENANT).orElseThrow().engine());
-    }
-
-    @AfterAll
-    void down() {
-        if (manager != null) {
-            manager.close();
-        }
-        if (provisioner != null) {
-            SuiteDatabases.retire(provisioner);
-        }
+    void up() {
+        // ON THE SHARED RUNTIME, and the point of the change is what is NOT
+        // here: no container, no provisioner, no manager, no management spec
+        // and no teardown. This class used to build a deployment of its own
+        // because the shared one declares no fleet step — which was true, and
+        // was true of eight other classes wanting the same one configuration.
+        SharedTenants.deploymentPerforms();
+        tenant = SharedTenants.of(SharedTenants.Shape.R4_INTERNAL);
+        TENANT = tenant.code();
+        runs = new Runs(tenant.engine());
     }
 
     @Test
@@ -117,7 +90,7 @@ class TheJoinerOffersEveryTenantsWorkIT {
     void aRunReachesItsStepsQueue() throws Exception {
         fleetRunId = runFor(SWEEP).id();
 
-        StepJoiner joiner = manager.stepJoiner().orElseThrow(() ->
+        StepJoiner joiner = SharedTenants.manager().stepJoiner().orElseThrow(() ->
                 new AssertionError("the deployment declared a step and built no joiner, so "
                         + "nothing reads any tenant's work"));
         assertTrue(joiner.joinOnce(100) >= 1, "the joiner read the tenant's feed and offered "
@@ -138,7 +111,7 @@ class TheJoinerOffersEveryTenantsWorkIT {
     @Proving(DboPromises.PROC_THE_JOINER_OFFERS_EVERY_TENANTS_WORK)
     void aTenantsOwnRunIsLeftWhereItBelongs() throws Exception {
         runFor(REVIEW);
-        manager.stepJoiner().orElseThrow().joinOnce(100);
+        SharedTenants.manager().stepJoiner().orElseThrow().joinOnce(100);
 
         assertEquals(0, queuedFor(OWN_STEP),
                 "a tenant's own run was lifted into a deployment queue, so a step the "
@@ -160,7 +133,7 @@ class TheJoinerOffersEveryTenantsWorkIT {
         new cloud.jengu.dbo.postgres.PgChangeFeed(tenantSource(), WorkModel.DOMAIN)
                 .resetConsumer(StepJoiner.CONSUMER, null);
 
-        int offered = manager.stepJoiner().orElseThrow().joinOnce(100);
+        int offered = SharedTenants.manager().stepJoiner().orElseThrow().joinOnce(100);
 
         // Asserted FIRST, because a reset that quietly did nothing would make
         // the count below true for the wrong reason: no second item because
@@ -174,7 +147,7 @@ class TheJoinerOffersEveryTenantsWorkIT {
     }
 
     private cloud.jengu.dbo.work.Run runFor(StepDeclaration step) {
-        String record = manager.runtime(TENANT).orElseThrow().engine()
+        String record = tenant.engine()
                 .put(PutRequest.create("Basic",
                         "{\"resourceType\":\"Basic\",\"code\":{\"text\":\"r\"}}"
                                 .getBytes(StandardCharsets.UTF_8))).id();
@@ -182,12 +155,12 @@ class TheJoinerOffersEveryTenantsWorkIT {
                 Map.of("record", "Basic/" + record));
     }
 
+    /** This tenant's own database, for putting the joiner's cursor back. */
     private javax.sql.DataSource tenantSource() {
         org.postgresql.ds.PGSimpleDataSource ds = new org.postgresql.ds.PGSimpleDataSource();
-        ds.setUrl(SharedPostgres.urlFor("TheJoinerOffersEveryTenantsWorkIT")
-                .replaceAll("/[^/]+$", "/" + TenantSpec.databaseName(TENANT)));
-        ds.setUser(postgres.getUsername());
-        ds.setPassword(postgres.getPassword());
+        ds.setUrl(tenant.databaseUrl());
+        ds.setUser(SharedPostgres.username());
+        ds.setPassword(SharedPostgres.password());
         return ds;
     }
 
@@ -217,6 +190,6 @@ class TheJoinerOffersEveryTenantsWorkIT {
     }
 
     private javax.sql.DataSource substrate() {
-        return manager.stepSubstrates().get(FLEET_STEP);
+        return SharedTenants.manager().stepSubstrates().get(FLEET_STEP);
     }
 }
