@@ -45,6 +45,71 @@ It says four kinds of thing:
 - **What it must do** — its audit level, its write discipline, its retention,
   and the jurisdiction whose facts it operates under.
 
+## What fills a slot
+
+A slot says which of four things fills it, in FHIR's own notation:
+
+| Declared | What fills it |
+|---|---|
+| `Reference(Patient)` | one patient this tenant already holds |
+| `Patient` | one patient given with the run, held by nothing else |
+| `Reference(Patient)[]` | several of the first |
+| `Patient[]` | several of the second |
+
+**Referring is what this store adds.** Whoever asks for a run names a record
+without holding it, without being entitled to read it, and without sending it:
+the store resolves the reference where the data already is, and whoever
+performs the step is handed the object. That is why a worker in another
+organisation can be given work about a patient it has never seen and could not
+have fetched.
+
+**Giving is for what has no record.** A proposal, a draft, a document that
+arrived with the request — there is nothing for a reference to point at. It
+travels with the run and is opened by whoever performs it, and this store
+writes it nowhere. A step that decides it should be kept writes it as its own
+act, on its own entitlement, so *this arrived* and *this was kept* stay two
+statements rather than one silent one.
+
+A slot is one or the other and never both, which is why the run records it
+without saying which: a string is a reference, an object is one given here, and
+an array is several of whichever.
+
+### A reference can be a search
+
+A referred slot is filled by `Patient/01a0…` or by a search:
+
+```json
+{ "inputs": { "patient": "Patient?identifier=urn:rl:nid|38102030405" } }
+```
+
+Which is what a caller usually has. It knows the person by their national
+identifier, not by the id this store happened to give the record, and looking
+the id up first would mean a credential for the records surface — which a
+worker deliberately does not hold.
+
+**The search is resolved when the run is authored, and the run records what it
+matched.** Not when the work is performed: a run that kept the query would be
+over whatever matched at the moment somebody got round to it, two performers
+could be handed different sets, and the register could not say what was opened.
+
+**Matching none, or several where one was declared, is refused** — with the
+count, so the caller can narrow it. A run over whichever record came back first
+is a run nobody can account for. A slot declared `Patient[]` takes however many
+there are.
+
+**It buys no reach, and a search on an identifying element is refused here
+outright.** The narrowing is compiled by the face's own search compiler and run
+by the engine, and this door states no purpose and accepts none — so
+`Patient?identifier=…` on a tenant behind the membrane is refused, and a
+`Purpose-Of-Use` header does not open it.
+
+That is deliberate rather than an omission. On the records surface a stated
+purpose is exactly what turns an identifying search into an exact lookup
+through the vault; accepting one here would make the step door a way to ask
+*is this person here*, on a credential the tenant's own records surface
+refuses. Name the record by id, or find it on the records surface with a
+credential for that.
+
 ## The graph is tenants, and nothing underneath it
 
 **A tenant's upstreams are tenants.** A jurisdiction is a tenant. A face root

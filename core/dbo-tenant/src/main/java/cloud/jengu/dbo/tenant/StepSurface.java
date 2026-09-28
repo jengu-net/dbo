@@ -237,6 +237,19 @@ final class StepSurface implements HttpHandler {
         // The slot's declared shape is a promise about what a run of it is
         // over, so anything else is refused here rather than becoming a run
         // that can reach something the step never described.
+        // A SLOT THE STEP DOES NOT DECLARE, refused before anything is read.
+        // This used to be the engine's to say, and it still is for every other
+        // caller — but nothing undeclared reaches it from here any more, since
+        // what is built below is built FROM the declaration. Dropped instead,
+        // an input the author meant would be silently ignored and the run would
+        // look exactly like one they got right.
+        for (String named : given.keySet()) {
+            if (!slots.containsKey(named)) {
+                fail(exchange, 400, "invalid_request", stepCode + " declares no slot '"
+                        + named + "'; it takes: " + slots.keySet());
+                return;
+            }
+        }
         Map<String, cloud.jengu.dbo.work.RunSlot> inputs = new LinkedHashMap<>();
         for (Map.Entry<String, String> slot : slots.entrySet()) {
             cloud.jengu.dbo.core.process.SlotShape shape =
@@ -508,7 +521,13 @@ final class StepSurface implements HttpHandler {
             return;
         }
         String reference = segments[2] + "/" + segments[3];
-        if (!run.inputs().containsValue(reference)) {
+        // ANY VALUE OF ANY SLOT. A slot holds a list now, so asking whether the
+        // fill EQUALS this reference is a question that is always answered no —
+        // and the answer here is a 404, which reads as a run that was never
+        // given the document rather than as a check that stopped working.
+        boolean given = run.inputs().values().stream()
+                .anyMatch(filled -> filled.referred() && filled.values().contains(reference));
+        if (!given) {
             // Not found rather than forbidden, deliberately: see the class
             // note. What this run was given is the whole of what it may read.
             fail(exchange, 404, "not_found", "this run was not given " + reference);
