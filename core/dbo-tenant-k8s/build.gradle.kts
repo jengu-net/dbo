@@ -26,7 +26,7 @@ dependencies {
     // 2.21.4 — below the advisory against it, while the rest of the tree is
     // already on 2.22.x. A constraint raises what the bom pinned.
     constraints {
-        embedded("com.fasterxml.jackson.core:jackson-databind:2.22.1")
+        embedded("com.fasterxml.jackson.core:jackson-databind:2.22.2")
     }
     embedded("com.zaxxer:HikariCP:7.1.0")
     // slf4j-api is SHARED, not embedded: one binding for the whole

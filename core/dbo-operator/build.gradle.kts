@@ -51,6 +51,6 @@ dependencies {
     // 2.21.4 — below the advisory against it, while the rest of the tree is
     // already on 2.22.x. A constraint raises what the bom pinned.
     constraints {
-        api("com.fasterxml.jackson.core:jackson-databind:2.22.1")
+        api("com.fasterxml.jackson.core:jackson-databind:2.22.2")
     }
 }
