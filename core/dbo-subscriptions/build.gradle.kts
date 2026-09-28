@@ -20,7 +20,7 @@ dependencies {
     // DBOS carries Jackson 3, and 1.0.0 is the current release: its
     // next version is a milestone, so the version moves here instead.
     constraints {
-        embedded("tools.jackson.core:jackson-databind:3.2.1")
+        embedded("tools.jackson.core:jackson-databind:3.2.2")
         // DBOS also carries its own JDBC driver, privately, and that copy
         // rides in this bundle's lib/ — the container's shared driver is not
         // what it uses. So the version the runtime declares elsewhere does
