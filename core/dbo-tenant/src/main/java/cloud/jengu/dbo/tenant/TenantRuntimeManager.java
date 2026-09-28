@@ -1427,9 +1427,22 @@ public final class TenantRuntimeManager implements AutoCloseable {
      * @param identity who the runs it closes are recorded as
      * @return how to stop performing it
      */
-    public AutoCloseable performing(cloud.jengu.dbo.work.FleetWork.Performer bean,
+    public AutoCloseable performing(cloud.jengu.dbo.runner.StepService bean,
             cloud.jengu.dbo.work.Executor identity) {
         String code = bean.step();
+        if (bean.declaration().isPresent()) {
+            // INTRODUCING IS THE OTHER LEVEL'S. A tenant-level service may
+            // bring a step nobody declared and have it taken up; a fleet step
+            // is the DEPLOYMENT's, declared in the deployment's own record
+            // before any bean said anything. Accepting a declaration here
+            // would make it look as though a bean could add to what the
+            // deployment performs, which is the one thing the level split
+            // exists to stop.
+            throw new IllegalArgumentException("'" + code + "' is performed for the fleet and "
+                    + "carries its own declaration. A fleet step is declared by the deployment, "
+                    + "so there is nothing to introduce: take the declaration off, or declare "
+                    + "the step in the deployment's own record");
+        }
         // HELD, THEN TAKEN UP. A bundle registering a bean and a deployment
         // declaring its steps are two arrivals in no fixed order: the
         // application's bundle may resolve before the declaration is read, and
@@ -1449,7 +1462,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
     }
 
     /** A bean this deployment holds, and who its runs are recorded as. */
-    private record Offered(cloud.jengu.dbo.work.FleetWork.Performer bean,
+    private record Offered(cloud.jengu.dbo.runner.StepService bean,
             cloud.jengu.dbo.work.Executor identity) {
     }
 
@@ -1473,7 +1486,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
             return;
         }
         cloud.jengu.dbo.work.Executor identity = holding.identity();
-        cloud.jengu.dbo.work.FleetWork.Performer bean = holding.bean();
+        cloud.jengu.dbo.runner.StepService bean = holding.bean();
         // EVERY STEP ON THAT SUBSTRATE, not just this one. The consumer's
         // queues are fixed when it launches, so a consumer built for one step
         // could never take up a bean for the step beside it — and both steps
@@ -1485,7 +1498,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
         cloud.jengu.dbo.stream.StepConsumer consumer = consumers.computeIfAbsent(
                 declared.substrateName(),
                 name -> new cloud.jengu.dbo.stream.StepConsumer(substrate, together,
-                        writebackAs(identity)));
+                        claimsAs(identity)));
         consumer.performing(bean);
         LOG.info("fleet step performed here: step={} substrate={} by={}",
                 code, declared.substrateName(), bean.getClass().getName());
@@ -1550,14 +1563,14 @@ public final class TenantRuntimeManager implements AutoCloseable {
     }
 
     /**
-     * Where a performer's report goes: the tenant's own lane, every time.
+     * How a performer holds the run it was handed: on the tenant's own lane.
      *
      * <p>Built per registration so the executor on the run is the one that
      * registered, and not a name this manager invented.
      */
-    private cloud.jengu.dbo.work.FleetWork.Writeback writebackAs(
+    private cloud.jengu.dbo.stream.FleetPerformer.Claims claimsAs(
             cloud.jengu.dbo.work.Executor identity) {
-        return new cloud.jengu.dbo.stream.LaneWriteback(
+        return new cloud.jengu.dbo.stream.LaneClaims(
                 (tenant, step) -> fleetLane(tenant, step, identity),
                 (tenant, runKey) -> runtime(tenant)
                         .map(runtime -> new cloud.jengu.dbo.work.Runs(runtime.engine()))

@@ -367,24 +367,25 @@ class ABeanIsFoundRatherThanWiredIT {
                 java.net.http.HttpResponse.BodyHandlers.ofString());
     }
 
-    /** A bean that records what it was handed and reports nothing. */
-    private FleetWork.Performer bean(String step, ConcurrentLinkedQueue<String> into) {
-        return new FleetWork.Performer() {
+    /** A bean that records what it was handed and reports nothing else. */
+    private cloud.jengu.dbo.runner.StepService bean(String step,
+            ConcurrentLinkedQueue<String> into) {
+        return new cloud.jengu.dbo.runner.StepService() {
             @Override
             public String step() {
                 return step;
             }
 
             @Override
-            public void perform(String tenant, String code, String runId, String runKey,
-                    java.util.Map<String,
-                            java.util.List<cloud.jengu.dbo.core.api.StoredObject>> inputs,
-                    FleetWork.Reporting reporting) {
-                // THE SLOT, not just the fact of being called. A bean handed
-                // an empty map would look exactly like a bean handed its work,
-                // and the whole point of reaching it is that it can do
-                // something — so what is recorded is that the object arrived.
-                into.add(tenant + "/" + runKey + "/" + inputs.keySet());
+            public cloud.jengu.dbo.runner.Outcome perform(cloud.jengu.dbo.runner.Work work) {
+                // THE SLOT, not just the fact of being called. A bean handed an
+                // empty map would look exactly like a bean handed its work, and
+                // the whole point of reaching it is that it can do something —
+                // so what is recorded is that the object arrived, and which
+                // tenant it was about.
+                into.add(work.tenant() + "/" + work.run().key() + "/"
+                        + work.inputs().keySet());
+                return cloud.jengu.dbo.runner.Outcome.done();
             }
         };
     }

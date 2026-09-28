@@ -9,6 +9,12 @@ import java.util.Map;
  * One run's work, arrived whole (REQ-DBO-PROC-INPUTS-ARRIVE-WITH-THE-WORK): the run,
  * its inputs, and the way to say "still moving".
  *
+ * @param tenant whose work this is. One step's service may be reached for
+ *               every tenant in the fleet — a step the DEPLOYMENT declared is
+ *               performed once per tenant that authored a run of it — so the
+ *               tenant is an argument rather than configuration. For a step a
+ *               single tenant declared it is always that tenant, which is why
+ *               it went unsaid for as long as there was only one level
  * @param run    the claimed run — the global truth this work answers to
  * @param inputs the run's declared inputs, resolved and slot-keyed. A
  *               service never fetches, and cannot: the step's declaration
@@ -17,7 +23,7 @@ import java.util.Map;
  *               which is what closes the door on asking for data the step
  *               was never entitled to.
  */
-public record Work(Run run, Map<String, java.util.List<StoredObject>> inputs,
+public record Work(String tenant, Run run, Map<String, java.util.List<StoredObject>> inputs,
         Progress progress) {
 
     public Work {

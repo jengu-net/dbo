@@ -5,7 +5,7 @@ import cloud.jengu.dbo.core.process.StepDeclaration;
 import cloud.jengu.dbo.promises.DboPromises;
 import cloud.jengu.dbo.promises.Proving;
 import cloud.jengu.dbo.work.FleetWork;
-import cloud.jengu.dbo.stream.LaneWriteback;
+import cloud.jengu.dbo.stream.LaneClaims;
 import cloud.jengu.dbo.stream.StepConsumer;
 import cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner;
 import cloud.jengu.dbo.tenant.TenantRuntimeManager;
@@ -139,9 +139,9 @@ class TheWritebackPassesTheTenantsRulesIT {
         // name one substrate: a queue lives on the substrate its step named,
         // and a consumer reaches the queues on the database it was given.
         consumer = new StepConsumer(manager.stepSubstrates().get(STEP), Set.of(STEP, JUDGED),
-                writeback());
-        consumer.performing(STEP, (tenant, step, runId, runKey, inputs, reporting) ->
-                reporting.closed(Map.of("swept", 1L)));
+                claims());
+        consumer.performing(cloud.jengu.dbo.runner.StepService.performing(STEP,
+                work -> cloud.jengu.dbo.runner.Outcome.done(Map.of("swept", 1L))));
 
         assertTrue(until(() -> runs().byKey(authored.key())
                 .map(run -> run.holder() == Holder.NOBODY).orElse(false)),
@@ -171,18 +171,28 @@ class TheWritebackPassesTheTenantsRulesIT {
         // five's claim and is proven there. Going through the queue here would
         // make this test fail for the other reason as well as this one, and a
         // test that can fail two ways proves neither.
-        FleetWork.Reporting reporting = writeback()
-                .take(TENANT, JUDGED, authored.key())
-                .map(FleetWork.Taken::reporting)
+        cloud.jengu.dbo.stream.FleetPerformer.Held held = claims()
+                .held(TENANT, JUDGED, authored.key(), java.time.Duration.ofMinutes(5))
                 .orElseThrow(() -> new AssertionError(
                         "no lane into the tenant for a run it authored, so nothing could be "
                                 + "reported and nothing refused"));
 
-        RuntimeException refusal = org.junit.jupiter.api.Assertions.assertThrows(
-                RuntimeException.class, () -> reporting.closed(Map.of("reviewed", 1L)),
+        // A service that says it is done, over a step whose declaration does
+        // not admit closing. The refusal is the LANE's, and what comes back is
+        // the run released with its words — the same thing a runner does with a
+        // report the tenant will not take, because both go through one mapping.
+        cloud.jengu.dbo.runner.Outcome said = cloud.jengu.dbo.runner.Performing.performed(
+                held.lane(), held.run(),
+                cloud.jengu.dbo.runner.StepService.performing(JUDGED,
+                        work -> cloud.jengu.dbo.runner.Outcome.done(Map.of("reviewed", 1L))),
+                java.time.Duration.ofMinutes(5));
+
+        assertTrue(said instanceof cloud.jengu.dbo.runner.Outcome.Failed,
                 "a step declaring 'open' and not 'close' was closed by a fleet consumer, so a "
                         + "tenant's rules hold for everybody except the party doing most of "
-                        + "its work");
+                        + "its work: " + said);
+        RuntimeException refusal = new IllegalStateException(
+                ((cloud.jengu.dbo.runner.Outcome.Failed) said).reason());
 
         assertTrue(String.valueOf(refusal.getMessage()).contains("close"),
                 "the refusal does not name the action the step never declared, which is the "
@@ -192,8 +202,8 @@ class TheWritebackPassesTheTenantsRulesIT {
                 "the run closed anyway, so the refusal was a message rather than a rule");
     }
 
-    private cloud.jengu.dbo.work.FleetWork.Writeback writeback() {
-        return new LaneWriteback(
+    private cloud.jengu.dbo.stream.FleetPerformer.Claims claims() {
+        return new LaneClaims(
                 (tenant, step) -> manager.fleetLane(tenant, step, performer()),
                 (tenant, runKey) -> new Runs(
                         manager.runtime(tenant).orElseThrow().engine()).byKey(runKey));

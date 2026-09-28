@@ -38,12 +38,12 @@ public final class StepConsumer implements AutoCloseable {
      * @param substrate where the steps' queues live — several steps sharing
      *                  one substrate share this consumer
      * @param steps     the step codes performed here, whose queues are polled
-     * @param writeback where a performer's report goes — the tenant that
-     *                  authored the run, resolved per item
+     * @param claims    how the run an item names is found and held — the
+     *                  tenant's own lane, resolved per item
      */
     public StepConsumer(DataSource substrate, Set<String> steps,
-            FleetWork.Writeback writeback) {
-        this.performer = new FleetPerformer(writeback);
+            FleetPerformer.Claims claims) {
+        this.performer = new FleetPerformer(claims);
         this.serving = Set.copyOf(steps);
         String[] listening = serving.stream().map(FleetWork::queueFor).toArray(String[]::new);
         this.dbos = new DBOS(DBOSConfig.defaults("dbo-fleet-consumer")
@@ -73,7 +73,7 @@ public final class StepConsumer implements AutoCloseable {
         }
         // Registered as the interface and implemented by OUR class, which is
         // what makes the recorded class name the constant both ends know.
-        dbos.registerProxy(FleetWork.Work.class, performer);
+        dbos.registerProxy(FleetWork.Performs.class, performer);
         dbos.launch();
     }
 
@@ -88,24 +88,19 @@ public final class StepConsumer implements AutoCloseable {
      * store is built to refuse: something constructed, plausible, and reachable
      * by nothing.
      */
-    public void performing(FleetWork.Performer bean) {
-        performing(bean.step(), bean);
-    }
-
-    /** The same, for a caller that already knows the pairing. */
-    public void performing(String stepCode, FleetWork.Doing doing) {
-        performing(stepCode, FleetWork.performing(stepCode, doing));
+    public void performing(cloud.jengu.dbo.runner.StepService service) {
+        performing(service.step(), service);
     }
 
     /** The same, for a caller naming the step itself. */
-    public void performing(String stepCode, FleetWork.Performer bean) {
+    public void performing(String stepCode, cloud.jengu.dbo.runner.StepService service) {
         if (!serving.contains(stepCode)) {
             throw new IllegalArgumentException("this consumer was built to serve " + serving
                     + " and does not poll a queue for '" + stepCode + "', so a bean given for "
                     + "it would never be called. Build the consumer with that step among its "
                     + "own, or give the bean to the consumer that serves it.");
         }
-        performer.performing(stepCode, bean);
+        performer.performing(stepCode, service);
     }
 
     /**

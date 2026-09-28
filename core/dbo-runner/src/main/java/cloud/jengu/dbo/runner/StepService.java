@@ -18,6 +18,23 @@ package cloud.jengu.dbo.runner;
 public interface StepService {
 
     /** The step this performs: {@code <module>.<process>.<step>}, opaque and stable. */
+    /**
+     * The service property that says a registration is the DEPLOYMENT's.
+     *
+     * <p>One interface, two levels, and something has to route. Not the author:
+     * a step is written the same way either way, and which level declared the
+     * code is the store's to know. Not the step code either — the runner is in
+     * a worker and has no view of what the deployment declares.
+     *
+     * <p>So the ASSEMBLY says it, at the registration, because it is the one
+     * party that already knows: a bean it took up as a fleet performer is
+     * marked, and the runner leaves a marked one alone rather than polling a
+     * tenant's lane for a step no tenant declares. Without this the runner
+     * takes up every fleet bean beside it, tries to introduce each one to every
+     * tenant it holds a lane into, and is refused once per cycle.
+     */
+    String FOR_THE_FLEET = "dbo.step.fleet";
+
     String step();
 
     /**
@@ -59,4 +76,26 @@ public interface StepService {
      * (REQ-DBO-PROC-DONE-MEANS-DONE, REQ-DBO-PROC-THE-ROUTER-HOLDS-THE-CLAIM).
      */
     Outcome perform(Work work);
+
+    /**
+     * That function, as a service performing that step.
+     *
+     * <p>Two methods is one more than a lambda can be, and most of the time the
+     * step is a constant beside the code that performs it. This is for the
+     * cases where writing a class to say a name would be the longer half of the
+     * step — a test, or an application with a handful of small ones.
+     */
+    static StepService performing(String step, java.util.function.Function<Work, Outcome> doing) {
+        return new StepService() {
+            @Override
+            public String step() {
+                return step;
+            }
+
+            @Override
+            public Outcome perform(Work work) {
+                return doing.apply(work);
+            }
+        };
+    }
 }

@@ -42,6 +42,15 @@ public final class Activator implements BundleActivator {
                     @Override
                     public StepService addingService(ServiceReference<StepService> ref) {
                         StepService service = context.getService(ref);
+                        if (ref.getProperty(StepService.FOR_THE_FLEET) != null) {
+                            // THE DEPLOYMENT'S, not a tenant's. Taking it up
+                            // here would have this runner poll every lane it
+                            // holds for a step no tenant declares, and try to
+                            // introduce it to each of them — refused once per
+                            // cycle, for as long as the worker runs.
+                            context.ungetService(ref);
+                            return null;
+                        }
                         runner.register(service);
                         return service;
                     }

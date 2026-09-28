@@ -1,6 +1,7 @@
 package cloud.jengu.dbo.spring.server;
 
 import cloud.jengu.dbo.embedded.DboRegistrar;
+import cloud.jengu.dbo.runner.FleetStep;
 import cloud.jengu.dbo.embedded.EmbeddedRuntime;
 import cloud.jengu.dbo.tenant.api.TenantDomain;
 import cloud.jengu.dbo.tenant.api.TenantLifecycleListener;
@@ -41,7 +42,7 @@ public final class DboExtensions implements AutoCloseable {
 
     DboExtensions(EmbeddedRuntime runtime, List<TenantLifecycleListener> listeners,
             List<TenantObserver> observers,
-            List<cloud.jengu.dbo.work.FleetWork.Performer> performers) {
+            List<cloud.jengu.dbo.runner.StepService> performers) {
         List<String> wrong = new ArrayList<>();
         Map<TenantLifecycleListener, Map<String, String>> listening = new LinkedHashMap<>();
         for (TenantLifecycleListener listener : listeners) {
@@ -78,23 +79,42 @@ public final class DboExtensions implements AutoCloseable {
             on.put(TenantDomain.CONSUMER, said.consumer());
             watching.put(observer, on);
         }
-        // The fleet's half. A tenant-level step is polled for by a runner; a
-        // fleet step is offered by the deployment's own joiner and performed
-        // once for every tenant. Both arrive here as a bean and neither names
-        // anything of the runtime's.
-        Map<cloud.jengu.dbo.work.FleetWork.Performer, Map<String, String>> performing =
+        // A step this deployment performs, for every tenant. The SAME
+        // interface a tenant-level step is written as — what differs is which
+        // level declared the code, and a step code belongs to one level, so
+        // the store knows which side offers the work without being told.
+        //
+        // @DboFleetStep is what says a bean is the DEPLOYMENT's. An
+        // unannotated StepService is a tenant's and is left to the runner,
+        // because one application can be both — the worker sample's own test
+        // boots this application beside a worker's tenant-level steps.
+        // Where it IS annotated, it carries the pair a run must record and
+        // the code cannot supply: in a worker that comes from
+        // dbo.worker.identity.*, and a serving application has no such
+        // property because the identity is the step's rather than the
+        // application's.
+        Map<cloud.jengu.dbo.runner.StepService, Map<String, String>> performing =
                 new LinkedHashMap<>();
-        for (cloud.jengu.dbo.work.FleetWork.Performer performer : performers) {
-            DboFleetStep said = AnnotationUtils.findAnnotation(performer.getClass(),
-                    DboFleetStep.class);
+        for (cloud.jengu.dbo.runner.StepService performer : performers) {
+            FleetStep said = AnnotationUtils.findAnnotation(performer.getClass(),
+                    FleetStep.class);
             if (said == null) {
-                wrong.add(performer.getClass().getName() + " performs a fleet step and carries "
-                        + "no @" + DboFleetStep.class.getSimpleName() + ", so every run it "
-                        + "closed across the fleet would name no executor, no behaviour and "
-                        + "no provider");
+                // NOT AN ERROR, and this is the correction to a rule that was
+                // wrong. A StepService is how a step is written at EITHER
+                // level, so an unannotated one is a tenant's — the runner's to
+                // poll for, not the fleet's to perform — and an application
+                // can be both a server and a worker. This class saw the two
+                // kinds and refused the context over the wrong one.
+                //
+                // The annotation is therefore what MARKS a bean as the
+                // deployment's, rather than something demanded of every step.
                 continue;
             }
             Map<String, String> on = new LinkedHashMap<>();
+            // MARKED AS THE DEPLOYMENT'S, so the runner's own whiteboard leaves
+            // it alone. This class knows which level a bean is for — the
+            // annotation said so — and it is the only party that does.
+            on.put(cloud.jengu.dbo.runner.StepService.FOR_THE_FLEET, "true");
             // WHO PERFORMED IT. Not the step code — a run already records the
             // step, and an executor repeating it would answer "what ran"
             // twice and "who ran it" never, which is the question a fleet
@@ -114,7 +134,7 @@ public final class DboExtensions implements AutoCloseable {
         watching.forEach((observer, on) -> registered.add(registrar.register(
                 TenantObserver.class, observer, on)));
         performing.forEach((performer, on) -> registered.add(registrar.register(
-                cloud.jengu.dbo.work.FleetWork.Performer.class, performer, on)));
+                cloud.jengu.dbo.runner.StepService.class, performer, on)));
         if (!registered.isEmpty()) {
             LOG.info("extension points: listeners={} observers={} fleet-steps={}",
                     listening.size(), watching.size(), performing.size());

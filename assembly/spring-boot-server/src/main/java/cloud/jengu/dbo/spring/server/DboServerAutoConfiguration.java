@@ -77,7 +77,7 @@ public class DboServerAutoConfiguration {
             org.springframework.beans.factory.ObjectProvider<
                     cloud.jengu.dbo.tenant.api.TenantObserver> observers,
             org.springframework.beans.factory.ObjectProvider<
-                    cloud.jengu.dbo.work.FleetWork.Performer> performers) {
+                    cloud.jengu.dbo.runner.StepService> performers) {
         return new DboExtensions(runtime, listeners.orderedStream().toList(),
                 observers.orderedStream().toList(), performers.orderedStream().toList());
     }

@@ -263,44 +263,22 @@ public final class StepRunner implements AutoCloseable {
         // by the next taker, and the promise is that they resume from a
         // fact. Found by driving the runner over a lane it could only reach
         // across a boundary.
-        java.util.concurrent.atomic.AtomicReference<Run> latest =
-                new java.util.concurrent.atomic.AtomicReference<>(claimed);
-        try {
-            Work work = new Work(claimed, lane.inputs(claimed), new Work.Progress() {
-                @Override
-                public void checkpoint(java.util.Map<String, Long> counts) {
-                    latest.set(lane.checkpoint(latest.get(), counts, holdFor));
-                }
-
-                @Override
-                public void milestone(String milestone, java.util.Map<String, Long> counts) {
-                    latest.set(lane.milestone(latest.get(), milestone, counts, holdFor));
-                }
-            });
-            Outcome outcome = service.perform(work);
-            if (outcome instanceof Outcome.Done done) {
-                Run reported = done.tally().isEmpty() ? latest.get()
-                        : lane.checkpoint(latest.get(), done.tally(), holdFor);
-                lane.closed(reported);
-                sign.done(System.nanoTime() - began);
-                report(lane, claimed, "closed", System.nanoTime() - began);
-            } else if (outcome instanceof Outcome.Failed failed) {
-                lane.released(latest.get(), failed.reason());
-                sign.failed(failed.reason());
-                // "released", not the reason: the reason is the step's own
-                // words and belongs on the run, in the store of the tenant
-                // whose work it was. An outcome is a word from a fixed set,
-                // which is what makes it safe to aggregate.
-                report(lane, claimed, "released", System.nanoTime() - began);
-            }
-        } catch (RuntimeException thrown) {
-            // Released, not closed and not swallowed: released is not done,
-            // and a later cycle may take it again — from wherever the work
-            // had got to, which is why this releases the latest run and not
-            // the claim.
-            lane.released(latest.get(), "the service threw: " + thrown.getMessage());
-            sign.failed(String.valueOf(thrown.getMessage()));
-            report(lane, claimed, "threw", System.nanoTime() - began);
+        // THE SHARED MAPPING. How an outcome becomes a report is the same
+        // whichever side found the work, so it lives in one place and this
+        // adds only what a runner does with the answer: its own signals, and
+        // the line it writes.
+        Outcome outcome = Performing.performed(lane, claimed, service, holdFor);
+        long took = System.nanoTime() - began;
+        if (outcome instanceof Outcome.Done) {
+            sign.done(took);
+            report(lane, claimed, "closed", took);
+        } else if (outcome instanceof Outcome.Failed failed) {
+            sign.failed(failed.reason());
+            // "released", not the reason: the reason is the step's own words
+            // and belongs on the run, in the store of the tenant whose work it
+            // was. An outcome is a word from a fixed set, which is what makes
+            // it safe to aggregate.
+            report(lane, claimed, "released", took);
         }
     }
 

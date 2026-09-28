@@ -142,9 +142,11 @@ class OneBeanPerformsForEveryTenantIT {
         // placement claim: two steps sharing a substrate are served by one
         // consumer, one listener and one pool.
         consumer = new StepConsumer(manager.stepSubstrates().get(STEP),
-                Set.of(STEP, BESIDE_IT), writeback());
-        consumer.performing(STEP, (tenant, step, runId, runKey, inputs, reporting) ->
-                performed.add(tenant + "/" + runKey));
+                Set.of(STEP, BESIDE_IT), claims());
+        consumer.performing(cloud.jengu.dbo.runner.StepService.performing(STEP, work -> {
+            performed.add(work.tenant() + "/" + work.run().key());
+            return cloud.jengu.dbo.runner.Outcome.done();
+        }));
 
         assertTrue(until(() -> performed.size() >= 2),
                 "one bean over one queue did not perform both tenants' work: " + performed);
@@ -170,9 +172,11 @@ class OneBeanPerformsForEveryTenantIT {
         manager.stepJoiner().orElseThrow().joinOnce(100);
 
         consumer = new StepConsumer(manager.stepSubstrates().get(STEP),
-                Set.of(STEP, BESIDE_IT), writeback());
-        consumer.performing(STEP, (tenant, step, runId, runKey, inputs, reporting) ->
-                performed.add(tenant + "/" + runKey));
+                Set.of(STEP, BESIDE_IT), claims());
+        consumer.performing(cloud.jengu.dbo.runner.StepService.performing(STEP, work -> {
+            performed.add(work.tenant() + "/" + work.run().key());
+            return cloud.jengu.dbo.runner.Outcome.done();
+        }));
 
         assertTrue(until(() -> !performed.isEmpty()),
                 "work offered while the consumer was down was not performed when it came "
@@ -185,8 +189,8 @@ class OneBeanPerformsForEveryTenantIT {
      * cannot be built without one, and handing it a real one keeps this test
      * honest about what an application actually assembles.
      */
-    private cloud.jengu.dbo.work.FleetWork.Writeback writeback() {
-        return new cloud.jengu.dbo.stream.LaneWriteback(
+    private cloud.jengu.dbo.stream.FleetPerformer.Claims claims() {
+        return new cloud.jengu.dbo.stream.LaneClaims(
                 (tenant, step) -> manager.fleetLane(tenant, step,
                         new cloud.jengu.dbo.work.Executor("fleet-test", "1",
                                 "cloud.jengu.test", cloud.jengu.dbo.work.Scope.BASELINE)),
@@ -217,10 +221,14 @@ class OneBeanPerformsForEveryTenantIT {
 
         // BOTH beans recording the same way, so what is counted is which STEP
         // performed rather than which of two spellings a bean happened to use.
-        consumer.performing(STEP, (tenant, step, runId, runKey, inputs, reporting) ->
-                performed.add(step + "|" + runKey));
-        consumer.performing(BESIDE_IT, (tenant, step, runId, runKey, inputs, reporting) ->
-                performed.add(step + "|" + runKey));
+        consumer.performing(cloud.jengu.dbo.runner.StepService.performing(STEP, work -> {
+            performed.add(STEP + "|" + work.run().key());
+            return cloud.jengu.dbo.runner.Outcome.done();
+        }));
+        consumer.performing(cloud.jengu.dbo.runner.StepService.performing(BESIDE_IT, work -> {
+            performed.add(BESIDE_IT + "|" + work.run().key());
+            return cloud.jengu.dbo.runner.Outcome.done();
+        }));
 
         authorRunIn(ONE, SWEEP);
         authorRunIn(ONE, EXPIRE);
@@ -251,14 +259,21 @@ class OneBeanPerformsForEveryTenantIT {
         // its own step, and a queue registered by either is visible to both in
         // the system database — which is exactly the trap.
         try (StepConsumer mine = new StepConsumer(manager.stepSubstrates().get(STEP),
-                        Set.of(STEP), writeback());
+                        Set.of(STEP), claims());
                 StepConsumer theirs = new StepConsumer(manager.stepSubstrates().get(BESIDE_IT),
-                        Set.of(BESIDE_IT), writeback())) {
-            mine.performing(STEP, (t, step, runId, runKey, inputs, r) -> performed.add(step));
-            theirs.performing(BESIDE_IT, (t, step, runId, runKey, inputs, r) -> other.add(step));
+                        Set.of(BESIDE_IT), claims())) {
+            mine.performing(cloud.jengu.dbo.runner.StepService.performing(STEP, work -> {
+                performed.add(STEP);
+                return cloud.jengu.dbo.runner.Outcome.done();
+            }));
+            theirs.performing(cloud.jengu.dbo.runner.StepService.performing(BESIDE_IT, work -> {
+                other.add(BESIDE_IT);
+                return cloud.jengu.dbo.runner.Outcome.done();
+            }));
 
             assertThrows(IllegalArgumentException.class,
-                    () -> mine.performing(BESIDE_IT, (t, step, runId, runKey, inputs, r) -> { }),
+                    () -> mine.performing(cloud.jengu.dbo.runner.StepService.performing(BESIDE_IT,
+                            work -> cloud.jengu.dbo.runner.Outcome.done())),
                     "a bean was accepted for a step this consumer does not poll, so it would "
                             + "sit there correct and never be called");
 

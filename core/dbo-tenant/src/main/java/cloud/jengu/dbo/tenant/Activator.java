@@ -73,10 +73,10 @@ public final class Activator implements BundleActivator {
     private TenantRuntimeManager manager;
     private ServiceTracker<TenantLifecycleListener, TenantLifecycleListener> lifecycle;
     private ServiceTracker<TenantObserver, TenantObserver> observers;
-    private ServiceTracker<cloud.jengu.dbo.work.FleetWork.Performer,
-            cloud.jengu.dbo.work.FleetWork.Performer> performers;
+    private ServiceTracker<cloud.jengu.dbo.runner.StepService,
+            cloud.jengu.dbo.runner.StepService> performers;
     /** What each taken-up bean is withdrawn by, when its bundle goes. */
-    private final Map<cloud.jengu.dbo.work.FleetWork.Performer, AutoCloseable> performing =
+    private final Map<cloud.jengu.dbo.runner.StepService, AutoCloseable> performing =
             new ConcurrentHashMap<>();
     private final Map<String, List<ServiceRegistration<?>>> tenantRegistrations = new ConcurrentHashMap<>();
 
@@ -234,20 +234,38 @@ public final class Activator implements BundleActivator {
                     }
                 });
         observers.open();
-        // THE FLEET'S HALF OF THE SAME WHITEBOARD. A tenant-level step arrives
-        // as a StepService the runner polls for; a fleet step arrives as this,
-        // and the difference is only which side offers the work. Both are a
-        // bean registered by an application bundle that names nothing here.
-        performers = new ServiceTracker<>(ctx, cloud.jengu.dbo.work.FleetWork.Performer.class,
+        // THE SAME WHITEBOARD, AND NOW THE SAME INTERFACE. A step is a
+        // StepService whichever level declared it: the runner's own activator
+        // watches this too and polls tenant lanes for the steps a TENANT
+        // declared, and this takes up the ones the DEPLOYMENT declared. A step
+        // code belongs to one level, so exactly one of them ever has work for a
+        // given bean and neither has to be told which.
+        performers = new ServiceTracker<>(ctx, cloud.jengu.dbo.runner.StepService.class,
                 new ServiceTrackerCustomizer<>() {
                     @Override
-                    public cloud.jengu.dbo.work.FleetWork.Performer addingService(
-                            ServiceReference<cloud.jengu.dbo.work.FleetWork.Performer> ref) {
-                        cloud.jengu.dbo.work.FleetWork.Performer bean = ctx.getService(ref);
+                    public cloud.jengu.dbo.runner.StepService addingService(
+                            ServiceReference<cloud.jengu.dbo.runner.StepService> ref) {
+                        cloud.jengu.dbo.runner.StepService bean = ctx.getService(ref);
+                        if (ref.getProperty(
+                                cloud.jengu.dbo.runner.StepService.FOR_THE_FLEET) == null) {
+                            // A TENANT'S, and the runner's to poll for. The
+                            // same interface serves both levels, so this takes
+                            // up only what an assembly marked as the
+                            // deployment's — otherwise every tenant-level bean
+                            // in the container would be held here waiting for a
+                            // declaration that is never coming.
+                            ctx.ungetService(ref);
+                            return null;
+                        }
                         try {
                             performing.put(bean, manager.performing(bean, executorOn(ref)));
                         } catch (RuntimeException e) {
-                            LOG.error("a fleet performer was not taken up: step={}",
+                            // At DEBUG, not ERROR. Most StepService beans in a
+                            // container are a tenant's and the runner's to
+                            // offer work to, so refusing one here is the
+                            // ordinary case rather than a fault; a bean no
+                            // level declares is named by awaitingDeclaration().
+                            LOG.debug("not a step this deployment performs: step={}",
                                     bean.step(), e);
                         }
                         return bean;
@@ -255,14 +273,14 @@ public final class Activator implements BundleActivator {
 
                     @Override
                     public void modifiedService(
-                            ServiceReference<cloud.jengu.dbo.work.FleetWork.Performer> ref,
-                            cloud.jengu.dbo.work.FleetWork.Performer bean) {
+                            ServiceReference<cloud.jengu.dbo.runner.StepService> ref,
+                            cloud.jengu.dbo.runner.StepService bean) {
                     }
 
                     @Override
                     public void removedService(
-                            ServiceReference<cloud.jengu.dbo.work.FleetWork.Performer> ref,
-                            cloud.jengu.dbo.work.FleetWork.Performer bean) {
+                            ServiceReference<cloud.jengu.dbo.runner.StepService> ref,
+                            cloud.jengu.dbo.runner.StepService bean) {
                         AutoCloseable held = performing.remove(bean);
                         if (held != null) {
                             try {
@@ -287,7 +305,7 @@ public final class Activator implements BundleActivator {
      * better recorded under the step than under nothing.
      */
     private static cloud.jengu.dbo.work.Executor executorOn(
-            ServiceReference<cloud.jengu.dbo.work.FleetWork.Performer> ref) {
+            ServiceReference<cloud.jengu.dbo.runner.StepService> ref) {
         Object name = ref.getProperty("dbo.executor.name");
         Object version = ref.getProperty("dbo.executor.version");
         Object provider = ref.getProperty("dbo.executor.provider");

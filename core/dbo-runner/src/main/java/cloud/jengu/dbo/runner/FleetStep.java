@@ -1,4 +1,4 @@
-package cloud.jengu.dbo.spring.server;
+package cloud.jengu.dbo.runner;
 
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;
@@ -7,7 +7,22 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * What a bean performing a fleet step is recorded as on every run it closes.
+ * This step is the DEPLOYMENT's, and what its runs record.
+ *
+ * <p><b>The one marker, and it is here rather than in an assembly because both
+ * of them read it.</b> A step is written as a {@link StepService} whichever
+ * level declared it — that is the point, and there is no second interface — so
+ * something has to say which side offers the work. An application knows: it
+ * either wrote the step for its own tenants or for the fleet. Everything else
+ * that could route on it is worse. The step code cannot: a worker has no view
+ * of what the deployment declares. The registration cannot either, as long as
+ * two assemblies can both put a bean on the whiteboard — which is exactly what
+ * a process that is both a server and a worker does, and the worker sample's
+ * own test is one.
+ *
+ * <p>So an annotated bean is the deployment's: the server assembly takes it up
+ * as a fleet performer, and the worker's leaves it alone rather than polling
+ * every lane it holds for a step no tenant declares.
  *
  * <p>The step itself is not here: the bean names it, because that is the one
  * thing the bean cannot be wrong about without being wrong about what it does.
@@ -25,7 +40,7 @@ import java.lang.annotation.Target;
 @Documented
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE)
-public @interface DboFleetStep {
+public @interface FleetStep {
 
     /**
      * Who performed it, as every run this bean closes will record.

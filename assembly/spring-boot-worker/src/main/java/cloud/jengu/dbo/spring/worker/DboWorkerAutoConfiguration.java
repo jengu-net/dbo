@@ -138,7 +138,16 @@ public class DboWorkerAutoConfiguration {
     @ConditionalOnMissingBean
     public DboWorker dboWorker(EmbeddedRuntime runtime, DboWorkerProperties properties,
             ObjectProvider<StepService> steps, ObjectProvider<TenantToken> tokens) {
-        List<StepService> performing = steps.orderedStream().toList();
+        // THE DEPLOYMENT'S ARE NOT THIS WORKER'S. A step is written as a
+        // StepService whichever level declared it, so a process that is both a
+        // server and a worker has both kinds of bean in one context — and
+        // registering a fleet one here would have the runner poll every lane it
+        // holds for a step no tenant declares, and try to introduce it to each.
+        List<StepService> performing = steps.orderedStream()
+                .filter(step -> org.springframework.core.annotation.AnnotationUtils
+                        .findAnnotation(step.getClass(),
+                                cloud.jengu.dbo.runner.FleetStep.class) == null)
+                .toList();
         refuseADuplicateStep(performing);
         refuseALaneThatCannotBeUsed(properties);
         refuseAnOverrideOfAStepThisApplicationBrought(performing, properties);
