@@ -637,7 +637,12 @@ public enum DboPromises implements Promise {
             + "queue and holds no listener. Offering is idempotent on the run's own identity, "
             + "because no transaction spans reading a tenant's feed and writing to a step's "
             + "substrate: a restart or a lost acknowledgement re-offers and writes no second "
-            + "item."),
+            + "item. A tenant whose feed cannot be read is one tenant and not the fleet: the "
+            + "pass says so once per reason, offers every other tenant's work, and says so "
+            + "again when that tenant can be read — because a deployment where one tenant is "
+            + "in trouble is not a deployment where nobody's work is offered, and which "
+            + "tenants stopped would otherwise be decided by the order they happen to be "
+            + "iterated in."),
 
     PROC_ONE_BEAN_PERFORMS_FOR_EVERY_TENANT(
             "A step the deployment performs is offered to an application as ITS STEP'S QUEUE "

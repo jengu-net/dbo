@@ -61,6 +61,8 @@ public final class StepJoiner implements AutoCloseable {
     private final Map<DataSource, DBOSClient> clients = new ConcurrentHashMap<>();
     /** The tenants being read, by code. */
     private final Map<String, ChangeFeed> following = new ConcurrentHashMap<>();
+    /** Why each tenant was last unreadable, so the same trouble is said once. */
+    private final Map<String, String> unreadableBecause = new ConcurrentHashMap<>();
     /**
      * What this tenant's work must not be offered to, asked once per pass.
      *
@@ -118,13 +120,53 @@ public final class StepJoiner implements AutoCloseable {
     public int joinOnce(int chunkSize) {
         int offered = 0;
         for (Map.Entry<String, ChangeFeed> tenant : following.entrySet()) {
-            offered += joinOnce(tenant.getKey(), tenant.getValue(), chunkSize);
+            try {
+                offered += joinOnce(tenant.getKey(), tenant.getValue(), chunkSize);
+            } catch (RuntimeException | Error unreadable) {
+                // ONE TENANT, NOT THE FLEET. A tenant's feed can stop being
+                // readable while the deployment is running — its declaration
+                // was refused and it went down, its storage went away, its
+                // cursor is not there — and none of that is a fact about
+                // anybody else's work. Letting it out of this loop stopped the
+                // pass at whichever tenant the map happened to reach first, so
+                // one tenant in trouble silently stopped every other tenant's
+                // work being offered, and the tenants after it in the
+                // iteration order were the ones that suffered.
+                //
+                // Error too, because the ones worth surviving here are the
+                // ones a single tenant's storage produces.
+                saidOnce(tenant.getKey(), unreadable);
+            }
         }
         return offered;
     }
 
+    /**
+     * Says a tenant could not be read, once per reason.
+     *
+     * <p>A pass runs on the deployment's beat, so a tenant that stays
+     * unreadable would say the same thing on every one of them — which is the
+     * shape of log that teaches people to filter the logger out. It is said
+     * again when the reason changes, and when the tenant recovers, because
+     * both of those are news.
+     */
+    private void saidOnce(String tenant, Throwable unreadable) {
+        String reason = unreadable.getClass().getSimpleName() + ": " + unreadable.getMessage();
+        if (reason.equals(unreadableBecause.put(tenant, reason))) {
+            return;
+        }
+        LOG.warn("a tenant's work could not be read and the rest were still offered: "
+                + "tenant={} reason={}", tenant, reason);
+    }
+
     private int joinOnce(String tenant, ChangeFeed feed, int chunkSize) {
         FeedChunk<FeedItem> chunk = feed.readFor(CONSUMER, chunkSize);
+        if (unreadableBecause.remove(tenant) != null) {
+            // Read again after being unreadable, which is the other half of
+            // saying it once: a tenant that came back and was never said to
+            // have come back leaves whoever read the warning still looking.
+            LOG.info("a tenant's work can be read again: tenant={}", tenant);
+        }
         if (chunk.items().isEmpty()) {
             return 0;
         }
