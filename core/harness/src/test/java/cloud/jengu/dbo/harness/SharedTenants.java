@@ -525,11 +525,27 @@ public final class SharedTenants {
 
         /** For the class about a report meeting the tenant's own rules. */
         WRITTEN_BACK("fleet.written.sweep", "{\"record\":\"Reference(Basic)\"}",
-                "[\"record\"]", ""),
+                "[\"record\"]", ",\"substrate\":\"written\""),
 
-        /** A step whose declaration admits opening and not closing. */
+        /** Beside it, for the run whose own declaration admits no closing. */
         WRITTEN_BACK_JUDGED("fleet.written.judge", "{\"record\":\"Reference(Basic)\"}",
-                "[\"record\"]", "");
+                "[\"record\"]", ",\"substrate\":\"written\""),
+
+        /** For the class about one bean answering for every tenant. */
+        TIDIED("fleet.tidying.sweep", "{\"record\":\"Reference(Basic)\"}", "[\"record\"]",
+                ",\"substrate\":\"tidying\""),
+
+        /** Beside it on one substrate, which is what placement is for. */
+        TIDIED_BESIDE("fleet.tidying.expire", "{\"record\":\"Reference(Basic)\"}",
+                "[\"record\"]", ",\"substrate\":\"tidying\""),
+
+        /** For the class about what a tenant reads of what is opened of it. */
+        READ_OPENED("fleet.reading.normalise", "{\"record\":\"Reference(Basic)\"}",
+                "[\"record\"]", ",\"required\":true,\"substrate\":\"reading\""),
+
+        /** Beside it, opening nothing — a step that only routes is on no register. */
+        READ_ROUTER("fleet.reading.route", "{\"record\":\"Reference(Basic)\"}", "[]",
+                ",\"substrate\":\"reading\"");
 
         private final String code;
         private final String slots;

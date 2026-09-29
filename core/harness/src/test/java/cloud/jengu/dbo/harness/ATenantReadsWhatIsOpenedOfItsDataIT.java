@@ -50,11 +50,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class ATenantReadsWhatIsOpenedOfItsDataIT {
 
-    private static final String TENANT = "reads";
     /** Opens a slot, so it is on the register. */
-    private static final String PROCESSOR = "fleet.reading.normalise";
+    private static final String PROCESSOR = SharedTenants.Fleet.READ_OPENED.code();
     /** Opens nothing — a router, and not on the register at all. */
-    private static final String ROUTER = "fleet.reading.route";
+    private static final String ROUTER = SharedTenants.Fleet.READ_ROUTER.code();
 
     private static final StepDeclaration ROUTING =
             StepDeclaration.of(ROUTER, "1.0", WorkModel.DOMAIN)
@@ -63,39 +62,18 @@ class ATenantReadsWhatIsOpenedOfItsDataIT {
     /** The performer's own signing half, which an opening it reports is signed with. */
     java.security.KeyPair signingOfThePerformer;
 
-    PostgreSQLContainer<?> postgres;
-    LocalDatabasePerTenantProvisioner provisioner;
-    TenantRuntimeManager manager;
+    static SharedTenants.Tenant tenant;
+    static String TENANT;
 
     @BeforeAll
-    void up() throws Exception {
-        postgres = SharedPostgres.get();
-        Path dir = Files.createTempDirectory("dbo-reads");
-        provisioner = new LocalDatabasePerTenantProvisioner(
-                SharedPostgres.urlFor("ATenantReadsWhatIsOpenedOfItsDataIT"),
-                postgres.getUsername(), postgres.getPassword());
-        byte[] kek = new byte[32];
-        new java.security.SecureRandom().nextBytes(kek);
-        manager = new TenantRuntimeManager(dir, provisioner, "127.0.0.1", 0, null,
-                new TenantRuntimeManager.AuthorityConfig(kek, null));
-
-        Path managementSpec = Files.createTempDirectory("dbo-management").resolve("registry.json");
-        Files.writeString(managementSpec, """
-                {"code":"registry","face":"r4","types":[
-                   {"name":"Basic","identity":"internal","handling":"operational"}],
-                 "fleetSteps":[
-                   {"code":"%s","slots":{"record":"Reference(Basic)"},"opens":["record"],
-                    "required":true,"substrate":"reading"},
-                   {"code":"%s","slots":{"record":"Reference(Basic)"},"substrate":"reading"}]}"""
-                .formatted(PROCESSOR, ROUTER));
-        manager.manages(managementSpec);
-
-        Files.writeString(dir.resolve(TENANT + ".json"), """
-                {"code":"%s","face":"r4","audit":{"level":"writes"},"types":[
-                   {"name":"Basic","identity":"internal","handling":"operational"}]}"""
-                .formatted(TENANT));
-        UntilServed.scan(manager, TENANT);
-        manager.fleetLane(TENANT, ROUTER, performer()).orElseThrow().introduce(ROUTING);
+    void up() {
+        // A tenant whose writes are audited, which R4_INTERNAL already is:
+        // what this class reads is the access trail, and a shape recording
+        // more than it needs records what it needs.
+        SharedTenants.deploymentPerforms();
+        tenant = SharedTenants.of(SharedTenants.Shape.R4_INTERNAL);
+        TENANT = tenant.code();
+        SharedTenants.manager().fleetLane(TENANT, ROUTER, performer()).orElseThrow().introduce(ROUTING);
 
         // THE PERFORMER IS ENROLLED, and that is load-bearing rather than
         // setup. The access entry the comparison reads is written on the
@@ -108,7 +86,7 @@ class ATenantReadsWhatIsOpenedOfItsDataIT {
         java.security.KeyPair sealing =
                 cloud.jengu.dbo.core.api.seal.KeyWrap.newParticipantKeyPair();
         signingOfThePerformer = cloud.jengu.dbo.core.api.seal.SigningKey.newKeyPair();
-        manager.authority(TENANT).ensureClient("performing-bean", "performing-secret",
+        SharedTenants.manager().authority(TENANT).ensureClient("performing-bean", "performing-secret",
                 List.of(cloud.jengu.dbo.auth.Scopes.WORK),
                 cloud.jengu.dbo.core.api.seal.ParticipantKey.of(sealing.getPublic()),
                 cloud.jengu.dbo.core.api.seal.SigningKey.of(
@@ -117,12 +95,7 @@ class ATenantReadsWhatIsOpenedOfItsDataIT {
 
     @AfterAll
     void down() {
-        if (manager != null) {
-            manager.close();
-        }
-        if (provisioner != null) {
-            SuiteDatabases.retire(provisioner);
-        }
+        // Nothing: the runtime is shared and outlives this class.
     }
 
     @Test
@@ -131,7 +104,15 @@ class ATenantReadsWhatIsOpenedOfItsDataIT {
             + "routes is not on it")
     @Proving(DboPromises.PROC_A_TENANT_READS_WHAT_IS_OPENED_OF_ITS_DATA)
     void theRegisterIsWhatIsOpened() {
-        List<FleetRegister.Row> register = manager.fleetRegister(TENANT);
+        // SCOPED TO THIS CLASS'S STEPS, because the register is derived from
+        // the WHOLE declaration and the deployment is shared: every class's
+        // opened slot is on every tenant's register, which is correct and is
+        // not what this claim is about. Filtering keeps the claim exactly —
+        // of the two steps this class declared, the one that opens is on the
+        // register and the one that only routes is not.
+        List<FleetRegister.Row> register = SharedTenants.manager().fleetRegister(TENANT).stream()
+                .filter(row -> row.step().equals(PROCESSOR) || row.step().equals(ROUTER))
+                .toList();
 
         assertEquals(1, register.size(),
                 "the register does not hold exactly the opened slots, so a tenant reading it "
@@ -161,7 +142,7 @@ class ATenantReadsWhatIsOpenedOfItsDataIT {
         // and is why the declining case is asked here rather than by writing a
         // declaration the store would rightly refuse.
         List<FleetRegister.Row> declined = FleetRegister.of(
-                manager.fleetRegister(TENANT).isEmpty() ? List.of() : declaredSteps(),
+                SharedTenants.manager().fleetRegister(TENANT).isEmpty() ? List.of() : declaredSteps(),
                 java.util.Set.of(PROCESSOR));
 
         assertTrue(declined.isEmpty(),
@@ -175,16 +156,16 @@ class ATenantReadsWhatIsOpenedOfItsDataIT {
             + "incident in the tenant's own account")
     @Proving(DboPromises.PROC_A_DISAGREEMENT_IS_AN_INCIDENT_NOT_A_REFUSAL)
     void anUndeclaredOpeningIsAnIncident() {
-        assertTrue(manager.fleetDisagreements(TENANT).isEmpty(),
+        assertTrue(SharedTenants.manager().fleetDisagreements(TENANT).isEmpty(),
                 "something already disagrees before anything has opened anything: "
-                        + manager.fleetDisagreements(TENANT));
+                        + SharedTenants.manager().fleetDisagreements(TENANT));
 
         // THE ROUTER OPENS. Its declaration says it opens nothing, so the
         // register has no row for it — and opening the run's input anyway is
         // exactly the case detection exists for. Nothing stops it, which is
         // the premise rather than a gap.
         Run routed = authorRun();
-        var lane = manager.fleetLane(TENANT, ROUTER, performer()).orElseThrow();
+        var lane = SharedTenants.manager().fleetLane(TENANT, ROUTER, performer()).orElseThrow();
         Run held = lane.claim(routed, Duration.ofMinutes(5)).orElseThrow();
         // SEALED, not in the clear: an enrolled participant is refused its
         // inputs in the clear even when it asks, which is the store being
@@ -210,7 +191,7 @@ class ATenantReadsWhatIsOpenedOfItsDataIT {
         lane.opened(held, reference, new cloud.jengu.dbo.work.RunChain.Link(
                 "access", previous, link, "performing-bean", reference, signature));
 
-        List<RegisterVersusTrail.Incident> said = manager.fleetDisagreements(TENANT);
+        List<RegisterVersusTrail.Incident> said = SharedTenants.manager().fleetDisagreements(TENANT);
         assertEquals(1, said.size(),
                 "the store did not notice a payload opened that the register never declared: "
                         + said);
@@ -235,7 +216,7 @@ class ATenantReadsWhatIsOpenedOfItsDataIT {
     }
 
     private Run authorRun() {
-        var engine = manager.runtime(TENANT).orElseThrow().engine();
+        var engine = tenant.engine();
         String record = engine.put(PutRequest.create("Basic",
                 "{\"resourceType\":\"Basic\",\"code\":{\"text\":\"r\"}}"
                         .getBytes(StandardCharsets.UTF_8))).id();

@@ -51,8 +51,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class OneBeanPerformsForEveryTenantIT {
 
-    private static final String ONE = "joinone";
-    private static final String TWO = "jointwo";
     /**
      * ITS OWN CODE, not shared with the class beside it. A step's substrate is
      * a DATABASE named from the step code, and these tests run against one
@@ -61,9 +59,9 @@ class OneBeanPerformsForEveryTenantIT {
      * instance, which is the same assumption a tenant's database already
      * makes; a test suite does not.
      */
-    private static final String STEP = "fleet.tidying.sweep";
+    private static final String STEP = SharedTenants.Fleet.TIDIED.code();
     /** A second step on the SAME substrate, which is what placement is for. */
-    private static final String BESIDE_IT = "fleet.tidying.expire";
+    private static final String BESIDE_IT = SharedTenants.Fleet.TIDIED_BESIDE.code();
 
     private static final StepDeclaration EXPIRE =
             StepDeclaration.of(BESIDE_IT, "1.0", WorkModel.DOMAIN)
@@ -78,49 +76,28 @@ class OneBeanPerformsForEveryTenantIT {
     StepConsumer consumer;
     final ConcurrentLinkedQueue<String> performed = new ConcurrentLinkedQueue<>();
 
+    static SharedTenants.Tenant one;
+    static SharedTenants.Tenant two;
+    static String ONE;
+    static String TWO;
+
     @BeforeAll
-    void up() throws Exception {
-        postgres = SharedPostgres.get();
-        Path dir = Files.createTempDirectory("dbo-onebean");
-        provisioner = new LocalDatabasePerTenantProvisioner(
-                SharedPostgres.urlFor("OneBeanPerformsForEveryTenantIT"),
-                postgres.getUsername(), postgres.getPassword());
-        byte[] kek = new byte[32];
-        new java.security.SecureRandom().nextBytes(kek);
-        manager = new TenantRuntimeManager(dir, provisioner, "127.0.0.1", 0, null,
-                new TenantRuntimeManager.AuthorityConfig(kek, null));
-
-        Path managementSpec = Files.createTempDirectory("dbo-management").resolve("registry.json");
-        Files.writeString(managementSpec, """
-                {"code":"registry","face":"r4","types":[
-                   {"name":"Basic","identity":"internal","handling":"operational"}],
-                 "fleetSteps":[
-                   {"code":"%s","slots":{"record":"Reference(Basic)"},"opens":["record"],
-                    "substrate":"tidying"},
-                   {"code":"%s","slots":{"record":"Reference(Basic)"},"opens":["record"],
-                    "substrate":"tidying"}]}"""
-                .formatted(STEP, BESIDE_IT));
-        manager.manages(managementSpec);
-
-        for (String tenant : List.of(ONE, TWO)) {
-            Files.writeString(dir.resolve(tenant + ".json"), """
-                    {"code":"%s","face":"r4","types":[
-                       {"name":"Basic","identity":"internal","handling":"operational"}]}"""
-                    .formatted(tenant));
-        }
-        UntilServed.scan(manager, ONE, TWO);
+    void up() {
+        // TWO TENANTS, which is the claim — one bean, work authored in both,
+        // and it names neither. A numbered pair of one shape is how a shared
+        // world hands out two that cannot see each other.
+        SharedTenants.deploymentPerforms();
+        one = SharedTenants.of(SharedTenants.Shape.R4_INTERNAL, 1);
+        two = SharedTenants.of(SharedTenants.Shape.R4_INTERNAL, 2);
+        ONE = one.code();
+        TWO = two.code();
     }
 
     @AfterAll
     void down() {
+        // The consumer only: the runtime is shared and outlives this class.
         if (consumer != null) {
             consumer.close();
-        }
-        if (manager != null) {
-            manager.close();
-        }
-        if (provisioner != null) {
-            SuiteDatabases.retire(provisioner);
         }
     }
 
@@ -131,7 +108,7 @@ class OneBeanPerformsForEveryTenantIT {
     void oneBeanTwoTenants() throws Exception {
         authorRunIn(ONE);
         authorRunIn(TWO);
-        assertTrue(manager.stepJoiner().orElseThrow().joinOnce(100) >= 2,
+        assertTrue(SharedTenants.manager().stepJoiner().orElseThrow().joinOnce(100) >= 2,
                 "the joiner offered fewer than the two runs authored, so this proves nothing "
                         + "about a consumer");
 
@@ -141,7 +118,7 @@ class OneBeanPerformsForEveryTenantIT {
         // and registering a bean later does not add one. Which is also the
         // placement claim: two steps sharing a substrate are served by one
         // consumer, one listener and one pool.
-        consumer = new StepConsumer(manager.stepSubstrates().get(STEP),
+        consumer = new StepConsumer(SharedTenants.manager().stepSubstrates().get(STEP),
                 Set.of(STEP, BESIDE_IT), claims());
         consumer.performing(cloud.jengu.dbo.runner.StepService.performing(STEP, work -> {
             performed.add(work.tenant() + "/" + work.run().key());
@@ -169,9 +146,9 @@ class OneBeanPerformsForEveryTenantIT {
         performed.clear();
 
         authorRunIn(ONE);
-        manager.stepJoiner().orElseThrow().joinOnce(100);
+        SharedTenants.manager().stepJoiner().orElseThrow().joinOnce(100);
 
-        consumer = new StepConsumer(manager.stepSubstrates().get(STEP),
+        consumer = new StepConsumer(SharedTenants.manager().stepSubstrates().get(STEP),
                 Set.of(STEP, BESIDE_IT), claims());
         consumer.performing(cloud.jengu.dbo.runner.StepService.performing(STEP, work -> {
             performed.add(work.tenant() + "/" + work.run().key());
@@ -191,10 +168,10 @@ class OneBeanPerformsForEveryTenantIT {
      */
     private cloud.jengu.dbo.stream.FleetPerformer.Claims claims() {
         return new cloud.jengu.dbo.stream.LaneClaims(
-                (tenant, step) -> manager.fleetLane(tenant, step,
+                (tenant, step) -> SharedTenants.manager().fleetLane(tenant, step,
                         new cloud.jengu.dbo.work.Executor("fleet-test", "1",
                                 "cloud.jengu.test", cloud.jengu.dbo.work.Scope.BASELINE)),
-                (tenant, runKey) -> new Runs(manager.runtime(tenant).orElseThrow().engine())
+                (tenant, runKey) -> new Runs(SharedTenants.manager().runtime(tenant).orElseThrow().engine())
                         .byKey(runKey));
     }
 
@@ -214,8 +191,8 @@ class OneBeanPerformsForEveryTenantIT {
         // half: a consumer that drained only what existed when it launched
         // would make the whole lane a startup activity.
         performed.clear();
-        assertEquals(manager.stepSubstrates().get(STEP),
-                manager.stepSubstrates().get(BESIDE_IT),
+        assertEquals(SharedTenants.manager().stepSubstrates().get(STEP),
+                SharedTenants.manager().stepSubstrates().get(BESIDE_IT),
                 "the two steps named one substrate and got two, so this proves nothing about "
                         + "serving both from one consumer");
 
@@ -232,7 +209,7 @@ class OneBeanPerformsForEveryTenantIT {
 
         authorRunIn(ONE, SWEEP);
         authorRunIn(ONE, EXPIRE);
-        manager.stepJoiner().orElseThrow().joinOnce(200);
+        SharedTenants.manager().stepJoiner().orElseThrow().joinOnce(200);
 
         assertTrue(until(() -> performed.size() >= 2),
                 "one consumer did not perform both steps' work from the substrate they share: "
@@ -258,9 +235,9 @@ class OneBeanPerformsForEveryTenantIT {
         // when it scales one step and leaves the other alone. Each registers
         // its own step, and a queue registered by either is visible to both in
         // the system database — which is exactly the trap.
-        try (StepConsumer mine = new StepConsumer(manager.stepSubstrates().get(STEP),
+        try (StepConsumer mine = new StepConsumer(SharedTenants.manager().stepSubstrates().get(STEP),
                         Set.of(STEP), claims());
-                StepConsumer theirs = new StepConsumer(manager.stepSubstrates().get(BESIDE_IT),
+                StepConsumer theirs = new StepConsumer(SharedTenants.manager().stepSubstrates().get(BESIDE_IT),
                         Set.of(BESIDE_IT), claims())) {
             mine.performing(cloud.jengu.dbo.runner.StepService.performing(STEP, work -> {
                 performed.add(STEP);
@@ -279,7 +256,7 @@ class OneBeanPerformsForEveryTenantIT {
 
             authorRunIn(ONE, SWEEP);
             authorRunIn(ONE, EXPIRE);
-            manager.stepJoiner().orElseThrow().joinOnce(200);
+            SharedTenants.manager().stepJoiner().orElseThrow().joinOnce(200);
 
             assertTrue(until(() -> !performed.isEmpty() && !other.isEmpty()),
                     "one of the two steps' work never arrived: mine=" + performed
@@ -296,7 +273,7 @@ class OneBeanPerformsForEveryTenantIT {
     }
 
     private void authorRunIn(String tenant, StepDeclaration step) {
-        var engine = manager.runtime(tenant).orElseThrow().engine();
+        var engine = SharedTenants.manager().runtime(tenant).orElseThrow().engine();
         String record = engine.put(PutRequest.create("Basic",
                 "{\"resourceType\":\"Basic\",\"code\":{\"text\":\"r\"}}"
                         .getBytes(StandardCharsets.UTF_8))).id();

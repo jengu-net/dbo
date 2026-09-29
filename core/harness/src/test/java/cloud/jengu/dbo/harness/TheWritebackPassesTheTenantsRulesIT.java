@@ -53,10 +53,20 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class TheWritebackPassesTheTenantsRulesIT {
 
-    private static final String TENANT = "writeback";
-    private static final String STEP = "fleet.closing.sweep";
+    /**
+     * A NAME OF THIS CLASS'S OWN, asserted on below.
+     *
+     * <p>The tenant is shared and a participant name is claimed by identity: a
+     * neighbour enrolling "performing-bean" WITH a key made this class's inputs
+     * travel sealed, and the refusal it asserts on came back as a sealing
+     * complaint rather than the action the step never declared. Sharing a world
+     * is what turned that from a coincidence into a rule.
+     */
+    private static final String PERFORMER = "writeback-bean";
+
+    private static final String STEP = SharedTenants.Fleet.WRITTEN_BACK.code();
     /** Declares OPEN and not CLOSE, so closing it is a rule to break. */
-    private static final String JUDGED = "fleet.judged.review";
+    private static final String JUDGED = SharedTenants.Fleet.WRITTEN_BACK_JUDGED.code();
 
     private static final StepDeclaration SWEEP =
             StepDeclaration.of(STEP, "1.0", WorkModel.DOMAIN)
@@ -66,63 +76,34 @@ class TheWritebackPassesTheTenantsRulesIT {
                     .taking("record", "https://meristem.example/shape/record")
                     .containing("open");
 
-    PostgreSQLContainer<?> postgres;
-    LocalDatabasePerTenantProvisioner provisioner;
-    TenantRuntimeManager manager;
+    static SharedTenants.Tenant tenant;
+    static String TENANT;
     StepConsumer consumer;
 
     @BeforeAll
-    void up() throws Exception {
-        postgres = SharedPostgres.get();
-        Path dir = Files.createTempDirectory("dbo-writeback");
-        provisioner = new LocalDatabasePerTenantProvisioner(
-                SharedPostgres.urlFor("TheWritebackPassesTheTenantsRulesIT"),
-                postgres.getUsername(), postgres.getPassword());
-        byte[] kek = new byte[32];
-        new java.security.SecureRandom().nextBytes(kek);
-        manager = new TenantRuntimeManager(dir, provisioner, "127.0.0.1", 0, null,
-                new TenantRuntimeManager.AuthorityConfig(kek, null));
+    void up() {
+        // The shared deployment declares both steps; this class needs a tenant
+        // to author runs in and nothing else of its own.
+        SharedTenants.deploymentPerforms();
+        tenant = SharedTenants.of(SharedTenants.Shape.R4_INTERNAL);
+        TENANT = tenant.code();
 
-        Path managementSpec = Files.createTempDirectory("dbo-management").resolve("registry.json");
-        Files.writeString(managementSpec, """
-                {"code":"registry","face":"r4","types":[
-                   {"name":"Basic","identity":"internal","handling":"operational"}],
-                 "fleetSteps":[
-                   {"code":"%s","slots":{"record":"Reference(Basic)"},"opens":["record"],"substrate":"writeback"},
-                   {"code":"%s","slots":{"record":"Reference(Basic)"},"opens":["record"],"substrate":"writeback"}]}"""
-                .formatted(STEP, JUDGED));
-        manager.manages(managementSpec);
-
-        Files.writeString(dir.resolve(TENANT + ".json"), """
-                {"code":"%s","face":"r4","types":[
-                   {"name":"Basic","identity":"internal","handling":"operational"}]}"""
-                .formatted(TENANT));
-        UntilServed.scan(manager, TENANT);
-
-        // THE DECLARATIONS, introduced through a lane the way a participant
-        // introduces one. Without them the tenant holds runs of steps it has
-        // no declaration for, and a report is narrowed by nothing — which
-        // would make the refusal below pass for the wrong reason, or rather
-        // fail to happen at all.
-        manager.fleetLane(TENANT, STEP, performer()).orElseThrow().introduce(SWEEP);
-        manager.fleetLane(TENANT, JUDGED, performer()).orElseThrow().introduce(REVIEW);
+        SharedTenants.manager().fleetLane(TENANT, STEP, performer()).orElseThrow().introduce(SWEEP);
+        SharedTenants.manager().fleetLane(TENANT, JUDGED, performer()).orElseThrow().introduce(REVIEW);
     }
 
     /** What an application performing these steps calls itself. */
     private static Executor performer() {
-        return new Executor("performing-bean", "1", "cloud.jengu.test", Scope.BASELINE);
+        return new Executor(PERFORMER, "1", "cloud.jengu.test", Scope.BASELINE);
     }
 
     @AfterAll
     void down() {
+        // The consumer only. The runtime is shared and outlives this class —
+        // closing it would pull the floor out from under whatever is running
+        // beside it.
         if (consumer != null) {
             consumer.close();
-        }
-        if (manager != null) {
-            manager.close();
-        }
-        if (provisioner != null) {
-            SuiteDatabases.retire(provisioner);
         }
     }
 
@@ -133,12 +114,12 @@ class TheWritebackPassesTheTenantsRulesIT {
     @Proving(DboPromises.PROC_THE_WRITEBACK_PASSES_THE_TENANTS_RULES)
     void itClosesNamingTheExecutor() throws Exception {
         Run authored = authorRun(SWEEP);
-        manager.stepJoiner().orElseThrow().joinOnce(100);
+        SharedTenants.manager().stepJoiner().orElseThrow().joinOnce(100);
 
         // BOTH steps on one consumer, which is only possible because they
         // name one substrate: a queue lives on the substrate its step named,
         // and a consumer reaches the queues on the database it was given.
-        consumer = new StepConsumer(manager.stepSubstrates().get(STEP), Set.of(STEP, JUDGED),
+        consumer = new StepConsumer(SharedTenants.manager().stepSubstrates().get(STEP), Set.of(STEP, JUDGED),
                 claims());
         consumer.performing(cloud.jengu.dbo.runner.StepService.performing(STEP,
                 work -> cloud.jengu.dbo.runner.Outcome.done(Map.of("swept", 1L))));
@@ -152,7 +133,7 @@ class TheWritebackPassesTheTenantsRulesIT {
         Run closed = runs().byKey(authored.key()).orElseThrow();
         assertEquals(Map.of("swept", 1L), closed.tally(),
                 "what the performer counted did not come home with the closure");
-        assertTrue(entriesFor(closed).stream().anyMatch(e -> e.contains("performing-bean")),
+        assertTrue(entriesFor(closed).stream().anyMatch(e -> e.contains(PERFORMER)),
                 "the run does not name the performer the application gave, so a deployment "
                         + "has stamped its own name on work a bean did: " + entriesFor(closed));
     }
@@ -204,17 +185,17 @@ class TheWritebackPassesTheTenantsRulesIT {
 
     private cloud.jengu.dbo.stream.FleetPerformer.Claims claims() {
         return new LaneClaims(
-                (tenant, step) -> manager.fleetLane(tenant, step, performer()),
+                (tenant, step) -> SharedTenants.manager().fleetLane(tenant, step, performer()),
                 (tenant, runKey) -> new Runs(
-                        manager.runtime(tenant).orElseThrow().engine()).byKey(runKey));
+                        SharedTenants.manager().runtime(tenant).orElseThrow().engine()).byKey(runKey));
     }
 
     private Runs runs() {
-        return new Runs(manager.runtime(TENANT).orElseThrow().engine());
+        return new Runs(tenant.engine());
     }
 
     private Run authorRun(StepDeclaration step) {
-        var engine = manager.runtime(TENANT).orElseThrow().engine();
+        var engine = tenant.engine();
         String record = engine.put(PutRequest.create("Basic",
                 "{\"resourceType\":\"Basic\",\"code\":{\"text\":\"r\"}}"
                         .getBytes(StandardCharsets.UTF_8))).id();
@@ -224,7 +205,7 @@ class TheWritebackPassesTheTenantsRulesIT {
 
     private java.util.List<String> entriesFor(Run run) {
         java.util.List<String> out = new java.util.ArrayList<>();
-        manager.runtime(TENANT).orElseThrow().engine()
+        tenant.engine()
                 .select(cloud.jengu.dbo.core.api.Criteria.of("AuditEntry")).forEach(o -> {
                     String e = new String(o.payload(), StandardCharsets.UTF_8);
                     if (e.contains(run.id())) {
