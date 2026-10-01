@@ -18,6 +18,7 @@
       "handling": "operational" },
     { "name": "PractitionerRole", "identity": "internal", "handling": "operational" },
     { "name": "Patient", "identity": "identifier", "systems": ["urn:rl:nid"], "handling": "operational" },
-    { "name": "Coverage", "identity": "internal", "handling": "operational" }
+    { "name": "Coverage", "identity": "internal", "handling": "operational" },
+    { "name": "Subscription", "identity": "internal", "handling": "operational" }
   ]
 }

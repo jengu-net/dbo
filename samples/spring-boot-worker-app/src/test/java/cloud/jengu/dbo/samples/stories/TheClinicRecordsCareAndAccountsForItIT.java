@@ -19,6 +19,7 @@ import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.List;
+import java.util.Map;
 import java.util.Locale;
 import java.util.Optional;
 
@@ -535,5 +536,256 @@ class TheClinicRecordsCareAndAccountsForItIT {
                 second.items().stream().noneMatch(i -> first.items().stream()
                         .anyMatch(f -> f.seq() == i.seq())),
                 "the consumer was handed the same events twice, so its cursor means nothing");
+    }
+
+    // ── and what the clinic keeps that is not a record ──
+
+    @Test
+    @Order(15)
+    @DisplayName("a scanned referral put over the wire comes back as the bytes that were sent, "
+            + "with the type its writer gave it, and the clinic says how much it took")
+    @Proving(DboPromises.OPS_TENANT_BLOBS_ARE_TENANT_DATA)
+    void contentComesBackAsItWasSent() throws Exception {
+        byte[] scan = new byte[5000];
+        new java.security.SecureRandom().nextBytes(scan);
+        HttpResponse<String> put = putContent(scan, "image/tiff", dbo.token(CLINIC));
+        assertEquals(201, put.statusCode(), put.body());
+        referral = put.headers().firstValue("Location").orElseThrow();
+        Proves.that(DboPromises.OPS_TENANT_BLOBS_ARE_TENANT_DATA,
+                put.body().contains("\"size\":5000"),
+                "the door did not say how much it took, so a writer cannot tell a truncated "
+                        + "upload from a whole one: " + put.body());
+
+        HttpResponse<byte[]> got = java.net.http.HttpClient.newHttpClient().send(
+                java.net.http.HttpRequest.newBuilder(serverUri(referral))
+                        .header("Authorization", "Bearer " + reader()).GET().build(),
+                HttpResponse.BodyHandlers.ofByteArray());
+        Proves.that(DboPromises.OPS_TENANT_BLOBS_ARE_TENANT_DATA,
+                got.statusCode() == 200 && java.util.Arrays.equals(scan, got.body())
+                        && "image/tiff".equals(got.headers().firstValue("Content-Type")
+                                .orElse("")),
+                "the content came back changed, or without the type its writer gave it");
+    }
+
+    @Test
+    @Order(16)
+    @DisplayName("two puts of the same bytes are two pieces of content, because the key is the "
+            + "store's to choose")
+    @Proving(DboPromises.OPS_TENANT_BLOBS_ARE_TENANT_DATA)
+    void theStoreChoosesTheKey() throws Exception {
+        byte[] same = names.value("the-same-bytes").getBytes(StandardCharsets.UTF_8);
+        String first = putContent(same, "text/plain", dbo.token(CLINIC)).headers()
+                .firstValue("Location").orElseThrow();
+        String second = putContent(same, "text/plain", dbo.token(CLINIC)).headers()
+                .firstValue("Location").orElseThrow();
+        Proves.that(DboPromises.OPS_TENANT_BLOBS_ARE_TENANT_DATA, !first.equals(second),
+                "two writers of the same content were given one key, so either can delete "
+                        + "the other's");
+    }
+
+    @Test
+    @DisplayName("forgetting content says whether there was any, and a key that names nothing "
+            + "is not found")
+    @Order(17)
+    @Proving(DboPromises.OPS_TENANT_BLOBS_ARE_TENANT_DATA)
+    void droppingSaysWhetherThereWasAnything() throws Exception {
+        for (String stranger : List.of("01920000-0000-7000-8000-000000000000", "not-a-key")) {
+            assertEquals(404, dbo.get(dbo.at(CLINIC) + "/blob/" + stranger, reader())
+                    .statusCode(), "a key this store never issued found something: " + stranger);
+        }
+        String location = putContent(names.value("gone-shortly").getBytes(StandardCharsets.UTF_8),
+                "text/plain", dbo.token(CLINIC)).headers().firstValue("Location").orElseThrow();
+        var delete = java.net.http.HttpRequest.newBuilder(serverUri(location)).DELETE();
+        Proves.that(DboPromises.OPS_TENANT_BLOBS_ARE_TENANT_DATA,
+                dbo.send(delete, dbo.token(CLINIC)).statusCode() == 204
+                        && dbo.send(java.net.http.HttpRequest.newBuilder(serverUri(location))
+                                .DELETE(), dbo.token(CLINIC)).statusCode() == 404
+                        && dbo.get(serverUri(location).toString(), reader()).statusCode() == 404,
+                "dropping content did not say whether it was there, or forgotten content is "
+                        + "still readable");
+    }
+
+    @Test
+    @Order(18)
+    @DisplayName("a credential that may read may not write content, and none at all reaches "
+            + "nothing")
+    @Proving(DboPromises.OPS_TENANT_BLOBS_ARE_TENANT_DATA)
+    void theScopeIsTheOneForContent() throws Exception {
+        byte[] content = names.value("not-yours").getBytes(StandardCharsets.UTF_8);
+        Proves.that(DboPromises.OPS_TENANT_BLOBS_ARE_TENANT_DATA,
+                putContent(content, "text/plain", reader()).statusCode() == 403
+                        && putContent(content, "text/plain", null).statusCode() == 401,
+                "content was written with a reading credential, or with none at all");
+    }
+
+    @Test
+    @Order(19)
+    @DisplayName("a clinic that holds no keys refuses content named for a person, rather than "
+            + "keeping it in the clear while its writer believes it is sealed")
+    @Proving(DboPromises.OPS_TENANT_BLOBS_ARE_TENANT_DATA)
+    void whatCannotBeSealedIsNotQuietlyKept() {
+        HttpResponse<String> refused = dbo.send(java.net.http.HttpRequest.newBuilder(
+                        java.net.URI.create(dbo.at(CLINIC) + "/blob?person=" + liis))
+                .header("Content-Type", "audio/ogg")
+                .POST(java.net.http.HttpRequest.BodyPublishers.ofByteArray(new byte[] {1, 2, 3})),
+                dbo.token(CLINIC));
+        Proves.that(DboPromises.OPS_TENANT_BLOBS_ARE_TENANT_DATA,
+                refused.statusCode() == 400 && refused.body().contains("seal"),
+                "content named for a person was taken by a clinic with no keys, so it is kept in "
+                        + "the clear: " + refused.statusCode() + " " + refused.body());
+    }
+
+
+    // ── and the clinic tells others when something they care about changes ──
+
+    @Test
+    @Order(20)
+    @DisplayName("the insurer subscribes to coverage changes and is told one happened, by a "
+            + "tenant nobody wired by hand, with the name and not the record")
+    @Proving(DboPromises.EVT_A_TENANT_DELIVERS)
+    void aSubscriberIsToldSomethingChanged() throws Exception {
+        String insurer = "gringotts";
+        String endpoint = subscriber("/coverage");
+        HttpResponse<String> subscribed = new ATenantsDoor(dbo, insurer).post("/Subscription", """
+                {"resourceType":"Subscription","status":"active",
+                 "reason":"a coverage changed","criteria":"Coverage?status=active",
+                 "channel":{"type":"rest-hook","endpoint":"%s"}}""".formatted(endpoint));
+        assertEquals(201, subscribed.statusCode(), subscribed.body());
+
+        String period = names.value("coverage-period");
+        var member = dbo.write(insurer, "Patient", """
+                {"resourceType":"Patient","name":[{"family":"Tamm","given":["Liis"]}]}""");
+        assertTrue(member.accepted(), "the insurer did not take its member: " + member.body());
+        var coverage = dbo.write(insurer, "Coverage", """
+                {"resourceType":"Coverage","status":"active",
+                 "identifier":[{"system":"urn:%s","value":"%s"}],
+                 "beneficiary":{"reference":"Patient/%s"},
+                 "payor":[{"display":"Gringotts"}]}"""
+                .formatted(names.prefix(), period, member.idOrFail()));
+        assertTrue(coverage.accepted(), coverage.body());
+        String coverageId = coverage.idOrFail();
+
+        String told = waitFor("/coverage", n -> n.contains("Coverage/" + coverageId));
+        Proves.that(DboPromises.EVT_A_TENANT_DELIVERS, told != null,
+                "the insurer was never told its coverage changed, so a tenant holds a "
+                        + "subscription it never acts on: " + received("/coverage"));
+        Proves.that(DboPromises.EVT_A_TENANT_DELIVERS,
+                !told.contains(period) && told.contains("Subscription/"),
+                "the record travelled although no payload was asked for, or the notification "
+                        + "does not say which subscription it answers: " + told);
+    }
+
+    @Test
+    @Order(21)
+    @DisplayName("the clinic subscribes its lab system to final results by topic, and the R5 "
+            + "notification names the topic and carries no record")
+    @Proving(DboPromises.EVT_FHIR_SUBSCRIPTIONS)
+    void aTopicSubscriptionDelivers() throws Exception {
+        String topic = names.canonical("SubscriptionTopic/final-results");
+        assertEquals(201, clinic.post("/SubscriptionTopic", """
+                {"resourceType":"SubscriptionTopic","url":"%s","status":"active",
+                 "resourceTrigger":[{"resource":"Observation",
+                                     "supportedInteraction":["create","update"]}],
+                 "canFilterBy":[{"filterParameter":"status"}]}""".formatted(topic)).statusCode());
+        assertEquals(201, clinic.post("/Subscription", """
+                {"resourceType":"Subscription","status":"active","topic":"%s",
+                 "channelType":{"code":"rest-hook"},"endpoint":"%s","content":"id-only",
+                 "filterBy":[{"filterParameter":"status","value":"final"}]}"""
+                .formatted(topic, subscriber("/results"))).statusCode());
+
+        String result = names.value("final-result");
+        String observation = dbo.write(CLINIC, "Observation", """
+                {"resourceType":"Observation","status":"final",
+                 "code":{"text":"%s"},"subject":{"reference":"Patient/%s"}}"""
+                .formatted(result, liis)).idOrFail();
+
+        String told = waitFor("/results", n -> n.contains(observation));
+        Proves.that(DboPromises.EVT_FHIR_SUBSCRIPTIONS,
+                told != null && told.contains("subscription-notification")
+                        && told.contains(topic) && !told.contains(result),
+                "the topic subscription did not deliver an R5 notification naming its topic "
+                        + "and nothing more: " + received("/results"));
+    }
+
+    // ── a subscriber outside the store ──
+
+    private com.sun.net.httpserver.HttpServer listening;
+    private final Map<String, List<String>> notifications =
+            new java.util.concurrent.ConcurrentHashMap<>();
+
+    /** An endpoint this story listens on, as a subscriber outside the store would. */
+    private String subscriber(String path) throws Exception {
+        if (listening == null) {
+            listening = com.sun.net.httpserver.HttpServer.create(
+                    new java.net.InetSocketAddress("127.0.0.1", 0), 0);
+            listening.start();
+        }
+        List<String> arrived = notifications.computeIfAbsent(path,
+                p -> new java.util.concurrent.CopyOnWriteArrayList<>());
+        listening.createContext(path, exchange -> {
+            arrived.add(new String(exchange.getRequestBody().readAllBytes(),
+                    StandardCharsets.UTF_8));
+            exchange.sendResponseHeaders(200, -1);
+            exchange.close();
+        });
+        return "http://127.0.0.1:" + listening.getAddress().getPort() + path;
+    }
+
+    private List<String> received(String path) {
+        return notifications.getOrDefault(path, List.of());
+    }
+
+    /** The first notification at a path that answers the question, or null after 90s. */
+    private String waitFor(String path, java.util.function.Predicate<String> about)
+            throws InterruptedException {
+        long giveUp = System.nanoTime() + Duration.ofSeconds(90).toNanos();
+        while (System.nanoTime() < giveUp) {
+            for (String arrived : received(path)) {
+                if (about.test(arrived)) {
+                    return arrived;
+                }
+            }
+            Thread.sleep(200);
+        }
+        return null;
+    }
+
+    @org.junit.jupiter.api.AfterAll
+    void theSubscriberStops() {
+        if (listening != null) {
+            listening.stop(0);
+        }
+    }
+
+    private String referral;
+
+    private HttpResponse<String> putContent(byte[] content, String media, String bearer)
+            throws Exception {
+        var request = java.net.http.HttpRequest.newBuilder(
+                        java.net.URI.create(dbo.at(CLINIC) + "/blob"))
+                .header("Content-Type", media)
+                .POST(java.net.http.HttpRequest.BodyPublishers.ofByteArray(content));
+        if (bearer != null) {
+            request.header("Authorization", "Bearer " + bearer);
+        }
+        return java.net.http.HttpClient.newHttpClient().send(request.build(),
+                HttpResponse.BodyHandlers.ofString());
+    }
+
+    /** A location the clinic answered with, on the application's own port. */
+    private java.net.URI serverUri(String location) {
+        return java.net.URI.create(dbo.at(CLINIC)).resolve(location);
+    }
+
+    /** A credential the clinic issued for reading only. */
+    private String reader() {
+        String client = names.value("blob-reader");
+        var authority = tenants.authority(CLINIC).orElseThrow();
+        authority.ensureClient(client, client + "-secret", List.of("system/*.read"));
+        if (authority.token(client, client + "-secret", null)
+                instanceof cloud.jengu.dbo.auth.TenantAuthority.TokenResult.Issued minted) {
+            return minted.accessToken();
+        }
+        throw new IllegalStateException("St Jerome would not issue a reading credential");
     }
 }

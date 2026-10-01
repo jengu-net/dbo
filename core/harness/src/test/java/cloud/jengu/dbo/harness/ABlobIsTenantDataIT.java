@@ -35,8 +35,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * behind after they asked for it to be gone.
  *
  * <p><b>One test, and it takes its tenant away.</b> What content does on the
- * way in and out is proven over the door a consumer actually has, on a shared
- * tenant, by {@link ContentHeldWholeIsReachableOverTheWireIT}. What is left
+ * way in and out is proven over the door a consumer actually has, at St Jerome,
+ * by the clinical record story ({@code TheClinicRecordsCareAndAccountsForItIT}).
+ * What is left
  * here is the claim that needs a world of its own: this one deprovisions the
  * tenant it wrote to, which no shared world survives.
  */

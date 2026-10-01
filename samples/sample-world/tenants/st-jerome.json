@@ -19,6 +19,8 @@
     { "name": "Person", "identity": "internal", "handling": "operational" },
     { "name": "Practitioner", "identity": "internal", "handling": "operational" },
     { "name": "Encounter", "identity": "internal", "handling": "replicated" },
-    { "name": "Observation", "identity": "internal", "handling": "operational" }
+    { "name": "Observation", "identity": "internal", "handling": "operational" },
+    { "name": "Subscription", "identity": "internal", "handling": "operational" },
+    { "name": "SubscriptionTopic", "identity": "canonical", "handling": "operational" }
   ]
 }
