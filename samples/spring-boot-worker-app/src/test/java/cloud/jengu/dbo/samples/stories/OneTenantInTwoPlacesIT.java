@@ -22,12 +22,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * US-DBO-TWO-PLACES, walked on the sample world.
+ * US-DBO-TWO-PLACES, walked in Rowling Land, the sample world.
  *
  * <p>The clinic is one place today and two by the end of this story. It takes
- * its canonical content from the zone it sits in, and it puts an appliance in
- * the building so that a lost connection is an inconvenience rather than a
- * closed practice.
+ * its canonical content from Rowling Land, the jurisdiction it sits in, and it
+ * puts an appliance in the building so that a lost connection is an
+ * inconvenience rather than a closed practice.
  *
  * <p>Both halves are the same idea: content that belongs somewhere else,
  * arriving because somebody declared that it should, and staying legible about
@@ -35,7 +35,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * of it is about anybody. Patient data travels <b>by work</b>, arriving with a
  * task and leaving when no open run still names it.
  *
- * <p><b>The zone half</b> runs on the world's zone, with a clinic this story
+ * <p><b>The zone half</b> runs on Rowling Land's own tenant, with a clinic this story
  * declares after the zone already holds content, which is the ordinary order.
  * <b>The appliance half</b> is one tenant in two places, and the world is one
  * place. It is proven where it needs no runtime at all, as two databases and a

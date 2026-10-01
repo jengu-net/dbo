@@ -31,7 +31,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * US-DBO-VENDOR-CHANGE, walked on the sample world.
+ * US-DBO-VENDOR-CHANGE, walked in Rowling Land, the sample world.
  *
  * <p>The clinic is leaving. Whatever the reason, the question is the one every
  * provider should be able to ask before signing anything: <b>can I get

@@ -23,7 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * US-DBO-STANDARD-MOVES, walked on the sample world.
+ * US-DBO-STANDARD-MOVES, walked in Rowling Land, the sample world.
  *
  * <p>A clinic carries a profile pack of its own, and the pack moves while the
  * data stays. What an observation was validated under is recorded as a fact

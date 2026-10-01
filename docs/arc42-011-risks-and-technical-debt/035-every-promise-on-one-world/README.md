@@ -1,13 +1,8 @@
-**Open, and step 1 is built. 127 test classes boot a dbo world and four of them
-do it through `@DboSpringBootTest`; the suite takes over an hour, most of it
-tenants coming up. The plan is one world in one JVM, one class per user story
-walking that story's legs in order, the stories running at the same time, and
-every promise proven inside a leg.
-Steps 1 and 2 are built. Eight story classes walk the sample world
-concurrently, 55 legs in about four minutes, and five harness story classes
-are gone. Moving them found four defects in the store, all fixed; one of them
-held every tenant's sync for four minutes after each bring-up. Next: step 3,
-fitting the promises the stories do not yet prove.**
+**Open, and step 3 is underway. Eight user-story classes walk Rowling Land,
+the sample world, in one context, concurrently: 105 legs. Of the 127 harness
+classes that booted a world, about 90 remain, and the stories have found five
+store defects so far, all fixed with a test that fails without the fix.
+Next: the rest of step 3, story by story, and the fleet-steps story.**
 
 # Every promise proven on one world, inside its story
 
@@ -21,7 +16,7 @@ runtime, each for a recorded reason, and with 22 shapes and a six-member cast
 on the shared one.
 
 This item changes what the target is. The target is no longer the cheapest
-world for a class. It is one world, the sample world, served by one Spring
+world for a class. It is one world, Rowling Land, the sample world, served by one Spring
 context in one JVM through `@DboSpringBootTest`. Each promise is proven at the
 point of a user story where it already applies. A promise does not get a world
 arranged for it.
@@ -37,8 +32,8 @@ step 2 lands.
 ## The rules
 
 1. **One world.** It is
-   [`samples/sample-world`](https://github.com/jengu-net/dbo/tree/main/samples/sample-world)
-   (`mom` and six tenants), served by one context. It is also the guide's
+   [`samples/sample-world`](https://github.com/jengu-net/dbo/tree/main/samples/sample-world),
+   Rowling Land (`mom` and six tenants), served by one context. It is also the guide's
    world, and `sample/` is deprecated. The world may change to fit the
    stories (a type, a relation, a zone setting, a deployment property), but
    only in ways the guide could show a reader.

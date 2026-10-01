@@ -31,7 +31,7 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * US-DBO-PERSON-RIGHTS, walked on the sample world.
+ * US-DBO-PERSON-RIGHTS, walked in Rowling Land, the sample world.
  *
  * <p>Liis is a patient at Hogwarts, which holds its people behind the
  * membrane: what identifies her is sealed in the tenant's vault, and the

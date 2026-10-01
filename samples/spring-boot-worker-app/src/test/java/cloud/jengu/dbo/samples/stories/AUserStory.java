@@ -21,7 +21,7 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * A user story, walked on the sample world.
+ * A user story, walked in Rowling Land, the sample world.
  *
  * <p><b>Everything a story class may vary is its legs.</b> The application,
  * the profile and the beans are fixed here, because Spring caches a context by

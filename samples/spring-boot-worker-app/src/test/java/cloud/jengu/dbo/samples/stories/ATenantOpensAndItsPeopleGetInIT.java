@@ -27,7 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * US-DBO-TENANT-OPENING, walked on the sample world.
+ * US-DBO-TENANT-OPENING, walked in Rowling Land, the sample world.
  *
  * <p>Ines builds the platform a clinic group runs on. She does not run a
  * database team, she does not want a second identity system, and she is not

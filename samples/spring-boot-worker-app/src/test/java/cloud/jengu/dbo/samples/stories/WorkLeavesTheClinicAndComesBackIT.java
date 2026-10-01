@@ -38,7 +38,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * US-DBO-EDGE-ROUNDTRIP, walked on the sample world.
+ * US-DBO-EDGE-ROUNDTRIP, walked in Rowling Land, the sample world.
  *
  * <p>Hogwarts records care and sends its assays out. Meristem runs the bench
  * that performs them: one service, in a JVM that is not the store's and holds

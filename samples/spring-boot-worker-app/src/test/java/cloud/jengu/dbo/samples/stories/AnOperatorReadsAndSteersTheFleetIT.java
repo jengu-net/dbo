@@ -48,7 +48,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * US-DBO-FLEET-HEALTH, walked on the sample world.
+ * US-DBO-FLEET-HEALTH, walked in Rowling Land, the sample world.
  *
  * <p>Kaarel runs the deployment. He reads it from outside every container —
  * what each node serves and knows how to do, who is present, what sits behind

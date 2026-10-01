@@ -29,7 +29,7 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * US-DBO-CLINICAL-RECORD, walked on the sample world.
+ * US-DBO-CLINICAL-RECORD, walked in Rowling Land, the sample world.
  *
  * <p>Maarja works at St Jerome, the clinic of the sample world, which keys its
  * patients by its own record number. This is the store doing what it exists
@@ -52,7 +52,7 @@ class TheClinicRecordsCareAndAccountsForItIT {
 
     private static final String CLINIC = "st-jerome";
 
-    /** The zone St Jerome takes its code systems from. */
+    /** Rowling Land, the zone St Jerome takes its code systems from. */
     private static final String ZONE = "rl";
 
     /** The system St Jerome keys its patients by, in the sample world's spec. */
@@ -332,7 +332,7 @@ class TheClinicRecordsCareAndAccountsForItIT {
             DboPromises.TERM_OPERATIONS_FROM_NATIVE_FORM,
             DboPromises.VAL_UNRESOLVABLE_IS_NOT_INVALID})
     void aCodeMeansWhatTheClinicsTerminologySays() throws InterruptedException {
-        // The zone publishes it, and St Jerome takes the zone's code systems.
+        // Rowling Land publishes it, and St Jerome takes its code systems.
         // What the clinic answers from is its own copy.
         String severity = names.canonical("severity");
         HttpResponse<String> published = new ATenantsDoor(dbo, ZONE).post("/CodeSystem", """
