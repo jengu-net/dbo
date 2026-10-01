@@ -1,6 +1,5 @@
 package cloud.jengu.dbo.harness;
 
-import cloud.jengu.dbo.core.api.Criteria;
 import cloud.jengu.dbo.core.api.PutRequest;
 import cloud.jengu.dbo.core.api.TypeRegistration;
 import cloud.jengu.dbo.fhir.common.FhirTypeConfig;
@@ -17,7 +16,6 @@ import cloud.jengu.dbo.work.Run;
 import cloud.jengu.dbo.work.Runs;
 import cloud.jengu.dbo.work.Scope;
 import cloud.jengu.dbo.work.WorkModel;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.MethodOrderer;
@@ -45,36 +43,20 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * US-DBO-TWO-PLACES, walked in order.
+ * The appliance half of US-DBO-TWO-PLACES: one tenant in two places, and
+ * patient data travelling between them by work rather than by type.
  *
- * <p>The clinic is one place today and two by the end of this story. It takes
- * its canonical content from a national zone it does not run, and it puts an
- * appliance in the building so that a lost connection is an inconvenience
- * rather than a closed practice.
- *
- * <p>Both halves are the same idea: content that belongs somewhere else,
- * arriving because somebody declared that it should, and staying legible
- * about where it came from. What differs is the bound. Canonical content
- * travels <b>by type</b>, because none of it is about anybody. Patient data
- * travels <b>by work</b>, arriving with a task and leaving when no open run
- * still names it — the two bounds are deliberately different and the second
- * one is why an appliance does not slowly become a copy of the whole clinic.
- *
- * <p><b>One clinic, one zone, two appliances, in dependency order.</b>
- *
- * <p>The zone half runs on the shared runtime, as a zone shape and a clinic
- * shape that declares one of its types. The appliance half needs no runtime
- * at all: it is two databases and a lane between them.
+ * <p>What a run produced on the appliance arrives on the cloud with the run and
+ * leaves when no open run still names it, which is why an appliance does not
+ * slowly become a copy of the whole clinic. The story's zone half walks the
+ * sample world; this half is two places of one tenant, and the world is one
+ * place, so it is proven here with no runtime at all: two databases and a lane
+ * between them.
  */
 @Tag("integration")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-class OneTenantInTwoPlacesIT {
-
-    // ── the zone half ──
-    static SharedTenants.Tenant zone;
-    static SharedTenants.Tenant clinic;
-    private static final String SEVERITY = "https://shared.test/fs/two-places-severity";
+class AnApplianceCarriesPatientDataByWorkIT {
 
     // ── the appliance half ──
     private static final String PROCESS = "dbo.lab.assay";
@@ -94,12 +76,7 @@ class OneTenantInTwoPlacesIT {
     @BeforeAll
     void up() throws Exception {
         postgres = SharedPostgres.get();
-        String jdbcUrl = SharedPostgres.urlFor("OneTenantInTwoPlacesIT");
-
-        // The zone half: two shared tenants, one depending on the other. The
-        // zone is here and the clinic is not, because the story's first step
-        // is that declaring one is the whole of opening it.
-        zone = SharedTenants.of(SharedTenants.Shape.R4_TWO_PLACES_ZONE);
+        String jdbcUrl = SharedPostgres.urlFor("AnApplianceCarriesPatientDataByWorkIT");
 
         // The appliance half: one tenant, two databases, one lane between them.
         try (Connection c = DriverManager.getConnection(jdbcUrl,
@@ -124,67 +101,6 @@ class OneTenantInTwoPlacesIT {
                 "cloud");
         edge = new Lanes(edgeStore, new PgChangeFeed(edgeDs, WorkModel.DOMAIN), edgeRuns, "edge");
     }
-
-    /**
-     * Given back. A tenant one class uses is a database the whole
-     * suite carries until the run ends, and the saving on this rung is
-     * the runtime rather than the tenant.
-     */
-    @AfterAll
-    void down() {
-        SharedTenants.retire(clinic);
-        SharedTenants.retire(zone);
-    }
-
-
-    // ── canonical content arrives because somebody declared it should ──
-
-    @Test
-    @Order(1)
-    @DisplayName("the clinic declares what it takes from the zone, and a dependency it never "
-            + "declared brings nothing")
-    @Proving({DboPromises.SYNC_SPEC_DECLARED, DboPromises.SYNC_DECLARED_ONLY,
-            DboPromises.ZONE_DECLARATIONS_AS_RECORDS})
-    void theClinicDeclaresWhatItTakes() throws Exception {
-        // The zone publishes before the clinic exists, which is the ordinary
-        // case: canonical content is older than the practices that use it.
-        var upstream = zone.engine();
-        upstream.put(PutRequest.create("CodeSystem", ("""
-                {"resourceType":"CodeSystem","url":"%s","status":"active",
-                 "content":"complete","version":"1.0",
-                 "concept":[{"code":"mild","display":"Mild"}]}""".formatted(SEVERITY))
-                .getBytes(StandardCharsets.UTF_8)));
-
-        // Declared now, after the zone already holds content: the clinic is
-        // opened by saying it exists and what it takes.
-        clinic = SharedTenants.of(SharedTenants.Shape.R4_TWO_PLACES_CLINIC);
-    }
-
-    @Test
-    @Order(2)
-    @DisplayName("a type the clinic did not declare a dependency for brings nothing, however "
-            + "much of it the zone holds")
-    @Proving({DboPromises.SYNC_DECLARED_ONLY, DboPromises.SYNC_DIRECT_UPSTREAM_ONLY})
-    void nothingUndeclaredArrives() {
-        var upstream = zone.engine();
-        upstream.put(PutRequest.create("ValueSet", ("""
-                {"resourceType":"ValueSet","url":"%s/vs","status":"active"}"""
-                .formatted(SEVERITY)).getBytes(StandardCharsets.UTF_8)));
-        clinic.syncOnce();
-
-        // The clinic declared CodeSystem and nothing else. A ValueSet in the
-        // zone is not a thing it is missing; it is a thing it did not ask for.
-        assertTrue(clinic.engine().select(Criteria.of("ValueSet")).isEmpty(),
-                "an undeclared type arrived, so a dependency is a hint rather than a bound "
-                        + "and a clinic ends up holding whatever its upstream happens to have");
-    }
-
-    // How a declared dependency catches up from the upstream's whole history,
-    // that a streamed copy is read-only and provenanced, that a local
-    // definition shadows it, and that a terminology grain survives the wire
-    // are legs of this story proven where the stream's own timing is the
-    // subject (SpecDeclaredSyncIT, SyncStreamsIT). The story declares them;
-    // this class does not re-drive a catch-up to re-assert them.
 
     // ── and patient data travels by work rather than by type ──
 

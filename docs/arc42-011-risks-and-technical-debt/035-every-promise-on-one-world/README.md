@@ -3,11 +3,11 @@ do it through `@DboSpringBootTest`; the suite takes over an hour, most of it
 tenants coming up. The plan is one world in one JVM, one class per user story
 walking that story's legs in order, the stories running at the same time, and
 every promise proven inside a leg.
-Steps 1 and 2 are built but for one story. Seven story classes walk the
-sample world concurrently, 53 legs in about five minutes, and five harness
-story classes are gone. Moving them found four defects in the store, all
-fixed; one of them held every tenant's sync for four minutes after each
-bring-up. Next: two places, whose appliance half needs a second place.**
+Steps 1 and 2 are built. Eight story classes walk the sample world
+concurrently, 55 legs in about four minutes, and five harness story classes
+are gone. Moving them found four defects in the store, all fixed; one of them
+held every tenant's sync for four minutes after each bring-up. Next: step 3,
+fitting the promises the stories do not yet prove.**
 
 # Every promise proven on one world, inside its story
 
@@ -134,14 +134,14 @@ promise-by-promise picture is in the [listing](listing.md).
 | …cited by nothing (PLANNED) | 21 |
 | …declared by no story | 21; 17 of them are proven only in a world |
 | Story classes that exist | 7 of 8 (person rights has none). Built-or-planned reads the catalogue and boots nothing |
-| Story classes on the one world | 7 of 8: all but two places |
+| Story classes on the one world | 8 of 8 |
 
 | Story | Story class | Classes feeding it | Already a leg | To fit | Assert in passing | PLANNED | State |
 |---|---|---|---|---|---|---|---|
 | [TENANT-OPENING](../../arc42-003-context/user-stories/us-dbo-tenant-opening.md) | `ATenantOpensAndItsPeopleGetInIT` (on the world) | 15 | 17 | 25 | 6 | 2 | moved |
 | [CLINICAL-RECORD](../../arc42-003-context/user-stories/us-dbo-clinical-record.md) | `TheClinicRecordsCareAndAccountsForItIT` (on the world) | 10 | 28 | 11 | 17 | 3 | moved |
 | [PERSON-RIGHTS](../../arc42-003-context/user-stories/us-dbo-person-rights.md) | `WhatAPersonCanAskForIT` (on the world, two legs) | 9 | 3 | 22 | 12 | 0 | started |
-| [TWO-PLACES](../../arc42-003-context/user-stories/us-dbo-two-places.md) | `OneTenantInTwoPlacesIT` (shared) | 7 | 9 | 16 | 4 | 1 | todo |
+| [TWO-PLACES](../../arc42-003-context/user-stories/us-dbo-two-places.md) | `OneTenantInTwoPlacesIT` (on the world, zone half) | 7 | 9 | 16 | 4 | 1 | moved |
 | [STANDARD-MOVES](../../arc42-003-context/user-stories/us-dbo-standard-moves.md) | `TheStandardMovesUnderTheDataIT` (on the world) | 19 | 7 | 29 | 9 | 0 | moved |
 | [VENDOR-CHANGE](../../arc42-003-context/user-stories/us-dbo-vendor-change.md) | `TheClinicChangesVendorIT` (on the world) | 1 | 6 | 0 | 7 | 0 | moved |
 | [EDGE-ROUNDTRIP](../../arc42-003-context/user-stories/us-dbo-edge-roundtrip.md) | `WorkLeavesTheClinicAndComesBackIT` (on the world) | 14 | 23 | 16 | 19 | 4 | moved |
@@ -216,7 +216,7 @@ Another 33 classes do not feed a story:
    classes already moved, its data renamed to the story's prefix, and nothing
    new is fitted yet.
 
-   Done for six, and person rights has its first two legs. The harness classes
+   Done for all seven, and person rights has its first two legs. The harness classes
    for clinical record, edge roundtrip, standard moves, vendor change and
    tenant opening are deleted. The catalogue now reads the stories' citations
    from the worker sample's test classes, so no promise lost its proof in the
@@ -231,6 +231,7 @@ Another 33 classes do not feed a story:
    | Vendor change | Two clinics it declares, because what leaves is a whole estate |
    | Tenant opening | Two clinics it declares, because opening one is the story |
    | Fleet health | Hogwarts and the node itself, through the deployment's ops token |
+   | Two places | The zone, with a clinic it declares after the zone already holds content |
 
    **Left behind on purpose.** Fleet health's rolling-upgrade and network-map
    legs need two nodes, so the harness class stays for them; they go with the
@@ -251,10 +252,12 @@ Another 33 classes do not feed a story:
    - **The servlet adapter escaped a query twice**, and **two callers
      creating one identity at once got a conflict**: both in the step 1
      commits.
-   - **Two places is not moved yet.** Its zone half fits a declared clinic on
-     the world. Its appliance half is two places of one tenant, and the
-     world is one place; a second database of the story's own, with no
-     runtime, is the likely shape.
+   **Two places is split.** Its zone half walks the world. Its appliance half
+   is one tenant in two places, and the world is one place, so it stays in
+   the harness as `AnApplianceCarriesPatientDataByWorkIT`: two databases and a
+   lane between them, with no runtime. Moving it onto the application would
+   put the store's engine and the driver on the application's classpath,
+   which is the two-class-space trouble item 033 is about.
 3. **Fit the promises, one story at a time.** Work from the listing's
    `to fit` rows. For each promise, find the leg where the journey already
    does what it is about, use the source class's arrangement as that leg's
