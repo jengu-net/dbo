@@ -26,7 +26,14 @@ import java.util.regex.Pattern;
 public final class PgChangeFeed implements ChangeFeed {
 
     private static final Pattern DOMAIN = Pattern.compile("[a-z][a-z0-9_]{0,31}");
-    private static final Pattern CONSUMER = Pattern.compile("[A-Za-z][A-Za-z0-9_.-]{0,63}");
+    /**
+     * A cursor's name, which is a value in a text column and never an
+     * identifier. Long enough for the longest a deployment builds: a stream's
+     * cursor is named for both tenants it joins, each allowed a hundred and
+     * twenty-eight characters, so a bound that fit one code refused pairs the
+     * deployment served.
+     */
+    private static final Pattern CONSUMER = Pattern.compile("[A-Za-z][A-Za-z0-9_.-]{0,511}");
 
     /**
      * The delivery barrier.

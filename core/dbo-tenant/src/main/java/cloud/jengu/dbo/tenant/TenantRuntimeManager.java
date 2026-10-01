@@ -1724,10 +1724,16 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 // same file is news rather than a repeat.
                 refusals.applied(named);
                 states.putIfAbsent(spec.code(), TenantState.State.COMING_UP);
-                trouble.remove(spec.code());
-                trouble.remove("spec:" + named);
+                // A reason stands until it stops being true. Cleared here, at
+                // the start of a retry, it was missing for as long as the
+                // retry took — so a node asked mid-attempt said a failing
+                // tenant had nothing to explain. A serving tenant's is cleared
+                // now, because what is asked of it here is a new question;
+                // one not serving keeps its reason until it comes up.
                 TenantRuntime serving = runtimes.get(spec.code());
                 if (serving != null) {
+                    trouble.remove(spec.code());
+                    trouble.remove("spec:" + named);
                     noticeRedeclaration(serving, spec);
                 }
                 if (serving == null) {
@@ -1740,6 +1746,8 @@ public final class TenantRuntimeManager implements AutoCloseable {
                     enrolTheProcessor(spec);
                     followForJoining(spec.code(), null);
                     states.put(spec.code(), TenantState.State.SERVING);
+                    trouble.remove(spec.code());
+                    trouble.remove("spec:" + named);
                     factsOf(spec.code()).ifPresent(facts -> reached(TenantPoint.SERVING, facts));
                     reportedFailures.removeIf(k -> k.startsWith(named + ":"));
                     LOG.info("tenant up: code={} fhir={} pdi={} in {}ms",

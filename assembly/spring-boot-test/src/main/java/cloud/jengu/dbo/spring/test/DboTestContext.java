@@ -42,6 +42,8 @@ public final class DboTestContext implements SmartLifecycle {
     private final int port;
     private final org.springframework.beans.factory.ListableBeanFactory beans;
     private final java.util.Map<String, String> tokens = new java.util.concurrent.ConcurrentHashMap<>();
+    private final java.util.Map<String, Long> mintedAt =
+            new java.util.concurrent.ConcurrentHashMap<>();
     private DboRegistrar.Registration registered;
     private volatile boolean running;
 
@@ -135,8 +137,27 @@ public final class DboTestContext implements SmartLifecycle {
                 List.of(cloud.jengu.dbo.auth.Scopes.WORK));
     }
 
+    /**
+     * A credential for this test, minted again once it has lived half of what
+     * the authority gives it.
+     *
+     * <p>Kept, because minting is a round trip every request would otherwise
+     * pay; but not kept for ever. A token lives
+     * {@link TenantAuthority#TOKEN_TTL_SECONDS}, and a test that runs longer
+     * than that — every story does, on a loaded machine — was handed a token
+     * its own tenant had stopped accepting, and failed with 401 at whatever
+     * leg it had reached, reading like a fault in the store.
+     */
     private String credential(String tenant, String client, List<String> scopes) {
-        return tokens.computeIfAbsent(tenant + "/" + client, key -> {
+        String key = tenant + "/" + client;
+        Long since = mintedAt.get(key);
+        if (since != null && System.nanoTime() - since
+                > java.util.concurrent.TimeUnit.SECONDS.toNanos(
+                        TenantAuthority.TOKEN_TTL_SECONDS / 2)) {
+            tokens.remove(key);
+        }
+        return tokens.computeIfAbsent(key, ignored -> {
+            mintedAt.put(key, System.nanoTime());
             String code = tenant;
             TenantAuthority authority = tenants.authority(code).orElseThrow(
                     () -> new IllegalStateException(code + " has no authority, so nothing can "

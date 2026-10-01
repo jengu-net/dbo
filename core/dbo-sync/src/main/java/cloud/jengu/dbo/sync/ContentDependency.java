@@ -13,7 +13,8 @@ import java.util.regex.Pattern;
 public record ContentDependency(String name, Set<String> declaredTypes,
                                 Supplier<Set<String>> manifest) {
 
-    private static final Pattern NAME = Pattern.compile("[a-z][a-z0-9_.-]{0,63}");
+    /** An upstream tenant's code, which may be as long as any code a deployment accepts. */
+    private static final Pattern NAME = Pattern.compile("[a-z][a-z0-9_.-]{0,127}");
 
     /** A dependency that takes every object of the types it declares. */
     public ContentDependency(String name, Set<String> declaredTypes) {

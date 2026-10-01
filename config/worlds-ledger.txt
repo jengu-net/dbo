@@ -35,11 +35,9 @@
 # undecided-allowed: 0
 ABeanIsFoundRatherThanWiredIT                            deployment
 ABlobIsTenantDataIT                                      lifecycle
-AChangeCanBeAskedAboutBeforeItIsMadeIT                   deployment
 ADefinitionIsExpandedWhenItArrivesIT                     first boot
 ADeploymentPresentsItsOwnCredentialIT                    deployment
 AFaceIsCutOnceAndBroughtUpFromIT                         deployment
-AFaceRootHoldsItsVersionAsRecordsIT                      lifecycle
 AHostHoldsALaneByInstallingABundleIT                     container
 ALaneOverTheStreamIsIndistinguishableIT                  deployment
 ALargePayloadTravelsByReferenceIT                        whole plane
@@ -49,7 +47,6 @@ AStoreWithoutSuperuserStillMountsIT                      sweep
 AStreamKeepsMovingWhileATenantComesUpIT                  lifecycle
 AStreamLaneIsToldItHasWorkIT                             deployment
 ATenantAdmitsOrDeclinesWhatIsDoneToItIT                  deployment
-ATenantAuthorsItsOwnSearchParameterIT                    sweep
 ATenantComesUpFromTheFaceImageIT                         deployment
 ATenantGoingAwayIsNotOneThatFailedIT                     lifecycle
 ATenantSubscribesToItsVersionIT                          lifecycle
@@ -65,10 +62,7 @@ FederatedAuthIT                                          deployment
 MandatoryStepsClassifyIncidentsIT                        sweep
 NothingReadableLandsInTheSubstrateIT                     whole plane
 OperatorIT                                               sweep
-ProfilesArrivingOutOfBandTakeEffectIT                    sweep
-ScimNeedsTheMembraneIT                                   sweep
 SeveralTenantsDeclaredAtOnceComeUpTogetherIT             lifecycle
-SpecDeclaredSyncIT                                       sweep
 TenantRuntimeIT                                          sweep
 WhatTheLoadedSpecificationCostsIT                        first boot
 ZoneIT                                                   deployment
