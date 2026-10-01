@@ -169,7 +169,8 @@ public record FhirTypeConfig(String typeName, IdentityClass identityClass,
          * goes quietly unfindable rather than loudly wrong — and an empty
          * result is indistinguishable from there being nothing to find. A
          * tenant asks for this when the two sides have been compared over what
-         * it holds, which is what config/envelope-baseline.txt records.
+         * it holds, which the clinical user story does over the r4 root's own
+         * documents, holding the number that differ at zero.
          */
         IN_THE_DATABASE
     }

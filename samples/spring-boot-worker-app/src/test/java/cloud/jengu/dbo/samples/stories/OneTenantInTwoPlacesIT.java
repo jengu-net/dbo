@@ -487,6 +487,70 @@ class OneTenantInTwoPlacesIT {
     }
 
     /** Waits for a tenant to answer for a code from its own copy, not merely to store it. */
+    // ── and an upstream rebuilt in place keeps its dependents streaming ──
+
+    @Test
+    @Order(17)
+    @DisplayName("an upstream rebuilt in place for a type it did not have keeps its dependent "
+            + "streaming, because a change is not a retraction")
+    @Proving({DboPromises.TEN_A_CHANGE_IS_NOT_A_RETRACTION, DboPromises.SYNC_SPEC_DECLARED})
+    void aDependentKeepsStreamingWhenItsUpstreamIsRebuilt() throws InterruptedException {
+        String upstream = names.tenant("upstream");
+        String dependent = names.tenant("dependent");
+        String colours = names.canonical("colours");
+        String canonicals = """
+                {"name":"CodeSystem","identity":"canonical","handling":"operational"},
+                {"name":"ValueSet","identity":"canonical","handling":"operational"}""";
+        dbo.declare(upstream, """
+                {"code":"%s","face":"r4","audit":{"level":"none"},"types":[%s]}"""
+                .formatted(upstream, canonicals));
+        try {
+            assertTrue(dbo.until(upstream, true, Duration.ofMinutes(10)), "no upstream");
+            HttpResponse<String> written = new ATenantsDoor(dbo, upstream).post("/CodeSystem",
+                    codeSystem(colours, "green", "Green"));
+            assertEquals(201, written.statusCode(), written.body());
+            String id = dbo.says(written).one("id").orElseThrow();
+            dbo.declare(dependent, """
+                    {"code":"%s","face":"r4","audit":{"level":"none"},
+                     "dependencies":[{"name":"%s","types":["CodeSystem"]}],"types":[
+                      {"name":"CodeSystem","identity":"canonical","handling":"replicated"},
+                      {"name":"ValueSet","identity":"canonical","handling":"operational"}]}"""
+                    .formatted(dependent, upstream));
+            assertTrue(dbo.until(dependent, true, Duration.ofMinutes(10)), "no dependent");
+            assertTrue(untilAnswered(dependent, colours, "green"),
+                    "the dependent never caught up with what its upstream held");
+
+            dbo.declare(upstream, """
+                    {"code":"%s","face":"r4","audit":{"level":"none"},"types":[%s,
+                      {"name":"Observation","identity":"internal","handling":"operational"}]}"""
+                    .formatted(upstream, canonicals));
+            ATenantsDoor rebuilt = new ATenantsDoor(dbo, upstream);
+            long giveUp = System.nanoTime() + Duration.ofMinutes(3).toNanos();
+            boolean rebuilt2 = false;
+            while (!rebuilt2 && System.nanoTime() < giveUp) {
+                Thread.sleep(1000);
+                try {
+                    rebuilt2 = dbo.capability(upstream).serves("Observation");
+                } catch (IllegalStateException beingRebuilt) {
+                    // Answering 404 while its surface is mounted again.
+                }
+            }
+            HttpResponse<String> amber = rebuilt.put("/CodeSystem/" + id, """
+                    {"resourceType":"CodeSystem","id":"%s","url":"%s","status":"active",
+                     "content":"complete","version":"1.0",
+                     "concept":[{"code":"green","display":"Green"},
+                                {"code":"amber","display":"Amber"}]}""".formatted(id, colours));
+            assertTrue(amber.statusCode() < 300, amber.body());
+            Proves.that(DboPromises.TEN_A_CHANGE_IS_NOT_A_RETRACTION,
+                    rebuilt2 && untilAnswered(dependent, colours, "amber"),
+                    "the rebuilt upstream stopped feeding its dependent, so a change was a "
+                            + "retraction for whoever streamed from it");
+        } finally {
+            dbo.retract(dependent);
+            dbo.retract(upstream);
+        }
+    }
+
     private boolean untilAnswered(String tenant, String system, String code)
             throws InterruptedException {
         ATenantsDoor door = new ATenantsDoor(dbo, tenant);

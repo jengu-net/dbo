@@ -1,12 +1,17 @@
-**Open, and step 3 is underway. Nine user-story classes walk Rowling Land,
-the sample world, in one context, concurrently: 141 legs, the fleet-step
-story among them. Of the 127 harness classes that booted a world, about 83
-remain, and the stories have found six store defects so far, all fixed with a
-test that fails without the fix. A node now says why a tenant it is not
-serving is not, with the cause, so a refusal can be proven from outside.
-Federated sign-in waits on the world: `rl` brokers its members but declares
-no person identifier domain.
-Next: the rest of step 3, story by story.**
+**Open; step 3 has reached every class. Nine user-story classes walk Rowling
+Land, the sample world, in one context, concurrently: 205 legs in about eight
+and a half minutes. Of the harness classes that booted a world, 55 are deleted
+and every other one is classified in the listing with the reason it stays —
+grouped into the technical stories they become (the version measured,
+bring-up made to go wrong, what a deployment is given before it starts, a
+deployment with a substrate, erasure that has no door, a second container)
+or deferred with the eleven set aside at the start. Walking the stories found
+eight store defects, each fixed with a test that fails without the fix, and
+one test-tool defect: credentials cached past their lifetime. Two findings are
+recorded rather than worked around: a substrate costs a durable-workflow
+instance per tenant door, which slowed the whole world about two and a half
+times, and erasure is an operator act with no door to it.
+Next: the technical stories, and the full verify before pushing.**
 
 # Every promise proven on one world, inside its story
 

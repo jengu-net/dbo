@@ -924,7 +924,254 @@ class ATenantOpensAndItsPeopleGetInIT {
                         + "withdrawn ones reconciles against a shorter list: " + refused.body());
     }
 
+    // ── and a directory is only ever opened behind the membrane ──
+
+    @Test
+    @Order(29)
+    @DisplayName("a clinic declaring a staff directory over identity held in the clear is not "
+            + "opened, and the deployment leaves a card saying the directory needs the membrane")
+    @Proving(DboPromises.SCIM_DECLARED_PER_TENANT)
+    void aDirectoryOverIdentityInTheClearIsRefused() throws InterruptedException {
+        String clear = names.tenant("in-the-clear");
+        dbo.declare(clear, """
+                {"code":"%s","face":"r4","pdi":false,"audit":{"level":"writes"},
+                 "scim":{"system":"%s"},"types":%s}""".formatted(clear, idp, staffTypes()));
+        try {
+            String said = "";
+            long giveUp = System.nanoTime() + Duration.ofMinutes(3).toNanos();
+            while (!said.contains("scim requires pdi") && System.nanoTime() < giveUp) {
+                Thread.sleep(1000);
+                said = cardFor(clear);
+            }
+            Proves.that(DboPromises.SCIM_DECLARED_PER_TENANT,
+                    said.contains("scim requires pdi") && !dbo.serving().contains(clear),
+                    "a directory over identity in the clear was opened, or refused without "
+                            + "saying it needs the membrane: " + said);
+        } finally {
+            dbo.retract(clear);
+        }
+    }
+
+    // ── and a partner who runs clinics follows their work without reading it ──
+
+    @Test
+    @Order(30)
+    @DisplayName("a partner's credential reads a managed clinic's journey by run, is refused by "
+            + "a clinic it does not manage, and never receives a document or a purpose")
+    @Proving(DboPromises.TEN_A_PARTNER_MANAGES_TENANTS)
+    void aPartnerFollowsTheWorkAndNothingElse() {
+        // The relation is declared when the managed clinic is created, so the
+        // partner is serving first.
+        String partner = names.tenant("partner");
+        String managed = names.tenant("managed");
+        String basic = """
+                [{"name":"Basic","identity":"internal","handling":"operational"}]""";
+        dbo.declare(partner, """
+                {"code":"%s","face":"r4","audit":{"level":"none"},"types":%s}"""
+                .formatted(partner, basic));
+        try {
+            assertTrue(dbo.until(partner, true, Duration.ofMinutes(10)), "no partner");
+            dbo.declare(managed, """
+                    {"code":"%s","face":"r4","managedBy":"%s","audit":{"level":"writes"},
+                     "types":%s}""".formatted(managed, partner, basic));
+            assertTrue(dbo.until(managed, true, Duration.ofMinutes(10)), "no managed clinic");
+
+            String step = names.prefix() + "-" + names.run() + ".lab.assay";
+            var assay = cloud.jengu.dbo.core.process.StepDeclaration.of(step, "1.0",
+                            cloud.jengu.dbo.work.WorkModel.DOMAIN)
+                    .taking("specimen", "https://meristem.example/shape/specimen");
+            authority(partner).ensureClient(names.value("support"), "support-secret",
+                    List.of("system/*.read"));
+            String partnerToken = token(partner, names.value("support"), "support-secret");
+            authority(managed).ensureClient(names.value("bench"), "bench-secret",
+                    List.of("work/" + step));
+
+            var specimen = dbo.write(managed, "Basic",
+                    "{\"resourceType\":\"Basic\",\"code\":{\"text\":\"specimen-3f9a\"}}");
+            assertTrue(specimen.accepted(), specimen.body());
+            var runs = new cloud.jengu.dbo.work.Runs(tenants.store(managed).orElseThrow());
+            var run = runs.of(assay, cloud.jengu.dbo.work.RunKind.PIPELINE, "followed",
+                    java.util.Map.of("specimen", "Basic/" + specimen.idOrFail()));
+            var bench = cloud.jengu.dbo.runner.http.HttpLane.to(
+                    URI.create(dbo.at(managed) + "/work"),
+                    () -> token(managed, names.value("bench"), "bench-secret"), managed,
+                    names.value("bench"), new cloud.jengu.dbo.work.Executor(names.value("bench"),
+                            "1.0", "example.meristem", cloud.jengu.dbo.work.Scope.BASELINE));
+            bench.introduce(assay);
+            var held = bench.claim(run, Duration.ofMinutes(5)).orElseThrow();
+            bench.inputs(held);
+            // A read with a stated purpose, by the practice itself: on its
+            // trail with the purpose, which is the practice's to reveal.
+            assertEquals(200, dbo.send(HttpRequest.newBuilder(URI.create(fhir(managed)
+                            + "/Basic/" + specimen.idOrFail())).header("Purpose-Of-Use", "TREAT")
+                    .GET(), dbo.token(managed)).statusCode());
+
+            HttpResponse<String> journey = dbo.get(fhir(managed) + "/AuditEvent?run="
+                    + encoded(held.key()), partnerToken);
+            Proves.that(DboPromises.TEN_A_PARTNER_MANAGES_TENANTS,
+                    journey.statusCode() == 200 && journey.body().contains("travel")
+                            && journey.body().contains("\"value\":\"" + names.value("bench")
+                            + "\""),
+                    "the partner does not read the run's journey, hop by hop: " + journey.body());
+            Proves.that(DboPromises.TEN_A_PARTNER_MANAGES_TENANTS,
+                    !journey.body().contains("specimen-3f9a") && !journey.body().contains("TREAT"),
+                    "a document or a purpose reached the partner: " + journey.body());
+            HttpResponse<String> document = dbo.get(fhir(managed) + "/Basic/"
+                    + specimen.idOrFail(), partnerToken);
+            Proves.that(DboPromises.TEN_A_PARTNER_MANAGES_TENANTS,
+                    (document.statusCode() == 404 || document.statusCode() == 403)
+                            && !document.body().contains("specimen-3f9a"),
+                    "the partner read a document: " + document.statusCode());
+            Proves.that(DboPromises.TEN_A_PARTNER_MANAGES_TENANTS,
+                    dbo.get(fhir(second) + "/AuditEvent?run=" + encoded(held.key()),
+                            partnerToken).statusCode() == 401,
+                    "a clinic that declared no partner knew the partner's credential");
+            HttpResponse<String> own = dbo.get(fhir(managed) + "/AuditEvent?entity="
+                    + specimen.idOrFail(), dbo.token(managed));
+            Proves.that(DboPromises.TEN_A_PARTNER_MANAGES_TENANTS,
+                    own.statusCode() == 200 && own.body().contains("TREAT"),
+                    "the clinic does not read its own trail whole: " + own.body());
+        } finally {
+            dbo.retract(managed);
+            dbo.retract(partner);
+        }
+    }
+
+    // ── and a clinic's life: its database, its retraction, its name ──
+
+    @Test
+    @Order(31)
+    @DisplayName("a token one clinic's authority issues validates there and nowhere else")
+    @Proving(DboPromises.AUTH_TENANT_SCOPED_ISSUER)
+    void aTokenIsValidatedOnlyByItsIssuer() {
+        authority(clinic).ensureClient(names.value("published"), "published-secret",
+                List.of("system/*.read"));
+        var issued = authority(clinic).token(names.value("published"), "published-secret",
+                "system/*.read");
+        Proves.that(DboPromises.AUTH_TENANT_SCOPED_ISSUER,
+                issued instanceof TenantAuthority.TokenResult.Issued minted
+                        && authority(clinic).validate(minted.accessToken()).isPresent()
+                        && authority(second).validate(minted.accessToken()).isEmpty(),
+                "a token was validated by an authority that did not issue it");
+    }
+
+    @Test
+    @Order(32)
+    @DisplayName("a clinic's database is provisioned with the timeouts that keep one stuck "
+            + "transaction from holding it, and its own vocabulary arrived as a recorded pass")
+    @Proving(DboPromises.PROC_CONFIG_APPLIES_AS_A_SWEEP)
+    void aClinicsDatabaseIsProvisionedAndItsVocabularyRecorded() throws Exception {
+        String settings = null;
+        try (var c = java.sql.DriverManager.getConnection(
+                        environment.getRequiredProperty("dbo.admin.jdbc-url"),
+                        environment.getRequiredProperty("dbo.admin.user"),
+                        environment.getRequiredProperty("dbo.admin.password"));
+                var ps = c.prepareStatement("SELECT array_to_string(s.setconfig, ',') FROM "
+                        + "pg_db_role_setting s JOIN pg_database d ON d.oid = s.setdatabase "
+                        + "WHERE d.datname = ? AND s.setrole = 0")) {
+            ps.setString(1, "tenant_" + second.replace('-', '_'));
+            try (var rs = ps.executeQuery()) {
+                settings = rs.next() ? rs.getString(1) : null;
+            }
+        }
+        assertTrue(settings != null && settings.contains("idle_in_transaction_session_timeout=60s")
+                && settings.contains("transaction_timeout=300s"),
+                "the clinic's database carries no timeouts: " + settings);
+
+        var pass = new cloud.jengu.dbo.work.Runs(tenants.store(second).orElseThrow()).byKey(
+                cloud.jengu.dbo.sync.ConfigApplication.PROCESS + "/"
+                        + cloud.jengu.dbo.sync.ConfigApplication.STEP + "/" + second);
+        Proves.that(DboPromises.PROC_CONFIG_APPLIES_AS_A_SWEEP,
+                pass.isPresent() && pass.get().kind() == cloud.jengu.dbo.work.RunKind.SWEEP
+                        && !pass.get().needsAPerson()
+                        && ((Number) pass.get().tally().getOrDefault("read", 0L)).longValue() > 0
+                        && pass.get().tally().get("read").equals(pass.get().tally().get("applied")),
+                "the face's own vocabulary did not arrive as a recorded, closed pass: " + pass);
+    }
+
+    @Test
+    @Order(33)
+    @DisplayName("retracting a clinic stops serving it and keeps its data, so declaring it "
+            + "again brings back what it held")
+    void retractingIsNotErasing() throws InterruptedException {
+        String paused = names.tenant("paused");
+        String spec = """
+                {"code":"%s","face":"r4","audit":{"level":"none"},"types":[
+                  {"name":"Patient","identity":"internal","handling":"operational"}]}"""
+                .formatted(paused);
+        dbo.declare(paused, spec);
+        try {
+            assertTrue(dbo.until(paused, true, Duration.ofMinutes(10)), "not served");
+            var kept = dbo.write(paused, "Patient", """
+                    {"resourceType":"Patient","name":[{"family":"Aiakas"}]}""");
+            assertTrue(kept.accepted(), kept.body());
+            dbo.retract(paused);
+            assertTrue(dbo.until(paused, false, Duration.ofMinutes(3)), "still served");
+            assertEquals(404, dbo.get(fhir(paused) + "/metadata", null).statusCode(),
+                    "a retracted clinic still answers");
+            dbo.declare(paused, spec);
+            assertTrue(dbo.until(paused, true, Duration.ofMinutes(10)), "not served again");
+            assertEquals(200, dbo.get(fhir(paused) + "/Patient/" + kept.idOrFail(),
+                    dbo.token(paused)).statusCode(), "retracting the clinic erased its data");
+        } finally {
+            dbo.retract(paused);
+        }
+    }
+
+    @Test
+    @Order(34)
+    @DisplayName("a clinic on a face nothing serves gets no database, and a long hyphenated "
+            + "code is a clinic like any other")
+    void whatCannotBeServedIsNotProvisioned() throws Exception {
+        String unserved = names.tenant("on-no-face");
+        String longCode = names.tenant("e2e-us-xapi-distributor-onboards-customer-20260815");
+        dbo.declare(unserved, """
+                {"code":"%s","face":"kuues","types":[
+                  {"name":"Patient","identity":"internal","handling":"operational"}]}"""
+                .formatted(unserved));
+        dbo.declare(longCode, """
+                {"code":"%s","face":"r4","types":[
+                  {"name":"Patient","identity":"internal","handling":"operational"}]}"""
+                .formatted(longCode));
+        try {
+            assertTrue(dbo.until(longCode, true, Duration.ofMinutes(10)),
+                    "a long hyphenated code did not come up: " + longCode);
+            assertEquals(200, dbo.get(fhir(longCode) + "/metadata", null).statusCode());
+            long databases;
+            try (var c = java.sql.DriverManager.getConnection(
+                            environment.getRequiredProperty("dbo.admin.jdbc-url"),
+                            environment.getRequiredProperty("dbo.admin.user"),
+                            environment.getRequiredProperty("dbo.admin.password"));
+                    var ps = c.prepareStatement(
+                            "SELECT count(*) FROM pg_database WHERE datname = ?")) {
+                ps.setString(1, "tenant_" + unserved.replace('-', '_'));
+                try (var rs = ps.executeQuery()) {
+                    rs.next();
+                    databases = rs.getLong(1);
+                }
+            }
+            assertFalse(dbo.serving().contains(unserved), "a clinic on no face was served");
+            assertEquals(0, databases, "a clinic nothing can serve was given a database");
+        } finally {
+            dbo.retract(unserved);
+            dbo.retract(longCode);
+        }
+    }
+
     // ── helpers ───────────────────────────────────────────────────────────
+
+    /** What the deployment's application pass says about one declaration, if anything. */
+    private String cardFor(String code) {
+        var runs = new cloud.jengu.dbo.work.Runs(tenants.store("mom").orElseThrow());
+        return runs.byKey(cloud.jengu.dbo.sync.ConfigApplication.PROCESS + "/"
+                        + cloud.jengu.dbo.sync.ConfigApplication.STEP + "/deployment")
+                .map(pass -> runs.items(pass).stream()
+                        .map(cloud.jengu.dbo.work.Run::item)
+                        .filter(item -> item != null && item.reference().startsWith(code))
+                        .map(item -> String.valueOf(item.message()))
+                        .reduce("", String::concat))
+                .orElse("");
+    }
 
     /** Rowling Land's bank, which takes its version from the r4 root. */
     private static final String BANK = "gringotts";

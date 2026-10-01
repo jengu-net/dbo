@@ -1678,8 +1678,8 @@ public enum DboPromises implements Promise {
             + "can be found by is the whole of what a search answers, and a difference is "
             + "a document that quietly stops being findable, which reads as an empty "
             + "result rather than as a fault."),
-    /** config/envelope-baseline.txt holds the count per type, at zero and
-     * ratcheted there: it may not rise. Serving a type from the database's
+    /** The clinical user story holds the count per type at zero, over the
+     * documents the r4 root carries. Serving a type from the database's
      * envelope is the step after this one and is not taken yet — what is
      * proven is that taking it would lose nothing. */
     SRCH_THE_DATABASE_ENVELOPE_LOSES_NOTHING_BEFORE_IT_IS_USED(

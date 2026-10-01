@@ -14,6 +14,13 @@ plugins {
 dependencies {
     api(project(":core:dbo-core"))
     api(project(":core:dbo-work"))
+
+    testImplementation("org.junit.jupiter:junit-jupiter:5.11.4")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+}
+
+tasks.test {
+    useJUnitPlatform()
 }
 
 tasks.jar {

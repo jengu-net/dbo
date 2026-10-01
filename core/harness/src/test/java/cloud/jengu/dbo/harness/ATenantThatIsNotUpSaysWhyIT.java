@@ -36,6 +36,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * left the surface mounted, so the retry died on its own OIDC context and the
  * ledger reported {@code cannot add context to list} instead of the spec that
  * was wrong.
+ *
+ * <p>The second half is walked in Rowling Land, in the fleet story, where the
+ * node says why from outside. What stays is storage that has not arrived,
+ * which only a provisioner made to be behind can stage.
  */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
@@ -162,36 +166,4 @@ class ATenantThatIsNotUpSaysWhyIT {
                 "a tenant that came up is nobody's trouble any more");
     }
 
-    /**
-     * The spec declares a SCIM surface it cannot serve, which is refused —
-     * but only after the tenant's OIDC surface is already mounted. The second
-     * scan is the whole test: it has to meet the same refusal, not the
-     * wreckage of the first one.
-     */
-    @Test
-    @Order(3)
-    @Proving(DboPromises.OPS_RUNTIME_SAYS_WHAT_IT_SERVES)
-    void aBringUpThatFailedHalfWayStillSaysWhyOnEveryLaterPass() throws Exception {
-        // Parseable, and unservable only once the tenant is being built: a
-        // zone is a name in a file and a tenant in a deployment, and nothing
-        // here is serving one called this. It used to be a scim door with no
-        // person types, which the spec itself now refuses — what a file can
-        // be wrong about on its own stopped being a bring-up's business, and
-        // this test is about the bring-ups that are.
-        Files.writeString(dir.resolve("halted-clinic.json"), """
-                {"code":"halted-clinic","face":"r4","zone":"nowhere","types":[
-                  {"name":"Observation","identity":"internal","handling":"operational"}]}""");
-
-        manager.scanOnce();
-        String first = manager.troubles().get("halted-clinic");
-        assertTrue(first != null && first.contains("zone"),
-                "troubles=" + manager.troubles() + " states=" + manager.tenantStates());
-        assertEquals(TenantState.State.FAILED, stateOf("halted-clinic"));
-
-        manager.scanOnce();
-        String second = manager.troubles().get("halted-clinic");
-        assertTrue(second.contains("zone"),
-                "the retry met its own leftovers instead of the reason: " + second);
-        assertEquals(first, second, "the same wrong spec has to read the same way twice");
-    }
 }

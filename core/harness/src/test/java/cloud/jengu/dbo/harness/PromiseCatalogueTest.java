@@ -47,7 +47,8 @@ class PromiseCatalogueTest {
         assertEquals(PromiseStatus.PROVEN,
                 model.statusOf(DboPromises.SHAPE_WRITTEN_UNDER_STAMPED));
         assertTrue(model.citing(DboPromises.SHAPE_MIRRORED_KEEPS_ITS_STAMP)
-                        .contains("cloud.jengu.dbo.harness.ShapeStampIT#stampRidesTheWire"),
+                        .contains("cloud.jengu.dbo.samples.stories.TheStandardMovesUnderTheDataIT"
+                                + "#theStampSurvivesARebuildAndRidesTheWire"),
                 "the citation names the real proof site");
     }
 

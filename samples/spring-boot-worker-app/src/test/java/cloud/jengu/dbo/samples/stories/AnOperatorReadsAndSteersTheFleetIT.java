@@ -360,17 +360,22 @@ class AnOperatorReadsAndSteersTheFleetIT {
     void aNewTypeIsARebuildNotARetraction() throws InterruptedException {
         dbo.declare(redeclared, redeclaredSpec("r4", "Observation", "Condition"));
         ATenantsDoor door = new ATenantsDoor(dbo, redeclared);
-        long giveUp = System.nanoTime() + Duration.ofMinutes(3).toNanos();
-        while (door.get("/Condition?_summary=count").statusCode() != 200
-                && System.nanoTime() < giveUp) {
+        long giveUp = System.nanoTime() + Duration.ofMinutes(5).toNanos();
+        // Serving again is the tenant's store being published, which follows
+        // the surface answering: both are waited for.
+        while ((door.get("/Condition?_summary=count").statusCode() != 200
+                || !dbo.serving().contains(redeclared)) && System.nanoTime() < giveUp) {
             Thread.sleep(1000);
         }
+        boolean serving = dbo.serving().contains(redeclared);
+        HttpResponse<String> condition = door.get("/Condition?_summary=count");
+        HttpResponse<String> kept = door.get("/Observation/" + beforeTheRebuild);
         Proves.that(DboPromises.TEN_A_CHANGE_IS_NOT_A_RETRACTION,
-                dbo.serving().contains(redeclared)
-                        && door.get("/Condition?_summary=count").statusCode() == 200
-                        && door.get("/Observation/" + beforeTheRebuild).statusCode() == 200,
+                serving && condition.statusCode() == 200 && kept.statusCode() == 200,
                 "a change to what the tenant serves took it down, did not serve the new "
-                        + "type, or lost what it held");
+                        + "type, or lost what it held: serving=" + serving + " condition="
+                        + condition.statusCode() + " " + condition.body() + " kept="
+                        + kept.statusCode() + " " + kept.body());
     }
 
     @Test
@@ -383,7 +388,9 @@ class AnOperatorReadsAndSteersTheFleetIT {
         dbo.declare(redeclared, redeclaredSpec("r5", "Observation", "Condition"));
         String said = "";
         long giveUp = System.nanoTime() + Duration.ofMinutes(3).toNanos();
-        while (said.isEmpty() && System.nanoTime() < giveUp) {
+        // What the node says about the rebuild before it is replaced by what it
+        // says about this declaration, so the wait is for the face.
+        while (!said.contains("face") && System.nanoTime() < giveUp) {
             Thread.sleep(1000);
             said = String.valueOf(rowFor(redeclared).getOrDefault("declaredDifferently", ""));
         }
@@ -549,6 +556,402 @@ class AnOperatorReadsAndSteersTheFleetIT {
                                 cloud.jengu.dbo.tenant.TenantDeclarationModel.TYPE, ".json")
                         .fetch()) != null,
                 "a directory that does not exist read as one declaring nothing");
+    }
+
+    // ── and a tenant that failed halfway keeps saying the same thing ──
+
+    @Test
+    @Order(19)
+    @DisplayName("a tenant whose bring-up fails halfway says why, and says it the same way on "
+            + "every later pass rather than reporting the wreckage of the first")
+    @Proving(DboPromises.OPS_RUNTIME_SAYS_WHAT_IT_SERVES)
+    void aBringUpThatFailedHalfWaySaysWhyEveryTime() throws InterruptedException {
+        // Parseable, and unservable only once the tenant is being built: a
+        // zone is a name in a file, and nothing here serves one called this.
+        String halted = NAMES.tenant("halted");
+        dbo.declare(halted, """
+                {"code":"%s","face":"r4","zone":"%s","types":[
+                  {"name":"Observation","identity":"internal","handling":"operational"}]}"""
+                .formatted(halted, NAMES.value("nowhere")));
+        try {
+            String first = "";
+            long giveUp = System.nanoTime() + Duration.ofMinutes(3).toNanos();
+            while (!first.contains("zone") && System.nanoTime() < giveUp) {
+                Thread.sleep(1000);
+                first = String.valueOf(rowFor(halted).get("why"));
+            }
+            assertTrue(first.contains("zone"), "the node does not say why: " + first);
+            // Several of the node's own passes, each of which retries it.
+            Thread.sleep(8000);
+            String later = String.valueOf(rowFor(halted).get("why"));
+            Proves.that(DboPromises.OPS_RUNTIME_SAYS_WHAT_IT_SERVES,
+                    later.equals(first) && "failed".equals(rowFor(halted).get("state")),
+                    "a retry met its own leftovers instead of the reason: " + first + " / "
+                            + later);
+        } finally {
+            dbo.retract(halted);
+        }
+    }
+
+    // ── configuration is handed to a tenant through its own door ──
+
+    private static final String BENCHES = "urn:benches";
+    private static final String ORGS = "urn:orgs";
+    private String configured;
+    private String loader;
+    private String vocabulary;
+
+    @Test
+    @Order(20)
+    @DisplayName("a declared vocabulary is applied as one pass and answers in its native form, "
+            + "and the same declaration again writes nothing, however its keys are ordered")
+    @Proving({DboPromises.TEN_A_DECLARED_SET_IS_APPLIED_AS_ONE_PASS, DboPromises.TERM_NATIVE_FORM,
+            DboPromises.TERM_EVERY_TENANT_ANSWERS, DboPromises.PROC_CONFIG_APPLIES_AS_A_SWEEP})
+    void aDeclaredVocabularyIsAppliedAsOnePass() {
+        configured = NAMES.tenant("configured");
+        vocabulary = NAMES.canonical("CodeSystem/declared");
+        dbo.declare(configured, """
+                {"code":"%s","face":"r4","audit":{"level":"none"},"types":[
+                  {"name":"CodeSystem","identity":"canonical","handling":"operational"},
+                  {"name":"ValueSet","identity":"canonical","handling":"operational"},
+                  {"name":"Device","identity":"identifier","systems":["%s"],
+                   "handling":"projected-config"},
+                  {"name":"ParticipantDeclaration","identity":"identifier",
+                   "systems":["urn:participants"],"handling":"operational","definition":"none"},
+                  {"name":"Organization","identity":"identifier","systems":["%s"],
+                   "handling":"operational"}]}""".formatted(configured, BENCHES, ORGS));
+        assertTrue(dbo.until(configured, true, Duration.ofMinutes(10)), "not configured");
+        loader = NAMES.value("loader");
+        tenants.authority(configured).orElseThrow().ensureClient(loader, "loader-secret",
+                List.of(cloud.jengu.dbo.auth.Scopes.CONFIGURATION));
+
+        String once = hand("{\"correlation\":\"commit:one\",\"declarations\":["
+                + codeSystem("1", "Alpha") + "]}");
+        Proves.that(DboPromises.TEN_A_DECLARED_SET_IS_APPLIED_AS_ONE_PASS,
+                once.contains("\"applied\":1"), "the declared set was not applied: " + once);
+        Proves.that(DboPromises.TERM_EVERY_TENANT_ANSWERS,
+                configuredGet("/CodeSystem/$lookup?system=" + encode(vocabulary) + "&code=a")
+                        .contains("Alpha"), "the tenant does not answer from what it took");
+        Proves.that(DboPromises.TERM_NATIVE_FORM,
+                configuredGet("/CodeSystem?url=" + encode(vocabulary)).contains("not-present"),
+                "the code system is not served in its native form");
+
+        String draft = hand("{\"declarations\":[" + valueSet("draft") + "]}");
+        assertTrue(draft.contains("\"applied\":1"), draft);
+        long before = versionOf("ValueSet", vocabulary + "/vs");
+        String again = hand("{\"declarations\":[" + valueSet("draft") + "]}");
+        Proves.that(DboPromises.PROC_CONFIG_APPLIES_AS_A_SWEEP,
+                again.contains("\"unchanged\":1") && again.contains("\"applied\":0")
+                        && before == versionOf("ValueSet", vocabulary + "/vs"),
+                "the same declaration again wrote something: " + again);
+        assertTrue(hand("{\"declarations\":[" + valueSet("active") + "]}")
+                .contains("\"applied\":1"), "a changed declaration did not land");
+        String reordered = hand("{\"declarations\":[{\"type\":\"ValueSet\","
+                + "\"name\":\"terminology/declared-vs.json\",\"payload\":{\"status\":\"active\","
+                + "\"compose\":{\"include\":[{\"system\":\"" + vocabulary + "\"}]},"
+                + "\"version\":\"1\",\"url\":\"" + vocabulary + "/vs\","
+                + "\"resourceType\":\"ValueSet\"}}]}");
+        Proves.that(DboPromises.TEN_A_DECLARED_SET_IS_APPLIED_AS_ONE_PASS,
+                reordered.contains("\"unchanged\":1"),
+                "a reordered declaration was taken for a different one: " + reordered);
+        String corrected = hand("{\"declarations\":[" + codeSystem("1", "Alpha corrected")
+                + "]}");
+        Proves.that(DboPromises.TERM_NATIVE_FORM,
+                corrected.contains("\"applied\":1")
+                        && configuredGet("/CodeSystem/$lookup?system=" + encode(vocabulary)
+                        + "&code=a").contains("Alpha corrected"),
+                "a correction without a version bump did not land: " + corrected);
+    }
+
+    @Test
+    @Order(21)
+    @DisplayName("a read the source says it agreed with is a read, and only a complete read "
+            + "may withdraw what it no longer names")
+    @Proving({DboPromises.PROC_CONFIG_READ_FROM_A_SOURCE,
+            DboPromises.PROC_CONFIG_WITHDRAWAL_IS_DECLARED})
+    void aCompleteReadMayWithdraw() {
+        hand("{\"marker\":\"commit:settled\",\"declarations\":[" + valueSet("active") + "]}");
+        Proves.that(DboPromises.PROC_CONFIG_READ_FROM_A_SOURCE,
+                hand("{\"marker\":\"commit:settled\",\"declarations\":[" + valueSet("active")
+                        + "]}").contains("\"read\":0"),
+                "a read the scope already agreed with was applied again");
+        assertTrue(hand("{\"marker\":\"commit:has-bench\",\"complete\":true,"
+                + "\"declarations\":[" + bench("bench-7") + "]}").contains("\"applied\":1"));
+        Proves.that(DboPromises.PROC_CONFIG_WITHDRAWAL_IS_DECLARED,
+                hand("{\"marker\":\"commit:bench-gone\",\"complete\":true,"
+                        + "\"declarations\":[" + bench("bench-8") + "]}")
+                        .contains("\"withdrawn\":1"),
+                "a complete read did not withdraw what it no longer names");
+        HttpResponse<String> unmarked = handResponse("{\"complete\":true,\"declarations\":["
+                + valueSet("active") + "]}");
+        Proves.that(DboPromises.PROC_CONFIG_WITHDRAWAL_IS_DECLARED,
+                unmarked.statusCode() == 400 && unmarked.body().contains("marker"),
+                "completeness without a read it is about was taken: " + unmarked.body());
+    }
+
+    @Test
+    @Order(22)
+    @DisplayName("the answer carries the pass's cards, a refusal says what this tenant does "
+            + "serve, and what is advertised is what is served")
+    @Proving(DboPromises.TEN_A_DECLARED_SET_IS_APPLIED_AS_ONE_PASS)
+    void theAnswerCarriesThePass() {
+        String broken = hand("{\"declarations\":[{\"type\":\"ValueSet\","
+                + "\"name\":\"zone/vocab/broken-status.json\",\"payload\":{"
+                + "\"resourceType\":\"ValueSet\",\"url\":\"" + vocabulary
+                + "/vs-broken\",\"status\":\"unicorn\"}}]}");
+        Proves.that(DboPromises.TEN_A_DECLARED_SET_IS_APPLIED_AS_ONE_PASS,
+                broken.contains("\"skipped\":1") && broken.contains("broken-status.json")
+                        && broken.contains("\"run\""),
+                "the answer does not carry the pass's card: " + broken);
+        String clean = hand("{\"declarations\":[" + codeSystem("2", "Beta") + "]}");
+        assertTrue(clean.contains("\"skipped\":0") && clean.contains("\"cards\":[]"), clean);
+        String refused = configuredGet("/ActivityDefinition");
+        java.util.regex.Matcher serves = java.util.regex.Pattern
+                .compile("this tenant serves (\\d+) resource types").matcher(refused);
+        Proves.that(DboPromises.TEN_A_DECLARED_SET_IS_APPLIED_AS_ONE_PASS,
+                refused.contains("ActivityDefinition is not one of them") && serves.find()
+                        && Integer.parseInt(serves.group(1)) >= 3 && refused.contains("/metadata"),
+                "a refusal does not say what the tenant serves: " + refused);
+        String metadata = configuredGet("/metadata");
+        assertTrue(metadata.contains("\"type\":\"Device\"")
+                && !metadata.contains("\"type\":\"ActivityDefinition\""), metadata);
+    }
+
+    @Test
+    @Order(23)
+    @DisplayName("a declaration naming another by what it is called is composed after it, and "
+            + "one naming nobody is a card naming who")
+    @Proving(DboPromises.TEN_A_DECLARATION_NAMES_ITS_REFERENT)
+    void aDeclarationNamesItsReferent() {
+        String applied = hand("{\"declarations\":[" + org("ward", "department") + ","
+                + org("department", "root") + "," + org("root", null) + "]}");
+        assertTrue(applied.contains("\"applied\":3") && applied.contains("\"cards\":[]"),
+                applied);
+        String department = configuredGet("/Organization?identifier="
+                + encode(ORGS + "|department"));
+        String parent = department.replaceAll(
+                "(?s).*\"partOf\":\\{\"reference\":\"(Organization/[^\"]+)\".*", "$1");
+        String named = configuredGet("/" + parent);
+        Proves.that(DboPromises.TEN_A_DECLARATION_NAMES_ITS_REFERENT,
+                parent.startsWith("Organization/") && !parent.contains("?")
+                        && named.contains("\"value\":\"root\""),
+                "the referrer does not point, by id, at the record it named: " + department
+                        + " -> " + named);
+        String orphan = hand("{\"declarations\":[" + org("orphan", "a-parent-nobody-declared")
+                + "]}");
+        Proves.that(DboPromises.TEN_A_DECLARATION_NAMES_ITS_REFERENT,
+                orphan.contains("\"skipped\":1") && orphan.contains("a-parent-nobody-declared"),
+                "a referent nobody declared was not refused by name: " + orphan);
+        String participant = hand("{\"declarations\":[{\"type\":\"ParticipantDeclaration\","
+                + "\"name\":\"main-lab\",\"payload\":{\"resourceType\":"
+                + "\"ParticipantDeclaration\",\"identifier\":[{\"system\":"
+                + "\"urn:participants\",\"value\":\"main-lab\"}],\"zone\":\"ee\"}}]}");
+        Proves.that(DboPromises.TEN_A_DECLARATION_NAMES_ITS_REFERENT,
+                participant.contains("\"applied\":1") && configuredGet(
+                        "/ParticipantDeclaration?identifier=" + encode("urn:participants|main-lab"))
+                        .contains("\"zone\":\"ee\""),
+                "a type with no definition could not be declared: " + participant);
+    }
+
+    @Test
+    @Order(24)
+    @DisplayName("a set handed over is one recorded pass, correlated with where it came from, "
+            + "and a credential without the grant hands over nothing")
+    @Proving(DboPromises.TEN_A_DECLARED_SET_IS_APPLIED_AS_ONE_PASS)
+    void aSetHandedOverIsOneRecordedPass() {
+        // A tenant of its own, so the pass read below is this hand-over's and
+        // not the last of the ones before it.
+        String handed = NAMES.tenant("handed");
+        dbo.declare(handed, """
+                {"code":"%s","face":"r4","audit":{"level":"none"},"types":[
+                  {"name":"ValueSet","identity":"canonical","handling":"operational"}]}"""
+                .formatted(handed));
+        assertTrue(dbo.until(handed, true, Duration.ofMinutes(10)), "not served");
+        tenants.authority(handed).orElseThrow().ensureClient(loader, "loader-secret",
+                List.of(cloud.jengu.dbo.auth.Scopes.CONFIGURATION));
+        StringBuilder five = new StringBuilder();
+        for (int i = 0; i < 5; i++) {
+            five.append("{\"type\":\"ValueSet\",\"name\":\"value-sets/vs-").append(i)
+                    .append(".json\",\"payload\":{\"resourceType\":\"ValueSet\","
+                            + "\"status\":\"active\",\"url\":\"")
+                    .append(NAMES.canonical("ValueSet/handed-" + i)).append("\"}},");
+        }
+        HttpResponse<String> handedOver = dbo.send(HttpRequest.newBuilder(
+                        URI.create(dbo.at(handed) + "/configuration"))
+                .POST(HttpRequest.BodyPublishers.ofString("{\"correlation\":\"commit:abc123\","
+                        + "\"declarations\":[" + five + "{\"type\":\"ValueSet\","
+                        + "\"name\":\"value-sets/broken.json\",\"payload\":{\"resourceType\":"
+                        + "\"Nonesuch\"}}]}")), tokenOf(handed, loader, "loader-secret"));
+        String answered = handedOver.body();
+        var pass = new Runs(tenants.store(handed).orElseThrow())
+                .byId(dbo.says(handedOver).one("run").orElseThrow());
+        Proves.that(DboPromises.TEN_A_DECLARED_SET_IS_APPLIED_AS_ONE_PASS,
+                answered.contains("\"applied\":5") && answered.contains("\"skipped\":1")
+                        && pass.isPresent() && "commit:abc123".equals(pass.get().correlated().orElse(null))
+                        && pass.get().needsAPerson(),
+                "the set was not one recorded, correlated pass: " + answered + " pass="
+                        + pass.map(run -> run.correlated() + " needsAPerson="
+                        + run.needsAPerson()).orElse("absent"));
+        String writer = NAMES.value("writer-not-loader");
+        tenants.authority(handed).orElseThrow().ensureClient(writer, "writer-secret",
+                List.of("system/*.write"));
+        try {
+            Proves.that(DboPromises.TEN_A_DECLARED_SET_IS_APPLIED_AS_ONE_PASS,
+                    dbo.send(HttpRequest.newBuilder(URI.create(dbo.at(handed) + "/configuration"))
+                            .POST(HttpRequest.BodyPublishers.ofString("{\"declarations\":[]}")),
+                            tokenOf(handed, writer, "writer-secret")).statusCode() == 403,
+                    "a credential without the grant handed configuration over");
+        } finally {
+            dbo.retract(handed);
+        }
+    }
+
+    @Test
+    @Order(25)
+    @DisplayName("a change can be asked about before it is made: a rebuild, a cold change, "
+            + "nothing at all and a new tenant are each said, and asking leaves no trace")
+    @Proving(DboPromises.TEN_A_CHANGE_CAN_BE_CLASSIFIED_WITHOUT_APPLYING)
+    void aChangeCanBeAskedAboutBeforeItIsMade() throws InterruptedException {
+        String asked = NAMES.tenant("asked-about");
+        dbo.declare(asked, previewed(asked, "r4", "Observation"));
+        try {
+            assertTrue(dbo.until(asked, true, Duration.ofMinutes(10)), "not served");
+            String operator = NAMES.value("an-operator");
+            tenants.authority(MANAGEMENT).orElseThrow().ensureClient(operator, "operator-secret",
+                    List.of(cloud.jengu.dbo.auth.Scopes.CONFIGURATION));
+            String bearer = managementToken(operator, "operator-secret");
+
+            String rewire = preview(bearer, previewed(asked, "r4", "Observation", "Patient"));
+            Proves.that(DboPromises.TEN_A_CHANGE_CAN_BE_CLASSIFIED_WITHOUT_APPLYING,
+                    rewire.contains("\"kind\":\"rewire\"") && rewire.contains("types")
+                            && rewire.contains("\"applied\":0")
+                            && !dbo.capability(asked).serves("Patient"),
+                    "adding a type was not said as a rebuild, or was built: " + rewire);
+            String cold = preview(bearer, previewed(asked, "r5", "Observation"));
+            Proves.that(DboPromises.TEN_A_CHANGE_CAN_BE_CLASSIFIED_WITHOUT_APPLYING,
+                    cold.contains("\"kind\":\"cold\"") && cold.contains("face")
+                            && cold.contains("retracted"),
+                    "a cold change was not said by name: " + cold);
+            Proves.that(DboPromises.TEN_A_CHANGE_CAN_BE_CLASSIFIED_WITHOUT_APPLYING,
+                    preview(bearer, previewed(asked, "r4", "Observation"))
+                            .contains("\"kind\":\"unchanged\""),
+                    "no change was not said as none");
+            String fresh = NAMES.tenant("never-declared");
+            Proves.that(DboPromises.TEN_A_CHANGE_CAN_BE_CLASSIFIED_WITHOUT_APPLYING,
+                    preview(bearer, previewed(fresh, "r4", "Observation"))
+                            .contains("\"kind\":\"new\"") && !dbo.serving().contains(fresh),
+                    "a new tenant was not said as new, or was opened");
+            HttpResponse<String> misspelt = dbo.send(HttpRequest.newBuilder(URI.create(
+                            dbo.at(MANAGEMENT) + "/configuration/preveiw"))
+                    .header("Content-Type", "application/json")
+                    .POST(HttpRequest.BodyPublishers.ofString(proposal(
+                            previewed(asked, "r4", "Observation", "Encounter")))), bearer);
+            Proves.that(DboPromises.TEN_A_CHANGE_CAN_BE_CLASSIFIED_WITHOUT_APPLYING,
+                    misspelt.statusCode() == 404 && !dbo.capability(asked).serves("Encounter"),
+                    "a near miss of the preview applied the change");
+            Proves.that(DboPromises.TEN_A_CHANGE_CAN_BE_CLASSIFIED_WITHOUT_APPLYING,
+                    "".equals(String.valueOf(rowFor(asked).get("declaredDifferently"))),
+                    "asking left a trace the sweep took for a redeclaration: " + rowFor(asked));
+        } finally {
+            dbo.retract(asked);
+        }
+    }
+
+    @org.junit.jupiter.api.AfterAll
+    void theConfiguredTenantIsWithdrawn() {
+        if (configured != null) {
+            dbo.retract(configured);
+        }
+    }
+
+    private String hand(String body) {
+        HttpResponse<String> answered = handResponse(body);
+        assertEquals(200, answered.statusCode(), answered.body());
+        return answered.body();
+    }
+
+    private HttpResponse<String> handResponse(String body) {
+        return dbo.send(HttpRequest.newBuilder(URI.create(dbo.at(configured) + "/configuration"))
+                .POST(HttpRequest.BodyPublishers.ofString(body)),
+                tokenOf(configured, loader, "loader-secret"));
+    }
+
+    private String configuredGet(String path) {
+        return dbo.get(dbo.at(configured) + "/fhir" + path, dbo.token(configured)).body();
+    }
+
+    private long versionOf(String type, String url) {
+        return tenants.store(configured).orElseThrow().getByIdentifier(type, List.of(
+                new cloud.jengu.dbo.core.api.Identifier(
+                        cloud.jengu.dbo.core.api.Identifier.CANONICAL_SYSTEM, url)))
+                .get(0).versionId();
+    }
+
+    private String codeSystem(String version, String display) {
+        return ("{\"type\":\"CodeSystem\",\"name\":\"terminology/declared.json\",\"payload\":"
+                + "{\"resourceType\":\"CodeSystem\",\"url\":\"%s\",\"version\":\"%s\","
+                + "\"status\":\"active\",\"content\":\"complete\",\"concept\":["
+                + "{\"code\":\"a\",\"display\":\"%s\"},{\"code\":\"b\",\"display\":\"Beta\"}]}}")
+                .formatted(vocabulary, version, display);
+    }
+
+    private String valueSet(String status) {
+        return ("{\"type\":\"ValueSet\",\"name\":\"terminology/declared-vs.json\",\"payload\":"
+                + "{\"resourceType\":\"ValueSet\",\"url\":\"%s/vs\",\"version\":\"1\","
+                + "\"status\":\"%s\",\"compose\":{\"include\":[{\"system\":\"%s\"}]}}}")
+                .formatted(vocabulary, status, vocabulary);
+    }
+
+    private static String bench(String code) {
+        return ("{\"type\":\"Device\",\"name\":\"devices/%s.json\",\"payload\":"
+                + "{\"resourceType\":\"Device\",\"status\":\"active\",\"identifier\":"
+                + "[{\"system\":\"%s\",\"value\":\"%s\"}]}}").formatted(code, BENCHES, code);
+    }
+
+    private static String org(String code, String parent) {
+        return ("{\"type\":\"Organization\",\"name\":\"%s\",\"payload\":{\"resourceType\":"
+                + "\"Organization\",\"identifier\":[{\"system\":\"%s\",\"value\":\"%s\"}],"
+                + "\"name\":\"%s\"%s}}").formatted(code, ORGS, code, code,
+                parent == null ? "" : ",\"partOf\":{\"reference\":\"Organization?identifier="
+                        + ORGS + "|" + parent + "\"}");
+    }
+
+    private static String previewed(String code, String face, String... types) {
+        StringBuilder declared = new StringBuilder();
+        for (String type : types) {
+            declared.append(declared.isEmpty() ? "" : ",").append("{\"name\":\"").append(type)
+                    .append("\",\"identity\":\"internal\",\"handling\":\"operational\"}");
+        }
+        return "{\"code\":\"" + code + "\",\"face\":\"" + face + "\",\"pdi\":false,"
+                + "\"audit\":{\"level\":\"none\"},\"types\":[" + declared + "]}";
+    }
+
+    private static String proposal(String spec) {
+        return "{\"declarations\":[{\"type\":\"TenantDeclaration\",\"name\":\"proposed\","
+                + "\"payload\":" + spec + "}]}";
+    }
+
+    private String preview(String bearer, String spec) {
+        HttpResponse<String> answered = dbo.send(HttpRequest.newBuilder(URI.create(
+                        dbo.at(MANAGEMENT) + "/configuration/preview"))
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(proposal(spec))), bearer);
+        assertEquals(200, answered.statusCode(), answered.body());
+        return answered.body();
+    }
+
+    private String tokenOf(String tenant, String client, String secret) {
+        HttpResponse<String> issued = dbo.send(HttpRequest.newBuilder(
+                        URI.create(dbo.at(tenant) + "/oidc/token"))
+                .header("Content-Type", "application/x-www-form-urlencoded")
+                .POST(HttpRequest.BodyPublishers.ofString("grant_type=client_credentials"
+                        + "&client_id=" + client + "&client_secret=" + secret)), null);
+        return dbo.says(issued).one("access_token").orElseThrow(
+                () -> new AssertionError("no token for " + client + ": " + issued.body()));
+    }
+
+    private static String encode(String value) {
+        return java.net.URLEncoder.encode(value, StandardCharsets.UTF_8);
     }
 
     // ── helpers ───────────────────────────────────────────────────────────

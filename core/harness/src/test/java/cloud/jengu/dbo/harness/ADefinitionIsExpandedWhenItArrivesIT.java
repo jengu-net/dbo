@@ -40,6 +40,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * again. Both boots have to be this class's: on a shared runtime the second
  * one brings up nothing, so the count would be unchanged for a reason that
  * has nothing to do with the claim.
+ *
+ * <p>What stays is the two legs that delete rows behind the store and ask it
+ * to rebuild them — tampering, which no shared world may be put through. The
+ * rest is walked in Rowling Land, in the standard-moves story.
  */
 @Tag("integration")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -95,207 +99,6 @@ class ADefinitionIsExpandedWhenItArrivesIT {
     }
 
     @Test
-    @DisplayName("the version arrives expanded: an element per row, located by a jsonpath, "
-            + "and a second bring-up expands nothing")
-    @Proving(DboPromises.VER_A_DEFINITION_IS_EXPANDED_WHEN_IT_ARRIVES)
-    void theVersionArrivesExpanded() throws Exception {
-        assertTrue(elements() > 10_000,
-                "a version of seven hundred structures came to " + elements() + " elements");
-
-        List<String> steps = query(
-                "SELECT unnest(steps) FROM definitions.definition_element"
-                + " WHERE canonical = ? AND element_id = 'Patient.contact.name'", PATIENT);
-        assertEquals(List.of("$.\"name\"[*]"), steps,
-                "a contact's name is not located inside a contact");
-
-        List<String> parent = query(
-                "SELECT parent_id FROM definitions.definition_element"
-                + " WHERE canonical = ? AND element_id = 'Patient.contact.name'", PATIENT);
-        assertEquals(List.of("Patient.contact"), parent,
-                "a contact's name is looked for in the document rather than in its contact");
-
-        List<String> gender = query(
-                "SELECT binding_strength || ' ' || binding_valueset"
-                + " FROM definitions.definition_element"
-                + " WHERE canonical = ? AND element_id = 'Patient.gender'", PATIENT);
-        assertEquals(1, gender.size(), "the gender element is not held");
-        assertTrue(gender.get(0).startsWith("required ")
-                        && gender.get(0).contains("administrative-gender"),
-                "what a coded element is bound to did not come with it: " + gender);
-
-        // Bringing up again reads. The definitions are where they were, so
-        // nothing is taken apart a second time — which is the difference
-        // between a cost paid once on arrival and one paid at every boot.
-        long before = elements();
-        manager.scanOnce();
-        assertEquals(before, elements(), "a second bring-up expanded the version again");
-    }
-
-    @Test
-    @DisplayName("an element nothing can locate is held as unenforceable, never as absent")
-    @Proving(DboPromises.VER_AN_ELEMENT_THAT_DOES_NOT_TRANSLATE_IS_REFUSED_BY_NAME)
-    void whatCannotBeLocatedSaysSo() throws Exception {
-        // R4's lipid profile slices its results by resolving each reference
-        // and reading the code of what it points at. That is a join, and no
-        // path reaches it — so the row is held saying exactly that, rather
-        // than being dropped into a checker that would then pass anything.
-        List<String> unenforceable = query(
-                "SELECT element_id || ' | ' || unenforceable FROM definitions.definition_element"
-                + " WHERE canonical = ? AND unenforceable IS NOT NULL ORDER BY ordinal",
-                "http://hl7.org/fhir/StructureDefinition/lipidprofile");
-        assertFalse(unenforceable.isEmpty(),
-                "the slices that follow a reference were dropped rather than held as "
-                        + "unenforceable, so nothing knows they are not being checked");
-        assertTrue(unenforceable.stream().allMatch(row -> row.contains("follows a reference")),
-                "something other than a followed reference cannot be located: " + unenforceable);
-        assertTrue(query("SELECT element_id FROM definitions.definition_element"
-                        + " WHERE canonical = ? AND unenforceable IS NOT NULL"
-                        + " AND cardinality(steps) > 0",
-                "http://hl7.org/fhir/StructureDefinition/lipidprofile").isEmpty(),
-                "an element that cannot be located is located anyway");
-
-        // And it is a small, stated part of the whole rather than a habit.
-        assertTrue(unlocatable() < 20,
-                "the version holds " + unlocatable() + " elements nothing can check");
-    }
-
-    @Test
-    @DisplayName("a profile that states only what it changes is expanded whole, with what it "
-            + "inherits and not only what it mentions")
-    @Proving(DboPromises.VER_A_DEFINITION_IS_EXPANDED_WHEN_IT_ARRIVES)
-    void aProfileThatStatesOnlyItsChangesIsExpandedWhole() throws Exception {
-        String canonical = "https://ee.ee/StructureDefinition/nimeline-patsient";
-        manager.runtime(CLINIC).orElseThrow().store().create("""
-                {"resourceType":"StructureDefinition",
-                 "url":"%s","name":"NimelinePatsient","status":"active","kind":"resource",
-                 "abstract":false,"type":"Patient",
-                 "baseDefinition":"http://hl7.org/fhir/StructureDefinition/Patient",
-                 "derivation":"constraint",
-                 "differential":{"element":[
-                   {"id":"Patient.name","path":"Patient.name","min":1}]}}"""
-                .formatted(canonical));
-        manager.runtime(CLINIC).orElseThrow().store().shapesChanged();
-
-        // What it says: a name is now required.
-        assertEquals(List.of("1"), queryOf(CLINIC,
-                "SELECT min_occurs::text FROM definitions.definition_element"
-                + " WHERE canonical = ? AND element_id = 'Patient.name'", canonical),
-                "the profile's own change is not held");
-
-        // What it inherits and never mentions: the rest of Patient, located
-        // and bound exactly as the base states it. A differential names four
-        // lines; a checker reading only those would enforce four lines and
-        // pass everything else in silence.
-        List<String> birthDate = queryOf(CLINIC, 
-                "SELECT array_to_string(steps, '|') FROM definitions.definition_element"
-                + " WHERE canonical = ? AND element_id = 'Patient.birthDate'", canonical);
-        assertEquals(List.of("$.\"birthDate\"[*]"), birthDate,
-                "an element the profile never mentions was not inherited");
-        // Everything, in fact: the profile's elements are the version's own
-        // Patient elements, because that is what deriving from it means. The
-        // root holds that version expanded, so the two sets are comparable
-        // and this says "whole" without a number nobody can check.
-        assertEquals(
-                query("SELECT element_id FROM definitions.definition_element"
-                        + " WHERE canonical = ? ORDER BY element_id", PATIENT),
-                queryOf(CLINIC, "SELECT element_id FROM definitions.definition_element"
-                        + " WHERE canonical = ? ORDER BY element_id", canonical),
-                "a profile derived from Patient does not hold Patient's elements");
-
-        List<String> gender = queryOf(CLINIC, 
-                "SELECT binding_strength FROM definitions.definition_element"
-                + " WHERE canonical = ? AND element_id = 'Patient.gender'", canonical);
-        assertEquals(List.of("required"), gender,
-                "an inherited binding did not come with the element that carries it");
-    }
-
-    @Test
-    @DisplayName("an element the profile does not declare is found, and one inside a datatype "
-            + "nothing constrains is not accused")
-    @Proving(DboPromises.VAL_TIER_ONE_IS_ANSWERED_IN_THE_DATABASE)
-    void anUndefinedElementIsFoundWhereTheRowsReach() throws Exception {
-        // On the ROOT, which is where the version's own Patient is expanded.
-        //
-        // The gap this closes. Every other check asks whether what is here is
-        // allowed; the walk reaches a key by an element's steps, so a key
-        // nothing names is never reached, every check sees a clean document,
-        // and a typo is stored as though somebody meant it. The toolchain
-        // refuses these from the PARSER, and until this existed that refusal
-        // was what a tenant gave up by declaring verdict: database.
-        assertEquals(List.of("Patient.favouriteColour"), query(
-                "SELECT path FROM dbo.unknown_issues(?::jsonb, ?) ORDER BY path",
-                "{\"resourceType\":\"Patient\",\"favouriteColour\":\"blue\"}", PATIENT),
-                "an element no row declares was not found");
-
-        // And the silence that makes it safe. A datatype's insides are only in
-        // the rows where a profile constrains them, so an element with no
-        // children rows describes nothing — accusing its keys would refuse
-        // every unconstrained Identifier, Coding and HumanName in the corpus.
-        assertEquals(List.of(), query(
-                "SELECT path FROM dbo.unknown_issues(?::jsonb, ?) ORDER BY path",
-                "{\"resourceType\":\"Patient\",\"identifier\":[{\"system\":\"urn:x\","
-                        + "\"value\":\"1\",\"period\":{\"start\":\"2026\"}}]}", PATIENT),
-                "a key inside a datatype the profile does not constrain was refused, which "
-                        + "would refuse most correct documents");
-
-        // What every resource carries and no element declares, and a
-        // primitive's extensions, which ride beside it under an underscore.
-        assertEquals(List.of(), query(
-                "SELECT path FROM dbo.unknown_issues(?::jsonb, ?) ORDER BY path",
-                "{\"resourceType\":\"Patient\",\"birthDate\":\"1980-01-01\","
-                        + "\"_birthDate\":{\"id\":\"x\"}}", PATIENT),
-                "resourceType or a primitive's own extension was reported as undeclared");
-    }
-
-    @Test
-    @DisplayName("the snapshot a differential was expanded from is kept, so nothing generates "
-            + "it a second time")
-    @Proving(DboPromises.TEN_A_TENANT_COMES_UP_FROM_THE_FACE_IMAGE)
-    void theSnapshotIsKeptBesideTheRowsDerivedFromIt() throws Exception {
-        String canonical = "https://ee.ee/StructureDefinition/hoitud-patsient";
-        manager.runtime(CLINIC).orElseThrow().store().create("""
-                {"resourceType":"StructureDefinition",
-                 "url":"%s","name":"HoitudPatsient","status":"active","kind":"resource",
-                 "abstract":false,"type":"Patient",
-                 "baseDefinition":"http://hl7.org/fhir/StructureDefinition/Patient",
-                 "derivation":"constraint",
-                 "differential":{"element":[
-                   {"id":"Patient.birthDate","path":"Patient.birthDate","min":1}]}}"""
-                .formatted(canonical));
-        manager.runtime(CLINIC).orElseThrow().store().shapesChanged();
-
-        // The record holds a differential and no snapshot — that is what was
-        // written — and the expansion had to make one to know what the
-        // profile inherits. Until this, what was made was used once and
-        // dropped, so every process that served this profile made it again.
-        assertEquals(List.of("1"), queryOf(CLINIC,
-                "SELECT count(*)::text FROM definitions.definition_snapshot"
-                + " WHERE canonical = ?", canonical),
-                "the snapshot the expansion generated was not kept, so the next process "
-                        + "that serves this profile generates it again");
-
-        // And what is kept is a SNAPSHOT: the element the profile never
-        // mentions is in it. A differential stored under this name would
-        // carry one element and look like a saving.
-        List<String> holdsInherited = queryOf(CLINIC,
-                "SELECT (position('\"Patient.gender\"' in"
-                + " convert_from(snapshot, 'UTF8')) > 0)::text"
-                + " FROM definitions.definition_snapshot WHERE canonical = ?", canonical);
-        assertEquals(List.of("true"), holdsInherited,
-                "what was kept does not carry the elements the profile inherits, so it is "
-                        + "the differential rather than the snapshot made from it");
-
-        // It travels with the face for the same reason the rows do: it is
-        // derived from the definitions and lives in their schema, which is
-        // what an image is cut from.
-        assertEquals(List.of("definitions"), queryOf(CLINIC,
-                "SELECT table_schema FROM information_schema.tables"
-                + " WHERE table_name = 'definition_snapshot'"),
-                "the kept snapshot is not in the schema an image is cut from, so a tenant "
-                        + "brought up from an image would generate it after all");
-    }
-
-    @Test
     @DisplayName("and what is kept is decided by the definitions, so a second bring-up of the "
             + "same face keeps the same set")
     @Proving(DboPromises.TEN_A_TENANT_COMES_UP_FROM_THE_FACE_IMAGE)
@@ -339,25 +142,6 @@ class ADefinitionIsExpandedWhenItArrivesIT {
     }
 
     @Test
-    @DisplayName("the version's own differential profiles are expanded too, from the same "
-            + "snapshot their face makes for them")
-    @Proving(DboPromises.VER_A_DEFINITION_IS_EXPANDED_WHEN_IT_ARRIVES)
-    void theVersionsOwnDifferentialsAreExpandedToo() throws Exception {
-        // R4 publishes two profiles with no snapshot of their own, both
-        // constraining Composition. They are the carried case of exactly what
-        // a tenant authors, and until the face snapshotted them they were
-        // counted and skipped.
-        String canonical = "http://hl7.org/fhir/StructureDefinition/example-composition";
-        assertTrue(Long.parseLong(query("SELECT count(*)::text FROM definitions.definition_element"
-                        + " WHERE canonical = ?", canonical).get(0)) > 20,
-                "a carried differential profile is still not expanded");
-        assertEquals(List.of("$.\"status\"[*]"), query(
-                "SELECT array_to_string(steps, '|') FROM definitions.definition_element"
-                + " WHERE canonical = ? AND element_id = 'Composition.status'", canonical),
-                "an element it inherits from Composition is not held");
-    }
-
-    @Test
     @DisplayName("the rows are rebuilt from the records, so they are a projection and not "
             + "a second copy of the truth")
     @Proving(DboPromises.CORE_PAYLOAD_IS_TRUTH)
@@ -385,38 +169,6 @@ class ADefinitionIsExpandedWhenItArrivesIT {
                 "SELECT element_id || ' ' || array_to_string(steps, '|') || ' ' || min_occurs"
                 + " FROM definitions.definition_element WHERE canonical = ? ORDER BY ordinal", PATIENT),
                 "the rebuilt expansion is not the one that was there");
-    }
-
-    @Test
-    @DisplayName("the rules a definition carries are held as rows, compiled where they can be "
-            + "and named where they cannot")
-    @Proving({DboPromises.VAL_AN_INVARIANT_IS_COMPILED_WHEN_IT_ARRIVES,
-            DboPromises.VAL_AN_INVARIANT_THAT_DOES_NOT_TRANSLATE_IS_REFUSED_BY_NAME})
-    void theRulesAreHeldAsRows() throws Exception {
-        List<String> patient = query(
-                "SELECT key || ' ' || severity || ' ' || coalesce(path, '-')"
-                + " FROM definitions.definition_invariant WHERE canonical = ? AND element_id = 'Patient'"
-                + " ORDER BY key", PATIENT);
-        assertTrue(patient.size() > 4, "Patient's own rules are not held: " + patient);
-        assertTrue(patient.stream().anyMatch(rule -> rule.startsWith("dom-2 error !exists(")),
-                "the rule about contained resources did not compile: " + patient);
-        assertTrue(patient.stream().anyMatch(rule -> rule.contains("warning")),
-                "a warning-severity rule was dropped: " + patient);
-
-        // Held whole: the version's rules are thousands, and what cannot be
-        // compiled is a row saying why rather than an absence.
-        long all = Long.parseLong(query(
-                "SELECT count(*)::text FROM definitions.definition_invariant").get(0));
-        long named = Long.parseLong(query("SELECT count(*)::text FROM definitions.definition_invariant"
-                + " WHERE unenforceable IS NOT NULL").get(0));
-        long compiled = Long.parseLong(query("SELECT count(*)::text FROM definitions.definition_invariant"
-                + " WHERE path IS NOT NULL").get(0));
-        assertTrue(all > 1000, "the version carries more rules than " + all);
-        assertEquals(all, named + compiled,
-                "a rule is neither compiled nor named, which is the silence this refuses");
-        assertTrue(query("SELECT key FROM definitions.definition_invariant"
-                + " WHERE unenforceable IS NOT NULL AND path IS NOT NULL").isEmpty(),
-                "a rule that could not be compiled carries a path anyway");
     }
 
     // ------------------------------------------------------------- reading

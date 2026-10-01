@@ -66,6 +66,9 @@ class TheClinicRecordsCareAndAccountsForItIT {
     @Autowired
     DboTenants tenants;
 
+    @Autowired
+    org.springframework.core.env.Environment environment;
+
     private ATenantsDoor clinic;
     private String liis;
 
@@ -748,6 +751,510 @@ class TheClinicRecordsCareAndAccountsForItIT {
             Thread.sleep(200);
         }
         return null;
+    }
+
+    // ── a clinic of its own records: what it declares, what it validates, how it searches ──
+
+    /** A clinic this story opens for the records it shapes itself. */
+    private String records;
+    private ATenantsDoor recordsDoor;
+
+    private static final String PARTICIPANTS = "urn:participant";
+
+    @Test
+    @Order(22)
+    @DisplayName("a declaration a clinic holds of its own is read back as written, found by "
+            + "what it is called, and leaves the clinic's other types as they were")
+    @Proving({DboPromises.CORE_PAYLOAD_IS_TRUTH, DboPromises.CORE_IDENTITY_KEYED_CONDITIONALS})
+    void aClinicHoldsItsOwnDeclaration() {
+        records = names.tenant("records");
+        dbo.declare(records, """
+                {"code":"%s","face":"r4","audit":{"level":"writes"},"types":[
+                  {"name":"ParticipantDeclaration","identity":"identifier",
+                   "systems":["%s"],"handling":"operational","definition":"none"},
+                  {"name":"StructureDefinition","identity":"canonical","handling":"operational"},
+                  {"name":"SearchParameter","identity":"canonical","handling":"operational"},
+                  {"name":"ValueSet","identity":"canonical","handling":"operational",
+                   "extractor":"database"},
+                  {"name":"CodeSystem","identity":"canonical","handling":"operational"},
+                  {"name":"Patient","identity":"internal","handling":"operational"},
+                  {"name":"Observation","identity":"internal","handling":"operational"}]}"""
+                .formatted(records, PARTICIPANTS));
+        assertTrue(dbo.until(records, true, Duration.ofMinutes(10)), "no records clinic");
+        recordsDoor = new ATenantsDoor(dbo, records);
+
+        String declaration = "{\"resourceType\":\"ParticipantDeclaration\",\"identifier\":"
+                + "[{\"system\":\"" + PARTICIPANTS + "\",\"value\":\"holds-its-own-lab\"}],"
+                + "\"zone\":\"ee\",\"repo\":\"https://git.test/cfg\"}";
+        HttpResponse<String> written = recordsDoor.post("/ParticipantDeclaration", declaration);
+        assertEquals(201, written.statusCode(), written.body());
+        String location = written.headers().firstValue("Location").orElseThrow();
+        String id = location.replaceAll(".*/ParticipantDeclaration/([^/]+).*", "$1");
+        Proves.that(DboPromises.CORE_PAYLOAD_IS_TRUTH,
+                recordsDoor.get("/ParticipantDeclaration/" + id).body().equals(declaration),
+                "a declaration with no definition did not read back byte for byte");
+        String found = recordsDoor.get("/ParticipantDeclaration?identifier="
+                + encoded(PARTICIPANTS + "|holds-its-own-lab")).body();
+        Proves.that(DboPromises.CORE_IDENTITY_KEYED_CONDITIONALS,
+                found.contains("fullUrl") && found.contains("holds-its-own-lab"),
+                "the declaration is not found by what it is called: " + found);
+        assertEquals(201, recordsDoor.post("/Patient",
+                "{\"resourceType\":\"Patient\",\"active\":true}").statusCode());
+        assertTrue(recordsDoor.post("/Patient",
+                        "{\"resourceType\":\"Patient\",\"active\":\"not-a-boolean\"}")
+                .statusCode() >= 400, "the clinic's other types stopped being validated");
+    }
+
+    @Test
+    @Order(23)
+    @DisplayName("a profile the clinic writes takes effect without a restart: a claim on one "
+            + "it does not hold is refused, and the differential still carries the whole base")
+    @Proving(DboPromises.VER_SPECIFIED_VALIDATION)
+    void aProfileTheClinicWritesTakesEffect() {
+        String profile = names.canonical("StructureDefinition/observed-on-somebody");
+        String without = """
+                {"resourceType":"Observation","status":"final","code":{"text":"pulse"},
+                 "meta":{"profile":["%s"]}}""".formatted(profile);
+        Proves.that(DboPromises.VER_SPECIFIED_VALIDATION,
+                recordsDoor.post("/Observation", without).statusCode() >= 400,
+                "a claim on a profile nobody holds was taken as satisfied");
+        assertEquals(201, recordsDoor.post("/StructureDefinition", """
+                {"resourceType":"StructureDefinition","url":"%s","name":"ObservedOnSomebody",
+                 "status":"active","kind":"resource","abstract":false,"type":"Observation",
+                 "baseDefinition":"http://hl7.org/fhir/StructureDefinition/Observation",
+                 "derivation":"constraint","differential":{"element":[
+                   {"id":"Observation.subject","path":"Observation.subject","min":1}]}}"""
+                .formatted(profile)).statusCode());
+        HttpResponse<String> refused = recordsDoor.post("/Observation", without);
+        assertEquals(422, refused.statusCode(), refused.body());
+        assertTrue(refused.body().contains("subject"), refused.body());
+        assertEquals(201, recordsDoor.post("/Observation", """
+                {"resourceType":"Observation","status":"final","code":{"text":"pulse"},
+                 "subject":{"reference":"Patient/anyone"},"meta":{"profile":["%s"]}}"""
+                .formatted(profile)).statusCode());
+        HttpResponse<String> noStatus = recordsDoor.post("/Observation", """
+                {"resourceType":"Observation","code":{"text":"pulse"},
+                 "subject":{"reference":"Patient/anyone"},"meta":{"profile":["%s"]}}"""
+                .formatted(profile));
+        Proves.that(DboPromises.VER_SPECIFIED_VALIDATION,
+                noStatus.statusCode() == 422 && noStatus.body().contains("status"),
+                "the differential was not snapshotted, so the base stopped applying: "
+                        + noStatus.body());
+    }
+
+    @Test
+    @Order(24)
+    @DisplayName("a type whose envelope is computed where the bytes are is searched by it, and "
+            + "a reindex happens there too")
+    @Proving(DboPromises.SRCH_THE_DATABASE_ENVELOPE_LOSES_NOTHING_BEFORE_IT_IS_USED)
+    void anEnvelopeComputedWhereTheBytesAre() throws java.sql.SQLException {
+        String url = names.canonical("ValueSet/declared");
+        assertEquals(201, recordsDoor.post("/ValueSet", """
+                {"resourceType":"ValueSet","url":"%s","version":"1","status":"active",
+                 "name":"Declared"}""".formatted(url)).statusCode());
+        Proves.that(DboPromises.SRCH_THE_DATABASE_ENVELOPE_LOSES_NOTHING_BEFORE_IT_IS_USED,
+                fullUrls(recordsDoor.get("/ValueSet?url=" + encoded(url)).body()) == 1
+                        && fullUrls(recordsDoor.get("/ValueSet?status=active&url="
+                        + encoded(url)).body()) == 1
+                        && fullUrls(recordsDoor.get("/ValueSet?status=draft&url="
+                        + encoded(url)).body()) == 0,
+                "a type with a database extractor is not searched by its envelope");
+
+        var store = tenants.store(records).orElseThrow();
+        String id = store.getByIdentifier("ValueSet", List.of(new cloud.jengu.dbo.core.api
+                .Identifier(cloud.jengu.dbo.core.api.Identifier.CANONICAL_SYSTEM, url)))
+                .get(0).id();
+        try (var c = java.sql.DriverManager.getConnection(tenantDatabase(records),
+                        environment.getRequiredProperty("dbo.admin.user"),
+                        environment.getRequiredProperty("dbo.admin.password"));
+                var ps = c.prepareStatement("UPDATE " + cloud.jengu.dbo.core.api.Domains.tables(
+                        cloud.jengu.dbo.core.api.Domains.DEFINITIONS)
+                        + "_data SET envelope = '{}'::jsonb WHERE id = ?::uuid")) {
+            ps.setString(1, id);
+            assertEquals(1, ps.executeUpdate(), "the envelope was not where it was looked for");
+        }
+        store.rebuildEnvelopes("ValueSet");
+        Proves.that(DboPromises.SRCH_THE_DATABASE_ENVELOPE_LOSES_NOTHING_BEFORE_IT_IS_USED,
+                fullUrls(recordsDoor.get("/ValueSet?url=" + encoded(url)).body()) == 1,
+                "a reindex did not rebuild the envelope where the bytes are");
+    }
+
+    // ── a clinic authors a search parameter of its own ──
+
+    private static final String MARRIED = """
+            {"resourceType":"Patient","name":[{"family":"Abielus"}],"maritalStatus":{"coding":[
+              {"system":"http://terminology.hl7.org/CodeSystem/v3-MaritalStatus","code":"M"}]}}""";
+    private static final String SINGLE = """
+            {"resourceType":"Patient","name":[{"family":"Vallaline"}],"maritalStatus":{"coding":[
+              {"system":"http://terminology.hl7.org/CodeSystem/v3-MaritalStatus","code":"S"}]}}""";
+
+    private String parameter(String slug, String code, String type, String expression) {
+        return """
+                {"resourceType":"SearchParameter","url":"%s","name":"%s","status":"active",
+                 "description":"A parameter the clinic authored.",
+                 "code":"%s","base":["Patient"],"type":"%s","expression":"%s"}"""
+                .formatted(names.canonical("SearchParameter/" + slug), slug, code, type,
+                        expression);
+    }
+
+    private String maritalParameter;
+
+    @Test
+    @Order(25)
+    @DisplayName("a parameter the clinic has not written does not exist, and one whose "
+            + "expression cannot be evaluated or compiled is refused on the write, by name")
+    @Proving({DboPromises.SRCH_CUSTOM_PARAMETERS,
+            DboPromises.SRCH_A_PARAMETER_IS_COMPILED_WHEN_IT_ARRIVES})
+    void anUnwrittenOrUnreadableParameterIsNot() {
+        assertEquals(201, recordsDoor.post("/Patient", MARRIED).statusCode());
+        assertEquals(201, recordsDoor.post("/Patient", SINGLE).statusCode());
+        HttpResponse<String> unknown = recordsDoor.get("/Patient?marital-status=M");
+        assertTrue(unknown.statusCode() == 400
+                && unknown.body().contains("unsupported search parameter"), unknown.body());
+        assertFalse(recordsDoor.get("/metadata").body().contains("marital-status"));
+
+        HttpResponse<String> unevaluable = recordsDoor.post("/SearchParameter",
+                parameter("marital-broken", "marital-status", "token", "Patient.maritalStatus[[["));
+        Proves.that(DboPromises.SRCH_CUSTOM_PARAMETERS,
+                unevaluable.statusCode() == 422 && unevaluable.body().contains("cannot be evaluated"),
+                "an expression that cannot be evaluated was taken: " + unevaluable.body());
+        HttpResponse<String> uncompiled = recordsDoor.post("/SearchParameter",
+                parameter("distinct-name", "distinct-name", "token",
+                        "Patient.name.given.isDistinct()"));
+        Proves.that(DboPromises.SRCH_A_PARAMETER_IS_COMPILED_WHEN_IT_ARRIVES,
+                uncompiled.statusCode() == 422 && uncompiled.body().contains("select")
+                        && (uncompiled.body().contains("isDistinct")
+                        || uncompiled.body().contains("Patient")),
+                "a parameter that will not compile was not refused by name: "
+                        + uncompiled.body());
+    }
+
+    @Test
+    @Order(26)
+    @DisplayName("what the clinic defines becomes searchable over its whole history, the "
+            + "statement says so, and the parameter is held as a compiled row")
+    @Proving({DboPromises.SRCH_CUSTOM_PARAMETERS, DboPromises.SRCH_HONEST_CAPABILITY,
+            DboPromises.SRCH_A_PARAMETER_IS_COMPILED_WHEN_IT_ARRIVES})
+    void whatTheClinicDefinesBecomesSearchable() throws Exception {
+        HttpResponse<String> written = recordsDoor.post("/SearchParameter",
+                parameter("marital-status", "marital-status", "token", "Patient.maritalStatus"));
+        assertEquals(201, written.statusCode(), written.body());
+        maritalParameter = dbo.says(written).one("id").orElseThrow();
+
+        HttpResponse<String> married = untilAnswered("/Patient?marital-status=M", 200);
+        Proves.that(DboPromises.SRCH_CUSTOM_PARAMETERS,
+                married.statusCode() == 200 && married.body().contains("Abielus")
+                        && !married.body().contains("Vallaline"),
+                "a parameter the clinic wrote did not reach the patients written before it: "
+                        + married.body());
+        Proves.that(DboPromises.SRCH_HONEST_CAPABILITY,
+                recordsDoor.get("/metadata").body().contains("marital-status"),
+                "the statement does not say the clinic can search by its own parameter");
+
+        String row = null;
+        try (var c = java.sql.DriverManager.getConnection(tenantDatabase(records),
+                        environment.getRequiredProperty("dbo.admin.user"),
+                        environment.getRequiredProperty("dbo.admin.password"));
+                var ps = c.prepareStatement("SELECT kind || ' ' || expression || ' ' || "
+                        + "coalesce(unenforceable, 'enforceable') || ' ' || paths::text "
+                        + "FROM definitions.definition_parameter "
+                        + "WHERE base = 'Patient' AND code = 'marital-status'");
+                var rs = ps.executeQuery()) {
+            if (rs.next()) {
+                row = rs.getString(1);
+            }
+        }
+        Proves.that(DboPromises.SRCH_A_PARAMETER_IS_COMPILED_WHEN_IT_ARRIVES,
+                row != null && row.startsWith("token Patient.maritalStatus enforceable")
+                        && !row.endsWith("[]"),
+                "the parameter is not held as an enforceable compiled row: " + row);
+    }
+
+    @Test
+    @Order(27)
+    @DisplayName("a date parameter the clinic writes is indexed in its database")
+    @Proving({DboPromises.SRCH_CUSTOM_PARAMETERS, DboPromises.SRCH_DECLARED_INDEXES})
+    void aDateParameterIsIndexed() throws Exception {
+        assertEquals(201, recordsDoor.post("/SearchParameter",
+                parameter("registered", "registered", "date", "Patient.birthDate")).statusCode());
+        var store = tenants.store(records).orElseThrow();
+        long giveUp = System.nanoTime() + Duration.ofMinutes(3).toNanos();
+        boolean declared = false;
+        while (!declared && System.nanoTime() < giveUp) {
+            declared = store.registrationOf("Patient").indexes().stream()
+                    .anyMatch(index -> index.path().equals("registered"));
+            if (!declared) {
+                Thread.sleep(500);
+            }
+        }
+        String index = store.registrationOf("Patient").domain() + "_patient_registered_ix";
+        boolean built;
+        try (var c = java.sql.DriverManager.getConnection(tenantDatabase(records),
+                        environment.getRequiredProperty("dbo.admin.user"),
+                        environment.getRequiredProperty("dbo.admin.password"));
+                var ps = c.prepareStatement("SELECT 1 FROM pg_indexes WHERE indexname = ?")) {
+            ps.setString(1, index);
+            try (var rs = ps.executeQuery()) {
+                built = rs.next();
+            }
+        }
+        Proves.that(DboPromises.SRCH_DECLARED_INDEXES, declared && built,
+                "a date parameter the clinic wrote is not indexed: declared=" + declared
+                        + " " + index + " built=" + built);
+    }
+
+    @Test
+    @Order(28)
+    @DisplayName("withdrawing the parameter puts the clinic back as it was, statement and all")
+    @Proving({DboPromises.SRCH_CUSTOM_PARAMETERS, DboPromises.SRCH_HONEST_CAPABILITY})
+    void withdrawingTheParameterPutsTheClinicBack() throws Exception {
+        assertTrue(recordsDoor.delete("/SearchParameter/" + maritalParameter).statusCode() < 300);
+        HttpResponse<String> gone = untilAnswered("/Patient?marital-status=M", 400);
+        Proves.that(DboPromises.SRCH_CUSTOM_PARAMETERS, gone.statusCode() == 400,
+                "a withdrawn parameter still answers: " + gone.body());
+        Proves.that(DboPromises.SRCH_HONEST_CAPABILITY,
+                !recordsDoor.get("/metadata").body().contains("marital-status"),
+                "the statement still offers a withdrawn parameter");
+    }
+
+    // ── and the clinic can be asked about its records from inside or across the wire ──
+
+    private static final String ASKED = "urn:asking:test";
+
+    @Test
+    @Order(29)
+    @DisplayName("asking from inside and across the wire count and walk the same records and "
+            + "the same work, and refuse alike what cannot be answered")
+    void bothBindingsAnswerTheSame() {
+        String mine = names.value("asked");
+        for (String state : List.of("final", "final", "preliminary")) {
+            assertEquals(201, recordsDoor.post("/Observation", """
+                    {"resourceType":"Observation","status":"%s","code":{"coding":[
+                      {"system":"%s","code":"%s"}]},"subject":{"display":"nobody"}}"""
+                    .formatted(state, ASKED, mine)).statusCode());
+        }
+        String process = names.prefix() + "-" + names.run() + ".weigh";
+        String step = process + ".scale";
+        String kase = names.value("case");
+        var runs = new cloud.jengu.dbo.work.Runs(tenants.store(records).orElseThrow(),
+                cloud.jengu.dbo.core.process.Steps.of(cloud.jengu.dbo.core.process.StepDeclaration
+                        .of(step, "1", cloud.jengu.dbo.work.WorkModel.DOMAIN)));
+        var weigher = new cloud.jengu.dbo.work.Executor("weigher", "1", "example",
+                cloud.jengu.dbo.work.Scope.BASELINE);
+        runs.held(runs.correlated(runs.pipeline(process, "scale", kase + "/a",
+                List.of(cloud.jengu.dbo.work.WorkModel.DOMAIN)), kase),
+                cloud.jengu.dbo.work.Holder.PERSON);
+        runs.claim(runs.correlated(runs.pipeline(process, "scale", kase + "/b",
+                        List.of(cloud.jengu.dbo.work.WorkModel.DOMAIN)), kase), weigher,
+                java.time.Instant.now().plusSeconds(600));
+        runs.closed(runs.claim(runs.correlated(runs.pipeline(process, "scale", kase + "/c",
+                        List.of(cloud.jengu.dbo.work.WorkModel.DOMAIN)), kase), weigher,
+                java.time.Instant.now().plusSeconds(600)).orElseThrow());
+
+        var inside = dbo.asking(records);
+        var across = cloud.jengu.dbo.asking.Across.through(pathAndQuery ->
+                dbo.get(dbo.at(records) + "/fhir" + pathAndQuery, dbo.token(records)).body());
+
+        assertEquals(3, inside.records("Observation").whereCoded("code", ASKED, mine).count());
+        assertEquals(2, inside.records("Observation").whereCoded("code", ASKED, mine)
+                .whereCoded("status", null, "final").count(), "narrowing did not narrow");
+        assertEquals(inside.records("Observation").whereCoded("code", ASKED, mine).count(),
+                across.records("Observation").whereCoded("code", ASKED, mine).count(),
+                "the two bindings count the records differently");
+        assertEquals(2, inside.work().correlated(kase).open().count());
+        assertEquals(inside.work().correlated(kase).open().count(),
+                across.work().correlated(kase).open().count(),
+                "the two bindings count the open work differently");
+        assertTrue(org.junit.jupiter.api.Assertions.assertThrows(
+                        UnsupportedOperationException.class,
+                        () -> across.work().inScope("anything")).getMessage()
+                .contains("no parameter on this tenant's surface"));
+        assertTrue(org.junit.jupiter.api.Assertions.assertThrows(RuntimeException.class,
+                () -> inside.records("Observation").where("favourite-colour", "blue").count())
+                != null, "an undeclared narrowing was ignored rather than refused");
+        assertTrue(org.junit.jupiter.api.Assertions.assertThrows(IllegalStateException.class,
+                        () -> across.records("NoSuchTypeHere").count()).getMessage()
+                .contains("NoSuchTypeHere"));
+    }
+
+    @Test
+    @Order(30)
+    @DisplayName("a record's own trail answers about it, and a join that is declared and not "
+            + "built is refused by name")
+    @Proving(DboPromises.POL_AUDIT_AS_RECORDS)
+    void theTrailAnswersAboutOneRecord() {
+        HttpResponse<String> written = recordsDoor.post("/Observation", """
+                {"resourceType":"Observation","status":"final","code":{"coding":[
+                  {"system":"%s","code":"%s"}]},"subject":{"display":"nobody"}}"""
+                .formatted(ASKED, names.value("trailed")));
+        String id = dbo.says(written).one("id").orElseThrow();
+        var trail = dbo.asking(records).trail().about("Observation", id);
+        Proves.that(DboPromises.POL_AUDIT_AS_RECORDS,
+                trail.count() >= 1 && trail.of("create").count() <= trail.count(),
+                "a record's trail does not answer about it");
+        var refused = org.junit.jupiter.api.Assertions.assertThrows(
+                UnsupportedOperationException.class,
+                () -> dbo.asking(records).records("Observation").including("subject"));
+        assertTrue(refused.getMessage().contains("declared and not built")
+                && refused.getMessage().contains("subject"), refused.getMessage());
+    }
+
+    @Test
+    @Order(31)
+    @DisplayName("behind the membrane, a birth date is held only as coarse as the vault allows")
+    @Proving(DboPromises.PDI_STRUCTURAL_VAULT)
+    void aGeneralisedElementIsCoarseAtRest() throws java.sql.SQLException {
+        String hospital = "hogwarts";
+        String id = tenants.store(hospital).orElseThrow().put(cloud.jengu.dbo.core.api.PutRequest
+                .create("Patient", ("{\"resourceType\":\"Patient\",\"birthDate\":\"1970-01-01\","
+                        + "\"name\":[{\"family\":\"" + names.value("coarse") + "\"}]}")
+                        .getBytes(StandardCharsets.UTF_8))).id();
+        String atRest;
+        try (var c = java.sql.DriverManager.getConnection(tenantDatabase(hospital),
+                        environment.getRequiredProperty("dbo.admin.user"),
+                        environment.getRequiredProperty("dbo.admin.password"));
+                var ps = c.prepareStatement("SELECT convert_from(payload, 'UTF8') FROM "
+                        + "state.r5_data WHERE id = ?::uuid")) {
+            ps.setString(1, id);
+            try (var rs = ps.executeQuery()) {
+                atRest = rs.next() ? rs.getString(1) : null;
+            }
+        }
+        Proves.that(DboPromises.PDI_STRUCTURAL_VAULT,
+                atRest != null && atRest.contains("\"birthDate\":\"1970\"")
+                        && !atRest.contains("1970-01-01"),
+                "a birth date was held finer than the vault allows: " + atRest);
+    }
+
+    // ── and what a record is found by is extracted where its bytes are ──
+
+    private static final String ROOT = "fhir-r4";
+
+    /** One value from a query against a tenant's database, as text. */
+    private String one(String tenant, String sql, String... parameters)
+            throws java.sql.SQLException {
+        try (var c = java.sql.DriverManager.getConnection(tenantDatabase(tenant),
+                        environment.getRequiredProperty("dbo.admin.user"),
+                        environment.getRequiredProperty("dbo.admin.password"));
+                var ps = c.prepareStatement(sql)) {
+            for (int i = 0; i < parameters.length; i++) {
+                ps.setString(i + 1, parameters[i]);
+            }
+            try (var rs = ps.executeQuery()) {
+                return rs.next() ? rs.getString(1) : null;
+            }
+        }
+    }
+
+    private boolean pairs(String kind, String hit, String expected) throws java.sql.SQLException {
+        return "true".equals(one(ROOT, "SELECT (COALESCE(jsonb_object_agg(key, vs), '{}'::jsonb) "
+                + "= ?::jsonb)::text FROM (SELECT key, jsonb_agg(value) AS vs FROM "
+                + "dbo.envelope_pairs('k', ?, ?::jsonb) GROUP BY key) one", expected, kind, hit));
+    }
+
+    @Test
+    @Order(32)
+    @DisplayName("each kind of search parameter is extracted in the database into the shape a "
+            + "search asks by")
+    @Proving(DboPromises.SRCH_THE_ENVELOPE_IS_EXTRACTED_WHERE_THE_BYTES_ARE)
+    void eachKindIsExtractedWhereTheBytesAre() throws java.sql.SQLException {
+        Proves.that(DboPromises.SRCH_THE_ENVELOPE_IS_EXTRACTED_WHERE_THE_BYTES_ARE,
+                pairs("token", "{\"coding\":[{\"system\":\"urn:s\",\"code\":\"c\"}]}",
+                        "{\"k\":[{\"t\":\"tok\",\"s\":\"urn:s\",\"v\":\"c\"},"
+                                + "{\"t\":\"toks\",\"v\":\"urn:s\"},{\"t\":\"tokc\",\"v\":\"c\"}]}")
+                        && pairs("token", "\"final\"", "{\"k\":[{\"t\":\"tokc\",\"v\":\"final\"}]}")
+                        && pairs("string", "\"AbA\"", "{\"k\":[{\"t\":\"str\",\"v\":\"aba\"}],"
+                                + "\"k_xct\":[{\"t\":\"str\",\"v\":\"AbA\"}]}")
+                        && pairs("uri", "\"urn:X\"", "{\"k\":[{\"t\":\"str\",\"v\":\"urn:X\"}]}")
+                        && pairs("date", "\"2020-03\"",
+                                "{\"k\":[{\"t\":\"date\",\"v\":\"2020-03-01T00:00:00.000Z\"}]}")
+                        && pairs("date", "{\"start\":\"2021-05-06\",\"end\":\"2021-06-01\"}",
+                                "{\"k\":[{\"t\":\"date\",\"v\":\"2021-05-06T00:00:00.000Z\"}]}")
+                        && pairs("reference", "{\"reference\":\"Patient/123\"}",
+                                "{\"k\":[{\"t\":\"ref\",\"tt\":\"Patient\",\"ti\":\"123\"}]}")
+                        && pairs("reference", "\"https://example.test/fhir/Patient/123\"",
+                                "{\"k\":[{\"t\":\"ref\",\"tt\":\"Patient\",\"ti\":\"123\"}]}")
+                        && pairs("number", "\"12.5\"", "{\"k\":[{\"t\":\"num\",\"v\":12.5}]}")
+                        && pairs("number", "\"not a number\"", "{}")
+                        && pairs("quantity", "{\"value\":1}", "{}"),
+                "a kind of parameter is not extracted into the shape a search asks by");
+        Proves.that(DboPromises.SRCH_THE_ENVELOPE_IS_EXTRACTED_WHERE_THE_BYTES_ARE,
+                "true".equals(one(ROOT, "SELECT ((e->'url') = '[{\"t\":\"str\",\"v\":"
+                        + "\"https://envelope.test/vs\"}]'::jsonb AND jsonb_exists(e, 'status'))::text FROM "
+                        + "(SELECT dbo.envelope(?::jsonb, 'ValueSet') AS e) one",
+                        "{\"resourceType\":\"ValueSet\",\"url\":\"https://envelope.test/vs\","
+                                + "\"status\":\"draft\",\"name\":\"Whatever\"}")),
+                "the envelope is not built from the parameters the tenant holds");
+    }
+
+    @Test
+    @Order(33)
+    @DisplayName("what the database extracts loses nothing the engine stored: the envelope, "
+            + "the claims and the edges, over the documents the root carries")
+    @Proving(DboPromises.SRCH_THE_DATABASE_ENVELOPE_LOSES_NOTHING_BEFORE_IT_IS_USED)
+    void theDatabaseLosesNothingTheEngineStored() throws java.sql.SQLException {
+        String definitions = cloud.jengu.dbo.core.api.Domains.tables(
+                cloud.jengu.dbo.core.api.Domains.DEFINITIONS);
+        java.util.Map<String, String> differing = new java.util.TreeMap<>();
+        for (String type : List.of("StructureDefinition", "SearchParameter", "ValueSet",
+                "CodeSystem")) {
+            differing.put(type, one(ROOT, """
+                    WITH x AS (
+                      SELECT id, envelope, dbo.envelope_parts(
+                               convert_from(payload, 'UTF8')::jsonb, type, true) AS p
+                        FROM %1$s_data WHERE type = ? AND NOT deleted ORDER BY id LIMIT 25)
+                    SELECT count(*)::text || ' compared, ' || count(*) FILTER (WHERE
+                        NOT ((p->'envelope') @> envelope)
+                        OR ARRAY(SELECT DISTINCT e->>'system' || '|' || (e->>'value')
+                                   FROM jsonb_array_elements(p->'identifiers') e ORDER BY 1)
+                           IS DISTINCT FROM
+                           ARRAY(SELECT DISTINCT system || '|' || value
+                                   FROM %1$s_identifier i WHERE i.object_id = x.id ORDER BY 1)
+                        OR ARRAY(SELECT DISTINCT (e->>'refType') || ' -> ' || (e->>'targetType')
+                                   || '/' || (e->>'targetId')
+                                   FROM jsonb_array_elements(p->'references') e ORDER BY 1)
+                           IS DISTINCT FROM
+                           ARRAY(SELECT DISTINCT ref_type || ' -> ' || target_type || '/'
+                                   || target_id FROM %1$s_reference r WHERE r.owner_id = x.id
+                                   ORDER BY 1))::text || ' differing'
+                      FROM x""".formatted(definitions), type));
+        }
+        Proves.that(DboPromises.SRCH_THE_DATABASE_ENVELOPE_LOSES_NOTHING_BEFORE_IT_IS_USED,
+                differing.values().stream().allMatch("25 compared, 0 differing"::equals),
+                "the database's extraction loses something the engine stored: " + differing);
+    }
+
+    @org.junit.jupiter.api.AfterAll
+    void theRecordsClinicIsWithdrawn() {
+        if (records != null) {
+            dbo.retract(records);
+        }
+    }
+
+    private HttpResponse<String> untilAnswered(String path, int status)
+            throws InterruptedException {
+        long giveUp = System.nanoTime() + Duration.ofMinutes(3).toNanos();
+        HttpResponse<String> answered = recordsDoor.get(path);
+        while (answered.statusCode() != status && System.nanoTime() < giveUp) {
+            Thread.sleep(500);
+            answered = recordsDoor.get(path);
+        }
+        return answered;
+    }
+
+    private static int fullUrls(String bundle) {
+        int n = 0;
+        for (int at = bundle.indexOf("\"fullUrl\""); at >= 0;
+                at = bundle.indexOf("\"fullUrl\"", at + 1)) {
+            n++;
+        }
+        return n;
+    }
+
+    private String tenantDatabase(String tenant) {
+        String admin = environment.getRequiredProperty("dbo.admin.jdbc-url");
+        return admin.substring(0, admin.lastIndexOf('/') + 1) + "tenant_"
+                + tenant.replace('-', '_');
     }
 
     @org.junit.jupiter.api.AfterAll
