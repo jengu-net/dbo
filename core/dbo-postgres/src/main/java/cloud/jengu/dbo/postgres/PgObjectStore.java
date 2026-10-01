@@ -399,22 +399,39 @@ public final class PgObjectStore implements ObjectStore {
     public PutResult putIfAbsent(IdentityRef identity, PutRequest request) {
         TypeRegistration type = registry.require(request.typeName());
         Identifier ident = registry.identityIdentifier(type, identity);
-        return inTx(c -> {
-            Optional<String> existing = resolveIdentity(c, type, ident);
-            if (existing.isPresent()) {
-                long version = currentVersion(c, type, existing.get());
-                return new PutResult(existing.get(), version, false);
+        try {
+            return inTx(c -> {
+                Optional<String> existing = resolveIdentity(c, type, ident);
+                if (existing.isPresent()) {
+                    long version = currentVersion(c, type, existing.get());
+                    return new PutResult(existing.get(), version, false);
+                }
+                // The request as it was asked, not a four-field copy of it. This
+                // rebuilt it from typeName/id/expectedVersion/payload alone, which
+                // was every field a PutRequest had when it was written — and
+                // silently dropped recordedVersion, recordedAt, restoring and
+                // shape as each was added. An identity-keyed create is the FIRST
+                // arrival of a replicated record, so what it dropped was exactly
+                // the source's version and the source's time, on the one write
+                // where they are the whole point.
+                return writeObject(c, type, request);
+            });
+        } catch (IdentityConflictException claimedMeanwhile) {
+            // Another writer created this identity between the read above and
+            // the write. If-absent is then answered by the record that writer
+            // made, exactly as if it had been there first: two callers
+            // ensuring one record at once is the ordinary case for replicas,
+            // not a conflict. A claim on some OTHER identifier the payload
+            // carries is a real conflict, and stays one.
+            if (!ident.equals(claimedMeanwhile.identifier())) {
+                throw claimedMeanwhile;
             }
-            // The request as it was asked, not a four-field copy of it. This
-            // rebuilt it from typeName/id/expectedVersion/payload alone, which
-            // was every field a PutRequest had when it was written — and
-            // silently dropped recordedVersion, recordedAt, restoring and
-            // shape as each was added. An identity-keyed create is the FIRST
-            // arrival of a replicated record, so what it dropped was exactly
-            // the source's version and the source's time, on the one write
-            // where they are the whole point.
-            return writeObject(c, type, request);
-        });
+            return inTx(c -> {
+                String existing = resolveIdentity(c, type, ident).orElseThrow(
+                        () -> claimedMeanwhile);
+                return new PutResult(existing, currentVersion(c, type, existing), false);
+            });
+        }
     }
 
     @Override
