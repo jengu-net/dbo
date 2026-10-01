@@ -150,7 +150,7 @@ promise-by-promise picture is in the [listing](listing.md).
 | [VENDOR-CHANGE](../../arc42-003-context/user-stories/us-dbo-vendor-change.md) | `TheClinicChangesVendorIT` (on the world) | 1 | 6 | 0 | 7 | 0 | moved |
 | [EDGE-ROUNDTRIP](../../arc42-003-context/user-stories/us-dbo-edge-roundtrip.md) | `WorkLeavesTheClinicAndComesBackIT` (on the world) | 14 | 23 | 16 | 19 | 4 | moved |
 | [FLEET-HEALTH](../../arc42-003-context/user-stories/us-dbo-fleet-health.md) | `AnOperatorReadsAndSteersTheFleetIT` (on the world, one node) | 9 | 14 | 16 | 3 | 7 | moved but for two nodes |
-| [FLEET-STEP](../../arc42-003-context/user-stories/us-dbo-fleet-step.md) | `OneStepIsPerformedForEveryTenantIT` (on the world, ten legs) | 11 | 12 | 6 | 0 | 0 | moved; three harness classes deleted, eight stay |
+| [FLEET-STEP](../../arc42-003-context/user-stories/us-dbo-fleet-step.md) | `OneStepIsPerformedForEveryTenantIT` (on the world, ten legs) | 11 | 12 | 6 | 0 | 0 | moved; the eight harness classes left are walked in the technical story [A-STEP-IS-RUN-FOR-THE-FLEET](../../arc42-003-context/user-stories/us-dbo-a-step-is-run-for-the-fleet.md) (`AStepIsRunForTheFleetIT`) |
 
 The columns:
 
@@ -282,8 +282,10 @@ Another 33 classes do not feed a story:
      authorisation, a processor's enrolment) or because they need what the
      management tenant declares to change (placement, withdrawal, a required
      step, a posture, two consumers on one substrate). The story's page lists
-     them as gaps and open decisions, and the eight harness classes holding
-     them stay.
+     them as gaps and open decisions. The eight harness classes holding
+     them are folded into one, `AStepIsRunForTheFleetIT`, which walks the
+     technical story US-DBO-A-STEP-IS-RUN-FOR-THE-FLEET on one runtime of
+     its own and on the harness's shared deployment.
 
      **What it found:** every tenant's pool held eight connections while
      idle. Nine stories at once put twelve tenants on the node, which held

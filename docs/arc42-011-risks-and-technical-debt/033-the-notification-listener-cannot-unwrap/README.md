@@ -183,5 +183,5 @@ three container tests are green with it in place.
 **Not proven, because it is not true yet:** the warning is gone. A run of
 `:samples:spring-boot-worker-app:test` still carries it, from the doors. That
 is what the remaining crossing costs, and it is the measure this item closes
-on — with `AStreamLaneIsToldItHasWorkIT` still passing, so that notification
-was made to work rather than switched off.
+on — with the wake-up leg of `AParticipantHoldsItsLaneOnTheStreamIT` still
+passing, so that notification was made to work rather than switched off.

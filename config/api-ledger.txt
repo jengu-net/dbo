@@ -3082,11 +3082,16 @@ cloud.jengu.dbo.promises.DboQualities                                  promises(
 cloud.jengu.dbo.promises.DboQualities                                  title():String
 cloud.jengu.dbo.promises.DboQualities                                  valueOf(String):cloud.jengu.dbo.promises.DboQualities
 cloud.jengu.dbo.promises.DboQualities                                  values():cloud.jengu.dbo.promises.DboQualities[]
+cloud.jengu.dbo.promises.DboStories                                    A_DEPLOYMENT_IS_EQUIPPED:cloud.jengu.dbo.promises.DboStories
+cloud.jengu.dbo.promises.DboStories                                    A_STEP_IS_RUN_FOR_THE_FLEET:cloud.jengu.dbo.promises.DboStories
+cloud.jengu.dbo.promises.DboStories                                    A_TENANT_IS_ERASED:cloud.jengu.dbo.promises.DboStories
+cloud.jengu.dbo.promises.DboStories                                    BRING_UP_UNDER_STRAIN:cloud.jengu.dbo.promises.DboStories
 cloud.jengu.dbo.promises.DboStories                                    BUILT_OR_PLANNED:cloud.jengu.dbo.promises.DboStories
 cloud.jengu.dbo.promises.DboStories                                    CLINICAL_RECORD:cloud.jengu.dbo.promises.DboStories
 cloud.jengu.dbo.promises.DboStories                                    EDGE_ROUNDTRIP:cloud.jengu.dbo.promises.DboStories
 cloud.jengu.dbo.promises.DboStories                                    FLEET_HEALTH:cloud.jengu.dbo.promises.DboStories
 cloud.jengu.dbo.promises.DboStories                                    FLEET_STEP:cloud.jengu.dbo.promises.DboStories
+cloud.jengu.dbo.promises.DboStories                                    ON_THE_STREAM:cloud.jengu.dbo.promises.DboStories
 cloud.jengu.dbo.promises.DboStories                                    PERSON_RIGHTS:cloud.jengu.dbo.promises.DboStories
 cloud.jengu.dbo.promises.DboStories                                    STANDARD_MOVES:cloud.jengu.dbo.promises.DboStories
 cloud.jengu.dbo.promises.DboStories                                    TENANT_OPENING:cloud.jengu.dbo.promises.DboStories

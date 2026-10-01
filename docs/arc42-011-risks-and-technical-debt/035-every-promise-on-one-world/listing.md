@@ -13,18 +13,18 @@ Story class: `ATenantOpensAndItsPeopleGetInIT` — exists; today own (lifecycle)
 | `ATenantOpensAndItsPeopleGetInIT` (story class) | own (lifecycle) | 17 | 16 | moved, harness class deleted |
 | `HumanAuthIT` | own (deployment) | 9 | 9 | deleted |
 | `ScimProvisioningIT` | shared | 7 | 7 | deleted |
-| `FederatedAuthIT` | own (deployment) | 3 | 3 | stays — what a deployment is given before it starts |
-| `AFaceIsCutOnceAndBroughtUpFromIT` | own (deployment) | 3 | 2 | stays — what a deployment is given before it starts |
+| `FederatedAuthIT` | own (deployment) | 3 | 3 | deleted — folded into `ADeploymentIsEquippedBeforeItStartsIT` |
+| `AFaceIsCutOnceAndBroughtUpFromIT` | own (deployment) | 3 | 2 | deleted — folded into `ADeploymentIsEquippedBeforeItStartsIT` |
 | `ATenantSubscribesToItsVersionIT` | own (lifecycle) | 3 | 2 | trimmed to its two build-counter legs, which read the container's own counters |
 | `ADeclaredRelationGrantsIT` | shared | 1 | 1 | deleted |
-| `ADeploymentPresentsItsOwnCredentialIT` | own (deployment) | 1 | 1 | stays — what a deployment is given before it starts |
+| `ADeploymentPresentsItsOwnCredentialIT` | own (deployment) | 1 | 1 | deleted — folded into `ADeploymentIsEquippedBeforeItStartsIT` |
 | `AGrantCanBeTakenBackIT` | shared | 1 | 1 | deleted |
 | `APartnerFollowsWorkIT` | shared | 1 | 1 | deleted |
 | `AProvisioningClientConvergesTheGrantsIT` | shared | 1 | 1 | deleted |
-| `AStreamKeepsMovingWhileATenantComesUpIT` | own (lifecycle) | 1 | 1 | stays — bring-up made to go wrong |
-| `ATenantComesUpFromTheFaceImageIT` | own (deployment) | 2 | 1 | stays — what a deployment is given before it starts |
+| `AStreamKeepsMovingWhileATenantComesUpIT` | own (lifecycle) | 1 | 1 | deleted; walked in `BringUpUnderStrainIT` |
+| `ATenantComesUpFromTheFaceImageIT` | own (deployment) | 2 | 1 | deleted — folded into `ADeploymentIsEquippedBeforeItStartsIT` |
 | `ScimNeedsTheMembraneIT` | own (sweep) | 1 | 1 | deleted |
-| `SeveralTenantsDeclaredAtOnceComeUpTogetherIT` | own (lifecycle) | 1 | 0 | stays — bring-up made to go wrong |
+| `SeveralTenantsDeclaredAtOnceComeUpTogetherIT` | own (lifecycle) | 1 | 0 | deleted; walked in `BringUpUnderStrainIT` |
 
 | Promise | Proven now by | W | Leg in the story class |
 |---|---|---|---|
@@ -69,8 +69,8 @@ Story class: `ATenantOpensAndItsPeopleGetInIT` — exists; today own (lifecycle)
 | `TEN_A_PARTNER_MANAGES_TENANTS` | — | W | `30` `aPartnerFollowsTheWorkAndNothingElse` |
 | `TEN_A_TENANT_COMES_UP_FROM_THE_FACE_IMAGE` | `AFaceIsCutOnceAndBroughtUpFromIT`, `ATenantComesUpFromTheFaceImageIT` |  | to fit |
 | `TEN_A_TYPE_DECLARES_ITS_DOMAIN` | `TheVersionIsMeasuredIT` | W | to fit |
-| `TEN_COMING_UP_AND_KEEPING_UP_ARE_NOT_ONE_QUEUE` | `AStreamKeepsMovingWhileATenantComesUpIT` | W | to fit |
-| `TEN_DECLARED_TOGETHER_COME_UP_TOGETHER` | `SeveralTenantsDeclaredAtOnceComeUpTogetherIT` |  | to fit |
+| `TEN_COMING_UP_AND_KEEPING_UP_ARE_NOT_ONE_QUEUE` | `BringUpUnderStrainIT` | W | to fit |
+| `TEN_DECLARED_TOGETHER_COME_UP_TOGETHER` | `BringUpUnderStrainIT` |  | to fit |
 | `TEN_READY_WHEN_ITS_CRITICAL_DEFINITIONS_ARRIVED` | — | W | `25` `aChainWithoutItsCodeSystemsIsRefusedByName` |
 | `TEN_REGISTRY_SCOPED_ACCESS` | `TenantOsgiIT` | W | to fit |
 | `TEN_SHARED_TIER_ISOLATION` | — |  | PLANNED — nothing cites it |
@@ -89,7 +89,7 @@ Story class: `TheClinicRecordsCareAndAccountsForItIT` — exists; today shared.
 | `ATenantAuthorsItsOwnSearchParameterIT` | own (sweep) | 4 | 3 | deleted |
 | `ATenantDeliversWhatItSubscribedToIT` | shared | 2 | 2 | deleted |
 | `TheEnvelopeIsTheSameFromEitherSideIT` | shared | 2 | 2 | stays — trimmed to the two in-process store legs; the version measured |
-| `ABlobIsTenantDataIT` | own (lifecycle) | 1 | 1 | stays — erasure has no door |
+| `ABlobIsTenantDataIT` | own (lifecycle) | 1 | 1 | deleted; walked in `ATenantIsErasedIT` |
 | `ATenantHoldsItsOwnDeclarationIT` | shared | 2 | 1 | deleted |
 | `ATypeSaysWhereItsEnvelopeIsComputedIT` | shared | 1 | 1 | deleted |
 | `ContentHeldWholeIsReachableOverTheWireIT` | shared | 1 | 1 | deleted |
@@ -133,7 +133,7 @@ Story class: `TheClinicRecordsCareAndAccountsForItIT` — exists; today shared.
 | `EVT_DURABLE_DELIVERY` | — |  | PLANNED — nothing cites it |
 | `EVT_FHIR_SUBSCRIPTIONS` | — | W | to fit |
 | `EVT_IN_PROCESS_SURFACE` | — |  | PLANNED — nothing cites it |
-| `OPS_TENANT_BLOBS_ARE_TENANT_DATA` | `ABlobIsTenantDataIT` | W | to fit |
+| `OPS_TENANT_BLOBS_ARE_TENANT_DATA` | `ATenantIsErasedIT` | W | US-DBO-A-TENANT-IS-ERASED |
 | `OPS_TENANT_BLOB_STORAGE` | — |  | PLANNED — nothing cites it |
 | `POL_APPEND_ONLY_DISCIPLINE` | without a world: PolicyIT |  | assert where the story passes it |
 | `POL_CUSTOM_AUDIT_EVENTS` | without a world: ContributedAuditEventTest, PolicyIT |  | assert where the story passes it |
@@ -166,7 +166,7 @@ Story class: `WhatAPersonCanAskForIT` — on the world, at Hogwarts.
 |---|---|---|---|---|
 | `AHumanHeldAsTwoRecordsIT` | shared | 6 | 3 | deleted |
 | `DelegationIT` | shared | 2 | 2 | deleted |
-| `TenantRuntimeIT` | own (sweep) | 4 | 2 | stays — trimmed to erasure; erasure has no door |
+| `TenantRuntimeIT` | own (sweep) | 4 | 2 | deleted; walked in `ATenantIsErasedIT` |
 | `APseudonymResolvesBackToItsPersonIT` | shared | 2 | 1 | deleted; its page-boundary walk is `PdiIT#theWalkCrossesItsOwnPageBoundary`, without a world |
 | `AStoreWithoutSuperuserStillMountsIT` | own (sweep) | 1 | 1 | stays: it needs a store role that is not superuser, and the world's is; it is also the proof that an isolated tenant refuses a database that would log its people |
 | `IdentificationIsReachableFromOutsideIT` | shared | 1 | 1 | deleted |
@@ -207,7 +207,7 @@ Story class: `WhatAPersonCanAskForIT` — on the world, at Hogwarts.
 | `PROC_CONFIG_APPLIES_AS_A_SWEEP` | `TenantRuntimeIT` |  | to fit |
 | `SCIM_DEPROVISION_IS_A_STATE` | `TheGuideRunsIT` | W | to fit |
 | `SRCH_HONEST_CAPABILITY` | — | W | in clinical record's legs |
-| `TEN_ERASURE_BY_DROP` | `TenantRuntimeIT` | W | to fit |
+| `TEN_ERASURE_BY_DROP` | `ATenantIsErasedIT` | W | US-DBO-A-TENANT-IS-ERASED |
 | `TERM_EVERY_TENANT_ANSWERS` | `TenantRuntimeIT` | W | to fit |
 | `VER_CONCURRENT_VERSIONS` | `TenantRuntimeIT` |  | to fit |
 
@@ -218,8 +218,8 @@ Story class: `OneTenantInTwoPlacesIT` — exists; today shared.
 | Class | Boots | Promises | W | Status |
 |---|---|---|---|---|
 | `SpecDeclaredSyncIT` | own (sweep) | 6 | 5 | deleted |
-| `ZoneIT` | own (deployment) | 5 | 5 | stays — what a deployment is given before it starts |
-| `AZoneReachesAnotherFaceThroughOneProjectionIT` | own (sweep) | 4 | 3 | stays — what a deployment is given before it starts |
+| `ZoneIT` | own (deployment) | 5 | 5 | deleted — folded into `ADeploymentIsEquippedBeforeItStartsIT` |
+| `AZoneReachesAnotherFaceThroughOneProjectionIT` | own (sweep) | 4 | 3 | deleted — folded into `ADeploymentIsEquippedBeforeItStartsIT` |
 | `OneTenantInTwoPlacesIT` (story class) | shared | 9 | 2 | zone half moved; appliance half is AnApplianceCarriesPatientDataByWorkIT, no runtime |
 | `EachTypeStreamsAtItsOwnGrainIT` | shared | 1 | 1 | deleted |
 | `ReplicationDrivenOverHttpIT` | shared | 4 | 1 | deleted |
@@ -367,15 +367,15 @@ Story class: `WorkLeavesTheClinicAndComesBackIT` — exists; today shared.
 | `ARouterHoldsTheClaimIT` | shared | 3 | 3 | deleted |
 | `AFaceAuthoredRunReachesTheLaneIT` | shared | 1 | 1 | deleted |
 | `AHostHoldsALaneByInstallingABundleIT` | osgi+own (container) | 2 | 1 | stays — a second container |
-| `ALaneOverTheStreamIsIndistinguishableIT` | own (deployment) | 2 | 1 | stays — a deployment with a substrate |
-| `ALargePayloadTravelsByReferenceIT` | own (whole plane) | 2 | 1 | stays — a deployment with a substrate |
+| `ALaneOverTheStreamIsIndistinguishableIT` | own (deployment) | 2 | 1 | deleted; legs `4`, `5` of `AParticipantHoldsItsLaneOnTheStreamIT` |
+| `ALargePayloadTravelsByReferenceIT` | own (whole plane) | 2 | 1 | deleted; legs `1`, `2` of `AParticipantHoldsItsLaneOnTheStreamIT` |
 | `AParticipantOffersItsKeyAtEnrolmentIT` | shared | 1 | 1 | deleted |
 | `ARunsTrailIsChainedFromTheTaskIT` | shared | 1 | 1 | in story but for the pruned-trail leg |
-| `MandatoryStepsClassifyIncidentsIT` | own (sweep) | 1 | 1 | stays — bring-up made to go wrong |
-| `NothingReadableLandsInTheSubstrateIT` | own (whole plane) | 2 | 1 | stays — a deployment with a substrate |
+| `MandatoryStepsClassifyIncidentsIT` | own (sweep) | 1 | 1 | deleted; walked in `BringUpUnderStrainIT` |
+| `NothingReadableLandsInTheSubstrateIT` | own (whole plane) | 2 | 1 | deleted; legs `6`, `7` of `AParticipantHoldsItsLaneOnTheStreamIT` |
 | `OneRunIsOneChainAcrossTwoProcessesIT` | shared | 1 | 1 | deleted |
 | `WorkTravelsSealedIT` | shared | 2 | 1 | deleted |
-| `AStreamLaneIsToldItHasWorkIT` | own (deployment) | 1 | 0 | stays — a deployment with a substrate |
+| `AStreamLaneIsToldItHasWorkIT` | own (deployment) | 1 | 0 | deleted; leg `3` of `AParticipantHoldsItsLaneOnTheStreamIT` |
 
 | Promise | Proven now by | W | Leg in the story class |
 |---|---|---|---|
@@ -406,14 +406,14 @@ Story class: `WorkLeavesTheClinicAndComesBackIT` — exists; today shared.
 | `PROC_AUTOMATION_IS_A_DECLARED_SWITCH` | without a world: ASwitchSaysWhetherAStepIsAutomatedHereIT |  | assert where the story passes it |
 | `PROC_AUTOMATION_IS_DECLARED` | without a world: ExecutorResolutionTest |  | assert where the story passes it |
 | `PROC_A_FAULT_THE_CALLER_IS_NOT_TOLD_IS_STILL_RECORDED` | without a world: AFailedClaimIsNotALostRaceTest, AFailedVerbSaysWhyItFailedTest |  | assert where the story passes it |
-| `PROC_A_HOST_HOLDS_A_LANE_WHEREVER_IT_IS` | `AHostHoldsALaneByInstallingABundleIT`, `ALaneOverTheStreamIsIndistinguishableIT` | W | to fit |
-| `PROC_A_LANE_OVER_THE_STREAM` | `AHostHoldsALaneByInstallingABundleIT`, `ALaneOverTheStreamIsIndistinguishableIT` |  | to fit |
+| `PROC_A_HOST_HOLDS_A_LANE_WHEREVER_IT_IS` | `AHostHoldsALaneByInstallingABundleIT`, `AParticipantHoldsItsLaneOnTheStreamIT` | W | US-DBO-ON-THE-STREAM |
+| `PROC_A_LANE_OVER_THE_STREAM` | `AHostHoldsALaneByInstallingABundleIT`, `AParticipantHoldsItsLaneOnTheStreamIT` |  | US-DBO-ON-THE-STREAM |
 | `PROC_A_PARTICIPANT_OFFERS_ITS_KEY_AT_ENROLMENT` | — | W | to fit |
 | `PROC_A_RUN_ANSWERS_ONLY_FOR_ITS_INPUTS` | `TheGuideRunsIT` | W | to fit |
 | `PROC_A_RUN_CONTEXT_ENDS_WITH_ITS_RUN` | `TheGuideRunsIT` | W | to fit |
 | `PROC_A_RUN_NAMES_WHAT_IT_PRODUCED` | without a world: ContentChangesInsideWorkIT, TheLaneHasTwoBoundsIT |  | assert where the story passes it |
 | `PROC_A_STEP_GRANTS_THE_RIGHT_TO_OVERRIDE` | without a world: ExecutorResolutionTest |  | assert where the story passes it |
-| `PROC_A_WAKE_UP_IS_NOT_HOW_WORK_ARRIVES` | `AStreamLaneIsToldItHasWorkIT` |  | to fit |
+| `PROC_A_WAKE_UP_IS_NOT_HOW_WORK_ARRIVES` | `AParticipantHoldsItsLaneOnTheStreamIT` |  | US-DBO-ON-THE-STREAM |
 | `PROC_CATALOGUE_IN_STORE` | — |  | PLANNED — nothing cites it |
 | `PROC_CLOSE_BY_RE_EVALUATION` | without a world: ConfigAppliesAsASweepIT, RunsAreRecordsIT |  | assert where the story passes it |
 | `PROC_CONTENT_CHANGES_INSIDE_WORK` | without a world: ContentChangesInsideWorkIT |  | assert where the story passes it |
@@ -424,7 +424,7 @@ Story class: `WorkLeavesTheClinicAndComesBackIT` — exists; today shared.
 | `PROC_FALL_THROUGH_IS_COUNTABLE` | without a world: ExecutorResolutionTest |  | assert where the story passes it |
 | `PROC_IDENTITY_IS_REASSEMBLED_AT_THE_TENANT` | without a world: IdentityIsPutBackTogetherAtTheTenantIT |  | assert where the story passes it |
 | `PROC_LANE_IS_A_TENANT_SERVICE` | `TenantOsgiIT` | W | to fit |
-| `PROC_MANDATORY_STEPS_CLASSIFY_INCIDENTS` | `MandatoryStepsClassifyIncidentsIT` | W | to fit |
+| `PROC_MANDATORY_STEPS_CLASSIFY_INCIDENTS` | `BringUpUnderStrainIT` | W | to fit |
 | `PROC_ONE_ID_ONE_DEFINITION` | without a world: StepsArriveByIntroductionIT |  | assert where the story passes it |
 | `PROC_ONE_PARENT_NEVER_ACROSS_A_BOUNDARY` | — |  | PLANNED — nothing cites it |
 | `PROC_REFUSED_IS_NOT_UNANSWERED` | — | W | to fit |
@@ -437,10 +437,10 @@ Story class: `WorkLeavesTheClinicAndComesBackIT` — exists; today shared.
 | `PROC_TRACE_JOIN` | without a world: PolicyIT |  | assert where the story passes it |
 | `PROC_TRACE_RIDES_THE_LANE` | — | W | to fit |
 | `PROC_WORK_TRAVELS_SEALED` | — |  | to fit |
-| `WF_CONTENT_FREE_PLATFORM_PLANE` | `ALargePayloadTravelsByReferenceIT`, `NothingReadableLandsInTheSubstrateIT` | W | to fit |
+| `WF_CONTENT_FREE_PLATFORM_PLANE` | `AParticipantHoldsItsLaneOnTheStreamIT` | W | US-DBO-ON-THE-STREAM |
 | `WF_PLATFORM_COORDINATED_HOPS` | — |  | PLANNED — nothing cites it |
 | `WF_POSTGRES_SUBSTRATE` | without a world: SubscriptionsIT |  | assert where the story passes it |
-| `WF_TWO_PLANES` | `ALargePayloadTravelsByReferenceIT`, `NothingReadableLandsInTheSubstrateIT` |  | to fit |
+| `WF_TWO_PLANES` | `AParticipantHoldsItsLaneOnTheStreamIT` |  | US-DBO-ON-THE-STREAM |
 
 ## US-DBO-FLEET-HEALTH
 
@@ -454,13 +454,13 @@ Story class: `AnOperatorReadsAndSteersTheFleetIT` — exists; today own (sweep).
 | `ATenantDeclaredDifferentlyIsNoticedIT` | own (sweep) | 3 | 2 | deleted |
 | `AChangeCanBeAskedAboutBeforeItIsMadeIT` | own (deployment) | 1 | 1 | deleted |
 | `ADeclarationNamesWhatTheSameApplyCreatesIT` | shared | 1 | 1 | deleted |
-| `ATenantThatIsNotUpSaysWhyIT` | own (sweep) | 1 | 1 | trimmed to storage that has not arrived, which only a provisioner made to be behind can stage; the halfway failure is fleet leg `19` |
+| `ATenantThatIsNotUpSaysWhyIT` | own (sweep) | 1 | 1 | deleted; storage not yet arrived is walked in `BringUpUnderStrainIT`, the halfway failure is fleet leg `19` |
 | `AZoneHandsOverItsContentIT` | shared | 1 | 1 | deleted |
 | `WhatTheLoadedSpecificationCostsIT` | own (first boot) | 2 | 0 | stays — what a deployment is given before it starts |
 
 | Promise | Proven now by | W | Leg in the story class |
 |---|---|---|---|
-| `OPS_RUNTIME_SAYS_WHAT_IT_SERVES` | `ATenantThatIsNotUpSaysWhyIT` | W | `1` `aNodeSaysWhatItIsServing` |
+| `OPS_RUNTIME_SAYS_WHAT_IT_SERVES` | `BringUpUnderStrainIT` | W | `1` `aNodeSaysWhatItIsServing` |
 | `PROC_A_NODE_ANSWERS_ITS_CATALOGUE` | — |  | `2` `aNodeSaysWhatItKnowsHowToDo` |
 | `OPS_FLEET_IS_READ_FROM_OUTSIDE` | — | W | `3` `oneProcessReadsTheWholeDeployment` |
 | `PROC_NETWORK_MAP` | — | W | `4` `theMapIsOneAnswerAcrossNodes` |
@@ -508,38 +508,38 @@ Story class: `OneStepIsPerformedForEveryTenantIT` — on the world. Hogwarts and
 | Class | Boots | Promises | W | Status |
 |---|---|---|---|---|
 | `OneStepIsPerformedForEveryTenantIT` (story class) | world | 12 | 12 | in story |
-| `ABeanIsFoundRatherThanWiredIT` | own (deployment) | 4 | 4 | stays: two steps on one substrate, a bean awaiting a declaration, and an identifying search need a deployment the world is not |
-| `OneBeanPerformsForEveryTenantIT` | shared | 3 | 3 | stays: restarting a consumer, and two consumers on one substrate, are built by hand |
-| `AProcessorIsEnrolledPerTenantIT` | own (deployment) | 2 | 2 | stays: no deployment configuration names a processor |
-| `ATenantReadsWhatIsOpenedOfItsDataIT` | shared | 2 | 2 | stays: no door reads the register or the incidents |
+| `ABeanIsFoundRatherThanWiredIT` | own (deployment) | 4 | 4 | deleted; walked in `AStepIsRunForTheFleetIT` |
+| `OneBeanPerformsForEveryTenantIT` | shared | 3 | 3 | deleted; walked in `AStepIsRunForTheFleetIT` |
+| `AProcessorIsEnrolledPerTenantIT` | own (deployment) | 2 | 2 | deleted; walked in `AStepIsRunForTheFleetIT` |
+| `ATenantReadsWhatIsOpenedOfItsDataIT` | shared | 2 | 2 | deleted; walked in `AStepIsRunForTheFleetIT` |
 | `ASlotIsReferredOrGivenIT` | shared | 1 | 1 | deleted |
 | `AStepCodeBelongsToOneLevelIT` | own (sweep) | 1 | 1 | deleted |
-| `ATenantAdmitsOrDeclinesWhatIsDoneToItIT` | own (deployment) | 1 | 1 | stays: the world declares no required step |
-| `AnUnauthorisedRowObeysItsPostureIT` | own (deployment) | 1 | 1 | stays: the world declares no posture but the default, and no door reads the incidents |
-| `DeclaringAStepPreparesItsSubstrateIT` | own (deployment) | 1 | 1 | stays: placement and withdrawal change what the management tenant declares |
-| `TheWritebackPassesTheTenantsRulesIT` | shared | 1 | 1 | stays: a refused report needs a fleet step whose declaration admits no closing |
+| `ATenantAdmitsOrDeclinesWhatIsDoneToItIT` | own (deployment) | 1 | 1 | deleted; walked in `AStepIsRunForTheFleetIT` |
+| `AnUnauthorisedRowObeysItsPostureIT` | own (deployment) | 1 | 1 | deleted; walked in `AStepIsRunForTheFleetIT` |
+| `DeclaringAStepPreparesItsSubstrateIT` | own (deployment) | 1 | 1 | deleted; walked in `AStepIsRunForTheFleetIT` |
+| `TheWritebackPassesTheTenantsRulesIT` | shared | 1 | 1 | deleted; walked in `AStepIsRunForTheFleetIT` |
 | `TheJoinerOffersEveryTenantsWorkIT` | shared | 1 | 0 | deleted |
 
 | Promise | Proven now by | W | Leg in the story class |
 |---|---|---|---|
 | `PROC_AN_APPLICATION_STEP_IS_THE_DEPLOYMENTS_TO_DECLARE` | `ADeploymentDeclaresItsOwnStepsTest` |  | `1` `aClinicMayNotOfferTheDeploymentsStep`, `4` `theHospitalIsAskedForACheck` |
-| `PROC_AN_UNAUTHORISED_ROW_OBEYS_ITS_POSTURE` | `AnUnauthorisedRowObeysItsPostureIT` | W | none: not on the world |
-| `PROC_A_BEAN_IS_FOUND_RATHER_THAN_WIRED` | `ABeanIsFoundRatherThanWiredIT` | W | `6` `theBeanPerformsTheHospitalsCheck` |
-| `PROC_A_CONSUMER_TAKES_ONLY_ITS_OWN_STEPS` | `OneBeanPerformsForEveryTenantIT` | W | none: not on the world |
-| `PROC_A_DISAGREEMENT_IS_AN_INCIDENT_NOT_A_REFUSAL` | `ATenantReadsWhatIsOpenedOfItsDataIT` | W | none: no door |
-| `PROC_A_FLEET_PERFORMER_IS_HANDED_ITS_OBJECTS` | `ABeanIsFoundRatherThanWiredIT` | W | `6` `theBeanPerformsTheHospitalsCheck` |
-| `PROC_A_PARTICIPANT_ASKS_FOR_WORK_IT_NEED_NOT_PERFORM` | `ABeanIsFoundRatherThanWiredIT` | W | `4` `theHospitalIsAskedForACheck` |
-| `PROC_A_PROCESSOR_IS_ENROLLED_PER_TENANT` | `AProcessorIsEnrolledPerTenantIT` | W | none: no configuration |
-| `PROC_A_REFERENCE_MAY_BE_A_SEARCH` | `ABeanIsFoundRatherThanWiredIT` | W | `4` `theHospitalIsAskedForACheck`, `5` `aSearchMustNameOne` |
+| `PROC_AN_UNAUTHORISED_ROW_OBEYS_ITS_POSTURE` | `AStepIsRunForTheFleetIT` | W | none: not on the world |
+| `PROC_A_BEAN_IS_FOUND_RATHER_THAN_WIRED` | `AStepIsRunForTheFleetIT` | W | `6` `theBeanPerformsTheHospitalsCheck` |
+| `PROC_A_CONSUMER_TAKES_ONLY_ITS_OWN_STEPS` | `AStepIsRunForTheFleetIT` | W | none: not on the world |
+| `PROC_A_DISAGREEMENT_IS_AN_INCIDENT_NOT_A_REFUSAL` | `AStepIsRunForTheFleetIT` | W | none: no door |
+| `PROC_A_FLEET_PERFORMER_IS_HANDED_ITS_OBJECTS` | `AStepIsRunForTheFleetIT` | W | `6` `theBeanPerformsTheHospitalsCheck` |
+| `PROC_A_PARTICIPANT_ASKS_FOR_WORK_IT_NEED_NOT_PERFORM` | `AStepIsRunForTheFleetIT` | W | `4` `theHospitalIsAskedForACheck` |
+| `PROC_A_PROCESSOR_IS_ENROLLED_PER_TENANT` | `AStepIsRunForTheFleetIT` | W | none: no configuration |
+| `PROC_A_REFERENCE_MAY_BE_A_SEARCH` | `AStepIsRunForTheFleetIT` | W | `4` `theHospitalIsAskedForACheck`, `5` `aSearchMustNameOne` |
 | `PROC_A_SLOT_IS_REFERRED_OR_GIVEN_AND_MAY_REPEAT` | — | W | `4` `theHospitalIsAskedForACheck`, `9` `allThreeShapesArrive` |
 | `PROC_A_STEP_CODE_BELONGS_TO_ONE_LEVEL` | — | W | `1` `aClinicMayNotOfferTheDeploymentsStep`, `2` `renamingItIsTheWayIn` |
-| `PROC_A_TENANT_ADMITS_OR_DECLINES_WHAT_IS_DONE_TO_IT` | `ATenantAdmitsOrDeclinesWhatIsDoneToItIT` | W | `10` `theClinicDeclines` |
-| `PROC_A_TENANT_AUTHORISES_A_REGISTER_AND_SEES_IT_CHANGE` | `AProcessorIsEnrolledPerTenantIT` | W | none: no door |
-| `PROC_A_TENANT_READS_WHAT_IS_OPENED_OF_ITS_DATA` | `ATenantReadsWhatIsOpenedOfItsDataIT` | W | none: no door |
-| `PROC_DECLARING_A_STEP_PREPARES_ITS_SUBSTRATE` | `OneBeanPerformsForEveryTenantIT`, `DeclaringAStepPreparesItsSubstrateIT` | W | `3` `theStepHasSomewhereForItsWork` |
-| `PROC_ONE_BEAN_PERFORMS_FOR_EVERY_TENANT` | `OneBeanPerformsForEveryTenantIT` | W | `7` `theSameBeanPerformsTheClinicsCheck` |
+| `PROC_A_TENANT_ADMITS_OR_DECLINES_WHAT_IS_DONE_TO_IT` | `AStepIsRunForTheFleetIT` | W | `10` `theClinicDeclines` |
+| `PROC_A_TENANT_AUTHORISES_A_REGISTER_AND_SEES_IT_CHANGE` | `AStepIsRunForTheFleetIT` | W | none: no door |
+| `PROC_A_TENANT_READS_WHAT_IS_OPENED_OF_ITS_DATA` | `AStepIsRunForTheFleetIT` | W | none: no door |
+| `PROC_DECLARING_A_STEP_PREPARES_ITS_SUBSTRATE` | `AStepIsRunForTheFleetIT` | W | `3` `theStepHasSomewhereForItsWork` |
+| `PROC_ONE_BEAN_PERFORMS_FOR_EVERY_TENANT` | `AStepIsRunForTheFleetIT` | W | `7` `theSameBeanPerformsTheClinicsCheck` |
 | `PROC_THE_JOINER_OFFERS_EVERY_TENANTS_WORK` | — |  | `6`, `7`, `8` `readingAgainOffersOnce` |
-| `PROC_THE_WRITEBACK_PASSES_THE_TENANTS_RULES` | `TheWritebackPassesTheTenantsRulesIT` | W | `6` `theBeanPerformsTheHospitalsCheck` |
+| `PROC_THE_WRITEBACK_PASSES_THE_TENANTS_RULES` | `AStepIsRunForTheFleetIT` | W | `6` `theBeanPerformsTheHospitalsCheck` |
 
 ## Classes that cite no promise
 
@@ -547,13 +547,13 @@ Each is read before it is moved or deleted: a class that proves nothing the cata
 
 | Class | Boots | Promises | W | Status |
 |---|---|---|---|---|
-| `AShutdownIsQuietIT` | own (lifecycle) | 0 | 0 | stays — bring-up made to go wrong |
-| `ATenantGoingAwayIsNotOneThatFailedIT` | own (lifecycle) | 0 | 0 | stays — bring-up made to go wrong |
+| `AShutdownIsQuietIT` | own (lifecycle) | 0 | 0 | deleted; walked in `BringUpUnderStrainIT` |
+| `ATenantGoingAwayIsNotOneThatFailedIT` | own (lifecycle) | 0 | 0 | deleted; walked in `BringUpUnderStrainIT` |
 | `ATenantsAuthorityIsOnWhatItPublishesIT` | shared | 0 | 0 | deleted |
 | `AnArchiveCanBeGivenBackIT` | shared | 0 | 0 | deleted |
 | `AskingAboutRecordsIT` | shared | 0 | 0 | deleted |
-| `EngineVocabularyDoesNotCollideWithItselfIT` | own (sweep) | 0 | 0 | stays — bring-up made to go wrong |
-| `FaceRefusalIT` | own (deployment) | 0 | 0 | stays — bring-up made to go wrong |
+| `EngineVocabularyDoesNotCollideWithItselfIT` | own (sweep) | 0 | 0 | deleted; walked in `BringUpUnderStrainIT` |
+| `FaceRefusalIT` | own (deployment) | 0 | 0 | deleted; walked in `BringUpUnderStrainIT` |
 | `OneVocabularyTwoBindingsIT` | shared | 0 | 0 | deleted |
 | `ProfilesArrivingOutOfBandTakeEffectIT` | own (sweep) | 0 | 0 | deleted |
 | `ProvisionedPdiCoarsensIT` | shared | 0 | 0 | deleted |
@@ -606,42 +606,55 @@ store with a database extractor in-process).
 
 **Bring-up made to go wrong.** A provisioner that is behind or races, a
 catalogue or a face registry built by hand, a process stopped mid-sync, the
-database's own log: `SeveralTenantsDeclaredAtOnceComeUpTogetherIT`,
+database's own log. The group is now the technical story
+[US-DBO-BRING-UP-UNDER-STRAIN](../../arc42-003-context/user-stories/us-dbo-bring-up-under-strain.md),
+walked in `BringUpUnderStrainIT` on one runtime scripted by tenant code, with
+a node of its own for the shutdown leg and a racing node inside the teardown
+leg. It folds `SeveralTenantsDeclaredAtOnceComeUpTogetherIT`,
 `AStreamKeepsMovingWhileATenantComesUpIT`, `ATenantThatIsNotUpSaysWhyIT`
-(trimmed to storage not yet arrived), `ATenantGoingAwayIsNotOneThatFailedIT`,
-`FaceRefusalIT`, `AShutdownIsQuietIT`, `MandatoryStepsClassifyIncidentsIT`,
-`EngineVocabularyDoesNotCollideWithItselfIT`, `ADefinitionIsExpandedWhenItArrivesIT`
-(trimmed to the two legs that delete rows behind the store and force a
-rebuild).
+(storage not yet arrived), `ATenantGoingAwayIsNotOneThatFailedIT`,
+`FaceRefusalIT`, `AShutdownIsQuietIT`, `MandatoryStepsClassifyIncidentsIT` and
+`EngineVocabularyDoesNotCollideWithItselfIT`. `ADefinitionIsExpandedWhenItArrivesIT`
+stays where it is (trimmed to the two legs that delete rows behind the store
+and force a rebuild).
 
 **What a deployment is given before it starts.** Face images, a secret it
-chose, brokers it federates to, the specification's cost in a fresh process:
-`AFaceIsCutOnceAndBroughtUpFromIT`, `ATenantComesUpFromTheFaceImageIT`,
-`AZoneReachesAnotherFaceThroughOneProjectionIT`,
-`ADeploymentPresentsItsOwnCredentialIT`, `ZoneIT`, `FederatedAuthIT` (Rowling
-Land's `rl` brokers its members but declares no person identifier domain, so a
-member cannot resolve the hub's subject — a world change, not a test change),
-`WhatTheLoadedSpecificationCostsIT`, `ATenantSubscribesToItsVersionIT` (trimmed
-to the build counters, which live inside the container).
+chose, the brokers it federates to and their secrets. The group is the
+technical story US-DBO-A-DEPLOYMENT-IS-EQUIPPED, walked by
+`ADeploymentIsEquippedBeforeItStartsIT` on one runtime of its own: one image
+directory set between bring-ups, one authority configuration carrying both the
+hub's upstream and the zone's broker secrets, one stub server for every
+broker, and one r4 face root under both the image legs and the projection
+legs. It folds `AFaceIsCutOnceAndBroughtUpFromIT`,
+`ATenantComesUpFromTheFaceImageIT`, `AZoneReachesAnotherFaceThroughOneProjectionIT`,
+`ADeploymentPresentsItsOwnCredentialIT`, `ZoneIT` and `FederatedAuthIT`, which
+are deleted. The hub legs could move to Rowling Land with a world change rather
+than a test change: `rl` brokers its members but declares no person identifier
+domain, so a member cannot resolve the hub's subject. Two classes stay on their
+own: `WhatTheLoadedSpecificationCostsIT`, which measures the specification's
+cost in a fresh process, and `ATenantSubscribesToItsVersionIT` (trimmed to the
+build counters, which live inside the container).
 
 **A deployment with a substrate.** The lane over the stream, and what lands
-on the shared plane: `ALaneOverTheStreamIsIndistinguishableIT`,
-`ALargePayloadTravelsByReferenceIT`, `NothingReadableLandsInTheSubstrateIT`,
-`AStreamLaneIsToldItHasWorkIT`, and the sample's own
-`TheWorkArrivesOverTheSubstrateIT`. Rowling Land was given a substrate to hold
-them and every story ran about two and a half times slower: a tenant's door on
-the stream launches a durable-workflow instance of its own, and a world of
-twenty tenants is twenty of them. That is a finding about substrates at scale,
-recorded rather than worked around here. With the world loaded, the wake-up leg
-also slept through a released run — the door coalesces nudges inside 200 ms and
-sends none after the window, so on a busy tenant the last run of a burst may go
-unannounced until the poll. Not proven: the harness class passes on a quiet
-tenant, and the story leg never ran on a quiet one.
+on the shared plane, are now the technical story US-DBO-ON-THE-STREAM, walked
+by `AParticipantHoldsItsLaneOnTheStreamIT` on one runtime with one substrate
+and one tenant. `AHostHoldsALaneByInstallingABundleIT` stays apart, because it
+installs the lane into a Felix of its own, and so does the sample's own
+`TheWorkArrivesOverTheSubstrateIT`, which proves the wrapper. Rowling Land was
+given a substrate to hold them and every story ran about two and a half times
+slower: a tenant's door on the stream launches a durable-workflow instance of
+its own, and a world of twenty tenants is twenty of them. That is a finding
+about substrates at scale, recorded rather than worked around here. With the
+world loaded, the wake-up leg also slept through a released run — the door
+coalesces nudges inside 200 ms and sends none after the window, so on a busy
+tenant the last run of a burst may go unannounced until the poll. Not proven:
+the story's wake-up leg runs on a quiet tenant, before any other leg has made
+a run of its step.
 
 **Erasure has no door.** `TenantRuntimeManager.erase` is an operator act and
 nothing a deployment serves reaches it, so erasure-by-drop is proven only
-against the provisioner: `TenantRuntimeIT` (trimmed to erasure),
-`ABlobIsTenantDataIT`.
+against the provisioner — now the technical story US-DBO-A-TENANT-IS-ERASED,
+in `ATenantIsErasedIT`, one runtime for what was two.
 
 **Libraries proven without a runtime.** `ARunsTrailIsChainedFromTheTaskIT`
 (the pruned trail), `AnApplianceCarriesPatientDataByWorkIT` (the appliance
@@ -651,9 +664,13 @@ half of two places).
 lane into a Felix of its own; it joins the OSGi classes above.
 
 **What only the deployment's process can answer.** The fleet-step story's
-leftovers, listed in its section: the register, disagreement incidents,
+leftovers, now the technical story
+[US-DBO-A-STEP-IS-RUN-FOR-THE-FLEET](../../arc42-003-context/user-stories/us-dbo-a-step-is-run-for-the-fleet.md),
+walked in `AStepIsRunForTheFleetIT`: the register, disagreement incidents,
 unauthorised rows and processor enrolment have no door, and the rest need
-`mom` to declare more than Rowling Land does.
+`mom` to declare more than Rowling Land does. The class brings up one
+runtime of its own for every leg that needs a management declaration, and
+walks the rest on the harness's shared deployment.
 
 ## The assemblies and samples proving themselves
 

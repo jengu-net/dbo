@@ -549,7 +549,7 @@ seam already uses for a tenant's storage somebody else prepares, and the
 deployment carries on with the steps declared and nowhere to put their work.
 Saying that is the joiner's job when it has one.
 
-*Proven by:* `DeclaringAStepPreparesItsSubstrateIT`, claiming
+*Proven by:* `AStepIsRunForTheFleetIT`, claiming
 `REQ-DBO-PROC-DECLARING-A-STEP-PREPARES-ITS-SUBSTRATE` — two steps sharing one
 substrate and one with its own, the databases present and carrying no schema,
 and a withdrawn step whose substrate stays.
@@ -631,7 +631,7 @@ failing. A substrate may carry several steps' queues and a process may be
 registered for one of them, so an unregistered step has to look like an item
 nobody has taken yet.
 
-*Proven by:* `OneBeanPerformsForEveryTenantIT`, claiming
+*Proven by:* `AStepIsRunForTheFleetIT`, claiming
 `REQ-DBO-PROC-ONE-BEAN-PERFORMS-FOR-EVERY-TENANT` — one bean performing work
 authored in two tenants and naming neither, and a consumer closed and rebuilt
 with work authored while it was gone, which is performed when it returns.
@@ -665,7 +665,7 @@ what travels is four strings and the reporting handle is made on the far side
 from them. That is why the workflow interface and the bean interface are two
 interfaces.
 
-*Proven by:* `TheWritebackPassesTheTenantsRulesIT`, claiming
+*Proven by:* `AStepIsRunForTheFleetIT`, claiming
 `REQ-DBO-PROC-THE-WRITEBACK-PASSES-THE-TENANTS-RULES` — a run closing in the
 tenant that authored it, carrying the tally and naming the performer the
 application gave; and a step declaring `open` and not `close` refusing a close,
@@ -760,7 +760,7 @@ between register and trail can only ever be an incident — and the test reports
 the opening the way a real processor does, manifest head and signature and all,
 rather than reaching past the mechanism to write an entry.
 
-*That part proven by:* `ATenantReadsWhatIsOpenedOfItsDataIT`, claiming
+*That part proven by:* `AStepIsRunForTheFleetIT`, claiming
 `REQ-DBO-PROC-A-TENANT-READS-WHAT-IS-OPENED-OF-ITS-DATA` and
 `REQ-DBO-PROC-A-DISAGREEMENT-IS-AN-INCIDENT-NOT-A-REFUSAL`.
 
@@ -797,7 +797,7 @@ which is exactly how a deployment would otherwise approve its own widening.
 Never having read a register stays a different answer from having read a
 different one.
 
-*Proven by:* `AProcessorIsEnrolledPerTenantIT`, claiming
+*Proven by:* `AStepIsRunForTheFleetIT`, claiming
 `REQ-DBO-PROC-A-PROCESSOR-IS-ENROLLED-PER-TENANT` and
 `REQ-DBO-PROC-A-TENANT-AUTHORISES-A-REGISTER-AND-SEES-IT-CHANGE`.
 
@@ -835,7 +835,7 @@ withheld until something restarted — stale at precisely the moment it mattered
 since the whole point of classifying these fields `hot` is that granting or
 withdrawing authorisation costs no outage.
 
-*Proven by:* `AnUnauthorisedRowObeysItsPostureIT`, claiming
+*Proven by:* `AStepIsRunForTheFleetIT`, claiming
 `REQ-DBO-PROC-AN-UNAUTHORISED-ROW-OBEYS-ITS-POSTURE` — three postures and three
 answers; the withheld row raising no incident because nothing happened under it;
 and authorising one row releasing that step while the other's incident stands.
@@ -853,7 +853,7 @@ is written in the management tenant where the set can be read before anybody
 joins. An agreement a tenant can leave by editing its own file is not an
 agreement, which is what decision three was really asserting.
 
-*That part proven by:* `ATenantAdmitsOrDeclinesWhatIsDoneToItIT`, claiming
+*That part proven by:* `AStepIsRunForTheFleetIT`, claiming
 `REQ-DBO-PROC-A-TENANT-ADMITS-OR-DECLINES-WHAT-IS-DONE-TO-IT`.
 
 **What is left of step 7, and why.** The register itself and the incident are

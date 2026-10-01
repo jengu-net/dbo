@@ -212,6 +212,78 @@ public enum DboStories implements Story {
                     DboPromises.PROC_AN_UNAUTHORISED_ROW_OBEYS_ITS_POSTURE
             )),
 
+    ON_THE_STREAM("A deployment whose participants hold their lanes over its own durable "
+            + "substrate instead of over HTTP: a service that connects to the substrate and "
+            + "nothing else does its work exactly as one over HTTP does, is woken when work "
+            + "appears, and leaves nothing readable on the shared plane.",
+            List.of(
+                    // The same lane over the substrate, and nothing above it
+                    // can tell which carrier it holds.
+                    DboPromises.PROC_A_LANE_OVER_THE_STREAM,
+                    DboPromises.PROC_A_HOST_HOLDS_A_LANE_WHEREVER_IT_IS,
+                    // Told there is work, and still claiming it the ordinary way.
+                    DboPromises.PROC_A_WAKE_UP_IS_NOT_HOW_WORK_ARRIVES,
+                    // What crosses the shared plane is a manifest and sealed
+                    // bytes, and a large payload travels beside the message.
+                    DboPromises.WF_TWO_PLANES,
+                    DboPromises.WF_CONTENT_FREE_PLATFORM_PLANE
+            )),
+
+    A_DEPLOYMENT_IS_EQUIPPED("Whoever runs a deployment decides some things before anything "
+            + "starts — where face images are kept, the secret each tenant's authority will "
+            + "accept, the brokers a zone federates to and their secrets — and each takes "
+            + "effect exactly as it was given.",
+            List.of(
+                    // Where images are kept: a face cut once, a tenant brought up
+                    // from it, and an image that is not this release's refused.
+                    DboPromises.TEN_A_TENANT_COMES_UP_FROM_THE_FACE_IMAGE,
+                    DboPromises.VER_AN_IMAGE_FROM_ANOTHER_RELEASE_IS_REFUSED,
+                    DboPromises.VER_AN_IMAGE_IS_CUT_ONLY_WHEN_COMPLETE,
+                    // A secret the deployment chose, and can present.
+                    DboPromises.AUTH_BOOTSTRAP_SECRET_IS_CUSTODY,
+                    // The brokers its zones federate to, and the one its hub does.
+                    DboPromises.AUTH_FEDERATED_HUMANS,
+                    DboPromises.ZONE_BROKER_CHOICE,
+                    DboPromises.ZONE_SUBJECT_DOMAINS,
+                    DboPromises.ZONE_SESSIONS_ACCUMULATE,
+                    DboPromises.AUTH_ONE_CEREMONY_MANY_TENANTS,
+                    DboPromises.AUTH_PASSWORD_ONLY_WHERE_WE_ARE_THE_IDP,
+                    // A zone reaching a face it was not written in, through the
+                    // images the deployment keeps.
+                    DboPromises.ZONE_A_ZONE_IS_SERVED_TO_A_FACE_THROUGH_ONE_PROJECTION,
+                    DboPromises.ZONE_WHAT_CONVERSION_CANNOT_CARRY_IS_REFUSED_BY_NAME,
+                    DboPromises.ZONE_AN_UNSERVABLE_ZONE_IS_SAID_AT_BRING_UP,
+                    DboPromises.SYNC_LOCAL_SHADOWING
+            )),
+
+    A_STEP_IS_RUN_FOR_THE_FLEET("The operator running a step for every tenant reads what only "
+            + "the deployment can see: which tenants admitted or declined it, what each "
+            + "register says is opened, the rows nobody authorised and the posture they obey, "
+            + "a processor enrolled per tenant, a substrate prepared and kept, a writeback held "
+            + "to each tenant's rules, and one bean found for a step rather than wired.",
+            List.of(
+                    // One bean, found by the container, and performing for
+                    // every tenant on the substrate the deployment placed it on.
+                    DboPromises.PROC_A_BEAN_IS_FOUND_RATHER_THAN_WIRED,
+                    DboPromises.PROC_A_FLEET_PERFORMER_IS_HANDED_ITS_OBJECTS,
+                    DboPromises.PROC_ONE_BEAN_PERFORMS_FOR_EVERY_TENANT,
+                    DboPromises.PROC_A_CONSUMER_TAKES_ONLY_ITS_OWN_STEPS,
+                    DboPromises.PROC_DECLARING_A_STEP_PREPARES_ITS_SUBSTRATE,
+                    // Work of it asked for on a tenant's door, by reference or
+                    // by search, and written back through that tenant's rules.
+                    DboPromises.PROC_A_PARTICIPANT_ASKS_FOR_WORK_IT_NEED_NOT_PERFORM,
+                    DboPromises.PROC_A_REFERENCE_MAY_BE_A_SEARCH,
+                    DboPromises.PROC_THE_WRITEBACK_PASSES_THE_TENANTS_RULES,
+                    // What each tenant agreed to, and what it is told when the
+                    // trail says otherwise.
+                    DboPromises.PROC_A_TENANT_ADMITS_OR_DECLINES_WHAT_IS_DONE_TO_IT,
+                    DboPromises.PROC_A_TENANT_READS_WHAT_IS_OPENED_OF_ITS_DATA,
+                    DboPromises.PROC_A_DISAGREEMENT_IS_AN_INCIDENT_NOT_A_REFUSAL,
+                    DboPromises.PROC_A_PROCESSOR_IS_ENROLLED_PER_TENANT,
+                    DboPromises.PROC_A_TENANT_AUTHORISES_A_REGISTER_AND_SEES_IT_CHANGE,
+                    DboPromises.PROC_AN_UNAUTHORISED_ROW_OBEYS_ITS_POSTURE
+            )),
+
     TENANT_OPENING("A tenant is stood up inside somebody else's JVM, with a database and an "
             + "authority of its own, and the people who will work in it get in.",
             List.of(
@@ -512,6 +584,33 @@ public enum DboStories implements Story {
                     // Fitted here rather than left in no story: what makes a thing handed
                     // over on its own.
                     DboPromises.CORE_A_SEPARABLE_DOMAIN_HAS_A_SCHEMA_OF_ITS_OWN
+            )),
+
+    BRING_UP_UNDER_STRAIN("A deployment brings tenants up while what is around it is slow, "
+            + "half-arrived, racing or wrong, and each of those reads as what it is: a wait, "
+            + "a failure with its reason, or nothing at all.",
+            List.of(
+                    // Several at once, and one whose storage has not arrived:
+                    // neither is a queue, and the runtime says which is which.
+                    DboPromises.TEN_DECLARED_TOGETHER_COME_UP_TOGETHER,
+                    DboPromises.OPS_RUNTIME_SAYS_WHAT_IT_SERVES,
+                    // A step nobody performs is an incident on a tenant that
+                    // keeps serving, cleared when somebody does.
+                    DboPromises.PROC_MANDATORY_STEPS_CLASSIFY_INCIDENTS,
+                    DboPromises.PROC_STEPS_ARRIVE_BY_INTRODUCTION,
+                    // The engine's vocabulary arriving twice is one publication;
+                    // a tenant's own different decision still wins.
+                    DboPromises.SYNC_LOCAL_SHADOWING,
+                    // And a bring-up held open stops no stream.
+                    DboPromises.TEN_COMING_UP_AND_KEEPING_UP_ARE_NOT_ONE_QUEUE
+            )),
+
+    A_TENANT_IS_ERASED("A tenant is erased by dropping its database, and everything it held "
+            + "goes with it — records and whole recordings alike — because that is where they "
+            + "were kept.",
+            List.of(
+                    DboPromises.TEN_ERASURE_BY_DROP,
+                    DboPromises.OPS_TENANT_BLOBS_ARE_TENANT_DATA
             ));
 
     private final String title;
