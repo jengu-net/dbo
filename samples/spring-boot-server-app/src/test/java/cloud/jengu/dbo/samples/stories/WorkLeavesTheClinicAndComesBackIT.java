@@ -127,9 +127,17 @@ class WorkLeavesTheClinicAndComesBackIT {
     @Autowired
     org.springframework.core.env.Environment environment;
 
-    /** The worker application's own way of asking for work, and of hearing back. */
+    /** The worker application's own way of asking for work. */
     @Autowired
     cloud.jengu.dbo.spring.worker.DboInitiator initiator;
+
+    /** The worker application asking for an admission. */
+    @Autowired
+    cloud.jengu.dbo.samples.worker.AskingForAnAdmission admitting;
+
+    /** And hearing what the work came to. */
+    @Autowired
+    cloud.jengu.dbo.samples.worker.HearingBack hearing;
 
     private ATenantsDoor hospital;
     private ObjectStore engine;
@@ -1135,26 +1143,26 @@ class WorkLeavesTheClinicAndComesBackIT {
             + "only it — with how the work ended and what the step produced")
     @Proving(DboPromises.PROC_A_RUN_ANSWERS_ITS_INITIATOR)
     void theRunAnswersTheApplicationThatAskedForIt() {
-        String admission = "hogwarts.admission.admit";
+        String admission = cloud.jengu.dbo.samples.worker.AskingForAnAdmission.STEP;
         var patient = dbo.write(HOSPITAL, "Patient", """
                 {"resourceType":"Patient","name":[{"family":"%s"}]}""".formatted(
                 NAMES.value("admitted")));
         assertTrue(patient.accepted(), "the patient was not accepted: " + patient.body());
 
-        cloud.jengu.dbo.spring.worker.DboInitiator.Started started = initiator.start(HOSPITAL,
-                admission, Map.of("patient", "Patient/" + patient.idOrFail()));
+        cloud.jengu.dbo.spring.worker.DboInitiator.Started started =
+                admitting.admit(HOSPITAL, "Patient/" + patient.idOrFail());
         String run = started.runOrFail();
 
         // Performed by the worker's own admitting bean, which closes the run
         // with what it counted; the application that asked waits for that.
         cloud.jengu.dbo.spring.worker.DboInitiator.Answer answer =
-                initiator.awaiting(HOSPITAL, run, Duration.ofMinutes(3));
+                hearing.settled(HOSPITAL, started, Duration.ofMinutes(3));
         Proves.that(DboPromises.PROC_A_RUN_ANSWERS_ITS_INITIATOR, answer.answered(),
                 "the run did not answer the application that asked for it: " + answer);
         Proves.that(DboPromises.PROC_A_RUN_ANSWERS_ITS_INITIATOR,
                 "completed".equals(answer.state()),
                 "the run's answer never said the admission was done: " + answer.body());
-        Map<?, ?> task = (Map<?, ?>) cloud.jengu.dbo.core.wire.RecordWire.read(answer.body());
+        Map<?, ?> task = cloud.jengu.dbo.samples.worker.HearingBack.task(answer);
         Proves.that(DboPromises.PROC_A_RUN_ANSWERS_ITS_INITIATOR,
                 "Task".equals(task.get("resourceType")) && run.equals(task.get("id"))
                         && String.valueOf(task.get("identifier")).contains(started.key()),
@@ -1163,10 +1171,8 @@ class WorkLeavesTheClinicAndComesBackIT {
                 String.valueOf(task.get("input")).contains("Patient/" + patient.idOrFail()),
                 "the answer does not say what the run was over: " + answer.body());
         Proves.that(DboPromises.PROC_A_RUN_ANSWERS_ITS_INITIATOR,
-                task.get("output") instanceof List<?> outputs && outputs.stream().anyMatch(o ->
-                        String.valueOf(o).contains("urn:dbo:run:tally")
-                                && String.valueOf(o).contains("admitted")
-                                && String.valueOf(o).contains("valueInteger=1")),
+                cloud.jengu.dbo.samples.worker.HearingBack.counted(answer, "admitted")
+                        .equals(java.util.Optional.of(1L)),
                 "the answer does not carry what the step counted: " + answer.body());
 
         // Anybody else is told the run is not there: another client that may
@@ -1207,12 +1213,12 @@ class WorkLeavesTheClinicAndComesBackIT {
                 "hogwarts.admission.register", Map.of("patient",
                         cloud.jengu.dbo.spring.worker.DboInitiator.Slot.object(person(arriving))));
         cloud.jengu.dbo.spring.worker.DboInitiator.Answer answer =
-                initiator.awaiting(HOSPITAL, started.runOrFail(), Duration.ofMinutes(3));
+                hearing.settled(HOSPITAL, started, Duration.ofMinutes(3));
         Proves.that(DboPromises.PROC_A_RESULT_IS_WRITTEN_BY_THE_TENANT,
                 "completed".equals(answer.state()),
                 "the registration did not complete: " + answer.body());
 
-        List<String> produced = produced(answer);
+        List<String> produced = cloud.jengu.dbo.samples.worker.HearingBack.produced(answer);
         String patient = produced.stream().filter(p -> p.startsWith("Patient/")).findFirst()
                 .orElse(null);
         String stay = produced.stream().filter(p -> p.startsWith("Encounter/")).findFirst()
@@ -1257,7 +1263,7 @@ class WorkLeavesTheClinicAndComesBackIT {
                         cloud.jengu.dbo.spring.worker.DboInitiator.Slot.object(person(arriving))));
         String run = again.runOrFail();
         cloud.jengu.dbo.spring.worker.DboInitiator.Answer answer =
-                initiator.awaiting(HOSPITAL, run, Duration.ofMinutes(3));
+                hearing.settled(HOSPITAL, again, Duration.ofMinutes(3));
         Proves.that(DboPromises.PROC_A_REFUSED_RESULT_ENDS_THE_RUN,
                 "failed".equals(answer.state()),
                 "a result the hospital refused did not end the run as failed: " + answer.body());
@@ -1279,7 +1285,7 @@ class WorkLeavesTheClinicAndComesBackIT {
         String before = String.valueOf(((Map<?, ?>) ((Map<?, ?>) cloud.jengu.dbo.core.wire
                 .RecordWire.read(answer.body())).get("meta")).get("versionId"));
         Thread.sleep(2_000);
-        cloud.jengu.dbo.spring.worker.DboInitiator.Answer later = initiator.answer(HOSPITAL, run);
+        cloud.jengu.dbo.spring.worker.DboInitiator.Answer later = hearing.now(HOSPITAL, run);
         String after = String.valueOf(((Map<?, ?>) ((Map<?, ?>) cloud.jengu.dbo.core.wire
                 .RecordWire.read(later.body())).get("meta")).get("versionId"));
         Proves.that(DboPromises.PROC_A_REFUSED_RESULT_ENDS_THE_RUN,
@@ -1293,19 +1299,6 @@ class WorkLeavesTheClinicAndComesBackIT {
                 {"resourceType":"Patient",
                  "identifier":[{"system":"urn:rl:nid","value":"%s"}],
                  "name":[{"family":"Lovegood","given":["Luna"]}]}""".formatted(nid);
-    }
-
-    /** What the run's answer says it produced, as {@code Type/id/_history/version}. */
-    private static List<String> produced(cloud.jengu.dbo.spring.worker.DboInitiator.Answer answer) {
-        Map<?, ?> task = (Map<?, ?>) cloud.jengu.dbo.core.wire.RecordWire.read(answer.body());
-        if (!(task.get("output") instanceof List<?> outputs)) {
-            return List.of();
-        }
-        return outputs.stream().map(o -> (Map<?, ?>) o)
-                .filter(o -> String.valueOf(o.get("type")).contains("code=produced,")
-                        || String.valueOf(o.get("type")).contains("code=produced}"))
-                .map(o -> String.valueOf(((Map<?, ?>) o.get("valueReference")).get("reference")))
-                .toList();
     }
 
     // ── helpers ───────────────────────────────────────────────────────────
