@@ -58,6 +58,8 @@ class TheStandardMovesUnderTheDataIT {
                 {"code":"%s","face":"r4","audit":{"level":"none"},
                  "types":[
                   {"name":"StructureDefinition","identity":"canonical","handling":"operational"},
+                  {"name":"StructureMap","identity":"canonical","handling":"operational"},
+                  {"name":"Basic","identity":"internal","handling":"operational"},
                   {"name":"Patient","identity":"internal","handling":"operational"},
                   {"name":"Observation","identity":"internal","handling":"operational"}]}"""
                 .formatted(clinicCode));
@@ -203,7 +205,272 @@ class TheStandardMovesUnderTheDataIT {
                         + stillThere.body());
     }
 
+    // ── and the stock moves to the new shape, in place ──
+
+    @Test
+    @Order(7)
+    @DisplayName("stock stamped below the target is converted in place by the clinic's own map; "
+            + "the new version carries the new stamp and history keeps the old one")
+    @Proving(DboPromises.SHAPE_RESHAPED_IN_PLACE)
+    void stockIsConvertedInPlace() {
+        String note = noteShape();
+        assertEquals(201, clinic.post("/StructureDefinition", basicShape(note, "2.0.0"))
+                .statusCode());
+        HttpResponse<String> created = clinic.post("/Basic", basicNote(note));
+        assertEquals(201, created.statusCode(), created.body());
+        oldStock = dbo.says(created).one("id").orElseThrow();
+        assertTrue(clinic.get("/Basic/" + oldStock).body().contains("\"valueString\":\"2.0.0\""),
+                "the stock does not start stamped 2.0.0");
+
+        assertTrue(clinic.put("/StructureDefinition?url=" + enc(note), basicShape(note, "3.0.0"))
+                .statusCode() < 300, "the shape did not move to 3.0.0");
+        HttpResponse<String> map = clinic.post("/StructureMap", noteMap(note));
+        assertEquals(201, map.statusCode(), map.body());
+
+        String run = admin("/reshape?type=Basic&profile=" + enc(note) + "&target=3");
+        Proves.that(DboPromises.SHAPE_RESHAPED_IN_PLACE,
+                run.contains("\"converted\":1")
+                        && clinic.get("/Basic/" + oldStock).body()
+                                .contains("\"valueString\":\"3.0.0\"")
+                        && clinic.get("/Basic/" + oldStock + "/_history").body()
+                                .contains("\"valueString\":\"2.0.0\""),
+                "the stock was not converted in place with its old version kept in history: "
+                        + run);
+    }
+
+    @Test
+    @Order(8)
+    @DisplayName("a re-run finds only what is still behind, so converted stock is not "
+            + "converted twice")
+    @Proving(DboPromises.SHAPE_RESHAPE_RESUMABLE)
+    void aReRunConvertsNothing() {
+        String run = admin("/reshape?type=Basic&profile=" + enc(noteShape()) + "&target=3");
+        Proves.that(DboPromises.SHAPE_RESHAPE_RESUMABLE,
+                run.contains("\"converted\":0") && run.contains("\"complete\":true"),
+                "a re-run converted something again, or did not say it was complete: " + run);
+    }
+
+    @Test
+    @Order(9)
+    @DisplayName("an object no map covers is named and left behind, with its reason, and the "
+            + "run does not claim to be complete")
+    @Proving(DboPromises.SHAPE_REFUSED_OBJECT_LEFT_BEHIND)
+    void whatNoMapCoversIsNamedAndLeftBehind() {
+        String orphanShape = orphanShape();
+        assertEquals(201, clinic.post("/StructureDefinition", basicShape(orphanShape, "2.0.0"))
+                .statusCode());
+        HttpResponse<String> created = clinic.post("/Basic", basicNote(orphanShape));
+        String orphan = dbo.says(created).one("id").orElseThrow();
+
+        String run = admin("/reshape?type=Basic&profile=" + enc(orphanShape) + "&target=3");
+        Proves.that(DboPromises.SHAPE_REFUSED_OBJECT_LEFT_BEHIND,
+                run.contains("\"converted\":0") && run.contains(orphan)
+                        && run.contains("no converter covers")
+                        && run.contains("\"complete\":false")
+                        && clinic.get("/Basic/" + orphan).body()
+                                .contains("\"valueString\":\"2.0.0\""),
+                "an object no map covers was not named and left untouched, or the run claimed "
+                        + "to be complete: " + run);
+    }
+
+    @Test
+    @Order(10)
+    @DisplayName("a stamp outlives the pack version that made it: re-numbering the shape leaves "
+            + "the stock findable and counted under what stamped it")
+    @Proving(DboPromises.SHAPE_STAMP_OUTLIVES_ITS_PACK)
+    void aStampOutlivesItsPack() {
+        String orphanShape = orphanShape();
+        String stranded = dbo.says(clinic.post("/Basic", basicNote(orphanShape))).one("id")
+                .orElseThrow();
+        assertTrue(clinic.put("/StructureDefinition?url=" + enc(orphanShape),
+                basicShape(orphanShape, "9.0.0")).statusCode() < 300);
+
+        Proves.that(DboPromises.SHAPE_STAMP_OUTLIVES_ITS_PACK,
+                dbo.says(clinic.get("/Basic?_shape-below=" + enc(orphanShape + "|9")))
+                        .at("entry.resource.id").contains(stranded),
+                "stock stamped under the withdrawn version is not findable by it");
+        String inventory = admin("/inventory");
+        Proves.that(DboPromises.SHAPE_STAMP_OUTLIVES_ITS_PACK,
+                inventory.contains(orphanShape) && inventory.contains("2.0.0"),
+                "the stock is not counted under the version that stamped it: " + inventory);
+    }
+
+    @Test
+    @Order(11)
+    @DisplayName("a claim for a converter outside the store writes nothing and holds nothing: "
+            + "abandoning it strands no data, and the same stock comes back")
+    @Proving(DboPromises.SHAPE_HANDBACK_CLAIMS_WITHOUT_LOCKING)
+    void aClaimHoldsNothing() {
+        String stranded = dbo.says(clinic.post("/Basic", basicNote(orphanShape()))).one("id")
+                .orElseThrow();
+        String claim = "/reshape/claim?type=Basic&profile=" + enc(orphanShape()) + "&target=10";
+        Proves.that(DboPromises.SHAPE_HANDBACK_CLAIMS_WITHOUT_LOCKING,
+                admin(claim).contains(stranded) && admin(claim).contains(stranded),
+                "an abandoned claim stranded the stock, so it did not come back");
+    }
+
+    @Test
+    @Order(12)
+    @DisplayName("a converted form handed back is validated, re-stamped and version-checked; a "
+            + "stale one is refused and its object left untouched")
+    @Proving(DboPromises.SHAPE_HANDBACK_KEEPS_THE_DISCIPLINE)
+    void aHandBackKeepsTheDiscipline() {
+        String id = dbo.says(clinic.post("/Basic", basicNote(orphanShape()))).one("id")
+                .orElseThrow();
+        String claim = "/reshape/claim?type=Basic&profile=" + enc(orphanShape()) + "&target=10";
+        long version = versionOf(admin(claim), id);
+
+        assertTrue(clinic.put("/Basic/" + id, basicNote(orphanShape())).statusCode() < 300);
+        String stale = applyBack(id, version, basicNote(orphanShape()));
+        long current = versionOf(admin(claim), id);
+        String applied = applyBack(id, current, basicNote(orphanShape()));
+        Proves.that(DboPromises.SHAPE_HANDBACK_KEEPS_THE_DISCIPLINE,
+                stale.contains("\"converted\":0") && stale.contains(id)
+                        && applied.contains("\"converted\":1")
+                        && clinic.get("/Basic/" + id).body()
+                                .contains("\"valueString\":\"9.0.0\""),
+                "a stale hand-back was taken, or a current one was not re-stamped by the pack: "
+                        + stale + " / " + applied);
+    }
+
+    // ── and a pack that moves backwards does not hide what it no longer covers ──
+
+    @Test
+    @Order(13)
+    @DisplayName("when the pack rolls back below an object's stamp, the object is refused by "
+            + "id with its own answer naming the stamp and what the pack now declares")
+    @Proving({DboPromises.SHAPE_NEWER_DATA_REFUSED, DboPromises.SHAPE_TOO_NEW_IS_ITS_OWN_ANSWER})
+    void dataNewerThanThePackIsRefusedById() {
+        String reading = names.canonical("StructureDefinition/reading");
+        assertEquals(201, clinic.post("/StructureDefinition", basicShape(reading, "3.0.0"))
+                .statusCode());
+        tooNew = dbo.says(clinic.post("/Basic", basicNote(reading))).one("id").orElseThrow();
+        assertTrue(clinic.get("/Basic/" + tooNew).body().contains("\"valueString\":\"3.0.0\""),
+                "the object does not start stamped at what the pack then declared");
+
+        assertTrue(clinic.put("/StructureDefinition?url=" + enc(reading),
+                basicShape(reading, "2.0.0")).statusCode() < 300);
+        HttpResponse<String> refused = clinic.get("/Basic/" + tooNew);
+        Proves.that(DboPromises.SHAPE_TOO_NEW_IS_ITS_OWN_ANSWER,
+                refused.statusCode() == 409 && refused.body().contains(tooNew)
+                        && refused.body().contains("3.0.0") && refused.body().contains("2.0.0")
+                        && refused.body().contains("conflict"),
+                "the object newer than the pack was not refused as its own answer, naming the "
+                        + "stamp and the pack: " + refused.statusCode() + " " + refused.body());
+    }
+
+    @Test
+    @Order(14)
+    @DisplayName("a search whose answer would contain it is refused whole, never quietly short")
+    @Proving(DboPromises.SHAPE_NEWER_DATA_REFUSED)
+    void aSearchThatWouldHoldItIsRefusedWhole() {
+        HttpResponse<String> search = clinic.get("/Basic");
+        Proves.that(DboPromises.SHAPE_NEWER_DATA_REFUSED,
+                search.statusCode() == 409 && search.body().contains(tooNew),
+                "a search answered short, which looks like an answer: " + search.statusCode()
+                        + " " + search.body());
+    }
+
+    @Test
+    @Order(15)
+    @DisplayName("what is not demonstrably ahead still reads: unstamped stock, and stock under a "
+            + "shape the pack no longer carries at all")
+    @Proving(DboPromises.SHAPE_NEWER_DATA_REFUSED)
+    void onlyWhatIsDemonstrablyAheadIsRefused() {
+        String unstamped = dbo.says(clinic.post("/Basic",
+                "{\"resourceType\":\"Basic\",\"code\":{\"text\":\"plain\"}}"))
+                .one("id").orElseThrow();
+        String gone = names.canonical("StructureDefinition/gone");
+        String goneShape = dbo.says(clinic.post("/StructureDefinition", basicShape(gone, "1.0.0")))
+                .one("id").orElseThrow();
+        String underGone = dbo.says(clinic.post("/Basic", basicNote(gone))).one("id")
+                .orElseThrow();
+        assertTrue(clinic.delete("/StructureDefinition/" + goneShape).statusCode() < 400,
+                "the pack did not drop the shape");
+
+        Proves.that(DboPromises.SHAPE_NEWER_DATA_REFUSED,
+                clinic.get("/Basic/" + unstamped).statusCode() == 200
+                        && clinic.get("/Basic/" + underGone).statusCode() == 200,
+                "unstamped stock, or stock under a shape the pack no longer carries, was "
+                        + "refused as though it were ahead");
+    }
+
     // ── helpers ───────────────────────────────────────────────────────────
+
+    private String oldStock;
+    private String tooNew;
+
+    private String noteShape() {
+        return names.canonical("StructureDefinition/note");
+    }
+
+    private String orphanShape() {
+        return names.canonical("StructureDefinition/orphan");
+    }
+
+    private static String basicShape(String url, String version) {
+        return """
+                {"resourceType":"StructureDefinition","url":"%s","version":"%s",
+                 "name":"Shape%s","status":"active","kind":"resource","abstract":false,
+                 "type":"Basic",
+                 "baseDefinition":"http://hl7.org/fhir/StructureDefinition/Basic",
+                 "derivation":"constraint",
+                 "differential":{"element":[
+                   {"id":"Basic.code","path":"Basic.code","min":1}]}}"""
+                .formatted(url, version, Math.abs(url.hashCode()));
+    }
+
+    private static String basicNote(String profile) {
+        return """
+                {"resourceType":"Basic","code":{"text":"note"},
+                 "meta":{"profile":["%s"]}}""".formatted(profile);
+    }
+
+    /** The hop from 2 to 3, spelled the way FHIR spells a versioned reference. */
+    private String noteMap(String shape) {
+        return """
+                {"resourceType":"StructureMap",
+                 "url":"%s","version":"1.0.0",
+                 "name":"NoteTwoToThree","status":"active",
+                 "structure":[{"url":"%s|2.0.0","mode":"source"},
+                              {"url":"%s|3.0.0","mode":"target"}],
+                 "group":[{"name":"main","typeMode":"types",
+                   "input":[{"name":"src","type":"Basic","mode":"source"},
+                            {"name":"tgt","type":"Basic","mode":"target"}],
+                   "rule":[
+                     {"name":"code","source":[{"context":"src","element":"code","variable":"c"}],
+                      "target":[{"context":"tgt","contextType":"variable","element":"code",
+                                 "transform":"copy","parameter":[{"valueId":"c"}]}]},
+                     {"name":"meta","source":[{"context":"src","element":"meta","variable":"m"}],
+                      "target":[{"context":"tgt","contextType":"variable","element":"meta",
+                                 "transform":"copy","parameter":[{"valueId":"m"}]}]}]}]}"""
+                .formatted(names.canonical("StructureMap/note-2-to-3"), shape, shape);
+    }
+
+    private static long versionOf(String claimJson, String id) {
+        java.util.regex.Matcher m = java.util.regex.Pattern.compile(
+                "\\{\"id\":\"" + id + "\",\"version\":(\\d+)").matcher(claimJson);
+        assertTrue(m.find(), "the claim does not name " + id + ": " + claimJson);
+        return Long.parseLong(m.group(1));
+    }
+
+    private String applyBack(String id, long version, String payload) {
+        String body = "{\"held\":[{\"id\":\"" + id + "\",\"version\":" + version
+                + ",\"payload\":\"" + java.util.Base64.getEncoder().encodeToString(
+                        payload.getBytes(StandardCharsets.UTF_8)) + "\"}]}";
+        return dbo.send(java.net.http.HttpRequest.newBuilder(
+                        java.net.URI.create(dbo.at(clinicCode) + "/admin/reshape/apply?type=Basic"))
+                .POST(java.net.http.HttpRequest.BodyPublishers.ofString(body)),
+                dbo.token(clinicCode)).body();
+    }
+
+    /** A POST to the clinic's maintenance surface, the door an operator uses. */
+    private String admin(String path) {
+        return dbo.send(java.net.http.HttpRequest.newBuilder(
+                        java.net.URI.create(dbo.at(clinicCode) + "/admin" + path))
+                .POST(java.net.http.HttpRequest.BodyPublishers.noBody()),
+                dbo.token(clinicCode)).body();
+    }
 
     private String claiming() {
         return """
