@@ -56,6 +56,10 @@ class ATenantOpensAndItsPeopleGetInIT {
     @Autowired
     org.springframework.core.env.Environment environment;
 
+    /** What the clinic's application declares in a clinic as it opens. */
+    @Autowired
+    cloud.jengu.dbo.samples.server.OpeningAClinic opening;
+
     /** The clinic Ines is onboarding. */
     private String clinic;
     /** A second one, opened later from the same running store. */
@@ -146,8 +150,9 @@ class ATenantOpensAndItsPeopleGetInIT {
     @Proving({DboPromises.AUTH_TENANT_SCOPED_ISSUER, DboPromises.AUTH_BEARER_LOCAL_VALIDATION,
             DboPromises.AUTH_SMART_SHAPED_SCOPES})
     void theClinicsOwnAuthorityIssuesAndChecksTheToken() {
-        authority(clinic).ensureClient(app(), "app-secret", List.of("system/Patient.read"));
-        String reads = token(clinic, app(), "app-secret");
+        // The clinic's application registered itself as the clinic opened,
+        // with the one scope its screens need; it signs in as any client does.
+        String reads = token(clinic, app(), appSecret());
 
         assertEquals(200, statusOf(fhir(clinic) + "/Patient?_summary=count", reads),
                 "the scope it was granted answers");
@@ -168,7 +173,7 @@ class ATenantOpensAndItsPeopleGetInIT {
         assertTrue(dbo.until(second, true, Duration.ofMinutes(10)),
                 "the second clinic did not come up: " + dbo.serving());
 
-        String first = token(clinic, app(), "app-secret");
+        String first = token(clinic, app(), appSecret());
         assertEquals(200, statusOf(fhir(clinic) + "/Patient?_summary=count", first));
         Proves.that(DboPromises.TEN_STRUCTURAL_SCOPING,
                 statusOf(fhir(second) + "/Patient?_summary=count", first) == 401,
@@ -237,14 +242,18 @@ class ATenantOpensAndItsPeopleGetInIT {
     @Proving({DboPromises.AUTH_IDENTITY_AS_RECORDS,
             DboPromises.AUTH_ORG_MODEL_IS_THE_AUTH_MODEL})
     void whatAClinicianMayDoIsDeclaredAndWhoTheyAreIsARecord() {
-        // Declaring the same grant twice is the ordinary case, not an error:
-        // configuration arrives from wherever the clinic keeps it, and a
-        // bring-up that refused a grant it already had would make every
-        // redeploy a migration.
-        authority(clinic).ensureRoleGrant("clinician",
-                List.of("system/Patient.read", "system/Patient.write"));
-        authority(clinic).ensureRoleGrant("clinician",
-                List.of("system/Patient.read", "system/Patient.write"));
+        // The clinic's application declared the role as the clinic opened.
+        // Declaring it again is the ordinary case, not an error: every start
+        // declares it, and a bring-up that refused a grant it already had
+        // would make every redeploy a migration.
+        assertTrue(authority(clinic).activeRoleCodes()
+                        .contains(cloud.jengu.dbo.samples.server.OpeningAClinic.CLINICIAN),
+                "the clinic opened without the role its application declares: "
+                        + authority(clinic).activeRoleCodes());
+        assertTrue(opening.declare(clinic), "the clinic has no authority to declare it with");
+        assertTrue(authority(clinic).activeRoleCodes()
+                        .contains(cloud.jengu.dbo.samples.server.OpeningAClinic.CLINICIAN),
+                "declaring the role again took it away");
 
         Proves.that(DboPromises.AUTH_IDENTITY_AS_RECORDS,
                 tenants.store(clinic).orElseThrow().get("Person", personId).isPresent(),
@@ -1436,8 +1445,14 @@ class ATenantOpensAndItsPeopleGetInIT {
     }
 
 
-    private String app() {
-        return names.value("app");
+    /** The clinic's application, as a client of the clinic. */
+    private static String app() {
+        return cloud.jengu.dbo.samples.server.OpeningAClinic.APPLICATION;
+    }
+
+    /** Its secret, as the application is configured with it. */
+    private String appSecret() {
+        return environment.getRequiredProperty("clinic.application.secret");
     }
 
     private TenantAuthority authority(String tenant) {

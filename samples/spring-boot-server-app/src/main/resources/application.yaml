@@ -41,5 +41,9 @@ spring:
 # over HTTP, as the tenant is to know it. Empty unless a worker has handed its
 # enrolment over: see application-separated.yaml.
 clinic:
+  # This application as a client of each clinic that opens with a staff
+  # directory (OpeningAClinic). A sample's secret, for the reason above.
+  application:
+    secret: ${DBO_CLINIC_APPLICATION_SECRET:a-sample-secret-for-the-clinics-application}
   enrolment:
     secret: ${DBO_PARTICIPANT_SECRET:a-sample-secret-for-the-clinics-participant}
