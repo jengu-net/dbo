@@ -3086,6 +3086,7 @@ cloud.jengu.dbo.promises.DboStories                                    BUILT_OR_
 cloud.jengu.dbo.promises.DboStories                                    CLINICAL_RECORD:cloud.jengu.dbo.promises.DboStories
 cloud.jengu.dbo.promises.DboStories                                    EDGE_ROUNDTRIP:cloud.jengu.dbo.promises.DboStories
 cloud.jengu.dbo.promises.DboStories                                    FLEET_HEALTH:cloud.jengu.dbo.promises.DboStories
+cloud.jengu.dbo.promises.DboStories                                    FLEET_STEP:cloud.jengu.dbo.promises.DboStories
 cloud.jengu.dbo.promises.DboStories                                    PERSON_RIGHTS:cloud.jengu.dbo.promises.DboStories
 cloud.jengu.dbo.promises.DboStories                                    STANDARD_MOVES:cloud.jengu.dbo.promises.DboStories
 cloud.jengu.dbo.promises.DboStories                                    TENANT_OPENING:cloud.jengu.dbo.promises.DboStories

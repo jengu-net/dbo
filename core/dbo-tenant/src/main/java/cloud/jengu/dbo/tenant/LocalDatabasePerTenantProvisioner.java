@@ -63,6 +63,8 @@ public final class LocalDatabasePerTenantProvisioner implements TenantDatabasePr
             // the durable layer's listener and the work it hands out, not a
             // face serving reads.
             config.setMaximumPoolSize(4);
+            // Held only while used, for the reason a tenant's pool is.
+            config.setMinimumIdle(1);
             config.setPoolName("dbo-step-" + dbName);
             return new HikariDataSource(config);
         });
@@ -82,6 +84,14 @@ public final class LocalDatabasePerTenantProvisioner implements TenantDatabasePr
             config.setUsername(user);
             config.setPassword(password);
             config.setMaximumPoolSize(8);
+            // ONE HELD WHILE IDLE, not eight. A pool keeps as many idle
+            // connections as its maximum unless told otherwise, and every
+            // tenant on a node has one: twelve tenants nobody is using then
+            // hold ninety-six connections, which is all a default server
+            // allows, and the thirteenth tenant's bring-up is refused by the
+            // database rather than by anything this store decided. The rest
+            // are opened under load and closed again when it passes.
+            config.setMinimumIdle(1);
             config.setPoolName("dbo-tenant-" + code);
             return new HikariDataSource(config);
         });

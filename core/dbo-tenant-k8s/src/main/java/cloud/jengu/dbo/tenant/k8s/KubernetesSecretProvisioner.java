@@ -61,6 +61,10 @@ public final class KubernetesSecretProvisioner implements TenantDatabaseProvisio
             config.setUsername(decode(secret, "user"));
             config.setPassword(decode(secret, "password"));
             config.setMaximumPoolSize(8);
+            // One held while idle: a pool otherwise keeps its maximum open
+            // for a tenant nobody is using, and a node's tenants together
+            // reach the database's connection limit long before its load does.
+            config.setMinimumIdle(1);
             config.setPoolName("dbo-tenant-" + code);
             return new HikariDataSource(config);
         });

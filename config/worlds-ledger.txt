@@ -45,7 +45,6 @@ ALaneOverTheStreamIsIndistinguishableIT                  deployment
 ALargePayloadTravelsByReferenceIT                        whole plane
 AProcessorIsEnrolledPerTenantIT                          deployment
 AShutdownIsQuietIT                                       lifecycle
-AStepCodeBelongsToOneLevelIT                             sweep
 AStoreWithoutSuperuserStillMountsIT                      sweep
 AStreamKeepsMovingWhileATenantComesUpIT                  lifecycle
 AStreamLaneIsToldItHasWorkIT                             deployment
