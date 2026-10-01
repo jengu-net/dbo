@@ -49,4 +49,4 @@ promise:proving              promise
 sample                       core:dbo-asking core:dbo-runner core:dbo-tenant core:dbo-work
 sample:participant           core:dbo-runner core:dbo-work
 samples:spring-boot-server-app assembly:spring-boot-server assembly:spring-boot-test core:dbo-promises promise:proving
-samples:spring-boot-worker-app assembly:spring-boot-test assembly:spring-boot-worker core:dbo-promises promise:proving samples:spring-boot-server-app
+samples:spring-boot-worker-app assembly:spring-boot-test assembly:spring-boot-worker core:dbo-fleet core:dbo-promises promise promise:proving samples:spring-boot-server-app

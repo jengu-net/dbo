@@ -1063,7 +1063,15 @@ public final class ElementStore implements FhirStoreFacade,
                 continue;
             }
             for (String base : basesOf(stored)) {
-                if (types.stream().anyMatch(t -> t.typeName().equals(base))) {
+                // A parameter the version already carries, with the same
+                // code and expression, is extracted already: it authors
+                // nothing. A face root stores the version's own parameters as
+                // records, and counting those as authored reindexed every
+                // definition it holds on its first round — minutes, during
+                // which the reconciler served no other tenant.
+                if (types.stream().anyMatch(t -> t.typeName().equals(base))
+                        && !codesOf(version.parametersFor(base)).containsAll(
+                                codesOf(List.of(parameter)))) {
                     authored.computeIfAbsent(base, ignored -> new ArrayList<>()).add(parameter);
                 }
             }
