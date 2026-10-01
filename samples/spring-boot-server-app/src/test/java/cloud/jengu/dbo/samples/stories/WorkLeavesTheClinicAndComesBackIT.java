@@ -139,6 +139,10 @@ class WorkLeavesTheClinicAndComesBackIT {
     @Autowired
     cloud.jengu.dbo.samples.worker.HearingBack hearing;
 
+    /** The clinic's application, reading the hospital's work as it changes. */
+    @Autowired
+    cloud.jengu.dbo.samples.server.WatchingTheWork watching;
+
     private ATenantsDoor hospital;
     private ObjectStore engine;
     private Runs runs;
@@ -1152,6 +1156,7 @@ class WorkLeavesTheClinicAndComesBackIT {
         cloud.jengu.dbo.spring.worker.DboInitiator.Started started =
                 admitting.admit(HOSPITAL, "Patient/" + patient.idOrFail());
         String run = started.runOrFail();
+        long watched = watching.seen(HOSPITAL);
 
         // Performed by the worker's own admitting bean, which closes the run
         // with what it counted; the application that asked waits for that.
@@ -1174,6 +1179,11 @@ class WorkLeavesTheClinicAndComesBackIT {
                 cloud.jengu.dbo.samples.worker.HearingBack.counted(answer, "admitted")
                         .equals(java.util.Optional.of(1L)),
                 "the answer does not carry what the step counted: " + answer.body());
+        // And the clinic's application read the run move as it moved, on the
+        // hospital's work stream, without asking anybody about it.
+        assertTrue(untilWatchedPast(watched),
+                "the clinic's application read none of the run's changes: "
+                        + watching.seen(HOSPITAL));
 
         // Anybody else is told the run is not there: another client that may
         // act in work, the tenant's own records credential, and nobody at all.
@@ -1191,6 +1201,19 @@ class WorkLeavesTheClinicAndComesBackIT {
         HttpResponse<String> nobody = dbo.send(HttpRequest.newBuilder(
                 URI.create(dbo.at(HOSPITAL) + "/run/" + run)).GET(), null);
         assertEquals(401, nobody.statusCode(), "no credential at all: " + nobody.body());
+    }
+
+    private boolean untilWatchedPast(long before) {
+        long giveUp = System.nanoTime() + Duration.ofMinutes(2).toNanos();
+        while (watching.seen(HOSPITAL) <= before && System.nanoTime() < giveUp) {
+            try {
+                Thread.sleep(250);
+            } catch (InterruptedException interrupted) {
+                Thread.currentThread().interrupt();
+                return false;
+            }
+        }
+        return watching.seen(HOSPITAL) > before;
     }
 
     // ── a result the hospital writes ──

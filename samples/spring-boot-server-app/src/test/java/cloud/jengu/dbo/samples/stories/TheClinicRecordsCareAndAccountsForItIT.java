@@ -69,6 +69,14 @@ class TheClinicRecordsCareAndAccountsForItIT {
     @Autowired
     org.springframework.core.env.Environment environment;
 
+    /** The clinic's screens: its questions, asked over the tenant's door. */
+    @Autowired
+    cloud.jengu.dbo.samples.server.CountingTheWard ward;
+
+    /** The clinic's application, told as each tenant starts serving. */
+    @Autowired
+    cloud.jengu.dbo.samples.server.NoticingATenant noticing;
+
     private ATenantsDoor clinic;
     private String liis;
 
@@ -1023,8 +1031,9 @@ class TheClinicRecordsCareAndAccountsForItIT {
 
     @Test
     @Order(29)
-    @DisplayName("asking from inside and across the wire count and walk the same records and "
-            + "the same work, and refuse alike what cannot be answered")
+    @DisplayName("the clinic's screens, asking across the wire, count the same records and the "
+            + "same work as asking from inside, and the vocabulary refuses alike what cannot be "
+            + "answered; and the application was told the clinic came up")
     void bothBindingsAnswerTheSame() {
         String mine = names.value("asked");
         for (String state : List.of("final", "final", "preliminary")) {
@@ -1052,19 +1061,23 @@ class TheClinicRecordsCareAndAccountsForItIT {
                 java.time.Instant.now().plusSeconds(600)).orElseThrow());
 
         var inside = dbo.asking(records);
-        var across = cloud.jengu.dbo.asking.Across.through(pathAndQuery ->
-                dbo.get(dbo.at(records) + "/fhir" + pathAndQuery, dbo.token(records)).body());
+        String looking = dbo.token(records);
 
         assertEquals(3, inside.records("Observation").whereCoded("code", ASKED, mine).count());
         assertEquals(2, inside.records("Observation").whereCoded("code", ASKED, mine)
                 .whereCoded("status", null, "final").count(), "narrowing did not narrow");
         assertEquals(inside.records("Observation").whereCoded("code", ASKED, mine).count(),
-                across.records("Observation").whereCoded("code", ASKED, mine).count(),
-                "the two bindings count the records differently");
+                ward.howMany(records, looking, "Observation", ASKED, mine),
+                "the clinic's screen counts the records differently from asking inside");
         assertEquals(2, inside.work().correlated(kase).open().count());
         assertEquals(inside.work().correlated(kase).open().count(),
-                across.work().correlated(kase).open().count(),
-                "the two bindings count the open work differently");
+                ward.stillOpen(records, looking, kase),
+                "the clinic's screen counts the open work differently from asking inside");
+
+        // What the vocabulary itself refuses, asked across the wire as the
+        // screen asks it: a narrowing the tenant's surface has no parameter for.
+        var across = cloud.jengu.dbo.asking.Across.through(pathAndQuery ->
+                dbo.get(dbo.at(records) + "/fhir" + pathAndQuery, looking).body());
         assertTrue(org.junit.jupiter.api.Assertions.assertThrows(
                         UnsupportedOperationException.class,
                         () -> across.work().inScope("anything")).getMessage()
@@ -1075,6 +1088,11 @@ class TheClinicRecordsCareAndAccountsForItIT {
         assertTrue(org.junit.jupiter.api.Assertions.assertThrows(IllegalStateException.class,
                         () -> across.records("NoSuchTypeHere").count()).getMessage()
                 .contains("NoSuchTypeHere"));
+
+        // The application was told the clinic came up, as it is told of
+        // every tenant: once, when it started serving.
+        assertTrue(noticing.noticed(records),
+                "the clinic's application was never told the clinic is serving");
     }
 
     @Test
@@ -1088,10 +1106,10 @@ class TheClinicRecordsCareAndAccountsForItIT {
                   {"system":"%s","code":"%s"}]},"subject":{"display":"nobody"}}"""
                 .formatted(ASKED, names.value("trailed")));
         String id = dbo.says(written).one("id").orElseThrow();
-        var trail = dbo.asking(records).trail().about("Observation", id);
+        List<String> touched = ward.whoTouched(records, dbo.token(records), "Observation", id);
         Proves.that(DboPromises.POL_AUDIT_AS_RECORDS,
-                trail.count() >= 1 && trail.of("create").count() <= trail.count(),
-                "a record's trail does not answer about it");
+                !touched.isEmpty() && touched.stream().allMatch(entry -> entry.contains(id)),
+                "a record's trail does not answer about it: " + touched);
         var refused = org.junit.jupiter.api.Assertions.assertThrows(
                 UnsupportedOperationException.class,
                 () -> dbo.asking(records).records("Observation").including("subject"));
