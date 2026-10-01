@@ -3,10 +3,11 @@ do it through `@DboSpringBootTest`; the suite takes over an hour, most of it
 tenants coming up. The plan is one world in one JVM, one class per user story
 walking that story's legs in order, the stories running at the same time, and
 every promise proven inside a leg.
-Step 1 is built. The story base runs in the worker sample's tests, and its
-first two stories pass concurrently on one world. Getting there found two
-defects in the store, both fixed. Next: the clinical record story onto the
-base.**
+Steps 1 and 2 are built but for one story. Seven story classes walk the
+sample world concurrently, 53 legs in about five minutes, and five harness
+story classes are gone. Moving them found four defects in the store, all
+fixed; one of them held every tenant's sync for four minutes after each
+bring-up. Next: two places, whose appliance half needs a second place.**
 
 # Every promise proven on one world, inside its story
 
@@ -133,18 +134,18 @@ promise-by-promise picture is in the [listing](listing.md).
 | …cited by nothing (PLANNED) | 21 |
 | …declared by no story | 21; 17 of them are proven only in a world |
 | Story classes that exist | 7 of 8 (person rights has none). Built-or-planned reads the catalogue and boots nothing |
-| Story classes on the one world | 0 |
+| Story classes on the one world | 7 of 8: all but two places |
 
 | Story | Story class | Classes feeding it | Already a leg | To fit | Assert in passing | PLANNED | State |
 |---|---|---|---|---|---|---|---|
-| [TENANT-OPENING](../../arc42-003-context/user-stories/us-dbo-tenant-opening.md) | `ATenantOpensAndItsPeopleGetInIT` (own runtime) | 15 | 17 | 25 | 6 | 2 | todo |
-| [CLINICAL-RECORD](../../arc42-003-context/user-stories/us-dbo-clinical-record.md) | `TheClinicRecordsCareAndAccountsForItIT` (shared) | 10 | 28 | 11 | 17 | 3 | todo |
-| [PERSON-RIGHTS](../../arc42-003-context/user-stories/us-dbo-person-rights.md) | none | 9 | 0 | 22 | 12 | 0 | todo |
+| [TENANT-OPENING](../../arc42-003-context/user-stories/us-dbo-tenant-opening.md) | `ATenantOpensAndItsPeopleGetInIT` (on the world) | 15 | 17 | 25 | 6 | 2 | moved |
+| [CLINICAL-RECORD](../../arc42-003-context/user-stories/us-dbo-clinical-record.md) | `TheClinicRecordsCareAndAccountsForItIT` (on the world) | 10 | 28 | 11 | 17 | 3 | moved |
+| [PERSON-RIGHTS](../../arc42-003-context/user-stories/us-dbo-person-rights.md) | `WhatAPersonCanAskForIT` (on the world, two legs) | 9 | 3 | 22 | 12 | 0 | started |
 | [TWO-PLACES](../../arc42-003-context/user-stories/us-dbo-two-places.md) | `OneTenantInTwoPlacesIT` (shared) | 7 | 9 | 16 | 4 | 1 | todo |
-| [STANDARD-MOVES](../../arc42-003-context/user-stories/us-dbo-standard-moves.md) | `TheStandardMovesUnderTheDataIT` (shared) | 19 | 7 | 29 | 9 | 0 | todo |
-| [VENDOR-CHANGE](../../arc42-003-context/user-stories/us-dbo-vendor-change.md) | `TheClinicChangesVendorIT` (opens databases directly) | 1 | 6 | 0 | 7 | 0 | todo |
-| [EDGE-ROUNDTRIP](../../arc42-003-context/user-stories/us-dbo-edge-roundtrip.md) | `WorkLeavesTheClinicAndComesBackIT` (shared) | 14 | 23 | 16 | 19 | 4 | todo |
-| [FLEET-HEALTH](../../arc42-003-context/user-stories/us-dbo-fleet-health.md) | `AnOperatorReadsAndSteersTheFleetIT` (own runtime) | 9 | 14 | 16 | 3 | 7 | todo |
+| [STANDARD-MOVES](../../arc42-003-context/user-stories/us-dbo-standard-moves.md) | `TheStandardMovesUnderTheDataIT` (on the world) | 19 | 7 | 29 | 9 | 0 | moved |
+| [VENDOR-CHANGE](../../arc42-003-context/user-stories/us-dbo-vendor-change.md) | `TheClinicChangesVendorIT` (on the world) | 1 | 6 | 0 | 7 | 0 | moved |
+| [EDGE-ROUNDTRIP](../../arc42-003-context/user-stories/us-dbo-edge-roundtrip.md) | `WorkLeavesTheClinicAndComesBackIT` (on the world) | 14 | 23 | 16 | 19 | 4 | moved |
+| [FLEET-HEALTH](../../arc42-003-context/user-stories/us-dbo-fleet-health.md) | `AnOperatorReadsAndSteersTheFleetIT` (on the world, one node) | 9 | 14 | 16 | 3 | 7 | moved but for two nodes |
 | Fleet steps (new story, step 5) | none | 11 | 0 | 17 | 0 | 0 | todo |
 
 The columns:
@@ -214,6 +215,46 @@ Another 33 classes do not feed a story:
    health. Each class lands with its own legs green while running beside the
    classes already moved, its data renamed to the story's prefix, and nothing
    new is fitted yet.
+
+   Done for six, and person rights has its first two legs. The harness classes
+   for clinical record, edge roundtrip, standard moves, vendor change and
+   tenant opening are deleted. The catalogue now reads the stories' citations
+   from the worker sample's test classes, so no promise lost its proof in the
+   move. What each story needed from the world:
+
+   | Story | Where it walks |
+   |---|---|
+   | Clinical record | St Jerome, which now keys patients by its own record number (`urn:st-jerome:mrn`); its terminology comes from the zone |
+   | Person rights | Hogwarts |
+   | Edge roundtrip | Hogwarts, with a bench lane of the story's own |
+   | Standard moves | A clinic it declares: every world member takes its profiles by replication, and this one authors them |
+   | Vendor change | Two clinics it declares, because what leaves is a whole estate |
+   | Tenant opening | Two clinics it declares, because opening one is the story |
+   | Fleet health | Hogwarts and the node itself, through the deployment's ops token |
+
+   **Left behind on purpose.** Fleet health's rolling-upgrade and network-map
+   legs need two nodes, so the harness class stays for them; they go with the
+   eleven left to the end. Tenant opening no longer asserts the provisioner's
+   bootstrap secret, which no application reaches; the promise is still
+   proven by `OperatorIT` and `ServerDistIT`.
+
+   **What moving them found**, each fixed with a test that fails without it:
+
+   - **The r5 face root reindexed its whole version after every bring-up.**
+     It stores the version's own search parameters as records, and its first
+     shapes round counted them as authored: 6,379 definitions rebuilt into
+     the envelopes they already had, in 221 to 232 seconds, on the reconciler
+     thread. For those four minutes no tenant in the deployment synced
+     anything, which is why a code system the zone published took two
+     minutes to reach the clinic. A parameter identical to one the version
+     carries no longer counts as authored: 0 reindexed, in 24 ms.
+   - **The servlet adapter escaped a query twice**, and **two callers
+     creating one identity at once got a conflict**: both in the step 1
+     commits.
+   - **Two places is not moved yet.** Its zone half fits a declared clinic on
+     the world. Its appliance half is two places of one tenant, and the
+     world is one place; a second database of the story's own, with no
+     runtime, is the likely shape.
 3. **Fit the promises, one story at a time.** Work from the listing's
    `to fit` rows. For each promise, find the leg where the journey already
    does what it is about, use the source class's arrangement as that leg's

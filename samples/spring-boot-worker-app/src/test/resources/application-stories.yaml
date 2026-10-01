@@ -20,6 +20,11 @@ dbo:
     world: ../sample-world
     lane:
       tenant: hogwarts
+  # What the deployment gave its nodes for the questions an operator asks
+  # them: what a node serves and what it carries. A host's configuration, the
+  # same as anybody running the store would set.
+  framework:
+    "[dbo.tenant.ops.token]": stories-ops
   worker:
     identity:
       name: sample-admissions-worker

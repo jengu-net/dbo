@@ -43,6 +43,12 @@ dependencies {
     // store's promises says so itself.
     testImplementation(project(":promise:proving"))
     testImplementation(project(":core:dbo-promises"))
+    // The user stories cite the promises they prove, and the catalogue reads
+    // those citations from the index this processor writes beside the classes.
+    testAnnotationProcessor(project(":promise"))
+    // The operator's side of the fleet story: one process outside every
+    // container, reading what the deployment says about itself.
+    testImplementation(project(":core:dbo-fleet"))
     // ApplicationContextRunner hands its callback an AssertJ-shaped context.
     testImplementation("org.assertj:assertj-core:3.27.3")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
