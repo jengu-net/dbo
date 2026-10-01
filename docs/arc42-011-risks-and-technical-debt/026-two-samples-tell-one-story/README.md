@@ -1,6 +1,7 @@
-**Open. Two samples exist and one story is told twice. `sample/` is the
-distribution's, and the guide includes its source; `samples/` is where the
-story is going, built on the Spring Boot assemblies. The server application is
+**Open. Two samples exist and one story is told twice. `sample/` is
+deprecated: `samples/sample-world` is the world both the guide and the tests
+read, and `samples/` is the story, built on the Spring Boot assemblies. The
+guide still includes `sample/`'s source until item 027 moves it. The server application is
 built and serves its own world. The worker application and whatever the two
 must share are not written yet, and nothing has moved off `sample/`.**
 
@@ -51,8 +52,9 @@ have two of everything, which is why this item exists rather than a comment.
   equivalent, or its absence is a decision somebody wrote down
 - nothing in `docs/` or `site/` still points at `sample/`
 
-Until every line above is true, `sample/` is the one that is current and
-`samples/` is the one that is arriving. A reader who finds both should be able
+`samples/` is the current one and `sample/` is deprecated. `sample/` stays in
+the tree only until every line above is true, because the guide still
+includes its source. A reader who finds both should be able
 to learn that from this file in one paragraph, which is the whole job it does.
 
 ## What is built

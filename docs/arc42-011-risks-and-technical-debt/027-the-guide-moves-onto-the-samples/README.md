@@ -2,7 +2,9 @@
 that is what `sample/` is. The applications under `samples/` teach it as a
 library, and the guide has not moved onto them. Thirteen include lines across
 nine chapters name `sample/`, and two of its classes stop existing the moment
-an assembly is used.**
+an assembly is used. `sample/` is deprecated, and `samples/sample-world` is
+the world the guide moves onto: the same world the story tests run on
+(item 035).**
 
 # The guide moves onto the samples
 

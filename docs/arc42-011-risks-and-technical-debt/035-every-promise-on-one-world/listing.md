@@ -1,0 +1,595 @@
+# Listing: what each world-booting class proves, and the story it goes to
+
+A snapshot taken on 2026-10-01 from the sources: the classes that boot a dbo world, the `@Proving` citations they carry, and the story whose declaration holds most of those promises. **W** marks a promise no class proves without a world, so it must be proven in a story before its class goes. Status is edited by hand as the work moves: `todo`, `in story`, `deleted`.
+
+[Back to the item](README.md).
+
+## US-DBO-TENANT-OPENING
+
+Story class: `ATenantOpensAndItsPeopleGetInIT` — exists; today own (lifecycle).
+
+| Class | Boots | Promises | W | Status |
+|---|---|---|---|---|
+| `ATenantOpensAndItsPeopleGetInIT` (story class) | own (lifecycle) | 17 | 16 | todo |
+| `HumanAuthIT` | own (deployment) | 9 | 9 | todo |
+| `ScimProvisioningIT` | shared | 7 | 7 | todo |
+| `FederatedAuthIT` | own (deployment) | 3 | 3 | todo |
+| `AFaceIsCutOnceAndBroughtUpFromIT` | own (deployment) | 3 | 2 | todo |
+| `ATenantSubscribesToItsVersionIT` | own (lifecycle) | 3 | 2 | todo |
+| `ADeclaredRelationGrantsIT` | shared | 1 | 1 | todo |
+| `ADeploymentPresentsItsOwnCredentialIT` | own (deployment) | 1 | 1 | todo |
+| `AGrantCanBeTakenBackIT` | shared | 1 | 1 | todo |
+| `APartnerFollowsWorkIT` | shared | 1 | 1 | todo |
+| `AProvisioningClientConvergesTheGrantsIT` | shared | 1 | 1 | todo |
+| `AStreamKeepsMovingWhileATenantComesUpIT` | own (lifecycle) | 1 | 1 | todo |
+| `ATenantComesUpFromTheFaceImageIT` | own (deployment) | 2 | 1 | todo |
+| `ScimNeedsTheMembraneIT` | own (sweep) | 1 | 1 | todo |
+| `SeveralTenantsDeclaredAtOnceComeUpTogetherIT` | own (lifecycle) | 1 | 0 | todo |
+
+| Promise | Proven now by | W | Leg in the story class |
+|---|---|---|---|
+| `CONT_DYNAMIC_TENANT_SERVICES` | — | W | `1` `aDeclarationIsTheWholeOfOpeningAClinic` |
+| `CONT_EMBEDDED_IN_JVM` | — | W | `1` `aDeclarationIsTheWholeOfOpeningAClinic` |
+| `TEN_DEDICATED_DATABASE_TIER` | — | W | `1` `aDeclarationIsTheWholeOfOpeningAClinic` |
+| `TEN_CREDENTIAL_BLIND_PROVISIONING` | — | W | `2` `theClinicGetsADatabaseNobodyHereHeldTheKeyTo` |
+| `AUTH_DENY_BY_DEFAULT` | — | W | `3` `nothingIsReachableWithoutACredential` |
+| `AUTH_BEARER_LOCAL_VALIDATION` | — | W | `4` `theClinicsOwnAuthorityIssuesAndChecksTheToken` |
+| `AUTH_SMART_SHAPED_SCOPES` | `HumanAuthIT` | W | `4` `theClinicsOwnAuthorityIssuesAndChecksTheToken` |
+| `AUTH_TENANT_SCOPED_ISSUER` | — | W | `4` `theClinicsOwnAuthorityIssuesAndChecksTheToken` |
+| `AUTH_ONE_CEREMONY_MANY_TENANTS` | `FederatedAuthIT` | W | `5` `aSecondClinicOpensAndTheTenantsCannotSeeEachOther` |
+| `TEN_STRUCTURAL_SCOPING` | — | W | `5` `aSecondClinicOpensAndTheTenantsCannotSeeEachOther` |
+| `SCIM_DECLARED_PER_TENANT` | `ScimProvisioningIT`, `ScimNeedsTheMembraneIT` | W | `6` `theDirectoryProvisionsAClinician` |
+| `SCIM_DIRECTORY_CREDENTIAL` | `ScimProvisioningIT` | W | `6` `theDirectoryProvisionsAClinician` |
+| `SCIM_USER_IS_THE_PERSON` | `ScimProvisioningIT` | W | `6` `theDirectoryProvisionsAClinician` |
+| `SCIM_ENUMERATION_STAYS_INSIDE` | `ScimProvisioningIT` | W | `7` `enumerationStaysBehindTheDirectoryDoor` |
+| `SCIM_GROUPS_READ_ONLY` | `ScimProvisioningIT` | W | `7` `enumerationStaysBehindTheDirectoryDoor` |
+| `AUTH_IDENTITY_AS_RECORDS` | — |  | `8` `whatAClinicianMayDoIsDeclaredAndWhoTheyAreIsARecord` |
+| `AUTH_ORG_MODEL_IS_THE_AUTH_MODEL` | `HumanAuthIT`, `ADeclaredRelationGrantsIT`, `AGrantCanBeTakenBackIT` | W | `8` `whatAClinicianMayDoIsDeclaredAndWhoTheyAreIsARecord` |
+| `AUTH_A_ZONE_IS_ITS_OWN_BROKER` | `TheGuideRunsIT` | W | to fit |
+| `AUTH_BOOTSTRAP_SECRET_IS_CUSTODY` | `ADeploymentPresentsItsOwnCredentialIT` | W | to fit |
+| `AUTH_CREDENTIAL_FACTORS_BY_KIND` | without a world: EdgePinIsACredentialIT |  | assert where the story passes it |
+| `AUTH_DEACTIVATION_RETIRES_CREDENTIALS` | `HumanAuthIT` | W | to fit |
+| `AUTH_FEDERATED_HUMANS` | `HumanAuthIT`, `FederatedAuthIT` | W | to fit |
+| `AUTH_FIRST_SECRET_BY_ONE_TIME_GRANT` | `HumanAuthIT` | W | to fit |
+| `AUTH_GRANTS_ARE_READABLE_TO_CONVERGE` | `AProvisioningClientConvergesTheGrantsIT` | W | to fit |
+| `AUTH_NO_SUBJECT_ENUMERATION` | `HumanAuthIT` | W | to fit |
+| `AUTH_PASSWORD_ONLY_WHERE_WE_ARE_THE_IDP` | `FederatedAuthIT` | W | to fit |
+| `AUTH_PORTABLE_AUTHORITY` | without a world: AnAuthorityMovesWithoutRekeyingIT |  | assert where the story passes it |
+| `AUTH_PRIVATE_SURFACE` | — |  | PLANNED — nothing cites it |
+| `AUTH_PSEUDONYMOUS_TOKENS` | `HumanAuthIT` | W | to fit |
+| `AUTH_RECOVERY_IS_AN_OPERATOR_ACT` | `HumanAuthIT` | W | to fit |
+| `AUTH_ROLE_GRANTS_AS_RECORDS` | without a world: AGrantIsARecordLikeAnyOtherIT |  | assert where the story passes it |
+| `AUTH_SELF_SERVICE_CHANGE` | `HumanAuthIT` | W | to fit |
+| `CONT_FAST_COLD_START` | `ServerDistIT` | W | to fit |
+| `CONT_FRAMEWORK_FREE_CORE` | without a world: SqlDisciplineTest |  | assert where the story passes it |
+| `CONT_IMPORTS_ARE_COMPUTED_OR_CHECKED` | without a world: EverySlf4jImportNamesItsGenerationTest, TheStackImportsWhatItReachesForTest |  | assert where the story passes it |
+| `CONT_PRIVATE_DEPENDENCIES` | without a world: ApiBoundaryTest, EmbeddedContainerIT |  | assert where the story passes it |
+| `SCIM_DEPROVISION_IS_A_STATE` | `ScimProvisioningIT` | W | to fit |
+| `SCIM_EVERY_OP_IS_A_DISCLOSURE` | `ScimProvisioningIT` | W | to fit |
+| `TEN_A_PARTNER_MANAGES_TENANTS` | `APartnerFollowsWorkIT` | W | to fit |
+| `TEN_A_TENANT_COMES_UP_FROM_THE_FACE_IMAGE` | `AFaceIsCutOnceAndBroughtUpFromIT`, `ATenantComesUpFromTheFaceImageIT` |  | to fit |
+| `TEN_A_TYPE_DECLARES_ITS_DOMAIN` | `ADefinitionMovesOnItsOwnFeedIT` | W | to fit |
+| `TEN_COMING_UP_AND_KEEPING_UP_ARE_NOT_ONE_QUEUE` | `AStreamKeepsMovingWhileATenantComesUpIT` | W | to fit |
+| `TEN_DECLARED_TOGETHER_COME_UP_TOGETHER` | `SeveralTenantsDeclaredAtOnceComeUpTogetherIT` |  | to fit |
+| `TEN_READY_WHEN_ITS_CRITICAL_DEFINITIONS_ARRIVED` | `ATenantSubscribesToItsVersionIT` | W | to fit |
+| `TEN_REGISTRY_SCOPED_ACCESS` | `TenantOsgiIT` | W | to fit |
+| `TEN_SHARED_TIER_ISOLATION` | — |  | PLANNED — nothing cites it |
+| `TERM_BINDINGS_ANSWERED_FROM_RECORDS` | `ATenantSubscribesToItsVersionIT` |  | to fit |
+| `VER_AN_IMAGE_FROM_ANOTHER_RELEASE_IS_REFUSED` | `AFaceIsCutOnceAndBroughtUpFromIT` | W | to fit |
+| `VER_AN_IMAGE_IS_CUT_ONLY_WHEN_COMPLETE` | `AFaceIsCutOnceAndBroughtUpFromIT`, `ATenantComesUpFromTheFaceImageIT` | W | to fit |
+| `VER_FACE_ROOT_HOLDS_THE_VERSION_AS_RECORDS` | `ATenantSubscribesToItsVersionIT` | W | to fit |
+
+## US-DBO-CLINICAL-RECORD
+
+Story class: `TheClinicRecordsCareAndAccountsForItIT` — exists; today shared.
+
+| Class | Boots | Promises | W | Status |
+|---|---|---|---|---|
+| `TheClinicRecordsCareAndAccountsForItIT` (story class) | shared | 28 | 13 | todo |
+| `ATenantAuthorsItsOwnSearchParameterIT` | own (sweep) | 4 | 3 | todo |
+| `ATenantDeliversWhatItSubscribedToIT` | shared | 2 | 2 | todo |
+| `TheEnvelopeIsTheSameFromEitherSideIT` | shared | 2 | 2 | todo |
+| `ABlobIsTenantDataIT` | own (lifecycle) | 1 | 1 | todo |
+| `ATenantHoldsItsOwnDeclarationIT` | shared | 2 | 1 | todo |
+| `ATypeSaysWhereItsEnvelopeIsComputedIT` | shared | 1 | 1 | todo |
+| `ContentHeldWholeIsReachableOverTheWireIT` | shared | 1 | 1 | todo |
+| `R6TenantIT` | shared | 2 | 0 | todo |
+| `TenantProfilesValidateIT` | shared | 1 | 0 | todo |
+
+| Promise | Proven now by | W | Leg in the story class |
+|---|---|---|---|
+| `CORE_DECLARED_TRUTH_FORM` | — |  | `1` `whatWasWrittenIsWhatIsRead` |
+| `CORE_PAYLOAD_IS_TRUTH` | `ATenantHoldsItsOwnDeclarationIT` |  | `1` `whatWasWrittenIsWhatIsRead` |
+| `CORE_READ_YOUR_WRITES` | — | W | `1` `whatWasWrittenIsWhatIsRead` |
+| `CORE_CONDITIONAL_UPSERT` | — | W | `2` `thesamePatientArrivingTwiceIsOnePatient` |
+| `CORE_EXTERNAL_IDENTIFIERS` | — | W | `2` `thesamePatientArrivingTwiceIsOnePatient` |
+| `CORE_IDENTITY_KEYED_CONDITIONALS` | `ATenantHoldsItsOwnDeclarationIT` | W | `2` `thesamePatientArrivingTwiceIsOnePatient` |
+| `CORE_NO_IMPLICIT_MERGE` | — | W | `2` `thesamePatientArrivingTwiceIsOnePatient` |
+| `CORE_VERSIONED_HISTORY` | — | W | `3` `everyVersionIsKept` |
+| `CORE_ATOMIC_TRANSACTION_BUNDLE` | — | W | `4` `aVisitLandsWhole` |
+| `CORE_CONDITIONAL_REFERENCES` | — | W | `4` `aVisitLandsWhole` |
+| `CORE_REFERENCE_EDGES` | — | W | `4` `aVisitLandsWhole` |
+| `CORE_BATCH_ANSWERS_PER_ENTRY` | — | W | `5` `allOfItOrNoneOfIt` |
+| `TERM_EVERY_TENANT_ANSWERS` | — | W | `8` `aCodeMeansWhatThisClinicSaysItMeans` |
+| `TERM_NATIVE_FORM` | — |  | `8` `aCodeMeansWhatThisClinicSaysItMeans` |
+| `TERM_OPERATIONS_FROM_NATIVE_FORM` | — |  | `8` `aCodeMeansWhatThisClinicSaysItMeans` |
+| `VAL_UNRESOLVABLE_IS_NOT_INVALID` | — |  | `8` `aCodeMeansWhatThisClinicSaysItMeans` |
+| `SRCH_HONEST_CAPABILITY` | `ATenantAuthorsItsOwnSearchParameterIT` | W | `9` `theStoreSaysWhatItCanSearch` |
+| `SRCH_STRICT_BY_DEFAULT` | `R6TenantIT` |  | `9` `theStoreSaysWhatItCanSearch` |
+| `SRCH_TIER1_PARITY` | — |  | `10` `findingHerAgain` |
+| `POL_ACTOR_FROM_AUTHORITY` | — |  | `11` `theTrailHoldsItAndNobodyCanEditIt` |
+| `POL_AUDIT_AS_RECORDS` | — |  | `11` `theTrailHoldsItAndNobodyCanEditIt` |
+| `POL_AUDIT_UNCONDITIONALLY_APPEND_ONLY` | — |  | `11` `theTrailHoldsItAndNobodyCanEditIt` |
+| `POL_DECLARED_AT_CONFIGURATION` | — |  | `11` `theTrailHoldsItAndNobodyCanEditIt` |
+| `POL_FHIR_AUDIT_PROJECTION` | — |  | `11` `theTrailHoldsItAndNobodyCanEditIt` |
+| `EVT_TRANSACTIONAL_OUTBOX` | — | W | `12` `oneFeedCarriesItAll` |
+| `FEED_KEYSET_CURSORS` | — |  | `12` `oneFeedCarriesItAll` |
+| `FEED_NAMED_CONSUMERS` | — |  | `12` `oneFeedCarriesItAll` |
+| `FEED_ONE_PRIMITIVE` | — |  | `12` `oneFeedCarriesItAll` |
+| `CORE_DECLARED_IDENTITY` | without a world: EveryTypeDeclaresItsIdentityTest, TheGuideRunsIT |  | assert where the story passes it |
+| `CORE_PARAMETERIZED_SQL` | without a world: AFatalNamesWhatKindOfWrongItIsIT, SqlDisciplineTest |  | assert where the story passes it |
+| `CORE_SIBLING_MODELS` | without a world: SiblingModelsRideTheSameEngineIT |  | assert where the story passes it |
+| `EVT_A_TENANT_DELIVERS` | `ATenantDeliversWhatItSubscribedToIT` | W | to fit |
+| `EVT_DURABLE_DELIVERY` | — |  | PLANNED — nothing cites it |
+| `EVT_FHIR_SUBSCRIPTIONS` | `ATenantDeliversWhatItSubscribedToIT` | W | to fit |
+| `EVT_IN_PROCESS_SURFACE` | — |  | PLANNED — nothing cites it |
+| `OPS_TENANT_BLOBS_ARE_TENANT_DATA` | `ABlobIsTenantDataIT`, `ContentHeldWholeIsReachableOverTheWireIT` | W | to fit |
+| `OPS_TENANT_BLOB_STORAGE` | — |  | PLANNED — nothing cites it |
+| `POL_APPEND_ONLY_DISCIPLINE` | without a world: PolicyIT |  | assert where the story passes it |
+| `POL_CUSTOM_AUDIT_EVENTS` | without a world: ContributedAuditEventTest, PolicyIT |  | assert where the story passes it |
+| `POL_DECLARATIVE_RETENTION` | without a world: PolicyIT |  | assert where the story passes it |
+| `POL_RETENTION_SWEEP` | without a world: PolicyIT |  | assert where the story passes it |
+| `SRCH_A_PARAMETER_IS_COMPILED_WHEN_IT_ARRIVES` | `ATenantAuthorsItsOwnSearchParameterIT` | W | to fit |
+| `SRCH_A_REINDEX_HOLDS_NO_TRANSACTION_WHILE_IT_EXTRACTS` | without a world: AReindexDoesNotHoldATransactionOpenIT |  | assert where the story passes it |
+| `SRCH_CUSTOM_PARAMETERS` | `ATenantAuthorsItsOwnSearchParameterIT` | W | to fit |
+| `SRCH_DECLARED_INDEXES` | `ATenantAuthorsItsOwnSearchParameterIT` |  | to fit |
+| `SRCH_SEVERAL_VALUES_MEAN_ANY_OF_THEM` | without a world: ACommaMeansOrInASearchIT |  | assert where the story passes it |
+| `SRCH_THE_DATABASE_ENVELOPE_LOSES_NOTHING_BEFORE_IT_IS_USED` | `TheEnvelopeIsTheSameFromEitherSideIT`, `ATypeSaysWhereItsEnvelopeIsComputedIT` | W | to fit |
+| `SRCH_THE_ENVELOPE_IS_EXTRACTED_WHERE_THE_BYTES_ARE` | `TheEnvelopeIsTheSameFromEitherSideIT` | W | to fit |
+| `SRCH_TYPED_ORDERING` | without a world: ADateIsTheSpanItNamesTest, FhirR4IT … |  | assert where the story passes it |
+| `TEN_A_FEED_SAYS_WHAT_CHANGED_NOT_WHAT_IT_SAYS` | without a world: AFeedSaysWhatChangedNotWhatItSaysTest |  | assert where the story passes it |
+| `TERM_BINDINGS_ANSWERED_FROM_RECORDS` | without a world: ABindingIsAnsweredFromRecordsTest, ATenantSubscribesToItsVersionIT |  | assert where the story passes it |
+| `TERM_BULK_LOAD` | without a world: TerminologyIT |  | assert where the story passes it |
+| `TERM_VALIDATION_USES_TENANT_TERMINOLOGY` | without a world: CodedValuesAreCheckedIT, TenantTermsValidationTest |  | assert where the story passes it |
+| `VAL_BINDING_STRENGTH_IS_THE_ANSWER` | without a world: CodedValuesAreCheckedIT, TheGuideRunsIT |  | assert where the story passes it |
+| `VER_ONE_READ_PER_REQUEST` | without a world: OneReadPerRequestTest, ReadOnceTest |  | assert where the story passes it |
+| `VER_PERSONALITY_OWNS_MEANING` | `R6TenantIT` |  | to fit |
+| `VER_SPECIFIED_VALIDATION` | `TenantProfilesValidateIT` |  | to fit |
+| `VER_VALIDATION_WITHOUT_WRITING` | `TheGuideRunsIT` | W | to fit |
+| `VER_VERSION_AGNOSTIC_CORE` | without a world: ADomainThatIsNotHealthcareHasAFaceIT, EngineKnowsNoFaceIT … |  | assert where the story passes it |
+
+## US-DBO-PERSON-RIGHTS
+
+Story class: none yet.
+
+| Class | Boots | Promises | W | Status |
+|---|---|---|---|---|
+| `AHumanHeldAsTwoRecordsIT` | shared | 6 | 3 | todo |
+| `DelegationIT` | shared | 2 | 2 | todo |
+| `TenantRuntimeIT` | own (sweep) | 4 | 2 | todo |
+| `APseudonymResolvesBackToItsPersonIT` | shared | 2 | 1 | todo |
+| `AStoreWithoutSuperuserStillMountsIT` | own (sweep) | 1 | 1 | todo |
+| `IdentificationIsReachableFromOutsideIT` | shared | 1 | 1 | todo |
+| `ThePlaintextInFlightLeavesNoTraceIT` | own (deployment) | 1 | 1 | todo |
+| `APseudonymIsDerivedAndNeverKeptIT` | shared | 2 | 0 | todo |
+| `ContentIsSealedToThePersonItIsAboutIT` | shared | 1 | 0 | todo |
+
+| Promise | Proven now by | W | Leg in the story class |
+|---|---|---|---|
+| `AUTH_FEDERATED_HUMANS` | `FederatedAuthIT`, `HumanAuthIT`, `ZoneIT` | W | to fit |
+| `AUTH_NO_SUBJECT_ENUMERATION` | `HumanAuthIT` | W | to fit |
+| `AUTH_ON_BEHALF_OF` | `DelegationIT` | W | to fit |
+| `AUTH_PSEUDONYMOUS_TOKENS` | `HumanAuthIT` | W | to fit |
+| `AUTH_PURPOSE_IS_STATED_PER_REQUEST` | `DelegationIT` | W | to fit |
+| `CORE_IDENTITY_KEYED_CONDITIONALS` | `AHumanHeldAsTwoRecordsIT` | W | to fit |
+| `CORE_NO_IMPLICIT_MERGE` | `AHumanHeldAsTwoRecordsIT` | W | to fit |
+| `IDN_ANONYMITY_IS_DECLARED_NOT_INFERRED` | without a world: AnonymityIT |  | assert where the story passes it |
+| `IDN_ASSURANCE_IS_THE_WEAKER_OF_THE_TWO` | without a world: AssuranceIT |  | assert where the story passes it |
+| `IDN_A_DECISION_IS_EVIDENCE` | without a world: AdjudicationIT, AdjudicationPersistedIT |  | assert where the story passes it |
+| `IDN_BINDING_IS_REVERSIBLE_AND_KEEPS_ITS_EVIDENCE` | without a world: BindingIT |  | assert where the story passes it |
+| `IDN_CLAIM_STRENGTH_BOUNDS_THE_CONCLUSION` | without a world: IdentityLookupIT, IdentityResolutionIT |  | assert where the story passes it |
+| `IDN_IDENTIFICATION_IS_REACHABLE` | `IdentificationIsReachableFromOutsideIT` | W | to fit |
+| `IDN_WHAT_A_RECIPIENT_SEES_IS_DECLARED` | `TheGuideRunsIT` | W | to fit |
+| `PDI_AN_ID_THE_STORE_NEVER_ASSIGNED_IS_NOT_A_FAULT` | without a world: PdiIT |  | assert where the story passes it |
+| `PDI_A_REFUSAL_ANSWERS_AS_A_REFUSAL` | without a world: PdiIT, TheGuideRunsIT |  | assert where the story passes it |
+| `PDI_BLIND_OPERATIONS` | without a world: PdiIT, TheGuideRunsIT |  | assert where the story passes it |
+| `PDI_CRYPTO_SHREDDING` | `AHumanHeldAsTwoRecordsIT`, `APseudonymResolvesBackToItsPersonIT`, `APseudonymIsDerivedAndNeverKeptIT`, `ContentIsSealedToThePersonItIsAboutIT` |  | to fit |
+| `PDI_ERASURE_IS_A_RUN` | `TheGuideRunsIT` | W | to fit |
+| `PDI_ERASURE_SAYS_HOW_FAR_IT_GOT` | `TheGuideRunsIT` | W | to fit |
+| `PDI_EXACT_RESOLUTION` | `AHumanHeldAsTwoRecordsIT` |  | to fit |
+| `PDI_PLAINTEXT_IN_FLIGHT_LEAVES_NO_TRACE` | `AStoreWithoutSuperuserStillMountsIT`, `ThePlaintextInFlightLeavesNoTraceIT` | W | to fit |
+| `PDI_PSEUDONYM_RESOLVED_BY_SCAN` | `APseudonymResolvesBackToItsPersonIT` | W | to fit |
+| `PDI_RIGHTS_AS_OPERATIONS` | without a world: PdiIT |  | assert where the story passes it |
+| `PDI_SHRED_LEDGER` | without a world: PdiIT |  | assert where the story passes it |
+| `PDI_STRUCTURAL_VAULT` | `AHumanHeldAsTwoRecordsIT`, `APseudonymIsDerivedAndNeverKeptIT` |  | to fit |
+| `PDI_UNFINDABLE_AFTER_ERASURE` | without a world: PdiIT, TheGuideRunsIT |  | assert where the story passes it |
+| `POL_ERASURE_COMPATIBLE` | without a world: PdiIT, TheGuideRunsIT |  | assert where the story passes it |
+| `PROC_CONFIG_APPLIES_AS_A_SWEEP` | `TenantRuntimeIT` |  | to fit |
+| `SCIM_DEPROVISION_IS_A_STATE` | `ScimProvisioningIT`, `TheGuideRunsIT` | W | to fit |
+| `SRCH_HONEST_CAPABILITY` | `AHumanHeldAsTwoRecordsIT` | W | to fit |
+| `TEN_ERASURE_BY_DROP` | `TenantRuntimeIT` | W | to fit |
+| `TERM_EVERY_TENANT_ANSWERS` | `TenantRuntimeIT` | W | to fit |
+| `VER_CONCURRENT_VERSIONS` | `TenantRuntimeIT` |  | to fit |
+
+## US-DBO-TWO-PLACES
+
+Story class: `OneTenantInTwoPlacesIT` — exists; today shared.
+
+| Class | Boots | Promises | W | Status |
+|---|---|---|---|---|
+| `SpecDeclaredSyncIT` | own (sweep) | 6 | 5 | todo |
+| `ZoneIT` | own (deployment) | 5 | 5 | todo |
+| `AZoneReachesAnotherFaceThroughOneProjectionIT` | own (sweep) | 4 | 3 | todo |
+| `OneTenantInTwoPlacesIT` (story class) | shared | 9 | 2 | todo |
+| `EachTypeStreamsAtItsOwnGrainIT` | shared | 1 | 1 | todo |
+| `ReplicationDrivenOverHttpIT` | shared | 4 | 1 | todo |
+| `MetaSaysTheEnginesFactsIT` | shared | 1 | 0 | todo |
+
+| Promise | Proven now by | W | Leg in the story class |
+|---|---|---|---|
+| `SYNC_DECLARED_ONLY` | `SpecDeclaredSyncIT` |  | `1` `theClinicDeclaresWhatItTakes` |
+| `SYNC_SPEC_DECLARED` | `SpecDeclaredSyncIT` | W | `1` `theClinicDeclaresWhatItTakes` |
+| `ZONE_DECLARATIONS_AS_RECORDS` | — | W | `1` `theClinicDeclaresWhatItTakes` |
+| `SYNC_DIRECT_UPSTREAM_ONLY` | — |  | `2` `nothingUndeclaredArrives` |
+| `PROC_MIRRORED_RUNS_ARE_FILED_BY_APPLIANCE` | `ReplicationDrivenOverHttpIT` |  | `4` `whatTheApplianceProducedTravelsWithItsRun` |
+| `PROC_THE_LANE_HAS_TWO_BOUNDS` | — |  | `4` `whatTheApplianceProducedTravelsWithItsRun` |
+| `FEED_IDEMPOTENT_DELIVERY` | — |  | `5` `aReSentBatchAppliesOnce` |
+| `PROC_LANE_APPLY_IS_REPLAY_AND_REORDER_SAFE` | — |  | `5` `aReSentBatchAppliesOnce` |
+| `PROC_LANE_EPOCH` | `ReplicationDrivenOverHttpIT` |  | `6` `aCursorFromAnotherLaneIsRefused` |
+| `AUTH_FEDERATED_HUMANS` | `ZoneIT` | W | to fit |
+| `AUTH_ONE_CEREMONY_MANY_TENANTS` | `ZoneIT` | W | to fit |
+| `FEED_LEAN_WIRE_OPTION` | — |  | PLANNED — nothing cites it |
+| `FEED_PUSH_ACK_RESUME` | without a world: FeedIT, SubscriptionsIT |  | assert where the story passes it |
+| `PROC_AUDIT_REPLICATES_AS_RECORDED` | without a world: AuditReplicatesAsRecordedIT |  | assert where the story passes it |
+| `PROC_ENTITLEMENT_IS_DECLARED_NOT_DEFAULTED` | `ReplicationDrivenOverHttpIT` | W | to fit |
+| `PROC_WORK_DRIVEN_ARRIVAL_AND_EXPIRY` | `ReplicationDrivenOverHttpIT` |  | to fit |
+| `SYNC_ANY_TYPE` | `EachTypeStreamsAtItsOwnGrainIT` | W | to fit |
+| `SYNC_CONVERT_ON_APPLY` | without a world: SyncStreamsIT |  | assert where the story passes it |
+| `SYNC_FULL_HISTORY_CATCH_UP` | `SpecDeclaredSyncIT` | W | to fit |
+| `SYNC_LOCAL_SHADOWING` | `AZoneReachesAnotherFaceThroughOneProjectionIT`, `MetaSaysTheEnginesFactsIT` |  | to fit |
+| `SYNC_PROVENANCE_COPIES` | without a world: SyncStreamsIT, TheGuideRunsIT |  | assert where the story passes it |
+| `SYNC_TERMINOLOGY_GRAIN_SURVIVES` | `SpecDeclaredSyncIT` | W | to fit |
+| `TEN_A_CHANGE_IS_NOT_A_RETRACTION` | `SpecDeclaredSyncIT` | W | to fit |
+| `TEN_WHAT_A_TENANT_CARES_ABOUT_IS_EDITABLE` | `SpecDeclaredSyncIT` | W | to fit |
+| `ZONE_AN_UNSERVABLE_ZONE_IS_SAID_AT_BRING_UP` | `AZoneReachesAnotherFaceThroughOneProjectionIT` | W | to fit |
+| `ZONE_A_ZONE_IS_SERVED_TO_A_FACE_THROUGH_ONE_PROJECTION` | `AZoneReachesAnotherFaceThroughOneProjectionIT` | W | to fit |
+| `ZONE_BROKER_CHOICE` | `ZoneIT` | W | to fit |
+| `ZONE_SESSIONS_ACCUMULATE` | `ZoneIT` | W | to fit |
+| `ZONE_SUBJECT_DOMAINS` | `ZoneIT` | W | to fit |
+| `ZONE_WHAT_CONVERSION_CANNOT_CARRY_IS_REFUSED_BY_NAME` | `AZoneReachesAnotherFaceThroughOneProjectionIT` | W | to fit |
+
+## US-DBO-STANDARD-MOVES
+
+Story class: `TheStandardMovesUnderTheDataIT` — exists; today shared.
+
+| Class | Boots | Promises | W | Status |
+|---|---|---|---|---|
+| `ShapeStampIT` | shared | 7 | 7 | todo |
+| `ReshapeIT` | shared | 6 | 6 | todo |
+| `TheFaceSqlShipsWithTheReleaseIT` | shared | 6 | 6 | todo |
+| `TheStandardMovesUnderTheDataIT` (story class) | shared | 7 | 5 | todo |
+| `ADefinitionMovesOnItsOwnFeedIT` | shared | 3 | 3 | todo |
+| `AValueIsTheKindOfThingItIsDeclaredToBeIT` | shared | 2 | 2 | todo |
+| `NewerDataRefusedIT` | shared | 2 | 2 | todo |
+| `TheTwoAnswersAreComparedOverTheVersionIT` | shared | 2 | 2 | todo |
+| `ADefinitionIsExpandedWhenItArrivesIT` | own (first boot) | 7 | 1 | todo |
+| `AFaceRootHoldsItsVersionAsRecordsIT` | own (lifecycle) | 1 | 1 | todo |
+| `AReplicatedProfileCanBeValidatedAgainstIT` | shared | 1 | 1 | todo |
+| `AReshapeConvergesOnlyWhatItWasAimedAtIT` | shared | 1 | 1 | todo |
+| `ATypeSaysWhoDecidesAWriteOfItIT` | shared | 1 | 1 | todo |
+| `AWriteIsJudgedFromTheIndexIT` | own (a global dial: the face is chosen by a system property rather than by a declaration, so any tenant whose payloads were first built inside this class's window would keep the index face for the rest of the run. A shared tenant caught that way would leave a neighbouring class quietly testing something else. It joins a shared world when the selector becomes per-tenant) | 1 | 1 | todo |
+| `OneEnvelopeFromEitherSetOfParametersIT` | shared | 1 | 1 | todo |
+| `TwoFacesOverOneDocumentIT` | shared | 1 | 1 | todo |
+| `WhatAProfilePinsIsAnsweredFromTheIndexIT` | shared | 1 | 1 | todo |
+| `AnIndexBuiltFromTheRowsSaysWhatThePackagesSayIT` | shared | 1 | 0 | todo |
+| `AnUpstreamSelectsByNameIT` | shared | 1 | 0 | todo |
+
+| Promise | Proven now by | W | Leg in the story class |
+|---|---|---|---|
+| `SHAPE_SERVED_BESIDE_THE_CLAIM` | `ShapeStampIT` | W | `1` `whatItWasValidatedUnderIsRecorded` |
+| `SHAPE_WRITTEN_UNDER_STAMPED` | `ShapeStampIT` | W | `1` `whatItWasValidatedUnderIsRecorded` |
+| `SHAPE_STAMP_IS_DERIVED` | `ShapeStampIT` | W | `2` `theStampIsReplacedNeverAccumulated` |
+| `SHAPE_QUERYABLE_BY_VERSION` | `ShapeStampIT` | W | `5` `stockIsFindableByBound` |
+| `SHAPE_UNPARSEABLE_VERSION_REFUSED` | `ShapeStampIT` | W | `6` `anUnparseableVersionIsRefusedAtTheDoor` |
+| `VER_CONCURRENT_VERSIONS` | — |  | `7` `definitionsTravelWithTheFace` |
+| `VER_DEFINITIONS_TRAVEL_WITH_THE_FACE` | — |  | `7` `definitionsTravelWithTheFace` |
+| `CORE_IDENTITY_SURVIVES_CONVERSION` | without a world: UpgradeOnReadIT |  | assert where the story passes it |
+| `CORE_PAYLOAD_IS_TRUTH` | `ADefinitionIsExpandedWhenItArrivesIT` |  | to fit |
+| `CORE_UPGRADE_ON_READ` | without a world: UpgradeOnReadIT |  | assert where the story passes it |
+| `FEED_DEFINITIONS_MOVE_ON_A_FEED_OF_THEIR_OWN` | `ADefinitionMovesOnItsOwnFeedIT` | W | to fit |
+| `SHAPE_HANDBACK_CLAIMS_WITHOUT_LOCKING` | `ReshapeIT` | W | to fit |
+| `SHAPE_HANDBACK_KEEPS_THE_DISCIPLINE` | `ReshapeIT` | W | to fit |
+| `SHAPE_HELD_IS_ANSWERED_HOWEVER_IT_ARRIVED` | `AReplicatedProfileCanBeValidatedAgainstIT` | W | to fit |
+| `SHAPE_MIRRORED_KEEPS_ITS_STAMP` | `ShapeStampIT` | W | to fit |
+| `SHAPE_NEWER_DATA_REFUSED` | `NewerDataRefusedIT` | W | to fit |
+| `SHAPE_REFUSED_OBJECT_LEFT_BEHIND` | `ReshapeIT` | W | to fit |
+| `SHAPE_RESHAPED_IN_PLACE` | `ReshapeIT` | W | to fit |
+| `SHAPE_RESHAPE_RESUMABLE` | `ReshapeIT` | W | to fit |
+| `SHAPE_RESHAPE_TAKES_THE_SEARCH_NARROWING` | `AReshapeConvergesOnlyWhatItWasAimedAtIT` | W | to fit |
+| `SHAPE_STAMP_OUTLIVES_ITS_PACK` | `ReshapeIT` | W | to fit |
+| `SHAPE_STOCK_COUNTED` | `ShapeStampIT` | W | to fit |
+| `SHAPE_TOO_NEW_IS_ITS_OWN_ANSWER` | `NewerDataRefusedIT` | W | to fit |
+| `TEN_A_TENANT_COMES_UP_FROM_THE_FACE_IMAGE` | `ADefinitionIsExpandedWhenItArrivesIT` |  | to fit |
+| `TEN_A_TYPE_DECLARES_ITS_DOMAIN` | `ADefinitionMovesOnItsOwnFeedIT` | W | to fit |
+| `VAL_AN_INVARIANT_IS_ANSWERED_IN_THE_DATABASE` | `TheFaceSqlShipsWithTheReleaseIT` | W | to fit |
+| `VAL_AN_INVARIANT_IS_COMPILED_WHEN_IT_ARRIVES` | `ADefinitionIsExpandedWhenItArrivesIT` |  | to fit |
+| `VAL_AN_INVARIANT_THAT_DOES_NOT_TRANSLATE_IS_REFUSED_BY_NAME` | `ADefinitionIsExpandedWhenItArrivesIT` |  | to fit |
+| `VAL_A_THIRD_ANSWERER_READS_THE_INDEX` | `TheTwoAnswersAreComparedOverTheVersionIT`, `AWriteIsJudgedFromTheIndexIT`, `OneEnvelopeFromEitherSetOfParametersIT`, `TwoFacesOverOneDocumentIT`, `WhatAProfilePinsIsAnsweredFromTheIndexIT` | W | to fit |
+| `VAL_DIVERGENCE_IS_MEASURED_OVER_THE_VERSION` | `AValueIsTheKindOfThingItIsDeclaredToBeIT`, `TheTwoAnswersAreComparedOverTheVersionIT` | W | to fit |
+| `VAL_THE_DATABASE_ANSWER_IS_ADVISORY_UNTIL_IT_IS_NOT` | `TheFaceSqlShipsWithTheReleaseIT`, `AValueIsTheKindOfThingItIsDeclaredToBeIT`, `ATypeSaysWhoDecidesAWriteOfItIT` | W | to fit |
+| `VAL_THE_INDEX_IS_A_PROJECTION_OF_THE_EXPANDED_ROWS` | `AnIndexBuiltFromTheRowsSaysWhatThePackagesSayIT`, `AnUpstreamSelectsByNameIT` |  | to fit |
+| `VAL_TIER_ONE_IS_ANSWERED_IN_THE_DATABASE` | `TheFaceSqlShipsWithTheReleaseIT`, `ADefinitionIsExpandedWhenItArrivesIT` | W | to fit |
+| `VER_AN_ELEMENT_THAT_DOES_NOT_TRANSLATE_IS_REFUSED_BY_NAME` | `ADefinitionIsExpandedWhenItArrivesIT` |  | to fit |
+| `VER_AN_EXPRESSION_THAT_YIELDS_A_VALUE_IS_COMPILED` | without a world: WhatTheSearchCompilerAcceptsTest |  | assert where the story passes it |
+| `VER_A_DEFINITION_IS_EXPANDED_WHEN_IT_ARRIVES` | `ADefinitionIsExpandedWhenItArrivesIT` |  | to fit |
+| `VER_BALLOT_RECORDED_PER_VERSION` | without a world: DefinitionsTravelWithTheFaceTest, OneFaceOverTheElementModelTest … |  | assert where the story passes it |
+| `VER_BALLOT_SERVED_AS_AUTHORED` | without a world: OneFaceOverTheElementModelTest, WhatWasStoredReachesTheReaderTest |  | assert where the story passes it |
+| `VER_CONVERSION_RUNS_BOTH_WAYS` | without a world: WhatConversionCarriesBothWaysIT |  | assert where the story passes it |
+| `VER_DEFINITIONS_INDEXED_WITHOUT_THE_TOOLCHAIN` | without a world: DefinitionsAreIndexedWithoutTheToolchainTest |  | assert where the story passes it |
+| `VER_DEFINITIONS_LIVE_IN_A_SCHEMA_OF_THEIR_OWN` | `TheFaceSqlShipsWithTheReleaseIT`, `ADefinitionMovesOnItsOwnFeedIT` | W | to fit |
+| `VER_FACE_ROOT_HOLDS_THE_VERSION_AS_RECORDS` | `TheFaceSqlShipsWithTheReleaseIT`, `AFaceRootHoldsItsVersionAsRecordsIT` | W | to fit |
+| `VER_THE_FACE_SQL_SHIPS_WITH_THE_RELEASE` | `TheFaceSqlShipsWithTheReleaseIT` | W | to fit |
+| `VER_TRANSITION_BY_CONVERTERS` | without a world: UpgradeOnReadIT |  | assert where the story passes it |
+| `VER_WHAT_THIS_FACE_CANNOT_READ_IS_REFUSED` | without a world: ATypeSaysWhatItDoesWithWhatItCannotReadTest, TheGuideRunsIT |  | assert where the story passes it |
+
+## US-DBO-VENDOR-CHANGE
+
+Story class: `TheClinicChangesVendorIT` — exists; today databases opened directly, no runtime.
+
+| Class | Boots | Promises | W | Status |
+|---|---|---|---|---|
+| `TheClinicChangesVendorIT` (story class) | databases opened directly, no runtime | 6 | 0 | todo |
+
+| Promise | Proven now by | W | Leg in the story class |
+|---|---|---|---|
+| `MNT_BACKUP_IS_EXPORT` | — |  | `1` `everythingLeavesSealed` |
+| `MNT_OWNER_KEY_ENCRYPTION` | — |  | `1` `everythingLeavesSealed` |
+| `MNT_SNAPSHOT_CONSISTENT` | — |  | `1` `everythingLeavesSealed` |
+| `CORE_REINDEX_IS_AN_OPERATION` | — |  | `3` `itRestoresElsewhereWithTheSameIdentities` |
+| `MNT_PORTABLE_STATE_EXPORT` | — |  | `3` `itRestoresElsewhereWithTheSameIdentities` |
+| `MNT_HISTORY_BY_SCHEMA` | — |  | `4` `historyIsRestoredByChoice` |
+| `CORE_A_SEPARABLE_DOMAIN_HAS_A_SCHEMA_OF_ITS_OWN` | without a world: ASeparableDomainIsMovedOnItsOwnIT |  | assert where the story passes it |
+| `MNT_ACCEPTED_ROOT_RECORDED` | without a world: ExportStreamsIT |  | assert where the story passes it |
+| `MNT_ARCHIVE_ROOT_OVER_CONTENTS` | without a world: ArchiveAttestationIT |  | assert where the story passes it |
+| `MNT_ATTESTATION_READS_AS_FHIR` | without a world: ArchiveProvenanceIT |  | assert where the story passes it |
+| `MNT_BOTH_PARTIES_ATTEST` | without a world: ArchiveAttestationIT |  | assert where the story passes it |
+| `MNT_IMPORT_REFUSES_UNATTESTED` | without a world: ArchiveAttestationIT, ArchiveKindIT … |  | assert where the story passes it |
+| `POL_POLICY_REPLAY_ON_RESTORE` | without a world: PolicyIT |  | assert where the story passes it |
+
+## US-DBO-EDGE-ROUNDTRIP
+
+Story class: `WorkLeavesTheClinicAndComesBackIT` — exists; today shared.
+
+| Class | Boots | Promises | W | Status |
+|---|---|---|---|---|
+| `WorkLeavesTheClinicAndComesBackIT` (story class) | shared | 23 | 13 | todo |
+| `ALaneOverHttpIsIndistinguishableIT` | shared | 5 | 4 | todo |
+| `ARouterHoldsTheClaimIT` | shared | 3 | 3 | todo |
+| `AFaceAuthoredRunReachesTheLaneIT` | shared | 1 | 1 | todo |
+| `AHostHoldsALaneByInstallingABundleIT` | osgi+own (container) | 2 | 1 | todo |
+| `ALaneOverTheStreamIsIndistinguishableIT` | own (deployment) | 2 | 1 | todo |
+| `ALargePayloadTravelsByReferenceIT` | own (whole plane) | 2 | 1 | todo |
+| `AParticipantOffersItsKeyAtEnrolmentIT` | shared | 1 | 1 | todo |
+| `ARunsTrailIsChainedFromTheTaskIT` | shared | 1 | 1 | todo |
+| `MandatoryStepsClassifyIncidentsIT` | own (sweep) | 1 | 1 | todo |
+| `NothingReadableLandsInTheSubstrateIT` | own (whole plane) | 2 | 1 | todo |
+| `OneRunIsOneChainAcrossTwoProcessesIT` | shared | 1 | 1 | todo |
+| `WorkTravelsSealedIT` | shared | 2 | 1 | todo |
+| `AStreamLaneIsToldItHasWorkIT` | own (deployment) | 1 | 0 | todo |
+
+| Promise | Proven now by | W | Leg in the story class |
+|---|---|---|---|
+| `PROC_MILESTONES_ARE_DECLARED` | — |  | `1` `theBenchIntroducesWhatItPerforms` |
+| `PROC_STEPS_ARRIVE_BY_INTRODUCTION` | — |  | `1` `theBenchIntroducesWhatItPerforms` |
+| `PROC_STEP_DECLARES_ITSELF` | — |  | `1` `theBenchIntroducesWhatItPerforms` |
+| `PROC_STEP_DECLARES_ITS_SLOTS` | — | W | `1` `theBenchIntroducesWhatItPerforms` |
+| `PROC_INTRODUCTION_GRANTS_NOTHING` | — |  | `2` `introducingAStepGrantsNothing` |
+| `PROC_WORK_IS_AUTHORED_ON_THE_SURFACE` | — | W | `2` `introducingAStepGrantsNothing` |
+| `PROC_RUN_HAS_A_RECORD` | — |  | `3` `theClinicAuthorsTheAssay` |
+| `PROC_RUN_INPUTS_FILL_THE_SLOTS` | — | W | `3` `theClinicAuthorsTheAssay` |
+| `PROC_TASK_CARRIES_THE_INPUTS` | — | W | `3` `theClinicAuthorsTheAssay` |
+| `PROC_CLAIM_IS_THE_INTERSECTION` | `ALaneOverHttpIsIndistinguishableIT` | W | `5` `whatItMayTakeIsTheIntersection` |
+| `PROC_ENTITLEMENT_IS_DECLARED_NOT_DEFAULTED` | `ALaneOverHttpIsIndistinguishableIT` | W | `5` `whatItMayTakeIsTheIntersection` |
+| `PROC_EXECUTOR_DECLARES_ITSELF` | — | W | `6` `takingItSaysWhoHoldsIt` |
+| `PROC_RUN_NAMES_THE_STEP_VERSION` | — |  | `6` `takingItSaysWhoHoldsIt` |
+| `PROC_RUN_NAMES_WHAT_RAN_IT` | — | W | `6` `takingItSaysWhoHoldsIt` |
+| `PROC_RUN_SAYS_WHO_HOLDS_IT` | — |  | `6` `takingItSaysWhoHoldsIt` |
+| `PROC_INPUTS_ARRIVE_WITH_THE_WORK` | — | W | `7` `theInputsArriveWithTheWork` |
+| `PROC_PROGRESS_NAMES_THE_MILESTONE` | — |  | `8` `progressNamesADeclaredMilestone` |
+| `PROC_REPORT_THROUGH_DECLARED_ACTIONS` | — | W | `9` `aVerbTheStepDoesNotDeclareIsRefused` |
+| `PROC_DONE_MEANS_DONE` | `ARouterHoldsTheClaimIT` | W | `10` `aFailureIsReleasedNotClosed` |
+| `PROC_FAILURE_IS_RELEASED` | — |  | `10` `aFailureIsReleasedNotClosed` |
+| `PROC_RUN_ENVELOPE_DISCLOSES_STATE_NOT_SUBJECT` | — |  | `11` `theEnvelopeDisclosesStateAndNotSubject` |
+| `POL_TRAVEL_AND_ACCESS_ARE_DIFFERENT_ENTRIES` | `WorkTravelsSealedIT` | W | `12` `theTrailTellsCarryingFromReading` |
+| `WF_HOPS_AUDITED` | — | W | `12` `theTrailTellsCarryingFromReading` |
+| `POL_A_RUNS_TRAIL_IS_CHAINED_FROM_THE_TASK` | `ARouterHoldsTheClaimIT`, `ARunsTrailIsChainedFromTheTaskIT` | W | to fit |
+| `PROC_AUTOMATION_IS_A_DECLARED_SWITCH` | without a world: ASwitchSaysWhetherAStepIsAutomatedHereIT |  | assert where the story passes it |
+| `PROC_AUTOMATION_IS_DECLARED` | without a world: ExecutorResolutionTest |  | assert where the story passes it |
+| `PROC_A_FAULT_THE_CALLER_IS_NOT_TOLD_IS_STILL_RECORDED` | without a world: AFailedClaimIsNotALostRaceTest, AFailedVerbSaysWhyItFailedTest |  | assert where the story passes it |
+| `PROC_A_HOST_HOLDS_A_LANE_WHEREVER_IT_IS` | `ALaneOverHttpIsIndistinguishableIT`, `AHostHoldsALaneByInstallingABundleIT`, `ALaneOverTheStreamIsIndistinguishableIT` | W | to fit |
+| `PROC_A_LANE_OVER_THE_STREAM` | `AHostHoldsALaneByInstallingABundleIT`, `ALaneOverTheStreamIsIndistinguishableIT` |  | to fit |
+| `PROC_A_PARTICIPANT_OFFERS_ITS_KEY_AT_ENROLMENT` | `AParticipantOffersItsKeyAtEnrolmentIT` | W | to fit |
+| `PROC_A_RUN_ANSWERS_ONLY_FOR_ITS_INPUTS` | `TheGuideRunsIT` | W | to fit |
+| `PROC_A_RUN_CONTEXT_ENDS_WITH_ITS_RUN` | `TheGuideRunsIT` | W | to fit |
+| `PROC_A_RUN_NAMES_WHAT_IT_PRODUCED` | without a world: ContentChangesInsideWorkIT, TheLaneHasTwoBoundsIT |  | assert where the story passes it |
+| `PROC_A_STEP_GRANTS_THE_RIGHT_TO_OVERRIDE` | without a world: ExecutorResolutionTest |  | assert where the story passes it |
+| `PROC_A_WAKE_UP_IS_NOT_HOW_WORK_ARRIVES` | `AStreamLaneIsToldItHasWorkIT` |  | to fit |
+| `PROC_CATALOGUE_IN_STORE` | — |  | PLANNED — nothing cites it |
+| `PROC_CLOSE_BY_RE_EVALUATION` | without a world: ConfigAppliesAsASweepIT, RunsAreRecordsIT |  | assert where the story passes it |
+| `PROC_CONTENT_CHANGES_INSIDE_WORK` | without a world: ContentChangesInsideWorkIT |  | assert where the story passes it |
+| `PROC_CORRELATION_TRAVELS_OPAQUE` | without a world: RunsAreRecordsIT |  | assert where the story passes it |
+| `PROC_DOMAIN_CODE_FILTER` | — |  | PLANNED — nothing cites it |
+| `PROC_ESCALATION_BY_FAILURE_CLASS` | without a world: RunsAreRecordsIT |  | assert where the story passes it |
+| `PROC_EXECUTOR_RESOLUTION_IS_DETERMINISTIC` | without a world: ExecutorResolutionTest |  | assert where the story passes it |
+| `PROC_FALL_THROUGH_IS_COUNTABLE` | without a world: ExecutorResolutionTest |  | assert where the story passes it |
+| `PROC_IDENTITY_IS_REASSEMBLED_AT_THE_TENANT` | without a world: IdentityIsPutBackTogetherAtTheTenantIT |  | assert where the story passes it |
+| `PROC_LANE_IS_A_TENANT_SERVICE` | `TenantOsgiIT` | W | to fit |
+| `PROC_MANDATORY_STEPS_CLASSIFY_INCIDENTS` | `MandatoryStepsClassifyIncidentsIT` | W | to fit |
+| `PROC_ONE_ID_ONE_DEFINITION` | without a world: StepsArriveByIntroductionIT |  | assert where the story passes it |
+| `PROC_ONE_PARENT_NEVER_ACROSS_A_BOUNDARY` | — |  | PLANNED — nothing cites it |
+| `PROC_REFUSED_IS_NOT_UNANSWERED` | `ALaneOverHttpIsIndistinguishableIT`, `AFaceAuthoredRunReachesTheLaneIT` | W | to fit |
+| `PROC_RUN_KINDS` | without a world: RunsAreRecordsIT |  | assert where the story passes it |
+| `PROC_RUN_TALLY_AND_ITEM_OUTCOMES` | without a world: RunsAreRecordsIT |  | assert where the story passes it |
+| `PROC_STEP_SERVICE_EMBEDDABLE` | `ALaneOverHttpIsIndistinguishableIT` |  | to fit |
+| `PROC_STEP_SHAPE_VALIDATION` | without a world: StepsAreDeclaredIT |  | assert where the story passes it |
+| `PROC_TASK_SAYS_WHERE_THE_WORK_IS` | without a world: MilestonesOnTheCheckpointIT |  | assert where the story passes it |
+| `PROC_THE_ROUTER_HOLDS_THE_CLAIM` | `ARouterHoldsTheClaimIT` | W | to fit |
+| `PROC_TRACE_JOIN` | without a world: PolicyIT |  | assert where the story passes it |
+| `PROC_TRACE_RIDES_THE_LANE` | `OneRunIsOneChainAcrossTwoProcessesIT` | W | to fit |
+| `PROC_WORK_TRAVELS_SEALED` | `WorkTravelsSealedIT` |  | to fit |
+| `WF_CONTENT_FREE_PLATFORM_PLANE` | `ALargePayloadTravelsByReferenceIT`, `NothingReadableLandsInTheSubstrateIT` | W | to fit |
+| `WF_PLATFORM_COORDINATED_HOPS` | — |  | PLANNED — nothing cites it |
+| `WF_POSTGRES_SUBSTRATE` | without a world: SubscriptionsIT |  | assert where the story passes it |
+| `WF_TWO_PLANES` | `ALargePayloadTravelsByReferenceIT`, `NothingReadableLandsInTheSubstrateIT` |  | to fit |
+
+## US-DBO-FLEET-HEALTH
+
+Story class: `AnOperatorReadsAndSteersTheFleetIT` — exists; today own (sweep).
+
+| Class | Boots | Promises | W | Status |
+|---|---|---|---|---|
+| `AnOperatorReadsAndSteersTheFleetIT` (story class) | own (sweep) | 14 | 12 | todo |
+| `ADeploymentRecordsWhatItWasToldToServeIT` | own (sweep) | 6 | 3 | todo |
+| `ADeclarationIsAppliedThroughTheFaceIT` | shared | 6 | 2 | todo |
+| `ATenantDeclaredDifferentlyIsNoticedIT` | own (sweep) | 3 | 2 | todo |
+| `AChangeCanBeAskedAboutBeforeItIsMadeIT` | own (deployment) | 1 | 1 | todo |
+| `ADeclarationNamesWhatTheSameApplyCreatesIT` | shared | 1 | 1 | todo |
+| `ATenantThatIsNotUpSaysWhyIT` | own (sweep) | 1 | 1 | todo |
+| `AZoneHandsOverItsContentIT` | shared | 1 | 1 | todo |
+| `WhatTheLoadedSpecificationCostsIT` | own (first boot) | 2 | 0 | todo |
+
+| Promise | Proven now by | W | Leg in the story class |
+|---|---|---|---|
+| `OPS_RUNTIME_SAYS_WHAT_IT_SERVES` | `ATenantDeclaredDifferentlyIsNoticedIT`, `ATenantThatIsNotUpSaysWhyIT` | W | `1` `aNodeSaysWhatItIsServing` |
+| `PROC_A_NODE_ANSWERS_ITS_CATALOGUE` | — |  | `2` `aNodeSaysWhatItKnowsHowToDo` |
+| `OPS_FLEET_IS_READ_FROM_OUTSIDE` | — | W | `3` `oneProcessReadsTheWholeDeployment` |
+| `PROC_NETWORK_MAP` | — | W | `4` `theMapIsOneAnswerAcrossNodes` |
+| `PROC_PRESENCE_IS_DERIVED` | — | W | `5` `aBenchAnnouncesItselfAndPresenceIsDerived` |
+| `PROC_RUNNER_DECLARES_ITS_VITALS` | — |  | `5` `aBenchAnnouncesItselfAndPresenceIsDerived` |
+| `PROC_A_DEPARTED_ROUTEE_IS_A_STATEMENT` | — | W | `6` `whatSitsBehindTheBench` |
+| `PROC_A_ROUTED_TREE_TRAVELS_AS_A_LANE_VERB` | — | W | `6` `whatSitsBehindTheBench` |
+| `PROC_A_TRACKABLE_MAY_ROUTE_OTHERS` | — | W | `6` `whatSitsBehindTheBench` |
+| `PROC_NUMBERS_LEAVE_AS_LABELS_NEVER_AS_TEXT` | — | W | `7` `numbersLeaveAsLabelsAndNeverAsText` |
+| `PROC_REPORTING_RUNS_WHERE_NOTHING_COLLECTS` | — | W | `7` `numbersLeaveAsLabelsAndNeverAsText` |
+| `OPS_FLEET_IS_ACTED_ON_THROUGH_THE_LANE` | — | W | `8` `aWrongClosureIsUndoneThroughTheLane` |
+| `PROC_CLOSED_CAN_BE_REOPENED` | — | W | `8` `aWrongClosureIsUndoneThroughTheLane` |
+| `PROC_SUPERVISION_IS_ITS_OWN_ENTITLEMENT` | — | W | `8` `aWrongClosureIsUndoneThroughTheLane` |
+| `OPS_MIGRATION_AS_DEPLOYMENT` | — |  | PLANNED — nothing cites it |
+| `OPS_NUMBERS_LEAVE_THE_NODE` | `WhatTheLoadedSpecificationCostsIT` |  | to fit |
+| `PROC_CONFIG_APPLIES_AS_A_SWEEP` | `ADeploymentRecordsWhatItWasToldToServeIT`, `ADeclarationIsAppliedThroughTheFaceIT` |  | to fit |
+| `PROC_CONFIG_READ_FROM_A_SOURCE` | `ADeploymentRecordsWhatItWasToldToServeIT`, `ADeclarationIsAppliedThroughTheFaceIT` |  | to fit |
+| `PROC_CONFIG_WITHDRAWAL_IS_DECLARED` | `ADeploymentRecordsWhatItWasToldToServeIT`, `ADeclarationIsAppliedThroughTheFaceIT` |  | to fit |
+| `SCAL_DURABLE_ASSIGNMENT` | — |  | PLANNED — nothing cites it |
+| `SCAL_NO_SHARED_STATE_BROKER` | — |  | PLANNED — nothing cites it |
+| `SCAL_SINGLE_WRITER_TENANT` | — |  | PLANNED — nothing cites it |
+| `SCAL_TRANSPARENT_ROUTING` | — |  | PLANNED — nothing cites it |
+| `SCAL_TWO_HOP_LOCALITY` | — |  | PLANNED — nothing cites it |
+| `TEN_AN_ACTIVITY_DECLARES_WHERE_IT_APPLIES` | without a world: AnActivitySaysWhichTenantsItIsForTest |  | assert where the story passes it |
+| `TEN_APPLYING_IS_ASKED_FOR_AND_RECORDED` | `ADeploymentRecordsWhatItWasToldToServeIT` | W | to fit |
+| `TEN_A_CHANGE_CAN_BE_CLASSIFIED_WITHOUT_APPLYING` | `AChangeCanBeAskedAboutBeforeItIsMadeIT` | W | to fit |
+| `TEN_A_CHANGE_IS_NOT_A_RETRACTION` | `ATenantDeclaredDifferentlyIsNoticedIT` | W | to fit |
+| `TEN_A_DECLARATION_IS_A_RECORD` | `ADeploymentRecordsWhatItWasToldToServeIT` | W | to fit |
+| `TEN_A_DECLARATION_NAMES_ITS_REFERENT` | `ADeclarationNamesWhatTheSameApplyCreatesIT` | W | to fit |
+| `TEN_A_DECLARED_SET_IS_APPLIED_AS_ONE_PASS` | `ADeclarationIsAppliedThroughTheFaceIT`, `AZoneHandsOverItsContentIT` | W | to fit |
+| `TEN_A_PARTNER_MANAGES_TENANTS` | `APartnerFollowsWorkIT` | W | to fit |
+| `TEN_A_REDECLARATION_IS_NOTICED` | `ATenantDeclaredDifferentlyIsNoticedIT` |  | to fit |
+| `TEN_A_REFUSED_DECLARATION_IS_SAID_ONCE` | without a world: ARefusedDeclarationIsSaidOnceTest |  | assert where the story passes it |
+| `TEN_A_STALE_INDEX_IS_REMEMBERED_UNTIL_IT_IS_REBUILT` | without a world: AStaleIndexComesBackTest |  | assert where the story passes it |
+| `TEN_A_TENANT_COMES_UP_FROM_THE_FACE_IMAGE` | `WhatTheLoadedSpecificationCostsIT` |  | to fit |
+| `TEN_FAIRNESS_QUOTAS` | — |  | PLANNED — nothing cites it |
+| `TEN_SERVED_FROM_WHAT_WAS_APPLIED` | `ADeploymentRecordsWhatItWasToldToServeIT` | W | to fit |
+| `TERM_EVERY_TENANT_ANSWERS` | `ADeclarationIsAppliedThroughTheFaceIT` | W | to fit |
+| `TERM_NATIVE_FORM` | `ADeclarationIsAppliedThroughTheFaceIT` |  | to fit |
+
+## Fleet steps — a new story (step 5)
+
+Story class: none yet.
+
+| Class | Boots | Promises | W | Status |
+|---|---|---|---|---|
+| `ABeanIsFoundRatherThanWiredIT` | own (deployment) | 4 | 4 | todo |
+| `OneBeanPerformsForEveryTenantIT` | shared | 3 | 3 | todo |
+| `AProcessorIsEnrolledPerTenantIT` | own (deployment) | 2 | 2 | todo |
+| `ATenantReadsWhatIsOpenedOfItsDataIT` | shared | 2 | 2 | todo |
+| `ASlotIsReferredOrGivenIT` | shared | 1 | 1 | todo |
+| `AStepCodeBelongsToOneLevelIT` | own (sweep) | 1 | 1 | todo |
+| `ATenantAdmitsOrDeclinesWhatIsDoneToItIT` | own (deployment) | 1 | 1 | todo |
+| `AnUnauthorisedRowObeysItsPostureIT` | own (deployment) | 1 | 1 | todo |
+| `DeclaringAStepPreparesItsSubstrateIT` | own (deployment) | 1 | 1 | todo |
+| `TheWritebackPassesTheTenantsRulesIT` | shared | 1 | 1 | todo |
+| `TheJoinerOffersEveryTenantsWorkIT` | shared | 1 | 0 | todo |
+
+| Promise | Proven now by | W | Leg in the story class |
+|---|---|---|---|
+| `PROC_AN_UNAUTHORISED_ROW_OBEYS_ITS_POSTURE` | `AnUnauthorisedRowObeysItsPostureIT` | W | to fit |
+| `PROC_A_BEAN_IS_FOUND_RATHER_THAN_WIRED` | `ABeanIsFoundRatherThanWiredIT` | W | to fit |
+| `PROC_A_CONSUMER_TAKES_ONLY_ITS_OWN_STEPS` | `OneBeanPerformsForEveryTenantIT` | W | to fit |
+| `PROC_A_DISAGREEMENT_IS_AN_INCIDENT_NOT_A_REFUSAL` | `ATenantReadsWhatIsOpenedOfItsDataIT` | W | to fit |
+| `PROC_A_FLEET_PERFORMER_IS_HANDED_ITS_OBJECTS` | `ABeanIsFoundRatherThanWiredIT` | W | to fit |
+| `PROC_A_PARTICIPANT_ASKS_FOR_WORK_IT_NEED_NOT_PERFORM` | `ABeanIsFoundRatherThanWiredIT` | W | to fit |
+| `PROC_A_PROCESSOR_IS_ENROLLED_PER_TENANT` | `AProcessorIsEnrolledPerTenantIT` | W | to fit |
+| `PROC_A_REFERENCE_MAY_BE_A_SEARCH` | `ABeanIsFoundRatherThanWiredIT` | W | to fit |
+| `PROC_A_SLOT_IS_REFERRED_OR_GIVEN_AND_MAY_REPEAT` | `ASlotIsReferredOrGivenIT` | W | to fit |
+| `PROC_A_STEP_CODE_BELONGS_TO_ONE_LEVEL` | `AStepCodeBelongsToOneLevelIT` | W | to fit |
+| `PROC_A_TENANT_ADMITS_OR_DECLINES_WHAT_IS_DONE_TO_IT` | `ATenantAdmitsOrDeclinesWhatIsDoneToItIT` | W | to fit |
+| `PROC_A_TENANT_AUTHORISES_A_REGISTER_AND_SEES_IT_CHANGE` | `AProcessorIsEnrolledPerTenantIT` | W | to fit |
+| `PROC_A_TENANT_READS_WHAT_IS_OPENED_OF_ITS_DATA` | `ATenantReadsWhatIsOpenedOfItsDataIT` | W | to fit |
+| `PROC_DECLARING_A_STEP_PREPARES_ITS_SUBSTRATE` | `OneBeanPerformsForEveryTenantIT`, `DeclaringAStepPreparesItsSubstrateIT` | W | to fit |
+| `PROC_ONE_BEAN_PERFORMS_FOR_EVERY_TENANT` | `OneBeanPerformsForEveryTenantIT` | W | to fit |
+| `PROC_THE_JOINER_OFFERS_EVERY_TENANTS_WORK` | `TheJoinerOffersEveryTenantsWorkIT` |  | to fit |
+| `PROC_THE_WRITEBACK_PASSES_THE_TENANTS_RULES` | `TheWritebackPassesTheTenantsRulesIT` | W | to fit |
+
+## Classes that cite no promise
+
+Each is read before it is moved or deleted: a class that proves nothing the catalogue names is either a measurement whose finding is recorded elsewhere, a fold into a story leg under a promise it should have cited, or a deletion.
+
+| Class | Boots | Promises | W | Status |
+|---|---|---|---|---|
+| `AShutdownIsQuietIT` | own (lifecycle) | 0 | 0 | todo |
+| `ATenantGoingAwayIsNotOneThatFailedIT` | own (lifecycle) | 0 | 0 | todo |
+| `ATenantsAuthorityIsOnWhatItPublishesIT` | shared | 0 | 0 | todo |
+| `AnArchiveCanBeGivenBackIT` | shared | 0 | 0 | todo |
+| `AskingAboutRecordsIT` | shared | 0 | 0 | todo |
+| `EngineVocabularyDoesNotCollideWithItselfIT` | own (sweep) | 0 | 0 | todo |
+| `FaceRefusalIT` | own (deployment) | 0 | 0 | todo |
+| `OneVocabularyTwoBindingsIT` | shared | 0 | 0 | todo |
+| `ProfilesArrivingOutOfBandTakeEffectIT` | own (sweep) | 0 | 0 | todo |
+| `ProvisionedPdiCoarsensIT` | shared | 0 | 0 | todo |
+| `TheCastComesUpFromTheSamplesWorldIT` | shared | 0 | 0 | todo |
+| `WhatATenantNeedsFromAFaceIsDerivedIT` | shared | 0 | 0 | todo |
+| `WhatAnEnvelopeWouldNeedFromTheIndexIT` | shared | 0 | 0 | todo |
+| `WhatTheRestOfACheckerWouldNeedIT` | shared | 0 | 0 | todo |
+
+## Classes the world may not hold
+
+Left to the end, after every story has moved (step 7). What still does not fit then gets a technical user story.
+
+| Class | Boots | Promises | W | Status |
+|---|---|---|---|---|
+| `ADeploymentReadsItsDeclarationsFromWhereItWasToldTest` | own — unit test over stub provisioners | 0 | 0 | later |
+| `ADriverBundleContributesAStepIT` | osgi — a bundle installed into Felix | 1 | 0 | later |
+| `AHostHoldsTheWebTierAndTheRuntimeMountsOnItTest` | own — unit test over stub provisioners | 0 | 0 | later |
+| `EmbeddedContainerIT` | osgi — OSGi ratchet | 2 | 1 | later |
+| `FelixPackagingIT` | osgi — Felix packaging, no tenant | 0 | 0 | later |
+| `NumbersLeaveTheContainerIT` | osgi — telemetry leaving the container | 1 | 0 | later |
+| `OperatorIT` | own+process (sweep) — a k3s cluster the operator drives | 4 | 3 | later |
+| `ServerDistIT` | osgi+process — the distribution, started as a process | 5 | 5 | later |
+| `TenantOsgiIT` | osgi — OSGi ratchet | 3 | 3 | later |
+| `TheGuideRunsIT` | process — the guide against the pinned image (item 004) | 66 | 40 | later |
+| `TheStackSatisfiesAStatedRangeIT` | osgi — a bundle stack resolved in Felix, no tenant | 0 | 0 | later |
+
+## The assemblies and samples proving themselves
+
+The sample tests (`TheApplicationServesItsWorldIT`, `ABeanOfThisApplicationPerformsTheWorkIT`, `TheWorkArrivesOverTheSubstrateIT`) fold into the stories, which become the sample application's tests. The assembly tests stay: they prove the wrapper (item 028).
+
+| Class | Boots | Promises | W | Status |
+|---|---|---|---|---|
+| `ABeanIsAStepThisApplicationPerformsIT` | spring | 0 | 0 | stays |
+| `ABeanOfThisApplicationPerformsTheWorkIT` | spring | 6 | 3 | todo |
+| `ATestDeclaresTheDeploymentItRunsAgainstIT` | spring | 0 | 0 | stays |
+| `AddingThisJarMakesTheApplicationANodeIT` | spring | 0 | 0 | stays |
+| `AnApplicationThatAddedThisJarServesATenantIT` | spring | 0 | 0 | stays |
+| `TheApplicationServesItsWorldIT` | spring | 1 | 1 | todo |
+| `TheContainerComesUpInsideTheApplicationIT` | spring | 0 | 0 | stays |
+| `TheWorkArrivesOverTheSubstrateIT` | spring | 1 | 1 | todo |
+
