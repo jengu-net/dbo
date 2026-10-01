@@ -4,6 +4,7 @@ import cloud.jengu.dbo.promises.DboPromises;
 import cloud.jengu.dbo.promises.Proving;
 import cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner;
 import cloud.jengu.dbo.tenant.TenantRuntimeManager;
+import cloud.jengu.dbo.tenant.TenantState;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
@@ -29,8 +30,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * other classes' tenants through a pass they did not ask for, and the trouble
  * this reads would be a ledger everybody writes to.
  *
- * <p>Everything the directory does once it is up is
- * {@link ScimProvisioningIT}, on a shared tenant.
+ * <p>Everything the directory does once it is up is walked by the tenant
+ * opening story, on the sample world ({@code ATenantOpensAndItsPeopleGetInIT}).
  */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class ScimNeedsTheMembraneIT {
@@ -82,5 +83,13 @@ class ScimNeedsTheMembraneIT {
         assertTrue(String.valueOf(manager.troubles()).contains("scim requires pdi"),
                 "and the refusal is answerable from the trouble ledger, not only "
                         + "as an absent endpoint: " + manager.troubles());
+        // And the runtime reports it as failed rather than leaving it off the
+        // list: a spec the store refuses still declares the tenant it names,
+        // and that tenant is the one somebody opened the list to look for.
+        assertTrue(manager.tenantStates().stream().anyMatch(state ->
+                        "clear-headed".equals(state.code())
+                                && state.state() == TenantState.State.FAILED),
+                "a refused tenant is missing from what the runtime says it is doing, so "
+                        + "six of seven reads exactly like six: " + manager.tenantStates());
     }
 }

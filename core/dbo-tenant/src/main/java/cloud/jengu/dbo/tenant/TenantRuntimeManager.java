@@ -1765,10 +1765,20 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 // the case an operator asks about: a tenant that was
                 // declared and did not come up. A declaration that never
                 // parsed has no tenant to be a state of.
-                codeOf(declaration).ifPresent(code -> states.put(code,
-                        stillComing
-                                ? TenantState.State.COMING_UP
-                                : TenantState.State.FAILED));
+                // Declared whether or not it is served, for the reason given
+                // where a parsed spec is: a spec the store refuses still
+                // declares the tenant it names, so the tenant is reported as
+                // failed rather than dropped from the list as though nobody
+                // had asked for it.
+                codeOf(declaration).ifPresent(declared::add);
+                // Not over a tenant that is serving: a refused declaration
+                // naming its code is a contradiction to report, not a reason
+                // to call the tenant that is up a failure.
+                codeOf(declaration).filter(code -> !runtimes.containsKey(code))
+                        .ifPresent(code -> states.put(code,
+                                stillComing
+                                        ? TenantState.State.COMING_UP
+                                        : TenantState.State.FAILED));
                 // What an operator has to be told, kept where the
                 // sweep can find it: a declaration that will never parse
                 // has no tenant to be a state of, so it is named by
@@ -2103,11 +2113,20 @@ public final class TenantRuntimeManager implements AutoCloseable {
     /** The tenant a spec file declares, when it parses — for a state to belong to. */
     private static Optional<String> codeOf(
             cloud.jengu.dbo.sync.ConfigApplication.Declared declaration) {
+        String text = new String(declaration.payload(), java.nio.charset.StandardCharsets.UTF_8);
         try {
-            return Optional.of(TenantSpec.parse(new String(declaration.payload(),
-                    java.nio.charset.StandardCharsets.UTF_8)).code());
-        } catch (Exception e) {
-            return Optional.empty();
+            return Optional.of(TenantSpec.parse(text).code());
+        } catch (Exception refused) {
+            // A declaration the store refuses still names the tenant it is
+            // about, and that tenant is the one somebody asks after. Reading
+            // the code without the rest of the spec keeps a refused tenant on
+            // the runtime's list as failed, rather than missing from it.
+            try {
+                String code = Json.strOpt(Json.parse(text), "code");
+                return TenantSpec.isCode(code) ? Optional.of(code) : Optional.empty();
+            } catch (Exception unreadable) {
+                return Optional.empty();
+            }
         }
     }
 
