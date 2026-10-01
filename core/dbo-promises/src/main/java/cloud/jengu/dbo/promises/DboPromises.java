@@ -676,6 +676,17 @@ public enum DboPromises implements Promise {
             + "participant can ask for work it cannot do and a fleet step asked for by one "
             + "external application is performed by a bean inside the deployment."),
 
+    PROC_A_RUN_ANSWERS_ITS_INITIATOR(
+            "A run answers the application that asked for it. At the run's own address, on the "
+            + "credential it asked with, that application reads the run as a Task: how it "
+            + "stands, what it was over, and what the step produced — the counts it kept and "
+            + "the versions it wrote. So an application that asks for work learns how the "
+            + "work ended without being handed a door onto the tenant's records, which the "
+            + "credential that asks for work deliberately does not hold. Nobody else can read "
+            + "that answer: another client, a credential that may not act in work, and a run "
+            + "that does not exist are all answered alike, as not found, because a refusal "
+            + "that differed from absence would tell whoever asked which runs exist."),
+
     PROC_A_SLOT_IS_REFERRED_OR_GIVEN_AND_MAY_REPEAT(
             "A slot declares what fills it in FHIR's own notation: 'Reference(T)' for one the "
             + "tenant already holds, a bare 'T' for one given with the run, and '[]' for "

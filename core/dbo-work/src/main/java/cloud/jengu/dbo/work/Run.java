@@ -18,7 +18,7 @@ public record Run(String id, long versionId, String key, String process, String 
         RunKind kind, Holder holder, String parent, String correlation, String trace,
         Map<String, Long> tally, Item item, java.util.List<String> domains,
         Assignment assignment, Produced produced, String stepVersion,
-        Map<String, RunSlot> inputs, Milestone milestone) {
+        Map<String, RunSlot> inputs, Milestone milestone, String requester) {
 
     /**
      * A run named only by its key, for a verb whose lane reads the store's
@@ -33,7 +33,23 @@ public record Run(String id, long versionId, String key, String process, String 
     public static Run named(String key) {
         return new Run(null, 0, key, null, null, null, null, null, null, null,
                 Map.of(), null, java.util.List.of(), null, Produced.NOTHING, null,
-                Map.of(), null);
+                Map.of(), null, null);
+    }
+
+    /**
+     * The client that asked for this run at the tenant's step door, or null
+     * for a run authored any other way — on the records surface, by a lane,
+     * in process, for the fleet.
+     *
+     * <p>Recorded because it is who the run answers. The application that
+     * asked for work learns how it ended and what it produced from the run's
+     * own address, and a credential that may act in work is refused the
+     * records surface by design — so without this, nothing the asker holds
+     * would let it read the answer, and nothing the store holds would say the
+     * answer was its to read.
+     */
+    public String requester() {
+        return requester;
     }
 
     /**
@@ -209,7 +225,8 @@ public record Run(String id, long versionId, String key, String process, String 
                 optional(json, "trace"),
                 Map.copyOf(tally), item, java.util.List.copyOf(domains), assignment(json),
                 produced(json), optional(json, "stepVersion"),
-                java.util.Collections.unmodifiableMap(inputs), milestone);
+                java.util.Collections.unmodifiableMap(inputs), milestone,
+                optional(json, "requester"));
     }
 
     /**

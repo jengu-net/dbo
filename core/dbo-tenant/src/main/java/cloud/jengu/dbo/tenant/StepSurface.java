@@ -51,6 +51,12 @@ import java.util.Optional;
  * <p>The context reads and does nothing else. The one act beside reading is
  * ending the run, at the run's own address rather than inside its context,
  * because it is a statement about the work and not about a document.
+ *
+ * <p><b>The run answers its initiator.</b> {@code GET /run/<id>} gives the
+ * client that asked for the run at this door the run as a {@code Task}: how
+ * it stands, what it was over, and what the step produced. To that client
+ * only — anybody else is answered as if the run did not exist — and after the
+ * run has ended too, because the end is the answer it is waiting for.
  */
 final class StepSurface implements HttpHandler {
 
@@ -80,6 +86,16 @@ final class StepSurface implements HttpHandler {
     private final String tenant;
     /** What the deployment performs, asked per request rather than held. */
     private final Fleet fleet;
+    /**
+     * A run as the tenant's face renders it, by id: the same document the
+     * records surface answers {@code Task/<id>} with, or empty where the face
+     * renders no runs.
+     *
+     * <p>Taken rather than built here, so a run has one rendering. A second
+     * one at this door would be a second answer to "what does a run look like
+     * as a Task", and the two would differ the first time either was fixed.
+     */
+    private final java.util.function.Function<String, Optional<String>> rendered;
 
     /**
      * What the DEPLOYMENT declares, for this tenant, right now.
@@ -107,7 +123,9 @@ final class StepSurface implements HttpHandler {
     StepSurface(TenantAuthority authority, Runs runs, FhirStoreFacade store,
             cloud.jengu.dbo.core.api.ObjectStore engine,
             List<TenantSpec.Step> steps, String runPath, boolean starting,
-            String tenant, Fleet fleet) {
+            String tenant, Fleet fleet,
+            java.util.function.Function<String, Optional<String>> rendered) {
+        this.rendered = rendered;
         this.authority = authority;
         this.runs = runs;
         this.store = store;
@@ -126,6 +144,11 @@ final class StepSurface implements HttpHandler {
                     .substring(exchange.getHttpContext().getPath().length());
             while (relative.startsWith("/")) {
                 relative = relative.substring(1);
+            }
+            if (!starting && !relative.isEmpty() && relative.indexOf('/') < 0) {
+                // The run's own address, which refuses differently: see answer().
+                answer(exchange, relative);
+                return;
             }
             TenantAuthority.AuthContext admitted = admitted(exchange);
             if (admitted == null) {
@@ -147,7 +170,7 @@ final class StepSurface implements HttpHandler {
                 // records surface too, and a purpose another request set and
                 // did not clear would be in force over this search.
                 cloud.jengu.dbo.core.api.Disclosure.clear();
-                start(exchange, relative);
+                start(exchange, relative, admitted.clientId());
             } else {
                 read(exchange, relative);
             }
@@ -177,11 +200,7 @@ final class StepSurface implements HttpHandler {
      *         answered with a refusal
      */
     private TenantAuthority.AuthContext admitted(HttpExchange exchange) throws IOException {
-        String header = exchange.getRequestHeaders().getFirst("Authorization");
-        String bearer = header != null && header.regionMatches(true, 0, "Bearer ", 0, 7)
-                ? header.substring(7).trim() : null;
-        Optional<TenantAuthority.AuthContext> context =
-                bearer == null ? Optional.empty() : authority.validate(bearer);
+        Optional<TenantAuthority.AuthContext> context = asking(exchange);
         if (context.isEmpty() || !context.get().scopes().contains(cloud.jengu.dbo.auth.Scopes.WORK)) {
             exchange.getResponseHeaders().set("WWW-Authenticate", "Bearer");
             fail(exchange, context.isEmpty() ? 401 : 403, "access_denied",
@@ -191,8 +210,22 @@ final class StepSurface implements HttpHandler {
         return context.get();
     }
 
-    /** POST /step/&lt;module.process.step&gt; — a run over the documents named. */
-    private void start(HttpExchange exchange, String stepCode) throws IOException {
+    /** Who the bearer is, as the authority reads it, or empty for no credential or a bad one. */
+    private Optional<TenantAuthority.AuthContext> asking(HttpExchange exchange) {
+        String header = exchange.getRequestHeaders().getFirst("Authorization");
+        String bearer = header != null && header.regionMatches(true, 0, "Bearer ", 0, 7)
+                ? header.substring(7).trim() : null;
+        return bearer == null ? Optional.empty() : authority.validate(bearer);
+    }
+
+    /**
+     * POST /step/&lt;module.process.step&gt; — a run over the documents named.
+     *
+     * @param requester the client id the authority read off the credential,
+     *                  recorded on the run as the one it answers
+     */
+    private void start(HttpExchange exchange, String stepCode, String requester)
+            throws IOException {
         if (!"POST".equals(exchange.getRequestMethod())) {
             fail(exchange, 405, "invalid_request", "a run is started by POSTing to the step");
             return;
@@ -269,7 +302,8 @@ final class StepSurface implements HttpHandler {
         }
         String scope = Optional.ofNullable(Json.strOpt(body, "scope"))
                 .orElseGet(cloud.jengu.dbo.core.UuidV7::newId);
-        Run run = runs.filling(declaration(stepCode, slots), RunKind.PIPELINE, scope, inputs);
+        Run run = runs.filling(declaration(stepCode, slots), RunKind.PIPELINE, scope, inputs,
+                requester);
         // The key as well as the id, because they answer different questions
         // and only one of them is this surface's. The id addresses the
         // context; the key is the name the rest of the work model is asked by
@@ -553,6 +587,90 @@ final class StepSurface implements HttpHandler {
             return;
         }
         respond(exchange, 200, result.resourceJson());
+    }
+
+    /**
+     * GET /run/&lt;id&gt; — the run, answered to the client that asked for it.
+     *
+     * <p>The answer is a {@code Task}: the run's id, its key as the
+     * {@code urn:dbo:run} identifier, its status, the slots as they were
+     * filled, and the step's result as outputs — the counts it kept and the
+     * versions it produced. It is what the asking application is owed and no
+     * more: the records the run reached are not in it, so the credential that
+     * asked for work still holds no door onto the records.
+     *
+     * <p>Not recorded as a disclosure, unlike a read in the run's context. It
+     * carries no document — references and counts, which the asker named or
+     * the step reported — so there is nothing in it a trail of who read which
+     * record would be about.
+     */
+    private void answer(HttpExchange exchange, String id) throws IOException {
+        if (!"GET".equals(exchange.getRequestMethod())) {
+            fail(exchange, 405, "invalid_request", "a run's answer is read");
+            return;
+        }
+        Optional<TenantAuthority.AuthContext> asking = asking(exchange);
+        if (asking.isEmpty()) {
+            exchange.getResponseHeaders().set("WWW-Authenticate", "Bearer");
+            fail(exchange, 401, "access_denied", "a run answers the credential that asked for it");
+            return;
+        }
+        cloud.jengu.dbo.core.api.Caller.set(asking.get().clientId());
+        Optional<Run> found = runs.byId(id);
+        if (reach(asking, found) != 200) {
+            fail(exchange, 404, "not_found", "no such run");
+            return;
+        }
+        Optional<String> task = rendered.apply(found.get().id()).map(StepSurface::theRun);
+        if (task.isEmpty()) {
+            fail(exchange, 501, "not_implemented",
+                    "this tenant's face renders no run as a Task");
+            return;
+        }
+        respond(exchange, 200, task.get());
+    }
+
+    /**
+     * Whether a run answers who is asking: 200, or the refusal.
+     *
+     * <p><b>Not found, never forbidden</b>, for everything but a missing
+     * credential. Another client, a credential that may not act in work, a run
+     * asked for on the records surface or by a lane, and a run that does not
+     * exist all get the same 404: a refusal that differed from absence would
+     * tell whoever probes the address which runs exist. Only "you presented
+     * nothing" is said as itself, because it says nothing about any run.
+     */
+    static int reach(Optional<TenantAuthority.AuthContext> asking, Optional<Run> run) {
+        if (asking.isEmpty()) {
+            return 401;
+        }
+        if (!asking.get().scopes().contains(cloud.jengu.dbo.auth.Scopes.WORK)) {
+            return 404;
+        }
+        if (run.isEmpty() || run.get().requester() == null
+                || !run.get().requester().equals(asking.get().clientId())) {
+            return 404;
+        }
+        return 200;
+    }
+
+    /**
+     * The run's own {@code Task} out of the face's document, which carries
+     * the run first and its items after it. The items are the run's
+     * exceptions for a person to act on, and the asker is owed the result.
+     */
+    private static String theRun(String document) {
+        Object parsed = cloud.jengu.dbo.core.wire.RecordWire.read(document);
+        if (parsed instanceof Map<?, ?> map && "Task".equals(map.get("resourceType"))) {
+            return document;
+        }
+        if (parsed instanceof Map<?, ?> bundle && bundle.get("entry") instanceof List<?> entries
+                && !entries.isEmpty() && entries.get(0) instanceof Map<?, ?> first
+                && first.get("resource") instanceof Map<?, ?> resource) {
+            return cloud.jengu.dbo.core.wire.RecordWire.write(resource);
+        }
+        throw new IllegalStateException("the face rendered a run as neither a Task nor a "
+                + "document holding one");
     }
 
     /**

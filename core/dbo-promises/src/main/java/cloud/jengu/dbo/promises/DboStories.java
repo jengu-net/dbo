@@ -79,6 +79,7 @@ public enum DboStories implements Story {
                     DboPromises.PROC_ESCALATION_BY_FAILURE_CLASS,
                     DboPromises.PROC_CLOSE_BY_RE_EVALUATION,
                     DboPromises.PROC_A_RUN_NAMES_WHAT_IT_PRODUCED,
+                    DboPromises.PROC_A_RUN_ANSWERS_ITS_INITIATOR,
                     // Carried without being read, and the trail telling the
                     // two apart afterwards.
                     DboPromises.PROC_WORK_TRAVELS_SEALED,

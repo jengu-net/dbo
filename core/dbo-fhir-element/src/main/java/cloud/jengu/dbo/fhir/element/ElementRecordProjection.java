@@ -116,7 +116,10 @@ final class ElementRecordProjection implements RecordProjection {
                 codeSystem(TALLY, "DboRunTally",
                         "What a step counted — the names are the step's own.", null),
                 codeSystem(RUN_OUTPUT, "DboRunOutput",
-                        "What a run carries beside its tally.", List.of("outcome")),
+                        "What a run carries beside its tally: the outcome somebody must "
+                                + "act on, each version it produced, how many it produced "
+                                + "when it stopped naming them, and the milestone it reached.",
+                        List.of("outcome", "produced", "produced-count", "milestone")),
                 codeSystem(RUN_INPUT, "DboRunInput",
                         "The step's declared input slots, filled by the run — the codes "
                                 + "are the step's own slot names.", null),
@@ -716,6 +719,15 @@ final class ElementRecordProjection implements RecordProjection {
      * The tally and the outcome, as outputs. What everything did is counts;
      * what somebody must act on is the outcome the item points at, and a child
      * run carries its own — a parent saying "two problems" cannot be half done.
+     *
+     * <p>And what the run produced, a version each, as versioned references:
+     * the result of a step is the counts it kept and the records it wrote, and
+     * a reader who asked for the work is owed both. Past the cap a run stops
+     * naming versions and keeps counting, so the count is said beside the
+     * named ones whenever they are not all of it — a list that silently
+     * stopped would read as a step that wrote less. The milestone reached is
+     * an output as well as a business status, because "how far did it get"
+     * is part of the result of a step that did not finish.
      */
     private static void output(Map<?, ?> run, Record record, StringBuilder json) {
         StringBuilder outputs = new StringBuilder();
@@ -735,9 +747,45 @@ final class ElementRecordProjection implements RecordProjection {
                     .append("\",\"code\":\"outcome\"}]},")
                     .append("\"valueReference\":{\"reference\":\"#outcome\"}}");
         }
+        if (run.get("produced") instanceof Map<?, ?> produced) {
+            int named = 0;
+            if (produced.get("versions") instanceof List<?> versions) {
+                for (Object version : versions) {
+                    // Type/id/version, as the run recorded it, written as the
+                    // versioned reference FHIR spells that.
+                    String[] parts = String.valueOf(version).split("/");
+                    String reference = parts.length == 3
+                            ? parts[0] + "/" + parts[1] + "/_history/" + parts[2]
+                            : String.valueOf(version);
+                    outputs.append(outputs.isEmpty() ? "" : ",")
+                            .append(outputCode("produced"))
+                            .append("\"valueReference\":{\"reference\":")
+                            .append(Json.quoted(reference)).append("}}");
+                    named++;
+                }
+            }
+            if (produced.get("counted") instanceof Number counted
+                    && counted.longValue() != named) {
+                outputs.append(outputs.isEmpty() ? "" : ",")
+                        .append(outputCode("produced-count"))
+                        .append("\"valueInteger\":").append(counted.longValue()).append('}');
+            }
+        }
+        if (run.get("milestone") instanceof Map<?, ?> milestone) {
+            outputs.append(outputs.isEmpty() ? "" : ",")
+                    .append(outputCode("milestone"))
+                    .append("\"valueString\":")
+                    .append(Json.quoted(String.valueOf(milestone.get("name")))).append('}');
+        }
         if (!outputs.isEmpty()) {
             json.append(",\"output\":[").append(outputs).append(']');
         }
+    }
+
+    /** The opening of one output entry coded in the run's own output vocabulary. */
+    private static String outputCode(String code) {
+        return "{\"type\":{\"coding\":[{\"system\":\"" + RUN_OUTPUT + "\",\"code\":\""
+                + code + "\"}]},";
     }
 
     // ----------------------------------------------------------------- audit

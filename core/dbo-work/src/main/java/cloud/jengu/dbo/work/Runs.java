@@ -242,6 +242,24 @@ public final class Runs {
      */
     public Run filling(cloud.jengu.dbo.core.process.StepDeclaration step, RunKind kind,
             String scope, Map<String, RunSlot> inputs) {
+        return filling(step, kind, scope, inputs, null);
+    }
+
+    /**
+     * The same, asked for by a client at the tenant's step door.
+     *
+     * <p>The requester is recorded on the run because the run answers it:
+     * the application that asked reads how the work ended, and what it
+     * produced, at the run's own address — and nobody else may. Fixed at
+     * creation, like the inputs, because who asked is part of what the work
+     * is; a run found rather than started keeps the requester it was
+     * started with.
+     *
+     * @param requester the client id of the credential that asked, as the
+     *                  authority read it — never as the request said it
+     */
+    public Run filling(cloud.jengu.dbo.core.process.StepDeclaration step, RunKind kind,
+            String scope, Map<String, RunSlot> inputs, String requester) {
         for (String slot : inputs.keySet()) {
             if (!step.slots().containsKey(slot)) {
                 throw new IllegalArgumentException(step.id() + " declares no slot '" + slot
@@ -263,7 +281,7 @@ public final class Runs {
         return byKey(key).orElseGet(() -> write(new State(key, step.id().processId(),
                 step.id().step(), kind, Holder.AUTOMATION, null, null, null, Map.of(), null,
                 List.copyOf(step.writes()), null, Run.Produced.NOTHING, step.version(),
-                java.util.Collections.unmodifiableMap(ordered))));
+                java.util.Collections.unmodifiableMap(ordered), null, requester)));
     }
 
     /**
@@ -821,7 +839,7 @@ public final class Runs {
                 run.parent(), run.correlation(), run.trace(), run.tally(), run.item(),
                 run.domains(),
                 run.assignment(), run.produced(), run.stepVersion(), run.inputs(),
-                run.milestone());
+                run.milestone(), run.requester());
     }
 
     /**
@@ -984,7 +1002,8 @@ public final class Runs {
     private record State(String key, String process, String step, RunKind kind, Holder holder,
             String parent, String correlation, String trace, Map<String, Long> tally, Run.Item item,
             List<String> domains, Run.Assignment assignment, Run.Produced produced,
-            String stepVersion, Map<String, RunSlot> inputs, Run.Milestone milestone) {
+            String stepVersion, Map<String, RunSlot> inputs, Run.Milestone milestone,
+            String requester) {
 
         /** A reference is a string; an object is itself. */
         private static String value(RunSlot slot, String raw) {
@@ -1006,43 +1025,43 @@ public final class Runs {
                 List<String> domains, Run.Assignment assignment, Run.Produced produced,
                 String stepVersion, Map<String, RunSlot> inputs) {
             this(key, process, step, kind, holder, parent, correlation, trace, tally, item,
-                    domains, assignment, produced, stepVersion, inputs, null);
+                    domains, assignment, produced, stepVersion, inputs, null, null);
         }
 
         State withHolder(Holder holder) {
             return new State(key, process, step, kind, holder, parent, correlation, trace, tally, item,
-                    domains, assignment, produced, stepVersion, inputs, milestone);
+                    domains, assignment, produced, stepVersion, inputs, milestone, requester);
         }
 
         State withTally(Map<String, Long> tally) {
             return new State(key, process, step, kind, holder, parent, correlation, trace,
                     Map.copyOf(tally), item, domains, assignment, produced, stepVersion,
-                    inputs, milestone);
+                    inputs, milestone, requester);
         }
 
         State withAssignment(Run.Assignment assignment) {
             return new State(key, process, step, kind, holder, parent, correlation, trace, tally, item,
-                    domains, assignment, produced, stepVersion, inputs, milestone);
+                    domains, assignment, produced, stepVersion, inputs, milestone, requester);
         }
 
         State withProduced(Run.Produced produced) {
             return new State(key, process, step, kind, holder, parent, correlation, trace, tally, item,
-                    domains, assignment, produced, stepVersion, inputs, milestone);
+                    domains, assignment, produced, stepVersion, inputs, milestone, requester);
         }
 
         State withTrace(String trace) {
             return new State(key, process, step, kind, holder, parent, correlation, trace,
-                    tally, item, domains, assignment, produced, stepVersion, inputs, milestone);
+                    tally, item, domains, assignment, produced, stepVersion, inputs, milestone, requester);
         }
 
         State withCorrelation(String correlation) {
             return new State(key, process, step, kind, holder, parent, correlation, trace, tally, item,
-                    domains, assignment, produced, stepVersion, inputs, milestone);
+                    domains, assignment, produced, stepVersion, inputs, milestone, requester);
         }
 
         State withMilestone(Run.Milestone milestone) {
             return new State(key, process, step, kind, holder, parent, correlation, trace, tally, item,
-                    domains, assignment, produced, stepVersion, inputs, milestone);
+                    domains, assignment, produced, stepVersion, inputs, milestone, requester);
         }
 
         byte[] payload() {
@@ -1095,6 +1114,9 @@ public final class Runs {
             }
             if (stepVersion != null) {
                 json.append(",\"stepVersion\":").append(Json.quoted(stepVersion));
+            }
+            if (requester != null) {
+                json.append(",\"requester\":").append(Json.quoted(requester));
             }
             if (!inputs.isEmpty()) {
                 json.append(",\"inputs\":{");

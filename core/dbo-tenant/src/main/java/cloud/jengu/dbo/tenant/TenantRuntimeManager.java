@@ -1008,14 +1008,22 @@ public final class TenantRuntimeManager implements AutoCloseable {
                     String code = tenant.facts().code();
                     String startPath = "/t/" + code + "/step";
                     String runPath = "/t/" + code + "/run";
+                    // The records surface's rendering of a run, read per request:
+                    // the surface is the tenant's, and so is how a run looks.
+                    java.util.function.Function<String, java.util.Optional<String>> rendered =
+                            id -> {
+                                cloud.jengu.dbo.rest.WorkSurface work =
+                                        tenant.runtime().endpoint().workSurface;
+                                return work == null ? java.util.Optional.empty() : work.read(id);
+                            };
                     sharedServer.createContext(startPath, new StepSurface(tenant.authority(),
                             tenant.laneRuns(), tenant.runtime().store(),
                             tenant.runtime().engine(), tenant.spec().steps(),
-                            runPath, true, code, this::offerOf));
+                            runPath, true, code, this::offerOf, rendered));
                     sharedServer.createContext(runPath, new StepSurface(tenant.authority(),
                             tenant.laneRuns(), tenant.runtime().store(),
                             tenant.runtime().engine(), tenant.spec().steps(),
-                            runPath, false, code, this::offerOf));
+                            runPath, false, code, this::offerOf, rendered));
                     stepContexts.put(code, java.util.List.of(startPath, runPath));
                     return null;
                 });

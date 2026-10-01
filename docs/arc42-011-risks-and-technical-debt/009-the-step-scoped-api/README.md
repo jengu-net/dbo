@@ -43,6 +43,24 @@ invented id answer identically — as do an ended run and one that never was.
 Still open, deliberately: reach is the named documents with no traversal, the
 context is read-only, and the general surface is untouched.
 
+## The run answers its initiator
+
+A run started at the step door records the client that asked for it, and
+`GET /t/<tenant>/run/<id>` — the run's own address, beside its context and its
+`done` verb — answers that client with the run as a `Task`: its key as the
+`urn:dbo:run` identifier, a status derived from who holds it, the slots as they
+were filled, and the step's result as outputs — the tally, each version it
+produced, and the milestone it reached. The rendering is the records surface's
+own, so a run has one shape whichever door shows it.
+
+It answers after the run has ended, unlike the context, because the end is what
+the asker is waiting for; and it carries no document, so reading it is not a
+disclosure and leaves no access entry. Anyone else — another client, a
+credential without `work`, a run started any other way, a run that does not
+exist — gets the same 404; no credential gets 401. An application reads it
+with `DboInitiator.answer`, or `awaiting` to poll until the run comes to rest
+(`PROC_A_RUN_ANSWERS_ITS_INITIATOR`).
+
 ## Sequence
 
 1. ~~A step declares its slots~~ — **done already**, and proven.

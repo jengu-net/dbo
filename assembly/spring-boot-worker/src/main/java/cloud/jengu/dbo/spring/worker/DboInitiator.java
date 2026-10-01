@@ -33,6 +33,12 @@ import java.util.function.Supplier;
  * a run with no owner. That is also why this needs no notion of the fleet: it
  * posts a step code to a tenant, and which level declared that step is the
  * store's business rather than this application's.
+ *
+ * <p><b>And it hears back.</b> The run answers the application that asked for
+ * it, at the run's own address: how it stands, what it was over, and what the
+ * step produced — and nothing more. The credential that asks for work holds no
+ * door onto the tenant's records, and does not need one to learn how its work
+ * ended.
  */
 public final class DboInitiator {
 
@@ -164,22 +170,7 @@ public final class DboInitiator {
      * @param inputs a {@link Slot} per slot the step declares
      */
     public Started starting(String tenant, String step, Map<String, Slot> inputs) {
-        DboWorkerProperties.Lane lane = properties.getLanes().stream()
-                .filter(declared -> declared.getTenant().equals(tenant))
-                .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("this application holds no lane "
-                        + "into '" + tenant + "', so it has no address to ask and no credential "
-                        + "to ask with; declare the lane under dbo.worker.lanes"));
-        if (lane.overTheSubstrate()) {
-            // The substrate carries claims and reports, not this. A lane over
-            // it is held by an enrolled participant with no route into the
-            // tenant at all, which is the whole point of that plane — so the
-            // honest answer is that there is nowhere to post, rather than a
-            // request built against a base URI that lane never had.
-            throw new IllegalArgumentException("the lane into '" + tenant + "' is over the "
-                    + "substrate, which carries work already authored and offers no way to "
-                    + "author any: a participant that starts runs holds an HTTP lane");
-        }
+        DboWorkerProperties.Lane lane = askable(tenant);
         Supplier<String> token = tokens.get(tenant);
         StringBuilder named = new StringBuilder();
         inputs.forEach((slot, filled) -> {
@@ -220,6 +211,128 @@ public final class DboInitiator {
             throw new IllegalStateException("asking '" + tenant + "' for a run of '" + step
                     + "' did not complete", failed);
         }
+    }
+
+    /**
+     * What a run answered the application that asked for it.
+     *
+     * @param status the HTTP status: 200 with the run, 404 for a run this
+     *               application did not ask for or that does not exist — the
+     *               two are deliberately the same answer
+     * @param body   the run as a FHIR {@code Task} on a 200, the refusal
+     *               otherwise
+     */
+    public record Answer(int status, String body) {
+
+        /** Whether the run answered at all. */
+        public boolean answered() {
+            return status == 200;
+        }
+
+        /** The Task's status — {@code in-progress}, {@code completed}, … — or null unanswered. */
+        public String state() {
+            return answered() ? valueOf(body, "status") : null;
+        }
+
+        /**
+         * Whether the work has come to rest: the run answered and nothing
+         * automated is still moving it. A run in front of a person is at rest
+         * as far as this application is concerned — waiting longer will not
+         * change it, somebody has to.
+         */
+        public boolean settled() {
+            String state = state();
+            return state != null && !"in-progress".equals(state) && !"on-hold".equals(state);
+        }
+    }
+
+    /**
+     * Asks a run how it stands.
+     *
+     * <p>Only the run this application asked for answers it, and on the
+     * credential it asked with. A run somebody else started answers 404, the
+     * same as one that does not exist — so this cannot be used to find out
+     * what work a tenant has.
+     *
+     * @param tenant the tenant the run was started on
+     * @param run    the run's id, as {@link Started#run()} gave it
+     */
+    public Answer answer(String tenant, String run) {
+        DboWorkerProperties.Lane lane = askable(tenant);
+        Supplier<String> token = tokens.get(tenant);
+        HttpRequest.Builder request = HttpRequest.newBuilder(
+                        URI.create(lane.getBase().toString().replaceAll("/+$", "")
+                                + "/run/" + run))
+                .GET();
+        if (token != null) {
+            request.header("Authorization", "Bearer " + token.get());
+        }
+        try {
+            HttpResponse<String> answered =
+                    http.send(request.build(), HttpResponse.BodyHandlers.ofString());
+            return new Answer(answered.statusCode(), answered.body());
+        } catch (java.io.IOException | InterruptedException failed) {
+            if (failed instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+            }
+            throw new IllegalStateException("asking '" + tenant + "' about run '" + run
+                    + "' did not complete", failed);
+        }
+    }
+
+    /**
+     * Asks a run how it stands until it has come to rest, or until patience
+     * runs out.
+     *
+     * <p>Polling, on purpose. The store tells nobody when a run ends — a run
+     * is a record, and its end is a version of it — so the asker asks, at a
+     * pace that starts quick for work that is quick and slows for work that
+     * is not. Out of patience, the last answer is returned rather than an
+     * exception: "still in progress" is an answer, and what to do about it is
+     * the caller's decision.
+     *
+     * @param patience how long to keep asking
+     * @return the first settled answer, the first refusal, or the last answer
+     *         when patience ran out
+     */
+    public Answer awaiting(String tenant, String run, Duration patience) {
+        long until = System.nanoTime() + patience.toNanos();
+        long pause = 100;
+        Answer last = answer(tenant, run);
+        while (last.answered() && !last.settled() && System.nanoTime() < until) {
+            try {
+                Thread.sleep(Math.min(pause,
+                        Math.max(1, (until - System.nanoTime()) / 1_000_000)));
+            } catch (InterruptedException interrupted) {
+                Thread.currentThread().interrupt();
+                return last;
+            }
+            pause = Math.min(pause * 2, 2_000);
+            last = answer(tenant, run);
+        }
+        return last;
+    }
+
+    /** The HTTP lane into a tenant, which is where work is asked for and answered. */
+    private DboWorkerProperties.Lane askable(String tenant) {
+        DboWorkerProperties.Lane lane = properties.getLanes().stream()
+                .filter(declared -> declared.getTenant().equals(tenant))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("this application holds no lane "
+                        + "into '" + tenant + "', so it has no address to ask and no credential "
+                        + "to ask with; declare the lane under dbo.worker.lanes"));
+        if (lane.overTheSubstrate()) {
+            // The substrate carries claims and reports, not this. A lane over
+            // it is held by an enrolled participant with no route into the
+            // tenant at all, which is the whole point of that plane — so the
+            // honest answer is that there is nowhere to post, rather than a
+            // request built against a base URI that lane never had.
+            throw new IllegalArgumentException("the lane into '" + tenant + "' is over the "
+                    + "substrate, which carries work already authored and offers no way to "
+                    + "author any or to ask after it: a participant that starts runs holds an "
+                    + "HTTP lane");
+        }
+        return lane;
     }
 
     /** The one field, without a JSON parser this module does not have. */

@@ -127,6 +127,10 @@ class WorkLeavesTheClinicAndComesBackIT {
     @Autowired
     org.springframework.core.env.Environment environment;
 
+    /** The worker application's own way of asking for work, and of hearing back. */
+    @Autowired
+    cloud.jengu.dbo.spring.worker.DboInitiator initiator;
+
     private ATenantsDoor hospital;
     private ObjectStore engine;
     private Runs runs;
@@ -1121,6 +1125,66 @@ class WorkLeavesTheClinicAndComesBackIT {
                     "an identifier became a metric dimension, giving every run its own time "
                             + "series: " + label);
         }
+    }
+
+    // ── the application that asked hears back ──
+
+    @Test
+    @Order(28)
+    @DisplayName("the worker application asks for an admission, and the run answers it — and "
+            + "only it — with how the work ended and what the step produced")
+    @Proving(DboPromises.PROC_A_RUN_ANSWERS_ITS_INITIATOR)
+    void theRunAnswersTheApplicationThatAskedForIt() {
+        String admission = "hogwarts.admission.admit";
+        var patient = dbo.write(HOSPITAL, "Patient", """
+                {"resourceType":"Patient","name":[{"family":"%s"}]}""".formatted(
+                NAMES.value("admitted")));
+        assertTrue(patient.accepted(), "the patient was not accepted: " + patient.body());
+
+        cloud.jengu.dbo.spring.worker.DboInitiator.Started started = initiator.start(HOSPITAL,
+                admission, Map.of("patient", "Patient/" + patient.idOrFail()));
+        String run = started.runOrFail();
+
+        // Performed by the worker's own admitting bean, which closes the run
+        // with what it counted; the application that asked waits for that.
+        cloud.jengu.dbo.spring.worker.DboInitiator.Answer answer =
+                initiator.awaiting(HOSPITAL, run, Duration.ofMinutes(3));
+        Proves.that(DboPromises.PROC_A_RUN_ANSWERS_ITS_INITIATOR, answer.answered(),
+                "the run did not answer the application that asked for it: " + answer);
+        Proves.that(DboPromises.PROC_A_RUN_ANSWERS_ITS_INITIATOR,
+                "completed".equals(answer.state()),
+                "the run's answer never said the admission was done: " + answer.body());
+        Map<?, ?> task = (Map<?, ?>) cloud.jengu.dbo.core.wire.RecordWire.read(answer.body());
+        Proves.that(DboPromises.PROC_A_RUN_ANSWERS_ITS_INITIATOR,
+                "Task".equals(task.get("resourceType")) && run.equals(task.get("id"))
+                        && String.valueOf(task.get("identifier")).contains(started.key()),
+                "the answer is not the run, named by its id and its key: " + answer.body());
+        Proves.that(DboPromises.PROC_A_RUN_ANSWERS_ITS_INITIATOR,
+                String.valueOf(task.get("input")).contains("Patient/" + patient.idOrFail()),
+                "the answer does not say what the run was over: " + answer.body());
+        Proves.that(DboPromises.PROC_A_RUN_ANSWERS_ITS_INITIATOR,
+                task.get("output") instanceof List<?> outputs && outputs.stream().anyMatch(o ->
+                        String.valueOf(o).contains("urn:dbo:run:tally")
+                                && String.valueOf(o).contains("admitted")
+                                && String.valueOf(o).contains("valueInteger=1")),
+                "the answer does not carry what the step counted: " + answer.body());
+
+        // Anybody else is told the run is not there: another client that may
+        // act in work, the tenant's own records credential, and nobody at all.
+        String elsewhere = participant(NAMES.value("another-asker"), "work/" + admission);
+        HttpResponse<String> another = dbo.send(HttpRequest.newBuilder(
+                URI.create(dbo.at(HOSPITAL) + "/run/" + run)).GET(), elsewhere);
+        Proves.that(DboPromises.PROC_A_RUN_ANSWERS_ITS_INITIATOR, another.statusCode() == 404,
+                "a client that did not ask for the run was answered by it: "
+                        + another.statusCode() + " " + another.body());
+        HttpResponse<String> records = dbo.send(HttpRequest.newBuilder(
+                URI.create(dbo.at(HOSPITAL) + "/run/" + run)).GET(), dbo.token(HOSPITAL));
+        Proves.that(DboPromises.PROC_A_RUN_ANSWERS_ITS_INITIATOR, records.statusCode() == 404,
+                "a credential that may not act in work was told something other than that the "
+                        + "run is not there: " + records.statusCode() + " " + records.body());
+        HttpResponse<String> nobody = dbo.send(HttpRequest.newBuilder(
+                URI.create(dbo.at(HOSPITAL) + "/run/" + run)).GET(), null);
+        assertEquals(401, nobody.statusCode(), "no credential at all: " + nobody.body());
     }
 
     // ── helpers ───────────────────────────────────────────────────────────

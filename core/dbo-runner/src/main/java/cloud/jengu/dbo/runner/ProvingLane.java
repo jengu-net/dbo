@@ -432,7 +432,7 @@ public final class ProvingLane implements Lane {
         return new Run(java.util.UUID.randomUUID().toString(), 1,
                 stepId + "/proving", stepId.substring(0, dot), stepId.substring(dot + 1),
                 RunKind.PIPELINE, Holder.NOBODY, null, null, null,
-                Map.of(), null, List.of(), null, Run.Produced.NOTHING, null, Map.of(), null);
+                Map.of(), null, List.of(), null, Run.Produced.NOTHING, null, Map.of(), null, null);
     }
 
     /** The run as a claim leaves it: held by automation, assigned to whoever took it. */
@@ -442,6 +442,7 @@ public final class ProvingLane implements Lane {
                 run.tally(), run.item(), run.domains(),
                 new Run.Assignment(Scope.BASELINE, by, null,
                         Instant.now().plus(Duration.ofMinutes(5))),
-                run.produced(), run.stepVersion(), run.inputs(), run.milestone());
+                run.produced(), run.stepVersion(), run.inputs(), run.milestone(),
+                run.requester());
     }
 }
