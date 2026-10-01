@@ -57,18 +57,14 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * A run's travel and access entries are chained from the task the store
- * minted, and the result that closes the run is the chain's last link.
+ * A trail whose oldest links were pruned reads unchained, not broken.
  *
- * <p>The chain has teeth because links come home as they happen: what
- * arrived cannot be retracted, so the only way to break it is to stop. The
- * store walks the chain when the result lands, and a completion with a
- * hole is refused and told which link, so the run stays owed with a named
- * participant and a named gap rather than closing on its own word.
- *
- * <p>What the chain cannot do is compel a link that was never made. An
- * intended recipient can open a payload and never say so; the alternative
- * was declined knowing the cost, and the test says nothing it cannot show.
+ * <p>The chain from a task through every hop and opening is walked in the edge
+ * roundtrip story, on the sample world. What it cannot show there is a trail
+ * that lost its predecessors to retention: that needs a store whose trail this
+ * test holds in its hand, so it can remove the first link and ask what the
+ * verdict is. So it runs here, over a database of its own and an in-process
+ * lane, with no runtime at all.
  */
 @Tag("integration")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -79,126 +75,8 @@ class ARunsTrailIsChainedFromTheTaskIT {
             .taking("specimen", "https://meristem.example/shape/specimen")
             .taking("order", "https://meristem.example/shape/order");
 
-    static SharedTenants.Tenant tenant;
-    static final HttpClient http = HttpClient.newHttpClient();
-    static URI laneUri;
-    static ObjectStore engine;
-    static Runs runs;
-    static KeyPair sealing;
-    static KeyPair signing;
-
-    @BeforeAll
-    void up() throws Exception {
-        // Its own numbered tenant: it introduces a step, and a step name is
-        // claimed once per tenant — two classes introducing one name into a
-        // shared tenant is the collision this numbering exists for.
-        tenant = SharedTenants.of(SharedTenants.Shape.R4_INTERNAL, 3);
-        laneUri = URI.create(tenant.base() + "/work");
-        engine = tenant.engine();
-        runs = new Runs(engine);
-        sealing = KeyWrap.newParticipantKeyPair();
-        signing = SigningKey.newKeyPair();
-        tenant.authority().ensureClient("analyser", "analyser-secret",
-                List.of("work/" + STEP), ParticipantKey.of(sealing.getPublic()),
-                SigningKey.of(signing.getPublic()));
-        HttpLane.to(laneUri, () -> token(), tenant.code(), "analyser", executor()).introduce(ASSAY);
-    }
-
-    @Test
-    @DisplayName("claimed, opened twice, closed: every link commits to the one before, the "
-            + "first to the task, the openings are signed, and the result carries the head")
-    @Proving(DboPromises.POL_A_RUNS_TRAIL_IS_CHAINED_FROM_THE_TASK)
-    void aCleanRunClosesOnItsChain() throws Exception {
-        Run run = twoInputRun("clean");
-        HttpLane lane = HttpLane.holding(laneUri, () -> token(), tenant.code(), "analyser",
-                executor(), sealing.getPrivate(), signing.getPrivate());
-        Run held = lane.claim(run, Duration.ofMinutes(5)).orElseThrow();
-        assertEquals(2, lane.inputs(held).size(), "both documents opened");
-        lane.closed(held);
-
-        Run closed = runs.byKey(held.key()).orElseThrow();
-        assertEquals(Holder.NOBODY, closed.holder(), "the run closed on a chain with no hole");
-
-        List<Map<String, String>> chain = chainOf(held);
-        assertEquals(3, chain.size(), "a travel entry and two access entries: " + chain);
-        assertEquals("travel", chain.get(0).get("code"));
-        assertEquals(RunChain.root(held), chain.get(0).get("previous"),
-                "the first link commits to the task, which the store minted: " + chain.get(0));
-        assertEquals("analyser", chain.get(0).get("to"), "a travel entry names who it handed to");
-        assertEquals(chain.get(0).get("link"), chain.get(1).get("previous"),
-                "the first opening commits to the hop");
-        assertEquals(chain.get(1).get("link"), chain.get(2).get("previous"),
-                "the second opening commits to the first");
-        assertTrue(chain.get(1).get("signature") != null && chain.get(2).get("signature") != null,
-                "the participant signed its openings: " + chain);
-        assertTrue(SigningKey.of(signing.getPublic()).verifies(
-                        chain.get(2).get("link").getBytes(StandardCharsets.UTF_8),
-                        chain.get(2).get("signature")),
-                "and the signature is the analyser's, checkable by anybody holding the "
-                        + "public half it enrolled with");
-    }
-
-    @Test
-    @DisplayName("a suppressed middle link is exposed by the next: the opening that commits "
-            + "to it is refused, naming the link the store never received")
-    @Proving(DboPromises.POL_A_RUNS_TRAIL_IS_CHAINED_FROM_THE_TASK)
-    void aSuppressedLinkIsExposedByTheNext() throws Exception {
-        Run run = twoInputRun("suppressed");
-        HttpLane lane = HttpLane.holding(laneUri, () -> token(), tenant.code(), "analyser",
-                executor(), sealing.getPrivate(), signing.getPrivate());
-        Run held = lane.claim(run, Duration.ofMinutes(5)).orElseThrow();
-        SealedWork work = lane.sealed(held);
-        String head = work.manifest().head();
-
-        // The analyser opens the specimen, computes its link — and never
-        // sends it. Then it opens the order and sends that one, committing
-        // to the link it kept to itself.
-        String suppressed = RunChain.accessLink(head, held.key(), reference(held, "specimen"),
-                "analyser");
-        String next = RunChain.accessLink(suppressed, held.key(), reference(held, "order"),
-                "analyser");
-        IllegalStateException refused = assertThrows(IllegalStateException.class,
-                () -> lane.opened(held, reference(held, "order"),
-                        new RunChain.Link("access", suppressed, next, "analyser",
-                                reference(held, "order"), sign(next))));
-        assertTrue(refused.getMessage().contains(suppressed)
-                        && refused.getMessage().contains("missing before"),
-                "the refusal names the link the store never received: " + refused.getMessage());
-        assertEquals(1, chainOf(held).size(), "nothing after the hop landed on the chain");
-        assertNotEquals(Holder.NOBODY, runs.byKey(held.key()).orElseThrow().holder(),
-                "and the run is still owed");
-    }
-
-    @Test
-    @DisplayName("a result whose head does not match the trail's is refused by name, and the "
-            + "run stays owed; a chain that stops leaves the run owed with its opening on record")
-    @Proving(DboPromises.POL_A_RUNS_TRAIL_IS_CHAINED_FROM_THE_TASK)
-    void aMismatchedHeadIsRefusedAndAStoppedChainStaysOwed() throws Exception {
-        Run run = twoInputRun("mismatch");
-        HttpLane lane = HttpLane.holding(laneUri, () -> token(), tenant.code(), "analyser",
-                executor(), sealing.getPrivate(), signing.getPrivate());
-        Run held = lane.claim(run, Duration.ofMinutes(5)).orElseThrow();
-        lane.inputs(held);
-
-        IllegalStateException refused = assertThrows(IllegalStateException.class,
-                () -> lane.closed(held, "not-the-head"));
-        assertTrue(refused.getMessage().contains("not-the-head")
-                        && refused.getMessage().contains("the trail's head is"),
-                "told which head it committed to and which the trail holds: "
-                        + refused.getMessage());
-        IllegalStateException none = assertThrows(IllegalStateException.class,
-                () -> lane.closed(held, null));
-        assertTrue(none.getMessage().contains("carries none"),
-                "a participant that signs closes with the head it commits to: " + none.getMessage());
-
-        // The chain that stops: two openings on record, no result. The run
-        // stays owed, and the trail holds the pair of facts an investigation
-        // starts from — opened, and not finished.
-        Run owed = runs.byKey(held.key()).orElseThrow();
-        assertNotEquals(Holder.NOBODY, owed.holder(), "no result, no close");
-        assertEquals(2, chainOf(held).stream().filter(e -> "access".equals(e.get("code"))).count(),
-                "the openings are on record even though the result never came");
-    }
+    static final KeyPair sealing = KeyWrap.newParticipantKeyPair();
+    static final KeyPair signing = SigningKey.newKeyPair();
 
     @Test
     @DisplayName("a pruned predecessor reads unchained, not broken: the chain closes from the "
@@ -287,61 +165,11 @@ class ARunsTrailIsChainedFromTheTaskIT {
                 new RunChain.Link("access", previous, link, "analyser", reference, sign(link)));
     }
 
-    private static String sign(String link) {
-        return SigningKey.sign(link.getBytes(StandardCharsets.UTF_8), signing.getPrivate());
-    }
-
-    private static Run twoInputRun(String key) {
-        String specimen = engine.put(PutRequest.create("Basic",
-                "{\"resourceType\":\"Basic\"}".getBytes(StandardCharsets.UTF_8))).id();
-        String order = engine.put(PutRequest.create("Basic",
-                "{\"resourceType\":\"Basic\"}".getBytes(StandardCharsets.UTF_8))).id();
-        return runs.of(ASSAY, RunKind.PIPELINE, key,
-                Map.of("specimen", "Basic/" + specimen, "order", "Basic/" + order));
-    }
-
-    private static String reference(Run run, String slot) {
-        return run.inputs().get(slot).one();
-    }
-
-    /** The run's chain entries as recorded, in the order they were written. */
-    @SuppressWarnings("unchecked")
-    private static List<Map<String, String>> chainOf(Run run) {
-        List<Map<String, String>> out = new ArrayList<>();
-        for (var entry : engine.select(Criteria.of("AuditEntry")
-                .eq("run", cloud.jengu.dbo.core.api.EnvelopeValue.of(run.key())))) {
-            String json = new String(entry.payload(), StandardCharsets.UTF_8);
-            Object node = cloud.jengu.dbo.core.wire.RecordWire.read(json);
-            Map<String, Object> map = (Map<String, Object>) node;
-            if (!(map.get("detail") instanceof Map<?, ?> detail) || detail.get("link") == null) {
-                continue;
-            }
-            Map<String, String> flat = new java.util.LinkedHashMap<>();
-            flat.put("code", String.valueOf(map.get("code")));
-            detail.forEach((k, v) -> flat.put(String.valueOf(k), String.valueOf(v)));
-            out.add(flat);
-        }
-        return out;
-    }
-
     private static Executor executor() {
         return new Executor("analyser", "1.0", "cloud.jengu.test", Scope.BASELINE);
     }
 
-    private static String token() {
-        try {
-            String form = "grant_type=client_credentials&client_id=analyser&client_secret="
-                    + URLEncoder.encode("analyser-secret", StandardCharsets.UTF_8);
-            String body = http.send(HttpRequest.newBuilder(
-                                    URI.create(tenant.base() + "/oidc/token"))
-                            .header("Content-Type", "application/x-www-form-urlencoded")
-                            .POST(HttpRequest.BodyPublishers.ofString(form)).build(),
-                    HttpResponse.BodyHandlers.ofString()).body();
-            Matcher m = Pattern.compile("\"access_token\":\"([^\"]+)\"").matcher(body);
-            assertTrue(m.find(), body);
-            return m.group(1);
-        } catch (Exception e) {
-            throw new IllegalStateException(e);
-        }
+    private static String sign(String link) {
+        return SigningKey.sign(link.getBytes(StandardCharsets.UTF_8), signing.getPrivate());
     }
 }
