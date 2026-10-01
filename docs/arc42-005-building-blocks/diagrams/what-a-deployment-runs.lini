@@ -18,7 +18,6 @@
 
   |served::box|  { fill: --seal-soft; stroke: --seal; }
   |beside::box|  { fill: --accent-soft; stroke: --accent; }
-  |unshipped::box| { fill: --bg; stroke: --faint; stroke-style: dashed; }
   |group|        { gap: 16; }
 }
 
@@ -26,10 +25,6 @@
   |beside#operator| "The operator: provisions against Kubernetes"
   |beside#fleet| "The fleet reader: reads a deployment from outside"
   |beside#verify| "The verifier: checks an archive with no network"
-]
-
-|group#dev| "Not shipped" [
-  |unshipped#karaf| "A development console, which binds tenant-plane services"
 ]
 
 |group#runtime| "One OSGi container, the shipped distribution" [
@@ -41,5 +36,4 @@
 |cyl#pg| "PostgreSQL, a database per tenant" { fill: --seal-soft; stroke: --seal; }
 
 beside -> runtime "provisions it, reads it, holds none of its data"
-dev -> runtime "binds what a shipped console must not"
 runtime -> pg "the only data store"

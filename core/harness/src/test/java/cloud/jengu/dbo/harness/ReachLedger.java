@@ -123,7 +123,7 @@ final class ReachLedger {
                 #   NOT REACHED            — the defect this file exists to surface:
                 #                            built, proven, and mounted by nothing
                 #
-                # Activators, SPI providers, karaf commands and main classes are
+                # Activators, SPI providers, catalogues and main classes are
                 # reachable and are not listed: they are found from the manifest,
                 # from META-INF/services, from their annotations and from their own
                 # signature.

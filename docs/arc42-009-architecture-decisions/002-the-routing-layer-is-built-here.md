@@ -43,8 +43,6 @@ main:
   `RemoteServiceFindHook` + proxy + endpoint-map *shape* confirms a
   purpose-built layer is a modest build, which the own-layer plan already
   assumed. Nothing worth importing as a dependency.
-- **Karaf-the-container** (features model, shell, provisioning) remains a
-  separate, open option — Karaf itself ships steadily (4.4.x through
-  2026) — to be decided when packaging/distribution becomes real work.
-  The embedded in-JVM mode runs on plain Felix regardless, which is
-  proven.
+- **Packaging** is not Cellar's container either: the serving
+  distribution is a plain Felix launcher, and the embedded in-JVM mode and
+  the Spring Boot assemblies run on plain Felix too, which is proven.

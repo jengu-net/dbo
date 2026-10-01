@@ -44,7 +44,7 @@ val moduleBlurbs = mapOf(
 )
 
 // The runtime bundle set, in install order. ONE list: the serving
-// distribution installs it and the Karaf development console installs it, and
+// distribution installs it and the Spring Boot assemblies install it, and
 // two hand-maintained copies would drift — a drift that surfaces as "resolves
 // in one container, dies on first use in the other", which is this project's
 // characteristic failure and the one a green build does not catch.
@@ -125,23 +125,12 @@ val dboRuntimeExternalBundles = listOf("org.postgresql:postgresql:42.7.13")
 // framework EXTENSION — it attaches to the system bundle rather than starting,
 // so it has to be present before anything requiring the extender resolves.
 // Separated from the runtime set because a host container may bring its own
-// logging: the Karaf console does, and installing this beside it would put two
-// providers of org.slf4j in one framework.
+// logging: a Spring Boot application does, and installing this beside it would
+// put two providers of org.slf4j in one framework.
 val dboLoggingBundles = listOf("org.slf4j:slf4j-api:2.0.18")
 val dboLoggingModules = listOf(":core:dbo-logging")
 val dboLoggingExtension =
     "org.apache.aries.spifly:org.apache.aries.spifly.dynamic.framework.extension:1.3.8"
-
-// Development mode: set `dbo.dev=true` in ~/.gradle/gradle.properties. It is a
-// machine-local convenience for the Karaf console loop and never reaches CI,
-// which passes no such property. Its only effect is to skip javadoc, because
-// every library module carries a javadoc jar and generating seventeen of them
-// turns a four-second republish into a minute.
-val dboDevMode = (findProperty("dbo.dev") as String?) == "true"
-
-// The console's Karaf, named once: the assembly unpacks this version and the
-// command bundle compiles against its shell API.
-val dboKarafVersion = (findProperty("dbo.karaf.version") as String?) ?: "4.4.11"
 
 // The Spring Boot generation the assemblies compile against, named once.
 // 4.1.1 carries Spring Framework 7 and a Java 17 floor, under the 21 this
@@ -155,7 +144,6 @@ val dboKarafVersion = (findProperty("dbo.karaf.version") as String?) ?: "4.4.11"
 // structural.
 val dboSpringBootVersion = (findProperty("dbo.spring.boot.version") as String?) ?: "4.1.1"
 
-extra["dboKarafVersion"] = dboKarafVersion
 extra["dboSpringBootVersion"] = dboSpringBootVersion
 // Every test JVM's ceiling bows to the machine it runs on. The per-module
 // maxHeapSize values are each suite's own minimum (the element face holds a
@@ -451,10 +439,6 @@ subprojects {
             the<JavaPluginExtension>().withJavadocJar()
         }
 
-        if (dboDevMode) {
-            tasks.withType<Javadoc>().configureEach { enabled = false }
-        }
-
         configure<PublishingExtension> {
             repositories {
                 // The project's own repository — PUBLIC, which is the whole
@@ -614,25 +598,6 @@ val verifySkillProjection = tasks.register<Exec>("verifySkillProjection") {
 // `./gradlew build` at all — a wiring that resolves, configures, and is never
 // invoked is exactly the failure the reachability rule describes.
 project(":core:harness").tasks.named("check") { dependsOn(verifySkillProjection) }
-
-// The development loop's one command: publish the runtime bundle set to the
-// local Maven repository, where the Karaf console's bundle:watch is looking.
-// Karaf only watches bundles installed from an mvn: location and re-reads them
-// from the local repository, so this publish IS the pipe between an edit and a
-// running container. Nothing else about the loop needs a human.
-tasks.register("dev") {
-    group = "development"
-    description = "Publishes the runtime bundle set to ~/.m2 for the Karaf console."
-    dependsOn((dboRuntimeModules + dboLoggingModules).map { "$it:publishToMavenLocal" })
-    doFirst {
-        if (!dboDevMode) {
-            logger.lifecycle(
-                "dbo: running without dbo.dev=true — javadoc will be generated for every " +
-                    "module. Put `dbo.dev=true` in ~/.gradle/gradle.properties to skip it."
-            )
-        }
-    }
-}
 
 // The Central Portal accepts one zip per deployment, laid out as a Maven
 // repository. Staging is shared across modules, so this zips the lot.

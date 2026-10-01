@@ -340,7 +340,7 @@ Three things follow from the provider being free behind the service, and each is
 get it wrong.
 
 *A capability is not held across service dynamics.* A personality bundle can be stopped or
-updated — the development console does that on every republish — and a field still
+updated, and a field still
 holding a capability from the previous revision is an object with a dead classloader
 behind it, failing later as something that looks like anything but that. Ask per
 operation, or track the service.

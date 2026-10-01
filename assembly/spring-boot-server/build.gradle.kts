@@ -9,9 +9,9 @@ import java.util.jar.JarFile
 // in the published API names a Bundle, a BundleContext or a ServiceReference.
 //
 // The bundle set is `dboRuntimeModules` in the root build — the SAME list the
-// serving distribution and the development console install from. Copying it
-// here would produce the drift the single list exists to prevent: resolves in
-// one container, dies on first use in the other.
+// serving distribution installs from. Copying it here would produce the drift
+// the single list exists to prevent: resolves in one container, dies on first
+// use in the other.
 //
 // The plan this module is being built to is README.md beside this file.
 
@@ -194,10 +194,9 @@ dependencies {
 // The logging arrangement is DELIBERATELY absent from the set above.
 //
 // A Spring Boot application brings its own binding, and two providers of
-// org.slf4j in one framework is a race rather than a posture — the same call
-// the development console makes, for the same reason. org.slf4j is exported
-// from the system bundle instead, so every line a bundle logs is made by the
-// application's own slf4j-api and lands in its own appenders. That is the
+// org.slf4j in one framework is a race rather than a posture. org.slf4j is
+// exported from the system bundle instead, so every line a bundle logs is made
+// by the application's own slf4j-api and lands in its own appenders. That is the
 // whole of the logging bridge: no code, no forwarder, no second format.
 
 // What the host installs, in the order the root build declares it.

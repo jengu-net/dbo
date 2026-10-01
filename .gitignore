@@ -1,6 +1,5 @@
 build/
 .gradle/
-karaf/dev/local.properties
 
 # Eclipse and Buildship, which regenerate on import. bin/main and bin/test are
 # named rather than a bare bin/, because the server distribution's own bin/ is

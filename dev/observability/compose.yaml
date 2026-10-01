@@ -66,22 +66,5 @@ services:
       retries: 3
       start_period: 20s
 
-  # Reads the development console's log and posts it to the instance beside
-  # it. Separate from the store on purpose: a node does not know who is
-  # reading it, and a console that had to be told where to log would be a
-  # development posture that no deployment shares.
-  collector:
-    image: otel/opentelemetry-collector-contrib:0.115.1
-    restart: unless-stopped
-    depends_on: [openobserve]
-    command: ["--config=/etc/collector.yaml"]
-    environment:
-      O2_AUTH: Basic ${DBO_O2_TOKEN:?set it in .env}
-    volumes:
-      - ./collector.yaml:/etc/collector.yaml:ro
-      # The console writes here when it is running; absent, the receiver just
-      # finds nothing, which is the ordinary state of a machine not running one.
-      - ../../karaf/build/dbo-console/karaf/data/log:/logs:ro
-
 volumes:
   data:

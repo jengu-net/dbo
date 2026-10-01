@@ -22,19 +22,6 @@ docker compose up -d
 The console is at <http://localhost:5080>, under the credentials in `.env`.
 It stays up from here, reboots included, until it is stopped on purpose.
 
-Two containers come up: the instance, and a collector that reads the
-development console's log file and posts the lines to it. The collector needs
-`DBO_O2_TOKEN` in `.env` as well — the same email and password, base64-encoded
-— because it authenticates as an ordinary client rather than through a side
-door.
-
-The collector ships lines as they are rather than parsing them. A console's
-log is in Karaf's format rather than the store's JSON, and a parser for it
-cost more than it was worth: an operator that fails on one line stops the
-reader for the whole file, so one stack trace or the JDK-formatted startup
-preamble silently ended the stream. Searching the line is enough for what this
-is for, and it cannot half-work.
-
 `.env` is git-ignored and the values are read on the instance's **first boot
 only** — changing them later edits nothing, because the account already
 exists. To start over, `docker compose down -v` and bring it back up.

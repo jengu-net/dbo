@@ -29,7 +29,7 @@ class ForeignLoggersAreQuietTest {
         // stack building a context per tenant, the pool naming every connection.
         for (String foreign : new String[] {
                 "org.osgi.framework", "ca.uhn.fhir.context.FhirContext",
-                "com.zaxxer.hikari.pool.HikariPool", "org.apache.karaf.features.core"}) {
+                "com.zaxxer.hikari.pool.HikariPool"}) {
             assertEquals(DboLogging.Level.WARN, DboLogging.levelFor(foreign), foreign);
             assertFalse(DboLogging.enabled(foreign, DboLogging.Level.INFO),
                     foreign + " is announcing routine work as though it were this store's");

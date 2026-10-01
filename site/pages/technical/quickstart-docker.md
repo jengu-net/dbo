@@ -13,11 +13,7 @@ You need Docker and nothing else. Every command below is run on every build of
 this repository, so if one of them does not work here, that is a defect rather
 than a typo in the page.
 
-This is the fastest way to have a store answering. The other route —
-[from source, through the development
-console](quickstart-karaf.md) — takes about fifteen minutes and gives you a
-bundle set you can edit while it runs, a tenant on FHIR R5, and somewhere to
-watch the store's own internal process bring that tenant up.
+This is the fastest way to have a store answering.
 
 ```bash
 git clone --depth 1 https://github.com/jengu-net/dbo.git

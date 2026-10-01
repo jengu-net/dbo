@@ -64,12 +64,6 @@ network and no account). They are separate deliberately — the operator is
 less privileged than the tenant, the fleet reader holds no store at all, and
 the verifier must run where nothing else of ours does.
 
-**A console that is not shipped.** `karaf/` assembles a development shell;
-`karaf/commands` reads runs and the step catalogue from inside a running
-node. It binds tenant-plane services from the registry, which a shipped
-console must not do, and it is kept out of the serving distribution for
-exactly that reason. See [the console proposal](../arc42-011-risks-and-technical-debt/014-the-karaf-console/README.md).
-
 ## The layering, as the build enforces it
 
 Dependencies point one way. `dbo-core` names nothing else, and

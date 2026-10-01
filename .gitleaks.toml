@@ -6,5 +6,5 @@ title = "dbo"
 useDefault = true
 
 [allowlist]
-description = "The development console's example key: a fixed constant that protects nothing, documented as such in the file itself."
+description = "The retired development console's example key, still in history: a fixed constant that protected nothing, documented as such in the file itself."
 paths = ['karaf/dev/local\.properties\.example']

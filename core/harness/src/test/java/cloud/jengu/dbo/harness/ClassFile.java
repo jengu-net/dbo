@@ -32,9 +32,6 @@ final class ClassFile {
      */
     private static final Pattern OWN = Pattern.compile("cloud/jengu/dbo/[A-Za-z0-9_/$]+");
 
-    /** Karaf registers an annotated action; nothing in this tree names one. */
-    private static final String KARAF_SERVICE = "Lorg/apache/karaf/shell/api/action/lifecycle/Service;";
-
     /**
      * A catalogue is found by its annotation and never constructed.
      *
@@ -112,7 +109,7 @@ final class ClassFile {
             }
         }
         return new ClassFile(name, access, strings,
-                main || strings.contains(KARAF_SERVICE) || strings.contains(CATALOGUE));
+                main || strings.contains(CATALOGUE));
     }
 
     private static void skipMembers(DataInputStream in) throws IOException {
