@@ -559,6 +559,25 @@ public final class TenantRuntimeManager implements AutoCloseable {
 
     /** A tenant that is not serving, and why — the reason a card has to carry. */
     private record Trouble(cloud.jengu.dbo.work.Failure failure, String reason) {}
+
+    /**
+     * A failure as somebody outside this process needs to read it: the
+     * exception and what it was caused by. A wrapper names where it happened
+     * and only its cause says what happened — "provisioning failed" is true
+     * of a database that refused another connection and of one that does
+     * not exist, which want different hands.
+     */
+    private static String withItsCauses(Throwable failure) {
+        StringBuilder said = new StringBuilder(String.valueOf(failure));
+        java.util.Set<Throwable> seen = java.util.Collections.newSetFromMap(
+                new java.util.IdentityHashMap<>());
+        seen.add(failure);
+        for (Throwable cause = failure.getCause(); cause != null && seen.add(cause);
+                cause = cause.getCause()) {
+            said.append(" — caused by ").append(cause);
+        }
+        return said.toString();
+    }
     private volatile long lastSweepMillis;
     private volatile Thread scanner;
     private volatile Thread reconciler;
@@ -1788,7 +1807,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
                         new Trouble(stillComing
                                 ? cloud.jengu.dbo.work.Failure.TRANSIENT
                                 : cloud.jengu.dbo.work.Failure.of(e),
-                                String.valueOf(e)));
+                                withItsCauses(e)));
                 if (stillComing) {
                     // Expected on the way up, so it is not an error
                     // and does not enter the suppression set: the
@@ -1897,6 +1916,14 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 // with nothing wrong from a deployment too old to answer the
                 // question, and those two want opposite actions.
                 row.put("declaredDifferently", differently.getOrDefault(state.code(), ""));
+                // Why a tenant that is not serving is not, in the words the
+                // bring-up already chose. A state alone answers "is anything
+                // wrong" and leaves "what" to somebody reading this node's log,
+                // which an operator asking from outside does not have. Present
+                // and empty for a tenant with nothing to explain, for the
+                // same reason as the field above.
+                Trouble why = trouble.get(state.code());
+                row.put("why", why == null ? "" : why.reason());
                 // What the database made of this tenant's writes beside what
                 // the toolchain made of them. Counted on every write since the
                 // comparison was built and readable only from inside the

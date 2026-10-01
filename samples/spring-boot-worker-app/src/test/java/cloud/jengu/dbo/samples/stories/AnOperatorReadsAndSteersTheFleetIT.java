@@ -45,6 +45,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -102,6 +103,9 @@ class AnOperatorReadsAndSteersTheFleetIT {
         if (broken != null) {
             dbo.retract(broken);
         }
+        if (redeclared != null) {
+            dbo.retract(redeclared);
+        }
     }
 
     // ── what a node will say about itself ──
@@ -136,6 +140,13 @@ class AnOperatorReadsAndSteersTheFleetIT {
         Proves.that(DboPromises.OPS_RUNTIME_SAYS_WHAT_IT_SERVES, "failed".equals(state),
                 "a tenant that was declared and did not come up has to say so rather than "
                         + "be missing, and it says " + state);
+        String why = String.valueOf(rowFor(broken).get("why"));
+        Proves.that(DboPromises.OPS_RUNTIME_SAYS_WHAT_IT_SERVES, why.contains("seitsmes"),
+                "the node says the tenant failed and not why, so the operator who asked is "
+                        + "sent to a log they cannot read from here: " + why);
+        Proves.that(DboPromises.OPS_RUNTIME_SAYS_WHAT_IT_SERVES,
+                "".equals(rowFor(HOSPITAL).get("why")),
+                "a tenant that serves has something to explain: " + rowFor(HOSPITAL));
 
         // And a tenant nobody declares any more stops being a state at all,
         // because a retraction reported as a failure makes every removal look
@@ -321,7 +332,306 @@ class AnOperatorReadsAndSteersTheFleetIT {
                 "the run is not claimable again with the reason on the record: " + reopened);
     }
 
+    // ── and a tenant declared differently from how it serves is noticed ──
+
+    @Test
+    @Order(8)
+    @DisplayName("a tenant serving what was declared is nobody's question, and the node says "
+            + "so rather than leaving the field out")
+    @Proving(DboPromises.TEN_A_REDECLARATION_IS_NOTICED)
+    void aTenantServingWhatWasDeclaredSaysSo() throws InterruptedException {
+        redeclared = NAMES.tenant("redeclared");
+        dbo.declare(redeclared, redeclaredSpec("r4", "Observation"));
+        assertTrue(dbo.until(redeclared, true, Duration.ofMinutes(10)),
+                "the clinic never came up: " + dbo.serving());
+        beforeTheRebuild = dbo.write(redeclared, "Observation", """
+                {"resourceType":"Observation","status":"final",
+                 "code":{"text":"before the rebuild"}}""").idOrFail();
+        Proves.that(DboPromises.TEN_A_REDECLARATION_IS_NOTICED,
+                "".equals(rowFor(redeclared).get("declaredDifferently")),
+                "a tenant serving what was declared does not say so: " + rowFor(redeclared));
+    }
+
+    @Test
+    @Order(9)
+    @DisplayName("declaring a type the tenant does not have yet rebuilds it in place: it keeps "
+            + "serving, serves the new type, and keeps what it held")
+    @Proving(DboPromises.TEN_A_CHANGE_IS_NOT_A_RETRACTION)
+    void aNewTypeIsARebuildNotARetraction() throws InterruptedException {
+        dbo.declare(redeclared, redeclaredSpec("r4", "Observation", "Condition"));
+        ATenantsDoor door = new ATenantsDoor(dbo, redeclared);
+        long giveUp = System.nanoTime() + Duration.ofMinutes(3).toNanos();
+        while (door.get("/Condition?_summary=count").statusCode() != 200
+                && System.nanoTime() < giveUp) {
+            Thread.sleep(1000);
+        }
+        Proves.that(DboPromises.TEN_A_CHANGE_IS_NOT_A_RETRACTION,
+                dbo.serving().contains(redeclared)
+                        && door.get("/Condition?_summary=count").statusCode() == 200
+                        && door.get("/Observation/" + beforeTheRebuild).statusCode() == 200,
+                "a change to what the tenant serves took it down, did not serve the new "
+                        + "type, or lost what it held");
+    }
+
+    @Test
+    @Order(10)
+    @DisplayName("a face cannot change under a serving tenant, and the node says so by name "
+            + "while the tenant keeps serving what it was built from")
+    @Proving({DboPromises.TEN_A_REDECLARATION_IS_NOTICED,
+            DboPromises.OPS_RUNTIME_SAYS_WHAT_IT_SERVES})
+    void aFaceChangeIsRefusedByName() throws InterruptedException {
+        dbo.declare(redeclared, redeclaredSpec("r5", "Observation", "Condition"));
+        String said = "";
+        long giveUp = System.nanoTime() + Duration.ofMinutes(3).toNanos();
+        while (said.isEmpty() && System.nanoTime() < giveUp) {
+            Thread.sleep(1000);
+            said = String.valueOf(rowFor(redeclared).getOrDefault("declaredDifferently", ""));
+        }
+        Proves.that(DboPromises.TEN_A_REDECLARATION_IS_NOTICED,
+                said.startsWith("cannot be applied to a serving tenant") && said.contains("face")
+                        && dbo.serving().contains(redeclared),
+                "a face change under a serving tenant was not refused by name over the node's "
+                        + "own surface, or the tenant stopped serving: " + said);
+    }
+
+    @Test
+    @Order(11)
+    @DisplayName("declaring the tenant back the way it serves is the difference going away")
+    @Proving(DboPromises.TEN_A_REDECLARATION_IS_NOTICED)
+    void declaringItBackClearsIt() throws InterruptedException {
+        dbo.declare(redeclared, redeclaredSpec("r4", "Observation", "Condition"));
+        String said = "unread";
+        long giveUp = System.nanoTime() + Duration.ofMinutes(3).toNanos();
+        while (!said.isEmpty() && System.nanoTime() < giveUp) {
+            Thread.sleep(1000);
+            said = String.valueOf(rowFor(redeclared).getOrDefault("declaredDifferently", "?"));
+        }
+        Proves.that(DboPromises.TEN_A_REDECLARATION_IS_NOTICED, said.isEmpty(),
+                "declaring the tenant back did not clear the difference: " + said);
+    }
+
+    @Test
+    @Order(12)
+    @DisplayName("the node says what the database made of a tenant's writes beside the "
+            + "toolchain, so the case for switching can be read from outside")
+    @Proving(DboPromises.OPS_RUNTIME_SAYS_WHAT_IT_SERVES)
+    void whatTheDatabaseMadeOfTheWritesIsReadable() {
+        String body = ask("/runtime/tenants", OPS).body();
+        Proves.that(DboPromises.OPS_RUNTIME_SAYS_WHAT_IT_SERVES,
+                body.contains("answeredBesideTheToolchain") && java.util.List.of("compared",
+                        "agreed", "onlyTheToolchain", "onlyTheDatabase", "notHeld", "failed")
+                        .stream().allMatch(body::contains),
+                "the tally counted on every write cannot be read from outside, or does not tell "
+                        + "agreement from having answered nothing: " + body);
+    }
+
+    // ── and what the deployment was told is a record it keeps ──
+
+    @Test
+    @Order(13)
+    @DisplayName("what the deployment was told to serve is a record in the managing tenant's "
+            + "store, the declaration as somebody wrote it, replaced when it changes")
+    @Proving(DboPromises.TEN_A_DECLARATION_IS_A_RECORD)
+    void aDeclarationIsARecordAndAChangeReplacesIt() throws InterruptedException {
+        // The clinic is declared as it now serves, with Observation and Condition.
+        Proves.that(DboPromises.TEN_A_DECLARATION_IS_A_RECORD,
+                untilRecorded(redeclared, held -> held.equals(
+                        redeclaredSpec("r4", "Observation", "Condition"))),
+                "the managing tenant does not hold the declaration as it was written: "
+                        + declarationsOf(redeclared));
+        dbo.declare(redeclared, redeclaredSpec("r4", "Observation", "Condition", "Specimen"));
+        Proves.that(DboPromises.TEN_A_DECLARATION_IS_A_RECORD,
+                untilRecorded(redeclared, held -> held.contains("Specimen"))
+                        && declarationsOf(redeclared).size() == 1,
+                "a changed declaration did not replace the one on record: "
+                        + declarationsOf(redeclared));
+    }
+
+    @Test
+    @Order(14)
+    @DisplayName("a declaration that will not parse is a card naming it for a person, and "
+            + "the declarations beside it are recorded regardless")
+    @Proving({DboPromises.TEN_A_DECLARATION_IS_A_RECORD,
+            DboPromises.PROC_CONFIG_APPLIES_AS_A_SWEEP})
+    void anUnreadableDeclarationIsACardForAPerson() throws InterruptedException {
+        String unreadable = NAMES.tenant("unreadable");
+        dbo.declare(unreadable, "not a tenant spec at all");
+        try {
+            boolean carded = false;
+            long giveUp = System.nanoTime() + Duration.ofMinutes(3).toNanos();
+            while (!carded && System.nanoTime() < giveUp) {
+                Thread.sleep(1000);
+                // The card names the declaration as the source holds it: its file.
+                carded = cardsOfTheDeploymentsPass().stream()
+                        .anyMatch(reference -> reference.startsWith(unreadable));
+            }
+            Proves.that(DboPromises.PROC_CONFIG_APPLIES_AS_A_SWEEP, carded,
+                    "an unreadable declaration left no card naming it for somebody to fix: "
+                            + cardsOfTheDeploymentsPass());
+            Proves.that(DboPromises.TEN_A_DECLARATION_IS_A_RECORD,
+                    declarationsOf(redeclared).size() == 1,
+                    "the readable declaration beside it was taken off the record");
+        } finally {
+            dbo.retract(unreadable);
+        }
+    }
+
+    @Test
+    @Order(15)
+    @DisplayName("a source that cannot be read retracts nothing: the records stand and the "
+            + "tenants keep serving until it can be read again")
+    @Proving({DboPromises.PROC_CONFIG_WITHDRAWAL_IS_DECLARED,
+            DboPromises.TEN_SERVED_FROM_WHAT_WAS_APPLIED})
+    void anUnreadableSourceRetractsNothing() throws InterruptedException {
+        dbo.world().becomesUnreadable();
+        try {
+            // Several of the deployment's own passes, each of which reads the
+            // source and finds it unreadable.
+            Thread.sleep(8000);
+            Proves.that(DboPromises.TEN_SERVED_FROM_WHAT_WAS_APPLIED,
+                    dbo.serving().contains(redeclared) && declarationsOf(redeclared).size() == 1,
+                    "a source that could not be read took a live tenant or its record down");
+        } finally {
+            dbo.world().becomesReadable();
+        }
+    }
+
+    @Test
+    @Order(16)
+    @DisplayName("a declaration nobody makes any more leaves the record, and the tenant it "
+            + "named stops being served")
+    @Proving(DboPromises.PROC_CONFIG_WITHDRAWAL_IS_DECLARED)
+    void aWithdrawnDeclarationLeavesTheRecord() throws InterruptedException {
+        dbo.retract(redeclared);
+        boolean gone = dbo.until(redeclared, false, Duration.ofMinutes(3));
+        long giveUp = System.nanoTime() + Duration.ofMinutes(1).toNanos();
+        while (!declarationsOf(redeclared).isEmpty() && System.nanoTime() < giveUp) {
+            Thread.sleep(1000);
+        }
+        Proves.that(DboPromises.PROC_CONFIG_WITHDRAWAL_IS_DECLARED,
+                gone && declarationsOf(redeclared).isEmpty(),
+                "a withdrawn declaration is still on record, or its tenant is still served");
+    }
+
+    @Test
+    @Order(17)
+    @DisplayName("applying can be asked for by whoever was granted it, answered with what the "
+            + "pass did, and is refused to a credential without that grant")
+    @Proving(DboPromises.TEN_APPLYING_IS_ASKED_FOR_AND_RECORDED)
+    void applyingIsAskedForByWhoeverWasGrantedIt() {
+        var authority = tenants.authority(MANAGEMENT).orElseThrow();
+        String operator = NAMES.value("an-operator");
+        authority.ensureClient(operator, "operator-secret",
+                List.of(cloud.jengu.dbo.auth.Scopes.CONFIGURATION));
+        String writer = NAMES.value("a-writer");
+        authority.ensureClient(writer, "writer-secret", List.of("system/*.write"));
+
+        assertEquals(401, askToApply(null).statusCode(), "an unauthenticated ask was answered");
+        HttpResponse<String> applied = askToApply(managementToken(operator, "operator-secret"));
+        HttpResponse<String> refused = askToApply(managementToken(writer, "writer-secret"));
+        Proves.that(DboPromises.TEN_APPLYING_IS_ASKED_FOR_AND_RECORDED,
+                applied.statusCode() == 200 && applied.body().contains("\"applied\"")
+                        && refused.statusCode() == 403
+                        && refused.body().contains(cloud.jengu.dbo.auth.Scopes.CONFIGURATION),
+                "asking to apply was not answered for the grant, or not refused without it: "
+                        + applied.statusCode() + " " + applied.body() + " / "
+                        + refused.statusCode() + " " + refused.body());
+    }
+
+    @Test
+    @Order(18)
+    @DisplayName("a directory that cannot be read is not a directory declaring nothing")
+    @Proving(DboPromises.PROC_CONFIG_READ_FROM_A_SOURCE)
+    void aDirectoryThatCannotBeReadRefuses() {
+        Proves.that(DboPromises.PROC_CONFIG_READ_FROM_A_SOURCE,
+                assertThrows(RuntimeException.class, () -> new cloud.jengu.dbo.sync
+                        .DirectoryConfigSource(java.nio.file.Path.of(NAMES.value("nowhere")),
+                                cloud.jengu.dbo.tenant.TenantDeclarationModel.TYPE, ".json")
+                        .fetch()) != null,
+                "a directory that does not exist read as one declaring nothing");
+    }
+
     // ── helpers ───────────────────────────────────────────────────────────
+
+    /** The deployment's managing tenant, which records what it was told. */
+    private static final String MANAGEMENT = "mom";
+
+    /** The declarations on record for one tenant code. */
+    private List<String> declarationsOf(String code) {
+        return tenants.store(MANAGEMENT).orElseThrow()
+                .select(cloud.jengu.dbo.core.api.Criteria.of(
+                        cloud.jengu.dbo.tenant.TenantDeclarationModel.TYPE))
+                .stream()
+                .map(record -> new String(record.payload(), StandardCharsets.UTF_8))
+                .filter(held -> held.contains("\"code\":\"" + code + "\""))
+                .toList();
+    }
+
+    private boolean untilRecorded(String code, java.util.function.Predicate<String> held)
+            throws InterruptedException {
+        long giveUp = System.nanoTime() + Duration.ofMinutes(3).toNanos();
+        while (System.nanoTime() < giveUp) {
+            if (declarationsOf(code).stream().anyMatch(held)) {
+                return true;
+            }
+            Thread.sleep(1000);
+        }
+        return false;
+    }
+
+    /** What the deployment's own application pass left for a person, by name. */
+    private List<String> cardsOfTheDeploymentsPass() {
+        var runs = new Runs(tenants.store(MANAGEMENT).orElseThrow());
+        return runs.byKey(cloud.jengu.dbo.sync.ConfigApplication.PROCESS + "/"
+                        + cloud.jengu.dbo.sync.ConfigApplication.STEP + "/deployment")
+                .map(pass -> runs.items(pass).stream()
+                        .map(card -> card.item().reference()).toList())
+                .orElse(List.of());
+    }
+
+    private HttpResponse<String> askToApply(String bearer) {
+        return dbo.send(HttpRequest.newBuilder(
+                        URI.create(dbo.at(MANAGEMENT) + "/configuration"))
+                .POST(HttpRequest.BodyPublishers.noBody()), bearer);
+    }
+
+    private String managementToken(String client, String secret) {
+        String form = "grant_type=client_credentials&client_id=" + client
+                + "&client_secret=" + secret;
+        HttpResponse<String> issued = dbo.send(HttpRequest.newBuilder(
+                        URI.create(dbo.at(MANAGEMENT) + "/oidc/token"))
+                .header("Content-Type", "application/x-www-form-urlencoded")
+                .POST(HttpRequest.BodyPublishers.ofString(form)), null);
+        return dbo.says(issued).one("access_token").orElseThrow(
+                () -> new AssertionError("no token for " + client + ": " + issued.body()));
+    }
+
+    private String redeclared;
+    private String beforeTheRebuild;
+
+    private String redeclaredSpec(String face, String... types) {
+        StringBuilder declared = new StringBuilder();
+        for (String type : types) {
+            declared.append(declared.isEmpty() ? "" : ",")
+                    .append("{\"name\":\"").append(type)
+                    .append("\",\"identity\":\"internal\",\"handling\":\"operational\"}");
+        }
+        return "{\"code\":\"" + redeclared + "\",\"face\":\"" + face
+                + "\",\"audit\":{\"level\":\"none\"},\"types\":[" + declared + "]}";
+    }
+
+    /** The node's row for one tenant, read as a record. */
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> rowFor(String code) {
+        Object read = cloud.jengu.dbo.core.wire.RecordWire.read(
+                ask("/runtime/tenants", OPS).body());
+        for (Object row : (List<?>) ((Map<?, ?>) read).get("tenants")) {
+            if (code.equals(((Map<?, ?>) row).get("code"))) {
+                return (Map<String, Object>) row;
+            }
+        }
+        return Map.of();
+    }
 
     private FleetReader reader() {
         return new FleetReader(List.of(node,

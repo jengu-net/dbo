@@ -33,6 +33,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * subscriber can hold its version's definitions the instant it is served is
  * for bring-up to have drained the face chain before publishing it.
  *
+ * <p>What is left here is what the build counters say, and they are this
+ * process's: in a deployment the version lives inside the container, out of
+ * reach of the application beside it. That the definitions are records, that
+ * bindings are answered from them, and that a chain lacking its code systems
+ * is refused are walked in Rowling Land, in the tenant-opening story.
+ *
  * <p><b>A world of its own, and bring-up is why.</b> The claim is about what
  * is true at the instant a tenant is served — that it already holds its
  * version — and about the trouble a tenant that cannot get one is left in.
@@ -104,24 +110,6 @@ class ATenantSubscribesToItsVersionIT {
     }
 
     @Test
-    @DisplayName("the instant a subscriber is served it holds its version's definitions, "
-            + "because bring-up would not publish it before they had streamed")
-    @Proving(DboPromises.VER_FACE_ROOT_HOLDS_THE_VERSION_AS_RECORDS)
-    void servedMeansTheDefinitionsAreHere() throws Exception {
-        String token = token(SUBSCRIBER);
-        HttpResponse<String> patient = http.send(HttpRequest.newBuilder(
-                        URI.create(base(SUBSCRIBER) + "/fhir/StructureDefinition?url="
-                                + URLEncoder.encode(PATIENT, StandardCharsets.UTF_8)))
-                        .header("Authorization", "Bearer " + token).GET().build(),
-                HttpResponse.BodyHandlers.ofString());
-        assertEquals(200, patient.statusCode(), patient.body());
-        assertTrue(patient.body().contains("\"type\":\"Patient\""),
-                "the subscriber was served without its version's definitions — no reconciler "
-                        + "runs here, so nothing else could have brought them: "
-                        + patient.body());
-    }
-
-    @Test
     @DisplayName("neither the root nor its subscriber built the carried toolchain context: "
             + "they were brought up, served a read and accepted a write from their records")
     @Proving(DboPromises.VER_FACE_ROOT_HOLDS_THE_VERSION_AS_RECORDS)
@@ -157,44 +145,6 @@ class ATenantSubscribesToItsVersionIT {
                 "the subscriber validates against nothing: " + refused.body());
         assertEquals(contextBuildsBefore, cloud.jengu.dbo.fhir.element.ElementVersion.contextBuilds(),
                 "a tenant on a face built the carried toolchain context instead of reading its records");
-    }
-
-    @Test
-    @DisplayName("a code outside a required binding is refused by name, answered from the "
-            + "code system the subscriber took from its root — and a code in it is accepted")
-    @Proving(DboPromises.TERM_BINDINGS_ANSWERED_FROM_RECORDS)
-    void aBindingIsAnsweredFromTheRecordsTheSubscriberHolds() throws Exception {
-        manager.authority(SUBSCRIBER).ensureClient("writer", "writer-secret",
-                List.of("system/*.read", "system/*.write"));
-        String token = Extracted.tokenIn(http.send(HttpRequest.newBuilder(URI.create(base(SUBSCRIBER) + "/oidc/token"))
-                        .header("Content-Type", "application/x-www-form-urlencoded")
-                        .POST(HttpRequest.BodyPublishers.ofString(
-                                "grant_type=client_credentials&client_id=writer&client_secret=writer-secret"))
-                        .build(), HttpResponse.BodyHandlers.ofString())
-                .body());
-        HttpResponse<String> unicorn = http.send(HttpRequest.newBuilder(
-                        URI.create(base(SUBSCRIBER) + "/fhir/Patient"))
-                        .header("Authorization", "Bearer " + token)
-                        .header("Content-Type", "application/fhir+json")
-                        .POST(HttpRequest.BodyPublishers.ofString(
-                                "{\"resourceType\":\"Patient\",\"gender\":\"unicorn\"}"))
-                        .build(),
-                HttpResponse.BodyHandlers.ofString());
-        assertEquals(422, unicorn.statusCode(),
-                "a gender outside the required binding was accepted: " + unicorn.body());
-        assertTrue(unicorn.body().contains("unicorn"),
-                "the refusal does not name the code: " + unicorn.body());
-        HttpResponse<String> female = http.send(HttpRequest.newBuilder(
-                        URI.create(base(SUBSCRIBER) + "/fhir/Patient"))
-                        .header("Authorization", "Bearer " + token)
-                        .header("Content-Type", "application/fhir+json")
-                        .POST(HttpRequest.BodyPublishers.ofString(
-                                "{\"resourceType\":\"Patient\",\"gender\":\"female\"}"))
-                        .build(),
-                HttpResponse.BodyHandlers.ofString());
-        assertEquals(201, female.statusCode(), female.body());
-        assertEquals(contextBuildsBefore, cloud.jengu.dbo.fhir.element.ElementVersion.contextBuilds(),
-                "the binding was answered by building the carried context");
     }
 
     @Test
@@ -242,89 +192,6 @@ class ATenantSubscribesToItsVersionIT {
         }
         Runtime runtime = Runtime.getRuntime();
         return (runtime.totalMemory() - runtime.freeMemory()) / (1024 * 1024);
-    }
-
-    @Test
-    @DisplayName("the version's terminology reaches a subscriber through the chain, and the "
-            + "subscriber is given nothing from the carried packages")
-    @Proving(DboPromises.TERM_BINDINGS_ANSWERED_FROM_RECORDS)
-    void theTerminologyBaselineArrivesThroughTheChain() throws Exception {
-        String token = token(SUBSCRIBER);
-        HttpResponse<String> lookup = http.send(HttpRequest.newBuilder(
-                        URI.create(base(SUBSCRIBER) + "/fhir/CodeSystem/$lookup?system="
-                                + URLEncoder.encode("http://terminology.hl7.org/CodeSystem/v3-MaritalStatus",
-                                        StandardCharsets.UTF_8) + "&code=M"))
-                        .header("Authorization", "Bearer " + token).GET().build(),
-                HttpResponse.BodyHandlers.ofString());
-        assertEquals(200, lookup.statusCode(), lookup.body());
-        assertTrue(lookup.body().contains("Married"),
-                "a code system from the terminology package is not held by the subscriber: " + lookup.body());
-        // and it came from the root, not from a package read here: the
-        // baseline import leaves a marker system behind, and there is none
-        String url = SharedPostgres.urlFor("x").replaceAll("/[^/?]+(\\?.*)?$", "/tenant_" + SUBSCRIBER);
-        try (java.sql.Connection c = java.sql.DriverManager.getConnection(url,
-                postgres.getUsername(), postgres.getPassword());
-             java.sql.PreparedStatement ps = c.prepareStatement(
-                     "select count(*) from definitions.term_system where url like 'urn:dbo:terminology-baseline:%'");
-             java.sql.ResultSet rs = ps.executeQuery()) {
-            rs.next();
-            assertEquals(0, rs.getLong(1),
-                    "the subscriber imported the terminology baseline from a carried package");
-        }
-    }
-
-    @Test
-    @DisplayName("a face chain that does not carry the code systems is refused before anything "
-            + "is drained, naming what it lacks")
-    @Proving(DboPromises.TEN_READY_WHEN_ITS_CRITICAL_DEFINITIONS_ARRIVED)
-    void aChainWithoutTheCodeSystemsIsRefusedByName() throws Exception {
-        Files.writeString(dir.resolve("poolik.json"), """
-                {"code":"poolik","face":"r4","audit":{"level":"none"},
-                 "dependencies":[{"name":"%s","face":true,
-                                  "types":["StructureDefinition","SearchParameter","ValueSet"]}],
-                 "types":[
-                  {"name":"StructureDefinition","identity":"canonical","handling":"replicated"},
-                  {"name":"SearchParameter","identity":"canonical","handling":"replicated"},
-                  {"name":"ValueSet","identity":"canonical","handling":"replicated"}]}"""
-                .formatted(ROOT));
-        manager.scanOnce();
-        String trouble = manager.troubles().get("poolik");
-        assertTrue(trouble != null && trouble.contains("CodeSystem"),
-                "a chain without code systems was accepted, or refused for another reason: "
-                        + manager.troubles());
-    }
-
-    @Test
-    @DisplayName("a tenant on one face subscribing to a root of another is refused as a "
-            + "declaration disagreeing with itself — a face chain does not convert")
-    void aRootOfAnotherFaceIsRefused() throws Exception {
-        Files.writeString(dir.resolve("vale.json"), """
-                {"code":"vale","face":"r5","audit":{"level":"none"},
-                 "dependencies":[{"name":"%s","face":true,
-                                  "types":["StructureDefinition","SearchParameter"]}],
-                 "types":[
-                  {"name":"StructureDefinition","identity":"canonical","handling":"replicated"},
-                  {"name":"SearchParameter","identity":"canonical","handling":"replicated"}]}"""
-                .formatted(ROOT));
-        manager.scanOnce();
-        String trouble = manager.troubles().get("vale");
-        assertTrue(trouble != null && trouble.contains("does not convert"),
-                "an r5 tenant took its definitions from an r4 root, or failed for some other "
-                        + "reason than the one that matters: " + manager.troubles());
-    }
-
-    @Test
-    @DisplayName("two dependencies declared as the face chain are refused before anything "
-            + "is built, because a tenant is one version")
-    void twoFaceChainsAreRefused() {
-        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class,
-                () -> cloud.jengu.dbo.tenant.TenantSpec.parse("""
-                        {"code":"kaks","face":"r4","audit":{"level":"none"},
-                         "dependencies":[
-                           {"name":"a","face":true,"types":["StructureDefinition"]},
-                           {"name":"b","face":true,"types":["StructureDefinition"]}],
-                         "types":[
-                          {"name":"StructureDefinition","identity":"canonical","handling":"replicated"}]}"""));
     }
 
     private static String token(String code) throws Exception {

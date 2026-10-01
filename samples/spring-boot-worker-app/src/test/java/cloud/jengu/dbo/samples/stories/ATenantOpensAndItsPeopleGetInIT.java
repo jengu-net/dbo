@@ -24,6 +24,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -64,6 +65,8 @@ class ATenantOpensAndItsPeopleGetInIT {
 
     private String directoryToken;
     private String personId;
+    /** Albus, as the second clinic knows him: a person holding a role there. */
+    private String albus;
 
     @BeforeAll
     void namesForTheClinics() {
@@ -271,6 +274,7 @@ class ATenantOpensAndItsPeopleGetInIT {
         // By identity: the role names who and where by what the clinic's other
         // systems call them.
         String byIdentity = aClinician(second, "albus", null);
+        albus = byIdentity;
         assertEquals(201, door.post("/PractitionerRole", """
                 {"resourceType":"PractitionerRole",
                  "practitioner":{"identifier":{"system":"%s","value":"albus"}},
@@ -350,6 +354,26 @@ class ATenantOpensAndItsPeopleGetInIT {
                         && grant.contains("user/Specimen.read"),
                 "the grant was deleted rather than withdrawn, so nobody can answer when the "
                         + "role stopped and what it could do while it lasted: " + grant);
+    }
+
+    @Test
+    @Order(10)
+    @DisplayName("an identifier from outside names the person and not the capacity they act "
+            + "in, inside the membrane exactly as outside it")
+    @Proving(DboPromises.AUTH_FEDERATED_HUMANS)
+    void anIdentifierFromOutsideNamesThePerson() {
+        Proves.that(DboPromises.AUTH_FEDERATED_HUMANS,
+                authority(second).resolveByNationalId(logins(), "albus")
+                        .filter(albus::equals).isPresent(),
+                "the identifier did not resolve to the person who holds the role");
+        // The first clinic keeps its people behind the membrane, so the
+        // identifier is matched through the vault's index without being shown
+        // to the matching.
+        Proves.that(DboPromises.AUTH_FEDERATED_HUMANS,
+                authority(clinic).resolveByNationalId(idp, "emp-4711")
+                        .filter(personId::equals).isPresent(),
+                "the identifier did not resolve through the vault to the person the "
+                        + "directory provisioned");
     }
 
     // ── and the directory keeps the staff list, to the end of somebody's time there ──
@@ -456,7 +480,640 @@ class ATenantOpensAndItsPeopleGetInIT {
                         + absent.statusCode());
     }
 
+    // ── a clinician signs in, and a credential is theirs to change ──
+
+    @Test
+    @Order(15)
+    @DisplayName("a clinician signs in through the front door with proof of the code they "
+            + "asked for, and the token names a pseudonym and the role, never the human")
+    @Proving({DboPromises.AUTH_ORG_MODEL_IS_THE_AUTH_MODEL, DboPromises.AUTH_PSEUDONYMOUS_TOKENS})
+    void aClinicianSignsInAndTheTokenIsAPseudonym() throws Exception {
+        authority(second).ensureRoleGrant("healer", List.of("user/*.read", "user/Patient.write"));
+        healerPractitioner = practitioner(second, "hermione");
+        healer = person(second, "hermione", healerPractitioner);
+        healerRole = new ATenantsDoor(dbo, second).post("/PractitionerRole", """
+                {"resourceType":"PractitionerRole",
+                 "practitioner":{"reference":"Practitioner/%s"},
+                 "code":[{"coding":[{"system":"urn:example:role","code":"healer"}]}]}"""
+                .formatted(healerPractitioner));
+        assertEquals(201, healerRole.statusCode(), healerRole.body());
+        authority(second).ensureLocalCredential("hermione", "granger9", healer);
+        authority(second).ensureClient(webApp(), null, List.of("user/*.read", "user/*.write"),
+                "public-pkce", List.of(REDIRECT));
+        authority(second).ensureClient(portal(), PORTAL_SECRET,
+                List.of("user/*.read", "user/*.write"), "confidential", List.of(REDIRECT));
+
+        String verifier = verifier();
+        HttpResponse<String> form = dbo.send(HttpRequest.newBuilder(URI.create(oidc(second)
+                + "/authorize?response_type=code&client_id=" + webApp() + "&state=xyz"
+                + "&redirect_uri=" + encoded(REDIRECT) + "&code_challenge=" + challenge(verifier)
+                + "&code_challenge_method=S256")).GET(), null);
+        assertEquals(200, form.statusCode(), form.body());
+        HttpResponse<String> login = formPost(oidc(second) + "/authorize/login",
+                "client_id=" + webApp() + "&redirect_uri=" + encoded(REDIRECT)
+                        + "&state=xyz&code_challenge=" + challenge(verifier)
+                        + "&login=hermione&password=granger9");
+        assertEquals(302, login.statusCode(), login.body());
+        HttpResponse<String> tokens = formPost(oidc(second) + "/token",
+                "grant_type=authorization_code&client_id=" + webApp() + "&code="
+                        + codeIn(login) + "&redirect_uri=" + encoded(REDIRECT)
+                        + "&code_verifier=" + verifier);
+        assertEquals(200, tokens.statusCode(), tokens.body());
+        healerToken = dbo.says(tokens).one("access_token").orElseThrow();
+        healerRefresh = dbo.says(tokens).one("refresh_token").orElseThrow();
+
+        String claims = claimsOf(healerToken);
+        Proves.that(DboPromises.AUTH_ORG_MODEL_IS_THE_AUTH_MODEL,
+                claims.contains("\"fhirUser\":\"Practitioner/" + healerPractitioner + "\"")
+                        && claims.contains("\"roles\":[\"healer\"]")
+                        && claims.contains("user/Patient.write"),
+                "the token does not carry what the role record grants: " + claims);
+        // The record ids are the pseudonym; the login, which is also the
+        // practitioner's name and identifier here, is the human.
+        Proves.that(DboPromises.AUTH_PSEUDONYMOUS_TOKENS, !claims.contains("hermione"),
+                "the token names the human: " + claims);
+    }
+
+    @Test
+    @Order(16)
+    @DisplayName("the role's scopes are the whole of the clinician's reach, the trail names "
+            + "the pseudonym, and a code is refused to anybody without its proof")
+    @Proving({DboPromises.AUTH_ORG_MODEL_IS_THE_AUTH_MODEL, DboPromises.AUTH_SMART_SHAPED_SCOPES})
+    void theRoleIsTheReachAndTheCodeNeedsItsProof() throws Exception {
+        ATenantsDoor door = new ATenantsDoor(dbo, second);
+        assertEquals(200, statusOf(fhir(second) + "/Patient?_summary=count", healerToken));
+        assertEquals(201, door.postAs("/Patient", "{\"resourceType\":\"Patient\"}",
+                healerToken).statusCode());
+        Proves.that(DboPromises.AUTH_SMART_SHAPED_SCOPES,
+                door.postAs("/Organization", """
+                        {"resourceType":"Organization",
+                         "identifier":[{"system":"%s","value":"healers-own"}]}"""
+                        .formatted(orgs()), healerToken).statusCode() == 403,
+                "the healer wrote a type their role does not grant");
+        Proves.that(DboPromises.AUTH_ORG_MODEL_IS_THE_AUTH_MODEL,
+                dbo.get(fhir(second) + "/AuditEvent?action=C", dbo.token(second)).body()
+                        .contains("Practitioner/" + healerPractitioner),
+                "the trail does not name who wrote, by the pseudonym they act under");
+
+        HttpResponse<String> elsewhere = dbo.send(HttpRequest.newBuilder(URI.create(
+                oidc(second) + "/authorize?response_type=code&client_id=" + webApp()
+                        + "&redirect_uri=" + encoded("http://evil.example/cb")
+                        + "&code_challenge=x&code_challenge_method=S256")).GET(), null);
+        assertEquals(400, elsewhere.statusCode(), "an unregistered redirect was not refused");
+        assertTrue(elsewhere.headers().firstValue("Location").isEmpty(),
+                "the refusal redirected to where it was asked to");
+        HttpResponse<String> login = formPost(oidc(second) + "/authorize/login",
+                "client_id=" + webApp() + "&redirect_uri=" + encoded(REDIRECT)
+                        + "&code_challenge=" + challenge(verifier())
+                        + "&login=hermione&password=granger9");
+        HttpResponse<String> exchange = formPost(oidc(second) + "/token",
+                "grant_type=authorization_code&client_id=" + webApp() + "&code="
+                        + codeIn(login) + "&redirect_uri=" + encoded(REDIRECT)
+                        + "&code_verifier=not-the-verifier");
+        assertEquals(400, exchange.statusCode(), exchange.body());
+        assertTrue(exchange.body().contains("invalid_grant"), exchange.body());
+    }
+
+    @Test
+    @Order(17)
+    @DisplayName("ending the role's period on the clinical record is what revokes, and the "
+            + "next refresh is refused for it")
+    @Proving(DboPromises.AUTH_ORG_MODEL_IS_THE_AUTH_MODEL)
+    void endingTheRolePeriodRevokes() {
+        String role = dbo.says(healerRole).one("id").orElseThrow();
+        HttpResponse<String> ended = new ATenantsDoor(dbo, second).put("/PractitionerRole/" + role,
+                """
+                {"resourceType":"PractitionerRole","id":"%s",
+                 "practitioner":{"reference":"Practitioner/%s"},
+                 "code":[{"coding":[{"system":"urn:example:role","code":"healer"}]}],
+                 "period":{"end":"%s"}}""".formatted(role, healerPractitioner,
+                        java.time.LocalDate.now().minusDays(1)),
+                "If-Match", "W/\"1\"");
+        assertEquals(200, ended.statusCode(), ended.body());
+
+        HttpResponse<String> refused = formPost(oidc(second) + "/token",
+                "grant_type=refresh_token&refresh_token=" + encoded(healerRefresh));
+        Proves.that(DboPromises.AUTH_ORG_MODEL_IS_THE_AUTH_MODEL,
+                refused.statusCode() == 400 && refused.body().contains("access_denied"),
+                "a role whose period has ended still refreshed: " + refused.body());
+
+        // The role again, for what the clinician does next.
+        assertEquals(201, new ATenantsDoor(dbo, second).post("/PractitionerRole", """
+                {"resourceType":"PractitionerRole",
+                 "practitioner":{"reference":"Practitioner/%s"},
+                 "code":[{"coding":[{"system":"urn:example:role","code":"healer"}]}]}"""
+                .formatted(healerPractitioner)).statusCode());
+    }
+
+    @Test
+    @Order(18)
+    @DisplayName("a confidential application gets an identity token addressed to it, and the "
+            + "provisioning surface answers only the clinic's own machine credential")
+    void theClinicsApplicationAndItsProvisioning() {
+        String nonce = names.value("nonce");
+        HttpResponse<String> tokens = signIn("hermione", "granger9", nonce);
+        assertEquals(200, tokens.statusCode(), tokens.body());
+        String id = claimsOf(dbo.says(tokens).one("id_token").orElseThrow(
+                () -> new AssertionError("no identity token: " + tokens.body())));
+        assertTrue(id.contains("\"aud\":\"" + portal() + "\"")
+                && id.contains("\"nonce\":\"" + nonce + "\"")
+                && id.contains("\"roles\":[\"healer\"]")
+                && id.contains("\"fhirUser\":\"Practitioner/" + healerPractitioner + "\""), id);
+
+        assertEquals(200, admin("/role-grants",
+                "{\"role\":\"matron\",\"scopes\":[\"user/*.read\"]}", dbo.token(second)));
+        assertEquals(200, admin("/credentials", "{\"login\":\"poppy\",\"secret\":\"pomfrey8\","
+                + "\"personId\":\"" + healer + "\"}", dbo.token(second)));
+        assertTrue(signsIn("poppy", "pomfrey8"), "the provisioned credential does not sign in");
+        assertEquals(401, admin("/role-grants",
+                "{\"role\":\"x\",\"scopes\":[\"user/*.read\"]}", null));
+        assertEquals(403, admin("/role-grants",
+                "{\"role\":\"x\",\"scopes\":[\"user/*.read\"]}", accessFor("hermione",
+                        "granger9")), "a human's token provisioned grants");
+
+        // An appliance is given the secret its operator holds, and approving it
+        // again leaves that secret working; a client with no secret is refused,
+        // since this store mints none.
+        String appliance = names.value("edge");
+        String secret = names.value("edge-secret");
+        String client = "{\"client_id\":\"" + appliance + "\",\"secret\":\"" + secret
+                + "\",\"scope\":[\"system/*.read\"]}";
+        assertEquals(200, admin("/clients", client, dbo.token(second)));
+        assertEquals(200, admin("/clients", client, dbo.token(second)));
+        token(second, appliance, secret);
+        HttpResponse<String> unminted = adminResponse("/clients",
+                "{\"client_id\":\"" + names.value("no-secret") + "\",\"scope\":[]}",
+                dbo.token(second));
+        assertEquals(400, unminted.statusCode(), unminted.body());
+        assertTrue(unminted.body().contains("does not mint"), unminted.body());
+    }
+
+    @Test
+    @Order(19)
+    @DisplayName("a clinician changes their own secret and nobody learns who exists by trying; "
+            + "retiring a credential and putting one back are the operator's")
+    @Proving({DboPromises.AUTH_DEACTIVATION_RETIRES_CREDENTIALS,
+            DboPromises.AUTH_NO_SUBJECT_ENUMERATION, DboPromises.AUTH_RECOVERY_IS_AN_OPERATOR_ACT,
+            DboPromises.AUTH_SELF_SERVICE_CHANGE})
+    void aClinicianChangesTheirOwnSecret() {
+        String human = accessFor("hermione", "granger9");
+        Proves.that(DboPromises.AUTH_NO_SUBJECT_ENUMERATION,
+                changeSecret(human, "hermione", "not-the-one", "uus9paroolimees") == 403
+                        && changeSecret(human, "nobody-here", "granger9", "uus9paroolimees") == 403
+                        && changeSecret(dbo.token(second), "hermione", "granger9", "uus9") == 403,
+                "a wrong secret, a login nobody holds and a machine were not answered alike");
+
+        Proves.that(DboPromises.AUTH_SELF_SERVICE_CHANGE,
+                changeSecret(human, "hermione", "granger9", "uus9paroolimees") == 204
+                        && changeSecret(human, "poppy", "pomfrey8", "pomfrey9") == 204
+                        && signsIn("hermione", "uus9paroolimees")
+                        && !signsIn("hermione", "granger9"),
+                "the clinician could not change their own secrets, or the old one still works");
+
+        Proves.that(DboPromises.AUTH_DEACTIVATION_RETIRES_CREDENTIALS,
+                retire("poppy") == 204 && !signsIn("poppy", "pomfrey9")
+                        && retire(names.value("never-was")) == 204,
+                "a retired credential signs in, or retiring one that never was said otherwise");
+
+        Proves.that(DboPromises.AUTH_RECOVERY_IS_AN_OPERATOR_ACT,
+                admin("/credentials", "{\"login\":\"hermione\",\"secret\":\"granger9\","
+                        + "\"personId\":\"" + healer + "\"}", dbo.token(second)) == 200
+                        && signsIn("hermione", "granger9"),
+                "provisioning the credential again did not put the clinician back");
+    }
+
+    @Test
+    @Order(20)
+    @DisplayName("a new clinician sets their own first secret from a grant that works once, "
+            + "and the grant tells its asker nothing about who exists")
+    @Proving({DboPromises.AUTH_FIRST_SECRET_BY_ONE_TIME_GRANT,
+            DboPromises.AUTH_NO_SUBJECT_ENUMERATION,
+            DboPromises.AUTH_DEACTIVATION_RETIRES_CREDENTIALS})
+    void aFirstSecretIsSetFromAOneTimeGrant() {
+        assertEquals(200, admin("/credentials", "{\"login\":\"minerva\",\"secret\":\""
+                + java.util.UUID.randomUUID() + "\",\"personId\":\"" + healer + "\"}",
+                dbo.token(second)));
+        String grant = mintGrant("minerva");
+        Proves.that(DboPromises.AUTH_FIRST_SECRET_BY_ONE_TIME_GRANT,
+                redeem(grant, "kass9tabby") == 204 && signsIn("minerva", "kass9tabby")
+                        && redeem(grant, "teine9paroolimees") == 403,
+                "the grant did not set the holder's own secret, or it worked twice");
+
+        String forSomebody = mintGrant("minerva");
+        String forNobody = mintGrant("kedagi-pole-siin");
+        Proves.that(DboPromises.AUTH_NO_SUBJECT_ENUMERATION,
+                forSomebody.length() == forNobody.length()
+                        && redeem(forNobody, "paroolimees9") == 403
+                        && redeem("a-grant-nobody-minted", "paroolimees9") == 403,
+                "minting looked the subject up, or a refusal said why");
+        String spent = mintGrant("minerva");
+        Proves.that(DboPromises.AUTH_FIRST_SECRET_BY_ONE_TIME_GRANT,
+                redeem(spent, "") == 403 && redeem(spent, "paroolimees9") == 403,
+                "a grant survived a failed attempt and could be tried again");
+        Proves.that(DboPromises.AUTH_DEACTIVATION_RETIRES_CREDENTIALS,
+                retire("minerva") == 204 && redeem(mintGrant("minerva"), "paroolimees9") == 403,
+                "a retired credential was set again through a grant");
+    }
+
+    @Test
+    @Order(21)
+    @DisplayName("a grant authorises its own redemption and nothing else: it is neither a "
+            + "client secret nor a password")
+    @Proving(DboPromises.AUTH_FIRST_SECRET_BY_ONE_TIME_GRANT)
+    void aGrantIsNotACredential() {
+        String grant = mintGrant("hermione");
+        HttpResponse<String> asASecret = formPost(oidc(second) + "/token",
+                "grant_type=client_credentials&client_id=" + portal() + "&client_secret="
+                        + encoded(grant));
+        HttpResponse<String> asAPassword = frontChannelLogin("hermione", grant, null);
+        Proves.that(DboPromises.AUTH_FIRST_SECRET_BY_ONE_TIME_GRANT,
+                !asASecret.body().contains("access_token")
+                        && asAPassword.headers().firstValue("Location").orElse("")
+                        .contains("error="),
+                "a grant was taken as a credential: " + asASecret.body());
+    }
+
+    // ── and a clinic takes its FHIR version from a root, as records ──
+
+    @Test
+    @Order(22)
+    @DisplayName("a clinic on a face holds its version's definitions as records the instant "
+            + "it is served, and validates its writes against them")
+    @Proving(DboPromises.VER_FACE_ROOT_HOLDS_THE_VERSION_AS_RECORDS)
+    void aClinicHoldsItsVersionAsRecords() {
+        HttpResponse<String> patient = dbo.get(fhir(BANK) + "/StructureDefinition?url="
+                + encoded("http://hl7.org/fhir/StructureDefinition/Patient"), dbo.token(BANK));
+        Proves.that(DboPromises.VER_FACE_ROOT_HOLDS_THE_VERSION_AS_RECORDS,
+                patient.statusCode() == 200 && patient.body().contains("\"type\":\"Patient\""),
+                "the clinic is served without its version's definitions: " + patient.body());
+
+        ATenantsDoor door = new ATenantsDoor(dbo, BANK);
+        assertEquals(201, door.post("/Patient", aBankCustomer("female")).statusCode(),
+                "a valid record was not accepted");
+        HttpResponse<String> refused = door.post("/Patient", """
+                {"resourceType":"Patient","identifier":[{"system":"urn:rl:nid","value":"%s"}],
+                 "active":"maybe"}""".formatted(names.value("nid-refused")));
+        Proves.that(DboPromises.VER_FACE_ROOT_HOLDS_THE_VERSION_AS_RECORDS,
+                refused.statusCode() == 422,
+                "the clinic validates against nothing: " + refused.body());
+    }
+
+    @Test
+    @Order(23)
+    @DisplayName("a code outside a required binding is refused by name, answered from the code "
+            + "system the clinic took from its root, and the terminology arrived the same way")
+    @Proving(DboPromises.TERM_BINDINGS_ANSWERED_FROM_RECORDS)
+    void aBindingIsAnsweredFromTheRecordsTheClinicHolds() throws Exception {
+        ATenantsDoor door = new ATenantsDoor(dbo, BANK);
+        HttpResponse<String> unicorn = door.post("/Patient", aBankCustomer("unicorn"));
+        Proves.that(DboPromises.TERM_BINDINGS_ANSWERED_FROM_RECORDS,
+                unicorn.statusCode() == 422 && unicorn.body().contains("unicorn"),
+                "a gender outside the required binding was accepted, or refused without "
+                        + "naming it: " + unicorn.statusCode() + " " + unicorn.body());
+
+        HttpResponse<String> lookup = dbo.get(fhir(BANK) + "/CodeSystem/$lookup?system="
+                + encoded("http://terminology.hl7.org/CodeSystem/v3-MaritalStatus") + "&code=M",
+                dbo.token(BANK));
+        assertEquals(200, lookup.statusCode(), lookup.body());
+        assertTrue(lookup.body().contains("Married"), lookup.body());
+        // From the root, and not from a package read here: importing the
+        // baseline from a carried package leaves a marker system behind.
+        long imported;
+        try (var c = java.sql.DriverManager.getConnection(tenantDatabase(BANK),
+                        environment.getRequiredProperty("dbo.admin.user"),
+                        environment.getRequiredProperty("dbo.admin.password"));
+                var ps = c.prepareStatement("SELECT count(*) FROM definitions.term_system "
+                        + "WHERE url LIKE 'urn:dbo:terminology-baseline:%'");
+                var rs = ps.executeQuery()) {
+            rs.next();
+            imported = rs.getLong(1);
+        }
+        Proves.that(DboPromises.TERM_BINDINGS_ANSWERED_FROM_RECORDS, imported == 0,
+                "the clinic imported the terminology baseline from a carried package");
+    }
+
+    @Test
+    @Order(24)
+    @DisplayName("another clinic declared on the same root is served already holding the "
+            + "version, and searches by what the root defined")
+    @Proving(DboPromises.VER_FACE_ROOT_HOLDS_THE_VERSION_AS_RECORDS)
+    void anotherClinicOnTheFaceSharesTheBase() {
+        String onTheFace = names.tenant("on-the-face");
+        dbo.declare(onTheFace, subscriber(onTheFace,
+                "\"StructureDefinition\",\"SearchParameter\",\"ValueSet\",\"CodeSystem\"",
+                "r4"));
+        try {
+            assertTrue(dbo.until(onTheFace, true, Duration.ofMinutes(10)),
+                    "the clinic on the face did not come up: " + dbo.serving());
+            HttpResponse<String> held = dbo.get(fhir(onTheFace) + "/StructureDefinition?url="
+                    + encoded("http://hl7.org/fhir/StructureDefinition/Patient"),
+                    dbo.token(onTheFace));
+            Proves.that(DboPromises.VER_FACE_ROOT_HOLDS_THE_VERSION_AS_RECORDS,
+                    held.body().contains("\"type\":\"Patient\"")
+                            && statusOf(fhir(onTheFace) + "/Patient?gender=female",
+                                    dbo.token(onTheFace)) == 200,
+                    "a clinic on the root was served without the version, or cannot search by "
+                            + "the parameters it defines: " + held.body());
+        } finally {
+            dbo.retract(onTheFace);
+        }
+    }
+
+    @Test
+    @Order(25)
+    @DisplayName("a clinic whose chain does not carry the code systems is not served, and the "
+            + "node says what it lacks; nor is one taking its version from another face's root")
+    @Proving({DboPromises.TEN_READY_WHEN_ITS_CRITICAL_DEFINITIONS_ARRIVED,
+            DboPromises.OPS_RUNTIME_SAYS_WHAT_IT_SERVES})
+    void aChainWithoutItsCodeSystemsIsRefusedByName() throws InterruptedException {
+        String lacking = names.tenant("lacking");
+        String converting = names.tenant("converting");
+        dbo.declare(lacking, subscriber(lacking,
+                "\"StructureDefinition\",\"SearchParameter\",\"ValueSet\"", "r4"));
+        dbo.declare(converting, subscriber(converting,
+                "\"StructureDefinition\",\"SearchParameter\"", "r5"));
+        try {
+            String lacks = whyNotServing(lacking, "CodeSystem");
+            Proves.that(DboPromises.TEN_READY_WHEN_ITS_CRITICAL_DEFINITIONS_ARRIVED,
+                    lacks.contains("CodeSystem") && !dbo.serving().contains(lacking),
+                    "a chain without code systems was served, or refused for another reason: "
+                            + lacks);
+            String converts = whyNotServing(converting, "does not convert");
+            assertTrue(converts.contains("does not convert") && !dbo.serving().contains(converting),
+                    "an r5 clinic took its definitions from an r4 root, or failed for another "
+                            + "reason than the one that matters: " + converts);
+        } finally {
+            dbo.retract(lacking);
+            dbo.retract(converting);
+        }
+        assertThrows(IllegalArgumentException.class, () -> cloud.jengu.dbo.tenant.TenantSpec.parse("""
+                {"code":"two-versions","face":"r4","audit":{"level":"none"},
+                 "dependencies":[
+                   {"name":"a","face":true,"types":["StructureDefinition"]},
+                   {"name":"b","face":true,"types":["StructureDefinition"]}],
+                 "types":[{"name":"StructureDefinition","identity":"canonical",
+                           "handling":"replicated"}]}"""),
+                "a clinic declaring two versions was not refused, and a tenant is one version");
+    }
+
+    // ── and the grants converge on what the clinic's configuration names ──
+
+    @Test
+    @Order(26)
+    @DisplayName("what was granted reads back with the organisation it was granted at and the "
+            + "scopes it was granted, and a withdrawn grant only when asked for")
+    @Proving(DboPromises.AUTH_GRANTS_ARE_READABLE_TO_CONVERGE)
+    void whatWasGrantedReadsBack() {
+        String held = grants("");
+        Proves.that(DboPromises.AUTH_GRANTS_ARE_READABLE_TO_CONVERGE,
+                held.contains("\"organisation\":null")
+                        && held.contains("\"organisation\":\"main-lab\"")
+                        && held.contains("\"user/Observation.write\""),
+                "the tenant-wide and the organisation's grant of one role do not read back as "
+                        + "two grants, each with its scopes: " + held);
+        Proves.that(DboPromises.AUTH_GRANTS_ARE_READABLE_TO_CONVERGE,
+                !rolesIn(held).contains("laborant"),
+                "a withdrawn grant is in the default answer, so a client takes it for present: "
+                        + held);
+        String all = grants("?status=all");
+        Proves.that(DboPromises.AUTH_GRANTS_ARE_READABLE_TO_CONVERGE,
+                all.contains("\"laborant\"") && all.contains("\"status\":\"withdrawn\"")
+                        && all.contains("\"withdrawnAt\"")
+                        && all.contains("\"user/Specimen.read\""),
+                "the withdrawn grant is unreachable over the wire, or lost what it could do: "
+                        + all);
+    }
+
+    @Test
+    @Order(27)
+    @DisplayName("a client converges the clinic on its configuration: read what is granted, "
+            + "withdraw what configuration no longer names, read back agreement")
+    @Proving(DboPromises.AUTH_GRANTS_ARE_READABLE_TO_CONVERGE)
+    void aClientConvergesTheGrantsOnItsConfiguration() {
+        java.util.Set<String> named = java.util.Set.of("healer", "lab-tech");
+        java.util.Set<String> held = rolesIn(grants(""));
+        assertTrue(held.containsAll(named) && !named.containsAll(held),
+                "nothing to converge away, so converging proves nothing: " + held);
+        for (String role : held) {
+            if (!named.contains(role)) {
+                assertEquals(200, admin("/role-grants", "{\"role\":\"" + role
+                        + "\",\"withdraw\":\"true\"}", dbo.token(second)));
+            }
+        }
+        Proves.that(DboPromises.AUTH_GRANTS_ARE_READABLE_TO_CONVERGE,
+                rolesIn(grants("")).equals(named),
+                "the clinic did not converge on what configuration names: " + grants(""));
+    }
+
+    @Test
+    @Order(28)
+    @DisplayName("the read stands behind the same scope as the writes, and a status it does "
+            + "not know is refused by name")
+    @Proving(DboPromises.AUTH_GRANTS_ARE_READABLE_TO_CONVERGE)
+    void theGrantsAreReadOnTheProvisioningPlane() {
+        Proves.that(DboPromises.AUTH_GRANTS_ARE_READABLE_TO_CONVERGE,
+                dbo.get(oidc(second) + "/admin/role-grants", null).statusCode() == 401
+                        && dbo.get(oidc(second) + "/admin/role-grants",
+                                accessFor("hermione", "granger9")).statusCode() == 403,
+                "the provisioning read answered somebody off the provisioning plane");
+        HttpResponse<String> refused = dbo.get(oidc(second)
+                + "/admin/role-grants?status=withdrawn", dbo.token(second));
+        Proves.that(DboPromises.AUTH_GRANTS_ARE_READABLE_TO_CONVERGE,
+                refused.statusCode() == 400 && refused.body().contains("withdrawn"),
+                "a status nobody defined was answered, so a caller believing it asked for the "
+                        + "withdrawn ones reconciles against a shorter list: " + refused.body());
+    }
+
     // ── helpers ───────────────────────────────────────────────────────────
+
+    /** Rowling Land's bank, which takes its version from the r4 root. */
+    private static final String BANK = "gringotts";
+    private static final String R4_ROOT = "fhir-r4";
+
+    private String aBankCustomer(String gender) {
+        return """
+                {"resourceType":"Patient","identifier":[{"system":"urn:rl:nid","value":"%s"}],
+                 "gender":"%s"}""".formatted(names.value("nid-" + gender), gender);
+    }
+
+    /** A clinic of this story's, taking the given definition types from the r4 root. */
+    private String subscriber(String code, String fromTheRoot, String face) {
+        StringBuilder types = new StringBuilder();
+        for (String type : fromTheRoot.replace("\"", "").split(",")) {
+            types.append("{\"name\":\"").append(type)
+                    .append("\",\"identity\":\"canonical\",\"handling\":\"replicated\"},");
+        }
+        return """
+                {"code":"%s","face":"%s","audit":{"level":"none"},
+                 "dependencies":[{"name":"%s","face":true,"types":[%s]}],
+                 "types":[%s{"name":"Patient","identity":"internal","handling":"operational"}]}"""
+                .formatted(code, face, R4_ROOT, fromTheRoot, types);
+    }
+
+    /**
+     * What the node says about a tenant it is not serving, once it says what
+     * was expected — a tenant's bring-up is retried, and an earlier pass may
+     * have failed for a reason of the moment before reaching the one asked
+     * about. The last thing said is returned if it never does.
+     */
+    private String whyNotServing(String code, String expected) throws InterruptedException {
+        long giveUp = System.nanoTime() + Duration.ofMinutes(3).toNanos();
+        String why = "";
+        while (!why.contains(expected) && System.nanoTime() < giveUp) {
+            Thread.sleep(1000);
+            HttpResponse<String> rows = dbo.get(URI.create(dbo.at(BANK)).resolve("/runtime/tenants")
+                    .toString(), "stories-ops");
+            for (Object row : (List<?>) ((java.util.Map<?, ?>) cloud.jengu.dbo.core.wire.RecordWire
+                    .read(rows.body())).get("tenants")) {
+                java.util.Map<?, ?> fields = (java.util.Map<?, ?>) row;
+                if (code.equals(fields.get("code")) && fields.get("why") != null) {
+                    why = String.valueOf(fields.get("why"));
+                }
+            }
+        }
+        return why;
+    }
+
+    private static final String REDIRECT = "http://127.0.0.1/cb";
+    private static final String PORTAL_SECRET = "portal-secret";
+
+    private String healer;
+    private String healerPractitioner;
+    private HttpResponse<String> healerRole;
+    private String healerToken;
+    private String healerRefresh;
+
+    private String webApp() {
+        return names.value("web-app");
+    }
+
+    private String portal() {
+        return names.value("portal");
+    }
+
+    private String oidc(String tenant) {
+        return dbo.at(tenant) + "/oidc";
+    }
+
+    private static String verifier() {
+        byte[] random = new byte[32];
+        new java.security.SecureRandom().nextBytes(random);
+        return java.util.Base64.getUrlEncoder().withoutPadding().encodeToString(random);
+    }
+
+    private static String challenge(String verifier) {
+        try {
+            return java.util.Base64.getUrlEncoder().withoutPadding().encodeToString(
+                    java.security.MessageDigest.getInstance("SHA-256")
+                            .digest(verifier.getBytes(StandardCharsets.US_ASCII)));
+        } catch (java.security.NoSuchAlgorithmException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    private static String claimsOf(String jwt) {
+        return new String(java.util.Base64.getUrlDecoder().decode(jwt.split("\\.")[1]),
+                StandardCharsets.UTF_8);
+    }
+
+    private static String codeIn(HttpResponse<String> login) {
+        String location = login.headers().firstValue("Location").orElseThrow(
+                () -> new AssertionError("no redirect: " + login.body()));
+        return java.util.Arrays.stream(URI.create(location).getRawQuery().split("&"))
+                .filter(pair -> pair.startsWith("code="))
+                .map(pair -> java.net.URLDecoder.decode(pair.substring(5), StandardCharsets.UTF_8))
+                .findFirst().orElseThrow(() -> new AssertionError("no code in " + location));
+    }
+
+    private HttpResponse<String> formPost(String url, String form) {
+        return dbo.send(HttpRequest.newBuilder(URI.create(url))
+                .header("Content-Type", "application/x-www-form-urlencoded")
+                .POST(HttpRequest.BodyPublishers.ofString(form)), null);
+    }
+
+    private HttpResponse<String> frontChannelLogin(String login, String password, String nonce) {
+        return formPost(oidc(second) + "/authorize/login", "client_id=" + portal()
+                + "&redirect_uri=" + encoded(REDIRECT)
+                + (nonce == null ? "" : "&nonce=" + encoded(nonce))
+                + "&login=" + encoded(login) + "&password=" + encoded(password));
+    }
+
+    /**
+     * Whether a front-channel sign-in succeeded. A refused one is an error
+     * redirect, not a status, so the location is what differs.
+     */
+    private boolean signsIn(String login, String password) {
+        HttpResponse<String> attempt = frontChannelLogin(login, password, null);
+        String location = attempt.headers().firstValue("Location").orElse("");
+        return attempt.statusCode() == 302 && location.contains("code=")
+                && !location.contains("error=");
+    }
+
+    private HttpResponse<String> signIn(String login, String password, String nonce) {
+        return formPost(oidc(second) + "/token", "grant_type=authorization_code&client_id="
+                + portal() + "&code=" + codeIn(frontChannelLogin(login, password, nonce))
+                + "&redirect_uri=" + encoded(REDIRECT) + "&client_secret="
+                + encoded(PORTAL_SECRET));
+    }
+
+    private String accessFor(String login, String password) {
+        HttpResponse<String> tokens = signIn(login, password, null);
+        return dbo.says(tokens).one("access_token").orElseThrow(
+                () -> new AssertionError("no token for " + login + ": " + tokens.body()));
+    }
+
+    private HttpResponse<String> adminResponse(String path, String json, String bearer) {
+        return dbo.send(HttpRequest.newBuilder(URI.create(oidc(second) + "/admin" + path))
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(json)), bearer);
+    }
+
+    private int admin(String path, String json, String bearer) {
+        return adminResponse(path, json, bearer).statusCode();
+    }
+
+    private int changeSecret(String bearer, String login, String current, String replacement) {
+        return dbo.send(HttpRequest.newBuilder(URI.create(oidc(second) + "/credentials"))
+                .header("Content-Type", "application/x-www-form-urlencoded")
+                .POST(HttpRequest.BodyPublishers.ofString("login=" + encoded(login)
+                        + "&current_secret=" + encoded(current)
+                        + "&new_secret=" + encoded(replacement))), bearer).statusCode();
+    }
+
+    private int retire(String login) {
+        return admin("/credentials", "{\"login\":\"" + login + "\",\"status\":\"retired\"}",
+                dbo.token(second));
+    }
+
+    private String mintGrant(String login) {
+        HttpResponse<String> minted = adminResponse("/secret-grants",
+                "{\"login\":\"" + login + "\",\"minutes\":\"30\"}", dbo.token(second));
+        assertEquals(200, minted.statusCode(), minted.body());
+        return dbo.says(minted).one("grant").orElseThrow(
+                () -> new AssertionError("no grant in " + minted.body()));
+    }
+
+    private String grants(String query) {
+        HttpResponse<String> answered = dbo.get(oidc(second) + "/admin/role-grants" + query,
+                dbo.token(second));
+        assertEquals(200, answered.statusCode(), answered.body());
+        return answered.body();
+    }
+
+    private static java.util.Set<String> rolesIn(String body) {
+        java.util.Set<String> roles = new java.util.TreeSet<>();
+        java.util.regex.Matcher found = java.util.regex.Pattern
+                .compile("\"role\":\"([^\"]+)\"").matcher(body);
+        while (found.find()) {
+            roles.add(found.group(1));
+        }
+        return roles;
+    }
+
+    private int redeem(String grant, String chosen) {
+        return formPost(oidc(second) + "/secret-grants/redeem", "grant=" + encoded(grant)
+                + "&new_secret=" + encoded(chosen)).statusCode();
+    }
 
     private static String encoded(String value) {
         return URLEncoder.encode(value, StandardCharsets.UTF_8);

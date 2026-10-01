@@ -11,16 +11,16 @@ Story class: `ATenantOpensAndItsPeopleGetInIT` — exists; today own (lifecycle)
 | Class | Boots | Promises | W | Status |
 |---|---|---|---|---|
 | `ATenantOpensAndItsPeopleGetInIT` (story class) | own (lifecycle) | 17 | 16 | moved, harness class deleted |
-| `HumanAuthIT` | own (deployment) | 9 | 9 | todo |
+| `HumanAuthIT` | own (deployment) | 9 | 9 | deleted |
 | `ScimProvisioningIT` | shared | 7 | 7 | deleted |
-| `FederatedAuthIT` | own (deployment) | 3 | 3 | todo |
+| `FederatedAuthIT` | own (deployment) | 3 | 3 | todo — needs the world: `rl` brokers its members but declares no person identifier domain, so the hub's subject resolves in no member |
 | `AFaceIsCutOnceAndBroughtUpFromIT` | own (deployment) | 3 | 2 | todo |
-| `ATenantSubscribesToItsVersionIT` | own (lifecycle) | 3 | 2 | todo |
+| `ATenantSubscribesToItsVersionIT` | own (lifecycle) | 3 | 2 | trimmed to its two build-counter legs, which read the container's own counters |
 | `ADeclaredRelationGrantsIT` | shared | 1 | 1 | deleted |
 | `ADeploymentPresentsItsOwnCredentialIT` | own (deployment) | 1 | 1 | todo |
 | `AGrantCanBeTakenBackIT` | shared | 1 | 1 | deleted |
 | `APartnerFollowsWorkIT` | shared | 1 | 1 | todo |
-| `AProvisioningClientConvergesTheGrantsIT` | shared | 1 | 1 | todo |
+| `AProvisioningClientConvergesTheGrantsIT` | shared | 1 | 1 | deleted |
 | `AStreamKeepsMovingWhileATenantComesUpIT` | own (lifecycle) | 1 | 1 | todo |
 | `ATenantComesUpFromTheFaceImageIT` | own (deployment) | 2 | 1 | todo |
 | `ScimNeedsTheMembraneIT` | own (sweep) | 1 | 1 | todo |
@@ -34,7 +34,7 @@ Story class: `ATenantOpensAndItsPeopleGetInIT` — exists; today own (lifecycle)
 | `TEN_CREDENTIAL_BLIND_PROVISIONING` | — | W | `2` `theClinicGetsADatabaseNobodyHereHeldTheKeyTo` |
 | `AUTH_DENY_BY_DEFAULT` | — | W | `3` `nothingIsReachableWithoutACredential` |
 | `AUTH_BEARER_LOCAL_VALIDATION` | — | W | `4` `theClinicsOwnAuthorityIssuesAndChecksTheToken` |
-| `AUTH_SMART_SHAPED_SCOPES` | `HumanAuthIT` | W | `4` `theClinicsOwnAuthorityIssuesAndChecksTheToken` |
+| `AUTH_SMART_SHAPED_SCOPES` | — | W | `4` `theClinicsOwnAuthorityIssuesAndChecksTheToken` |
 | `AUTH_TENANT_SCOPED_ISSUER` | — | W | `4` `theClinicsOwnAuthorityIssuesAndChecksTheToken` |
 | `AUTH_ONE_CEREMONY_MANY_TENANTS` | `FederatedAuthIT` | W | `5` `aSecondClinicOpensAndTheTenantsCannotSeeEachOther` |
 | `TEN_STRUCTURAL_SCOPING` | — | W | `5` `aSecondClinicOpensAndTheTenantsCannotSeeEachOther` |
@@ -44,22 +44,22 @@ Story class: `ATenantOpensAndItsPeopleGetInIT` — exists; today own (lifecycle)
 | `SCIM_ENUMERATION_STAYS_INSIDE` | `ScimProvisioningIT` | W | `7` `enumerationStaysBehindTheDirectoryDoor` |
 | `SCIM_GROUPS_READ_ONLY` | `ScimProvisioningIT` | W | `7` `enumerationStaysBehindTheDirectoryDoor` |
 | `AUTH_IDENTITY_AS_RECORDS` | — |  | `8` `whatAClinicianMayDoIsDeclaredAndWhoTheyAreIsARecord` |
-| `AUTH_ORG_MODEL_IS_THE_AUTH_MODEL` | `HumanAuthIT`, `ADeclaredRelationGrantsIT`, `AGrantCanBeTakenBackIT` | W | `8` `whatAClinicianMayDoIsDeclaredAndWhoTheyAreIsARecord` |
+| `AUTH_ORG_MODEL_IS_THE_AUTH_MODEL` | — | W | `8` `whatAClinicianMayDoIsDeclaredAndWhoTheyAreIsARecord` |
 | `AUTH_A_ZONE_IS_ITS_OWN_BROKER` | `TheGuideRunsIT` | W | to fit |
 | `AUTH_BOOTSTRAP_SECRET_IS_CUSTODY` | `ADeploymentPresentsItsOwnCredentialIT` | W | to fit |
 | `AUTH_CREDENTIAL_FACTORS_BY_KIND` | without a world: EdgePinIsACredentialIT |  | assert where the story passes it |
-| `AUTH_DEACTIVATION_RETIRES_CREDENTIALS` | `HumanAuthIT` | W | to fit |
-| `AUTH_FEDERATED_HUMANS` | `HumanAuthIT`, `FederatedAuthIT` | W | to fit |
-| `AUTH_FIRST_SECRET_BY_ONE_TIME_GRANT` | `HumanAuthIT` | W | to fit |
-| `AUTH_GRANTS_ARE_READABLE_TO_CONVERGE` | `AProvisioningClientConvergesTheGrantsIT` | W | to fit |
-| `AUTH_NO_SUBJECT_ENUMERATION` | `HumanAuthIT` | W | to fit |
+| `AUTH_DEACTIVATION_RETIRES_CREDENTIALS` | — | W | `19` `aClinicianChangesTheirOwnSecret`, `20` `aFirstSecretIsSetFromAOneTimeGrant` |
+| `AUTH_FEDERATED_HUMANS` | `FederatedAuthIT` | W | `10` `anIdentifierFromOutsideNamesThePerson` |
+| `AUTH_FIRST_SECRET_BY_ONE_TIME_GRANT` | — | W | `20` `aFirstSecretIsSetFromAOneTimeGrant`, `21` `aGrantIsNotACredential` |
+| `AUTH_GRANTS_ARE_READABLE_TO_CONVERGE` | — | W | `26`–`28`, from `whatWasGrantedReadsBack` |
+| `AUTH_NO_SUBJECT_ENUMERATION` | — | W | `19` `aClinicianChangesTheirOwnSecret`, `20` `aFirstSecretIsSetFromAOneTimeGrant` |
 | `AUTH_PASSWORD_ONLY_WHERE_WE_ARE_THE_IDP` | `FederatedAuthIT` | W | to fit |
 | `AUTH_PORTABLE_AUTHORITY` | without a world: AnAuthorityMovesWithoutRekeyingIT |  | assert where the story passes it |
 | `AUTH_PRIVATE_SURFACE` | — |  | PLANNED — nothing cites it |
-| `AUTH_PSEUDONYMOUS_TOKENS` | `HumanAuthIT` | W | to fit |
-| `AUTH_RECOVERY_IS_AN_OPERATOR_ACT` | `HumanAuthIT` | W | to fit |
+| `AUTH_PSEUDONYMOUS_TOKENS` | — | W | `15` `aClinicianSignsInAndTheTokenIsAPseudonym` |
+| `AUTH_RECOVERY_IS_AN_OPERATOR_ACT` | — | W | `19` `aClinicianChangesTheirOwnSecret` |
 | `AUTH_ROLE_GRANTS_AS_RECORDS` | without a world: AGrantIsARecordLikeAnyOtherIT |  | assert where the story passes it |
-| `AUTH_SELF_SERVICE_CHANGE` | `HumanAuthIT` | W | to fit |
+| `AUTH_SELF_SERVICE_CHANGE` | — | W | `19` `aClinicianChangesTheirOwnSecret` |
 | `CONT_FAST_COLD_START` | `ServerDistIT` | W | to fit |
 | `CONT_FRAMEWORK_FREE_CORE` | without a world: SqlDisciplineTest |  | assert where the story passes it |
 | `CONT_IMPORTS_ARE_COMPUTED_OR_CHECKED` | without a world: EverySlf4jImportNamesItsGenerationTest, TheStackImportsWhatItReachesForTest |  | assert where the story passes it |
@@ -71,13 +71,13 @@ Story class: `ATenantOpensAndItsPeopleGetInIT` — exists; today own (lifecycle)
 | `TEN_A_TYPE_DECLARES_ITS_DOMAIN` | `ADefinitionMovesOnItsOwnFeedIT` | W | to fit |
 | `TEN_COMING_UP_AND_KEEPING_UP_ARE_NOT_ONE_QUEUE` | `AStreamKeepsMovingWhileATenantComesUpIT` | W | to fit |
 | `TEN_DECLARED_TOGETHER_COME_UP_TOGETHER` | `SeveralTenantsDeclaredAtOnceComeUpTogetherIT` |  | to fit |
-| `TEN_READY_WHEN_ITS_CRITICAL_DEFINITIONS_ARRIVED` | `ATenantSubscribesToItsVersionIT` | W | to fit |
+| `TEN_READY_WHEN_ITS_CRITICAL_DEFINITIONS_ARRIVED` | — | W | `25` `aChainWithoutItsCodeSystemsIsRefusedByName` |
 | `TEN_REGISTRY_SCOPED_ACCESS` | `TenantOsgiIT` | W | to fit |
 | `TEN_SHARED_TIER_ISOLATION` | — |  | PLANNED — nothing cites it |
-| `TERM_BINDINGS_ANSWERED_FROM_RECORDS` | `ATenantSubscribesToItsVersionIT` |  | to fit |
+| `TERM_BINDINGS_ANSWERED_FROM_RECORDS` | — |  | `23` `aBindingIsAnsweredFromTheRecordsTheClinicHolds` |
 | `VER_AN_IMAGE_FROM_ANOTHER_RELEASE_IS_REFUSED` | `AFaceIsCutOnceAndBroughtUpFromIT` | W | to fit |
 | `VER_AN_IMAGE_IS_CUT_ONLY_WHEN_COMPLETE` | `AFaceIsCutOnceAndBroughtUpFromIT`, `ATenantComesUpFromTheFaceImageIT` | W | to fit |
-| `VER_FACE_ROOT_HOLDS_THE_VERSION_AS_RECORDS` | `ATenantSubscribesToItsVersionIT` | W | to fit |
+| `VER_FACE_ROOT_HOLDS_THE_VERSION_AS_RECORDS` | `ATenantSubscribesToItsVersionIT` (build counters) | W | `22` `aClinicHoldsItsVersionAsRecords`, `24` `anotherClinicOnTheFaceSharesTheBase` |
 
 ## US-DBO-CLINICAL-RECORD
 
@@ -449,9 +449,9 @@ Story class: `AnOperatorReadsAndSteersTheFleetIT` — exists; today own (sweep).
 | Class | Boots | Promises | W | Status |
 |---|---|---|---|---|
 | `AnOperatorReadsAndSteersTheFleetIT` (story class) | own (sweep) | 14 | 12 | moved but for two nodes |
-| `ADeploymentRecordsWhatItWasToldToServeIT` | own (sweep) | 6 | 3 | todo |
+| `ADeploymentRecordsWhatItWasToldToServeIT` | own (sweep) | 6 | 3 | deleted |
 | `ADeclarationIsAppliedThroughTheFaceIT` | shared | 6 | 2 | todo |
-| `ATenantDeclaredDifferentlyIsNoticedIT` | own (sweep) | 3 | 2 | todo |
+| `ATenantDeclaredDifferentlyIsNoticedIT` | own (sweep) | 3 | 2 | deleted |
 | `AChangeCanBeAskedAboutBeforeItIsMadeIT` | own (deployment) | 1 | 1 | todo |
 | `ADeclarationNamesWhatTheSameApplyCreatesIT` | shared | 1 | 1 | todo |
 | `ATenantThatIsNotUpSaysWhyIT` | own (sweep) | 1 | 1 | todo |
@@ -460,7 +460,7 @@ Story class: `AnOperatorReadsAndSteersTheFleetIT` — exists; today own (sweep).
 
 | Promise | Proven now by | W | Leg in the story class |
 |---|---|---|---|
-| `OPS_RUNTIME_SAYS_WHAT_IT_SERVES` | `ATenantDeclaredDifferentlyIsNoticedIT`, `ATenantThatIsNotUpSaysWhyIT` | W | `1` `aNodeSaysWhatItIsServing` |
+| `OPS_RUNTIME_SAYS_WHAT_IT_SERVES` | `ATenantThatIsNotUpSaysWhyIT` | W | `1` `aNodeSaysWhatItIsServing` |
 | `PROC_A_NODE_ANSWERS_ITS_CATALOGUE` | — |  | `2` `aNodeSaysWhatItKnowsHowToDo` |
 | `OPS_FLEET_IS_READ_FROM_OUTSIDE` | — | W | `3` `oneProcessReadsTheWholeDeployment` |
 | `PROC_NETWORK_MAP` | — | W | `4` `theMapIsOneAnswerAcrossNodes` |
@@ -476,28 +476,28 @@ Story class: `AnOperatorReadsAndSteersTheFleetIT` — exists; today own (sweep).
 | `PROC_SUPERVISION_IS_ITS_OWN_ENTITLEMENT` | — | W | `8` `aWrongClosureIsUndoneThroughTheLane` |
 | `OPS_MIGRATION_AS_DEPLOYMENT` | — |  | PLANNED — nothing cites it |
 | `OPS_NUMBERS_LEAVE_THE_NODE` | `WhatTheLoadedSpecificationCostsIT` |  | to fit |
-| `PROC_CONFIG_APPLIES_AS_A_SWEEP` | `ADeploymentRecordsWhatItWasToldToServeIT`, `ADeclarationIsAppliedThroughTheFaceIT` |  | to fit |
-| `PROC_CONFIG_READ_FROM_A_SOURCE` | `ADeploymentRecordsWhatItWasToldToServeIT`, `ADeclarationIsAppliedThroughTheFaceIT` |  | to fit |
-| `PROC_CONFIG_WITHDRAWAL_IS_DECLARED` | `ADeploymentRecordsWhatItWasToldToServeIT`, `ADeclarationIsAppliedThroughTheFaceIT` |  | to fit |
+| `PROC_CONFIG_APPLIES_AS_A_SWEEP` | `ADeclarationIsAppliedThroughTheFaceIT` |  | `14` `anUnreadableDeclarationIsACardForAPerson` |
+| `PROC_CONFIG_READ_FROM_A_SOURCE` | `ADeclarationIsAppliedThroughTheFaceIT` |  | `18` `aDirectoryThatCannotBeReadRefuses` |
+| `PROC_CONFIG_WITHDRAWAL_IS_DECLARED` | `ADeclarationIsAppliedThroughTheFaceIT` |  | `15` `anUnreadableSourceRetractsNothing`, `16` `aWithdrawnDeclarationLeavesTheRecord` |
 | `SCAL_DURABLE_ASSIGNMENT` | — |  | PLANNED — nothing cites it |
 | `SCAL_NO_SHARED_STATE_BROKER` | — |  | PLANNED — nothing cites it |
 | `SCAL_SINGLE_WRITER_TENANT` | — |  | PLANNED — nothing cites it |
 | `SCAL_TRANSPARENT_ROUTING` | — |  | PLANNED — nothing cites it |
 | `SCAL_TWO_HOP_LOCALITY` | — |  | PLANNED — nothing cites it |
 | `TEN_AN_ACTIVITY_DECLARES_WHERE_IT_APPLIES` | without a world: AnActivitySaysWhichTenantsItIsForTest |  | assert where the story passes it |
-| `TEN_APPLYING_IS_ASKED_FOR_AND_RECORDED` | `ADeploymentRecordsWhatItWasToldToServeIT` | W | to fit |
+| `TEN_APPLYING_IS_ASKED_FOR_AND_RECORDED` | — | W | `17` `applyingIsAskedForByWhoeverWasGrantedIt` |
 | `TEN_A_CHANGE_CAN_BE_CLASSIFIED_WITHOUT_APPLYING` | `AChangeCanBeAskedAboutBeforeItIsMadeIT` | W | to fit |
-| `TEN_A_CHANGE_IS_NOT_A_RETRACTION` | `ATenantDeclaredDifferentlyIsNoticedIT` | W | to fit |
-| `TEN_A_DECLARATION_IS_A_RECORD` | `ADeploymentRecordsWhatItWasToldToServeIT` | W | to fit |
+| `TEN_A_CHANGE_IS_NOT_A_RETRACTION` | — | W | `10` `aNewTypeIsARebuildNotARetraction` |
+| `TEN_A_DECLARATION_IS_A_RECORD` | — | W | `13` `aDeclarationIsARecordAndAChangeReplacesIt` |
 | `TEN_A_DECLARATION_NAMES_ITS_REFERENT` | `ADeclarationNamesWhatTheSameApplyCreatesIT` | W | to fit |
 | `TEN_A_DECLARED_SET_IS_APPLIED_AS_ONE_PASS` | `ADeclarationIsAppliedThroughTheFaceIT`, `AZoneHandsOverItsContentIT` | W | to fit |
 | `TEN_A_PARTNER_MANAGES_TENANTS` | `APartnerFollowsWorkIT` | W | to fit |
-| `TEN_A_REDECLARATION_IS_NOTICED` | `ATenantDeclaredDifferentlyIsNoticedIT` |  | to fit |
+| `TEN_A_REDECLARATION_IS_NOTICED` | — |  | `8`–`12`, from `aTenantServingWhatWasDeclaredSaysSo` |
 | `TEN_A_REFUSED_DECLARATION_IS_SAID_ONCE` | without a world: ARefusedDeclarationIsSaidOnceTest |  | assert where the story passes it |
 | `TEN_A_STALE_INDEX_IS_REMEMBERED_UNTIL_IT_IS_REBUILT` | without a world: AStaleIndexComesBackTest |  | assert where the story passes it |
 | `TEN_A_TENANT_COMES_UP_FROM_THE_FACE_IMAGE` | `WhatTheLoadedSpecificationCostsIT` |  | to fit |
 | `TEN_FAIRNESS_QUOTAS` | — |  | PLANNED — nothing cites it |
-| `TEN_SERVED_FROM_WHAT_WAS_APPLIED` | `ADeploymentRecordsWhatItWasToldToServeIT` | W | to fit |
+| `TEN_SERVED_FROM_WHAT_WAS_APPLIED` | — | W | `15` `anUnreadableSourceRetractsNothing` |
 | `TERM_EVERY_TENANT_ANSWERS` | `ADeclarationIsAppliedThroughTheFaceIT` | W | to fit |
 | `TERM_NATIVE_FORM` | `ADeclarationIsAppliedThroughTheFaceIT` |  | to fit |
 

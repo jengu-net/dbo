@@ -91,7 +91,13 @@ final class TheDatabaseForThisJvm {
 
     static synchronized PostgreSQLContainer<?> get(String image) {
         if (running == null) {
-            running = new PostgreSQLContainer<>(image);
+            // Postgres's own default of a hundred is a single application's
+            // number. A tenant here is a database with a pool of its own, so
+            // a world of tenants opening at once spends the default before it
+            // has finished coming up, and what the store then reports is a
+            // refusal it never made.
+            running = new PostgreSQLContainer<>(image)
+                    .withCommand("postgres", "-c", "max_connections=400");
             running.start();
             startedFor = image;
             return running;

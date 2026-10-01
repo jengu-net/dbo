@@ -1,7 +1,10 @@
 **Open, and step 3 is underway. Eight user-story classes walk Rowling Land,
-the sample world, in one context, concurrently: 105 legs. Of the 127 harness
-classes that booted a world, about 90 remain, and the stories have found five
-store defects so far, all fixed with a test that fails without the fix.
+the sample world, in one context, concurrently: 131 legs. Of the 127 harness
+classes that booted a world, about 86 remain, and the stories have found five
+store defects so far, all fixed with a test that fails without the fix. A
+node now says why a tenant it is not serving is not, with the cause, so a
+refusal can be proven from outside. Federated sign-in waits on the world:
+`rl` brokers its members but declares no person identifier domain.
 Next: the rest of step 3, story by story, and the fleet-steps story.**
 
 # Every promise proven on one world, inside its story
