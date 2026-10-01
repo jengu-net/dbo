@@ -113,12 +113,18 @@ public final class PersonErasure {
             return runs.closed(runs.checkpoint(run,
                     Map.of("known", 0L, "keyDestroyed", 0L), hold()));
         }
-        Run at = runs.milestone(run, "key-destroyed",
-                Map.of("keyDestroyed", shred.keyDestroyed() ? 1L : 0L), hold());
-        at = runs.milestone(at, "index-removed",
-                Map.of("identifiers", (long) shred.identifiers(),
-                        "lookups", (long) shred.lookups()), hold());
-        at = runs.milestone(at, "ledger-written", Map.of("known", 1L), hold());
+        // A run's tally is what it has counted so far, replaced at each point
+        // rather than added to. So each point carries everything said before
+        // it, or the receipt would end saying only that she was known, and
+        // not whether a key was there to destroy.
+        Map<String, Long> said = new java.util.LinkedHashMap<>();
+        said.put("keyDestroyed", shred.keyDestroyed() ? 1L : 0L);
+        Run at = runs.milestone(run, "key-destroyed", Map.copyOf(said), hold());
+        said.put("identifiers", (long) shred.identifiers());
+        said.put("lookups", (long) shred.lookups());
+        at = runs.milestone(at, "index-removed", Map.copyOf(said), hold());
+        said.put("known", 1L);
+        at = runs.milestone(at, "ledger-written", Map.copyOf(said), hold());
         return runs.closed(at);
     }
 

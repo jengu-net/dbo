@@ -84,6 +84,15 @@ A clinician who leaves is deactivated rather than deleted, because who worked
 here on a date is a fact about that date, and a signature that refers to
 nobody is worse than one that refers to somebody who has left.
 
+A clinician who is still here often acts through a process: something that
+writes in their name while they are elsewhere. The process carries a token
+that keeps the clinician as its subject and names the process beside them,
+narrower than what the clinician holds. A standing delegation outlives that
+token, and stays as narrow as it was granted when the clinician's role
+widens. Ending the delegation, or the clinician's role, ends what the process
+may do. Every request it makes states its own purpose, because a delegation
+that remembered one would go on asserting it after the occasion passed.
+
 ## Joins
 
 The promises this story rests on, projected from the catalogue rather than

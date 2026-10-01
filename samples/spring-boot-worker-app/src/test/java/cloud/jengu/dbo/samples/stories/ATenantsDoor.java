@@ -43,6 +43,13 @@ final class ATenantsDoor {
         return dbo.send(withHeaders(request, headers), dbo.token(tenant));
     }
 
+    /** The same, carrying a credential other than the tenant's own client's. */
+    HttpResponse<String> postAs(String path, String document, String bearer) {
+        return dbo.send(HttpRequest.newBuilder(URI.create(at(path)))
+                .header("Content-Type", FHIR_JSON)
+                .POST(HttpRequest.BodyPublishers.ofString(document)), bearer);
+    }
+
     HttpResponse<String> put(String path, String document, String... headers) {
         HttpRequest.Builder request = HttpRequest.newBuilder(URI.create(at(path)))
                 .header("Content-Type", FHIR_JSON)

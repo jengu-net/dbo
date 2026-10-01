@@ -445,4 +445,34 @@ class PdiIT {
         }
     }
 
+    /**
+     * The walk reads the vault a page at a time, and the person a pseudonym
+     * belongs to is often not on the first page.
+     *
+     * <p>She is given the id that sorts last and the vault is filled past one
+     * page below her, so a walk whose cursor does not advance, or that takes a
+     * full page for the end, misses her every time rather than on the runs
+     * where her id happened to sort late.
+     */
+    @Test
+    @Order(8)
+    @DisplayName("a pseudonym resolves to its person when the vault holds more people than "
+            + "one page of the walk, because a walk that stopped at its first page would "
+            + "answer nobody and look exactly like a miss")
+    @Proving(DboPromises.PDI_PSEUDONYM_RESOLVED_BY_SCAN)
+    void theWalkCrossesItsOwnPageBoundary() {
+        byte[] tail = new byte[6];
+        new SecureRandom().nextBytes(tail);
+        String last = "ffffffff-ffff-4fff-bfff-" + java.util.HexFormat.of().formatHex(tail);
+        vault.keyFor(last, true);
+        int page = 500;
+        for (int i = 0; i <= page; i++) {
+            vault.keyFor(java.util.UUID.randomUUID().toString(), true);
+        }
+        String hers = vault.pseudonymFor(last, "research").orElseThrow();
+
+        assertEquals(java.util.Optional.of(last), vault.whoAnswersTo("research", hers),
+                "she is past the first page and was not found, so the walk reads one page "
+                        + "and reports the rest of the vault as nobody");
+    }
 }
