@@ -1,6 +1,6 @@
 # Listing: what each world-booting class proves, and the story it goes to
 
-A snapshot taken on 2026-10-01 from the sources: the classes that boot a dbo world, the `@Proving` citations they carry, and the story whose declaration holds most of those promises. **W** marks a promise no class proves without a world, so it must be proven in a story before its class goes. Status is edited by hand as the work moves: `todo`, `in story`, `deleted`.
+A snapshot taken on 2026-10-01 from the sources: the classes that boot a dbo world, the `@Proving` citations they carry, and the story whose declaration holds most of those promises. **W** marks a promise no class proves without a world, so it must be proven in a story before its class goes. Status is edited by hand as the work moves: `todo`, `moved`, `in story`, `deleted`. The leg column names methods of the story classes, which now live in `samples/spring-boot-worker-app/src/test/java/cloud/jengu/dbo/samples/stories`; a few legs were renamed on the way.
 
 [Back to the item](README.md).
 
@@ -10,7 +10,7 @@ Story class: `ATenantOpensAndItsPeopleGetInIT` — exists; today own (lifecycle)
 
 | Class | Boots | Promises | W | Status |
 |---|---|---|---|---|
-| `ATenantOpensAndItsPeopleGetInIT` (story class) | own (lifecycle) | 17 | 16 | todo |
+| `ATenantOpensAndItsPeopleGetInIT` (story class) | own (lifecycle) | 17 | 16 | moved, harness class deleted |
 | `HumanAuthIT` | own (deployment) | 9 | 9 | todo |
 | `ScimProvisioningIT` | shared | 7 | 7 | todo |
 | `FederatedAuthIT` | own (deployment) | 3 | 3 | todo |
@@ -85,7 +85,7 @@ Story class: `TheClinicRecordsCareAndAccountsForItIT` — exists; today shared.
 
 | Class | Boots | Promises | W | Status |
 |---|---|---|---|---|
-| `TheClinicRecordsCareAndAccountsForItIT` (story class) | shared | 28 | 13 | todo |
+| `TheClinicRecordsCareAndAccountsForItIT` (story class) | shared | 28 | 13 | moved, harness class deleted |
 | `ATenantAuthorsItsOwnSearchParameterIT` | own (sweep) | 4 | 3 | todo |
 | `ATenantDeliversWhatItSubscribedToIT` | shared | 2 | 2 | todo |
 | `TheEnvelopeIsTheSameFromEitherSideIT` | shared | 2 | 2 | todo |
@@ -220,7 +220,7 @@ Story class: `OneTenantInTwoPlacesIT` — exists; today shared.
 | `SpecDeclaredSyncIT` | own (sweep) | 6 | 5 | todo |
 | `ZoneIT` | own (deployment) | 5 | 5 | todo |
 | `AZoneReachesAnotherFaceThroughOneProjectionIT` | own (sweep) | 4 | 3 | todo |
-| `OneTenantInTwoPlacesIT` (story class) | shared | 9 | 2 | todo |
+| `OneTenantInTwoPlacesIT` (story class) | shared | 9 | 2 | zone half moved; appliance half is AnApplianceCarriesPatientDataByWorkIT, no runtime |
 | `EachTypeStreamsAtItsOwnGrainIT` | shared | 1 | 1 | todo |
 | `ReplicationDrivenOverHttpIT` | shared | 4 | 1 | todo |
 | `MetaSaysTheEnginesFactsIT` | shared | 1 | 0 | todo |
@@ -267,7 +267,7 @@ Story class: `TheStandardMovesUnderTheDataIT` — exists; today shared.
 | `ShapeStampIT` | shared | 7 | 7 | todo |
 | `ReshapeIT` | shared | 6 | 6 | todo |
 | `TheFaceSqlShipsWithTheReleaseIT` | shared | 6 | 6 | todo |
-| `TheStandardMovesUnderTheDataIT` (story class) | shared | 7 | 5 | todo |
+| `TheStandardMovesUnderTheDataIT` (story class) | shared | 7 | 5 | moved, harness class deleted |
 | `ADefinitionMovesOnItsOwnFeedIT` | shared | 3 | 3 | todo |
 | `AValueIsTheKindOfThingItIsDeclaredToBeIT` | shared | 2 | 2 | todo |
 | `NewerDataRefusedIT` | shared | 2 | 2 | todo |
@@ -338,7 +338,7 @@ Story class: `TheClinicChangesVendorIT` — exists; today databases opened direc
 
 | Class | Boots | Promises | W | Status |
 |---|---|---|---|---|
-| `TheClinicChangesVendorIT` (story class) | databases opened directly, no runtime | 6 | 0 | todo |
+| `TheClinicChangesVendorIT` (story class) | databases opened directly, no runtime | 6 | 0 | moved, harness class deleted |
 
 | Promise | Proven now by | W | Leg in the story class |
 |---|---|---|---|
@@ -362,7 +362,7 @@ Story class: `WorkLeavesTheClinicAndComesBackIT` — exists; today shared.
 
 | Class | Boots | Promises | W | Status |
 |---|---|---|---|---|
-| `WorkLeavesTheClinicAndComesBackIT` (story class) | shared | 23 | 13 | todo |
+| `WorkLeavesTheClinicAndComesBackIT` (story class) | shared | 23 | 13 | moved, harness class deleted |
 | `ALaneOverHttpIsIndistinguishableIT` | shared | 5 | 4 | todo |
 | `ARouterHoldsTheClaimIT` | shared | 3 | 3 | todo |
 | `AFaceAuthoredRunReachesTheLaneIT` | shared | 1 | 1 | todo |
@@ -448,7 +448,7 @@ Story class: `AnOperatorReadsAndSteersTheFleetIT` — exists; today own (sweep).
 
 | Class | Boots | Promises | W | Status |
 |---|---|---|---|---|
-| `AnOperatorReadsAndSteersTheFleetIT` (story class) | own (sweep) | 14 | 12 | todo |
+| `AnOperatorReadsAndSteersTheFleetIT` (story class) | own (sweep) | 14 | 12 | moved but for two nodes |
 | `ADeploymentRecordsWhatItWasToldToServeIT` | own (sweep) | 6 | 3 | todo |
 | `ADeclarationIsAppliedThroughTheFaceIT` | shared | 6 | 2 | todo |
 | `ATenantDeclaredDifferentlyIsNoticedIT` | own (sweep) | 3 | 2 | todo |
