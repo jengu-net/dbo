@@ -472,6 +472,24 @@ public enum DboStories implements Story {
                     DboPromises.FEED_DEFINITIONS_MOVE_ON_A_FEED_OF_THEIR_OWN
             )),
 
+    VERSION_MEASURED("Before a FHIR version's database answers are trusted, the release is "
+            + "measured: the checkers in the process and the SQL in the database are held "
+            + "to each other and to the carried specification over the whole version.",
+            List.of(
+                    // What a face gave a tenant is a thing of its own.
+                    DboPromises.VER_DEFINITIONS_LIVE_IN_A_SCHEMA_OF_THEIR_OWN,
+                    DboPromises.FEED_DEFINITIONS_MOVE_ON_A_FEED_OF_THEIR_OWN,
+                    DboPromises.TEN_A_TYPE_DECLARES_ITS_DOMAIN,
+                    // The index is read from the rows, and says what the
+                    // packages say.
+                    DboPromises.VAL_THE_INDEX_IS_A_PROJECTION_OF_THE_EXPANDED_ROWS,
+                    // The database against the toolchain, over the version.
+                    DboPromises.VAL_DIVERGENCE_IS_MEASURED_OVER_THE_VERSION,
+                    DboPromises.VAL_THE_DATABASE_ANSWER_IS_ADVISORY_UNTIL_IT_IS_NOT,
+                    // A third answerer, over the same rows.
+                    DboPromises.VAL_A_THIRD_ANSWERER_READS_THE_INDEX
+            )),
+
     VENDOR_CHANGE("A provider leaves and takes everything with them, in a sealed archive the "
             + "party operating the store cannot read and somebody else can verify without "
             + "asking anybody.",

@@ -68,7 +68,7 @@ Story class: `ATenantOpensAndItsPeopleGetInIT` — exists; today own (lifecycle)
 | `SCIM_EVERY_OP_IS_A_DISCLOSURE` | — | W | to fit |
 | `TEN_A_PARTNER_MANAGES_TENANTS` | — | W | `30` `aPartnerFollowsTheWorkAndNothingElse` |
 | `TEN_A_TENANT_COMES_UP_FROM_THE_FACE_IMAGE` | `AFaceIsCutOnceAndBroughtUpFromIT`, `ATenantComesUpFromTheFaceImageIT` |  | to fit |
-| `TEN_A_TYPE_DECLARES_ITS_DOMAIN` | `ADefinitionMovesOnItsOwnFeedIT` | W | to fit |
+| `TEN_A_TYPE_DECLARES_ITS_DOMAIN` | `TheVersionIsMeasuredIT` | W | to fit |
 | `TEN_COMING_UP_AND_KEEPING_UP_ARE_NOT_ONE_QUEUE` | `AStreamKeepsMovingWhileATenantComesUpIT` | W | to fit |
 | `TEN_DECLARED_TOGETHER_COME_UP_TOGETHER` | `SeveralTenantsDeclaredAtOnceComeUpTogetherIT` |  | to fit |
 | `TEN_READY_WHEN_ITS_CRITICAL_DEFINITIONS_ARRIVED` | — | W | `25` `aChainWithoutItsCodeSystemsIsRefusedByName` |
@@ -268,21 +268,21 @@ Story class: `TheStandardMovesUnderTheDataIT` — exists; today shared.
 | `ReshapeIT` | shared | 6 | 6 | deleted |
 | `TheFaceSqlShipsWithTheReleaseIT` | shared | 6 | 6 | deleted |
 | `TheStandardMovesUnderTheDataIT` (story class) | shared | 7 | 5 | moved, harness class deleted |
-| `ADefinitionMovesOnItsOwnFeedIT` | shared | 3 | 3 | stays — the version measured |
-| `AValueIsTheKindOfThingItIsDeclaredToBeIT` | shared | 2 | 2 | stays — the version measured |
+| `ADefinitionMovesOnItsOwnFeedIT` | shared | 3 | 3 | deleted — folded into `TheVersionIsMeasuredIT` |
+| `AValueIsTheKindOfThingItIsDeclaredToBeIT` | shared | 2 | 2 | deleted — folded into `TheVersionIsMeasuredIT` |
 | `NewerDataRefusedIT` | shared | 2 | 2 | deleted |
-| `TheTwoAnswersAreComparedOverTheVersionIT` | shared | 2 | 2 | stays — the version measured |
+| `TheTwoAnswersAreComparedOverTheVersionIT` | shared | 2 | 2 | deleted — folded into `TheVersionIsMeasuredIT` |
 | `ADefinitionIsExpandedWhenItArrivesIT` | own (first boot) | 7 | 1 | stays — trimmed to the two tampering legs; bring-up made to go wrong |
 | `AFaceRootHoldsItsVersionAsRecordsIT` | own (lifecycle) | 1 | 1 | deleted |
 | `AReplicatedProfileCanBeValidatedAgainstIT` | shared | 1 | 1 | deleted |
 | `AReshapeConvergesOnlyWhatItWasAimedAtIT` | shared | 1 | 1 | deleted |
 | `ATypeSaysWhoDecidesAWriteOfItIT` | shared | 1 | 1 | deleted |
 | `AWriteIsJudgedFromTheIndexIT` | own (a global dial: the face is chosen by a system property rather than by a declaration, so any tenant whose payloads were first built inside this class's window would keep the index face for the rest of the run. A shared tenant caught that way would leave a neighbouring class quietly testing something else. It joins a shared world when the selector becomes per-tenant) | 1 | 1 | stays — the version measured |
-| `OneEnvelopeFromEitherSetOfParametersIT` | shared | 1 | 1 | stays — the version measured |
-| `TwoFacesOverOneDocumentIT` | shared | 1 | 1 | stays — the version measured |
-| `WhatAProfilePinsIsAnsweredFromTheIndexIT` | shared | 1 | 1 | stays — the version measured |
-| `AnIndexBuiltFromTheRowsSaysWhatThePackagesSayIT` | shared | 1 | 0 | stays — the version measured |
-| `AnUpstreamSelectsByNameIT` | shared | 1 | 0 | stays — the version measured |
+| `OneEnvelopeFromEitherSetOfParametersIT` | shared | 1 | 1 | deleted — folded into `TheVersionIsMeasuredIT` |
+| `TwoFacesOverOneDocumentIT` | shared | 1 | 1 | deleted — folded into `TheVersionIsMeasuredIT` |
+| `WhatAProfilePinsIsAnsweredFromTheIndexIT` | shared | 1 | 1 | deleted — folded into `TheVersionIsMeasuredIT` |
+| `AnIndexBuiltFromTheRowsSaysWhatThePackagesSayIT` | shared | 1 | 0 | deleted — folded into `TheVersionIsMeasuredIT` |
+| `AnUpstreamSelectsByNameIT` | shared | 1 | 0 | deleted — folded into `TheVersionIsMeasuredIT` |
 
 | Promise | Proven now by | W | Leg in the story class |
 |---|---|---|---|
@@ -296,7 +296,7 @@ Story class: `TheStandardMovesUnderTheDataIT` — exists; today shared.
 | `CORE_IDENTITY_SURVIVES_CONVERSION` | without a world: UpgradeOnReadIT |  | assert where the story passes it |
 | `CORE_PAYLOAD_IS_TRUTH` | `ADefinitionIsExpandedWhenItArrivesIT` |  | to fit |
 | `CORE_UPGRADE_ON_READ` | without a world: UpgradeOnReadIT |  | assert where the story passes it |
-| `FEED_DEFINITIONS_MOVE_ON_A_FEED_OF_THEIR_OWN` | `ADefinitionMovesOnItsOwnFeedIT` | W | to fit |
+| `FEED_DEFINITIONS_MOVE_ON_A_FEED_OF_THEIR_OWN` | `TheVersionIsMeasuredIT` | W | to fit |
 | `SHAPE_HANDBACK_CLAIMS_WITHOUT_LOCKING` | — | W | to fit |
 | `SHAPE_HANDBACK_KEEPS_THE_DISCIPLINE` | — | W | to fit |
 | `SHAPE_HELD_IS_ANSWERED_HOWEVER_IT_ARRIVED` | — | W | to fit |
@@ -310,14 +310,14 @@ Story class: `TheStandardMovesUnderTheDataIT` — exists; today shared.
 | `SHAPE_STOCK_COUNTED` | — | W | to fit |
 | `SHAPE_TOO_NEW_IS_ITS_OWN_ANSWER` | — | W | to fit |
 | `TEN_A_TENANT_COMES_UP_FROM_THE_FACE_IMAGE` | `ADefinitionIsExpandedWhenItArrivesIT` |  | to fit |
-| `TEN_A_TYPE_DECLARES_ITS_DOMAIN` | `ADefinitionMovesOnItsOwnFeedIT` | W | to fit |
+| `TEN_A_TYPE_DECLARES_ITS_DOMAIN` | `TheVersionIsMeasuredIT` | W | to fit |
 | `VAL_AN_INVARIANT_IS_ANSWERED_IN_THE_DATABASE` | — | W | to fit |
 | `VAL_AN_INVARIANT_IS_COMPILED_WHEN_IT_ARRIVES` | `ADefinitionIsExpandedWhenItArrivesIT` |  | to fit |
 | `VAL_AN_INVARIANT_THAT_DOES_NOT_TRANSLATE_IS_REFUSED_BY_NAME` | `ADefinitionIsExpandedWhenItArrivesIT` |  | to fit |
-| `VAL_A_THIRD_ANSWERER_READS_THE_INDEX` | `TheTwoAnswersAreComparedOverTheVersionIT`, `AWriteIsJudgedFromTheIndexIT`, `OneEnvelopeFromEitherSetOfParametersIT`, `TwoFacesOverOneDocumentIT`, `WhatAProfilePinsIsAnsweredFromTheIndexIT` | W | to fit |
-| `VAL_DIVERGENCE_IS_MEASURED_OVER_THE_VERSION` | `AValueIsTheKindOfThingItIsDeclaredToBeIT`, `TheTwoAnswersAreComparedOverTheVersionIT` | W | to fit |
-| `VAL_THE_DATABASE_ANSWER_IS_ADVISORY_UNTIL_IT_IS_NOT` | `AValueIsTheKindOfThingItIsDeclaredToBeIT` | W | to fit |
-| `VAL_THE_INDEX_IS_A_PROJECTION_OF_THE_EXPANDED_ROWS` | `AnIndexBuiltFromTheRowsSaysWhatThePackagesSayIT`, `AnUpstreamSelectsByNameIT` |  | to fit |
+| `VAL_A_THIRD_ANSWERER_READS_THE_INDEX` | `TheVersionIsMeasuredIT`, `AWriteIsJudgedFromTheIndexIT` | W | to fit |
+| `VAL_DIVERGENCE_IS_MEASURED_OVER_THE_VERSION` | `TheVersionIsMeasuredIT` | W | to fit |
+| `VAL_THE_DATABASE_ANSWER_IS_ADVISORY_UNTIL_IT_IS_NOT` | `TheVersionIsMeasuredIT` | W | to fit |
+| `VAL_THE_INDEX_IS_A_PROJECTION_OF_THE_EXPANDED_ROWS` | `TheVersionIsMeasuredIT` |  | to fit |
 | `VAL_TIER_ONE_IS_ANSWERED_IN_THE_DATABASE` | `ADefinitionIsExpandedWhenItArrivesIT` | W | to fit |
 | `VER_AN_ELEMENT_THAT_DOES_NOT_TRANSLATE_IS_REFUSED_BY_NAME` | `ADefinitionIsExpandedWhenItArrivesIT` |  | to fit |
 | `VER_AN_EXPRESSION_THAT_YIELDS_A_VALUE_IS_COMPILED` | without a world: WhatTheSearchCompilerAcceptsTest |  | assert where the story passes it |
@@ -326,7 +326,7 @@ Story class: `TheStandardMovesUnderTheDataIT` — exists; today shared.
 | `VER_BALLOT_SERVED_AS_AUTHORED` | without a world: OneFaceOverTheElementModelTest, WhatWasStoredReachesTheReaderTest |  | assert where the story passes it |
 | `VER_CONVERSION_RUNS_BOTH_WAYS` | without a world: WhatConversionCarriesBothWaysIT |  | assert where the story passes it |
 | `VER_DEFINITIONS_INDEXED_WITHOUT_THE_TOOLCHAIN` | without a world: DefinitionsAreIndexedWithoutTheToolchainTest |  | assert where the story passes it |
-| `VER_DEFINITIONS_LIVE_IN_A_SCHEMA_OF_THEIR_OWN` | `ADefinitionMovesOnItsOwnFeedIT` | W | to fit |
+| `VER_DEFINITIONS_LIVE_IN_A_SCHEMA_OF_THEIR_OWN` | `TheVersionIsMeasuredIT` | W | to fit |
 | `VER_FACE_ROOT_HOLDS_THE_VERSION_AS_RECORDS` | — | W | to fit |
 | `VER_THE_FACE_SQL_SHIPS_WITH_THE_RELEASE` | — | W | to fit |
 | `VER_TRANSITION_BY_CONVERTERS` | without a world: UpgradeOnReadIT |  | assert where the story passes it |
@@ -558,9 +558,9 @@ Each is read before it is moved or deleted: a class that proves nothing the cata
 | `ProfilesArrivingOutOfBandTakeEffectIT` | own (sweep) | 0 | 0 | deleted |
 | `ProvisionedPdiCoarsensIT` | shared | 0 | 0 | deleted |
 | `TheCastComesUpFromTheSamplesWorldIT` | shared | 0 | 0 | deleted |
-| `WhatATenantNeedsFromAFaceIsDerivedIT` | shared | 0 | 0 | stays — the version measured |
+| `WhatATenantNeedsFromAFaceIsDerivedIT` | shared | 0 | 0 | deleted — folded into `TheVersionIsMeasuredIT` |
 | `WhatAnEnvelopeWouldNeedFromTheIndexIT` | shared | 0 | 0 | deleted |
-| `WhatTheRestOfACheckerWouldNeedIT` | shared | 0 | 0 | stays — the version measured |
+| `WhatTheRestOfACheckerWouldNeedIT` | shared | 0 | 0 | deleted — folded into `TheVersionIsMeasuredIT` |
 
 ## Classes the world may not hold
 
@@ -590,15 +590,19 @@ arrangement is listed with only those legs.
 **The version measured.** In-process libraries compared with the carried
 corpus or with the database's answer over a whole version — a property of a
 release, not of a deployment, and reachable only by putting the face's own
-libraries beside a test: `OneEnvelopeFromEitherSetOfParametersIT`,
-`TwoFacesOverOneDocumentIT`, `AnIndexBuiltFromTheRowsSaysWhatThePackagesSayIT`,
+libraries beside a test. The group is now the technical story
+[US-DBO-VERSION-MEASURED](../../arc42-003-context/user-stories/us-dbo-version-measured.md),
+walked on the harness's shared runtime in `TheVersionIsMeasuredIT`, which folds
+in `OneEnvelopeFromEitherSetOfParametersIT`, `TwoFacesOverOneDocumentIT`,
+`AnIndexBuiltFromTheRowsSaysWhatThePackagesSayIT`,
 `TheTwoAnswersAreComparedOverTheVersionIT`, `AValueIsTheKindOfThingItIsDeclaredToBeIT`,
 `WhatAProfilePinsIsAnsweredFromTheIndexIT`, `WhatATenantNeedsFromAFaceIsDerivedIT`,
-`WhatTheRestOfACheckerWouldNeedIT`, `AWriteIsJudgedFromTheIndexIT` (a global dial),
-`TheEnvelopeIsTheSameFromEitherSideIT` (its two legs that build a store with a
-database extractor in-process), `ADefinitionMovesOnItsOwnFeedIT` (the
-definitions feed and the misplaced-type refusal, neither behind a door),
-`AnUpstreamSelectsByNameIT` (the feed's selection, not behind a door).
+`WhatTheRestOfACheckerWouldNeedIT`, `ADefinitionMovesOnItsOwnFeedIT` (the
+definitions feed and the misplaced-type refusal, neither behind a door) and
+`AnUpstreamSelectsByNameIT` (the feed's selection, not behind a door). Two
+classes of the group stay outside it: `AWriteIsJudgedFromTheIndexIT` (a global
+dial) and `TheEnvelopeIsTheSameFromEitherSideIT` (its two legs that build a
+store with a database extractor in-process).
 
 **Bring-up made to go wrong.** A provisioner that is behind or races, a
 catalogue or a face registry built by hand, a process stopped mid-sync, the

@@ -31,7 +31,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * can be made before the index earns a module.
  *
  * <p><b>Divergences are recorded, not asserted away.</b> The house pattern is
- * {@code TheTwoAnswersAreComparedOverTheVersionIT}, which holds a number of
+ * {@code TheVersionIsMeasuredIT}, which holds a number of
  * explained divergences rather than a claim of identity. What must not happen
  * is the checker MISSING what the toolchain refuses, so that is what fails.
  */

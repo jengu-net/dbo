@@ -455,7 +455,7 @@ is those rows in arrays. The SQL checks stay, because they are what
 can still answer from. The index is the in-process path, which costs no round
 trip per document.
 
-`TheTwoAnswersAreComparedOverTheVersionIT` keeps them honest: a third answerer
+`TheVersionIsMeasuredIT` keeps them honest: a third answerer
 joins the comparison and is done when its divergences are the five already
 explained.
 
@@ -603,7 +603,7 @@ was no way to tell what was next from what was merely undone.
 | 3 | ~~**Compare it against the toolchain**~~ **Done.** Minima agree exactly; maxima diverge and the toolchain is the one at fault | the check that a second implementation has not become a second specification — and, unplanned, a data-loss defect on the write path | 2 |
 | 4 | ~~**Decide whether the spike becomes modules**~~ **Taken: yes**, and argued below | nothing by itself; it was the gate, and everything above was deliberately done without it so the decision rested on figures | 0–3, which is why they came first |
 | 5 | ~~**Build the index from ROWS rather than packages**~~ **Done.** `core/dbo-fhir-index`, one bundle importing nothing but the JDK; 750 elements over a face root's closure, element for element against the packages, **no divergence** | the base-and-overlay split, the face image path, and a tenant's own profiles — none of which a package can supply. And, unplanned, one of the three modules turned out not to be needed | 4 |
-| 6 | ~~**The database leg**~~ **Done.** `core/dbo-fhir-validate` stands in `TheTwoAnswersAreComparedOverTheVersionIT` against `dbo.cardinality`: 258 documents, 21,267 descents, no divergence — and one divergence found on purpose, where the index reaches further | the word "third" in "third answerer", which was a plan until this. NOT reachability: comparing is not being asked | 5, and a tenant |
+| 6 | ~~**The database leg**~~ **Done.** `core/dbo-fhir-validate` stands in `TheVersionIsMeasuredIT` against `dbo.cardinality`: 258 documents, 21,267 descents, no divergence — and one divergence found on purpose, where the index reaches further | the word "third" in "third answerer", which was a plan until this. NOT reachability: comparing is not being asked | 5, and a tenant |
 | 7 | ~~**The rest of a checker** — fixed and pattern values, slicing, required bindings~~ **Done**, all five checks, each held against the database's own. Slicing turned out to be a correctness defect rather than a missing feature | a checker that covers what a tenant's own profiles actually say, rather than what base definitions happen not to | 5, because profiles arrive as rows |
 | 8 | ~~**FHIRPath compiled at the cut**~~ **It already was** — into `definition_invariant.path`, when the definition arrives. What was missing was an answerer that RUNS it: **68.4%** of the compiled paths now run in heap and agree with the database, and the rest are declined rather than guessed at | invariants, which are the largest thing the toolchain still answers alone | 5 |
 | 9 | ~~**The payload path without `elementmodel`**~~ **Done.** The round trip was spiked and holds — 6,532 documents and 86 MB in and out unaltered with no context, and no type knowledge either. The envelope is now built too: **3,156 keys over 200 documents, nothing declined, no divergence** from `dbo.envelope` | the last reason a serving node builds a context at all; it is row one of item 024's foot and belonged in neither item's steps | 5, 7 |
@@ -669,7 +669,7 @@ value means, and reading a decimal as a double is how a written precision
 disappears in silence.
 
 **The word "third" is now a fact.** `CardinalityCheck` stands in
-`TheTwoAnswersAreComparedOverTheVersionIT` beside the two that were already
+`TheVersionIsMeasuredIT` beside the two that were already
 there.
 
 | | |
@@ -973,7 +973,7 @@ already has. A process holding this holds a definition set and no worker
 context.
 
 **The source moved and the answer did not.**
-`AnIndexBuiltFromTheRowsSaysWhatThePackagesSayIT` builds the index out of
+`TheVersionIsMeasuredIT` builds the index out of
 `definitions.definition_element` on a face root and puts it beside one built
 out of the packages the spike read, element for element.
 
@@ -1648,7 +1648,7 @@ second implementation still either earns its keep or becomes the thing this
 item says it must not be.
 
 ~~**Whether the THIRD answer agrees.**~~ **Answered, and above.** It stands in
-`TheTwoAnswersAreComparedOverTheVersionIT` and agrees with the database on
+`TheVersionIsMeasuredIT` and agrees with the database on
 cardinality, on fixed and pattern values, on slicing, on required bindings and
 on the rules — and where the two diverge, inside a datatype no profile
 constrains, the index is the side that reaches further.

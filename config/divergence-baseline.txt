@@ -4,7 +4,8 @@
 #   <type> compared=<n> onlyTheToolchain=<n> onlyTheDatabase=<n>
 #
 # GENERATED. Re-record with:
-#     ./gradlew :core:harness:test --tests '*TheTwoAnswersAreCompared*' \
+#     ./gradlew :core:harness:test \
+#         --tests '*TheVersionIsMeasuredIT.theyDisagreeAboutNoMoreThanWasRecorded' \
 #         -Ddbo.divergence.record=true
 #
 # It may fall and may not rise. The database is measured beside the
@@ -52,7 +53,9 @@
 # answer.
 #
 # Which of the five is which is printable rather than remembered:
-#     ./gradlew :core:harness:test --tests '*TheTwoAnswersAreCompared*' #         -Ddbo.divergence.name=true
+#     ./gradlew :core:harness:test \
+#         --tests '*TheVersionIsMeasuredIT.theyDisagreeAboutNoMoreThanWasRecorded' \
+#         -Ddbo.divergence.name=true
 #     cat core/harness/build/divergence-findings.txt
 CapabilityStatement compared=8 onlyTheToolchain=0 onlyTheDatabase=0
 CodeSystem compared=40 onlyTheToolchain=0 onlyTheDatabase=0

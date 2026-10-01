@@ -3092,6 +3092,7 @@ cloud.jengu.dbo.promises.DboStories                                    STANDARD_
 cloud.jengu.dbo.promises.DboStories                                    TENANT_OPENING:cloud.jengu.dbo.promises.DboStories
 cloud.jengu.dbo.promises.DboStories                                    TWO_PLACES:cloud.jengu.dbo.promises.DboStories
 cloud.jengu.dbo.promises.DboStories                                    VENDOR_CHANGE:cloud.jengu.dbo.promises.DboStories
+cloud.jengu.dbo.promises.DboStories                                    VERSION_MEASURED:cloud.jengu.dbo.promises.DboStories
 cloud.jengu.dbo.promises.DboStories                                    enum
 cloud.jengu.dbo.promises.DboStories                                    promises():List
 cloud.jengu.dbo.promises.DboStories                                    title():String
