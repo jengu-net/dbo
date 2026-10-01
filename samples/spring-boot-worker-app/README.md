@@ -9,42 +9,42 @@ answers.
 |---|---|
 | [`AdmittingAPatient.java`](src/main/java/cloud/jengu/dbo/samples/worker/AdmittingAPatient.java) | a bean implementing `StepService`. **This is the whole of what an integrator writes.** |
 | [`RegisteringAPatient.java`](src/main/java/cloud/jengu/dbo/samples/worker/RegisteringAPatient.java) | a step whose result carries records: the person it was given and the stay they arrived for, written by the hospital, never by this application |
-| [`application.yaml`](src/main/resources/application.yaml) | who this worker is, and which tenant's lane it performs for |
+| [`application.yaml`](src/main/resources/application.yaml) | who this worker is, standing alone |
+| [`application-edge.yaml`](src/main/resources/application-edge.yaml), [`application-substrate.yaml`](src/main/resources/application-substrate.yaml) | where its lane goes: over HTTP into one tenant, or over the deployment's own database |
 | [`WorkerApplication.java`](src/main/java/cloud/jengu/dbo/samples/worker/WorkerApplication.java) | a bare `@SpringBootApplication` |
+| [`TheWorkersSteps.java`](src/main/java/cloud/jengu/dbo/samples/worker/TheWorkersSteps.java) | the same beans, arriving in the clinic's application when it embeds this one |
 
 Nothing here constructs a runner, registers a step service or attaches a lane.
 The executor identity, the poll and hold durations, the registration and the
 lane are configuration; the container's own whiteboard finds the bean.
 
-## What it needs
+## Two ways to run, and the beans cannot tell
 
-A server to take work from — the application beside it, running — and a
-credential that tenant issued. **Two credentials exist and they are not
-interchangeable:** a token admitted at the step surface is refused by the
-records door, and holding one is deliberately not holding the store. This one
-needs `work`.
+**Embedded.** The clinic's application depends on this one, and its step
+beans arrive in that context. One JVM; the lane is the clinic's own port.
+Nothing here is read — that application's configuration is the one in force.
 
-Minting it is the tenant's to do, and the sample does not do it for you. What
-the tests do is ask that tenant's own authority for a client with the `work`
-scope — see
-[`TheTenantIsServing`](../../assembly/spring-boot-test/src/main/java/cloud/jengu/dbo/spring/test/TheTenantIsServing.java).
+**Separated.** A JVM of its own, under one of two profiles:
 
-## Running it
+- **`edge`**, the default: an HTTP lane into one tenant, with a client and a
+  secret that tenant issued. **Two credentials exist and they are not
+  interchangeable:** a token admitted at the step door is refused by the
+  records door, and holding one is deliberately not holding the store. This
+  one has `work` and nothing else.
+- **`substrate`**: the deployment's own database, for scaling out beside the
+  store. No base and no token; the worker is the participant name it enrolled
+  under, holding the private halves of two keys whose public halves the
+  tenant holds. It makes the pair itself —
+  [`MintingAnEnrolment`](src/main/java/cloud/jengu/dbo/samples/worker/MintingAnEnrolment.java)
+  — and only the public halves are handed over.
 
-With the server up and a work credential in hand:
-
-```bash
-DBO_WORKER_CLIENT_ID=... DBO_WORKER_CLIENT_SECRET=... \
-    ./gradlew :samples:spring-boot-worker-app:run
-```
+Issuing the client, or enrolling the public halves, is the tenant's to do.
+The clinic's application asks each tenant to as it comes up
+([`EnrollingTheWorker`](../spring-boot-server-app/src/main/java/cloud/jengu/dbo/samples/server/EnrollingTheWorker.java)),
+which is why both sides name the same client by default. How to start the
+two side by side is in [its README](../spring-boot-server-app/README.md).
 
 It polls, takes what it is given, performs it in the bean above, and answers.
-Ask the tenant what it did:
-
-```
-GET /t/hogwarts/work?executor=sample-admissions-worker
-```
-
 A run records who performed it, which is why the identity is asked for rather
 than defaulted to an artifact id: **an executor that cannot be reproduced
 cannot be held to what it did.**

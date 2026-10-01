@@ -1,0 +1,17 @@
+# A worker at the edge: one tenant's, reached over HTTP.
+#
+# The tenant, where it answers, and a client that tenant issued — with `work`
+# and nothing else, so the credential that takes work is refused by the
+# tenant's records door. There is no database here and no way to reach one:
+# everything this application knows about the store is in these lines.
+#
+# The clinic's application issues this client as the tenant comes up, from
+# the same lane in its own configuration, so the two only have to agree.
+dbo:
+  worker:
+    lanes:
+      - tenant: hogwarts
+        base: ${DBO_TENANT_BASE:http://127.0.0.1:8080/t/hogwarts/}
+        token:
+          client-id: ${DBO_WORKER_CLIENT_ID:sample-admissions-worker}
+          client-secret: ${DBO_WORKER_CLIENT_SECRET:a-sample-secret-for-the-clinics-worker}

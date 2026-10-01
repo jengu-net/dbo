@@ -7,14 +7,14 @@
 # could add to.
 #
 # The application is the clinic's own, configured by its own application.yaml
-# with the worker's steps embedded. What is here is what a test adds to it: the
-# world the harness stands up, and a quicker poll, because a story waits on
-# every run it asks for.
+# with the worker's steps embedded — its lanes, and the clients it has each
+# tenant issue for them as the tenant comes up. What is here is what a test
+# adds to it: the world the harness stands up, and a quicker poll, because a
+# story waits on every run it asks for. No lane is named for the harness to
+# derive, so the lanes the stories exercise are the ones a reader runs.
 dbo:
   test:
     world: ../sample-world
-    lane:
-      tenant: hogwarts
   # What the deployment gave its nodes for the questions an operator asks
   # them: what a node serves and what it carries. A host's configuration, the
   # same as anybody running the store would set.

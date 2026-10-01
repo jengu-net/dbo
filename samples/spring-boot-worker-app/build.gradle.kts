@@ -38,3 +38,19 @@ dependencies {
         "org.springframework.boot:spring-boot-configuration-processor:$springBootVersion")
     runtimeOnly("ch.qos.logback:logback-classic:1.5.18")
 }
+
+// The keys a worker on the substrate holds, made here, on the worker's side:
+// the private halves for this application, and the public halves in a second
+// file for whoever runs the tenant. See MintingAnEnrolment.
+tasks.register<JavaExec>("mintEnrolment") {
+    description = "Makes this worker's keys, and the enrolment to hand to its tenant."
+    group = "application"
+    mainClass.set("cloud.jengu.dbo.samples.worker.MintingAnEnrolment")
+    classpath = sourceSets["main"].runtimeClasspath
+    workingDir = projectDir
+}
+
+tasks.named<JavaExec>("run") {
+    // The keys the substrate profile reads are under build/, relative to here.
+    workingDir = projectDir
+}

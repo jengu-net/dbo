@@ -4,6 +4,9 @@
 # everything that follows from it is derived: no base and no credential, a
 # substrate URL both halves point at, and an enrolment whose public halves the
 # tenant holds against this worker's client record.
+#
+# Not named `substrate`: that is the worker application's own profile for
+# running in a JVM of its own, and its file is on this classpath too.
 dbo:
   test:
     world: ../sample-world

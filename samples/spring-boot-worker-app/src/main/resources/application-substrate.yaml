@@ -1,0 +1,23 @@
+# A worker beside the store, scaling the deployment out: the lane has no base,
+# so it is carried by the deployment's own database rather than by a port.
+#
+# That plane carries no token. The worker is admitted by a signature and
+# handed work sealed to it, so it holds two PRIVATE keys, made on this side by
+# `./gradlew :samples:spring-boot-worker-app:mintEnrolment`, and the tenant
+# holds their public halves against the name below. The keys are read from the
+# file that task wrote, and nowhere else; the public halves were written to a
+# second file, for whoever runs the tenant.
+dbo:
+  worker:
+    lanes:
+      - tenant: hogwarts
+    substrate:
+      url: ${DBO_SUBSTRATE_URL:jdbc:postgresql://localhost:5432/dbo_substrate}
+      user: ${DBO_SUBSTRATE_USER:postgres}
+      password: ${DBO_SUBSTRATE_PASSWORD:sample}
+      # Whose code this is: a provider can be withdrawn, so a run names it.
+      provider: cloud.jengu.dbo.samples
+
+spring:
+  config:
+    import: optional:file:./build/enrolment/worker.properties

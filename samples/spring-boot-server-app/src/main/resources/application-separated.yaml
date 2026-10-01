@@ -1,0 +1,17 @@
+# The clinic's application with its worker in a JVM of its own.
+#
+# The steps still arrive in this context, because the worker application is
+# still a dependency; what this profile changes is that nothing here asks for
+# work. The lanes stay declared all the same: they are what this application
+# makes known to each tenant, so the worker in the other JVM signs in with
+# exactly the client its own lane names.
+dbo:
+  worker:
+    auto-start: false
+
+# A worker on the substrate hands over its enrolment — its name and the public
+# halves of its keys — as the file its key minting wrote. Optional: a worker
+# over HTTP has nothing to hand over beyond the client named above.
+spring:
+  config:
+    import: optional:file:../spring-boot-worker-app/build/enrolment/tenant.properties

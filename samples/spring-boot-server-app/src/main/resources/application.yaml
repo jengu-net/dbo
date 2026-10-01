@@ -23,13 +23,23 @@ dbo:
       name: sample-admissions-worker
       version: "1"
     poll: 2s
+    # The client each lane signs in with is one the tenant issues, and this
+    # application asks it to as the tenant comes up (EnrollingTheWorker). The
+    # secret is a sample's: a deployment's comes from wherever it keeps them.
     lanes:
       - tenant: hogwarts
         base: http://127.0.0.1:${server.port:8080}/t/hogwarts/
         token:
           client-id: ${DBO_WORKER_CLIENT_ID:sample-admissions-worker}
-          client-secret: ${DBO_WORKER_CLIENT_SECRET:}
+          client-secret: ${DBO_WORKER_CLIENT_SECRET:a-sample-secret-for-the-clinics-worker}
 
 spring:
   application:
     name: dbo-sample-server
+
+# A worker that reaches a tenant over the deployment's substrate rather than
+# over HTTP, as the tenant is to know it. Empty unless a worker has handed its
+# enrolment over: see application-separated.yaml.
+clinic:
+  enrolment:
+    secret: ${DBO_PARTICIPANT_SECRET:a-sample-secret-for-the-clinics-participant}
