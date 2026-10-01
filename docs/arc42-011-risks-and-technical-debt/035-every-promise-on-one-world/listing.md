@@ -1,6 +1,6 @@
 # Listing: what each world-booting class proves, and the story it goes to
 
-A snapshot taken on 2026-10-01 from the sources: the classes that boot a dbo world, the `@Proving` citations they carry, and the story whose declaration holds most of those promises. **W** marks a promise no class proves without a world, so it must be proven in a story before its class goes. Status is edited by hand as the work moves: `todo`, `moved`, `in story`, `deleted`. The leg column names methods of the story classes, which now live in `samples/spring-boot-worker-app/src/test/java/cloud/jengu/dbo/samples/stories`; a few legs were renamed on the way.
+A snapshot taken on 2026-10-01 from the sources: the classes that boot a dbo world, the `@Proving` citations they carry, and the story whose declaration holds most of those promises. **W** marks a promise no class proves without a world, so it must be proven in a story before its class goes. Status is edited by hand as the work moves: `todo`, `moved`, `in story`, `deleted`. The leg column names methods of the story classes, which now live in `samples/spring-boot-server-app/src/test/java/cloud/jengu/dbo/samples/stories`; a few legs were renamed on the way.
 
 [Back to the item](README.md).
 

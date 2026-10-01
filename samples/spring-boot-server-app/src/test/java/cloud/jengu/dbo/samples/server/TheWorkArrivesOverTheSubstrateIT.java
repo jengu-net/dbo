@@ -1,9 +1,8 @@
-package cloud.jengu.dbo.samples.worker;
+package cloud.jengu.dbo.samples.server;
 
 import cloud.jengu.dbo.promise.proving.Proves;
 import cloud.jengu.dbo.promises.DboPromises;
 import cloud.jengu.dbo.promises.Proving;
-import cloud.jengu.dbo.samples.server.ServerApplication;
 import cloud.jengu.dbo.spring.test.DboSpringBootTest;
 import cloud.jengu.dbo.spring.test.DboTestContext;
 import org.junit.jupiter.api.DisplayName;
@@ -22,8 +21,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * A worker inside the deployment is carried by the store's own substrate.
  *
- * <p>The same application and the same bean as the test beside this one, with
- * one word changed: the lane names no base, so it is carried by the database
+ * <p>The same application and the same bean the user stories walk over HTTP,
+ * with one word changed: the lane names no base, so it is carried by the database
  * the serving half already runs on rather than by a port. Everything else —
  * a credential against an enrolment, a URL both halves point at — follows from
  * that and is derived.
@@ -40,20 +39,21 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  *
  * <p><b>Its world is released when this class ends.</b> {@code DboSpringBootTest}
  * says to keep {@code dbo.test.*} the same across a module's tests so one
- * context serves them all, and the class beside this one is the case that
- * cannot: the carrier is the single thing it varies, so the two configurations
- * differ and Spring builds a second context without closing the first. Two
+ * context serves them all, and this class is the case that cannot: the carrier
+ * is the single thing it varies, so its configuration differs from any other
+ * and Spring would build a second context without closing the first. Two
  * tenant managers then serve one world over one database — which the store
  * permits, and which this machine does not carry: the second manager's tenants
  * do not finish coming up, and the class that waits for one reports a tenant
  * that never arrived rather than the contention that kept it.
  *
- * <p>So each of the two releases its own, and one world is alive at a time.
- * The cost is a bring-up neither shares, which they were never going to share.
+ * <p>So it releases its own, and runs in the module's {@code test} task while
+ * the stories have a JVM of their own. The cost is a bring-up nothing else
+ * shares, which it was never going to share.
  */
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 @DboSpringBootTest
-@ActiveProfiles("substrate")
+@ActiveProfiles("over-the-substrate")
 @SpringBootTest(classes = ServerApplication.class,
         webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT)
 class TheWorkArrivesOverTheSubstrateIT {

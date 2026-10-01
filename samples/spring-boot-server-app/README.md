@@ -66,4 +66,15 @@ the store is reached — see [item
 026](../../docs/arc42-011-risks-and-technical-debt/026-two-samples-tell-one-story/README.md).
 
 Its companion is [`../spring-boot-worker-app`](../spring-boot-worker-app),
-which performs this tenant's work and holds no store at all.
+which performs the clinic's work and holds no store at all. This application
+depends on it, so its steps run here, beside the store.
+
+## Its tests are the user stories
+
+[`src/test/java/cloud/jengu/dbo/samples/stories`](src/test/java/cloud/jengu/dbo/samples/stories)
+walks every user story on the sample world, at once, in one context of this
+application booted as any Spring Boot application is tested:
+
+```bash
+./gradlew :samples:spring-boot-server-app:storyTest
+```

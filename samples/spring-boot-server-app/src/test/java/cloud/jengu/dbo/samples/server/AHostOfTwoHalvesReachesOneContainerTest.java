@@ -1,4 +1,4 @@
-package cloud.jengu.dbo.samples.worker;
+package cloud.jengu.dbo.samples.server;
 
 import cloud.jengu.dbo.embedded.EmbeddedRuntime;
 import cloud.jengu.dbo.embedded.FrameworkContribution;

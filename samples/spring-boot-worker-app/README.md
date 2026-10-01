@@ -49,17 +49,12 @@ A run records who performed it, which is why the identity is asked for rather
 than defaulted to an artifact id: **an executor that cannot be reproduced
 cannot be held to what it did.**
 
-## What its test proves, and what it cannot
+## Where it is tested
 
-[`ABeanOfThisApplicationPerformsTheWorkIT`](src/test/java/cloud/jengu/dbo/samples/worker/ABeanOfThisApplicationPerformsTheWorkIT.java)
-asserts on **who performed the run**, not on whether one ran — a run driven
-locally and one delivered over the lane are identical from inside the step,
-and only the executor tells them apart.
-
-It runs both applications in one JVM, which is a testing economy rather than
-the shape: in a deployment this is somebody else's process. The HTTP is real —
-the worker builds an `HttpLane` and nothing else — but the process boundary is
-not exercised, and neither is this application's own `application.yaml`, which
-one Spring context cannot load beside the server's. Both limits are written
-down in [item
-026](../../docs/arc42-011-risks-and-technical-debt/026-two-samples-tell-one-story/README.md).
+This application has no tests of its own. Its beans are tested where they run
+in the ordinary case: embedded in the clinic's application,
+[`../spring-boot-server-app`](../spring-boot-server-app), whose tests are the
+user stories. There the steps arrive through
+[`TheWorkersSteps`](src/main/java/cloud/jengu/dbo/samples/worker/TheWorkersSteps.java),
+and the lane they are offered work over is the server's own port — the same
+HTTP a worker in another JVM would use, so a step cannot tell the two apart.

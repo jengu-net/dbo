@@ -223,7 +223,7 @@ Another 33 classes do not feed a story:
    Done for all seven, and person rights has its first two legs. The harness classes
    for clinical record, edge roundtrip, standard moves, vendor change and
    tenant opening are deleted. The catalogue now reads the stories' citations
-   from the worker sample's test classes, so no promise lost its proof in the
+   from the server sample's test classes, so no promise lost its proof in the
    move. What each story needed from the world:
 
    | Story | Where it walks |
@@ -334,16 +334,16 @@ an integrator would: through its endpoints, its beans and `DboTestContext`'s
 verbs, never through the store's internals. A class should read as a chapter
 could quote it.
 
-The suite needs both halves in one context. The worker application's tests
-already boot it that way, so the stories live there, in
-`samples/spring-boot-worker-app`, under the `story` tag. They run in a
-`storyTest` task of their own, which `check` depends on, and the module's
-`test` task excludes them. That gives the stories a JVM holding their one
-context and nothing else: the module's other tests each build a context of
-their own, and in the same JVM they would be a second world over the same
-database. One context loads one `application.yaml`, so the serving half's
-needs are stated in the `stories` profile, as the worker sample's tests
-already explain.
+The suite needs both halves in one context, and the clinic's application is
+both: the server application carries the worker application's steps embedded.
+So the stories are its tests, in `samples/spring-boot-server-app`, under the
+`story` tag. They run in a `storyTest` task of their own, which `check`
+depends on, and the module's `test` task excludes them. That gives the
+stories a JVM holding their one context and nothing else: the module's other
+tests each build a context of their own, and in the same JVM they would be a
+second world over the same database. The context is configured by the
+application's own `application.yaml`; the `stories` profile adds only what a
+test needs beside it.
 
 **One world, for the guide and for the tests.** `samples/sample-world` is
 the world the guide's chapters and the stories both read; `sample/` is
@@ -455,8 +455,8 @@ None at present.
   stories run at once, that holds only for a type no story writes into that
   tenant. The world has to keep that true on purpose, or the leg asserts on
   the story's own records instead.
-- **Two lane carriers today mean two contexts.** The worker sample has an
-  `http` profile and a `substrate` profile, and each one is a context of its
+- **Two lane carriers today mean two contexts.** The server sample's tests
+  have a `stories` profile over HTTP and an `over-the-substrate` profile, and each one is a context of its
   own. Edge roundtrip proves the two carriers indistinguishable, so it needs
   both in the one context: a worker holding one lane over each, toward two
   different world members.

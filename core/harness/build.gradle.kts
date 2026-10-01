@@ -55,13 +55,13 @@ val guideTestOutput = project(":guide")
         .extensions.getByType(SourceSetContainer::class.java)
         .getByName("test").output
 
-// The user stories' citation index. They walk the sample world in the worker
-// sample's tests, and every promise a story leg proves is proven there and
+// The user stories' citation index. They walk the sample world as the clinic
+// application's tests, and every promise a story leg proves is proven there and
 // nowhere else once its old class here is gone — so without that index on
 // this classpath the projector reads PLANNED over passing stories. Classes
 // only, for the reason given against the runner's output below.
-evaluationDependsOn(":samples:spring-boot-worker-app")
-val storiesTestOutput = project(":samples:spring-boot-worker-app")
+evaluationDependsOn(":samples:spring-boot-server-app")
+val storiesTestOutput = project(":samples:spring-boot-server-app")
         .extensions.getByType(SourceSetContainer::class.java)
         .getByName("test").output
 

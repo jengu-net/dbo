@@ -6,15 +6,10 @@
 # why this is a profile the story annotation names, and not a file a story
 # could add to.
 #
-# Both halves of the sample in one context, as this module's other tests run
-# them: the serving application, and this worker beside it. Only one
-# application.yaml can be THE application's configuration on a classpath, so
-# the serving half's needs are stated here (see application-test.yaml for the
-# same arrangement and what it costs).
-spring:
-  main:
-    web-application-type: servlet
-
+# The application is the clinic's own, configured by its own application.yaml
+# with the worker's steps embedded. What is here is what a test adds to it: the
+# world the harness stands up, and a quicker poll, because a story waits on
+# every run it asks for.
 dbo:
   test:
     world: ../sample-world
@@ -26,7 +21,4 @@ dbo:
   framework:
     "[dbo.tenant.ops.token]": stories-ops
   worker:
-    identity:
-      name: sample-admissions-worker
-      version: "1"
     poll: 500ms

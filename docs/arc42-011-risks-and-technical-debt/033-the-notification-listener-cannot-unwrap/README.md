@@ -181,7 +181,7 @@ reported two; the container refuses to start when the clause is removed; the
 three container tests are green with it in place.
 
 **Not proven, because it is not true yet:** the warning is gone. A run of
-`:samples:spring-boot-worker-app:test` still carries it, from the doors. That
+`:samples:spring-boot-server-app:test` still carries it, from the doors. That
 is what the remaining crossing costs, and it is the measure this item closes
 on — with the wake-up leg of `AParticipantHoldsItsLaneOnTheStreamIT` still
 passing, so that notification was made to work rather than switched off.
