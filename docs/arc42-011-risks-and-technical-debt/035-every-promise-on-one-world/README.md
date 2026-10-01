@@ -1,11 +1,12 @@
-**Open, and step 3 is underway. Eight user-story classes walk Rowling Land,
-the sample world, in one context, concurrently: 131 legs. Of the 127 harness
-classes that booted a world, about 86 remain, and the stories have found five
-store defects so far, all fixed with a test that fails without the fix. A
-node now says why a tenant it is not serving is not, with the cause, so a
-refusal can be proven from outside. Federated sign-in waits on the world:
-`rl` brokers its members but declares no person identifier domain.
-Next: the rest of step 3, story by story, and the fleet-steps story.**
+**Open, and step 3 is underway. Nine user-story classes walk Rowling Land,
+the sample world, in one context, concurrently: 141 legs, the fleet-step
+story among them. Of the 127 harness classes that booted a world, about 83
+remain, and the stories have found six store defects so far, all fixed with a
+test that fails without the fix. A node now says why a tenant it is not
+serving is not, with the cause, so a refusal can be proven from outside.
+Federated sign-in waits on the world: `rl` brokers its members but declares
+no person identifier domain.
+Next: the rest of step 3, story by story.**
 
 # Every promise proven on one world, inside its story
 
@@ -130,9 +131,9 @@ promise-by-promise picture is in the [listing](listing.md).
 | Promises in the catalogue | 342 |
 | …proven only by a class that boots a world | 164 |
 | …cited by nothing (PLANNED) | 21 |
-| …declared by no story | 21; 17 of them are proven only in a world |
-| Story classes that exist | 7 of 8 (person rights has none). Built-or-planned reads the catalogue and boots nothing |
-| Story classes on the one world | 8 of 8 |
+| …declared by no story | 21 when counted; the fleet-step story now declares eighteen of them |
+| Story classes that exist | 9 of 9. Built-or-planned reads the catalogue and boots nothing |
+| Story classes on the one world | 9 of 9 |
 
 | Story | Story class | Classes feeding it | Already a leg | To fit | Assert in passing | PLANNED | State |
 |---|---|---|---|---|---|---|---|
@@ -144,7 +145,7 @@ promise-by-promise picture is in the [listing](listing.md).
 | [VENDOR-CHANGE](../../arc42-003-context/user-stories/us-dbo-vendor-change.md) | `TheClinicChangesVendorIT` (on the world) | 1 | 6 | 0 | 7 | 0 | moved |
 | [EDGE-ROUNDTRIP](../../arc42-003-context/user-stories/us-dbo-edge-roundtrip.md) | `WorkLeavesTheClinicAndComesBackIT` (on the world) | 14 | 23 | 16 | 19 | 4 | moved |
 | [FLEET-HEALTH](../../arc42-003-context/user-stories/us-dbo-fleet-health.md) | `AnOperatorReadsAndSteersTheFleetIT` (on the world, one node) | 9 | 14 | 16 | 3 | 7 | moved but for two nodes |
-| Fleet steps (new story, step 5) | none | 11 | 0 | 17 | 0 | 0 | todo |
+| [FLEET-STEP](../../arc42-003-context/user-stories/us-dbo-fleet-step.md) | `OneStepIsPerformedForEveryTenantIT` (on the world, ten legs) | 11 | 12 | 6 | 0 | 0 | moved; three harness classes deleted, eight stay |
 
 The columns:
 
@@ -269,13 +270,22 @@ Another 33 classes do not feed a story:
    - **Person rights:** its legs are already proven across nine classes on
      the hospital, which is a world member, so it starts from fitting rather
      than moving.
-   - **Fleet steps:** the story is written first. That means a page under
-     `docs/arc42-003-context/user-stories/` and a `DboStories` constant
-     declaring the seventeen promises, with the joins projected. Then comes
-     its class. Its scene is the management tenant declaring a step and one
-     bean in the worker sample performing it for the hospital and the
-     clinic. Along the way it covers what each tenant admits, the register of
-     what is opened, enrolment and posture.
+   - **Fleet steps:** written, and walked by
+     `OneStepIsPerformedForEveryTenantIT` on Hogwarts and a clinic the story
+     declares. Six of its promises have no leg, because the store answers
+     them only inside the deployment's process (the register, the incidents,
+     authorisation, a processor's enrolment) or because they need what the
+     management tenant declares to change (placement, withdrawal, a required
+     step, a posture, two consumers on one substrate). The story's page lists
+     them as gaps and open decisions, and the eight harness classes holding
+     them stay.
+
+     **What it found:** every tenant's pool held eight connections while
+     idle. Nine stories at once put twelve tenants on the node, which held
+     97 of the database's 100 connections before any story asked for one,
+     and legs in three stories were refused with "too many clients". A
+     tenant's pool, and a step's substrate, now keep one connection while
+     idle; the same run peaks at 70 and passes.
 6. **Read the 14 classes that cite no promise.** Each is a measurement whose
    finding is recorded somewhere, a fold into a leg under the promise it
    should have cited, or a deletion.

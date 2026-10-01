@@ -501,7 +501,7 @@ so the contradiction is on the ledger against it. It keeps serving, because
 what is wrong is the pair of declarations and taking the tenant down would
 punish whichever side did not change.
 
-*Proven by:* `AStepCodeBelongsToOneLevelIT`, claiming
+*Proven by:* the fleet-step user story, `OneStepIsPerformedForEveryTenantIT`, claiming
 `REQ-DBO-PROC-A-STEP-CODE-BELONGS-TO-ONE-LEVEL` — both declarations present and
 the tenant refused with both sides named; a tenant offering a step of its own
 untouched, so the rule refuses a collision rather than the act of declaring;
@@ -594,7 +594,7 @@ still does not need one.
   it. Read from the payload it is null, and a null in the workflow id makes
   every run of a tenant one item.
 
-*Proven by:* `TheJoinerOffersEveryTenantsWorkIT`, claiming
+*Proven by:* the fleet-step user story, `OneStepIsPerformedForEveryTenantIT`, claiming
 `REQ-DBO-PROC-THE-JOINER-OFFERS-EVERY-TENANTS-WORK` — a run of a declared step
 in that step's queue naming the tenant and the run, a run of the tenant's own
 step in no queue at all, and the cursor put back so the same runs are read

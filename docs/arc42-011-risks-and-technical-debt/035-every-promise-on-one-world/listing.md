@@ -501,43 +501,45 @@ Story class: `AnOperatorReadsAndSteersTheFleetIT` — exists; today own (sweep).
 | `TERM_EVERY_TENANT_ANSWERS` | `ADeclarationIsAppliedThroughTheFaceIT` | W | to fit |
 | `TERM_NATIVE_FORM` | `ADeclarationIsAppliedThroughTheFaceIT` |  | to fit |
 
-## Fleet steps — a new story (step 5)
+## US-DBO-FLEET-STEP
 
-Story class: none yet.
+Story class: `OneStepIsPerformedForEveryTenantIT` — on the world. Hogwarts and a clinic the story declares, with `mom`'s `fleet.directory.check` and the serving sample's bean performing it.
 
 | Class | Boots | Promises | W | Status |
 |---|---|---|---|---|
-| `ABeanIsFoundRatherThanWiredIT` | own (deployment) | 4 | 4 | todo |
-| `OneBeanPerformsForEveryTenantIT` | shared | 3 | 3 | todo |
-| `AProcessorIsEnrolledPerTenantIT` | own (deployment) | 2 | 2 | todo |
-| `ATenantReadsWhatIsOpenedOfItsDataIT` | shared | 2 | 2 | todo |
-| `ASlotIsReferredOrGivenIT` | shared | 1 | 1 | todo |
-| `AStepCodeBelongsToOneLevelIT` | own (sweep) | 1 | 1 | todo |
-| `ATenantAdmitsOrDeclinesWhatIsDoneToItIT` | own (deployment) | 1 | 1 | todo |
-| `AnUnauthorisedRowObeysItsPostureIT` | own (deployment) | 1 | 1 | todo |
-| `DeclaringAStepPreparesItsSubstrateIT` | own (deployment) | 1 | 1 | todo |
-| `TheWritebackPassesTheTenantsRulesIT` | shared | 1 | 1 | todo |
-| `TheJoinerOffersEveryTenantsWorkIT` | shared | 1 | 0 | todo |
+| `OneStepIsPerformedForEveryTenantIT` (story class) | world | 12 | 12 | in story |
+| `ABeanIsFoundRatherThanWiredIT` | own (deployment) | 4 | 4 | stays: two steps on one substrate, a bean awaiting a declaration, and an identifying search need a deployment the world is not |
+| `OneBeanPerformsForEveryTenantIT` | shared | 3 | 3 | stays: restarting a consumer, and two consumers on one substrate, are built by hand |
+| `AProcessorIsEnrolledPerTenantIT` | own (deployment) | 2 | 2 | stays: no deployment configuration names a processor |
+| `ATenantReadsWhatIsOpenedOfItsDataIT` | shared | 2 | 2 | stays: no door reads the register or the incidents |
+| `ASlotIsReferredOrGivenIT` | shared | 1 | 1 | deleted |
+| `AStepCodeBelongsToOneLevelIT` | own (sweep) | 1 | 1 | deleted |
+| `ATenantAdmitsOrDeclinesWhatIsDoneToItIT` | own (deployment) | 1 | 1 | stays: the world declares no required step |
+| `AnUnauthorisedRowObeysItsPostureIT` | own (deployment) | 1 | 1 | stays: the world declares no posture but the default, and no door reads the incidents |
+| `DeclaringAStepPreparesItsSubstrateIT` | own (deployment) | 1 | 1 | stays: placement and withdrawal change what the management tenant declares |
+| `TheWritebackPassesTheTenantsRulesIT` | shared | 1 | 1 | stays: a refused report needs a fleet step whose declaration admits no closing |
+| `TheJoinerOffersEveryTenantsWorkIT` | shared | 1 | 0 | deleted |
 
 | Promise | Proven now by | W | Leg in the story class |
 |---|---|---|---|
-| `PROC_AN_UNAUTHORISED_ROW_OBEYS_ITS_POSTURE` | `AnUnauthorisedRowObeysItsPostureIT` | W | to fit |
-| `PROC_A_BEAN_IS_FOUND_RATHER_THAN_WIRED` | `ABeanIsFoundRatherThanWiredIT` | W | to fit |
-| `PROC_A_CONSUMER_TAKES_ONLY_ITS_OWN_STEPS` | `OneBeanPerformsForEveryTenantIT` | W | to fit |
-| `PROC_A_DISAGREEMENT_IS_AN_INCIDENT_NOT_A_REFUSAL` | `ATenantReadsWhatIsOpenedOfItsDataIT` | W | to fit |
-| `PROC_A_FLEET_PERFORMER_IS_HANDED_ITS_OBJECTS` | `ABeanIsFoundRatherThanWiredIT` | W | to fit |
-| `PROC_A_PARTICIPANT_ASKS_FOR_WORK_IT_NEED_NOT_PERFORM` | `ABeanIsFoundRatherThanWiredIT` | W | to fit |
-| `PROC_A_PROCESSOR_IS_ENROLLED_PER_TENANT` | `AProcessorIsEnrolledPerTenantIT` | W | to fit |
-| `PROC_A_REFERENCE_MAY_BE_A_SEARCH` | `ABeanIsFoundRatherThanWiredIT` | W | to fit |
-| `PROC_A_SLOT_IS_REFERRED_OR_GIVEN_AND_MAY_REPEAT` | `ASlotIsReferredOrGivenIT` | W | to fit |
-| `PROC_A_STEP_CODE_BELONGS_TO_ONE_LEVEL` | `AStepCodeBelongsToOneLevelIT` | W | to fit |
-| `PROC_A_TENANT_ADMITS_OR_DECLINES_WHAT_IS_DONE_TO_IT` | `ATenantAdmitsOrDeclinesWhatIsDoneToItIT` | W | to fit |
-| `PROC_A_TENANT_AUTHORISES_A_REGISTER_AND_SEES_IT_CHANGE` | `AProcessorIsEnrolledPerTenantIT` | W | to fit |
-| `PROC_A_TENANT_READS_WHAT_IS_OPENED_OF_ITS_DATA` | `ATenantReadsWhatIsOpenedOfItsDataIT` | W | to fit |
-| `PROC_DECLARING_A_STEP_PREPARES_ITS_SUBSTRATE` | `OneBeanPerformsForEveryTenantIT`, `DeclaringAStepPreparesItsSubstrateIT` | W | to fit |
-| `PROC_ONE_BEAN_PERFORMS_FOR_EVERY_TENANT` | `OneBeanPerformsForEveryTenantIT` | W | to fit |
-| `PROC_THE_JOINER_OFFERS_EVERY_TENANTS_WORK` | `TheJoinerOffersEveryTenantsWorkIT` |  | to fit |
-| `PROC_THE_WRITEBACK_PASSES_THE_TENANTS_RULES` | `TheWritebackPassesTheTenantsRulesIT` | W | to fit |
+| `PROC_AN_APPLICATION_STEP_IS_THE_DEPLOYMENTS_TO_DECLARE` | `ADeploymentDeclaresItsOwnStepsTest` |  | `1` `aClinicMayNotOfferTheDeploymentsStep`, `4` `theHospitalIsAskedForACheck` |
+| `PROC_AN_UNAUTHORISED_ROW_OBEYS_ITS_POSTURE` | `AnUnauthorisedRowObeysItsPostureIT` | W | none: not on the world |
+| `PROC_A_BEAN_IS_FOUND_RATHER_THAN_WIRED` | `ABeanIsFoundRatherThanWiredIT` | W | `6` `theBeanPerformsTheHospitalsCheck` |
+| `PROC_A_CONSUMER_TAKES_ONLY_ITS_OWN_STEPS` | `OneBeanPerformsForEveryTenantIT` | W | none: not on the world |
+| `PROC_A_DISAGREEMENT_IS_AN_INCIDENT_NOT_A_REFUSAL` | `ATenantReadsWhatIsOpenedOfItsDataIT` | W | none: no door |
+| `PROC_A_FLEET_PERFORMER_IS_HANDED_ITS_OBJECTS` | `ABeanIsFoundRatherThanWiredIT` | W | `6` `theBeanPerformsTheHospitalsCheck` |
+| `PROC_A_PARTICIPANT_ASKS_FOR_WORK_IT_NEED_NOT_PERFORM` | `ABeanIsFoundRatherThanWiredIT` | W | `4` `theHospitalIsAskedForACheck` |
+| `PROC_A_PROCESSOR_IS_ENROLLED_PER_TENANT` | `AProcessorIsEnrolledPerTenantIT` | W | none: no configuration |
+| `PROC_A_REFERENCE_MAY_BE_A_SEARCH` | `ABeanIsFoundRatherThanWiredIT` | W | `4` `theHospitalIsAskedForACheck`, `5` `aSearchMustNameOne` |
+| `PROC_A_SLOT_IS_REFERRED_OR_GIVEN_AND_MAY_REPEAT` | `ASlotIsReferredOrGivenIT` | W | `4` `theHospitalIsAskedForACheck`, `9` `allThreeShapesArrive` |
+| `PROC_A_STEP_CODE_BELONGS_TO_ONE_LEVEL` | `AStepCodeBelongsToOneLevelIT` | W | `1` `aClinicMayNotOfferTheDeploymentsStep`, `2` `renamingItIsTheWayIn` |
+| `PROC_A_TENANT_ADMITS_OR_DECLINES_WHAT_IS_DONE_TO_IT` | `ATenantAdmitsOrDeclinesWhatIsDoneToItIT` | W | `10` `theClinicDeclines` |
+| `PROC_A_TENANT_AUTHORISES_A_REGISTER_AND_SEES_IT_CHANGE` | `AProcessorIsEnrolledPerTenantIT` | W | none: no door |
+| `PROC_A_TENANT_READS_WHAT_IS_OPENED_OF_ITS_DATA` | `ATenantReadsWhatIsOpenedOfItsDataIT` | W | none: no door |
+| `PROC_DECLARING_A_STEP_PREPARES_ITS_SUBSTRATE` | `OneBeanPerformsForEveryTenantIT`, `DeclaringAStepPreparesItsSubstrateIT` | W | `3` `theStepHasSomewhereForItsWork` |
+| `PROC_ONE_BEAN_PERFORMS_FOR_EVERY_TENANT` | `OneBeanPerformsForEveryTenantIT` | W | `7` `theSameBeanPerformsTheClinicsCheck` |
+| `PROC_THE_JOINER_OFFERS_EVERY_TENANTS_WORK` | `TheJoinerOffersEveryTenantsWorkIT` |  | `6`, `7`, `8` `readingAgainOffersOnce` |
+| `PROC_THE_WRITEBACK_PASSES_THE_TENANTS_RULES` | `TheWritebackPassesTheTenantsRulesIT` | W | `6` `theBeanPerformsTheHospitalsCheck` |
 
 ## Classes that cite no promise
 

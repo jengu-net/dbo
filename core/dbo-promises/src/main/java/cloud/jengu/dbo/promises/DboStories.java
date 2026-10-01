@@ -180,6 +180,38 @@ public enum DboStories implements Story {
                     DboPromises.OPS_MIGRATION_AS_DEPLOYMENT
             )),
 
+    FLEET_STEP("The deployment performs one step for every tenant it serves: declared once in "
+            + "the management tenant, performed by one bean that names no tenant, and answered "
+            + "for to each tenant through that tenant's own rules, its own register and its own "
+            + "say in what is done to its data.",
+            List.of(
+                    // The step is the deployment's, declared where the deployment
+                    // says what it is, and nobody else may claim its code.
+                    DboPromises.PROC_AN_APPLICATION_STEP_IS_THE_DEPLOYMENTS_TO_DECLARE,
+                    DboPromises.PROC_A_STEP_CODE_BELONGS_TO_ONE_LEVEL,
+                    DboPromises.PROC_DECLARING_A_STEP_PREPARES_ITS_SUBSTRATE,
+                    // Work of it is asked for on a tenant's own door, by whoever
+                    // may act in work there, over the objects it names.
+                    DboPromises.PROC_A_PARTICIPANT_ASKS_FOR_WORK_IT_NEED_NOT_PERFORM,
+                    DboPromises.PROC_A_SLOT_IS_REFERRED_OR_GIVEN_AND_MAY_REPEAT,
+                    DboPromises.PROC_A_REFERENCE_MAY_BE_A_SEARCH,
+                    // One joiner offers it, one bean performs it, and the run
+                    // comes home through the tenant's rules.
+                    DboPromises.PROC_THE_JOINER_OFFERS_EVERY_TENANTS_WORK,
+                    DboPromises.PROC_ONE_BEAN_PERFORMS_FOR_EVERY_TENANT,
+                    DboPromises.PROC_A_BEAN_IS_FOUND_RATHER_THAN_WIRED,
+                    DboPromises.PROC_A_CONSUMER_TAKES_ONLY_ITS_OWN_STEPS,
+                    DboPromises.PROC_A_FLEET_PERFORMER_IS_HANDED_ITS_OBJECTS,
+                    DboPromises.PROC_THE_WRITEBACK_PASSES_THE_TENANTS_RULES,
+                    // What each tenant says about what is done to its data.
+                    DboPromises.PROC_A_TENANT_ADMITS_OR_DECLINES_WHAT_IS_DONE_TO_IT,
+                    DboPromises.PROC_A_TENANT_READS_WHAT_IS_OPENED_OF_ITS_DATA,
+                    DboPromises.PROC_A_DISAGREEMENT_IS_AN_INCIDENT_NOT_A_REFUSAL,
+                    DboPromises.PROC_A_PROCESSOR_IS_ENROLLED_PER_TENANT,
+                    DboPromises.PROC_A_TENANT_AUTHORISES_A_REGISTER_AND_SEES_IT_CHANGE,
+                    DboPromises.PROC_AN_UNAUTHORISED_ROW_OBEYS_ITS_POSTURE
+            )),
+
     TENANT_OPENING("A tenant is stood up inside somebody else's JVM, with a database and an "
             + "authority of its own, and the people who will work in it get in.",
             List.of(

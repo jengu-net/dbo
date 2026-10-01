@@ -516,13 +516,6 @@ public final class SharedTenants {
      */
     public enum Fleet {
 
-        /** For the class about the joiner lifting a declared step's runs. */
-        JOINED("fleet.joined.sweep", "{\"record\":\"Reference(Basic)\"}", "[\"record\"]", ""),
-
-        /** Beside it, on the same substrate, for the placement claim. */
-        JOINED_BESIDE("fleet.joined.expire", "{\"record\":\"Reference(Basic)\"}",
-                "[\"record\"]", ",\"substrate\":\"joined\""),
-
         /** For the class about a report meeting the tenant's own rules. */
         WRITTEN_BACK("fleet.written.sweep", "{\"record\":\"Reference(Basic)\"}",
                 "[\"record\"]", ",\"substrate\":\"written\""),
