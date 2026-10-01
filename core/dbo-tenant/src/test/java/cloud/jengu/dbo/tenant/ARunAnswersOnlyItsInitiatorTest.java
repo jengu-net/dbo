@@ -82,6 +82,6 @@ class ARunAnswersOnlyItsInitiatorTest {
     private static Run run(String requester) {
         return new Run("run-1", 1, "hogwarts.admission.admit/one", "hogwarts.admission",
                 "admit", RunKind.PIPELINE, Holder.NOBODY, null, null, null, Map.of(), null,
-                List.of(), null, Run.Produced.NOTHING, "1", Map.of(), null, requester);
+                List.of(), null, Run.Produced.NOTHING, "1", Map.of(), null, requester, null);
     }
 }

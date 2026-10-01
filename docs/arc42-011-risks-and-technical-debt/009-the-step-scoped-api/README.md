@@ -61,6 +61,57 @@ exist — gets the same 404; no credential gets 401. An application reads it
 with `DboInitiator.answer`, or `awaiting` to poll until the run comes to rest
 (`PROC_A_RUN_ANSWERS_ITS_INITIATOR`).
 
+## A result is written by the tenant
+
+A step's result carries what it counted and the records it wants the tenant
+to hold — `Outcome.done(tally).writing(Write.create(patient), …)`. The
+lane carries them to the tenant on one verb, `committed`, which writes them and
+closes the run in that order; the participant that performed the step never
+holds a records credential.
+
+**The tenant writes through its own face.** The records go into one transaction
+bundle, written under the run (`Caller.setRun`) by the same facade a bundle
+posted to the records surface reaches. So nothing about a step's write is
+special: the profile validates it, the identity rules hold, the membrane seals a
+person's identifying elements, the trail names the run as the occasion, and a
+`urn:uuid` reference between two records of one result resolves inside that
+one commit.
+
+**What a step may write is declared beside what it takes** — `"writes":
+["Patient", "Encounter"]` on the step in the tenant's spec, each a type the
+tenant holds. A record of any other type is refused by name before the face
+sees it, and so is a record whose own `resourceType` is not the type its write
+names. A step that declares nothing writes nothing.
+
+**A refused result ends the run; a failure is released.** The two want
+opposite recoveries. A result refused for what it says — validation, an identity already
+held, a version that moved, an undeclared type — would be refused again in the
+same words, so the run ends with nobody holding it and the tenant's reason on
+it (`Run.refused`), and its `Task` reads `failed` with that reason as the
+contained outcome. A step that threw, timed out or could not reach the tenant
+is released and taken again, as before. So the application that asked can tell
+done (`completed`), refused (`failed`) and still owed apart.
+
+**The run names what it produced, and that is the production path.** The
+versions the face answered with are recorded on the run in the same advance
+that closes it, so a reader never sees a run that has written everything and
+is still held. Nothing else fills a run's manifest in a deployment.
+
+Two limits, said rather than hidden. The records and the run are not one
+transaction — the records are the tenant's and the run is the work domain's — so
+a crash between the commit and the close leaves records the run does not name,
+and the run is released and may write them again. The one refusal closing can
+make (a step whose declared actions omit `close`) is asked before anything is
+written, so it never strands records. And a step brought by a participant, or
+one the deployment declares for the fleet, has no `writes` in any tenant's spec
+and so writes nothing yet.
+
+`PROC_A_RESULT_IS_WRITTEN_BY_THE_TENANT` and `PROC_A_REFUSED_RESULT_ENDS_THE_RUN`,
+proven over the lane in `AResultCrossesTheLaneWholeTest`, in the rendering in
+`ARunsResultIsItsTasksOutputTest`, and end to end on the edge round-trip story,
+where the worker application registers somebody by giving the person and then
+tries again.
+
 ## Sequence
 
 1. ~~A step declares its slots~~ — **done already**, and proven.

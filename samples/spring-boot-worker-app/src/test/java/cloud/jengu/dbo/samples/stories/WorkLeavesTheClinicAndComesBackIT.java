@@ -1187,6 +1187,127 @@ class WorkLeavesTheClinicAndComesBackIT {
         assertEquals(401, nobody.statusCode(), "no credential at all: " + nobody.body());
     }
 
+    // ── a result the hospital writes ──
+
+    /** The person both result legs are about, unique to this run of the story. */
+    private final String arriving = NAMES.value("arriving");
+
+    /** The patient the first registration produced, for the leg that tries again. */
+    private String registered;
+
+    @Test
+    @Order(29)
+    @DisplayName("the worker application asks for somebody to be registered, giving the person; "
+            + "its step answers with the person and their stay, the hospital writes both, and "
+            + "the answer names what was written")
+    @Proving({DboPromises.PROC_A_RESULT_IS_WRITTEN_BY_THE_TENANT,
+            DboPromises.PROC_A_RUN_ANSWERS_ITS_INITIATOR})
+    void aResultIsWrittenByTheHospital() {
+        cloud.jengu.dbo.spring.worker.DboInitiator.Started started = initiator.starting(HOSPITAL,
+                "hogwarts.admission.register", Map.of("patient",
+                        cloud.jengu.dbo.spring.worker.DboInitiator.Slot.object(person(arriving))));
+        cloud.jengu.dbo.spring.worker.DboInitiator.Answer answer =
+                initiator.awaiting(HOSPITAL, started.runOrFail(), Duration.ofMinutes(3));
+        Proves.that(DboPromises.PROC_A_RESULT_IS_WRITTEN_BY_THE_TENANT,
+                "completed".equals(answer.state()),
+                "the registration did not complete: " + answer.body());
+
+        List<String> produced = produced(answer);
+        String patient = produced.stream().filter(p -> p.startsWith("Patient/")).findFirst()
+                .orElse(null);
+        String stay = produced.stream().filter(p -> p.startsWith("Encounter/")).findFirst()
+                .orElse(null);
+        Proves.that(DboPromises.PROC_A_RUN_ANSWERS_ITS_INITIATOR,
+                patient != null && stay != null && produced.size() == 2,
+                "the answer does not name the person and the stay it produced: " + produced);
+        registered = patient.split("/")[1];
+
+        // Held by the hospital now, read on the hospital's own records
+        // credential — which the application that asked does not hold.
+        HttpResponse<String> held = dbo.read(HOSPITAL, "Patient", registered);
+        Proves.that(DboPromises.PROC_A_RESULT_IS_WRITTEN_BY_THE_TENANT,
+                held.statusCode() == 200,
+                "the patient the answer names is not a record: " + held.statusCode() + " "
+                        + held.body());
+        HttpResponse<String> encounter = dbo.read(HOSPITAL, "Encounter",
+                stay.split("/")[1]);
+        Proves.that(DboPromises.PROC_A_RESULT_IS_WRITTEN_BY_THE_TENANT,
+                encounter.statusCode() == 200
+                        && encounter.body().contains("Patient/" + registered),
+                "the stay is not about the person written beside it — the reference between "
+                        + "the two did not resolve inside one commit: " + encounter.body());
+        // Found by the run that admitted it — the search the next leg relies
+        // on to show that a refused result left nothing behind.
+        HttpResponse<String> byRun = dbo.search(HOSPITAL, "Encounter",
+                "identifier=urn:dbo:run|" + started.key(), "TREAT");
+        assertEquals(List.of(stay.split("/")[1]), dbo.says(byRun).at("entry.resource.id"),
+                "the stay is not found by the run that admitted it: " + byRun.body());
+    }
+
+    @Test
+    @Order(30)
+    @DisplayName("registering the same person again is refused by the hospital: the run ends "
+            + "failed with the hospital's reason, nothing of the result is written, and nobody "
+            + "takes it again")
+    @Proving(DboPromises.PROC_A_REFUSED_RESULT_ENDS_THE_RUN)
+    void aRefusedResultEndsTheRun() throws InterruptedException {
+        assertTrue(registered != null, "the leg before registered nobody");
+        cloud.jengu.dbo.spring.worker.DboInitiator.Started again = initiator.starting(HOSPITAL,
+                "hogwarts.admission.register", Map.of("patient",
+                        cloud.jengu.dbo.spring.worker.DboInitiator.Slot.object(person(arriving))));
+        String run = again.runOrFail();
+        cloud.jengu.dbo.spring.worker.DboInitiator.Answer answer =
+                initiator.awaiting(HOSPITAL, run, Duration.ofMinutes(3));
+        Proves.that(DboPromises.PROC_A_REFUSED_RESULT_ENDS_THE_RUN,
+                "failed".equals(answer.state()),
+                "a result the hospital refused did not end the run as failed: " + answer.body());
+        Proves.that(DboPromises.PROC_A_REFUSED_RESULT_ENDS_THE_RUN,
+                answer.body().contains("OperationOutcome") && answer.body().contains("urn:rl:nid"),
+                "the answer does not carry the hospital's reason: " + answer.body());
+
+        // ALL OR NONE: the stay this result carried is identified by its run,
+        // and the hospital holds no stay of this run — the refusal of the
+        // person took the encounter written beside it with it.
+        HttpResponse<String> stays = dbo.search(HOSPITAL, "Encounter",
+                "identifier=urn:dbo:run|" + again.key(), "TREAT");
+        Proves.that(DboPromises.PROC_A_REFUSED_RESULT_ENDS_THE_RUN,
+                stays.statusCode() == 200 && !dbo.says(stays).has("entry"),
+                "part of a refused result was written: " + stays.body());
+
+        // And it stays ended. A released run would be taken again within a
+        // poll or two; an ended one is still failed, at the same version.
+        String before = String.valueOf(((Map<?, ?>) ((Map<?, ?>) cloud.jengu.dbo.core.wire
+                .RecordWire.read(answer.body())).get("meta")).get("versionId"));
+        Thread.sleep(2_000);
+        cloud.jengu.dbo.spring.worker.DboInitiator.Answer later = initiator.answer(HOSPITAL, run);
+        String after = String.valueOf(((Map<?, ?>) ((Map<?, ?>) cloud.jengu.dbo.core.wire
+                .RecordWire.read(later.body())).get("meta")).get("versionId"));
+        Proves.that(DboPromises.PROC_A_REFUSED_RESULT_ENDS_THE_RUN,
+                "failed".equals(later.state()) && before.equals(after),
+                "a refused run was taken again: " + before + " then " + later.body());
+    }
+
+    /** A person as the asking application has them: a number and a name, and no id. */
+    private static String person(String nid) {
+        return """
+                {"resourceType":"Patient",
+                 "identifier":[{"system":"urn:rl:nid","value":"%s"}],
+                 "name":[{"family":"Lovegood","given":["Luna"]}]}""".formatted(nid);
+    }
+
+    /** What the run's answer says it produced, as {@code Type/id/_history/version}. */
+    private static List<String> produced(cloud.jengu.dbo.spring.worker.DboInitiator.Answer answer) {
+        Map<?, ?> task = (Map<?, ?>) cloud.jengu.dbo.core.wire.RecordWire.read(answer.body());
+        if (!(task.get("output") instanceof List<?> outputs)) {
+            return List.of();
+        }
+        return outputs.stream().map(o -> (Map<?, ?>) o)
+                .filter(o -> String.valueOf(o.get("type")).contains("code=produced,")
+                        || String.valueOf(o.get("type")).contains("code=produced}"))
+                .map(o -> String.valueOf(((Map<?, ?>) o.get("valueReference")).get("reference")))
+                .toList();
+    }
+
     // ── helpers ───────────────────────────────────────────────────────────
 
     private Run routedRun(String key, String marker) {

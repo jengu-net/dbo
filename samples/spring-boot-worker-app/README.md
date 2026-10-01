@@ -8,6 +8,7 @@ answers.
 | | |
 |---|---|
 | [`AdmittingAPatient.java`](src/main/java/cloud/jengu/dbo/samples/worker/AdmittingAPatient.java) | a bean implementing `StepService`. **This is the whole of what an integrator writes.** |
+| [`RegisteringAPatient.java`](src/main/java/cloud/jengu/dbo/samples/worker/RegisteringAPatient.java) | a step whose result carries records: the person it was given and the stay they arrived for, written by the hospital, never by this application |
 | [`application.yaml`](src/main/resources/application.yaml) | who this worker is, and which tenant's lane it performs for |
 | [`WorkerApplication.java`](src/main/java/cloud/jengu/dbo/samples/worker/WorkerApplication.java) | a bare `@SpringBootApplication` |
 

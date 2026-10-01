@@ -178,6 +178,22 @@ public class WireLane implements Lane {
     }
 
     @Override
+    public Run committed(Run run, String head, List<cloud.jengu.dbo.runner.Outcome.Write> result) {
+        Map<String, Object> body = verb();
+        body.put(LaneVerbs.RUN, RecordWire.encode(run));
+        // As closed(): a participant that signs commits to the head it last
+        // made or saw, whether or not the runner passed one.
+        String committedTo = head != null ? head : signing == null ? null : heads.get(run.key());
+        if (committedTo != null) {
+            body.put(LaneVerbs.HEAD, committedTo);
+        }
+        body.put(LaneVerbs.WRITES, RecordWire.encode(List.copyOf(result)));
+        Run ended = RecordWire.decode(post(LaneVerbs.COMMITTED, body), Run.class);
+        heads.remove(run.key());
+        return ended;
+    }
+
+    @Override
     public void reopen(Run run, String because) {
         Map<String, Object> body = verb();
         body.put(LaneVerbs.RUN, RecordWire.encode(run));

@@ -23,6 +23,8 @@ public enum LaneVerbs {
     MILESTONE("milestone"),
     RELEASED("released"),
     CLOSED("closed"),
+    /** Closed with a result the tenant is asked to write — or ended because it would not. */
+    COMMITTED("committed"),
     RELEASE_LAPSED("release-lapsed"),
     /** The supervisory verb: a closed run made claimable again, with its reason. */
     REOPEN("reopen"),
@@ -70,6 +72,8 @@ public enum LaneVerbs {
     public static final String RECIPIENTS = "recipients";
     public static final String AUTHOR = "author";
     public static final String HEAD = "head";
+    /** The records a result asks the tenant to write. */
+    public static final String WRITES = "writes";
     public static final String PREVIOUS = "previous";
     public static final String LINK = "link";
     public static final String SIGNATURE = "signature";

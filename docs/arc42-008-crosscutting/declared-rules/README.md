@@ -66,8 +66,8 @@ have fetched.
 **Giving is for what has no record.** A proposal, a draft, a document that
 arrived with the request — there is nothing for a reference to point at. It
 travels with the run and is opened by whoever performs it, and this store
-writes it nowhere. A step that decides it should be kept writes it as its own
-act, on its own entitlement, so *this arrived* and *this was kept* stay two
+writes it nowhere. A step that decides it should be kept says so in its result,
+and the tenant writes it then — so *this arrived* and *this was kept* stay two
 statements rather than one silent one.
 
 A slot is one or the other and never both, which is why the run records it
@@ -109,6 +109,37 @@ through the vault; accepting one here would make the step door a way to ask
 *is this person here*, on a credential the tenant's own records surface
 refuses. Name the record by id, or find it on the records surface with a
 credential for that.
+
+## What a step writes
+
+A step's result may carry records for the tenant to hold, and the declaration
+says which types it may carry, beside what it takes:
+
+```json
+{ "code": "hogwarts.admission.register", "slots": { "patient": "Patient" },
+  "writes": ["Patient", "Encounter"] }
+```
+
+**The tenant writes them, never the step.** Whoever performs the step holds a
+credential for work and none for records, and is given none for this. Its
+result says what should be written; the tenant writes it under the run, through
+the same path a transaction bundle posted to its records surface takes. So the
+profile validates the records, the identity rules hold for them, and what
+identifies a person is sealed as it is for any write. All of one result lands
+or none of it does, and one record may refer to another by the `urn:uuid` it
+was given.
+
+**A type the step does not declare is refused by name**, before any record is
+read. A step declaring nothing writes nothing, which is the default for the
+same reason a slot has one: reach is granted by what was written down, on the
+way out as on the way in.
+
+**A refused result ends the run.** A record the profile rejects, an identity the
+tenant already holds, an undeclared type — each would be refused again in the
+same words, so the run is not handed back for another attempt. It ends with the
+tenant's reason, and the application that asked for it reads the run as
+failed, with that reason. A step that crashed or ran out of time is a different
+thing and is released, because another attempt may succeed.
 
 ## The graph is tenants, and nothing underneath it
 

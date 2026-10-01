@@ -38,7 +38,8 @@ public final class Performing {
      * @param claimed  the run, already held by this identity
      * @param service  what performs it
      * @param holdFor  how long each report extends the hold
-     * @return what the service said, or a {@code Failed} carrying what it threw
+     * @return what the service said, a {@code Failed} carrying what it threw,
+     *         or a {@code Refused} when the tenant would not hold its result
      */
     public static Outcome performed(Lane lane, Run claimed, StepService service,
             Duration holdFor) {
@@ -63,9 +64,26 @@ public final class Performing {
             if (outcome instanceof Outcome.Done done) {
                 Run reported = done.tally().isEmpty() ? latest.get()
                         : lane.checkpoint(latest.get(), done.tally(), holdFor);
-                lane.closed(reported);
+                if (done.writes().isEmpty()) {
+                    lane.closed(reported);
+                } else {
+                    // The result goes to the tenant whole, and the tenant
+                    // answers with the run as it left it: closed over what it
+                    // wrote, or ended because it would not write it.
+                    Run ended = lane.committed(reported, null, done.writes());
+                    if (ended.refused() != null) {
+                        return new Outcome.Refused(ended.refused());
+                    }
+                }
             } else if (outcome instanceof Outcome.Failed failed) {
                 lane.released(latest.get(), failed.reason());
+            } else if (outcome instanceof Outcome.Refused refused) {
+                // Only the tenant refuses a result. A service saying so on
+                // the tenant's behalf has failed, and is released like one
+                // rather than ending work nobody refused.
+                String reason = "the service answered as the tenant: " + refused.reason();
+                lane.released(latest.get(), reason);
+                return Outcome.failed(reason);
             }
             return outcome;
         } catch (RuntimeException thrown) {

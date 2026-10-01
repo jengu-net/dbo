@@ -562,7 +562,8 @@ final class ElementRecordProjection implements RecordProjection {
                     .append(Json.quoted(String.valueOf(run.get("correlation")))).append('}');
         }
         json.append(']');
-        json.append(",\"status\":\"").append(status(holder)).append('"')
+        json.append(",\"status\":\"")
+                .append(run.get("refused") != null ? "failed" : status(holder)).append('"')
                 .append(",\"businessStatus\":{\"coding\":[{\"system\":\"").append(HOLDER)
                 .append("\",\"code\":\"").append(holder).append("\"}");
         // Where the work is, said the step's own way: one concept, two
@@ -694,9 +695,24 @@ final class ElementRecordProjection implements RecordProjection {
         json.append(",\"input\":[").append(inputs).append(']');
     }
 
-    /** The failure, as an outcome the run points at rather than repeats. */
+    /**
+     * The failure, as an outcome the run points at rather than repeats.
+     *
+     * <p>Two failures land here, and both are somebody's to read. An item's,
+     * which a person fixes; and a result the tenant refused, which ended the
+     * run — said as an error the asker can act on, in the tenant's own words,
+     * because "failed" with no reason would leave them guessing which of a
+     * record's twenty elements was the problem.
+     */
     private static void contained(Record record, StringBuilder json) {
         Map<?, ?> item = itemOf(record);
+        String refused = refusedOf(record);
+        if (refused != null) {
+            json.append(",\"contained\":[{\"resourceType\":\"OperationOutcome\",\"id\":\"outcome\"")
+                    .append(",\"issue\":[{\"severity\":\"error\",\"code\":\"processing\"")
+                    .append(",\"diagnostics\":").append(Json.quoted(refused)).append("}]}]");
+            return;
+        }
         if (item == null) {
             return;
         }
@@ -707,6 +723,13 @@ final class ElementRecordProjection implements RecordProjection {
                 .append("\",\"code\":\"").append(aPersonsJob ? "processing" : "transient")
                 .append("\",\"diagnostics\":")
                 .append(Json.quoted(String.valueOf(item.get("message")))).append("}]}]");
+    }
+
+    /** Why the tenant refused the run's result, or null when nothing was refused. */
+    private static String refusedOf(Record record) {
+        Map<?, ?> run = (Map<?, ?>) Json.parse(
+                new String(record.payload(), StandardCharsets.UTF_8));
+        return run.get("refused") == null ? null : String.valueOf(run.get("refused"));
     }
 
     private static Map<?, ?> itemOf(Record record) {
@@ -741,7 +764,7 @@ final class ElementRecordProjection implements RecordProjection {
                 }
             });
         }
-        if (itemOf(record) != null) {
+        if (itemOf(record) != null || refusedOf(record) != null) {
             outputs.append(outputs.isEmpty() ? "" : ",")
                     .append("{\"type\":{\"coding\":[{\"system\":\"").append(RUN_OUTPUT)
                     .append("\",\"code\":\"outcome\"}]},")

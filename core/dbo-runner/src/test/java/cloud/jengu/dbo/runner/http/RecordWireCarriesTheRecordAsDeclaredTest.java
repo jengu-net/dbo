@@ -59,7 +59,8 @@ class RecordWireCarriesTheRecordAsDeclaredTest {
                     "notes", cloud.jengu.dbo.work.RunSlot.givenAll(List.of(
                             "{\"resourceType\":\"Basic\",\"id\":\"a\"}",
                             "{\"resourceType\":\"Basic\",\"id\":\"b\"}"))),
-            new Run.Milestone("validated", 2, 3), "the-asking-application");
+            new Run.Milestone("validated", 2, 3), "the-asking-application",
+            "Patient: the identifier is already held");
 
     @Test
     @DisplayName("every component a run declares survives the wire, and a new one fails here")

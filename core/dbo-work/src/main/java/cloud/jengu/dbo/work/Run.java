@@ -18,7 +18,8 @@ public record Run(String id, long versionId, String key, String process, String 
         RunKind kind, Holder holder, String parent, String correlation, String trace,
         Map<String, Long> tally, Item item, java.util.List<String> domains,
         Assignment assignment, Produced produced, String stepVersion,
-        Map<String, RunSlot> inputs, Milestone milestone, String requester) {
+        Map<String, RunSlot> inputs, Milestone milestone, String requester,
+        String refused) {
 
     /**
      * A run named only by its key, for a verb whose lane reads the store's
@@ -33,7 +34,7 @@ public record Run(String id, long versionId, String key, String process, String 
     public static Run named(String key) {
         return new Run(null, 0, key, null, null, null, null, null, null, null,
                 Map.of(), null, java.util.List.of(), null, Produced.NOTHING, null,
-                Map.of(), null, null);
+                Map.of(), null, null, null);
     }
 
     /**
@@ -50,6 +51,22 @@ public record Run(String id, long versionId, String key, String process, String 
      */
     public String requester() {
         return requester;
+    }
+
+    /**
+     * Why the tenant would not commit what this run's step answered with, or
+     * null for a run whose result nobody refused.
+     *
+     * <p>A run that carries this has ENDED — nobody holds it and nothing is
+     * owed — and that is the difference from a failure. A step that crashed
+     * or ran out of time is released and taken again, because another
+     * attempt may well succeed; a result the tenant refused would be refused
+     * again, word for word, so retrying it is a loop with a log line. The
+     * reason is the tenant's own, and it is what the application that asked
+     * for the work is told.
+     */
+    public String refused() {
+        return refused;
     }
 
     /**
@@ -226,7 +243,7 @@ public record Run(String id, long versionId, String key, String process, String 
                 Map.copyOf(tally), item, java.util.List.copyOf(domains), assignment(json),
                 produced(json), optional(json, "stepVersion"),
                 java.util.Collections.unmodifiableMap(inputs), milestone,
-                optional(json, "requester"));
+                optional(json, "requester"), optional(json, "refused"));
     }
 
     /**

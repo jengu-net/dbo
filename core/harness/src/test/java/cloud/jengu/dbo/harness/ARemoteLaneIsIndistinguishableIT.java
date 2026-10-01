@@ -284,6 +284,12 @@ class ARemoteLaneIsIndistinguishableIT {
                 return null;
             });
         }
+
+        @Override
+        public Run committed(Run run, String head,
+                List<cloud.jengu.dbo.runner.Outcome.Write> result) {
+            return across("committed", () -> farSide.committed(run, head, result));
+        }
     }
 
     private Lane hostLane(String participant) {

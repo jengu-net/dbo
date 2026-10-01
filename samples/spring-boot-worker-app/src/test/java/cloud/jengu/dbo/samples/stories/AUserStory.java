@@ -4,6 +4,7 @@ import cloud.jengu.dbo.samples.server.ServerApplication;
 import cloud.jengu.dbo.samples.worker.AdmittingAPatient;
 import cloud.jengu.dbo.samples.worker.AskingForADirectoryCheck;
 import cloud.jengu.dbo.samples.worker.MeasuringASpecimen;
+import cloud.jengu.dbo.samples.worker.RegisteringAPatient;
 import cloud.jengu.dbo.spring.test.DboSpringBootTest;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Tag;
@@ -47,7 +48,8 @@ import java.lang.annotation.Target;
 @ActiveProfiles("stories")
 @SpringBootTest(classes = ServerApplication.class,
         webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT)
-@Import({AdmittingAPatient.class, MeasuringASpecimen.class, AskingForADirectoryCheck.class})
+@Import({AdmittingAPatient.class, RegisteringAPatient.class, MeasuringASpecimen.class,
+        AskingForADirectoryCheck.class})
 @ExtendWith(TheWholeWorldServes.class)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)

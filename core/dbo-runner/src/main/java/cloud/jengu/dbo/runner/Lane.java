@@ -247,6 +247,38 @@ public interface Lane {
     void closed(Run run, String head);
 
     /**
+     * Done, with a result the tenant is asked to hold: the records are
+     * written, the run names each version it produced, and it closes — or the
+     * tenant refuses the result and the run ends saying why.
+     *
+     * <p><b>The lane carries the records; the tenant writes them.</b> A
+     * participant holds no records credential and is not given one for this.
+     * What it sends is what its step produced, and the tenant commits it
+     * under the run, through the same write path any other write takes — so
+     * the profile validates it, the identity rules hold for it, and what
+     * identifies a person is sealed as it is for any write.
+     *
+     * <p><b>Two ways a result can fail to land, and they are not the same
+     * thing.</b> A result the tenant refuses for what it says ends the run
+     * with the tenant's reason, which is the answer returned here: a run
+     * whose {@link Run#refused} is set. A lane that could not carry it at all
+     * — the link was down, the tenant could not be reached — throws, and the
+     * runner releases the run for another attempt, because that one may
+     * succeed.
+     *
+     * <p>Abstract, not defaulted: a lane that dropped a result would close a
+     * run whose records were never written, which is the one lie a run must
+     * not tell.
+     *
+     * @param head   the chain head the result commits to, or null for a
+     *               participant that signs nothing
+     * @param result what the step's {@link Outcome.Done} carried
+     * @return the run as the tenant left it: closed and naming what it
+     *         produced, or ended with the reason the result was refused
+     */
+    Run committed(Run run, String head, List<Outcome.Write> result);
+
+    /**
      * A closed run, deliberately open again, with the reason recorded
      * (REQ-DBO-PROC-CLOSED-CAN-BE-REOPENED).
      *
@@ -513,6 +545,54 @@ public interface Lane {
     }
 
     /**
+     * Where a result is written.
+     *
+     * <p>The host's, for the reason the trail is: the lane knows a result
+     * arrived for a run, and the tenant holds the records, the profiles and
+     * the rules they are written under. A host that wires none refuses a
+     * result loudly, so a step that writes is never closed over records
+     * nobody wrote.
+     */
+    interface Results {
+
+        /**
+         * Commits one result, all of it or none of it, under the run.
+         *
+         * @return each version written, as {@code Type/id/version}, in the
+         *         order the result carried them
+         * @throws Refused when the tenant will not hold what the result says;
+         *         anything else thrown is a failure to write, and the run is
+         *         released rather than ended
+         */
+        List<String> commit(Run run, List<Outcome.Write> result);
+
+        /** What the tenant answered a result it will not hold, in its own words. */
+        final class Refused extends RuntimeException {
+            public Refused(String reason) {
+                super(reason);
+            }
+
+            public Refused(String reason, Throwable cause) {
+                super(reason, cause);
+            }
+        }
+    }
+
+    /**
+     * The same, able to commit what a step's result carries. A host that
+     * wires none refuses every result that writes anything, by name.
+     */
+    static Lane inProcess(String tenant, Runs runs, ChangeFeed feed,
+            Declarations declarations, String participant, Executor identity,
+            cloud.jengu.dbo.core.api.ObjectStore objects,
+            cloud.jengu.dbo.work.Introductions introductions,
+            Entitlement entitlement, Trackables trackables, Trail trail, Keys keys,
+            Wakeups wakeups) {
+        return inProcess(tenant, runs, feed, declarations, participant, identity, objects,
+                introductions, entitlement, trackables, trail, keys, wakeups, null);
+    }
+
+    /**
      * The same, able to record what a participant routes.
      *
      * <p>Wired where the tenant's own records are, for the same reason
@@ -574,7 +654,7 @@ public interface Lane {
             cloud.jengu.dbo.core.api.ObjectStore objects,
             cloud.jengu.dbo.work.Introductions introductions,
             Entitlement entitlement, Trackables trackables, Trail trail, Keys keys,
-            Wakeups wakeups) {
+            Wakeups wakeups, Results results) {
         return new Lane() {
 
             @Override
@@ -673,6 +753,55 @@ public interface Lane {
             @Override
             public void closed(Run run, String head) {
                 Run current = runs.byKey(run.key()).orElse(run);
+                requireCompleteChain(current, head);
+                runs.closed(run);
+            }
+
+            @Override
+            public Run committed(Run run, String head, List<Outcome.Write> result) {
+                if (result.isEmpty()) {
+                    closed(run, head);
+                    return runs.byKey(run.key()).orElse(run);
+                }
+                // Held by THIS identity, now. A result is the strongest thing
+                // a participant says about a run, and it is said only by the
+                // one the store handed the run to — never by a participant
+                // naming somebody else's work.
+                Run current = claimedByThisIdentity(run);
+                requireCompleteChain(current, head);
+                // Asked before anything is written: the one refusal closing
+                // can make, made while it still strands nothing.
+                runs.requireClosable(current);
+                if (results == null) {
+                    throw new IllegalStateException(tenant + ": this lane commits no results, "
+                            + "and run '" + current.key() + "' answered with "
+                            + result.size() + " record(s) to write");
+                }
+                List<String> versions;
+                String outer = cloud.jengu.dbo.core.api.Caller.run();
+                cloud.jengu.dbo.core.api.Caller.setRun(current.key());
+                try {
+                    versions = results.commit(current, result);
+                } catch (Results.Refused refused) {
+                    // ENDED, with the tenant's words: the same result would be
+                    // refused the same way next time, so nobody is asked to
+                    // try again.
+                    return runs.refused(current, refused.getMessage());
+                } finally {
+                    if (outer == null) {
+                        cloud.jengu.dbo.core.api.Caller.clearRun();
+                    } else {
+                        cloud.jengu.dbo.core.api.Caller.setRun(outer);
+                    }
+                }
+                return runs.closed(current, versions);
+            }
+
+            /**
+             * The store walks the chain when a result lands and refuses a
+             * completion with a hole, naming the missing link.
+             */
+            private void requireCompleteChain(Run current, String head) {
                 if (trail != null) {
                     cloud.jengu.dbo.work.RunChain.Verdict verdict =
                             cloud.jengu.dbo.work.RunChain.verify(current, trail.links(current));
@@ -695,7 +824,6 @@ public interface Lane {
                                 + "' and the trail's head is '" + verdict.head() + "'");
                     }
                 }
-                runs.closed(run);
             }
 
             @Override

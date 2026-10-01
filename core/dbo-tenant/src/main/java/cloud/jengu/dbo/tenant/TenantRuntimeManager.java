@@ -2960,6 +2960,10 @@ public final class TenantRuntimeManager implements AutoCloseable {
             // participant is its feed cursor and the identity is what
             // claims, both from the request; the entitlement is from the
             // credential and never from the request.
+            // Where a step's result becomes this tenant's records: through
+            // the same face a posted transaction bundle goes through, and
+            // only for the types each step declared it writes.
+            RunResults runResults = new RunResults(spec.code(), spec.steps(), store);
             cloud.jengu.dbo.runner.http.LaneHandler.Lanes laneFactory =
                     (participant, identity, entitlement) ->
                             cloud.jengu.dbo.runner.Lane.inProcess(spec.code(), laneRuns,
@@ -3044,7 +3048,11 @@ public final class TenantRuntimeManager implements AutoCloseable {
                                                 signing(String participant) {
                                             return authority.signingKey(participant);
                                         }
-                                    });
+                                    },
+                                    // Nothing here says when work appears: a
+                                    // participant over this door polls.
+                                    null,
+                                    runResults);
             if (substrate != null) {
                 // The same lane on the store's own stream: a door per tenant
                 // on the substrate, guarded by the same authority and the

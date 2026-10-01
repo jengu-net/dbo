@@ -74,6 +74,28 @@ class ARunsResultIsItsTasksOutputTest {
                         + outputs);
     }
 
+    @Test
+    @DisplayName("a run whose result the tenant refused is failed, and the tenant's reason is "
+            + "the outcome it points at")
+    @Proving(DboPromises.PROC_A_REFUSED_RESULT_ENDS_THE_RUN)
+    void aRefusedResultIsAFailedTask() {
+        Map<?, ?> task = rendered("""
+                {"key":"hogwarts.admission.register/one","process":"hogwarts.admission",
+                 "step":"register","kind":"pipeline","holder":"nobody",
+                 "tally":{"registered":1},
+                 "refused":"hogwarts: the identifier urn:rl:nid|39001 is already held",
+                 "requester":"the-asker"}""");
+
+        assertEquals("failed", task.get("status"),
+                "a run that ended refused reads as one that completed");
+        assertTrue(outputs(task).contains("urn:dbo:run:output|outcome=#outcome"),
+                "the refusal is not an output the asker can follow: " + outputs(task));
+        Map<?, ?> outcome = (Map<?, ?>) ((List<?>) task.get("contained")).get(0);
+        assertEquals("OperationOutcome", outcome.get("resourceType"));
+        assertTrue(String.valueOf(outcome.get("issue")).contains("already held"),
+                "the tenant's reason is not in the outcome: " + outcome);
+    }
+
     private Map<?, ?> rendered(String run) {
         String document = projection.project(new RecordProjection.Record("Run", "run-1", 3,
                 run.getBytes(StandardCharsets.UTF_8), List.of())).orElseThrow();

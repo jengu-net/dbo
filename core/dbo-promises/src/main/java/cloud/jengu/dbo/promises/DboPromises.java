@@ -687,6 +687,25 @@ public enum DboPromises implements Promise {
             + "that does not exist are all answered alike, as not found, because a refusal "
             + "that differed from absence would tell whoever asked which runs exist."),
 
+    PROC_A_RESULT_IS_WRITTEN_BY_THE_TENANT(
+            "A step's result may carry records, and the tenant writes them: the participant "
+            + "that performed the step holds no records credential and is given none. They are "
+            + "written under the run, through the same path a transaction posted to the "
+            + "tenant takes — so the profile validates them, the identity rules hold for them "
+            + "and what identifies a person is sealed as for any other write — and all of one "
+            + "result lands or none of it does. Only the types the step's declaration says it "
+            + "writes are accepted. The run then names each version it produced, which is how "
+            + "the application that asked for the work learns which record it made."),
+
+    PROC_A_REFUSED_RESULT_ENDS_THE_RUN(
+            "A result the tenant refuses for what it says — a record its profile rejects, an "
+            + "identity it already holds, a type the step does not write — ends the run with "
+            + "the tenant's reason, and the application that asked reads the run as failed, "
+            + "with that reason. It is not handed back for another attempt, because the same "
+            + "result would be refused in the same words; a step that crashed or ran out of "
+            + "time is, because another attempt may succeed. So the asker can tell work that "
+            + "was done, work that was refused, and work still owed apart."),
+
     PROC_A_SLOT_IS_REFERRED_OR_GIVEN_AND_MAY_REPEAT(
             "A slot declares what fills it in FHIR's own notation: 'Reference(T)' for one the "
             + "tenant already holds, a bare 'T' for one given with the run, and '[]' for "

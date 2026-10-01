@@ -279,6 +279,13 @@ public final class StepRunner implements AutoCloseable {
             // was. An outcome is a word from a fixed set, which is what makes
             // it safe to aggregate.
             report(lane, claimed, "released", took);
+        } else if (outcome instanceof Outcome.Refused refused) {
+            // The step did its work and the tenant would not hold the
+            // result: counted as a failure of this step's, and reported as
+            // its own word, because "released" would promise another attempt
+            // the run will never get.
+            sign.failed(refused.reason());
+            report(lane, claimed, "refused", took);
         }
     }
 

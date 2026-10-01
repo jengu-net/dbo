@@ -41,11 +41,28 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
      * configures is a face surface, and the surface has to know which type a
      * slot admits in order to refuse the ones it does not.
      *
-     * @param code  the step's own name, as a run of it will be addressed
-     * @param slots slot name to the type it takes, in declaration order
+     * <p><b>What it writes is declared the same way, beside what it takes.</b>
+     * A step's result may ask the tenant to hold records, and the tenant
+     * holds only the types the step said it writes: reach is granted by
+     * declaration and never assumed, on the way out as on the way in. A step
+     * declaring none writes nothing, and a result carrying a record of
+     * another type is refused by name.
+     *
+     * @param code   the step's own name, as a run of it will be addressed
+     * @param slots  slot name to the type it takes, in declaration order
+     * @param writes the types a result of this step may ask the tenant to
+     *               write, each one this tenant holds
      */
-    public record Step(String code, java.util.Map<String, String> slots) {
+    public record Step(String code, java.util.Map<String, String> slots,
+            java.util.Set<String> writes) {
+
+        /** A step whose result writes nothing — it decides, counts, or answers. */
+        public Step(String code, java.util.Map<String, String> slots) {
+            this(code, slots, java.util.Set.of());
+        }
+
         public Step {
+            writes = java.util.Set.copyOf(writes);
             if (code == null || code.isBlank()) {
                 throw new IllegalArgumentException("a step declares a code");
             }
@@ -714,7 +731,20 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
                                 + new java.util.TreeSet<>(held));
                     }
                 }
-                steps.add(new Step(stepCode, slots));
+                java.util.Set<String> writes = new java.util.LinkedHashSet<>();
+                for (Object type : Json.objOpt(one, "writes") instanceof List<?> named
+                        ? named : List.of()) {
+                    // A type this tenant holds, checked where it was written:
+                    // a step declared to write what the tenant cannot hold
+                    // would come up and have every result refused.
+                    if (!held.contains(String.valueOf(type))) {
+                        throw new IllegalArgumentException(code + ": step '" + stepCode
+                                + "' writes '" + type + "', and this tenant does not declare "
+                                + "that type. It holds: " + new java.util.TreeSet<>(held));
+                    }
+                    writes.add(String.valueOf(type));
+                }
+                steps.add(new Step(stepCode, slots, writes));
             }
         }
         // The steps the DEPLOYMENT performs, which only the management

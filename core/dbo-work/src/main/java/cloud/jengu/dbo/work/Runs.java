@@ -281,7 +281,7 @@ public final class Runs {
         return byKey(key).orElseGet(() -> write(new State(key, step.id().processId(),
                 step.id().step(), kind, Holder.AUTOMATION, null, null, null, Map.of(), null,
                 List.copyOf(step.writes()), null, Run.Produced.NOTHING, step.version(),
-                java.util.Collections.unmodifiableMap(ordered), null, requester)));
+                java.util.Collections.unmodifiableMap(ordered), null, requester, null)));
     }
 
     /**
@@ -611,6 +611,70 @@ public final class Runs {
     }
 
     /**
+     * Whether this run may be closed by the step's own declaration — asked
+     * before anything is committed in its name.
+     *
+     * <p>A result is written and THEN the run closes, and the two are not one
+     * transaction: the records are the tenant's and the run is the work
+     * domain's. So the one refusal closing can make is made first, where it
+     * still costs nothing, rather than after the records it would strand.
+     */
+    public void requireClosable(Run run) {
+        requireAction(run, "close");
+    }
+
+    /**
+     * A run that succeeded and committed what its result carried: the
+     * versions it produced, and nobody holding it, in one advance.
+     *
+     * <p>One advance rather than {@link #produced} once per version and then
+     * {@link #closed}: a reader between the two would see a run still held
+     * that has already written everything, and a run that names half of what
+     * it made.
+     *
+     * @param versions {@code Type/id/version}, in the order the result
+     *                 carried them
+     */
+    public Run closed(Run run, List<String> versions) {
+        requireAction(run, "close");
+        return update(run, snapshot -> {
+            Run.Produced before = snapshot.produced();
+            List<String> named = new ArrayList<>(before.versions());
+            Map<String, Long> watermark = new LinkedHashMap<>(before.watermark());
+            for (String version : versions) {
+                if (named.size() < NAMED_VERSIONS) {
+                    named.add(version);
+                } else {
+                    String[] parts = version.split("/");
+                    watermark.merge(parts[0], Long.parseLong(parts[2]), Math::max);
+                }
+            }
+            return snapshot.withProduced(new Run.Produced(List.copyOf(named),
+                            Map.copyOf(watermark), before.counted() + versions.size()))
+                    .withHolder(Holder.NOBODY);
+        });
+    }
+
+    /**
+     * A run whose result the tenant would not commit: ended, with the
+     * tenant's reason, and nothing written.
+     *
+     * <p>Ended rather than released, which is the whole distinction. A
+     * released run is taken again because another attempt may succeed; a
+     * result refused for what it says — a record the profile rejects, an
+     * identity already held, a type the step never declared it writes —
+     * would be refused again in the same words. Retrying it would be a loop
+     * nobody is told about, so it ends, and the asker reads why.
+     *
+     * <p>Not narrowed by the step's actions, for the reason releasing is
+     * not: a step must not be able to refuse to hear that its result was
+     * refused.
+     */
+    public Run refused(Run run, String because) {
+        return update(run, snapshot -> snapshot.withHolder(Holder.NOBODY).withRefused(because));
+    }
+
+    /**
      * A closed run, deliberately open again
      * (REQ-DBO-PROC-CLOSED-CAN-BE-REOPENED).
      *
@@ -623,7 +687,10 @@ public final class Runs {
      */
     public Run reopen(Run run, String because) {
         requireAction(run, "reopen");
-        return update(run, snapshot -> snapshot.withHolder(Holder.AUTOMATION).withAssignment(
+        // A refusal is a reason the run ENDED, and a reopened run has not —
+        // so the reason goes with the ending rather than outliving it.
+        return update(run, snapshot -> snapshot.withHolder(Holder.AUTOMATION).withRefused(null)
+                .withAssignment(
                 new Run.Assignment(
                         snapshot.assignment() == null ? null : snapshot.assignment().at(),
                         null, because, null)));
@@ -839,7 +906,7 @@ public final class Runs {
                 run.parent(), run.correlation(), run.trace(), run.tally(), run.item(),
                 run.domains(),
                 run.assignment(), run.produced(), run.stepVersion(), run.inputs(),
-                run.milestone(), run.requester());
+                run.milestone(), run.requester(), run.refused());
     }
 
     /**
@@ -1003,7 +1070,7 @@ public final class Runs {
             String parent, String correlation, String trace, Map<String, Long> tally, Run.Item item,
             List<String> domains, Run.Assignment assignment, Run.Produced produced,
             String stepVersion, Map<String, RunSlot> inputs, Run.Milestone milestone,
-            String requester) {
+            String requester, String refused) {
 
         /** A reference is a string; an object is itself. */
         private static String value(RunSlot slot, String raw) {
@@ -1025,43 +1092,48 @@ public final class Runs {
                 List<String> domains, Run.Assignment assignment, Run.Produced produced,
                 String stepVersion, Map<String, RunSlot> inputs) {
             this(key, process, step, kind, holder, parent, correlation, trace, tally, item,
-                    domains, assignment, produced, stepVersion, inputs, null, null);
+                    domains, assignment, produced, stepVersion, inputs, null, null, null);
         }
 
         State withHolder(Holder holder) {
             return new State(key, process, step, kind, holder, parent, correlation, trace, tally, item,
-                    domains, assignment, produced, stepVersion, inputs, milestone, requester);
+                    domains, assignment, produced, stepVersion, inputs, milestone, requester, refused);
         }
 
         State withTally(Map<String, Long> tally) {
             return new State(key, process, step, kind, holder, parent, correlation, trace,
                     Map.copyOf(tally), item, domains, assignment, produced, stepVersion,
-                    inputs, milestone, requester);
+                    inputs, milestone, requester, refused);
         }
 
         State withAssignment(Run.Assignment assignment) {
             return new State(key, process, step, kind, holder, parent, correlation, trace, tally, item,
-                    domains, assignment, produced, stepVersion, inputs, milestone, requester);
+                    domains, assignment, produced, stepVersion, inputs, milestone, requester, refused);
         }
 
         State withProduced(Run.Produced produced) {
             return new State(key, process, step, kind, holder, parent, correlation, trace, tally, item,
-                    domains, assignment, produced, stepVersion, inputs, milestone, requester);
+                    domains, assignment, produced, stepVersion, inputs, milestone, requester, refused);
         }
 
         State withTrace(String trace) {
             return new State(key, process, step, kind, holder, parent, correlation, trace,
-                    tally, item, domains, assignment, produced, stepVersion, inputs, milestone, requester);
+                    tally, item, domains, assignment, produced, stepVersion, inputs, milestone, requester, refused);
         }
 
         State withCorrelation(String correlation) {
             return new State(key, process, step, kind, holder, parent, correlation, trace, tally, item,
-                    domains, assignment, produced, stepVersion, inputs, milestone, requester);
+                    domains, assignment, produced, stepVersion, inputs, milestone, requester, refused);
         }
 
         State withMilestone(Run.Milestone milestone) {
             return new State(key, process, step, kind, holder, parent, correlation, trace, tally, item,
-                    domains, assignment, produced, stepVersion, inputs, milestone, requester);
+                    domains, assignment, produced, stepVersion, inputs, milestone, requester, refused);
+        }
+
+        State withRefused(String refused) {
+            return new State(key, process, step, kind, holder, parent, correlation, trace, tally, item,
+                    domains, assignment, produced, stepVersion, inputs, milestone, requester, refused);
         }
 
         byte[] payload() {
@@ -1117,6 +1189,9 @@ public final class Runs {
             }
             if (requester != null) {
                 json.append(",\"requester\":").append(Json.quoted(requester));
+            }
+            if (refused != null) {
+                json.append(",\"refused\":").append(Json.quoted(refused));
             }
             if (!inputs.isEmpty()) {
                 json.append(",\"inputs\":{");

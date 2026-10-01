@@ -111,6 +111,13 @@ public final class LaneVerbService {
                 }
                 yield null;
             }
+            // The run comes back either way: closed over what it wrote, or
+            // ended with the tenant's reason. A refused result is an answer
+            // rather than a refusal of the verb, because the far side's
+            // recovery is the opposite — it must not try again.
+            case COMMITTED -> lane.committed(run(body), string(body, LaneVerbs.HEAD),
+                    RecordWire.decodeList(field(body, LaneVerbs.WRITES),
+                            cloud.jengu.dbo.runner.Outcome.Write.class));
             case REOPEN -> {
                 lane.reopen(run(body), string(body, LaneVerbs.REASON));
                 yield null;

@@ -13,7 +13,6 @@ import cloud.jengu.dbo.postgres.PgObjectStore;
 import cloud.jengu.dbo.work.Run;
 import cloud.jengu.dbo.work.Runs;
 import cloud.jengu.dbo.work.WorkModel;
-import cloud.jengu.dbo.work.WorkScopedStore;
 import cloud.jengu.dbo.promises.DboPromises;
 import cloud.jengu.dbo.promises.Proving;
 import org.junit.jupiter.api.AfterEach;
@@ -72,7 +71,7 @@ class ContentChangesInsideWorkIT {
         declarations.addAll(WorkModel.registrations());
         engine = new PgObjectStore(ds, declarations);
         runs = new Runs(engine);
-        store = new WorkScopedStore(engine, runs);
+        store = engine;
     }
 
     @AfterEach
@@ -116,13 +115,18 @@ class ContentChangesInsideWorkIT {
         Caller.setRun(work.key());
         PutResult first = store.put(PutRequest.create("Observation", observation("first")));
         PutResult second = store.put(PutRequest.create("Observation", observation("second")));
+        Caller.clearRun();
 
-        Run after = runs.byKey(work.key()).orElseThrow();
+        // What the lane does when a result lands: the versions the write
+        // answered with, and the close, as one advance.
+        Run after = runs.closed(work, List.of("Observation/" + first.id() + "/1",
+                "Observation/" + second.id() + "/1"));
         assertEquals(2, after.produced().counted());
         assertTrue(after.produced().complete(), "it named everything it made");
         assertTrue(after.produced().versions().contains("Observation/" + first.id() + "/1"),
                 after.produced().toString());
         assertTrue(after.produced().versions().contains("Observation/" + second.id() + "/1"));
+        assertFalse(after.open(), "a run that committed its result is over");
     }
 
     @Test
@@ -133,11 +137,15 @@ class ContentChangesInsideWorkIT {
         Run work = work("large");
         Caller.setRun(work.key());
         int made = Runs.NAMED_VERSIONS + 5;
+        List<String> versions = new ArrayList<>();
         for (int i = 0; i < made; i++) {
-            store.put(PutRequest.create("Observation", observation("bulk-" + i)));
+            PutResult written = store.put(PutRequest.create("Observation",
+                    observation("bulk-" + i)));
+            versions.add("Observation/" + written.id() + "/" + written.versionId());
         }
+        Caller.clearRun();
 
-        Run after = runs.byKey(work.key()).orElseThrow();
+        Run after = runs.closed(work, versions);
         assertEquals(made, after.produced().counted(), "it counted everything");
         assertEquals(Runs.NAMED_VERSIONS, after.produced().versions().size(),
                 "and named what a reader can page through");
@@ -157,9 +165,10 @@ class ContentChangesInsideWorkIT {
         // it, and appear in the same list as everything else.
         Run importing = work("import");
         Caller.setRun(importing.key());
-        store.put(PutRequest.create("Observation", observation("imported")));
+        PutResult imported = store.put(PutRequest.create("Observation", observation("imported")));
         Caller.clearRun();
-        runs.closed(runs.byKey(importing.key()).orElseThrow());
+        runs.closed(runs.byKey(importing.key()).orElseThrow(),
+                List.of("Observation/" + imported.id() + "/1"));
 
         assertTrue(runs.matching(PROCESS, STEP, null, 50).stream()
                         .anyMatch(run -> run.key().endsWith("/import")),

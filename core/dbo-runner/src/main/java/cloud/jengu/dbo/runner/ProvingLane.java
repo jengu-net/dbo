@@ -82,6 +82,7 @@ public final class ProvingLane implements Lane {
     private final List<String> milestones = new ArrayList<>();
     private final List<Map<String, Long>> checkpoints = new ArrayList<>();
     private final List<Ended> endings = new ArrayList<>();
+    private final List<Outcome.Write> written = new ArrayList<>();
 
     /**
      * How many times the runner has looked. Concurrent for the reason
@@ -342,6 +343,23 @@ public final class ProvingLane implements Lane {
         closed(run);
     }
 
+    /**
+     * Closed, and the result kept for the test to read: there is no tenant
+     * here to write it, so what is proven is what the step asked to be
+     * written — which is the whole of the step's half.
+     */
+    @Override
+    public Run committed(Run run, String head, List<Outcome.Write> result) {
+        written.addAll(result);
+        closed(run);
+        return run;
+    }
+
+    /** What the step's results asked the tenant to write, in order. */
+    public List<Outcome.Write> written() {
+        return List.copyOf(written);
+    }
+
     @Override
     public Map<String, java.util.List<StoredObject>> inputs(Run run) {
         return inputs;
@@ -432,7 +450,7 @@ public final class ProvingLane implements Lane {
         return new Run(java.util.UUID.randomUUID().toString(), 1,
                 stepId + "/proving", stepId.substring(0, dot), stepId.substring(dot + 1),
                 RunKind.PIPELINE, Holder.NOBODY, null, null, null,
-                Map.of(), null, List.of(), null, Run.Produced.NOTHING, null, Map.of(), null, null);
+                Map.of(), null, List.of(), null, Run.Produced.NOTHING, null, Map.of(), null, null, null);
     }
 
     /** The run as a claim leaves it: held by automation, assigned to whoever took it. */
@@ -443,6 +461,6 @@ public final class ProvingLane implements Lane {
                 new Run.Assignment(Scope.BASELINE, by, null,
                         Instant.now().plus(Duration.ofMinutes(5))),
                 run.produced(), run.stepVersion(), run.inputs(), run.milestone(),
-                run.requester());
+                run.requester(), run.refused());
     }
 }
