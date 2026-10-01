@@ -31,6 +31,12 @@ dependencies {
     // which is what makes the point — the port, the filter chain and the
     // beans are the application's, and the store answers inside them.
     implementation("org.springframework.boot:spring-boot-starter-web:$springBootVersion")
+
+    // The clinic's steps, performed in this JVM beside the store. The worker
+    // application is also a thing that runs on its own; here it is a library
+    // whose step beans arrive through its auto-configuration, and the lane
+    // they are offered work over is this application's own port.
+    implementation(project(":samples:spring-boot-worker-app"))
     annotationProcessor(
         "org.springframework.boot:spring-boot-configuration-processor:$springBootVersion")
     runtimeOnly("ch.qos.logback:logback-classic:1.5.18")

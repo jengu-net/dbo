@@ -10,7 +10,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 
@@ -57,7 +56,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @ActiveProfiles("substrate")
 @SpringBootTest(classes = ServerApplication.class,
         webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT)
-@Import(AdmittingAPatient.class)
 class TheWorkArrivesOverTheSubstrateIT {
 
     private static final String TENANT = "hogwarts";

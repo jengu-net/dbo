@@ -11,6 +11,24 @@ dbo:
   # rather than watched: the loop that retracts undeclared tenants must not be
   # able to retract the thing that records retractions.
   management-spec: ../sample-world/mom.json
+  # The clinic's steps, performed here. The worker application's beans arrive
+  # in this context, and the lane they are offered work over is this
+  # application's own port: the same HTTP a worker in another JVM would use,
+  # so the steps cannot tell which of the two they are running in.
+  worker:
+    identity:
+      # Named and versioned, and not defaulted to an artifact id: a run
+      # records who performed it, and an executor that cannot be reproduced
+      # cannot be held to what it did.
+      name: sample-admissions-worker
+      version: "1"
+    poll: 2s
+    lanes:
+      - tenant: hogwarts
+        base: http://127.0.0.1:${server.port:8080}/t/hogwarts/
+        token:
+          client-id: ${DBO_WORKER_CLIENT_ID:sample-admissions-worker}
+          client-secret: ${DBO_WORKER_CLIENT_SECRET:}
 
 spring:
   application:

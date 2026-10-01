@@ -2,10 +2,13 @@
 the store from where a Spring Boot application developer stands, and its spine
 is work — processes made of steps, each step an activity that reaches data only
 through what its task carries in and what its result carries out — rather than
-records written over HTTP to a store. `samples/` gains a third application, the
-hospital's own software. `sample/` is deleted when the last chapter has moved
-([item 026](../026-two-samples-tell-one-story/README.md)). Nothing is written
-yet.**
+records written over HTTP to a store. There is no third application: the
+server application is the clinic's own, with the store embedded, and the worker
+application contributes steps, inside it or in a JVM of its own. The user
+stories are their tests, and the guide quotes their main source. `sample/` is
+deleted when the last chapter has moved
+([item 026](../026-two-samples-tell-one-story/README.md)). No chapter is
+written yet.**
 
 # The guide moves onto the samples
 
@@ -83,7 +86,7 @@ perform a step.
 ### The shape
 
 1. **Introduction and quick start** — the server application serving Rowling
-   Land, the worker application performing a step, the hospital application
+   Land, the worker application performing a step, the clinic's application
    starting a process and reading its result.
 2. **Work** — a process and its steps; what a step declares (slots, result,
    milestones); a run, its task content in and its result out; performing a
@@ -100,23 +103,31 @@ perform a step.
 
 ### The code behind it
 
-- **`samples/spring-boot-hospital-app`** — the hospital's own software, new.
-  What `sample/`'s `Intake`, `Amending`, `Publishing`, `Observing` and
-  `TheWard` showed, rewritten to start work and read its result rather than to
-  write records.
-- **`samples/spring-boot-server-app`** — gains the serving side's beans:
-  `NoticingATenant` and `WatchingTheWork` as a `@DboTenantListener` and a
-  `@DboObserver`.
-- **`samples/spring-boot-worker-app`** — already performs steps
-  (`AdmittingAPatient`, `MeasuringASpecimen`); `Admissions` has no successor,
+- **`samples/spring-boot-server-app`** — the clinic's own application, with
+  the store embedded. It asks for work and reads its answer where `sample/`'s
+  `Intake`, `Amending`, `Publishing` and `Observing` wrote records, and it
+  holds the serving side's beans: `NoticingATenant` and `WatchingTheWork` as a
+  `@DboTenantListener` and a `@DboObserver`, and `CountingTheWard` over the
+  asking vocabulary where `TheWard` was.
+- **`samples/spring-boot-worker-app`** — performs the clinic's steps
+  (`AdmittingAPatient`, `MeasuringASpecimen`, …) and contributes them in two
+  modes: embedded, as a dependency of the server application whose step beans
+  arrive in its context, or separated, in a JVM of its own under the `edge`
+  profile (an HTTP lane into one tenant) or the `substrate` profile (the
+  deployment's own database, with keys whose public halves the tenant
+  enrolled). The same bean serves both. `Admissions` has no successor,
   because what it wired by hand is configuration.
+- **The user stories are the applications' tests.** They live in the server
+  application's tests and boot it the way any Spring Boot application is
+  tested, in the embedded mode, so a leg acts through the applications' own
+  classes and keeps on the doors only what proves a door.
 - **The executable guide** follows: `TheGuideRunsIT` moves under `samples/`
   and runs the chapters' code against Rowling Land
   (`samples/sample-world`), the world the user stories walk.
 
 ### The order
 
-1. The hospital application and its tests.
+1. The applications implement the user stories, and the stories test them.
 2. The chapters, in reading order, the guide green at each one.
 3. `sample/` deleted, and items 026 and 027 closed together.
 

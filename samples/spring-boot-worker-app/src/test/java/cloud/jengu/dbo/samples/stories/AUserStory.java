@@ -1,10 +1,6 @@
 package cloud.jengu.dbo.samples.stories;
 
 import cloud.jengu.dbo.samples.server.ServerApplication;
-import cloud.jengu.dbo.samples.worker.AdmittingAPatient;
-import cloud.jengu.dbo.samples.worker.AskingForADirectoryCheck;
-import cloud.jengu.dbo.samples.worker.MeasuringASpecimen;
-import cloud.jengu.dbo.samples.worker.RegisteringAPatient;
 import cloud.jengu.dbo.spring.test.DboSpringBootTest;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Tag;
@@ -12,7 +8,6 @@ import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.lang.annotation.Documented;
@@ -24,11 +19,15 @@ import java.lang.annotation.Target;
 /**
  * A user story, walked in Rowling Land, the sample world.
  *
- * <p><b>Everything a story class may vary is its legs.</b> The application,
- * the profile and the beans are fixed here, because Spring caches a context by
- * its configuration: a story class that differed in any of them would get a
- * second context, bringing up a second world over the same database, and Spring
- * would not close the first. Nothing on a story class should sit beside this
+ * <p><b>The application is the one under test, as it ships.</b> The clinic's
+ * application and the worker steps it embeds come from their own main source,
+ * so a story exercises what a reader would run, and adds no bean of its own.
+ *
+ * <p><b>Everything a story class may vary is its legs.</b> The application and
+ * the profile are fixed here, because Spring caches a context by its
+ * configuration: a story class that differed in either would get a second
+ * context, bringing up a second world over the same database, and Spring would
+ * not close the first. Nothing on a story class should sit beside this
  * annotation except what JUnit reads.
  *
  * <p><b>The stories run at once.</b> {@code storyTest} runs classes
@@ -48,8 +47,6 @@ import java.lang.annotation.Target;
 @ActiveProfiles("stories")
 @SpringBootTest(classes = ServerApplication.class,
         webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT)
-@Import({AdmittingAPatient.class, RegisteringAPatient.class, MeasuringASpecimen.class,
-        AskingForADirectoryCheck.class})
 @ExtendWith(TheWholeWorldServes.class)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
