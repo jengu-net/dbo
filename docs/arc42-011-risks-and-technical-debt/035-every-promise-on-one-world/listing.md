@@ -12,13 +12,13 @@ Story class: `ATenantOpensAndItsPeopleGetInIT` — exists; today own (lifecycle)
 |---|---|---|---|---|
 | `ATenantOpensAndItsPeopleGetInIT` (story class) | own (lifecycle) | 17 | 16 | moved, harness class deleted |
 | `HumanAuthIT` | own (deployment) | 9 | 9 | todo |
-| `ScimProvisioningIT` | shared | 7 | 7 | todo |
+| `ScimProvisioningIT` | shared | 7 | 7 | deleted |
 | `FederatedAuthIT` | own (deployment) | 3 | 3 | todo |
 | `AFaceIsCutOnceAndBroughtUpFromIT` | own (deployment) | 3 | 2 | todo |
 | `ATenantSubscribesToItsVersionIT` | own (lifecycle) | 3 | 2 | todo |
-| `ADeclaredRelationGrantsIT` | shared | 1 | 1 | todo |
+| `ADeclaredRelationGrantsIT` | shared | 1 | 1 | deleted |
 | `ADeploymentPresentsItsOwnCredentialIT` | own (deployment) | 1 | 1 | todo |
-| `AGrantCanBeTakenBackIT` | shared | 1 | 1 | todo |
+| `AGrantCanBeTakenBackIT` | shared | 1 | 1 | deleted |
 | `APartnerFollowsWorkIT` | shared | 1 | 1 | todo |
 | `AProvisioningClientConvergesTheGrantsIT` | shared | 1 | 1 | todo |
 | `AStreamKeepsMovingWhileATenantComesUpIT` | own (lifecycle) | 1 | 1 | todo |
@@ -87,12 +87,12 @@ Story class: `TheClinicRecordsCareAndAccountsForItIT` — exists; today shared.
 |---|---|---|---|---|
 | `TheClinicRecordsCareAndAccountsForItIT` (story class) | shared | 28 | 13 | moved, harness class deleted |
 | `ATenantAuthorsItsOwnSearchParameterIT` | own (sweep) | 4 | 3 | todo |
-| `ATenantDeliversWhatItSubscribedToIT` | shared | 2 | 2 | todo |
+| `ATenantDeliversWhatItSubscribedToIT` | shared | 2 | 2 | deleted |
 | `TheEnvelopeIsTheSameFromEitherSideIT` | shared | 2 | 2 | todo |
 | `ABlobIsTenantDataIT` | own (lifecycle) | 1 | 1 | todo |
 | `ATenantHoldsItsOwnDeclarationIT` | shared | 2 | 1 | todo |
 | `ATypeSaysWhereItsEnvelopeIsComputedIT` | shared | 1 | 1 | todo |
-| `ContentHeldWholeIsReachableOverTheWireIT` | shared | 1 | 1 | todo |
+| `ContentHeldWholeIsReachableOverTheWireIT` | shared | 1 | 1 | deleted |
 | `R6TenantIT` | shared | 2 | 0 | todo |
 | `TenantProfilesValidateIT` | shared | 1 | 0 | todo |
 
@@ -265,12 +265,12 @@ Story class: `TheStandardMovesUnderTheDataIT` — exists; today shared.
 | Class | Boots | Promises | W | Status |
 |---|---|---|---|---|
 | `ShapeStampIT` | shared | 7 | 7 | todo |
-| `ReshapeIT` | shared | 6 | 6 | todo |
+| `ReshapeIT` | shared | 6 | 6 | deleted |
 | `TheFaceSqlShipsWithTheReleaseIT` | shared | 6 | 6 | todo |
 | `TheStandardMovesUnderTheDataIT` (story class) | shared | 7 | 5 | moved, harness class deleted |
 | `ADefinitionMovesOnItsOwnFeedIT` | shared | 3 | 3 | todo |
 | `AValueIsTheKindOfThingItIsDeclaredToBeIT` | shared | 2 | 2 | todo |
-| `NewerDataRefusedIT` | shared | 2 | 2 | todo |
+| `NewerDataRefusedIT` | shared | 2 | 2 | deleted |
 | `TheTwoAnswersAreComparedOverTheVersionIT` | shared | 2 | 2 | todo |
 | `ADefinitionIsExpandedWhenItArrivesIT` | own (first boot) | 7 | 1 | todo |
 | `AFaceRootHoldsItsVersionAsRecordsIT` | own (lifecycle) | 1 | 1 | todo |
@@ -363,18 +363,18 @@ Story class: `WorkLeavesTheClinicAndComesBackIT` — exists; today shared.
 | Class | Boots | Promises | W | Status |
 |---|---|---|---|---|
 | `WorkLeavesTheClinicAndComesBackIT` (story class) | shared | 23 | 13 | moved, harness class deleted |
-| `ALaneOverHttpIsIndistinguishableIT` | shared | 5 | 4 | todo |
-| `ARouterHoldsTheClaimIT` | shared | 3 | 3 | todo |
-| `AFaceAuthoredRunReachesTheLaneIT` | shared | 1 | 1 | todo |
+| `ALaneOverHttpIsIndistinguishableIT` | shared | 5 | 4 | deleted |
+| `ARouterHoldsTheClaimIT` | shared | 3 | 3 | deleted |
+| `AFaceAuthoredRunReachesTheLaneIT` | shared | 1 | 1 | deleted |
 | `AHostHoldsALaneByInstallingABundleIT` | osgi+own (container) | 2 | 1 | todo |
 | `ALaneOverTheStreamIsIndistinguishableIT` | own (deployment) | 2 | 1 | todo |
 | `ALargePayloadTravelsByReferenceIT` | own (whole plane) | 2 | 1 | todo |
-| `AParticipantOffersItsKeyAtEnrolmentIT` | shared | 1 | 1 | todo |
-| `ARunsTrailIsChainedFromTheTaskIT` | shared | 1 | 1 | todo |
+| `AParticipantOffersItsKeyAtEnrolmentIT` | shared | 1 | 1 | deleted |
+| `ARunsTrailIsChainedFromTheTaskIT` | shared | 1 | 1 | in story but for the pruned-trail leg |
 | `MandatoryStepsClassifyIncidentsIT` | own (sweep) | 1 | 1 | todo |
 | `NothingReadableLandsInTheSubstrateIT` | own (whole plane) | 2 | 1 | todo |
-| `OneRunIsOneChainAcrossTwoProcessesIT` | shared | 1 | 1 | todo |
-| `WorkTravelsSealedIT` | shared | 2 | 1 | todo |
+| `OneRunIsOneChainAcrossTwoProcessesIT` | shared | 1 | 1 | deleted |
+| `WorkTravelsSealedIT` | shared | 2 | 1 | deleted |
 | `AStreamLaneIsToldItHasWorkIT` | own (deployment) | 1 | 0 | todo |
 
 | Promise | Proven now by | W | Leg in the story class |
