@@ -77,6 +77,23 @@ class TheClinicRecordsCareAndAccountsForItIT {
     @Autowired
     cloud.jengu.dbo.samples.server.NoticingATenant noticing;
 
+    /** The clinic asking for its records to be written, and hearing back. */
+    @Autowired
+    cloud.jengu.dbo.samples.server.AskingForARegistration registering;
+
+    @Autowired
+    cloud.jengu.dbo.samples.server.AskingForAVisit visiting;
+
+    @Autowired
+    cloud.jengu.dbo.samples.server.AskingForACorrection correcting;
+
+    @Autowired
+    cloud.jengu.dbo.samples.worker.HearingBack hearing;
+
+    /** The lanes the clinic's application holds, as it is configured with them. */
+    @Autowired
+    cloud.jengu.dbo.spring.worker.DboWorkerProperties lanes;
+
     private ATenantsDoor clinic;
     private String liis;
 
@@ -94,6 +111,31 @@ class TheClinicRecordsCareAndAccountsForItIT {
         return URLEncoder.encode(value, StandardCharsets.UTF_8);
     }
 
+    /** The client the clinic's application asks the clinic for work with. */
+    private String clinicsClient() {
+        return lanes.getLanes().stream().filter(lane -> CLINIC.equals(lane.getTenant()))
+                .map(lane -> lane.getToken().getClientId()).findFirst()
+                .orElseThrow(() -> new AssertionError("the application holds no lane into "
+                        + CLINIC));
+    }
+
+    /** What a run the clinic asked for wrote, once it has finished. */
+    private List<String> produced(cloud.jengu.dbo.spring.worker.DboInitiator.Started asked) {
+        var answer = hearing.settled(CLINIC, asked, Duration.ofMinutes(3));
+        assertEquals("completed", answer.state(), "the run did not complete: " + answer.body());
+        return cloud.jengu.dbo.samples.worker.HearingBack.produced(answer).stream()
+                .map(written -> written.replaceAll("/_history/.*$", "")).toList();
+    }
+
+    /** The id of the one record of a type a run the clinic asked for wrote. */
+    private String writtenBy(cloud.jengu.dbo.spring.worker.DboInitiator.Started asked,
+            String type) {
+        List<String> written = produced(asked);
+        return written.stream().filter(one -> one.startsWith(type + "/")).findFirst()
+                .map(one -> one.substring(type.length() + 1))
+                .orElseThrow(() -> new AssertionError("no " + type + " was written: " + written));
+    }
+
     // ── one patient, however many times she arrives ──
 
     @Test
@@ -103,13 +145,13 @@ class TheClinicRecordsCareAndAccountsForItIT {
     @Proving({DboPromises.CORE_PAYLOAD_IS_TRUTH, DboPromises.CORE_READ_YOUR_WRITES,
             DboPromises.CORE_DECLARED_TRUTH_FORM})
     void whatWasWrittenIsWhatIsRead() {
-        var written = dbo.write(CLINIC, "Patient", """
+        // The clinic's application asks for her to be recorded; the step
+        // answers with her, and the clinic writes her.
+        liis = writtenBy(registering.register(CLINIC, """
                 {"resourceType":"Patient",
                  "identifier":[{"system":"%s","value":"%s"}],
                  "name":[{"family":"Tamm","given":["Liis"]}],
-                 "birthDate":"1990-01-01"}""".formatted(MRN, hers()));
-        assertTrue(written.accepted(), "Liis was not accepted: " + written.body());
-        liis = written.idOrFail();
+                 "birthDate":"1990-01-01"}""".formatted(MRN, hers())), "Patient");
 
         HttpResponse<String> read = dbo.read(CLINIC, "Patient", liis);
         assertEquals(200, read.statusCode(), read.body());
@@ -147,13 +189,12 @@ class TheClinicRecordsCareAndAccountsForItIT {
         // A different person at the same clinic is a different record, and no
         // amount of matching names changes that: identity is the declared
         // record number, never a resemblance the store decided on its own.
-        var namesake = dbo.write(CLINIC, "Patient", """
+        String namesake = writtenBy(registering.register(CLINIC, """
                 {"resourceType":"Patient",
                  "identifier":[{"system":"%s","value":"%s"}],
                  "name":[{"family":"Tamm","given":["Liis"]}]}"""
-                .formatted(MRN, names.value("namesake")));
-        assertTrue(namesake.accepted(), namesake.body());
-        Proves.that(DboPromises.CORE_NO_IMPLICIT_MERGE, !namesake.idOrFail().equals(liis),
+                .formatted(MRN, names.value("namesake"))), "Patient");
+        Proves.that(DboPromises.CORE_NO_IMPLICIT_MERGE, !namesake.equals(liis),
                 "two people with one name became one record");
     }
 
@@ -163,12 +204,14 @@ class TheClinicRecordsCareAndAccountsForItIT {
             + "the record said last year is a fact about last year")
     @Proving(DboPromises.CORE_VERSIONED_HISTORY)
     void everyVersionIsKept() {
-        HttpResponse<String> corrected = clinic.put("/Patient/" + liis, """
-                {"resourceType":"Patient","id":"%s",
-                 "identifier":[{"system":"%s","value":"%s"}],
-                 "name":[{"family":"Tamm","given":["Liis"]}],
-                 "birthDate":"1990-01-02"}""".formatted(liis, MRN, hers()));
-        assertEquals(200, corrected.statusCode(), corrected.body());
+        // Decided on the version that was wrong, which is the one it corrects.
+        assertEquals(List.of("Patient/" + liis),
+                produced(correcting.correct(CLINIC, "Patient/" + liis, """
+                        {"resourceType":"Patient","meta":{"versionId":"1"},
+                         "identifier":[{"system":"%s","value":"%s"}],
+                         "name":[{"family":"Tamm","given":["Liis"]}],
+                         "birthDate":"1990-01-02"}""".formatted(MRN, hers()))),
+                "the correction did not write her record");
 
         HttpResponse<String> history = clinic.get("/Patient/" + liis + "/_history");
         assertEquals(200, history.statusCode(), history.body());
@@ -191,28 +234,27 @@ class TheClinicRecordsCareAndAccountsForItIT {
         // Two observations, one gathering the other. St Jerome takes its
         // encounters from the hospital, so a visit recorded here is what was
         // measured, named to the patient by the number the sender holds.
-        HttpResponse<String> visit = clinic.post("", """
-                {"resourceType":"Bundle","type":"transaction","entry":[
-                  {"fullUrl":"urn:uuid:temperature",
-                   "resource":{"resourceType":"Observation","status":"final",
-                     "code":{"text":"Body temperature"},
-                     "subject":{"reference":"Patient?identifier=%s|%s"},
-                     "valueQuantity":{"value":37.4}},
-                   "request":{"method":"POST","url":"Observation"}},
-                  {"resource":{"resourceType":"Observation","status":"final",
-                     "code":{"text":"Visit summary"},
-                     "subject":{"reference":"Patient?identifier=%s|%s"},
-                     "hasMember":[{"reference":"urn:uuid:temperature"}]},
-                   "request":{"method":"POST","url":"Observation"}}]}"""
-                .formatted(MRN, hers(), MRN, hers()));
-        Proves.that(DboPromises.CORE_ATOMIC_TRANSACTION_BUNDLE, visit.statusCode() == 200,
-                "the visit did not land: " + visit.statusCode() + " " + visit.body());
+        // The clinic's application asks for the visit to be recorded; the step
+        // answers with both observations as one result, which the clinic
+        // commits as one transaction.
+        var visit = hearing.settled(CLINIC, visiting.record(CLINIC, List.of("""
+                {"resourceType":"Observation","id":"temperature","status":"final",
+                 "code":{"text":"Body temperature"},
+                 "subject":{"reference":"Patient?identifier=%s|%s"},
+                 "valueQuantity":{"value":38}}""".formatted(MRN, hers()), """
+                {"resourceType":"Observation","status":"final",
+                 "code":{"text":"Visit summary"},
+                 "subject":{"reference":"Patient?identifier=%s|%s"},
+                 "hasMember":[{"reference":"urn:uuid:temperature"}]}"""
+                .formatted(MRN, hers()))), Duration.ofMinutes(3));
+        Proves.that(DboPromises.CORE_ATOMIC_TRANSACTION_BUNDLE,
+                "completed".equals(visit.state()), "the visit did not land: " + visit.body());
 
         // What the story is about is what landed IN them: the question the
         // sender asked — whoever has this number — is answered once, at write
         // time, and stored as a concrete reference.
-        List<String> landed = dbo.says(visit).at("entry.response.location");
-        assertEquals(2, landed.size(), "the visit's two entries say where they landed: "
+        List<String> landed = cloud.jengu.dbo.samples.worker.HearingBack.produced(visit);
+        assertEquals(2, landed.size(), "the visit's two observations say where they landed: "
                 + visit.body());
         String summary = landed.get(1).replaceAll("/_history/.*$", "");
         HttpResponse<String> stored = clinic.get("/" + summary);
@@ -239,21 +281,18 @@ class TheClinicRecordsCareAndAccountsForItIT {
         // A transaction whose second entry names a patient nobody has: the
         // first entry must not survive it.
         String doomedText = names.value("must-not-land");
-        HttpResponse<String> doomed = clinic.post("", """
-                {"resourceType":"Bundle","type":"transaction","entry":[
-                  {"resource":{"resourceType":"Observation","status":"final",
-                     "code":{"text":"%s"},
-                     "subject":{"reference":"Patient?identifier=%s|%s"},
-                     "valueQuantity":{"value":61}},
-                   "request":{"method":"POST","url":"Observation"}},
-                  {"resource":{"resourceType":"Observation","status":"final",
-                     "code":{"text":"Pulse"},
-                     "subject":{"reference":"Patient?identifier=%s|%s"},
-                     "valueQuantity":{"value":62}},
-                   "request":{"method":"POST","url":"Observation"}}]}"""
-                .formatted(doomedText, MRN, hers(), MRN, names.value("nobody-has-this")));
-        assertNotEquals(200, doomed.statusCode(),
-                "the transaction was accepted despite an entry it could not honour: "
+        var doomed = hearing.settled(CLINIC, visiting.record(CLINIC, List.of("""
+                {"resourceType":"Observation","status":"final",
+                 "code":{"text":"%s"},
+                 "subject":{"reference":"Patient?identifier=%s|%s"},
+                 "valueQuantity":{"value":61}}""".formatted(doomedText, MRN, hers()), """
+                {"resourceType":"Observation","status":"final",
+                 "code":{"text":"Pulse"},
+                 "subject":{"reference":"Patient?identifier=%s|%s"},
+                 "valueQuantity":{"value":62}}"""
+                .formatted(MRN, names.value("nobody-has-this")))), Duration.ofMinutes(3));
+        assertEquals("failed", doomed.state(),
+                "the visit was recorded despite an observation the clinic could not honour: "
                         + doomed.body());
 
         HttpResponse<String> hers = clinic.get("/Observation?subject=Patient/" + liis);
@@ -303,6 +342,20 @@ class TheClinicRecordsCareAndAccountsForItIT {
         assertTrue(late.body().contains("conflict"),
                 "and the refusal says what kind it is, so a client knows to re-read rather "
                         + "than to retry: " + late.body());
+
+        // The same refusal on the clinic's own path: a correction decided on
+        // the first version, asked for after the second was written, ends the
+        // run with the clinic's reason and writes nothing.
+        var stale = hearing.settled(CLINIC, correcting.correct(CLINIC, "Patient/" + liis, """
+                {"resourceType":"Patient","meta":{"versionId":"1"},
+                 "identifier":[{"system":"%s","value":"%s"}],
+                 "name":[{"family":"Tamm","given":["Liis"]}],
+                 "birthDate":"1989-12-31"}""".formatted(MRN, hers())), Duration.ofMinutes(3));
+        assertEquals("failed", stale.state(),
+                "a correction decided on a version that has moved on was written: "
+                        + stale.body());
+        assertTrue(dbo.read(CLINIC, "Patient", liis).body().contains("1990-01-02"),
+                "the stale correction replaced the one made after it");
     }
 
     @Test
@@ -448,8 +501,10 @@ class TheClinicRecordsCareAndAccountsForItIT {
         Proves.that(DboPromises.POL_AUDIT_AS_RECORDS, !ids.isEmpty(),
                 "St Jerome audits writes, and nothing written to Liis is in its trail: "
                         + trail.body());
+        // Her record is written under the runs the clinic's application asked
+        // for, so the actor is the client the clinic issued for its lane.
         Proves.that(DboPromises.POL_ACTOR_FROM_AUTHORITY,
-                trail.body().contains("dbo-test-worker"),
+                trail.body().contains("\"" + clinicsClient() + "\""),
                 "the actor is not the credential the clinic's authority validated: "
                         + trail.body());
 

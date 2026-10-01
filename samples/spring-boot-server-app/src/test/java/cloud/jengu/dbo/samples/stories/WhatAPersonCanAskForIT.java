@@ -18,6 +18,7 @@ import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.SecureRandom;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -76,6 +77,19 @@ class WhatAPersonCanAskForIT {
     @Autowired
     Environment environment;
 
+    /** The clinic asking for its records to be written, and hearing back. */
+    @Autowired
+    cloud.jengu.dbo.samples.server.AskingForARegistration registering;
+
+    @Autowired
+    cloud.jengu.dbo.samples.server.AskingWhoSomebodyIs identifying;
+
+    @Autowired
+    cloud.jengu.dbo.samples.server.AskingForACorrection correcting;
+
+    @Autowired
+    cloud.jengu.dbo.samples.worker.HearingBack hearing;
+
     private APersonsDoors doors;
     private WhatTheDatabaseHolds database;
 
@@ -115,13 +129,16 @@ class WhatAPersonCanAskForIT {
             + "name, because what identifies her lives in the vault")
     @Proving(DboPromises.PDI_STRUCTURAL_VAULT)
     void readingHerIsNotTheSameAsWritingHer() {
-        var written = dbo.write(HOSPITAL, "Patient", """
+        // Written by the hospital, from what a step answered with: the
+        // clinic's application gave her and never held a records credential.
+        var written = hearing.settled(HOSPITAL, registering.register(HOSPITAL, """
                 {"resourceType":"Patient",
                  "identifier":[{"system":"%s","value":"%s"}],
                  "name":[{"family":"Tamm","given":["Liis"]}],
-                 "birthDate":"1990-01-01"}""".formatted(NATIONAL_NUMBER, names.value("liis")));
-        assertTrue(written.accepted(), "Liis was not accepted: " + written.body());
-        liis = written.idOrFail();
+                 "birthDate":"1990-01-01"}""".formatted(NATIONAL_NUMBER, names.value("liis"))),
+                Duration.ofMinutes(3));
+        assertEquals("completed", written.state(), "Liis was not recorded: " + written.body());
+        liis = idOf(written, "Patient");
 
         HttpResponse<String> read = dbo.read(HOSPITAL, "Patient", liis);
         assertEquals(200, read.statusCode(), read.body());
@@ -163,47 +180,47 @@ class WhatAPersonCanAskForIT {
             + "key, while a second Person claiming her number or her record is refused")
     @Proving({DboPromises.PDI_STRUCTURAL_VAULT, DboPromises.CORE_NO_IMPLICIT_MERGE})
     void sheIsOneHumanHeldAsTwoRecords() {
-        ATenantsDoor door = new ATenantsDoor(dbo, HOSPITAL);
-        HttpResponse<String> person = door.post("/Person", """
+        var person = hearing.settled(HOSPITAL, identifying.identify(HOSPITAL, """
                 {"resourceType":"Person",
                  "identifier":[{"system":"%s","value":"%s"}],
                  "name":[{"family":"Tamm","given":["Liis"]}],
                  "link":[{"target":{"reference":"Patient/%s"}}]}"""
-                .formatted(NATIONAL_NUMBER, names.value("liis"), liis));
-        Proves.that(DboPromises.PDI_STRUCTURAL_VAULT, person.statusCode() == 201,
+                .formatted(NATIONAL_NUMBER, names.value("liis"), liis)), Duration.ofMinutes(3));
+        Proves.that(DboPromises.PDI_STRUCTURAL_VAULT, "completed".equals(person.state()),
                 "the Person who is Liis carries the number her Patient record carries, and "
                         + "was refused as a conflict against it, so a human cannot be held as "
                         + "both — which is the ordinary way of holding one: " + person.body());
-        herPerson = idIn(person);
+        herPerson = idOf(person, "Person");
 
         // A record re-asserting its own claim is not a second claimant.
-        HttpResponse<String> again = door.put("/Patient/" + liis, """
-                {"resourceType":"Patient","id":"%s",
+        var again = hearing.settled(HOSPITAL, correcting.correct(HOSPITAL, "Patient/" + liis, """
+                {"resourceType":"Patient",
                  "identifier":[{"system":"%s","value":"%s"}],
                  "name":[{"family":"Tamm","given":["Liis"]}],
-                 "birthDate":"1990-01-01"}""".formatted(liis, NATIONAL_NUMBER, names.value("liis")));
-        assertEquals(200, again.statusCode(), again.body());
+                 "birthDate":"1990-01-01"}""".formatted(NATIONAL_NUMBER, names.value("liis"))),
+                Duration.ofMinutes(3));
+        assertEquals("completed", again.state(), again.body());
 
-        HttpResponse<String> twin = door.post("/Person", """
+        var twin = hearing.settled(HOSPITAL, identifying.identify(HOSPITAL, """
                 {"resourceType":"Person",
                  "identifier":[{"system":"%s","value":"%s"}],
-                 "name":[{"family":"Kask"}]}""".formatted(NATIONAL_NUMBER, names.value("liis")));
-        Proves.that(DboPromises.CORE_NO_IMPLICIT_MERGE, twin.statusCode() == 409,
-                "a second Person claiming Liis's number was accepted, so the store merged two "
-                        + "people by silence: " + twin.statusCode() + " " + twin.body());
+                 "name":[{"family":"Kask"}]}""".formatted(NATIONAL_NUMBER, names.value("liis"))),
+                Duration.ofMinutes(3));
+        Proves.that(DboPromises.CORE_NO_IMPLICIT_MERGE, "failed".equals(twin.state()),
+                "a second Person claiming Liis's number was written, so the store merged two "
+                        + "people by silence: " + twin.body());
 
         // And a link that would join two people who are each identified is
         // refused rather than decided here: her record is already somebody's.
-        HttpResponse<String> joined = door.post("/Person", """
+        var joined = hearing.settled(HOSPITAL, identifying.identify(HOSPITAL, """
                 {"resourceType":"Person",
                  "identifier":[{"system":"%s","value":"%s"}],
                  "name":[{"family":"Teine"}],
                  "link":[{"target":{"reference":"Patient/%s"}}]}"""
-                .formatted(NATIONAL_NUMBER, names.value("teine"), liis));
-        Proves.that(DboPromises.CORE_NO_IMPLICIT_MERGE, joined.statusCode() == 409,
+                .formatted(NATIONAL_NUMBER, names.value("teine"), liis)), Duration.ofMinutes(3));
+        Proves.that(DboPromises.CORE_NO_IMPLICIT_MERGE, "failed".equals(joined.state()),
                 "a link joined Liis's record to another identified person, so the store "
-                        + "decided which human she is: " + joined.statusCode() + " "
-                        + joined.body());
+                        + "decided which human she is: " + joined.body());
     }
 
     // ── looking somebody up is an act with a reason ──
@@ -912,6 +929,16 @@ class WhatAPersonCanAskForIT {
     private static String claimsOf(String jwt) {
         return new String(Base64.getUrlDecoder().decode(jwt.split("\\.")[1]),
                 StandardCharsets.UTF_8);
+    }
+
+    /** The id of the one record of a type a finished run says the hospital wrote. */
+    private static String idOf(cloud.jengu.dbo.spring.worker.DboInitiator.Answer answer,
+            String type) {
+        return cloud.jengu.dbo.samples.worker.HearingBack.produced(answer).stream()
+                .filter(written -> written.startsWith(type + "/"))
+                .map(written -> written.split("/")[1]).findFirst()
+                .orElseThrow(() -> new AssertionError("no " + type + " was written: "
+                        + answer.body()));
     }
 
     private static String idIn(HttpResponse<String> created) {

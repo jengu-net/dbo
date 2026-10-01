@@ -127,10 +127,6 @@ class WorkLeavesTheClinicAndComesBackIT {
     @Autowired
     org.springframework.core.env.Environment environment;
 
-    /** The worker application's own way of asking for work. */
-    @Autowired
-    cloud.jengu.dbo.spring.worker.DboInitiator initiator;
-
     /** The worker application asking for an admission. */
     @Autowired
     cloud.jengu.dbo.samples.worker.AskingForAnAdmission admitting;
@@ -1232,9 +1228,8 @@ class WorkLeavesTheClinicAndComesBackIT {
     @Proving({DboPromises.PROC_A_RESULT_IS_WRITTEN_BY_THE_TENANT,
             DboPromises.PROC_A_RUN_ANSWERS_ITS_INITIATOR})
     void aResultIsWrittenByTheHospital() {
-        cloud.jengu.dbo.spring.worker.DboInitiator.Started started = initiator.starting(HOSPITAL,
-                "hogwarts.admission.register", Map.of("patient",
-                        cloud.jengu.dbo.spring.worker.DboInitiator.Slot.object(person(arriving))));
+        cloud.jengu.dbo.spring.worker.DboInitiator.Started started =
+                admitting.register(HOSPITAL, person(arriving));
         cloud.jengu.dbo.spring.worker.DboInitiator.Answer answer =
                 hearing.settled(HOSPITAL, started, Duration.ofMinutes(3));
         Proves.that(DboPromises.PROC_A_RESULT_IS_WRITTEN_BY_THE_TENANT,
@@ -1281,9 +1276,8 @@ class WorkLeavesTheClinicAndComesBackIT {
     @Proving(DboPromises.PROC_A_REFUSED_RESULT_ENDS_THE_RUN)
     void aRefusedResultEndsTheRun() throws InterruptedException {
         assertTrue(registered != null, "the leg before registered nobody");
-        cloud.jengu.dbo.spring.worker.DboInitiator.Started again = initiator.starting(HOSPITAL,
-                "hogwarts.admission.register", Map.of("patient",
-                        cloud.jengu.dbo.spring.worker.DboInitiator.Slot.object(person(arriving))));
+        cloud.jengu.dbo.spring.worker.DboInitiator.Started again =
+                admitting.register(HOSPITAL, person(arriving));
         String run = again.runOrFail();
         cloud.jengu.dbo.spring.worker.DboInitiator.Answer answer =
                 hearing.settled(HOSPITAL, again, Duration.ofMinutes(3));

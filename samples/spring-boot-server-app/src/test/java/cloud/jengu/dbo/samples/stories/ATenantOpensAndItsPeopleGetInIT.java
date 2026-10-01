@@ -152,7 +152,9 @@ class ATenantOpensAndItsPeopleGetInIT {
     void theClinicsOwnAuthorityIssuesAndChecksTheToken() {
         // The clinic's application registered itself as the clinic opened,
         // with the one scope its screens need; it signs in as any client does.
-        String reads = token(clinic, app(), appSecret());
+        // Opening finishes a moment after the clinic first answers, so the
+        // first sign-in is waited for rather than assumed.
+        String reads = untilSignedIn(clinic, app(), appSecret());
 
         assertEquals(200, statusOf(fhir(clinic) + "/Patient?_summary=count", reads),
                 "the scope it was granted answers");
@@ -1479,6 +1481,26 @@ class ATenantOpensAndItsPeopleGetInIT {
     }
 
     /** A token from the clinic's own issuer, asked for the way any client asks. */
+    private String untilSignedIn(String tenant, String clientId, String secret) {
+        long giveUp = System.nanoTime() + Duration.ofMinutes(1).toNanos();
+        while (System.nanoTime() < giveUp) {
+            HttpResponse<String> issued = formPost(oidc(tenant) + "/token",
+                    "grant_type=client_credentials&client_id="
+                            + URLEncoder.encode(clientId, StandardCharsets.UTF_8)
+                            + "&client_secret=" + URLEncoder.encode(secret, StandardCharsets.UTF_8));
+            if (issued.statusCode() == 200) {
+                return dbo.says(issued).one("access_token").orElseThrow();
+            }
+            try {
+                Thread.sleep(250);
+            } catch (InterruptedException interrupted) {
+                Thread.currentThread().interrupt();
+                break;
+            }
+        }
+        return token(tenant, clientId, secret);
+    }
+
     private String token(String tenant, String clientId, String secret) {
         String form = "grant_type=client_credentials&client_id="
                 + URLEncoder.encode(clientId, StandardCharsets.UTF_8)

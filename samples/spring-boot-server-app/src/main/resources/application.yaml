@@ -32,6 +32,11 @@ dbo:
         token:
           client-id: ${DBO_WORKER_CLIENT_ID:sample-admissions-worker}
           client-secret: ${DBO_WORKER_CLIENT_SECRET:a-sample-secret-for-the-clinics-worker}
+      - tenant: st-jerome
+        base: http://127.0.0.1:${server.port:8080}/t/st-jerome/
+        token:
+          client-id: ${DBO_WORKER_CLIENT_ID:sample-admissions-worker}
+          client-secret: ${DBO_WORKER_CLIENT_SECRET:a-sample-secret-for-the-clinics-worker}
 
 spring:
   application:

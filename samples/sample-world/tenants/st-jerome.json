@@ -9,6 +9,15 @@
     { "name": "rl", "types": ["CodeSystem", "ValueSet"] },
     { "name": "hogwarts", "types": ["Encounter"] }
   ],
+  "steps": [
+    { "code": "care.records.register", "slots": { "patient": "Patient" },
+      "writes": ["Patient"] },
+    { "code": "care.records.correct",
+      "slots": { "record": "Reference(Patient)", "corrected": "Patient" },
+      "writes": ["Patient"] },
+    { "code": "care.visit.record", "slots": { "observations": "Observation[]" },
+      "writes": ["Observation"] }
+  ],
   "types": [
     { "name": "StructureDefinition", "identity": "canonical", "handling": "replicated" },
     { "name": "SearchParameter", "identity": "canonical", "handling": "replicated" },

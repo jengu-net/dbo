@@ -28,6 +28,9 @@ public final class AskingForAnAdmission {
     /** The step the hospital declares in its own spec. */
     public static final String STEP = "hogwarts.admission.admit";
 
+    /** And the one that registers somebody arriving, performed by {@link RegisteringAPatient}. */
+    public static final String REGISTERING = "hogwarts.admission.register";
+
     private final DboInitiator initiator;
 
     AskingForAnAdmission(DboInitiator initiator) {
@@ -43,5 +46,22 @@ public final class AskingForAnAdmission {
      */
     public DboInitiator.Started admit(String tenant, String patient) {
         return initiator.start(tenant, STEP, Map.of("patient", patient));
+    }
+
+    /**
+     * Asks a tenant to register somebody it does not hold yet, and the stay
+     * they arrived for.
+     *
+     * <p>Given rather than referred: the person is a number and a name this
+     * application has, and there is no record for a reference to point at.
+     * The step answers with the person and the stay, and the hospital writes
+     * both or neither — or refuses, if it already holds somebody by that
+     * number, and the run ends with its reason.
+     *
+     * @param patient the person, as the {@code Patient} this application has
+     */
+    public DboInitiator.Started register(String tenant, String patient) {
+        return initiator.starting(tenant, REGISTERING,
+                Map.of("patient", DboInitiator.Slot.object(patient)));
     }
 }
