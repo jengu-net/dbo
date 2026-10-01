@@ -160,53 +160,53 @@ Story class: `TheClinicRecordsCareAndAccountsForItIT` — exists; today shared.
 
 ## US-DBO-PERSON-RIGHTS
 
-Story class: none yet.
+Story class: `WhatAPersonCanAskForIT` — on the world, at Hogwarts.
 
 | Class | Boots | Promises | W | Status |
 |---|---|---|---|---|
-| `AHumanHeldAsTwoRecordsIT` | shared | 6 | 3 | todo |
-| `DelegationIT` | shared | 2 | 2 | todo |
+| `AHumanHeldAsTwoRecordsIT` | shared | 6 | 3 | deleted |
+| `DelegationIT` | shared | 2 | 2 | deleted |
 | `TenantRuntimeIT` | own (sweep) | 4 | 2 | todo |
-| `APseudonymResolvesBackToItsPersonIT` | shared | 2 | 1 | todo |
-| `AStoreWithoutSuperuserStillMountsIT` | own (sweep) | 1 | 1 | todo |
-| `IdentificationIsReachableFromOutsideIT` | shared | 1 | 1 | todo |
-| `ThePlaintextInFlightLeavesNoTraceIT` | own (deployment) | 1 | 1 | todo |
-| `APseudonymIsDerivedAndNeverKeptIT` | shared | 2 | 0 | todo |
-| `ContentIsSealedToThePersonItIsAboutIT` | shared | 1 | 0 | todo |
+| `APseudonymResolvesBackToItsPersonIT` | shared | 2 | 1 | deleted; its page-boundary walk is `PdiIT#theWalkCrossesItsOwnPageBoundary`, without a world |
+| `AStoreWithoutSuperuserStillMountsIT` | own (sweep) | 1 | 1 | stays: it needs a store role that is not superuser, and the world's is; it is also the proof that an isolated tenant refuses a database that would log its people |
+| `IdentificationIsReachableFromOutsideIT` | shared | 1 | 1 | deleted |
+| `ThePlaintextInFlightLeavesNoTraceIT` | own (deployment) | 1 | 1 | deleted; the pin is read on Hogwarts, the refusal is `AStoreWithoutSuperuserStillMountsIT`'s |
+| `APseudonymIsDerivedAndNeverKeptIT` | shared | 2 | 0 | deleted |
+| `ContentIsSealedToThePersonItIsAboutIT` | shared | 1 | 0 | deleted |
 
 | Promise | Proven now by | W | Leg in the story class |
 |---|---|---|---|
 | `AUTH_FEDERATED_HUMANS` | `FederatedAuthIT`, `HumanAuthIT`, `ZoneIT` | W | to fit |
 | `AUTH_NO_SUBJECT_ENUMERATION` | `HumanAuthIT` | W | to fit |
-| `AUTH_ON_BEHALF_OF` | `DelegationIT` | W | to fit |
+| `AUTH_ON_BEHALF_OF` | — | W | `13` `aProcessActsInAClinicianName`, `14`, `15` |
 | `AUTH_PSEUDONYMOUS_TOKENS` | `HumanAuthIT` | W | to fit |
-| `AUTH_PURPOSE_IS_STATED_PER_REQUEST` | `DelegationIT` | W | to fit |
-| `CORE_IDENTITY_KEYED_CONDITIONALS` | `AHumanHeldAsTwoRecordsIT` | W | to fit |
-| `CORE_NO_IMPLICIT_MERGE` | `AHumanHeldAsTwoRecordsIT` | W | to fit |
-| `IDN_ANONYMITY_IS_DECLARED_NOT_INFERRED` | without a world: AnonymityIT |  | assert where the story passes it |
+| `AUTH_PURPOSE_IS_STATED_PER_REQUEST` | — | W | `14` `aStandingDelegationOutlivesTheTokenAndNeverWidens` |
+| `CORE_IDENTITY_KEYED_CONDITIONALS` | — | W | `5` `aNumberTheHospitalHoldsIsNeverAnsweredEmpty` |
+| `CORE_NO_IMPLICIT_MERGE` | — | W | `3` `sheIsOneHumanHeldAsTwoRecords` |
+| `IDN_ANONYMITY_IS_DECLARED_NOT_INFERRED` | without a world: AnonymityIT |  | `7` `whoSheIsIsDecidedAndCanBeUndone` |
 | `IDN_ASSURANCE_IS_THE_WEAKER_OF_THE_TWO` | without a world: AssuranceIT |  | assert where the story passes it |
-| `IDN_A_DECISION_IS_EVIDENCE` | without a world: AdjudicationIT, AdjudicationPersistedIT |  | assert where the story passes it |
-| `IDN_BINDING_IS_REVERSIBLE_AND_KEEPS_ITS_EVIDENCE` | without a world: BindingIT |  | assert where the story passes it |
-| `IDN_CLAIM_STRENGTH_BOUNDS_THE_CONCLUSION` | without a world: IdentityLookupIT, IdentityResolutionIT |  | assert where the story passes it |
-| `IDN_IDENTIFICATION_IS_REACHABLE` | `IdentificationIsReachableFromOutsideIT` | W | to fit |
+| `IDN_A_DECISION_IS_EVIDENCE` | without a world: AdjudicationIT, AdjudicationPersistedIT |  | `7` `whoSheIsIsDecidedAndCanBeUndone` |
+| `IDN_BINDING_IS_REVERSIBLE_AND_KEEPS_ITS_EVIDENCE` | without a world: BindingIT |  | `7` `whoSheIsIsDecidedAndCanBeUndone` |
+| `IDN_CLAIM_STRENGTH_BOUNDS_THE_CONCLUSION` | without a world: IdentityLookupIT, IdentityResolutionIT |  | `6` `identifyingHerIsADoorOfItsOwn` |
+| `IDN_IDENTIFICATION_IS_REACHABLE` | — | W | `6` `identifyingHerIsADoorOfItsOwn`, `7` |
 | `IDN_WHAT_A_RECIPIENT_SEES_IS_DECLARED` | `TheGuideRunsIT` | W | to fit |
 | `PDI_AN_ID_THE_STORE_NEVER_ASSIGNED_IS_NOT_A_FAULT` | without a world: PdiIT |  | assert where the story passes it |
-| `PDI_A_REFUSAL_ANSWERS_AS_A_REFUSAL` | without a world: PdiIT, TheGuideRunsIT |  | assert where the story passes it |
+| `PDI_A_REFUSAL_ANSWERS_AS_A_REFUSAL` | without a world: PdiIT, TheGuideRunsIT |  | `4` `lookingSomebodyUpIsAnActWithAReason` |
 | `PDI_BLIND_OPERATIONS` | without a world: PdiIT, TheGuideRunsIT |  | assert where the story passes it |
-| `PDI_CRYPTO_SHREDDING` | `AHumanHeldAsTwoRecordsIT`, `APseudonymResolvesBackToItsPersonIT`, `APseudonymIsDerivedAndNeverKeptIT`, `ContentIsSealedToThePersonItIsAboutIT` |  | to fit |
-| `PDI_ERASURE_IS_A_RUN` | `TheGuideRunsIT` | W | to fit |
-| `PDI_ERASURE_SAYS_HOW_FAR_IT_GOT` | `TheGuideRunsIT` | W | to fit |
-| `PDI_EXACT_RESOLUTION` | `AHumanHeldAsTwoRecordsIT` |  | to fit |
-| `PDI_PLAINTEXT_IN_FLIGHT_LEAVES_NO_TRACE` | `AStoreWithoutSuperuserStillMountsIT`, `ThePlaintextInFlightLeavesNoTraceIT` | W | to fit |
-| `PDI_PSEUDONYM_RESOLVED_BY_SCAN` | `APseudonymResolvesBackToItsPersonIT` | W | to fit |
+| `PDI_CRYPTO_SHREDDING` | without a world: PdiIT |  | `10` `herRecordingIsSealedToHer`, `12` `afterwardsNothingReachesHer` |
+| `PDI_ERASURE_IS_A_RUN` | `TheGuideRunsIT` | W | `11` `sheAsksToBeForgotten` |
+| `PDI_ERASURE_SAYS_HOW_FAR_IT_GOT` | `TheGuideRunsIT` | W | `11` `sheAsksToBeForgotten` |
+| `PDI_EXACT_RESOLUTION` | without a world: PdiIT |  | `4` `lookingSomebodyUpIsAnActWithAReason`, `5` |
+| `PDI_PLAINTEXT_IN_FLIGHT_LEAVES_NO_TRACE` | `AStoreWithoutSuperuserStillMountsIT` | W | `2` `herPlaintextPassesThroughAndLeavesNoTrace` |
+| `PDI_PSEUDONYM_RESOLVED_BY_SCAN` | without a world: PdiIT |  | `9` `herPseudonymResolvesBackToHer`, `12` |
 | `PDI_RIGHTS_AS_OPERATIONS` | without a world: PdiIT |  | assert where the story passes it |
 | `PDI_SHRED_LEDGER` | without a world: PdiIT |  | assert where the story passes it |
-| `PDI_STRUCTURAL_VAULT` | `AHumanHeldAsTwoRecordsIT`, `APseudonymIsDerivedAndNeverKeptIT` |  | to fit |
-| `PDI_UNFINDABLE_AFTER_ERASURE` | without a world: PdiIT, TheGuideRunsIT |  | assert where the story passes it |
-| `POL_ERASURE_COMPATIBLE` | without a world: PdiIT, TheGuideRunsIT |  | assert where the story passes it |
+| `PDI_STRUCTURAL_VAULT` | without a world: PdiIT |  | `1` `readingHerIsNotTheSameAsWritingHer`, `3`, `8` |
+| `PDI_UNFINDABLE_AFTER_ERASURE` | without a world: PdiIT, TheGuideRunsIT |  | `12` `afterwardsNothingReachesHer` |
+| `POL_ERASURE_COMPATIBLE` | without a world: PdiIT, TheGuideRunsIT |  | `12` `afterwardsNothingReachesHer` |
 | `PROC_CONFIG_APPLIES_AS_A_SWEEP` | `TenantRuntimeIT` |  | to fit |
 | `SCIM_DEPROVISION_IS_A_STATE` | `ScimProvisioningIT`, `TheGuideRunsIT` | W | to fit |
-| `SRCH_HONEST_CAPABILITY` | `AHumanHeldAsTwoRecordsIT` | W | to fit |
+| `SRCH_HONEST_CAPABILITY` | — | W | in clinical record's legs |
 | `TEN_ERASURE_BY_DROP` | `TenantRuntimeIT` | W | to fit |
 | `TERM_EVERY_TENANT_ANSWERS` | `TenantRuntimeIT` | W | to fit |
 | `VER_CONCURRENT_VERSIONS` | `TenantRuntimeIT` |  | to fit |

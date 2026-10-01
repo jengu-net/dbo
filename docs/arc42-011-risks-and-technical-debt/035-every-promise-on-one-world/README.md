@@ -140,7 +140,7 @@ promise-by-promise picture is in the [listing](listing.md).
 |---|---|---|---|---|---|---|---|
 | [TENANT-OPENING](../../arc42-003-context/user-stories/us-dbo-tenant-opening.md) | `ATenantOpensAndItsPeopleGetInIT` (on the world) | 15 | 17 | 25 | 6 | 2 | moved |
 | [CLINICAL-RECORD](../../arc42-003-context/user-stories/us-dbo-clinical-record.md) | `TheClinicRecordsCareAndAccountsForItIT` (on the world) | 10 | 28 | 11 | 17 | 3 | moved |
-| [PERSON-RIGHTS](../../arc42-003-context/user-stories/us-dbo-person-rights.md) | `WhatAPersonCanAskForIT` (on the world, two legs) | 9 | 3 | 22 | 12 | 0 | started |
+| [PERSON-RIGHTS](../../arc42-003-context/user-stories/us-dbo-person-rights.md) | `WhatAPersonCanAskForIT` (on the world, fifteen legs) | 9 | 3 | 22 | 12 | 0 | moved; seven harness classes deleted |
 | [TWO-PLACES](../../arc42-003-context/user-stories/us-dbo-two-places.md) | `OneTenantInTwoPlacesIT` (on the world, zone half) | 7 | 9 | 16 | 4 | 1 | moved |
 | [STANDARD-MOVES](../../arc42-003-context/user-stories/us-dbo-standard-moves.md) | `TheStandardMovesUnderTheDataIT` (on the world) | 19 | 7 | 29 | 9 | 0 | moved |
 | [VENDOR-CHANGE](../../arc42-003-context/user-stories/us-dbo-vendor-change.md) | `TheClinicChangesVendorIT` (on the world) | 1 | 6 | 0 | 7 | 0 | moved |
