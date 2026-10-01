@@ -68,8 +68,8 @@ class TheApplicationServesItsWorldIT {
 
     @Test
     @DisplayName("a record written through this application's port is stored with its person "
-            + "sealed, and a search that cannot reach under the membrane is refused rather "
-            + "than answered empty")
+            + "sealed, found again by its identifier when the caller says why, and a search "
+            + "that cannot reach under the membrane is refused rather than answered empty")
     void aRecordIsWrittenAndFound() {
         assertTrue(dbo.until(TENANT, true, Duration.ofMinutes(6)),
                 "the tenant never came up: " + dbo.serving());
@@ -103,17 +103,30 @@ class TheApplicationServesItsWorldIT {
                 () -> assertEquals(java.util.Optional.of("Patient"), record.one("resourceType"),
                         "what came back is not the record that was written: " + back.body()));
 
-        // AND AN IDENTIFYING SEARCH IS REFUSED, NOT ANSWERED EMPTY. This
-        // tenant holds Patient.identifier under the membrane, so the store
-        // cannot match on it — and says so, because an empty page would have
-        // said nobody has that identifier, which is a different thing and the
-        // one a caller would have believed.
+        // FOUND AGAIN BY ITS IDENTIFIER, WITH A PURPOSE. The vault indexes the
+        // identifier this tenant keys people by, so an exact lookup stating
+        // why it is asked resolves to the record through the application's
+        // own port.
         var found = dbo.search(TENANT, "Patient", "identifier=urn:rl:nid|RL-9001", "TREAT");
         assertAll(
-                () -> assertEquals(403, found.statusCode(),
-                        "a search the store cannot make was not refused: " + found.body()),
-                () -> assertTrue(found.body().contains("under the membrane"),
+                () -> assertEquals(200, found.statusCode(),
+                        "an exact lookup with a stated purpose was not answered: "
+                                + found.body()),
+                () -> assertTrue(dbo.says(found).at("entry.resource.id").contains(id),
+                        "the identifier the record was written under did not find it: "
+                                + found.body()));
+
+        // AND A SEARCH IT CANNOT MAKE IS REFUSED, NOT ANSWERED EMPTY. The name
+        // is held under the membrane and nothing indexes it, so the store
+        // cannot match on it — and says so, because an empty page would have
+        // said nobody is called that, which is a different thing and the one
+        // a caller would have believed.
+        var byName = dbo.search(TENANT, "Patient", "name=Kontekst", "TREAT");
+        assertAll(
+                () -> assertEquals(403, byName.statusCode(),
+                        "a search the store cannot make was not refused: " + byName.body()),
+                () -> assertTrue(byName.body().contains("under the membrane"),
                         "the refusal did not say why it cannot match, so a caller cannot tell "
-                                + "it from a rejection: " + found.body()));
+                                + "it from a rejection: " + byName.body()));
     }
 }

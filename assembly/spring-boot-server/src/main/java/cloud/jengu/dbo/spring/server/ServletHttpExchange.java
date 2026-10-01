@@ -75,13 +75,19 @@ final class ServletHttpExchange extends HttpExchange {
      * {@code /t/{code}/fhir} and routes on what follows, so a path with the
      * application's context stripped out would have the tenant stripped out
      * with it.
+     *
+     * <p><b>Parsed as it arrived, never re-quoted.</b> The container hands both
+     * halves over still escaped, which is the form a surface decodes once. The
+     * constructor that takes them as parts quotes every {@code %} again, which
+     * would hand a surface the text {@code %7C} where a client sent the
+     * {@code |} between a system and a value.
      */
     @Override
     public URI getRequestURI() {
         String path = request.getRequestURI();
         String query = request.getQueryString();
         try {
-            return new URI(null, null, path, query, null);
+            return new URI(query == null ? path : path + "?" + query);
         } catch (URISyntaxException notAnAddress) {
             // The container built this from bytes on a socket; if it will not
             // parse, answering 400 is the surfaces' business and not this

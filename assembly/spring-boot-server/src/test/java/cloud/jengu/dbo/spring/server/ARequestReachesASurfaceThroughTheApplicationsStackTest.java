@@ -113,6 +113,34 @@ class ARequestReachesASurfaceThroughTheApplicationsStackTest {
                         + "deployment serves whoever happened to be declared at boot");
     }
 
+    @Test
+    @DisplayName("a query reaches the door as it arrived on the wire, so a value's escaped "
+            + "separator is decoded once and is still a separator")
+    void aQueryReachesTheDoorAsItArrived() throws Exception {
+        SpringHttpServer surfaces = new SpringHttpServer();
+        java.util.concurrent.atomic.AtomicReference<java.net.URI> seen =
+                new java.util.concurrent.atomic.AtomicReference<>();
+        surfaces.createContext("/t/hogwarts/fhir", exchange -> {
+            seen.set(exchange.getRequestURI());
+            exchange.sendResponseHeaders(200, -1);
+        });
+        DboSurfaceFilter filter = filterOn(surfaces);
+
+        // The pipe between a system and a value is illegal in a URI, so a
+        // client sends it escaped, and the container hands the query over
+        // still escaped.
+        MockHttpServletRequest request =
+                new MockHttpServletRequest("GET", "/t/hogwarts/fhir/Patient");
+        request.setQueryString("identifier=urn:rl:nid%7CRL-1");
+        filter.doFilter(request, new MockHttpServletResponse(), new MockFilterChain());
+
+        assertEquals("identifier=urn:rl:nid%7CRL-1", seen.get().getRawQuery(),
+                "the query was escaped a second time on its way to the door, so the door "
+                        + "decodes it to the escape rather than to the character it stands for");
+        assertEquals("identifier=urn:rl:nid|RL-1", seen.get().getQuery(),
+                "decoded once, the query does not carry the separator the client sent");
+    }
+
     private static DboSurfaceFilter filterOn(SpringHttpServer surfaces) throws Exception {
         DboSurfaceFilter filter = new DboSurfaceFilter(surfaces);
         // OncePerRequestFilter needs a servlet context to be initialised, the
