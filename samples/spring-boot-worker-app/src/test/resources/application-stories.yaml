@@ -1,0 +1,27 @@
+# The deployment every user story walks on.
+#
+# ONE CONFIGURATION FOR ALL OF THEM. Spring caches a context by its
+# configuration, so a story differing in anything here would get a second
+# context, which would bring up a second world over the same database. That is
+# why this is a profile the story annotation names, and not a file a story
+# could add to.
+#
+# Both halves of the sample in one context, as this module's other tests run
+# them: the serving application, and this worker beside it. Only one
+# application.yaml can be THE application's configuration on a classpath, so
+# the serving half's needs are stated here (see application-test.yaml for the
+# same arrangement and what it costs).
+spring:
+  main:
+    web-application-type: servlet
+
+dbo:
+  test:
+    world: ../sample-world
+    lane:
+      tenant: hogwarts
+  worker:
+    identity:
+      name: sample-admissions-worker
+      version: "1"
+    poll: 500ms

@@ -1,11 +1,12 @@
-**Open, and not started. 127 test classes boot a dbo world and four of them
+**Open, and step 1 is built. 127 test classes boot a dbo world and four of them
 do it through `@DboSpringBootTest`; the suite takes over an hour, most of it
 tenants coming up. The plan is one world in one JVM, one class per user story
 walking that story's legs in order, the stories running at the same time, and
 every promise proven inside a leg.
-Seven of the eight stories with a journey already have a class; none of them
-runs on that world yet. Next: the story base in the sample application's tests,
-then the clinical record story onto it.**
+Step 1 is built. The story base runs in the worker sample's tests, and its
+first two stories pass concurrently on one world. Getting there found two
+defects in the store, both fixed. Next: the clinical record story onto the
+base.**
 
 # Every promise proven on one world, inside its story
 
@@ -166,7 +167,7 @@ Another 33 classes do not feed a story:
 
 ## Steps
 
-1. **The story base, in the sample application's tests.** Add one
+1. ~~**The story base, in the sample application's tests.**~~ Built. Add one
    meta-annotation for story classes. It carries `@DboSpringBootTest`, one
    profile, `PER_CLASS`, method ordering, class-level concurrency and the
    integration tag, so no story class can differ in configuration and get a
@@ -177,6 +178,36 @@ Another 33 classes do not feed a story:
    see what the other wrote. The run shows one context and one bring-up of the
    seven tenants, brought up along their dependencies as the decision on
    bring-up describes.
+
+   What was built: `AUserStory` (the meta-annotation), `StoryNames`,
+   `TheWholeWorldServes` (holds every story until the world serves), and the
+   `stories` profile. The first legs are clinical record at St Jerome and
+   person rights at Hogwarts. A run is one context and one bring-up, and takes
+   four minutes.
+
+   **What it found**, both fixed in the same change:
+
+   - **The Spring servlet adapter escaped a query twice.** It rebuilt the
+     request URI from parts, which quotes every `%` again, so a client's
+     `%7C` reached the surface as the text `%7C` and not as the `|` between
+     a system and a value. On St Jerome, a Patient identifier search answered
+     an empty bundle for a match. On Hogwarts, a purpose-stated lookup by
+     national number was refused as unmatchable, against
+     `PDI_EXACT_RESOLUTION`. The server sample's own test had pinned that
+     refusal as correct. The JDK server the harness uses never escaped twice,
+     which is why nothing else saw it.
+   - **Two callers creating one identity at once got a conflict.**
+     `putIfAbsent` read, then wrote, and a caller that lost the race to the
+     insert was told the identity was claimed instead of being given the
+     record the winner made. Two stories ensuring the test client at once hit
+     it on the first concurrent run. Two replicas ensuring one client would
+     hit it the same way.
+
+   The stories also needed one dial changed. `dboTestParallelism=1` in
+   `gradle.properties` turns JUnit's parallelism off for every test task,
+   because concurrent classes there each build a world. It no longer applies
+   to `storyTest`: concurrent stories share one world, so running them
+   together costs threads and not worlds.
 2. **Move the story classes that already exist,** keeping their legs. Go in
    order of how little the world has to change: clinical record, edge
    roundtrip, standard moves, two places, vendor change, tenant opening, fleet
@@ -245,11 +276,14 @@ verbs, never through the store's internals. A class should read as a chapter
 could quote it.
 
 The suite needs both halves in one context. The worker application's tests
-already boot it that way, so the stories run there or in the server
-application's tests with the worker on its test classpath. The choice is
-made in step 1 by whichever needs less test-only configuration. Either way,
-one context loads one `application.yaml`, so the half that is not the
-module's own is configured in the test profile, as the worker sample's tests
+already boot it that way, so the stories live there, in
+`samples/spring-boot-worker-app`, under the `story` tag. They run in a
+`storyTest` task of their own, which `check` depends on, and the module's
+`test` task excludes them. That gives the stories a JVM holding their one
+context and nothing else: the module's other tests each build a context of
+their own, and in the same JVM they would be a second world over the same
+database. One context loads one `application.yaml`, so the serving half's
+needs are stated in the `stories` profile, as the worker sample's tests
 already explain.
 
 **One world, for the guide and for the tests.** `samples/sample-world` is
@@ -291,11 +325,12 @@ does the following:
 - **Up before any story starts.** The context is ready only once every world
   member serves. No story waits on a member another story is still bringing
   up.
-- **Up along its dependencies, not in a line.** Each member waits only for
-  its own upstreams: the face roots and the zone first, then the hospital and
-  the insurer together, then the clinic. If the scan brings members up one at
-  a time, making it follow the dependency graph concurrently is work this
-  item takes on. A deployment with many tenants wants the same thing.
+- **Up along its dependencies, not in a line.** The scan already does this.
+  It brings every declared tenant up at once, and a dependent whose upstream
+  is not serving yet is retried on the next pass. The world serves about two
+  and a half minutes after the context starts: the face roots together in
+  about a minute, then the zone, its r4 projection, the hospital and the
+  insurer, then the clinic.
 - **Each cost paid once per JVM.** The terminology baseline and a face's
   definitions are shared wherever the store allows it. Where a second tenant
   on the same face pays again for something the first already loaded, that
@@ -366,6 +401,10 @@ None at present.
   own. Edge roundtrip proves the two carriers indistinguishable, so it needs
   both in the one context: a worker holding one lane over each, toward two
   different world members.
+- **A tenant declared mid-run waits for the pass in progress.** `scanOnce`
+  is synchronized, and a pass returns only when everything it brought up is
+  up. A story that declares a tenant while another story's tenant is coming
+  up waits for that bring-up to finish before its own starts.
 - **A wait that drives the deployment slows every story.** A poll that runs
   `syncRound` or `scanOnce` in a loop pays for the whole world on each pass.
   With every story in one JVM, that cost lands on all of them. Drive the

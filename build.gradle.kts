@@ -205,7 +205,12 @@ subprojects {
             (findProperty("dboTestGcLog") as String?)?.let {
                 jvmArgs("-Xlog:gc:file=$it-%p.log")
             }
-            (findProperty("dboTestParallelism") as String?)?.let {
+            // Not on the user stories. The dial bounds how many classes build a
+            // world of their own at once; the stories share ONE context and
+            // one world, so running them together costs threads and not
+            // worlds, and running them together is what they are for.
+            (findProperty("dboTestParallelism") as String?)
+                ?.takeIf { name != "storyTest" }?.let {
                 systemProperty(
                     "junit.jupiter.execution.parallel.config.fixed.parallelism", it)
                 // One means one. A fixed parallelism of one is a ForkJoin pool

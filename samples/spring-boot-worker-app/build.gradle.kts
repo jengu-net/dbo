@@ -53,9 +53,40 @@ tasks.withType<Test>().configureEach {
 }
 
 tasks.test {
-    useJUnitPlatform()
+    useJUnitPlatform {
+        // The stories run in a JVM of their own, below: they share one context,
+        // and a class here that builds a context of its own would be a second
+        // world over the same database.
+        excludeTags("story")
+    }
     // A tenant comes up inside this test, which expands a FHIR version out of
     // the specification. Stated here rather than inherited, per the rule that
     // a test task loading the validator says its own number.
     maxHeapSize = "3g"
+}
+
+// The user stories, walked on the sample world: one context, one world, every
+// story at once.
+//
+// Classes run concurrently and a class's legs run in order on one thread,
+// because each leg is set up by the one before it. A failure that appears only
+// when the stories run together is a defect in the store, so nothing here
+// serialises them.
+val storyTest = tasks.register<Test>("storyTest") {
+    description = "Walks the user stories on the sample world, all at once."
+    group = "verification"
+    testClassesDirs = sourceSets["test"].output.classesDirs
+    classpath = sourceSets["test"].runtimeClasspath
+    useJUnitPlatform {
+        includeTags("story")
+    }
+    systemProperty("junit.jupiter.execution.parallel.enabled", "true")
+    systemProperty("junit.jupiter.execution.parallel.mode.default", "same_thread")
+    systemProperty("junit.jupiter.execution.parallel.mode.classes.default", "concurrent")
+    // Every face the world declares is expanded in this one JVM.
+    maxHeapSize = "4g"
+}
+
+tasks.named("check") {
+    dependsOn(storyTest)
 }
