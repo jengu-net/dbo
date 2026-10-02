@@ -282,10 +282,22 @@ class OneTenantInTwoPlacesIT {
             + "the zone publishes afterwards does not arrive")
     @Proving(DboPromises.TEN_WHAT_A_TENANT_CARES_ABOUT_IS_EDITABLE)
     void theClinicStopsCaringAndKeepsWhatItHas() throws InterruptedException {
+        // Waited for, not slept on: the scan that notices the change is one
+        // pass of a deployment bringing other tenants up at the same time, so
+        // a fixed pause measured how busy it was. The clinic is rebuilt in
+        // place for a dependency it no longer has, and a rebuilt clinic
+        // carries a store it did not have before.
+        Object before = tenants.store(clinic).orElseThrow();
         dbo.declare(clinic, clinicTakingCodeSystemsFrom(null));
+        long rebuilt = System.nanoTime() + Duration.ofMinutes(3).toNanos();
+        while (tenants.store(clinic).filter(now -> now != before).isEmpty()
+                && System.nanoTime() < rebuilt) {
+            Thread.sleep(500);
+        }
         assertTrue(dbo.until(clinic, true, Duration.ofMinutes(2)),
                 "changing what the clinic cares about took it down");
-        Thread.sleep(5000);
+        assertTrue(tenants.store(clinic).filter(now -> now != before).isPresent(),
+                "the clinic was never rebuilt for the dependency it no longer declares");
 
         afterwards = names.canonical("published-afterwards");
         publish("CodeSystem", codeSystem(afterwards, "late", "Late"));

@@ -153,7 +153,10 @@ class AnOperatorReadsAndSteersTheFleetIT {
         // like a fault.
         dbo.retract(broken);
         boolean gone = false;
-        for (int i = 0; i < 120 && !gone; i++) {
+        // Three minutes, as this story's other waits on the scan are: a
+        // retraction is read at the end of a pass, and a pass carries every
+        // bring-up begun in it, which on this world is often over a minute.
+        for (int i = 0; i < 360 && !gone; i++) {
             Thread.sleep(500);
             gone = stateReportedFor(ask("/runtime/tenants", OPS).body(), broken) == null;
         }
@@ -566,21 +569,27 @@ class AnOperatorReadsAndSteersTheFleetIT {
             + "every later pass rather than reporting the wreckage of the first")
     @Proving(DboPromises.OPS_RUNTIME_SAYS_WHAT_IT_SERVES)
     void aBringUpThatFailedHalfWaySaysWhyEveryTime() throws InterruptedException {
-        // Parseable, and unservable only once the tenant is being built: a
-        // zone is a name in a file, and nothing here serves one called this.
+        // Parseable, and unservable only once the tenant is being built: the
+        // hospital is serving, so nothing is waited for, and it is not a face
+        // root, which is found out after the tenant's surfaces are mounted and
+        // its streams wired. A zone nothing serves was the vehicle once; that
+        // is a wait now, with nothing built, and says so as one.
         String halted = NAMES.tenant("halted");
         dbo.declare(halted, """
-                {"code":"%s","face":"r4","zone":"%s","types":[
+                {"code":"%s","face":"r5","dependencies":[
+                  {"name":"%s","face":true,
+                   "types":["StructureDefinition","SearchParameter","ValueSet","CodeSystem"]}],
+                 "types":[
                   {"name":"Observation","identity":"internal","handling":"operational"}]}"""
-                .formatted(halted, NAMES.value("nowhere")));
+                .formatted(halted, HOSPITAL));
         try {
             String first = "";
             long giveUp = System.nanoTime() + Duration.ofMinutes(3).toNanos();
-            while (!first.contains("zone") && System.nanoTime() < giveUp) {
+            while (!first.contains("not a face root") && System.nanoTime() < giveUp) {
                 Thread.sleep(1000);
                 first = String.valueOf(rowFor(halted).get("why"));
             }
-            assertTrue(first.contains("zone"), "the node does not say why: " + first);
+            assertTrue(first.contains("not a face root"), "the node does not say why: " + first);
             // Several of the node's own passes, each of which retries it.
             Thread.sleep(8000);
             String later = String.valueOf(rowFor(halted).get("why"));
