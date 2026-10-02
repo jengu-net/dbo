@@ -1,162 +1,110 @@
-**Open, and widened: the guide is rewritten rather than re-pointed. It teaches
-the store from where a Spring Boot application developer stands, and its spine
-is work — processes made of steps, each step an activity that reaches data only
-through what its task carries in and what its result carries out — rather than
-records written over HTTP to a store. There is no third application: the
-server application is the clinic's own, with the store embedded, and the worker
-application contributes steps, inside it or in a JVM of its own. The user
-stories are their tests, and the guide quotes their main source. `sample/` is
-deleted when the last chapter has moved
-([item 026](../026-two-samples-tell-one-story/README.md)). No chapter is
-written yet.**
+**Open. The guide is rewritten from where a Spring Boot application developer
+stands, one chapter per user story, quoting the sample applications and the
+sample world rather than `sample/`. The outline is in place: the nav, an index
+naming every chapter, and a page per chapter. The chapters are written next,
+then the guide tests and `sample/` are retired together
+([item 026](../026-two-samples-tell-one-story/README.md)).**
 
 # The guide moves onto the samples
 
 ## What this is
 
-A chapter includes the file compiled in `sample/`, so a chapter cannot show a
-call that no longer exists. That is the arrangement working — and it is also
-what pins the guide to one of the two stories this repository now tells.
+The guide used to teach the store as records written over HTTP to a
+distribution, from source compiled in `sample/`, and to prove itself by running
+every command a chapter showed against a container (`TheGuideRunsIT`,
+`guide-on-tree`, `guide-as-tests`, `docs/guide/examples/check.sh`). The store
+stopped being read that way: an application embeds it, declares its
+organisations' work, asks for steps and performs them. `samples/` shows that,
+and its tests are the user stories.
 
-`samples/` shows the same six tenants reached as a library: an application
-that serves them because it added a dependency, and one that performs their
-work because a bean implements an interface. Nothing in the guide mentions it.
+## How the guide is built now
 
-## What the move actually is
+**The reader is a Spring Boot application developer, and work is the spine.**
+A process is made of steps, and a step reaches data only through what its task
+carries in and what its result carries out. The general records surface
+exists and a chapter may say so; it is not taught as the way to build.
 
-**Thirteen include lines, across nine chapters.** Eleven name `sample/`'s own
-source, two name `sample/participant`, and two more name the world — which has
-already moved, so those are the cheap ones.
+**The chapters are the stories.** One chapter per developer-facing user story,
+in the order the [stories README](../../arc42-003-context/user-stories/README.md)
+lists them, with the story's people and scenes. Each chapter has the scene in a
+paragraph, what the developer writes, what the store guarantees (linked to the
+story page, whose joins table carries the proof), and what the store cannot do
+yet, taken from the story page. Stories told from an operator's side are one
+page, *Running it*. Concepts no single scene owns are short reference pages.
 
-| chapter | includes |
+**Examples are quoted, never typed.** Every example is included from code the
+stories already pass, through the site's snippet mechanism:
+
+- `samples/spring-boot-server-app/src/main` — the clinic's application;
+- `samples/spring-boot-worker-app/src/main` — the steps, embedded or in a JVM
+  of their own;
+- `samples/sample-world` — the declarations, always as whole files;
+- a story test, where an act belongs to the test alone;
+- `samples/check-separated.sh`, for the commands that start the applications
+  by hand.
+
+A part of a file is a marked region (`--8<-- [start:name]` and
+`[end:name]` in a comment), so a renamed or removed region fails the site
+build, and the code inside it is the code the stories run. Where quoted code
+reads poorly as teaching, the code is improved rather than paraphrased.
+
+**The guide has no tests of its own.** What it shows is already tested: the
+stories walk the applications, and `samples/check-separated.sh` starts them by
+hand, in both of the separated profiles, the way the quick start teaches.
+
+## The outline
+
+| Page | Follows |
 |---|---|
-| `index.md`, `tenants.md` | the world: `hogwarts.json`, `gringotts.json` |
-| `records.md`, `history.md`, `references.md` | `Intake`, `Amending`, `TheWard`, `Publishing`, `Observing` |
-| `performing-work.md`, `runners.md` | `AdmitStep`, `Admissions`, `Laboratory`, `Assay` |
-| `lifecycle.md` | `NoticingATenant`, `WatchingTheWork` |
-| `asking.md` | the vocabulary, over a ward |
+| `index.md` | who the guide is for, the spine, the world and the two applications |
+| `quick-start.md` | embedded, then separated under `edge` and `substrate` |
+| `a-tenant-opens.md` | US-DBO-TENANT-OPENING |
+| `care-is-recorded.md` | US-DBO-CLINICAL-RECORD |
+| `what-a-person-can-ask-for.md` | US-DBO-PERSON-RIGHTS |
+| `one-tenant-in-two-places.md` | US-DBO-TWO-PLACES |
+| `the-standard-moves.md` | US-DBO-STANDARD-MOVES |
+| `work-leaves-and-comes-back.md` | US-DBO-EDGE-ROUNDTRIP |
+| `a-step-for-every-tenant.md` | US-DBO-FLEET-STEP |
+| `on-the-stream.md` | US-DBO-ON-THE-STREAM |
+| `running-it.md` | VERSION-MEASURED, VENDOR-CHANGE, A-TENANT-IS-ERASED, BUILT-OR-PLANNED, FLEET-HEALTH, BRING-UP-UNDER-STRAIN, A-DEPLOYMENT-IS-EQUIPPED, A-STEP-IS-RUN-FOR-THE-FLEET |
+| reference | processes and steps, tenants and faces, zones, personal data, the trail, terminology, export and import |
 
-**And two of them stop existing.** `Admissions` is fifty-four lines
-constructing an executor identity, a runner with two durations, a step
-registration and a lane — every one of which is configuration under
-`dbo-spring-boot-worker`. `AdmitStep`'s own comment says *this is the whole of
-what an integrator writes*, and that only became true when the assembly
-arrived. A chapter that keeps including `Admissions` teaches wiring the
-wrapper exists to delete.
+## The order
 
-`NoticingATenant` and `WatchingTheWork` are the same shape from the serving
-side: beans annotated `@DboTenantListener` and `@DboObserver` in the
-assembly's world, hand-registered in `sample/`'s.
+1. The outline — done.
+2. The chapters, committed two or three at a time; the earlier chapters stay
+   in the nav, under their own heading, until the last of them has moved.
+3. The guide tests, `sample/`, `sample:participant`, the CI jobs
+   `guide-as-tests` and `guide-on-tree`, and `verify`'s third phase, retired
+   in one change.
 
-## Why it is not a rename
+## Traps
 
-**The guide is executable.** `TheGuideRunsIT` runs every command a chapter
-shows against a live world, and `guide-on-tree` runs it against an image built
-from the tree on every change. So the chapters and the applications move
-together or the build says so — which is the good news, and the reason this is
-a real piece of work rather than a find-and-replace.
+**Five promises were proven only by the guide suite.** Deleting
+`TheGuideRunsIT` leaves them uncited, and a promise nothing cites reads
+PLANNED — which `PromiseCatalogueTest` refuses for a sentence that does not say
+so. Each is declared by a story already, so each moves into a leg of that
+story before the suite goes:
 
-**And the compose file is the deployment the chapters talk to.** It runs the
-distribution, so a guide whose spine is the library story needs a second thing
-for the chapters to talk to — the application, run from the tree — and the
-compose file becomes what the deployment chapter shows.
+| Promise | Story |
+|---|---|
+| `PROC_A_RUN_ANSWERS_ONLY_FOR_ITS_INPUTS` | EDGE-ROUNDTRIP |
+| `PROC_A_RUN_CONTEXT_ENDS_WITH_ITS_RUN` | EDGE-ROUNDTRIP |
+| `AUTH_A_ZONE_IS_ITS_OWN_BROKER` | TENANT-OPENING |
+| `VER_VALIDATION_WITHOUT_WRITING` | CLINICAL-RECORD |
+| `IDN_WHAT_A_RECIPIENT_SEES_IS_DECLARED` | PERSON-RIGHTS |
 
-## The guide is rewritten, not re-pointed
+**A run context closes when its run does**, and the sample worker performs
+every step the world declares within a poll. A leg that reads through a run's
+context needs a step nobody performs, or it races the worker.
 
-Decided on 2026-10-01. Re-pointing thirteen includes would have kept a guide
-whose first half is records written over HTTP to a store — the reading the
-store has stopped being. Two things change together.
-
-**The reader is a Spring Boot application developer.** Every chapter starts
-from code that developer writes in one of the sample applications — a step
-bean, a listener, a block of `application.yaml`, a `@DboSpringBootTest` — and
-explains the store from there. The FHIR surface, the distribution and the
-framework-free path are still taught, as what a developer reaches for when the
-application is not the whole of the deployment; they are not the way in.
-
-**Work is the spine.** A process is made of steps, and a step is an activity:
-it is handed what its task carries — records referred to or given — and
-answers with result data. That is how a step reaches data, and the guide says
-so before it shows a record. What used to be the guide's Core — reading,
-history, references, transactions — is taught as what a step reads and what a
-result commits. The navigation file's reason for putting Work late (that it had
-nothing to demonstrate) stopped being true when the worker application could
-perform a step.
-
-### The shape
-
-1. **Introduction and quick start** — the server application serving Rowling
-   Land, the worker application performing a step, the clinic's application
-   starting a process and reading its result.
-2. **Work** — a process and its steps; what a step declares (slots, result,
-   milestones); a run, its task content in and its result out; performing a
-   step as a bean; asking what is open or needs somebody; the trail.
-3. **Data, as a step sees it** — inputs referred to or given; what a result
-   commits (references, history, transactions); validation against the step's
-   profiles; terminology.
-4. **Tenants and zones** — where a process runs, largely as now.
-5. **Security and privacy** — a step's entitlement, the claim as the
-   intersection of credential and step; the tenant's authority and directory;
-   personal data through pseudonyms and sealed payloads; erasure; retention.
-6. **Deployment** — the distribution and its compose file, the framework-free
-   path, export and import, fleet steps.
-
-### The code behind it
-
-- **`samples/spring-boot-server-app`** — the clinic's own application, with
-  the store embedded. It asks for work and reads its answer where `sample/`'s
-  `Intake`, `Amending`, `Publishing` and `Observing` wrote records, and it
-  holds the serving side's beans: `NoticingATenant` and `WatchingTheWork` as a
-  `@DboTenantListener` and a `@DboObserver`, and `CountingTheWard` over the
-  asking vocabulary where `TheWard` was.
-- **`samples/spring-boot-worker-app`** — performs the clinic's steps
-  (`AdmittingAPatient`, `MeasuringASpecimen`, …) and contributes them in two
-  modes: embedded, as a dependency of the server application whose step beans
-  arrive in its context, or separated, in a JVM of its own under the `edge`
-  profile (an HTTP lane into one tenant) or the `substrate` profile (the
-  deployment's own database, with keys whose public halves the tenant
-  enrolled). The same bean serves both. `Admissions` has no successor,
-  because what it wired by hand is configuration.
-- **The user stories are the applications' tests.** They live in the server
-  application's tests and boot it the way any Spring Boot application is
-  tested, in the embedded mode, so a leg acts through the applications' own
-  classes and keeps on the doors only what proves a door.
-- **The executable guide** follows: `TheGuideRunsIT` moves under `samples/`
-  and runs the chapters' code against Rowling Land
-  (`samples/sample-world`), the world the user stories walk.
-
-### The order
-
-1. The applications implement the user stories, and the stories test them.
-2. The chapters, in reading order, the guide green at each one.
-3. `sample/` deleted, and items 026 and 027 closed together.
-
-## What has been settled
-
-**Spring Boot is where the reader stands.** The quick start is
-`./gradlew :samples:spring-boot-server-app:run` — a Spring Boot application
-that serves the sample world because it added a dependency. Every aspect of
-the store is then explained against an application of that shape, because
-Spring is what most developers arriving here already know.
-
-**The framework-free path is the advanced chapter, not the lesser one.** It is
-the layer the assemblies are built on, and a reader who wants no framework is
-reading a real path rather than a workaround
-([building blocks](../../arc42-005-building-blocks/README.md) states the rule).
-The distribution is likewise still taught — as deployment, which is the
-question it answers.
-
-**`sample/participant` keeps its point by being made smaller.** A party joining
-from outside is a line the assemblies do not redraw, and the worker
-application is not the same thing. What `Assay` teaches — that a step can
-declare its own capability — moves to a bean in
-`samples/spring-boot-worker-app` returning `Optional.of(DECLARED)`, which is
-the same claim in the shape a reader will write it.
+**The guide's compose file is the worked deployment's too.**
+[A worked deployment](../../arc42-007-deployment/a-worked-deployment.md)
+includes it, so it is not retired with the guide; it moves beside the world it
+mounts.
 
 ## What this is not
 
-It is not the deletion of `sample/`, which is
-[item 026](../026-two-samples-tell-one-story/README.md) — but it is what
-unblocks it. `sample/` exists because the guide compiles against it; once the
-chapters compile against `samples/` instead, nothing holds it, and it goes.
-Until then it stays current.
+It is not the deletion of `sample/` on its own terms, which is
+[item 026](../026-two-samples-tell-one-story/README.md). The two close
+together, because `sample/` exists only for the chapters that include it.

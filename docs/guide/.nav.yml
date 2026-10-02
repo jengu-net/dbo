@@ -1,58 +1,70 @@
-# The reading order, in two levels.
+# The reading order, in three parts.
 #
-# Nothing is used before it has been explained, so this is a dependency order
-# rather than an importance order.
+# The chapters are the user stories, in the order the stories README lists
+# them, because that is their dependency order: a clinic is opened before care
+# is recorded in it, and care is recorded before anybody asks what was kept
+# about them. Each chapter follows its story's scene with the story's own
+# people, and quotes the code that walks it in the sample applications.
 #
-# The idea that binds it — that reaching data is an act of declared work — is
-# introduced up front rather than by putting the Work section first. Leading
-# with Work would have led with the one subject that has no surface to
-# demonstrate yet, so the introduction supplies the frame and Work goes where
-# its vocabulary has something concrete to attach to. Files stay flat
-# in this directory and the grouping lives here: a chapter's published address
-# does not change because it moved sections.
+# Stories told from an operator's side are one page, "Running it", because the
+# reader here is the developer of an application, and an operator's chapter
+# would be the same links with more words around them.
 #
-# The sample world is not here on purpose. It exists so the examples in these
-# chapters are consistent with each other and stay that way; that is a fact
-# about how this documentation is kept, not something a reader of it needs.
+# The reference pages are concepts no single scene owns. They are short on
+# purpose: the chapters teach, and these are where a word is looked up.
+#
+# Files stay flat in this directory and the grouping lives here, so a
+# chapter's published address does not change because it moved sections.
 nav:
   - index.md
   - quick-start.md
-  - how-it-fits.md
-  - Core:
+  - The stories:
+      - a-tenant-opens.md
+      - care-is-recorded.md
+      - what-a-person-can-ask-for.md
+      - one-tenant-in-two-places.md
+      - the-standard-moves.md
+      - work-leaves-and-comes-back.md
+      - a-step-for-every-tenant.md
+      - on-the-stream.md
+  - running-it.md
+  - Reference:
+      - processes-and-steps.md
+      - tenants-and-faces.md
+      - zones.md
+      - personal-data.md
+      - the-trail.md
+      - terminology.md
+      - export-and-import.md
+  # The chapters these replace, until the last of them has moved. Each one
+  # still includes the source it was written about, so it stays correct
+  # until it goes.
+  - Earlier chapters:
+      - how-it-fits.md
       - declaring.md
       - records.md
       - history.md
       - references.md
       - transactions.md
       - validation.md
-      - terminology.md
       - change-feed.md
       - blobs.md
-  - Tenants:
       - tenants.md
       - isolation.md
       - the-face.md
       - tenant-types.md
       - lifecycle.md
-      - export-and-import.md
-  - Zones:
-      - zones.md
       - zone-terminology.md
       - zone-chain.md
-  - Work:
       - work.md
       - runs.md
       - runners.md
       - performing-work.md
-      - the-trail.md
       - asking.md
-  - Security:
       - who-may-act.md
       - authority.md
       - delegated.md
       - scim.md
-  - Privacy:
-      - personal-data.md
       - encryption.md
       - erasure.md
       - retention.md
