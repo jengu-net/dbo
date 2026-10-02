@@ -13,10 +13,11 @@ command on this page is quoted from
 [`samples/check-separated.sh`](https://github.com/jengu-net/dbo/blob/main/samples/check-separated.sh),
 which CI runs, so a command here that stops working fails a build before it
 fails you. The script names a few things with variables, and they mean what
-they say: `$port` is the port the application listens on, `$JDBC` is the
-Postgres below as a JDBC base, `$base` is the hospital's address,
-`http://127.0.0.1:$port/t/hogwarts`, and `$mode` is which of the three ways
-the worker runs.
+they say: `$DB` is a name for the Postgres container, `$JDBC` is that Postgres
+as a JDBC base, `$port` is the port the application listens on, `$base` is the
+hospital's address, `http://127.0.0.1:$port/t/hogwarts`, `$mode` is which of
+the three ways the worker runs, and `$WORK` is where the logs go. `field`
+prints one field of a JSON answer.
 
 ## Build both applications
 

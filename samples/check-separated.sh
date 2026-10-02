@@ -89,8 +89,6 @@ echo "=== building both applications"
 # --8<-- [start:build]
 ./gradlew -q :samples:spring-boot-server-app:installDist :samples:spring-boot-worker-app:installDist
 # --8<-- [end:build]
-SERVER_BIN="$PWD/samples/spring-boot-server-app/build/install/spring-boot-server-app/bin/spring-boot-server-app"
-WORKER_BIN="$PWD/samples/spring-boot-worker-app/build/install/spring-boot-worker-app/bin/spring-boot-worker-app"
 
 echo "=== a database for the deployment"
 # Above Postgres' default of a hundred because of what the pools MAY grow to,
@@ -158,7 +156,8 @@ run_one() {
     # The application reads the world from a path relative to its own
     # directory, so it is started there.
     # --8<-- [start:server]
-    (cd samples/spring-boot-server-app && JAVA_OPTS="-Xmx3g" exec "$SERVER_BIN" \
+    (cd samples/spring-boot-server-app && JAVA_OPTS="-Xmx3g" \
+        exec build/install/spring-boot-server-app/bin/spring-boot-server-app \
         --server.port="$port" \
         --dbo.admin.jdbc-url="$JDBC/postgres" --dbo.admin.user=postgres \
         --dbo.admin.password=sample \
@@ -175,7 +174,8 @@ run_one() {
         (cd samples/spring-boot-worker-app && JAVA_OPTS="-Xmx512m" \
             DBO_TENANT_BASE="$base/" DBO_SUBSTRATE_URL="$JDBC/dbo_substrate" \
             DBO_SUBSTRATE_USER=postgres DBO_SUBSTRATE_PASSWORD=sample \
-            exec "$WORKER_BIN" --spring.profiles.active="$mode") \
+            exec build/install/spring-boot-worker-app/bin/spring-boot-worker-app \
+            --spring.profiles.active="$mode") \
             >"$WORK/worker-$mode.log" 2>&1 &
         # --8<-- [end:worker]
         WORKER_PID=$!
