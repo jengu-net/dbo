@@ -405,6 +405,24 @@ class TheStandardMovesUnderTheDataIT {
                         + "refused as though it were ahead");
     }
 
+    @Test
+    @Order(39)
+    @DisplayName("each version the world serves was cut once into an image by its first "
+            + "tenant, so every tenant after it loaded the version rather than expanding it")
+    @Proving(DboPromises.TEN_A_TENANT_COMES_UP_FROM_THE_FACE_IMAGE)
+    void eachVersionWasCutOnce() {
+        // Where this deployment was told to keep them, as the sample world's
+        // compose file tells its node. The directory starts empty with the
+        // world, so what is in it is what this deployment cut.
+        java.nio.file.Path kept = java.nio.file.Path.of(System.getProperty("dbo.face.images"));
+        for (String face : List.of("r4", "r5")) {
+            Proves.that(DboPromises.TEN_A_TENANT_COMES_UP_FROM_THE_FACE_IMAGE,
+                    java.nio.file.Files.isReadable(kept.resolve(face + ".faceimage")),
+                    "the world serves " + face + " and this deployment kept no image of it, so "
+                            + "every tenant on it expanded the whole version again");
+        }
+    }
+
     // ── helpers ───────────────────────────────────────────────────────────
 
     private String oldStock;
@@ -540,13 +558,16 @@ class TheStandardMovesUnderTheDataIT {
         assertEquals(201, clinic.post("/StructureMap", ordersMap()).statusCode());
 
         String aim = "code=" + encoded(states() + "|active");
+        String counted = clinic.get("/Basic?_shape-below=" + encoded(orders() + "|3") + "&" + aim
+                + "&_summary=count").body();
+        String converted = admin("/reshape?type=Basic&profile=" + encoded(orders())
+                + "&target=3&" + aim);
+        String after = clinic.get("/Basic/" + waitedOn).body();
         Proves.that(DboPromises.SHAPE_RESHAPE_TAKES_THE_SEARCH_NARROWING,
-                clinic.get("/Basic?_shape-below=" + encoded(orders() + "|3") + "&" + aim
-                        + "&_summary=count").body().contains("\"total\":1")
-                        && admin("/reshape?type=Basic&profile=" + encoded(orders()) + "&target=3&"
-                        + aim).contains("\"converted\":1")
-                        && clinic.get("/Basic/" + waitedOn).body().contains("3.0.0"),
-                "the count and the conversion were not the same expression");
+                counted.contains("\"total\":1") && converted.contains("\"converted\":1")
+                        && after.contains("3.0.0"),
+                "the count and the conversion were not the same expression: counted " + counted
+                        + ", converted " + converted + ", and the order reads " + after);
         Proves.that(DboPromises.SHAPE_RESHAPE_TAKES_THE_SEARCH_NARROWING,
                 clinic.get("/Basic/" + coldHistory).body().contains("2.0.0")
                         && clinic.get("/Basic/" + alsoWaitedOn).body().contains("2.0.0"),

@@ -142,6 +142,28 @@ public final class FaceWarmup {
     }
 
     /**
+     * Copying through the driver this bundle wires to, which is the one that
+     * opens a tenant's connections: {@link FaceImage} lives in a package an
+     * embedding host may share, and there it sees another copy of the driver
+     * than the pool does. Used for loading an image as well as cutting one.
+     */
+    static final FaceImage.Copying COPYING = new FaceImage.Copying() {
+        @Override
+        public long out(java.sql.Connection connection, String sql, OutputStream to)
+                throws SQLException, IOException {
+            return connection.unwrap(org.postgresql.PGConnection.class).getCopyAPI()
+                    .copyOut(sql, to);
+        }
+
+        @Override
+        public long in(java.sql.Connection connection, String sql, java.io.InputStream from)
+                throws SQLException, IOException {
+            return connection.unwrap(org.postgresql.PGConnection.class).getCopyAPI()
+                    .copyIn(sql, from);
+        }
+    };
+
+    /**
      * One cutting of one face at a time, across processes.
      *
      * <p>On the directory rather than on a database, because the directory is
@@ -200,7 +222,7 @@ public final class FaceWarmup {
                 long began = System.currentTimeMillis();
                 FaceImage.Manifest manifest;
                 try (OutputStream out = Files.newOutputStream(partial)) {
-                    manifest = FaceImage.cut(source, facts, cursor, out);
+                    manifest = FaceImage.cut(source, facts, cursor, out, COPYING);
                 }
                 Files.move(partial, image, StandardCopyOption.REPLACE_EXISTING,
                         StandardCopyOption.ATOMIC_MOVE);

@@ -88,7 +88,7 @@ final class FaceBringUp {
                 FaceFunctions.installedIn(into), DefinitionStore.SHAPE);
         FaceImage.Acceptance answer;
         try (InputStream bytes = Files.newInputStream(image)) {
-            answer = FaceImage.accept(into, expected, bytes);
+            answer = FaceImage.accept(into, expected, bytes, FaceWarmup.COPYING);
         } catch (IOException unreadable) {
             return new Outcome(false, "the image at " + image + " could not be read: "
                     + unreadable.getMessage(), false);
@@ -140,7 +140,7 @@ final class FaceBringUp {
         FaceImage.Facts expected = new FaceImage.Facts(FaceRootPackages.carried(face), face,
                 FaceFunctions.installedIn(into), DefinitionStore.SHAPE);
         try (InputStream bytes = Files.newInputStream(image)) {
-            FaceImage.Acceptance answer = FaceImage.accept(into, expected, bytes);
+            FaceImage.Acceptance answer = FaceImage.accept(into, expected, bytes, FaceWarmup.COPYING);
             if (answer instanceof FaceImage.Acceptance.Refused refused) {
                 return refused.why();
             }

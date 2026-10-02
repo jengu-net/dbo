@@ -192,7 +192,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
             }
         } catch (java.io.IOException | RuntimeException couldNotCut) {
             LOG.warn("face {} could not be cut, so roots on it read their packages: {}",
-                    spec.face(), couldNotCut.toString());
+                    spec.face(), withItsCauses(couldNotCut));
         } catch (Exception unexpected) {
             throw new IllegalStateException("the face could not be taken", unexpected);
         }
@@ -249,7 +249,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
             }
         } catch (java.io.IOException | RuntimeException couldNotCut) {
             LOG.warn("face {} could not be cut, so tenants on it read it through the chain: {}",
-                    spec.face(), couldNotCut.toString());
+                    spec.face(), withItsCauses(couldNotCut));
         }
     }
 
@@ -3748,7 +3748,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
             }
         } catch (java.io.IOException | RuntimeException couldNotCut) {
             LOG.warn("projection {} could not be cut, so its tenants read the zone through "
-                    + "the chain: {}", spec.code(), couldNotCut.toString());
+                    + "the chain: {}", spec.code(), withItsCauses(couldNotCut));
         }
     }
 

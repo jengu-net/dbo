@@ -71,6 +71,16 @@ dependencies {
 
 tasks.withType<Test>().configureEach {
     useJUnitPlatform()
+    // Faces are cut once and brought up from, as the sample world's own
+    // compose file has its node do: the first tenant on a version cuts it and
+    // every tenant after loads it rather than expanding the version again,
+    // half a minute or more each. Kept as long as the world's database is,
+    // which is this test JVM — the compose file holds them on a tmpfs for the
+    // same reason — so every run cuts its own, and a run whose deployment
+    // could not cut one is one the stories can tell.
+    val images = layout.buildDirectory.dir("face-images-$name").get().asFile
+    systemProperty("dbo.face.images", images.absolutePath)
+    doFirst { images.deleteRecursively() }
 }
 
 tasks.test {

@@ -1503,8 +1503,10 @@ cloud.jengu.dbo.definitions.FaceFunctions                              install(D
 cloud.jengu.dbo.definitions.FaceFunctions                              installedIn(DataSource):String
 cloud.jengu.dbo.definitions.FaceImage                                  MANIFEST_ENTRY:String
 cloud.jengu.dbo.definitions.FaceImage                                  accept(DataSource,cloud.jengu.dbo.definitions.FaceImage.Facts,InputStream):cloud.jengu.dbo.definitions.FaceImage.Acceptance
+cloud.jengu.dbo.definitions.FaceImage                                  accept(DataSource,cloud.jengu.dbo.definitions.FaceImage.Facts,InputStream,cloud.jengu.dbo.definitions.FaceImage.Copying):cloud.jengu.dbo.definitions.FaceImage.Acceptance
 cloud.jengu.dbo.definitions.FaceImage                                  class
 cloud.jengu.dbo.definitions.FaceImage                                  cut(DataSource,cloud.jengu.dbo.definitions.FaceImage.Facts,String,OutputStream):cloud.jengu.dbo.definitions.FaceImage.Manifest
+cloud.jengu.dbo.definitions.FaceImage                                  cut(DataSource,cloud.jengu.dbo.definitions.FaceImage.Facts,String,OutputStream,cloud.jengu.dbo.definitions.FaceImage.Copying):cloud.jengu.dbo.definitions.FaceImage.Manifest
 cloud.jengu.dbo.definitions.FaceImage.Acceptance                       interface
 cloud.jengu.dbo.definitions.FaceImage.Acceptance.Accepted              equals(Object):boolean
 cloud.jengu.dbo.definitions.FaceImage.Acceptance.Accepted              hashCode():int
@@ -1519,6 +1521,10 @@ cloud.jengu.dbo.definitions.FaceImage.Acceptance.Refused               new(Strin
 cloud.jengu.dbo.definitions.FaceImage.Acceptance.Refused               record
 cloud.jengu.dbo.definitions.FaceImage.Acceptance.Refused               toString():String
 cloud.jengu.dbo.definitions.FaceImage.Acceptance.Refused               why():String
+cloud.jengu.dbo.definitions.FaceImage.Copying                          HERE:cloud.jengu.dbo.definitions.FaceImage.Copying
+cloud.jengu.dbo.definitions.FaceImage.Copying                          in(Connection,String,InputStream):long
+cloud.jengu.dbo.definitions.FaceImage.Copying                          interface
+cloud.jengu.dbo.definitions.FaceImage.Copying                          out(Connection,String,OutputStream):long
 cloud.jengu.dbo.definitions.FaceImage.Facts                            equals(Object):boolean
 cloud.jengu.dbo.definitions.FaceImage.Facts                            face():String
 cloud.jengu.dbo.definitions.FaceImage.Facts                            faceSql():String

@@ -1,8 +1,8 @@
 package cloud.jengu.dbo.definitions;
 
 import cloud.jengu.dbo.core.api.Domains;
+import org.postgresql.PGConnection;
 import org.postgresql.copy.CopyManager;
-import org.postgresql.core.BaseConnection;
 
 import javax.sql.DataSource;
 import java.io.IOException;
@@ -132,6 +132,54 @@ public final class FaceImage {
         record Refused(String why) implements Acceptance {}
     }
 
+    /**
+     * How a COPY reaches the database: the driver's copy interface, as the
+     * class space that opened the connection sees it.
+     *
+     * <p>A seam because this package and the connection need not share one.
+     * Under the Spring Boot assemblies this package is shared with the
+     * application, so its classes link the application's copy of the driver,
+     * while a tenant's pool is opened inside the container by the driver
+     * bundle there. Unwrapping one copy's connection to the other copy's
+     * interface fails, and it failed quietly: no face could be cut or loaded,
+     * so every tenant on a version expanded the whole of it again instead.
+     * The caller that opened the connection is the one whose classes match
+     * it, so it says how to copy.
+     */
+    public interface Copying {
+
+        /** {@code COPY ... TO STDOUT}, into {@code to}; the rows copied. */
+        long out(Connection connection, String sql, OutputStream to)
+                throws SQLException, IOException;
+
+        /** {@code COPY ... FROM STDIN}, from {@code from}; the rows copied. */
+        long in(Connection connection, String sql, InputStream from)
+                throws SQLException, IOException;
+
+        /**
+         * Through the driver as this package sees it: right wherever the
+         * connection comes from the same copy, which is everywhere but a
+         * shared package under an embedding host.
+         */
+        Copying HERE = new Copying() {
+            @Override
+            public long out(Connection connection, String sql, OutputStream to)
+                    throws SQLException, IOException {
+                return copyApi(connection).copyOut(sql, to);
+            }
+
+            @Override
+            public long in(Connection connection, String sql, InputStream from)
+                    throws SQLException, IOException {
+                return copyApi(connection).copyIn(sql, from);
+            }
+
+            private CopyManager copyApi(Connection connection) throws SQLException {
+                return connection.unwrap(PGConnection.class).getCopyAPI();
+            }
+        };
+    }
+
     // ------------------------------------------------------------- cutting
 
     /**
@@ -145,6 +193,15 @@ public final class FaceImage {
      */
     public static Manifest cut(DataSource from, Facts facts, String cursor, OutputStream out)
             throws IOException {
+        return cut(from, facts, cursor, out, Copying.HERE);
+    }
+
+    /**
+     * As {@link #cut(DataSource, Facts, String, OutputStream)}, copying the
+     * way whoever opened the connection can.
+     */
+    public static Manifest cut(DataSource from, Facts facts, String cursor, OutputStream out,
+            Copying copying) throws IOException {
         MessageDigest digest = sha256();
         long rows = 0;
         Map<String, String> dumped = new LinkedHashMap<>();
@@ -152,10 +209,9 @@ public final class FaceImage {
             c.setAutoCommit(false);
             c.setTransactionIsolation(Connection.TRANSACTION_REPEATABLE_READ);
             try {
-                CopyManager copy = new CopyManager(c.unwrap(BaseConnection.class));
                 for (String table : carried(c)) {
                     java.io.ByteArrayOutputStream body = new java.io.ByteArrayOutputStream();
-                    copy.copyOut("COPY " + Domains.schema(Domains.DEFINITIONS) + "."
+                    copying.out(c, "COPY " + Domains.schema(Domains.DEFINITIONS) + "."
                             + table + " TO STDOUT WITH (FORMAT csv)", body);
                     byte[] bytes = body.toByteArray();
                     digest.update(table.getBytes(StandardCharsets.UTF_8));
@@ -202,6 +258,15 @@ public final class FaceImage {
      */
     public static Acceptance accept(DataSource into, Facts expected, InputStream image)
             throws IOException {
+        return accept(into, expected, image, Copying.HERE);
+    }
+
+    /**
+     * As {@link #accept(DataSource, Facts, InputStream)}, copying the way
+     * whoever opened the connection can.
+     */
+    public static Acceptance accept(DataSource into, Facts expected, InputStream image,
+            Copying copying) throws IOException {
         Map<String, byte[]> tables = new LinkedHashMap<>();
         Manifest manifest = null;
         try (ZipInputStream zip = new ZipInputStream(image)) {
@@ -235,9 +300,8 @@ public final class FaceImage {
                         return new Acceptance.Refused(missing);
                     }
                 }
-                CopyManager copy = new CopyManager(c.unwrap(BaseConnection.class));
                 for (Map.Entry<String, byte[]> table : tables.entrySet()) {
-                    loaded += copy.copyIn("COPY " + Domains.schema(Domains.DEFINITIONS) + "."
+                    loaded += copying.in(c, "COPY " + Domains.schema(Domains.DEFINITIONS) + "."
                                     + table.getKey() + " FROM STDIN WITH (FORMAT csv)",
                             new java.io.ByteArrayInputStream(table.getValue()));
                 }
