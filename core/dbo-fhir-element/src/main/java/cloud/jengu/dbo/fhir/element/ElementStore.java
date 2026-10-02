@@ -275,7 +275,6 @@ public final class ElementStore implements FhirStoreFacade,
      * otherwise, exactly as before: a tenant with no face, and every caller
      * with no tenant database, are unchanged.
      */
-    @SuppressWarnings("unchecked")
     private Payloads<Object> payloads() {
         Payloads<Object> held = payloads;
         if (held == null) {
@@ -283,34 +282,66 @@ public final class ElementStore implements FhirStoreFacade,
             try {
                 held = payloads;
                 if (held == null) {
-                    if (fromTheIndex() != null) {
-                        held = (Payloads<Object>) (Payloads<?>) fromTheIndex();
-                        shapesInView = canonicalsOf(profilesForTheView());
-                    } else if (FaceBase.versionRootIn(store).isPresent()) {
-                        held = (Payloads<Object>) (Payloads<?>) version.payloadsFor(
-                                terms == null ? Terms.NONE : terms, store);
-                        shapesInView = heldCanonicals(store);
-                    } else if (terms == null) {
-                        held = (Payloads<Object>) version.face().require(Payloads.class);
-                        shapesInView = java.util.Set.of();
-                    } else {
-                        // Without the tenant's maps. A map is a program run
-                        // by a reshape, which is maintenance, and it was being
-                        // held in the object a tenant serves from for the
-                        // whole of its life — so a converter nobody had asked
-                        // to run was resident in every serving process. The
-                        // conversion view below takes them when a conversion
-                        // is actually asked for.
-                        List<String> profiles = profilesForTheView();
-                        held = (Payloads<Object>) (Payloads<?>)
-                                version.payloadsFor(terms, profiles, List.of());
-                        shapesInView = canonicalsOf(profiles);
-                    }
+                    held = builtView();
                     payloads = held;
                 }
             } finally {
                 building.unlock();
             }
+        }
+        return held;
+    }
+
+    /**
+     * The view built again from what the store holds now, and put in place of
+     * the one being served only once it is whole.
+     *
+     * <p>Built and swapped under the same lock a first build takes, and never
+     * by emptying the field first. Emptied first, a reader in the gap found no
+     * view at all — and a read with no view has no pack to judge a stamp
+     * against, so an object newer than the pack was served while the view was
+     * being rebuilt, which is a tenth of a second on an idle machine and much
+     * longer on a busy one. And two rebuilds at once — the write that moved a
+     * profile, and the round that saw it arrive — could finish in either order:
+     * the second to start found the first one's view in place and kept it,
+     * though the first had read the store before the write it was racing.
+     * Under the lock, the later rebuild reads the store after the earlier one
+     * has finished.
+     */
+    private void rebuildTheView() {
+        building.lock();
+        try {
+            payloads = builtView();
+        } finally {
+            building.unlock();
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private Payloads<Object> builtView() {
+        Payloads<Object> held;
+        if (fromTheIndex() != null) {
+            held = (Payloads<Object>) (Payloads<?>) fromTheIndex();
+            shapesInView = canonicalsOf(profilesForTheView());
+        } else if (FaceBase.versionRootIn(store).isPresent()) {
+            held = (Payloads<Object>) (Payloads<?>) version.payloadsFor(
+                    terms == null ? Terms.NONE : terms, store);
+            shapesInView = heldCanonicals(store);
+        } else if (terms == null) {
+            held = (Payloads<Object>) version.face().require(Payloads.class);
+            shapesInView = java.util.Set.of();
+        } else {
+            // Without the tenant's maps. A map is a program run
+            // by a reshape, which is maintenance, and it was being
+            // held in the object a tenant serves from for the
+            // whole of its life — so a converter nobody had asked
+            // to run was resident in every serving process. The
+            // conversion view below takes them when a conversion
+            // is actually asked for.
+            List<String> profiles = profilesForTheView();
+            held = (Payloads<Object>) (Payloads<?>)
+                    version.payloadsFor(terms, profiles, List.of());
+            shapesInView = canonicalsOf(profiles);
         }
         return held;
     }
@@ -1272,8 +1303,7 @@ public final class ElementStore implements FhirStoreFacade,
             return;
         }
         try {
-            payloads = null;
-            payloads(); // built now, so a broken profile is said now rather than on somebody's write
+            rebuildTheView(); // built now, so a broken profile is said now rather than on somebody's write
         } catch (RuntimeException e) {
             throw new cloud.jengu.dbo.fhir.common.ValidationFailedException("StructureDefinition",
                     List.of("the profile was stored, and this tenant's validation still uses "
