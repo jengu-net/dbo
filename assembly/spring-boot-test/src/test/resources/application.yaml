@@ -4,3 +4,17 @@
 dbo:
   test:
     world: ../../samples/sample-world
+  # The name the sample application's worker performs under. It carries the
+  # worker's steps, and its own application.yaml — which this file replaces —
+  # says who performs them. No lanes: nothing in this test asks for work.
+  worker:
+    identity:
+      name: sample-admissions-worker
+      version: "1"
+
+# The secret of the client the sample application registers as at each clinic
+# it opens, which it cannot start without and which its own application.yaml
+# carries.
+clinic:
+  application:
+    secret: a-sample-secret-for-the-clinics-application
