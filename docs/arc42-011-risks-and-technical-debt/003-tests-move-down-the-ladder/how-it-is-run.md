@@ -2,7 +2,7 @@
 
 Tests are being taken off worlds of their own and put onto shared ones: the
 harness's shared tenants, and where the behaviour is reachable through a door,
-the guide's running world. This document is how that work is *run* — the loop,
+the world the user stories walk. This document is how that work is *run* — the loop,
 the gate, and the rules that were paid for rather than reasoned out.
 
 It is not the case for doing it. That is in the commit messages and in

@@ -42,19 +42,6 @@ val dboRunnerTestOutput = project(":core:dbo-runner")
         .extensions.getByType(SourceSetContainer::class.java)
         .getByName("test").output
 
-// The guide suite's citation index.
-//
-// It is compiled elsewhere and never RUN from here — a Test task scans its own
-// testClassesDirs rather than its classpath, so nothing in this module starts a
-// docker world. What is wanted is the META-INF/promise/proofs resource the
-// processor writes beside its classes: the projection and the guards over it
-// read citations off the classpath, so a promise proven in the guide world
-// reads PLANNED here unless that output is on it.
-evaluationDependsOn(":guide")
-val guideTestOutput = project(":guide")
-        .extensions.getByType(SourceSetContainer::class.java)
-        .getByName("test").output
-
 // The user stories' citation index. They walk the sample world as the clinic
 // application's tests, and every promise a story leg proves is proven there and
 // nowhere else once its old class here is gone — so without that index on
@@ -73,7 +60,6 @@ dependencies {
     // specification needs them here. One that takes its face from records
     // never opens them and is unaffected by their presence.
     testRuntimeOnly(project(":core:dbo-fhir-packages"))
-    testRuntimeOnly(guideTestOutput)
     // Its CLASSES only, and the distinction is load-bearing. What is wanted
     // is the META-INF/promise/proofs index the processor writes beside them.
     // Its resources also carry a META-INF/services entry naming that module's
@@ -325,12 +311,12 @@ val promiseCitations = tasks.register<JavaExec>("promiseCitations") {
     classpath = sourceSets["test"].runtimeClasspath
     mainClass.set("cloud.jengu.dbo.harness.PromiseCitations")
     systemProperty("dbo.repo.root", rootProject.projectDir.absolutePath)
-    // The sample's world, which the guide's container mounts and this suite
-    // brings up in its own JVM. One definition, so a tenant the guide shows
-    // and a tenant the suite proves against cannot drift apart.
+    // The sample world, which the stories walk and this suite brings up in
+    // its own JVM. One definition, so a tenant the stories show and a tenant
+    // the suite proves against cannot drift apart.
     systemProperty("dbo.sample.world",
-        rootProject.file("sample/world/tenants").absolutePath)
-    inputs.dir(rootProject.file("sample/world/tenants"))
+        rootProject.file("samples/sample-world/tenants").absolutePath)
+    inputs.dir(rootProject.file("samples/sample-world/tenants"))
     args(rootProject.file("config/promise-citations.txt").absolutePath)
 }
 

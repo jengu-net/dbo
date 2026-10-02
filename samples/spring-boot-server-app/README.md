@@ -80,9 +80,9 @@ docker exec dbo-sample-db createdb -U postgres dbo_substrate
 ./gradlew :samples:spring-boot-worker-app:run --args='--spring.profiles.active=substrate'
 ```
 
-Either way, a step asked of `hogwarts` is performed in the other JVM, and the
-run it answers with says so. [`../check-separated.sh`](../check-separated.sh)
-does exactly this, under each profile in turn; CI runs it under `edge`.
+Either way, a step asked of `hogwarts` is performed in the other JVM.
+[`../check-separated.sh`](../check-separated.sh) does exactly this, embedded
+and then under each profile in turn, and CI runs all three.
 
 ## Asking it something
 
@@ -104,9 +104,10 @@ tenant's own authority, which is
 
 It is not the distribution. `core/dbo-server` is the store as a thing you
 deploy; this is the store as a library inside something you wrote. The two
-serve the same world on purpose, so the only difference between them is how
-the store is reached — see [item
-026](../../docs/arc42-011-risks-and-technical-debt/026-two-samples-tell-one-story/README.md).
+serve the same world on purpose ([`../sample-world/compose.yaml`](../sample-world/compose.yaml)
+is the distribution's), so the only difference between them is how the store
+is reached. [The guide](../../docs/guide/index.md) is this application's
+story, chapter by chapter.
 
 Its companion is [`../spring-boot-worker-app`](../spring-boot-worker-app),
 which performs the clinic's work and holds no store at all. This application

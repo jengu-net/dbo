@@ -394,9 +394,9 @@ Three items are waiting on the same constraint from different directions.
 [Item 019](../019-the-build-repeats-itself/README.md) found that the container
 suites are the forty minutes and no cache reaches them.
 [Item 003](../003-tests-move-down-the-ladder/README.md) moves classes onto a
-shared world so fewer tenants exist at once, and
-[item 002](../002-sample-application/README.md) is the application those stories
-would run against. Each of them is, underneath, a way of holding fewer tenants
+shared world so fewer tenants exist at once, and the sample applications
+(`samples/`) are what those stories run against
+([item 035](../035-every-promise-on-one-world/README.md)). Each of them is, underneath, a way of holding fewer tenants
 alive — and none of them can be judged without knowing what one costs.
 
 The temporary rule about not proving a bring-up on the shared runtime is the

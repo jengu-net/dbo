@@ -42,7 +42,7 @@ final class WhatAClosureReachesTest {
 
     private static final String PREFIX = "http://hl7.org/fhir/StructureDefinition/";
 
-    /** What sample/world/tenants/hogwarts.json declares it operates on. */
+    /** What samples/sample-world/tenants/hogwarts.json declares it operates on. */
     private static final Set<String> HOGWARTS = new LinkedHashSet<>(List.of(
             "StructureDefinition", "SearchParameter", "ValueSet", "CodeSystem",
             "Organization", "Person", "Practitioner", "PractitionerRole",

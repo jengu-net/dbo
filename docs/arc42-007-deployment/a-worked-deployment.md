@@ -2,14 +2,16 @@
 
 Isolation claims are easy to write and hard to check. This page takes a
 deployment small enough to point at and concrete enough to run — the one the
-guide uses — and says what each party can reach.
+user stories walk — and says what each party can reach.
 
-It is not a deployment invented for the argument. It is
-`docs/guide/examples/compose.yaml`, mounted over `sample/world/`, and three
-CI jobs bring it up on every change. Every sentence below is about a file in
-this repository, so a claim that stops being true stops being true visibly.
+It is not a deployment invented for the argument. It is the sample world —
+`samples/sample-world/`, the seven tenants every user story walks — served by
+the distribution from `samples/sample-world/compose.yaml`. The stories bring
+the same tenants up in the clinic's application on every change, so every
+sentence below is about a file in this repository, and a claim that stops
+being true stops being true visibly.
 
---8<-- "docs/guide/examples/compose.yaml"
+--8<-- "samples/sample-world/compose.yaml"
 
 --8<-- "assets/diagrams/the-tenants-in-a-deployment.svg"
 
@@ -99,10 +101,12 @@ declaration.
 ## The application on top
 
 A store nobody builds on is a filing cabinet, so the ordinary case is an
-application in front of a tenant. In this world that application is
-`sample/`, and the guide is its story.
+application in front of a tenant. In this world that application is the
+clinic's own (`samples/spring-boot-server-app`), and [the guide](../guide/index.md)
+is its story.
 
-It talks to its tenant over FHIR, and there is one surface to talk to. The
+It reaches its tenants' data through work — it asks a tenant for a step and
+hears what the step came to — and their doors are on its own port. The
 records that say who works at the hospital are the same records the store
 reads as grants, so an application does not get a second administrative
 interface with its own user table and its own idea of who may do what. That
@@ -116,9 +120,9 @@ identifies nobody. Showing a name means fetching it through an authorised
 read, and that read is recorded, because displaying who somebody is is a
 disclosure like any other.
 
-The same application can also **embed** the store rather than call it: the
-whole thing boots inside the host's own JVM behind the same API. What changes
-between calling it and embedding it is the transport, not the rules.
+The clinic's application **embeds** the store: the whole thing boots inside
+its own JVM, and the distribution above is the same store as a thing you
+deploy. What changes between the two is the transport, not the rules.
 
 ## What the operator holds, and what it does not
 
@@ -137,10 +141,10 @@ read would be available to anything that ever got hold of it.
 
 ## The participants are outside, and are never called
 
-`sample/participant/` is a laboratory: another organisation's process, with a
-lane, a runner and a step declaration of its own, and no store on its compile
-path at all. It could be behind a router with no public address and nothing
-would change.
+The worker application (`samples/spring-boot-worker-app`) is another
+process: a lane, a set of step beans, one of them bringing a step declaration
+of its own, and no store on its compile path at all. It could be behind a
+router with no public address and nothing would change.
 
 It holds a lane and asks what work is available to it. What it may take is the
 intersection of two declarations — what its enrolment covers, and what the

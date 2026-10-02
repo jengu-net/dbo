@@ -28,8 +28,8 @@ scales, what one more of it buys, and which parts of that are designed rather
 than written.
 
 **[A worked deployment](../docs/arc42-007-deployment/a-worked-deployment.md).**
-Every boundary, on a deployment you can run: the seven tenants of the guide's
-world, the applications in front, the laboratory somewhere else — and what each
+Every boundary, on a deployment you can run: the seven tenants of the sample
+world, the applications in front, the worker somewhere else — and what each
 party can actually reach. It is built on that world's compose file rather than
 on a deployment invented for the argument, so the claims are checkable by
 bringing it up.

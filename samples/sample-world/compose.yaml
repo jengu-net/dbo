@@ -1,15 +1,16 @@
-# The sample world, running.
+# The sample world, served by the distribution.
 #
-#   docker compose -f docs/guide/examples/compose.yaml up -d
+#   docker compose -f samples/sample-world/compose.yaml up -d
 #
 # Seven tenants come up: the managing tenant, the zone, two face roots, a
-# hospital, an insurer and a clinic that keys nobody by a national number.
-# The guide's examples run against them, and examples/check.sh runs the
-# guide's examples.
+# hospital, an insurer and a clinic that keys nobody by a national number —
+# the world the user stories walk in the clinic's application, here as a
+# deployment of the store on its own. The worked deployment
+# (docs/arc42-007-deployment/a-worked-deployment.md) is written about this
+# file.
 #
-# This is the quickstart's compose file with one difference — the world it
-# mounts — and it keeps the quickstart's pinned image on purpose, so there is
-# one place to bump a version rather than two that drift.
+# It keeps the quickstart's pinned image on purpose, so there is one place to
+# bump a version rather than two that drift.
 #
 # Two settings here must never be copied into a deployment, and each says so
 # where it is made.
@@ -21,7 +22,7 @@ services:
       # A database per tenant means the admin connection needs CREATE
       # DATABASE. Superuser is the shortest way to have that on a throwaway
       # instance; a deployment grants exactly that right and nothing else.
-      POSTGRES_PASSWORD: guide
+      POSTGRES_PASSWORD: sample
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 2s
@@ -40,10 +41,10 @@ services:
     environment:
       # ── The one line you must not copy into anything real ──────────
       # The distribution refuses to serve without a working authority. That
-      # refusal is promised behaviour; switching it off is this explicit flag,
-      # and the flag is what lets the guide's commands run without a token.
-      # The world is guarded, because a store whose point is who-may-see-what
-      # should not be demonstrated with that switched off. Both values here are
+      # refusal is promised behaviour, and switching it off is an explicit
+      # flag this file does not set: the world is guarded, because a store
+      # whose point is who-may-see-what should not be demonstrated with that
+      # switched off. Both values here are
       # what a deployment already decided and wrote down: the key its tenants
       # seal credentials with, and the secret it holds for each tenant's own
       # bootstrap client. In a cluster an operator generates and holds these;
@@ -80,7 +81,7 @@ st-jerome=jerome-secret"
 
       DBO_ADMIN_JDBC_URL: jdbc:postgresql://db:5432/postgres
       DBO_ADMIN_USER: postgres
-      DBO_ADMIN_PASSWORD: guide
+      DBO_ADMIN_PASSWORD: sample
 
       DBO_LOG_FORMAT: text
     tmpfs:
@@ -89,5 +90,5 @@ st-jerome=jerome-secret"
       # its database.
       - /var/lib/dbo/faces
     volumes:
-      - ../../../sample/world/tenants:/etc/dbo/tenants:ro
-      - ../../../sample/world:/etc/dbo/management:ro
+      - ./tenants:/etc/dbo/tenants:ro
+      - ./:/etc/dbo/management:ro

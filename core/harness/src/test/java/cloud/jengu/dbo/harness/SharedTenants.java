@@ -436,9 +436,9 @@ public final class SharedTenants {
         return UP.get(member.code());
     }
 
-    /** Where the sample keeps the world both the guide and this suite use. */
+    /** Where the sample world is kept, which both the stories and this suite use. */
     private static final Path WORLD =
-            Path.of(System.getProperty("dbo.sample.world", "../../sample/world/tenants"));
+            Path.of(System.getProperty("dbo.sample.world", "../../samples/sample-world/tenants"));
 
     /**
      * The parts the sample world's tenants play, and what each needs serving

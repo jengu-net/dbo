@@ -3,16 +3,15 @@
 //
 // The assembly beside it (`assembly/spring-boot-server`) proves the wrapper
 // works; this proves an APPLICATION can be built on it, which is a different
-// claim and the one an integrator is actually asking about. It shares nothing
-// with `sample/` on purpose: that module is the distribution's story and the
-// guide includes its source, so the two are kept apart until the guide moves.
+// claim and the one an integrator is actually asking about. The guide is its
+// story, quoted from its source.
 //
 // The user stories are this application's tests. They boot it as any Spring
 // Boot application is tested, with the worker embedded, and walk the sample
 // world through its own classes.
 //
 // Not published. A sample is something to read and run, not something to
-// depend on — the same reason `sample` and the harness are not published.
+// depend on — the same reason the harness is not published.
 plugins {
     id("java")
     // So a reader can run it: `./gradlew <this>:run`. The Spring Boot Gradle

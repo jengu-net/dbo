@@ -43,7 +43,7 @@ step 2 lands.
 1. **One world.** It is
    [`samples/sample-world`](https://github.com/jengu-net/dbo/tree/main/samples/sample-world),
    Rowling Land (`mom` and six tenants), served by one context. It is also the guide's
-   world, and `sample/` is deprecated. The world may change to fit the
+   world. The world may change to fit the
    stories (a type, a relation, a zone setting, a deployment property), but
    only in ways the guide could show a reader.
    That change goes into the world's spec files. A story never makes it at
@@ -346,19 +346,17 @@ application's own `application.yaml`; the `stories` profile adds only what a
 test needs beside it.
 
 **One world, for the guide and for the tests.** `samples/sample-world` is
-the world the guide's chapters and the stories both read; `sample/` is
-deprecated. So a change rule 1 makes to the world is a change to what the
-guide shows a reader, and it has to make sense there: a world member is a
-part a reader can recognise, never a fixture one story needed. A tenant only
-one story wants is declared by that story under its prefix. Moving the guide
-off `sample/` is [item 027](../027-the-guide-moves-onto-the-samples/README.md);
-until it lands, the guide's container still mounts `sample/world`, and a
-change made here reaches the guide when 027 does.
+the world the guide's chapters and the stories both read, and the guide quotes
+the stories' own code. So a change rule 1 makes to the world is a change to
+what the guide shows a reader, and it has to make sense there: a world member
+is a part a reader can recognise, never a fixture one story needed. A tenant
+only one story wants is declared by that story under its prefix.
 
 **The 11 that may not fit are left to the end.** These are:
 
 - the distribution, started as a process
-- the guide, run against its pinned image
+- the guide, run against its pinned image — retired with the guide's own
+  tests, after the five promises only it proved became story legs
 - a k3s operator
 - Felix packaging, and a bundle stack resolved in Felix
 - the three OSGi ratchets
@@ -372,10 +370,7 @@ moved and the world has grown, because some may fit by then: the Spring world
 boots the embedded container too. Those that still do not fit get one or more
 technical user stories, written the same way as the others but about a
 builder or operator handling the deployment itself. Until then, the classes
-stay as they are, and so does what they prove. That includes
-`TheGuideRunsIT`'s 40 promises that no other world proves. The stories still
-prove those 40 themselves where a leg passes through them, so the guide is
-never the only proof.
+stay as they are, and so does what they prove.
 
 **The world comes up as fast as it can, once.** Bring-up is most of the
 suite's time, so the goal is to make it cheap, not to measure it. This item

@@ -6,8 +6,8 @@ import java.util.jar.JarFile
 // performs. The lanes it performs over come from configuration. There is no
 // store here and no way to get one: what this carries is the work vocabulary
 // and the lane, which is the whole of what a party outside the deployment
-// compiles against — the same line `sample/participant` draws, and the same
-// one a driver bundle rests on in the container.
+// compiles against — the same line the sample worker application draws, and
+// the same one a driver bundle rests on in the container.
 //
 // The plan this module is being built to is README.md beside this file.
 

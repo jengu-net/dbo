@@ -45,7 +45,7 @@ Story class: `ATenantOpensAndItsPeopleGetInIT` — exists; today own (lifecycle)
 | `SCIM_GROUPS_READ_ONLY` | — | W | `7` `enumerationStaysBehindTheDirectoryDoor` |
 | `AUTH_IDENTITY_AS_RECORDS` | — |  | `8` `whatAClinicianMayDoIsDeclaredAndWhoTheyAreIsARecord` |
 | `AUTH_ORG_MODEL_IS_THE_AUTH_MODEL` | — | W | `8` `whatAClinicianMayDoIsDeclaredAndWhoTheyAreIsARecord` |
-| `AUTH_A_ZONE_IS_ITS_OWN_BROKER` | `TheGuideRunsIT` | W | to fit |
+| `AUTH_A_ZONE_IS_ITS_OWN_BROKER` | `TheGuideRunsIT` | W | `35` `aZoneIsItsOwnBroker` |
 | `AUTH_BOOTSTRAP_SECRET_IS_CUSTODY` | `ADeploymentPresentsItsOwnCredentialIT` | W | to fit |
 | `AUTH_CREDENTIAL_FACTORS_BY_KIND` | without a world: EdgePinIsACredentialIT |  | assert where the story passes it |
 | `AUTH_DEACTIVATION_RETIRES_CREDENTIALS` | — | W | `19` `aClinicianChangesTheirOwnSecret`, `20` `aFirstSecretIsSetFromAOneTimeGrant` |
@@ -155,7 +155,7 @@ Story class: `TheClinicRecordsCareAndAccountsForItIT` — exists; today shared.
 | `VER_ONE_READ_PER_REQUEST` | without a world: OneReadPerRequestTest, ReadOnceTest |  | assert where the story passes it |
 | `VER_PERSONALITY_OWNS_MEANING` | `R6TenantIT` |  | to fit |
 | `VER_SPECIFIED_VALIDATION` | — |  | to fit |
-| `VER_VALIDATION_WITHOUT_WRITING` | `TheGuideRunsIT` | W | to fit |
+| `VER_VALIDATION_WITHOUT_WRITING` | `TheGuideRunsIT` | W | `34` `askingForTheVerdictWithoutWriting` |
 | `VER_VERSION_AGNOSTIC_CORE` | without a world: ADomainThatIsNotHealthcareHasAFaceIT, EngineKnowsNoFaceIT … |  | assert where the story passes it |
 
 ## US-DBO-PERSON-RIGHTS
@@ -189,7 +189,7 @@ Story class: `WhatAPersonCanAskForIT` — on the world, at Hogwarts.
 | `IDN_BINDING_IS_REVERSIBLE_AND_KEEPS_ITS_EVIDENCE` | without a world: BindingIT |  | `7` `whoSheIsIsDecidedAndCanBeUndone` |
 | `IDN_CLAIM_STRENGTH_BOUNDS_THE_CONCLUSION` | without a world: IdentityLookupIT, IdentityResolutionIT |  | `6` `identifyingHerIsADoorOfItsOwn` |
 | `IDN_IDENTIFICATION_IS_REACHABLE` | — | W | `6` `identifyingHerIsADoorOfItsOwn`, `7` |
-| `IDN_WHAT_A_RECIPIENT_SEES_IS_DECLARED` | `TheGuideRunsIT` | W | to fit |
+| `IDN_WHAT_A_RECIPIENT_SEES_IS_DECLARED` | `TheGuideRunsIT` | W | `1` `readingHerIsNotTheSameAsWritingHer` |
 | `PDI_AN_ID_THE_STORE_NEVER_ASSIGNED_IS_NOT_A_FAULT` | without a world: PdiIT |  | assert where the story passes it |
 | `PDI_A_REFUSAL_ANSWERS_AS_A_REFUSAL` | without a world: PdiIT, TheGuideRunsIT |  | `4` `lookingSomebodyUpIsAnActWithAReason` |
 | `PDI_BLIND_OPERATIONS` | without a world: PdiIT, TheGuideRunsIT |  | assert where the story passes it |
@@ -409,8 +409,8 @@ Story class: `WorkLeavesTheClinicAndComesBackIT` — exists; today shared.
 | `PROC_A_HOST_HOLDS_A_LANE_WHEREVER_IT_IS` | `AHostHoldsALaneByInstallingABundleIT`, `AParticipantHoldsItsLaneOnTheStreamIT` | W | US-DBO-ON-THE-STREAM |
 | `PROC_A_LANE_OVER_THE_STREAM` | `AHostHoldsALaneByInstallingABundleIT`, `AParticipantHoldsItsLaneOnTheStreamIT` |  | US-DBO-ON-THE-STREAM |
 | `PROC_A_PARTICIPANT_OFFERS_ITS_KEY_AT_ENROLMENT` | — | W | to fit |
-| `PROC_A_RUN_ANSWERS_ONLY_FOR_ITS_INPUTS` | `TheGuideRunsIT` | W | to fit |
-| `PROC_A_RUN_CONTEXT_ENDS_WITH_ITS_RUN` | `TheGuideRunsIT` | W | to fit |
+| `PROC_A_RUN_ANSWERS_ONLY_FOR_ITS_INPUTS` | `TheGuideRunsIT` | W | `31` `aRunReachesWhatItWasStartedOver` |
+| `PROC_A_RUN_CONTEXT_ENDS_WITH_ITS_RUN` | `TheGuideRunsIT` | W | `32` `theWayInClosesWhenTheWorkEnds` |
 | `PROC_A_RUN_NAMES_WHAT_IT_PRODUCED` | without a world: ContentChangesInsideWorkIT, TheLaneHasTwoBoundsIT |  | assert where the story passes it |
 | `PROC_A_STEP_GRANTS_THE_RIGHT_TO_OVERRIDE` | without a world: ExecutorResolutionTest |  | assert where the story passes it |
 | `PROC_A_WAKE_UP_IS_NOT_HOW_WORK_ARRIVES` | `AParticipantHoldsItsLaneOnTheStreamIT` |  | US-DBO-ON-THE-STREAM |
@@ -577,7 +577,7 @@ Left to the end, after every story has moved (step 7). What still does not fit t
 | `OperatorIT` | own+process (sweep) — a k3s cluster the operator drives | 4 | 3 | later |
 | `ServerDistIT` | osgi+process — the distribution, started as a process | 5 | 5 | later |
 | `TenantOsgiIT` | osgi — OSGi ratchet | 3 | 3 | later |
-| `TheGuideRunsIT` | process — the guide against the pinned image (item 004) | 66 | 40 | later |
+| `TheGuideRunsIT` | process — the guide against the pinned image | 66 | 40 | deleted, with the guide's own tests; the five it alone proved are story legs |
 | `TheStackSatisfiesAStatedRangeIT` | osgi — a bundle stack resolved in Felix, no tenant | 0 | 0 | later |
 
 ## What stays, and the technical story each group becomes

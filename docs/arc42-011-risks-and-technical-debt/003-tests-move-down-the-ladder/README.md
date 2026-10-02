@@ -156,8 +156,8 @@ in [how the migration is run](how-it-is-run.md), which moved here from
    combinations the suite wanted and the cast did not have; the sixth is a
    mirrored code system, which is a mechanism rather than a part and has not
    earned a sentence in the guide. `SharedTenants.cast` brings a member up
-   from the sample's own spec file, with its upstreams first, so a tenant is
-   defined once and the guide's container and this suite read the same
+   from the sample world's own spec file, with its upstreams first, so a
+   tenant is defined once and the stories and this suite read the same
    definition.
 
    The first class has moved. `DelegationIT` had a shape of its own —

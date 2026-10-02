@@ -121,8 +121,8 @@ tries again.
 5. ~~A run-scoped read surface answering for `run.inputs()`~~ — **done**.
 6. ~~A client holding `work` and not `system/*`~~ — **done**; registration.
 7. ~~The context's metadata lists only the declared types~~ — **done**.
-8. ~~A guide chapter using it~~ — **done**: `runs.md`, running as twenty-one
-   steps of the shared world and in `docs/guide/examples/check.sh`.
+8. ~~A guide chapter using it~~ — **done**:
+   [work leaves and comes back](../../guide/work-leaves-and-comes-back.md#a-runs-own-context).
 9. ~~The reading is on the record, naming the run~~ — **done**. The mechanism
    was already there: `Caller.setRun` makes the engine record an access entry
    whatever the tenant's audit level, and this surface simply never set it.
@@ -130,8 +130,10 @@ tries again.
     for ending it. A run is over when nobody holds it.
 
 `PROC_A_RUN_ANSWERS_ONLY_FOR_ITS_INPUTS` and
-`PROC_A_RUN_CONTEXT_ENDS_WITH_ITS_RUN`, both proven on shared-world steps;
-`POL_TRAVEL_AND_ACCESS_ARE_DIFFERENT_ENTRIES` gains a site there. The harness
+`PROC_A_RUN_CONTEXT_ENDS_WITH_ITS_RUN`, both proven on legs of the edge
+round-trip story, over a ward of the story's own whose step nothing performs —
+because a run's context closes when the run does, and the sample worker
+performs every step the world declares within a poll. The harness
 test that owned a world for this is gone — everything it asserted is asserted
 over HTTP, which is where the rule about which world a test belongs in puts it.
 
@@ -197,8 +199,7 @@ rather than a bespoke protocol.
 
 ## Verifying
 
-Every line of the acceptance is a step of the shared world's work story, and
-the same commands run in `docs/guide/examples/check.sh`:
+Every line of the acceptance is a leg of the edge round-trip story:
 
 - a request inside a run reads a document the run names — 200;
 - the same credential, same document, outside any run — refused;
@@ -206,19 +207,9 @@ the same commands run in `docs/guide/examples/check.sh`:
   byte the answer an invented id gets;
 - a type the step never declared — 404, and absent from the context's
   `/metadata`;
-- the trail shows the read, naming the run — from the run, for what it opened,
-  and from the document, for who read it;
 - a run's context stops answering once the run has ended, byte for byte as a
   run that never existed.
 
 ```
-./gradlew :guide:test --tests '*WorkAndHowFarARunReaches*'
-DBO_GUIDE_COMPOSE="$(docs/guide/examples/tree-world.sh /tmp/tree.yaml)" \
-    ./gradlew :guide:test
+./gradlew :samples:spring-boot-server-app:storyTest --tests '*WorkLeavesTheClinicAndComesBack*'
 ```
-
-The pin moves with the chapter, in both compose files, because a chapter
-demonstrating a surface the pinned image does not carry fails the build it
-arrives in — and the image that could carry it is only built from a main the
-chapter would have reddened. So the code lands first and the chapter follows
-the image built from it.

@@ -1,10 +1,7 @@
-**Open. The context chapter is done, and so is the worked deployment: it is a
-chapter now, built on the guide world's compose file. Two disagreements are
-left and both wait on item 002 — the guide is shell commands where the map says
-it is the sample application's story, and `using-dbo.md` is a reference where
-the map says it is that sample's README. The second had no step and has one
-now; an item deleted when its list empties cannot empty a line nobody
-scheduled.**
+**Open. The context chapter, the worked deployment and the guide are done:
+the guide is the sample applications' story, one chapter per user story,
+quoting their source. One disagreement is left — `using-dbo.md` is a reference
+where the map says it is the samples' README — and it waits on nothing now.**
 
 # The documentation tree is moved to match its map
 
@@ -29,14 +26,14 @@ building. This item is deleted when the list is empty.
   than two, and two face roots — so the sentence about a second face root
   being another version stopped being hypothetical and became the insurer,
   a release behind, taking the zone through a projection.
-- `docs/guide/` is written as shell commands a reader runs against the
-  world. The map says it is the sample application's story, and there is no
-  sample application.
+- ~~`docs/guide/` is written as shell commands a reader runs against the
+  world.~~ Closed. It is the sample applications' story, a chapter per user
+  story, each quoting `samples/` rather than retyping it.
 - `docs/using-dbo.md` is a reference a builder reads; the map says it is the
-  sample's README. **And it had no step**, which is worth saying because this
+  samples' README. **And it had no step**, which is worth saying because this
   item is deleted when the list is empty and a disagreement nobody scheduled
-  could never leave it. It has one now, below. `sample/README.md` does not
-  exist; `docs/using-dbo.md` is organised by capability, the `dbo-using` skill
+  could never leave it. It has one now, below. The samples' READMEs say how to
+  run them; `docs/using-dbo.md` is organised by capability, the `dbo-using` skill
   projects from it, `docs/README.md` points at it, and a Gradle input names
   it — so the move is four references and a rewrite rather than a `git mv`.
 
@@ -47,36 +44,17 @@ building. This item is deleted when the list is empty.
    own.~~ Done. The site page is gone rather than made a pointer — a page
    whose whole content is "it is over there" is a third thing to keep in
    step — and the technical index links into the chapter instead.
-2. Rewrite the guide one chapter at a time as the sample application's
-   story, each chapter including the sample's source and replacing one
-   shell chapter when it lands. The sample itself is
-   [item 002](../002-sample-application/README.md); this step waits for it.
+2. ~~Rewrite the guide as the sample application's story.~~ Done: one
+   chapter per user story, quoting the sample applications, the sample world
+   and the story tests.
 
-   **Which chapters there should be is
-   [item 021](../021-asking-the-store/README.md).** The Core group is
-   organised by store feature and the map says the guide is a story, and those
-   are different things — the first chapter where they part company is
-   `search.md`, which walks a query surface FHIR documents. Converting a
-   chapter that should not exist is the one way this step can waste work, so
-   the list is settled there first.
+3. Rewrite `docs/using-dbo.md` as the samples' README — what the store
+   provided and the applications did not write — and move the four references
+   with it: the `dbo-using` skill's source, the docs index, the working-rules
+   index and the Gradle input that reads it.
 
-3. Rewrite `docs/using-dbo.md` as the sample's README — what the store
-   provided and the sample did not write — and move the four references with
-   it: the `dbo-using` skill's source, the docs index, the working-rules index
-   and the Gradle input that reads it.
-
-   **After step 2, not beside it.** Today the document is organised by
-   capability, which is the shape of a reference; as a README it is organised
-   by what the sample would otherwise have had to write. That second list is
-   read off the sample, and the sample is still growing a class per chapter —
-   `Observing` arrived with References. Writing it now means writing it
-   against a sample that is a third of its eventual size, which is the one way
-   this step can waste work, in the same way converting a chapter that should
-   not exist is the one way step 2 can.
-
-Step 2 is the largest, and with step 3 it is no longer the only one. Both wait
-on [item 002](../002-sample-application/README.md) rather than on anything
-here, so this item is finished when that one is.
+   It waits on nothing now: the applications are written and their tests
+   are the stories, so what they did not have to write can be read off them.
 
 ## How a step lands
 

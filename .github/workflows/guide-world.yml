@@ -3,7 +3,7 @@ name: guide-world
 # The migration's own signal, and nothing else.
 #
 # Tests are being moved off worlds of their own and onto shared ones — the
-# harness's shared tenants, and where it fits, the guide's world. That work
+# harness's shared tenants, and where it fits, the stories' world. That work
 # needs one question answered quickly and repeatedly: do the moved tests still
 # pass together? Running `build` to find out costs thirty-five minutes and
 # answers ninety other questions nobody asked.
@@ -54,29 +54,4 @@ jobs:
         with:
           name: shared-world-report
           path: core/harness/build/reports/tests/**
-          retention-days: 7
-
-  guide-on-tree:
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v5
-        with:
-          distribution: temurin
-          java-version: "25"
-      - uses: gradle/actions/setup-gradle@v4
-      - name: The guide suite, against this tree
-        run: ./docs/guide/examples/guide-on-tree.sh
-      - name: What the world said, if a step failed
-        if: failure()
-        run: docker compose -f docs/guide/examples/compose.yaml logs --tail 200 dbo || true
-      - name: The report, when there is something to read
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: guide-test-report
-          path: guide/build/reports/tests/**
           retention-days: 7

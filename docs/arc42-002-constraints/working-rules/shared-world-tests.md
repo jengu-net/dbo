@@ -2,18 +2,20 @@
 
 Bringing up a world is the expensive part of the suite. A runtime costs
 about thirty-four seconds; a tenant on a runtime already up costs about
-three and a half; the guide's six-tenant world costs minutes and is paid
+three and a half; the sample world the stories walk costs minutes and is paid
 once. An integration test takes the cheapest world that can hold what it
 proves, and the choice is made deliberately, down a ladder.
 
 ## The ladder
 
-1. **A guide step.** `guide/` drives the six tenants of the sample world
-   over HTTP, in the order a reader meets them, and each step can cite a
-   promise. A test belongs here when what it proves is reachable through a
-   face and reads as something a reader would do: a write, a read, a search,
-   a refusal, a token, a run, a provisioning call, an entry in the trail.
-   The question: could a reader do this with curl?
+1. **A story leg.** The user stories walk the sample world in the clinic's
+   application (`samples/spring-boot-server-app`), in one context, every
+   story at once, and each leg can cite a promise. A test belongs here when
+   what it proves is reachable through the applications or a tenant's doors
+   and reads as something a builder would do: asking for a step, performing
+   one, a write, a read, a search, a refusal, a token, a provisioning call, an
+   entry in the trail. The question: could an application built on the store
+   do this?
 2. **A shared tenant.** `SharedTenants` in the harness holds one runtime for
    the whole suite and hands out tenants keyed by shape: a face version, a
    type set, an identity class, isolation on or off. A test belongs here when
@@ -47,14 +49,6 @@ with its reason. [How the move down the ladder is run](../../arc42-011-risks-and
 sits with the item that tracks it. A new class without a reason fails the build, and the
 number that predate the ledger only falls.
 
-## The guide runs against the tree
-
-The guide's published compose file names a pinned image, and `:guide:test`
-runs against it to prove the published commands. A promise claimed on a
-guide step is proven by `./verify`, which builds a server from the tree and
-runs the same suite against it. `docs/guide/examples/guide-on-tree.sh` is
-that run on its own.
-
 ## Preconditions
 
 A precondition is arranged with the tools a reader would use. A tenant is
@@ -64,7 +58,7 @@ face. Nothing is inserted into the database to arrange a situation, because
 a test whose precondition was placed behind the surface proves the store
 handles a state it cannot itself produce.
 
-A world's shape is shared cost. A tenant added to the guide world is paid
+A world's shape is shared cost. A tenant added to the sample world is paid
 by every run; a shape added to the shared tenants is paid by every run that
 touches it. A test that does not fit what is declared takes a private
 tenant.
@@ -118,8 +112,8 @@ applies-when: >-
 reference: docs/arc42-002-constraints/working-rules/shared-world-tests.md
 ```
 **Rules**
-- MUST take the cheapest world that holds the proof, in this order: a guide
-  step when a reader could do it with curl; a `SharedTenants` shape when the
+- MUST take the cheapest world that holds the proof, in this order: a story
+  leg when an application built on the store could do it; a `SharedTenants` shape when the
   test needs the store's API, facade, feed or database; a private tenant on
   the shared runtime when no shape fits; a runtime of its own only for
   lifecycle, the container, tampering, a first boot, a claim about a
@@ -152,7 +146,7 @@ reference: docs/arc42-002-constraints/working-rules/shared-world-tests.md
 - MUST assert everything one action settles beside that action, including
   its audit entry, and assert that a shelled-out request ran before reading
   its answer.
-- MUST NOT add a tenant to the guide world or a shape to the shared tenants
+- MUST NOT add a tenant to the sample world or a shape to the shared tenants
   for one test.
 - MUST claim a promise where it is proven, re-record the catalogue, and
   confirm the new site is listed before deleting the test it came from.

@@ -91,8 +91,8 @@ is a host outside the framework asking a question and reading the answer.
 The vocabulary is Java and that does not make it in-JVM. The runner facade
 already has three bindings — in-JVM, the lane's verbs over HTTP, and
 `dbo-stream` over the store's own substrate — and the caller cannot tell which
-it holds. `HttpLane` is the proof it reads well: `sample/participant` is a jar
-that speaks the lane's verbs and contains no HTTP at all.
+it holds. `HttpLane` is the proof it reads well: the sample worker application
+speaks the lane's verbs and contains no HTTP code at all.
 
 So the same shape here. The places a consumer needs this are:
 
@@ -501,16 +501,11 @@ what it should produce when it gets there.
    thing that proves the caller cannot tell, and a host outside the framework
    asking one question, which is the only thing that proves the types travel.
 5. The observer seam, off by default.
-6. ~~The guide chapter, replacing `search.md` in the reading order.~~ Done.
-   `asking.md` reads over a `TheWard` the sample compiles, so a chapter cannot
-   show a call that no longer exists. `search.md` is gone, and its three
-   surviving claims went where a story meets each: the capability statement and
-   the refusal of an unknown parameter to [the face](../../guide/the-face.md),
-   which is the chapter about what a tenant declares and what its refusals say;
-   the cursor that holds a page to
-   [the change feed](../../guide/change-feed.md), beside the durable cursors it
-   is the same primitive as; and counting without fetching to the asking
-   chapter, where a screen's first number is asked for.
+6. ~~The guide chapter.~~ Done. The questions a screen asks are
+   `CountingTheWard` in the clinic's application, quoted by
+   [care is recorded](../../guide/care-is-recorded.md#asking-what-is-there), so
+   a chapter cannot show a call that no longer exists. The capability statement
+   and the refusal of an unknown parameter are guarantees of that chapter too.
 7. Joins, which is its own subject: the five questions above first, the
    feature after. Until then the three methods refuse by name, with a test
    holding them to it.

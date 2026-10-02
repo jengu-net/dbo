@@ -29,7 +29,7 @@ check that guards it reads the whole tree as paths.
 Meanwhile the mechanism that would have consumed a kind was built and does not
 want one. Every selector an activity can write asks about a resolved fact, and
 that finding now lives in the guide's
-[Lifecycle](../../guide/lifecycle.md) chapter beside the facts themselves —
+[A tenant opens](../../guide/a-tenant-opens.md#selecting-tenants) chapter beside the facts themselves —
 including why a filter on a resolved fact keeps answering correctly for a kind
 of tenant nobody anticipated, and a filter on a label does not.
 
@@ -200,7 +200,7 @@ appointment into the thing being appointed.
 
 The mechanism that consumes this is built, and is described where a reader
 will need it rather than in a task document: the guide's
-[Lifecycle](../../guide/lifecycle.md) chapter, and the facts a tenant publishes in
+[A tenant opens](../../guide/a-tenant-opens.md#selecting-tenants) chapter, and the facts a tenant publishes in
 `TenantFacts`. A kind would be one more of those facts, and a provisioning
 activity would select on it.
 

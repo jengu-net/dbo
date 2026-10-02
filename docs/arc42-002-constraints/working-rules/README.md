@@ -86,10 +86,9 @@ waits for it to serve is measuring how loaded the runner was. The insurer,
 whose bring-up makes a projection that reads a whole face, did not arrive
 inside four minutes on CI and comes up in two and a half beside three tenants.
 Assert what a tenant DOES on the shared runtime, and do not re-prove that it
-comes up at all: a world that already brings it up runs in CI three times a
-run. The guide's container serves all seven of the sample world's tenants on
-every change, so a tenant that stopped coming up would fail there — which is
-the same duplication item 004 has been removing, arriving from the test side.
+comes up at all: the stories bring every tenant of the sample world up in the
+clinic's application on every change, and hold every leg until they serve, so
+a tenant that stopped coming up would fail there.
 Where a bring-up genuinely needs proving and nothing already proves it, the
 world is sized for that question and its reason goes in the ledger. This
 narrows the shared-world rule while the build is slow and does not widen it:
