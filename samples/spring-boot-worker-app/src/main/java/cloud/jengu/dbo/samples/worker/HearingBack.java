@@ -31,6 +31,7 @@ public final class HearingBack {
         this.initiator = initiator;
     }
 
+    // --8<-- [start:hearing]
     /** How the run stands now. */
     public DboInitiator.Answer now(String tenant, String run) {
         return initiator.answer(tenant, run);
@@ -45,7 +46,9 @@ public final class HearingBack {
             Duration patience) {
         return initiator.awaiting(tenant, started.runOrFail(), patience);
     }
+    // --8<-- [end:hearing]
 
+    // --8<-- [start:reading]
     /** What the step counted under this name, if it counted it. */
     public static Optional<Long> counted(DboInitiator.Answer answer, String name) {
         for (Map<?, ?> output : outputs(answer)) {
@@ -69,6 +72,7 @@ public final class HearingBack {
                 .filter(reference -> reference != null)
                 .toList();
     }
+    // --8<-- [end:reading]
 
     /** The run itself, as the Task it answered with. */
     public static Map<?, ?> task(DboInitiator.Answer answer) {

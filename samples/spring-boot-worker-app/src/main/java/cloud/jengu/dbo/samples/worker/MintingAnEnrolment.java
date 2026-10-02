@@ -42,6 +42,7 @@ public final class MintingAnEnrolment {
      *             performs for; {@code build/enrolment} and {@code hogwarts}
      *             when not given
      */
+    // --8<-- [start:minting]
     public static void main(String[] args) throws IOException {
         Path into = Path.of(args.length > 0 ? args[0] : "build/enrolment");
         String tenant = args.length > 1 ? args[1] : "hogwarts";
@@ -71,6 +72,7 @@ public final class MintingAnEnrolment {
         System.out.println("the worker's keys: " + worker.toAbsolutePath());
         System.out.println("the enrolment to hand over: " + enrolment.toAbsolutePath());
     }
+    // --8<-- [end:minting]
 
     /** A private half as the worker starter takes it: base64 PKCS#8. */
     private static String encoded(KeyPair pair) {

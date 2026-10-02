@@ -18,6 +18,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  * coming up. They are configuration rather than code for the reason every
  * deployment wants: a tenant is added by writing a file, not by a release.
  */
+// --8<-- [start:application]
 @SpringBootApplication
 public class ServerApplication {
 
@@ -25,3 +26,4 @@ public class ServerApplication {
         SpringApplication.run(ServerApplication.class, args);
     }
 }
+// --8<-- [end:application]

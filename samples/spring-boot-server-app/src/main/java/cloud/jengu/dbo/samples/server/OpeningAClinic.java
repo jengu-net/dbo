@@ -30,6 +30,7 @@ import java.util.List;
  * grant it already holds changes nothing; a bring-up that refused one would
  * make every redeploy a migration.
  */
+// --8<-- [start:opening]
 @Component
 @DboTenantListener(point = TenantPoint.SERVING, target = "(dbo.tenant.hasScim=true)")
 public final class OpeningAClinic implements TenantLifecycleListener {
@@ -75,3 +76,4 @@ public final class OpeningAClinic implements TenantLifecycleListener {
         return true;
     }
 }
+// --8<-- [end:opening]

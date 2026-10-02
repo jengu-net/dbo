@@ -15,6 +15,7 @@ import java.util.Map;
  * rules — so this asks, and hears back either the person written or the
  * hospital's reason for refusing.
  */
+// --8<-- [start:asking]
 @Component
 public final class AskingWhoSomebodyIs {
 
@@ -36,3 +37,4 @@ public final class AskingWhoSomebodyIs {
                 Map.of("person", DboInitiator.Slot.object(person)));
     }
 }
+// --8<-- [end:asking]

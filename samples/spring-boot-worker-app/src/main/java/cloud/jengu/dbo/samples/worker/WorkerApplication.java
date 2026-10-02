@@ -18,6 +18,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  * {@code application.yaml}, and a bean implementing {@code StepService} is
  * found by the container's own whiteboard.
  */
+// --8<-- [start:application]
 @SpringBootApplication
 public class WorkerApplication {
 
@@ -25,3 +26,4 @@ public class WorkerApplication {
         SpringApplication.run(WorkerApplication.class, args);
     }
 }
+// --8<-- [end:application]

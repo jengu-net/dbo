@@ -18,6 +18,7 @@ import java.util.Map;
  * number another person holds, or a record somebody else is already linked
  * to, is refused there, and the run ends with the reason.
  */
+// --8<-- [start:step]
 @Component
 public final class IdentifyingAPerson implements StepService {
 
@@ -38,3 +39,4 @@ public final class IdentifyingAPerson implements StepService {
         return Outcome.done(Map.of("identified", 1L)).writing(Outcome.Write.create(person));
     }
 }
+// --8<-- [end:step]

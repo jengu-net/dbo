@@ -486,6 +486,7 @@ class OneTenantInTwoPlacesIT {
     private String afterwards;
 
     /** The clinic's declaration, taking code systems from an upstream, or from none. */
+    // --8<-- [start:dependency]
     private String clinicTakingCodeSystemsFrom(String upstream) {
         String dependencies = upstream == null ? ""
                 : ",\"dependencies\":[{\"name\":\"" + upstream
@@ -497,6 +498,7 @@ class OneTenantInTwoPlacesIT {
                   {"name":"ValueSet","identity":"canonical","handling":"operational"}]}"""
                 .formatted(clinic, dependencies);
     }
+    // --8<-- [end:dependency]
 
     /** Waits for a tenant to answer for a code from its own copy, not merely to store it. */
     // ── and an upstream rebuilt in place keeps its dependents streaming ──

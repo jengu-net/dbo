@@ -21,6 +21,7 @@ import java.util.Map;
  * <p>The step code is the clinic's process rather than one tenant's, so every
  * tenant that declares it is offered this bean's work.
  */
+// --8<-- [start:step]
 @Component
 public final class RecordingAPatient implements StepService {
 
@@ -41,3 +42,4 @@ public final class RecordingAPatient implements StepService {
         return Outcome.done(Map.of("recorded", 1L)).writing(Outcome.Write.create(patient));
     }
 }
+// --8<-- [end:step]

@@ -15,6 +15,7 @@ import java.util.Map;
  * under, and their patient by the number the clinic knows them by. The step
  * answers with all of them, and the clinic commits all of them or none.
  */
+// --8<-- [start:asking]
 @Component
 public final class AskingForAVisit {
 
@@ -36,3 +37,4 @@ public final class AskingForAVisit {
                 Map.of("observations", DboInitiator.Slot.objects(observations)));
     }
 }
+// --8<-- [end:asking]

@@ -111,10 +111,12 @@ class ATenantOpensAndItsPeopleGetInIT {
         // an identity provider write people is a tenant holding identifying
         // data, and the store refuses the combination by name rather than
         // serving a directory outside the membrane.
+        // --8<-- [start:declare]
         dbo.declare(clinic, """
                 {"code":"%s","face":"r4","pdi":true,"audit":{"level":"full"},
                  "scim":{"system":"%s"},
                  "types":%s}""".formatted(clinic, idp, staffTypes()));
+        // --8<-- [end:declare]
 
         Proves.that(DboPromises.CONT_DYNAMIC_TENANT_SERVICES,
                 dbo.until(clinic, true, Duration.ofMinutes(10)),
@@ -1134,6 +1136,30 @@ class ATenantOpensAndItsPeopleGetInIT {
             dbo.retract(unserved);
             dbo.retract(longCode);
         }
+    }
+
+    @Test
+    @Order(35)
+    @DisplayName("a zone that names no identity broker is its own: it runs the ceremony its "
+            + "members federate to, and its members serve")
+    @Proving(DboPromises.AUTH_A_ZONE_IS_ITS_OWN_BROKER)
+    void aZoneIsItsOwnBroker() {
+        // Rowling Land names no broker, so declaring it for its rules and its
+        // terminology did not oblige anybody to stand up an identity provider.
+        // What makes it a broker anyway is the hub holding keys of its own to
+        // sign what it asserts.
+        String base = dbo.at("rl");
+        String hub = base.substring(0, base.indexOf("/t/")) + "/z/rl/hub/jwks.json";
+        HttpResponse<String> keys = dbo.get(hub, null);
+        Proves.that(DboPromises.AUTH_A_ZONE_IS_ITS_OWN_BROKER,
+                keys.statusCode() == 200 && keys.body().contains("\"keys\""),
+                "the zone's hub has no keys of its own, so nothing federates to it: "
+                        + keys.statusCode() + " " + keys.body());
+        // And its members serve, which is the half that would be missing if a
+        // zone without a broker held its tenants out of service.
+        Proves.that(DboPromises.AUTH_A_ZONE_IS_ITS_OWN_BROKER,
+                dbo.serving().containsAll(List.of("hogwarts", "st-jerome", "gringotts")),
+                "a member of a zone that is its own broker is not served: " + dbo.serving());
     }
 
     // ── helpers ───────────────────────────────────────────────────────────

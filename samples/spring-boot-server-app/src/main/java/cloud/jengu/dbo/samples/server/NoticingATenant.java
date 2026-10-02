@@ -19,6 +19,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * screen. Anything that must not miss an event is an observer instead, which
  * resumes where it left off; a listener is told once, at the point it named.
  */
+// --8<-- [start:noticing]
 @Component
 @DboTenantListener(point = TenantPoint.SERVING)
 public final class NoticingATenant implements TenantLifecycleListener {
@@ -38,3 +39,4 @@ public final class NoticingATenant implements TenantLifecycleListener {
         return noticed.contains(tenant);
     }
 }
+// --8<-- [end:noticing]

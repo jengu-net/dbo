@@ -127,7 +127,7 @@ class WhatAPersonCanAskForIT {
     @Order(1)
     @DisplayName("a credential that may write every type still reads Liis back without her "
             + "name, because what identifies her lives in the vault")
-    @Proving(DboPromises.PDI_STRUCTURAL_VAULT)
+    @Proving({DboPromises.PDI_STRUCTURAL_VAULT, DboPromises.IDN_WHAT_A_RECIPIENT_SEES_IS_DECLARED})
     void readingHerIsNotTheSameAsWritingHer() {
         // Written by the hospital, from what a step answered with: the
         // clinic's application gave her and never held a records credential.
@@ -141,8 +141,15 @@ class WhatAPersonCanAskForIT {
         liis = idOf(written, "Patient");
 
         HttpResponse<String> read = dbo.read(HOSPITAL, "Patient", liis);
-        assertEquals(200, read.statusCode(), read.body());
         var record = dbo.says(read);
+        // Answered rather than refused. What a recipient sees follows what the
+        // hospital declared, not how much the credential may write, and work
+        // that never needed her still runs.
+        Proves.that(DboPromises.IDN_WHAT_A_RECIPIENT_SEES_IS_DECLARED,
+                read.statusCode() == 200 && record.has("resourceType") && !record.has("name"),
+                "a credential that may write every type and states no reason was not answered "
+                        + "with her record without her in it: " + read.statusCode() + " "
+                        + read.body());
         Proves.that(DboPromises.PDI_STRUCTURAL_VAULT, !record.has("name"),
                 "her name came back to a credential nothing declared may identify her: "
                         + read.body());
@@ -544,12 +551,14 @@ class WhatAPersonCanAskForIT {
         assertEquals(401, nobody.statusCode(),
                 "the desk answered somebody with no credential: " + nobody.body());
 
+        // --8<-- [start:erasure]
         String desk = doors.tokenFor(names.code("desk"), "erasure");
         HttpResponse<String> asked = doors.post("/erasure", subject, desk);
         assertEquals(202, asked.statusCode(), asked.body());
         var receipt = dbo.says(asked);
         String run = receipt.one("run").orElseThrow(
                 () -> new AssertionError("the erasure answered without a run: " + asked.body()));
+        // --8<-- [end:erasure]
         Proves.that(DboPromises.PDI_ERASURE_IS_A_RUN,
                 receipt.one("open").equals(java.util.Optional.of("false")),
                 "the run is still open after the erasure answered, so the receipt does not "

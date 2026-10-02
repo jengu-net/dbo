@@ -14,6 +14,7 @@ import java.util.Map;
  * answers with, under the run, or refuses it and says why. What came of it is
  * heard back on the run.
  */
+// --8<-- [start:asking]
 @Component
 public final class AskingForARegistration {
 
@@ -35,3 +36,4 @@ public final class AskingForARegistration {
                 Map.of("patient", DboInitiator.Slot.object(patient)));
     }
 }
+// --8<-- [end:asking]

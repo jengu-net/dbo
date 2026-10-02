@@ -29,6 +29,7 @@ import java.util.Map;
  * it breaks one. A door of the deployment's would have produced a run with no
  * owner, and there is no orchestrator here for it to belong to instead.
  */
+// --8<-- [start:asking]
 @Component
 public final class AskingForADirectoryCheck {
 
@@ -87,3 +88,4 @@ public final class AskingForADirectoryCheck {
                 {"resourceType":"Basic","code":{"text":"%s"}}""".formatted(text);
     }
 }
+// --8<-- [end:asking]

@@ -28,6 +28,7 @@ import java.util.Map;
  * sender's name for it and not a record's: there is no record yet, and the
  * clinic gives each one an id of its own when it writes it.
  */
+// --8<-- [start:step]
 @Component
 public final class RecordingAVisit implements StepService {
 
@@ -63,3 +64,4 @@ public final class RecordingAVisit implements StepService {
                 new String(given.payload(), StandardCharsets.UTF_8));
     }
 }
+// --8<-- [end:step]

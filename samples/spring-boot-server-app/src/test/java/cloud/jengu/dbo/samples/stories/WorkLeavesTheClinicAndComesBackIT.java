@@ -17,6 +17,7 @@ import cloud.jengu.dbo.work.Run;
 import cloud.jengu.dbo.work.Runs;
 import cloud.jengu.dbo.work.Scope;
 import cloud.jengu.dbo.work.WorkModel;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Order;
@@ -118,6 +119,18 @@ class WorkLeavesTheClinicAndComesBackIT {
     private final java.security.KeyPair analyserSigning =
             cloud.jengu.dbo.core.api.seal.SigningKey.newKeyPair();
 
+    /**
+     * A ward of the story's own, offering one step that nothing performs.
+     *
+     * <p>A run's context answers only while somebody holds the run, and the
+     * sample worker performs every step the world declares within a poll —
+     * so a context over one of those closes before a leg can read through it.
+     * A step nobody performs stays held by the door that started it until
+     * whoever started it says the work is done.
+     */
+    private static final String WARD = NAMES.tenant("ward");
+    private static final String FETCH = PROCESS + ".fetch";
+
     @Autowired
     DboTestContext dbo;
 
@@ -194,6 +207,21 @@ class WorkLeavesTheClinicAndComesBackIT {
                  "code":{"text":"%s"}}""".formatted(NAMES.value("specimen")));
         assertTrue(written.accepted(), "the specimen was not accepted: " + written.body());
         specimen = written.idOrFail();
+
+        // Declared now and asserted on last, so it comes up while the bench
+        // works rather than in front of the legs that read through a run.
+        dbo.declare(WARD, """
+                {"code":"%s","face":"r4","audit":{"level":"writes"},
+                 "types":[
+                  {"name":"Patient","identity":"internal","handling":"operational"},
+                  {"name":"Observation","identity":"internal","handling":"operational"}],
+                 "steps":[{"code":"%s","slots":{"patient":"Reference(Patient)"}}]}"""
+                .formatted(WARD, FETCH));
+    }
+
+    @AfterAll
+    void theWardIsWithdrawn() {
+        dbo.retract(WARD);
     }
 
     private static String benchToken(TenantAuthority authority) {
@@ -1308,6 +1336,115 @@ class WorkLeavesTheClinicAndComesBackIT {
         Proves.that(DboPromises.PROC_A_REFUSED_RESULT_ENDS_THE_RUN,
                 "failed".equals(later.state()) && before.equals(after),
                 "a refused run was taken again: " + before + " then " + later.body());
+    }
+
+    // ── what a run reaches, and for how long ──
+
+    /** The run the porter started over one patient, and the base url it reads through. */
+    private String porterRun;
+    private String porterContext;
+    private String porterPatient;
+
+    @Test
+    @Order(31)
+    @DisplayName("a credential that may act in work reads nothing directly, and inside a run it "
+            + "reads the patient the run was started over and nothing else, whatever its type")
+    @Proving(DboPromises.PROC_A_RUN_ANSWERS_ONLY_FOR_ITS_INPUTS)
+    void aRunReachesWhatItWasStartedOver() {
+        assertTrue(dbo.until(WARD, true, Duration.ofMinutes(10)),
+                "the ward never came up: " + dbo.serving());
+        porterPatient = dbo.write(WARD, "Patient",
+                "{\"resourceType\":\"Patient\",\"name\":[{\"family\":\"Weasley\"}]}")
+                .idOrFail();
+        String other = dbo.write(WARD, "Patient",
+                "{\"resourceType\":\"Patient\",\"name\":[{\"family\":\"Granger\"}]}")
+                .idOrFail();
+        String porter = dbo.workToken(WARD);
+
+        // The refusal comes first: a credential that could read the record
+        // directly would make everything after it a formality.
+        HttpResponse<String> direct = dbo.get(dbo.at(WARD) + "/fhir/Patient/" + porterPatient,
+                porter);
+        Proves.that(DboPromises.PROC_A_RUN_ANSWERS_ONLY_FOR_ITS_INPUTS,
+                direct.statusCode() == 401 || direct.statusCode() == 403,
+                "a work credential read a record outside any run: " + direct.statusCode());
+
+        HttpResponse<String> started = dbo.send(HttpRequest.newBuilder(
+                        URI.create(dbo.at(WARD) + "/step/" + FETCH))
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(
+                        "{\"inputs\":{\"patient\":\"Patient/" + porterPatient + "\"}}")),
+                porter);
+        assertEquals(201, started.statusCode(), started.body());
+        porterRun = dbo.says(started).one("run").orElseThrow();
+        String path = dbo.says(started).one("context").orElseThrow();
+        // A path rather than a url: what a node is bound to is not what a
+        // caller reached it by, so the caller resolves it against its own.
+        assertTrue(path.startsWith("/t/" + WARD + "/run/"), "the context is not a path: " + path);
+        porterContext = root() + path;
+
+        HttpResponse<String> inside = dbo.get(porterContext + "/Patient/" + porterPatient, porter);
+        Proves.that(DboPromises.PROC_A_RUN_ANSWERS_ONLY_FOR_ITS_INPUTS,
+                inside.statusCode() == 200,
+                "inside the run, the patient it was started over was not read: "
+                        + inside.statusCode() + " " + inside.body());
+
+        // Out of reach answers as absent, and BYTE FOR BYTE as an id nothing
+        // ever minted: a difference between the two would say which records
+        // exist to whoever asks.
+        String invented = "01a00000-0000-7000-8000-00000000beef";
+        HttpResponse<String> withheld = dbo.get(porterContext + "/Patient/" + other, porter);
+        HttpResponse<String> absent = dbo.get(porterContext + "/Patient/" + invented, porter);
+        Proves.that(DboPromises.PROC_A_RUN_ANSWERS_ONLY_FOR_ITS_INPUTS,
+                withheld.statusCode() == 404 && absent.statusCode() == 404
+                        && withheld.body().equals(absent.body().replace(invented, other)),
+                "a patient the run was not given answered differently from one that does not "
+                        + "exist: " + withheld.body() + " / " + absent.body());
+        HttpResponse<String> otherType = dbo.get(porterContext + "/Observation/" + other, porter);
+        Proves.that(DboPromises.PROC_A_RUN_ANSWERS_ONLY_FOR_ITS_INPUTS,
+                otherType.statusCode() == 404,
+                "a run reached a type its step never took: " + otherType.statusCode());
+
+        // And it says so: the context's capability names the step's types.
+        HttpResponse<String> metadata = dbo.get(porterContext + "/metadata", porter);
+        assertEquals(200, metadata.statusCode(), metadata.body());
+        Proves.that(DboPromises.PROC_A_RUN_ANSWERS_ONLY_FOR_ITS_INPUTS,
+                dbo.says(metadata).at("rest.resource.type").equals(List.of("Patient")),
+                "the context advertises more than the step declared: " + metadata.body());
+    }
+
+    @Test
+    @Order(32)
+    @DisplayName("the work ends, and the way in closes behind it: the context then answers as a "
+            + "run that never existed")
+    @Proving(DboPromises.PROC_A_RUN_CONTEXT_ENDS_WITH_ITS_RUN)
+    void theWayInClosesWhenTheWorkEnds() {
+        assertTrue(porterRun != null, "the leg before started no run");
+        String porter = dbo.workToken(WARD);
+        HttpResponse<String> done = dbo.send(HttpRequest.newBuilder(
+                        URI.create(dbo.at(WARD) + "/run/" + porterRun + "/done"))
+                .POST(HttpRequest.BodyPublishers.noBody()), porter);
+        assertEquals(200, done.statusCode(), done.body());
+        assertEquals(java.util.Optional.of("nobody"), dbo.says(done).one("holder"), done.body());
+
+        HttpResponse<String> after = dbo.get(porterContext + "/Patient/" + porterPatient, porter);
+        Proves.that(DboPromises.PROC_A_RUN_CONTEXT_ENDS_WITH_ITS_RUN,
+                after.statusCode() == 404,
+                "the context still answers for a run that is over: " + after.statusCode());
+
+        String invented = "01a00000-0000-7000-8000-0000000000ff";
+        HttpResponse<String> never = dbo.get(root() + "/t/" + WARD + "/run/" + invented
+                + "/fhir/Patient/" + porterPatient, porter);
+        Proves.that(DboPromises.PROC_A_RUN_CONTEXT_ENDS_WITH_ITS_RUN,
+                never.statusCode() == 404 && after.body().equals(never.body()),
+                "an ended run and one that never existed answer differently, so asking says "
+                        + "which runs happened: " + after.body() + " / " + never.body());
+    }
+
+    /** The server root, which a context's path is resolved against. */
+    private String root() {
+        String base = dbo.at(WARD);
+        return base.substring(0, base.indexOf("/t/"));
     }
 
     /** A person as the asking application has them: a number and a name, and no id. */

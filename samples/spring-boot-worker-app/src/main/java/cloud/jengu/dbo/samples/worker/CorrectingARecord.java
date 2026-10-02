@@ -23,6 +23,7 @@ import java.util.Map;
  * on one version silently replace a change made to the next, and the run ends
  * saying so, while whoever asked still has both the change and the reason.
  */
+// --8<-- [start:step]
 @Component
 public final class CorrectingARecord implements StepService {
 
@@ -58,3 +59,4 @@ public final class CorrectingARecord implements StepService {
                 new String(given.payload(), StandardCharsets.UTF_8));
     }
 }
+// --8<-- [end:step]

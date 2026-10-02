@@ -470,7 +470,9 @@ class OneStepIsPerformedForEveryTenantIT {
             + "while the hospital, which said nothing, goes on being served")
     @Proving(DboPromises.PROC_A_TENANT_ADMITS_OR_DECLINES_WHAT_IS_DONE_TO_IT)
     void theClinicDeclines() throws InterruptedException {
+        // --8<-- [start:declines]
         dbo.declare(CLINIC, clinic(OWN_STEP, ",\"declines\":[\"" + STEP + "\"]"));
+        // --8<-- [end:declines]
 
         String org = "Organization?identifier=" + NAMES.system() + "|" + NAMES.value("surgery");
         HttpResponse<String> refused = null;

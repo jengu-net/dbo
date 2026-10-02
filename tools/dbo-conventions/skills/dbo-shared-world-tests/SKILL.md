@@ -12,8 +12,8 @@ description: Writing an integration test, deciding which world it runs in, movin
 
 ## Rules
 
-- MUST take the cheapest world that holds the proof, in this order: a guide
-  step when a reader could do it with curl; a `SharedTenants` shape when the
+- MUST take the cheapest world that holds the proof, in this order: a story
+  leg when an application built on the store could do it; a `SharedTenants` shape when the
   test needs the store's API, facade, feed or database; a private tenant on
   the shared runtime when no shape fits; a runtime of its own only for
   lifecycle, the container, tampering, a first boot, a claim about a
@@ -46,7 +46,7 @@ description: Writing an integration test, deciding which world it runs in, movin
 - MUST assert everything one action settles beside that action, including
   its audit entry, and assert that a shelled-out request ran before reading
   its answer.
-- MUST NOT add a tenant to the guide world or a shape to the shared tenants
+- MUST NOT add a tenant to the sample world or a shape to the shared tenants
   for one test.
 - MUST claim a promise where it is proven, re-record the catalogue, and
   confirm the new site is listed before deleting the test it came from.

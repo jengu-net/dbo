@@ -37,6 +37,7 @@ import java.util.Map;
  * annotation carries what the code cannot supply and a run has to record: who
  * performed it, which behaviour that is, and whose code it is.
  */
+// --8<-- [start:step]
 @Component
 @FleetStep(name = "sample-directory-checker", version = "1.0",
         provider = "cloud.jengu.dbo.samples")
@@ -99,3 +100,4 @@ public final class CheckingTheDirectory implements StepService {
                 .contains("\"resourceType\":\"" + type + "\"");
     }
 }
+// --8<-- [end:step]

@@ -26,6 +26,7 @@ import java.util.UUID;
  * which types this step may ask for ({@code "writes"}); anything else is
  * refused before a record is read.
  */
+// --8<-- [start:step]
 @Component
 public final class RegisteringAPatient implements StepService {
 
@@ -59,3 +60,4 @@ public final class RegisteringAPatient implements StepService {
                         Outcome.Write.create(stay));
     }
 }
+// --8<-- [end:step]

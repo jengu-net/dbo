@@ -24,6 +24,7 @@ import org.springframework.context.annotation.Import;
  * tenant; whether the work reaches them over the application's own port, over
  * HTTP from another JVM or over the deployment's substrate is configuration.
  */
+// --8<-- [start:embedding]
 @AutoConfiguration
 @ConditionalOnMissingBean(WorkerApplication.class)
 @Import({AdmittingAPatient.class, RegisteringAPatient.class, MeasuringASpecimen.class,
@@ -32,3 +33,4 @@ import org.springframework.context.annotation.Import;
         AskingForADirectoryCheck.class, AskingForAnAdmission.class, HearingBack.class})
 public class TheWorkersSteps {
 }
+// --8<-- [end:embedding]

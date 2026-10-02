@@ -119,6 +119,7 @@ class TheClinicRecordsCareAndAccountsForItIT {
                         + CLINIC));
     }
 
+    // --8<-- [start:produced]
     /** What a run the clinic asked for wrote, once it has finished. */
     private List<String> produced(cloud.jengu.dbo.spring.worker.DboInitiator.Started asked) {
         var answer = hearing.settled(CLINIC, asked, Duration.ofMinutes(3));
@@ -126,6 +127,7 @@ class TheClinicRecordsCareAndAccountsForItIT {
         return cloud.jengu.dbo.samples.worker.HearingBack.produced(answer).stream()
                 .map(written -> written.replaceAll("/_history/.*$", "")).toList();
     }
+    // --8<-- [end:produced]
 
     /** The id of the one record of a type a run the clinic asked for wrote. */
     private String writtenBy(cloud.jengu.dbo.spring.worker.DboInitiator.Started asked,
@@ -147,11 +149,13 @@ class TheClinicRecordsCareAndAccountsForItIT {
     void whatWasWrittenIsWhatIsRead() {
         // The clinic's application asks for her to be recorded; the step
         // answers with her, and the clinic writes her.
+        // --8<-- [start:register]
         liis = writtenBy(registering.register(CLINIC, """
                 {"resourceType":"Patient",
                  "identifier":[{"system":"%s","value":"%s"}],
                  "name":[{"family":"Tamm","given":["Liis"]}],
                  "birthDate":"1990-01-01"}""".formatted(MRN, hers())), "Patient");
+        // --8<-- [end:register]
 
         HttpResponse<String> read = dbo.read(CLINIC, "Patient", liis);
         assertEquals(200, read.statusCode(), read.body());
@@ -205,6 +209,7 @@ class TheClinicRecordsCareAndAccountsForItIT {
     @Proving(DboPromises.CORE_VERSIONED_HISTORY)
     void everyVersionIsKept() {
         // Decided on the version that was wrong, which is the one it corrects.
+        // --8<-- [start:correct]
         assertEquals(List.of("Patient/" + liis),
                 produced(correcting.correct(CLINIC, "Patient/" + liis, """
                         {"resourceType":"Patient","meta":{"versionId":"1"},
@@ -212,6 +217,7 @@ class TheClinicRecordsCareAndAccountsForItIT {
                          "name":[{"family":"Tamm","given":["Liis"]}],
                          "birthDate":"1990-01-02"}""".formatted(MRN, hers()))),
                 "the correction did not write her record");
+        // --8<-- [end:correct]
 
         HttpResponse<String> history = clinic.get("/Patient/" + liis + "/_history");
         assertEquals(200, history.statusCode(), history.body());
@@ -237,6 +243,7 @@ class TheClinicRecordsCareAndAccountsForItIT {
         // The clinic's application asks for the visit to be recorded; the step
         // answers with both observations as one result, which the clinic
         // commits as one transaction.
+        // --8<-- [start:visit]
         var visit = hearing.settled(CLINIC, visiting.record(CLINIC, List.of("""
                 {"resourceType":"Observation","id":"temperature","status":"final",
                  "code":{"text":"Body temperature"},
@@ -247,6 +254,7 @@ class TheClinicRecordsCareAndAccountsForItIT {
                  "subject":{"reference":"Patient?identifier=%s|%s"},
                  "hasMember":[{"reference":"urn:uuid:temperature"}]}"""
                 .formatted(MRN, hers()))), Duration.ofMinutes(3));
+        // --8<-- [end:visit]
         Proves.that(DboPromises.CORE_ATOMIC_TRANSACTION_BUNDLE,
                 "completed".equals(visit.state()), "the visit did not land: " + visit.body());
 
@@ -1255,6 +1263,60 @@ class TheClinicRecordsCareAndAccountsForItIT {
         Proves.that(DboPromises.SRCH_THE_DATABASE_ENVELOPE_LOSES_NOTHING_BEFORE_IT_IS_USED,
                 differing.values().stream().allMatch("25 compared, 0 differing"::equals),
                 "the database's extraction loses something the engine stored: " + differing);
+    }
+
+    @Test
+    @Order(34)
+    @DisplayName("the clinic can be asked whether a record would be accepted without writing "
+            + "it, and the write agrees with the verdict either way")
+    @Proving(DboPromises.VER_VALIDATION_WITHOUT_WRITING)
+    void askingForTheVerdictWithoutWriting() {
+        // An observation that says what was measured and not where it stands.
+        // A verdict was reached, so the operation answers 200 even though the
+        // verdict is that the write would fail — and it names what to fix.
+        String unfinished = """
+                {"resourceType":"Observation","code":{"text":"%s"}}"""
+                .formatted(names.value("unfinished"));
+        HttpResponse<String> verdict = clinic.post("/Observation/$validate", unfinished);
+        assertEquals(200, verdict.statusCode(), verdict.body());
+        Proves.that(DboPromises.VER_VALIDATION_WITHOUT_WRITING,
+                verdict.body().contains("Observation.status")
+                        && verdict.body().contains("\"severity\":\"error\""),
+                "the verdict does not name the missing element: " + verdict.body());
+        Proves.that(DboPromises.VER_VALIDATION_WITHOUT_WRITING,
+                clinic.post("/Observation", unfinished).statusCode() == 422,
+                "the write accepted what the verdict said it would refuse");
+
+        // A sound record: no error in the verdict, nothing written by asking,
+        // and the write then accepts it.
+        String number = names.value("asked-first");
+        String sound = """
+                {"resourceType":"Patient","identifier":[{"system":"%s","value":"%s"}],
+                 "name":[{"family":"Vector"}]}""".formatted(MRN, number);
+        HttpResponse<String> clean = clinic.post("/Patient/$validate", sound);
+        assertEquals(200, clean.statusCode(), clean.body());
+        Proves.that(DboPromises.VER_VALIDATION_WITHOUT_WRITING,
+                clean.body().contains("OperationOutcome")
+                        && !clean.body().contains("\"severity\":\"error\""),
+                "a sound record was reported as an error: " + clean.body());
+        HttpResponse<String> found = dbo.search(CLINIC, "Patient", "identifier=" + MRN + "|" + number);
+        Proves.that(DboPromises.VER_VALIDATION_WITHOUT_WRITING,
+                found.statusCode() == 200 && !dbo.says(found).has("entry"),
+                "asking for a verdict wrote the record: " + found.body());
+        Proves.that(DboPromises.VER_VALIDATION_WITHOUT_WRITING,
+                clinic.post("/Patient", sound).statusCode() == 201,
+                "the write refused what the verdict accepted");
+
+        // Two questions not understood are refused rather than answered with
+        // something that reads like approval.
+        Proves.that(DboPromises.VER_VALIDATION_WITHOUT_WRITING,
+                clinic.post("/Patient/$validate?mode=nonsense",
+                        "{\"resourceType\":\"Patient\"}").statusCode() == 400,
+                "an unsupported validation mode was not refused");
+        Proves.that(DboPromises.VER_VALIDATION_WITHOUT_WRITING,
+                clinic.post("/Nonexistent/$validate",
+                        "{\"resourceType\":\"Nonexistent\"}").statusCode() == 404,
+                "a type the clinic does not serve was answered with a verdict");
     }
 
     @org.junit.jupiter.api.AfterAll

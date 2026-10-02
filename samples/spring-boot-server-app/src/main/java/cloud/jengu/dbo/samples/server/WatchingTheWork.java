@@ -35,6 +35,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * that throws is left unacknowledged and arrives again rather than being
  * skipped, so nothing here can stop a tenant serving.
  */
+// --8<-- [start:watching]
 @Component
 @DboObserver(domain = TenantDomain.WORK, consumer = "sample-clinic-watching-the-work",
         target = "(dbo.tenant.hasSteps=true)")
@@ -56,3 +57,4 @@ public final class WatchingTheWork implements TenantObserver {
         return count == null ? 0 : count.get();
     }
 }
+// --8<-- [end:watching]

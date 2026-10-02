@@ -2,197 +2,172 @@
 title: Quick start
 eyebrow: Guide
 standfirst: >-
-  The world running, a person admitted to the hospital, found again, changed
-  and read back as he was — then the same person at an insurer a release
-  behind, refusing what it does not have.
+  The clinic's application started with its worker embedded, one piece of
+  work asked of the hospital and its answer read — then the same worker in a
+  JVM of its own, once over HTTP and once over the deployment's own database.
 template: essay.html
 ---
 
-You need Docker and nothing else. Every command on this page is executed
-against the pinned image on every build, so if one of them does not work here,
-that is a defect rather than a typo on the page.
+You need a JDK, Docker for a Postgres, and a clone of the repository. Every
+command on this page is quoted from
+[`samples/check-separated.sh`](https://github.com/jengu-net/dbo/blob/main/samples/check-separated.sh),
+which CI runs, so a command here that stops working fails a build before it
+fails you. The script names a few things with variables, and they mean what
+they say: `$port` is the port the application listens on, `$JDBC` is the
+Postgres below as a JDBC base, `$base` is the hospital's address,
+`http://127.0.0.1:$port/t/hogwarts`, and `$mode` is which of the three ways
+the worker runs.
 
-The world runs with its authority on, so the commands here obtain a token and
-send it. That is a few more characters per line than a walkthrough with
-security switched off, and it is the only version of this store that would ever
-be deployed — a guide that demonstrated the other one would be teaching a shape
-you cannot ship.
-
-## Start the world
-
-```bash
---8<-- "docs/guide/examples/snippets/up.sh"
-```
-
-Six tenants come up, and the first time is slow: each is a database provisioned
-from nothing with a terminology baseline loaded into it. Expect minutes rather
-than seconds, most of it the baseline. That cost is per database and paid once,
-which is why a world is something you bring up and keep.
-
-Two of the six are the ones you will use:
+## Build both applications
 
 ```bash
---8<-- "docs/guide/examples/snippets/bases.sh"
+--8<-- "samples/check-separated.sh:build"
 ```
 
-## Get a credential
+## A database
 
-The world is guarded, which is the point of it. Ask without one and you are
-refused:
+The store keeps each tenant in a database of its own, so it needs a Postgres it
+may create databases in:
 
 ```bash
---8<-- "docs/guide/examples/snippets/no-token.sh"
+--8<-- "samples/check-separated.sh:database"
 ```
 
-```
-401
-```
+## Embedded: one JVM
 
-Every tenant runs its own authority — its own issuer, its own keys, its own
-clients — so a credential is always *for a tenant*, never for the deployment.
-Each of these is a client-credentials exchange against the tenant you are about
-to talk to:
+Start the clinic's application. The world is read from a path relative to the
+application's own directory, so it starts there:
 
 ```bash
---8<-- "docs/guide/examples/snippets/token.sh"
+--8<-- "samples/check-separated.sh:server"
 ```
 
-`tenant-bootstrap` is the client the deployment holds for each tenant. Its
-secret is the one this world's compose file names — in a real deployment an
-operator generates it and keeps it in a vault, and the store is told what it
-already decided rather than inventing one nobody can present.
+Embedded, `profile` and `substrate` are empty. The remaining arguments are the
+two things the application needs and that do not belong in a repository: a
+Postgres it may create databases in, and a key the tenants' personal data is
+sealed under. That key is 32 zero bytes, which is fine for something you are
+about to throw away.
 
-Three tokens because there are three tenants in play, and a token for the
-hospital will not open the insurer. From here every command carries one, which
-is what a client of this store actually looks like.
+The first start takes minutes rather than seconds, and nearly all of it is one
+thing: a face root expanding a whole FHIR version out of the specification.
+Later starts against the same database read what the first one wrote.
 
-## Ask each one what it speaks
+This is all the application tells the store, and nothing else in it is about a
+container:
+
+```yaml
+--8<-- "samples/spring-boot-server-app/src/main/resources/application.yaml"
+```
+
+The tenants are the files in `samples/sample-world/tenants`. The worker's beans
+arrive in this application because it depends on the worker application, and
+their lane is this application's own port.
+
+### Ask for one piece of work
+
+Work is asked for by whoever the tenant issued a credential for it. As
+`hogwarts` comes up, the application has it issue one to its worker, and you
+can sign in with the same client:
 
 ```bash
---8<-- "docs/guide/examples/snippets/versions.sh"
+--8<-- "samples/check-separated.sh:sign-in"
 ```
 
-```
-5.0.0
-4.0.1
-```
-
-One engine, two versions, side by side, differing because each tenant declared
-a different face. Neither is a gateway in front of the other.
-
-## Admit a patient
+Then ask the hospital to register somebody. `hogwarts.admission.register` is
+a step the hospital declares in its own file, taking a patient as an object
+and allowed to write a `Patient` and an `Encounter`:
 
 ```bash
---8<-- "docs/guide/examples/snippets/create.sh"
+--8<-- "samples/check-separated.sh:ask"
 ```
 
-The response is the record as stored, with two things added: an `id`, and a
-`meta.security` entry naming the handling its type declared.
+What comes back is a run. The person is not a record yet: the step is handed
+them, answers with the person and the stay they arrived for, and the hospital
+writes both or neither.
 
-**The id is a UUID, and that is not cosmetic.** Ask for a readable one and you
-are refused:
+### Read its answer
+
+The run answers the client that asked for it, at its own address:
 
 ```bash
---8<-- "docs/guide/examples/snippets/readable-id.sh"
+--8<-- "samples/check-separated.sh:answer"
 ```
 
-```json
-{"resourceType":"OperationOutcome","issue":[{"severity":"error",
- "code":"invalid","diagnostics":"Invalid UUID string: harry"}]}
+It is a FHIR `Task`. `status` is `completed` once the hospital has written what
+the step answered with, or `failed` with the hospital's reason if it refused
+it. Its outputs carry what the step counted and the records it left behind,
+each as `Type/id/_history/version`. The bean that did the work is
+[`RegisteringAPatient`](work-leaves-and-comes-back.md#a-step-whose-result-is-records),
+and it is the whole of what the worker application writes for this step.
+
+## Separated: the worker in a JVM of its own
+
+Start the clinic's application again, under the `separated` profile. It keeps
+issuing the worker's credentials and leaves its own copy of the steps still:
+
+```yaml
+--8<-- "samples/spring-boot-server-app/src/main/resources/application-separated.yaml"
 ```
 
-An id a caller chose is an id a caller can collide with, guess, or read meaning
-into. What makes this record *the same person* as another is not its id but its
-identifier — which is what the hospital's spec said when it declared `Patient`
-with `"identity": "identifier"` over the system the zone publishes.
-
-## Find him by that identifier
+Then start the worker beside it, under `edge` or `substrate`:
 
 ```bash
---8<-- "docs/guide/examples/snippets/search.sh"
+--8<-- "samples/check-separated.sh:worker"
 ```
 
-One match, the record you wrote. Note the `--data-urlencode`: a token search
-carries a `|`, and curl will not escape it for you.
+Asking and reading the answer are the same commands as above. The check reads
+the application's log as well, to be sure the step was performed in the JVM it
+was meant for and not in the other one.
 
-Search here is strict. Ask for something the tenant never declared and you get
-a refusal rather than a bundle that quietly ignored half your question:
+### At the edge, over HTTP
+
+`edge` is the worker's default profile. Its lane reaches one tenant through its
+door, with the client the tenant issued:
+
+```yaml
+--8<-- "samples/spring-boot-worker-app/src/main/resources/application-edge.yaml"
+```
+
+That credential has `work` and nothing else. A token admitted at the step door
+is refused by the records door, and holding one is deliberately not holding the
+store.
+
+### Beside the store, over its substrate
+
+`substrate` is for scaling out beside the store. The worker reads the
+deployment's own database and holds no token at all; it is admitted by a
+signature and handed work sealed to it. The substrate is one more database:
 
 ```bash
---8<-- "docs/guide/examples/snippets/strict-search.sh"
+--8<-- "samples/check-separated.sh:substrate-database"
 ```
 
-```
-400
-```
-
-A result set that silently answered a wider question looks exactly like the one
-you asked for, which is the failure you cannot detect. So it does not happen.
-
-## Change him, and read what he was
+The worker makes its own keys before it first starts. It keeps the private
+halves, and writes the public halves to a file the clinic's application reads
+under `separated`:
 
 ```bash
---8<-- "docs/guide/examples/snippets/history.sh"
+--8<-- "samples/check-separated.sh:mint"
 ```
 
-Two entries come back. Nothing was overwritten: the first version is still
-there, byte for byte, and the second sits beside it. You did not ask for
-history and you did not configure it. The type declared `"handling":
-"operational"`, and keeping every version is part of what that means.
+Start the clinic's application with `substrate` set to
+`--dbo.substrate.url=$JDBC/dbo_substrate --dbo.substrate.user=postgres
+--dbo.substrate.password=sample`, and the worker with `$mode` as `substrate`:
 
-## The same person, at the insurer
-
-```bash
---8<-- "docs/guide/examples/snippets/insurer.sh"
+```yaml
+--8<-- "samples/spring-boot-worker-app/src/main/resources/application-substrate.yaml"
 ```
 
-He exists twice now, once in each organisation, with the same national
-identifier and two different ids. That is correct and it is the point: these
-are two tenants, two databases, and neither can read the other's records.
-Nothing about writing him at the hospital put him at the insurer, and nothing
-will, unless a declared exchange carries him there.
+[On the stream](on-the-stream.md) is the chapter about why this is safe on a
+plane every tenant's work crosses.
 
-## And the older version refuses what it does not have
+## What is running
 
-The insurer speaks R4. Send it an R5-shaped `Coverage` — `kind` is an R5
-element, and R4 requires `payor` — and watch what comes back:
+Two Spring Boot applications that each added one dependency.
+`dbo-spring-boot-server` makes the first serve tenants on its own port, inside
+its own filter chain; `dbo-spring-boot-worker` makes a bean implementing
+`StepService` a step the second performs. Neither constructs a container, a
+runner, a registration or a lane: those are configuration, and the beans are
+found.
 
-```bash
---8<-- "docs/guide/examples/snippets/version-refusal.sh"
-```
-
-```json
-{"resourceType":"OperationOutcome","issue":[{"severity":"error","code":"invalid",
- "diagnostics":"ERROR Coverage: Coverage.payor: minimum required = 1, but only
-  found 0 (from http://hl7.org/fhir/StructureDefinition/Coverage|4.0.1)"}]}
-```
-
-The refusal names the profile and the version it validated against. That is not
-a generic rejection with a version stamped on it: the insurer's face is
-validating against the R4 definitions it took from its face root, and the
-hospital's is validating against R5 ones, in the same process, at the same
-time.
-
-## Stop it
-
-```bash
-docker compose -f docs/guide/examples/compose.yaml down -v
-```
-
-Nothing is left behind. The databases were on a temporary filesystem, so the
-next start is another cold one.
-
-## What you just saw
-
-Five things, none of which you configured:
-
-- **A tenant is a database.** Two organisations, two stores, no shared table
-  and no filter to remember.
-- **A type declares its own discipline.** History, handling and what identifies
-  a record are properties of the type, not habits of the code that writes it.
-- **Identity is not the id.** The id is opaque; the identifier is what makes
-  two records the same person.
-- **A face is a declaration.** One engine served two versions, and each refused
-  what its own version does not have.
-- **A refusal is an answer.** An unsupported parameter and an invalid resource
-  both come back named, rather than being ignored into a plausible result.
+The [next chapter](a-tenant-opens.md) opens a tenant of its own.

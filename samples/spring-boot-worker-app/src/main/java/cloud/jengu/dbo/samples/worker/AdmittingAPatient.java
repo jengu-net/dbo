@@ -21,6 +21,7 @@ import java.util.Map;
  * catalogue is the tenant's, and a worker performs what it was declared to
  * perform.
  */
+// --8<-- [start:step]
 @Component
 public final class AdmittingAPatient implements StepService {
 
@@ -49,3 +50,4 @@ public final class AdmittingAPatient implements StepService {
         return Outcome.done(Map.of("admitted", 1L));
     }
 }
+// --8<-- [end:step]

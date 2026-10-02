@@ -56,6 +56,7 @@ public final class EnrollingTheWorker implements TenantLifecycleListener {
         this.enrolment = enrolment;
     }
 
+    // --8<-- [start:reached]
     @Override
     public void reached(TenantPoint point, TenantFacts tenant) {
         String code = tenant.code();
@@ -87,6 +88,7 @@ public final class EnrollingTheWorker implements TenantLifecycleListener {
                     enrolment.getParticipant());
         }
     }
+    // --8<-- [end:reached]
 
     private static boolean blank(String value) {
         return value == null || value.isBlank();

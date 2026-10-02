@@ -22,6 +22,7 @@ import java.util.Map;
  * it, on the credential it asked with, and nobody else — so what the admission
  * came to is learnt without a credential onto the hospital's records.
  */
+// --8<-- [start:asking]
 @Component
 public final class AskingForAnAdmission {
 
@@ -65,3 +66,4 @@ public final class AskingForAnAdmission {
                 Map.of("patient", DboInitiator.Slot.object(patient)));
     }
 }
+// --8<-- [end:asking]

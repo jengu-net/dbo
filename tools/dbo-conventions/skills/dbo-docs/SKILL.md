@@ -23,15 +23,17 @@ description: Adding, moving or editing a page under docs/, guide/ or site/pages/
 - MUST write a thing where the map in this document says, and record a
   disagreement between the map and the tree as an item in 011 rather than
   following the tree.
-- MUST show a whole file with `--8<--` rather than retyping it, and MUST
-  name the source on the fence — ```` ```json title="sample/world/..." ````
-  — when quoting a few of its lines. A titled fence is checked against the
-  file it names; an untyped copy drifts silently.
+- MUST show code by including it with `--8<--` rather than retyping it:
+  the whole file, or a region marked in a comment of the file
+  (`--8<-- [start:name]` and `[end:name]`) and included as `file:name`. A
+  typed copy drifts silently; an include of a region that is gone fails the
+  build.
 - MUST update the docs index when a document is added, moved or removed.
 - MUST run `./gradlew site` after editing and fix what `--strict` reports.
-- MUST move the guide's pinned image, in the same change, when adding or
-  changing a guide step that asserts behaviour the pinned image does not
-  have — and MUST check the tag exists on the registry rather than reading
+- MUST quote a guide example from code the stories already pass — the
+  sample applications, the sample world, a story test — and MUST NOT give
+  the guide tests of its own.
+- MUST check a pinned image's tag exists on the registry rather than reading
   it off the commit log.
 
 ---

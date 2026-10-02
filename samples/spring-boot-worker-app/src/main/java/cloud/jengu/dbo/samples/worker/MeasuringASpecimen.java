@@ -38,6 +38,7 @@ import java.util.Optional;
  * the step admits. A step cannot hand its executor more than the executor
  * already holds.
  */
+// --8<-- [start:step]
 @Component
 public final class MeasuringASpecimen implements StepService {
 
@@ -77,3 +78,4 @@ public final class MeasuringASpecimen implements StepService {
         return Outcome.done(Map.of("assayed", 1L));
     }
 }
+// --8<-- [end:step]

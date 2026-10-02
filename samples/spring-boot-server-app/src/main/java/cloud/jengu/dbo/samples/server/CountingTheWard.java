@@ -42,6 +42,7 @@ public final class CountingTheWard {
         this.root = "http://127.0.0.1:" + port + "/t/";
     }
 
+    // --8<-- [start:questions]
     /** How many records of a type carry this code. A number, not the rows behind it. */
     public long howMany(String tenant, String bearer, String type, String system, String code) {
         return asking(tenant, bearer).records(type).whereCoded("code", system, code).count();
@@ -70,6 +71,7 @@ public final class CountingTheWard {
         return Across.through(pathAndQuery -> get(root + tenant + "/fhir" + pathAndQuery,
                 bearer));
     }
+    // --8<-- [end:questions]
 
     private String get(String url, String bearer) {
         HttpRequest request = HttpRequest.newBuilder(URI.create(url))

@@ -60,6 +60,7 @@ class TheStandardMovesUnderTheDataIT {
     void aClinicThatCarriesItsOwnPack() {
         clinicCode = names.tenant("clinic");
         canonical = names.canonical("StructureDefinition/observed-on-somebody");
+        // --8<-- [start:pack-tenant]
         dbo.declare(clinicCode, """
                 {"code":"%s","face":"r4","audit":{"level":"none"},
                  "types":[
@@ -69,14 +70,17 @@ class TheStandardMovesUnderTheDataIT {
                   {"name":"Patient","identity":"internal","handling":"operational"},
                   {"name":"Observation","identity":"internal","handling":"operational"}]}"""
                 .formatted(clinicCode));
+        // --8<-- [end:pack-tenant]
         assertTrue(dbo.until(clinicCode, true, Duration.ofMinutes(10)),
                 "the story's clinic never came up: " + dbo.serving());
         clinic = new ATenantsDoor(dbo, clinicCode);
 
+        // --8<-- [start:pack]
         // The pack arrives as ordinary content: a profile is data, not
         // configuration, so a clinic can carry its own without a release.
         HttpResponse<String> pack = clinic.post("/StructureDefinition", profile("2.0.0"));
         assertEquals(201, pack.statusCode(), pack.body());
+        // --8<-- [end:pack]
     }
 
     @AfterAll

@@ -15,6 +15,7 @@ import java.util.Map;
  * refused if the record has moved on since, so one person's correction never
  * silently replaces another's.
  */
+// --8<-- [start:asking]
 @Component
 public final class AskingForACorrection {
 
@@ -38,3 +39,4 @@ public final class AskingForACorrection {
                 "corrected", DboInitiator.Slot.object(corrected)));
     }
 }
+// --8<-- [end:asking]
