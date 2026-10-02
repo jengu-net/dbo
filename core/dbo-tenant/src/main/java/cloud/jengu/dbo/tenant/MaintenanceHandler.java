@@ -38,6 +38,29 @@ public final class MaintenanceHandler implements HttpHandler {
     public static final String OWNER_KEY_HEADER = "X-Owner-Key";
     /** {@code backup} or {@code portable-export}. */
     public static final String KIND_HEADER = "X-Archive-Kind";
+
+    /**
+     * How a backup and a restore copy, through the driver this bundle wires
+     * to — the copy its tenant's pool was opened with. The maintenance package
+     * is one an embedding host may share, and there it sees another copy of
+     * the driver than the pool does.
+     */
+    static final cloud.jengu.dbo.maintenance.Copying COPYING =
+            new cloud.jengu.dbo.maintenance.Copying() {
+                @Override
+                public long out(java.sql.Connection connection, String sql,
+                        java.io.OutputStream to) throws java.sql.SQLException, IOException {
+                    return connection.unwrap(org.postgresql.PGConnection.class).getCopyAPI()
+                            .copyOut(sql, to);
+                }
+
+                @Override
+                public long in(java.sql.Connection connection, String sql,
+                        java.io.InputStream from) throws java.sql.SQLException, IOException {
+                    return connection.unwrap(org.postgresql.PGConnection.class).getCopyAPI()
+                            .copyIn(sql, from);
+                }
+            };
     /** The attestation JSON, base64 — both signatures over the archive's root. */
     public static final String ATTESTATION_HEADER = "X-Archive-Attestation";
     /** The key that sealed the archive, base64 X.509. */
@@ -159,6 +182,12 @@ public final class MaintenanceHandler implements HttpHandler {
             // needs to be told which, so the message travels
             fail(exchange, 400, "invalid_request", String.valueOf(refused.getMessage()));
         } catch (RuntimeException e) {
+            // Said here: the operator hears only that it did not complete, so
+            // a cause not logged on this side is a cause nobody can find — and
+            // a backup or a restore failing is the one an operator must.
+            org.slf4j.LoggerFactory.getLogger(MaintenanceHandler.class).error(
+                    "maintenance operation failed: path={}", exchange.getRequestURI().getPath(),
+                    e);
             fail(exchange, 500, "server_error", "the operation did not complete");
         } finally {
             exchange.close();
@@ -179,7 +208,7 @@ public final class MaintenanceHandler implements HttpHandler {
         exchange.sendResponseHeaders(200, 0);
         try (OutputStream out = exchange.getResponseBody()) {
             TenantExport.export(dataSource, domain, ownerKey, out, types, kind,
-                    rendering, grain);
+                    rendering, grain, COPYING);
         }
     }
 
@@ -493,7 +522,7 @@ public final class MaintenanceHandler implements HttpHandler {
                 attestation(exchange),
                 publicKey(exchange, VENDOR_KEY_HEADER),
                 publicKey(exchange, TENANT_KEY_HEADER),
-                ledger);
+                ledger, COPYING);
         respond(exchange, 200, "{\"status\":\"restored\"}");
     }
 

@@ -3,7 +3,6 @@ package cloud.jengu.dbo.maintenance;
 import cloud.jengu.dbo.core.api.Domains;
 import cloud.jengu.dbo.core.api.ObjectStore;
 import cloud.jengu.dbo.core.api.PutRequest;
-import org.postgresql.PGConnection;
 
 import javax.sql.DataSource;
 import java.io.BufferedReader;
@@ -11,7 +10,6 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -381,6 +379,19 @@ public final class TenantImport {
             byte[] ownerMasterKey, ArchiveAttestation attestation,
             byte[] vendorPublicKey, byte[] tenantPublicKey, ImportLedger ledger)
             throws IOException {
+        restoreFidelity(target, domain, sealed, ownerMasterKey, attestation, vendorPublicKey,
+                tenantPublicKey, ledger, Copying.HERE);
+    }
+
+    /**
+     * As {@link #restoreFidelity(DataSource, String, InputStream, byte[],
+     * ArchiveAttestation, byte[], byte[], ImportLedger)}, copying the way
+     * whoever opened the target's connections can.
+     */
+    public static void restoreFidelity(DataSource target, String domain, InputStream sealed,
+            byte[] ownerMasterKey, ArchiveAttestation attestation,
+            byte[] vendorPublicKey, byte[] tenantPublicKey, ImportLedger ledger,
+            Copying copying) throws IOException {
         Names.requireDomain(domain);
         Objects.requireNonNull(ledger, "a restore records what it accepted, or does not happen");
         byte[] plain = SealedArchive.open(sealed, ownerMasterKey);
@@ -425,7 +436,6 @@ public final class TenantImport {
         try (Connection c = target.getConnection()) {
             c.setAutoCommit(false);
             try {
-                var copy = c.unwrap(PGConnection.class).getCopyAPI();
                 if (dumps.keySet().stream().anyMatch(t -> t.startsWith("pdi."))) {
                     ensurePdiTables(c);
                 }
@@ -445,8 +455,8 @@ public final class TenantImport {
                                 (LIKE pdi.shred_ledger) ON COMMIT DROP""")) {
                             ps.execute();
                         }
-                        copy.copyIn("COPY pdi_ledger_in FROM STDIN WITH (FORMAT csv)",
-                                new StringReader(dump.getValue()));
+                        copying.in(c, "COPY pdi_ledger_in FROM STDIN WITH (FORMAT csv)",
+                                csv(dump.getValue()));
                         try (PreparedStatement ps = c.prepareStatement("""
                                 INSERT INTO pdi.shred_ledger
                                 SELECT * FROM pdi_ledger_in ON CONFLICT (person_id) DO NOTHING""")) {
@@ -457,8 +467,8 @@ public final class TenantImport {
                     try (PreparedStatement ps = c.prepareStatement("TRUNCATE " + qualified)) {
                         ps.executeUpdate();
                     }
-                    copy.copyIn("COPY " + qualified + " FROM STDIN WITH (FORMAT csv)",
-                            new StringReader(dump.getValue()));
+                    copying.in(c, "COPY " + qualified + " FROM STDIN WITH (FORMAT csv)",
+                            csv(dump.getValue()));
                 }
                 for (String restored : declaredDomains) {
                     seedConsumersAtHead(c, restored,
@@ -706,5 +716,10 @@ public final class TenantImport {
                 ps.execute();
             }
         }
+    }
+
+    /** A dump as the bytes COPY reads, in the encoding the dump was written in. */
+    private static InputStream csv(String dump) {
+        return new ByteArrayInputStream(dump.getBytes(StandardCharsets.UTF_8));
     }
 }

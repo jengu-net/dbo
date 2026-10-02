@@ -215,6 +215,58 @@ class TheClinicChangesVendorIT {
                 "a retried import added a version to what it had already brought");
     }
 
+    // ── and the nightly backup is the same mechanism ──
+
+    @Test
+    @Order(6)
+    @DisplayName("the clinic's nightly backup comes out of the same door, sealed the same way, "
+            + "and restoring it gives back the estate as it was, history included")
+    @Proving({DboPromises.MNT_BACKUP_IS_EXPORT, DboPromises.MNT_HISTORY_BY_SCHEMA})
+    void theNightlyBackupRestores() throws Exception {
+        HttpResponse<byte[]> taken = admin(here, "archive", new byte[0],
+                "X-Owner-Key", encoded(THEIR_KEY), "X-Archive-Kind", "backup");
+        assertEquals(200, taken.statusCode(), new String(taken.body(), StandardCharsets.UTF_8));
+        byte[] backup = taken.body();
+        // A backup that broke off after its headers went out is still a 200,
+        // so what was answered is opened: a root that recomputes is a whole
+        // archive, and a truncated one is not.
+        Signed nightly;
+        try {
+            nightly = Signed.over(backup, THEIR_KEY);
+        } catch (Exception broken) {
+            throw new AssertionError("the backup that came out is not a whole archive ("
+                    + backup.length + " bytes), so the nightly backup this clinic relies on "
+                    + "cannot be opened: " + broken, broken);
+        }
+        String before = dbo.says(dbo.read(here, "Patient", liis)).one("meta.versionId")
+                .orElseThrow();
+
+        // Somebody edits her after the backup was taken.
+        HttpResponse<String> edited = new ATenantsDoor(dbo, here).put("/Patient/" + liis, """
+                {"resourceType":"Patient","id":"%s",
+                 "identifier":[{"system":"%s","value":"49001010000"}],
+                 "name":[{"family":"Kask","given":["Liis"]}]}""".formatted(liis, mrn));
+        assertEquals(200, edited.statusCode(), edited.body());
+
+        HttpResponse<byte[]> restored = admin(here, "restore", nightly.sealed(),
+                "X-Owner-Key", encoded(THEIR_KEY),
+                "X-Archive-Attestation", Base64.getEncoder().encodeToString(
+                        nightly.attestation().toJson().getBytes(StandardCharsets.UTF_8)),
+                "X-Vendor-Key", encoded(nightly.vendorKey()),
+                "X-Tenant-Key", encoded(nightly.tenantKey()));
+        Proves.that(DboPromises.MNT_BACKUP_IS_EXPORT, restored.statusCode() == 200,
+                "the backup the clinic's door gave out would not go back in: "
+                        + restored.statusCode() + " "
+                        + new String(restored.body(), StandardCharsets.UTF_8));
+        HttpResponse<String> after = dbo.read(here, "Patient", liis);
+        Proves.that(DboPromises.MNT_HISTORY_BY_SCHEMA,
+                after.body().contains("Tamm") && !after.body().contains("Kask")
+                        && dbo.says(after).one("meta.versionId").equals(
+                                java.util.Optional.of(before)),
+                "the restore did not give back the estate as the backup held it, version "
+                        + "and all: " + after.body());
+    }
+
     // ── helpers ───────────────────────────────────────────────────────────
 
     /** An archive both parties signed: the vendor that exported it and the clinic. */

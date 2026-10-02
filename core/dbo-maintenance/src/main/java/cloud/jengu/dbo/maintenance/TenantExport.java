@@ -1,7 +1,6 @@
 package cloud.jengu.dbo.maintenance;
 
 import cloud.jengu.dbo.core.api.Domains;
-import org.postgresql.PGConnection;
 
 import javax.sql.DataSource;
 import java.io.ByteArrayOutputStream;
@@ -267,6 +266,19 @@ public final class TenantExport {
             OutputStream out, List<TypeRegistration> types, Kind kind,
             cloud.jengu.dbo.core.face.PortableRendering rendering,
             cloud.jengu.dbo.core.face.GrainCodec grain) throws IOException {
+        return export(ds, domain, ownerMasterKey, out, types, kind, rendering, grain,
+                Copying.HERE);
+    }
+
+    /**
+     * As {@link #export(DataSource, String, byte[], OutputStream, List, Kind,
+     * cloud.jengu.dbo.core.face.PortableRendering, cloud.jengu.dbo.core.face.GrainCodec)},
+     * copying the way whoever opened the data source's connections can.
+     */
+    public static ExportResult export(DataSource ds, String domain, byte[] ownerMasterKey,
+            OutputStream out, List<TypeRegistration> types, Kind kind,
+            cloud.jengu.dbo.core.face.PortableRendering rendering,
+            cloud.jengu.dbo.core.face.GrainCodec grain, Copying copying) throws IOException {
         Names.requireDomain(domain);
         if (kind == Kind.PORTABLE_EXPORT && rendering == null) {
             throw new IllegalArgumentException("a portable export needs the face's interchange "
@@ -285,7 +297,7 @@ public final class TenantExport {
                 try (OutputStream sealed = SealedArchive.sealing(ownerMasterKey, out)) {
                     zip = new DigestingZip(new ZipOutputStream(sealed));
                     result = writeArchive(c, domain, zip, grounded(types, kind),
-                            declaredDomains(types, domain), kind, rendering, grain);
+                            declaredDomains(types, domain), kind, rendering, grain, copying);
                     // The manifest can only be written once every digest is
                     // known, so it goes last — which is also why verification
                     // needs its own pass before an import writes anything.
@@ -320,11 +332,11 @@ public final class TenantExport {
      * proportional to the biggest table — the one shape guaranteed to fail on
      * exactly the tenants for whom leaving matters most.
      */
-    private static void dumpInto(org.postgresql.copy.CopyManager copy, DigestingZip zip,
+    private static void dumpInto(Copying copying, Connection c, DigestingZip zip,
             String entryName, String sql, String what) throws IOException {
         zip.putNextEntry(new ZipEntry(entryName));
         try (OutputStream entry = zip.entryStream()) {
-            copy.copyOut(sql, entry);
+            copying.out(c, sql, entry);
         } catch (SQLException e) {
             throw new IllegalStateException("fidelity dump failed for " + what, e);
         }
@@ -595,7 +607,7 @@ public final class TenantExport {
     private static ExportResult writeArchive(Connection c, String domain, DigestingZip out,
             Set<String> grounded, List<String> declaredDomains, Kind kind,
             cloud.jengu.dbo.core.face.PortableRendering rendering,
-            cloud.jengu.dbo.core.face.GrainCodec grain)
+            cloud.jengu.dbo.core.face.GrainCodec grain, Copying copying)
             throws SQLException, IOException {
         DigestingZip zip = out;
         long fence;
@@ -773,7 +785,6 @@ public final class TenantExport {
         // declared snapshot travel. What stays behind is the expansion
         // machinery, which is ours.
         if (kind == Kind.BACKUP) {
-            var copy = c.unwrap(PGConnection.class).getCopyAPI();
             // EVERY domain, not the one asked for. Credentials and the audit
             // trail live in their own domains, and a backup that skipped them
             // restored an installation nobody could log in to.
@@ -795,14 +806,14 @@ public final class TenantExport {
                         continue;
                     }
                     written.add(qualified);
-                    dumpInto(copy, zip, "fidelity/" + qualified + ".csv",
+                    dumpInto(copying, c, zip, "fidelity/" + qualified + ".csv",
                             copyOf(qualified,
                                     table.equals(backedUp + "_data") ? exclusions : Set.of()),
                             table);
                 }
                 writeConsumerRoster(c, zip, backedUp);
                 String history = Domains.historyTables(backedUp) + "_history";
-                dumpInto(copy, zip, "fidelity/" + history + ".csv",
+                dumpInto(copying, c, zip, "fidelity/" + history + ".csv",
                         copyOf(history, exclusions), history);
             }
 
@@ -814,7 +825,7 @@ public final class TenantExport {
                 if (!tableExists(c, "pdi", pdiTable)) {
                     continue;
                 }
-                dumpInto(copy, zip, "fidelity/pdi." + pdiTable + ".csv",
+                dumpInto(copying, c, zip, "fidelity/pdi." + pdiTable + ".csv",
                         "COPY pdi.%s TO STDOUT WITH (FORMAT csv)".formatted(pdiTable),
                         "pdi." + pdiTable);
             }
