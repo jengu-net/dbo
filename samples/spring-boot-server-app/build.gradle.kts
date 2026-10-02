@@ -66,7 +66,7 @@ dependencies {
     // container, reading what the deployment says about itself.
     testImplementation(project(":core:dbo-fleet"))
     // ApplicationContextRunner hands its callback an AssertJ-shaped context.
-    testImplementation("org.assertj:assertj-core:3.27.3")
+    testImplementation("org.assertj:assertj-core:3.27.7")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
