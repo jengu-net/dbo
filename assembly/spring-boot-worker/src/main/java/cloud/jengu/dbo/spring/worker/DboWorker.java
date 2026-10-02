@@ -139,6 +139,19 @@ public final class DboWorker implements SmartLifecycle {
     }
 
     /**
+     * Whether the context starts this worker, which is what
+     * {@code dbo.worker.auto-start} says.
+     *
+     * <p>Left still, it registers nothing and is offered no work until it is
+     * started by name — which is how an application keeps its own copy of the
+     * steps quiet while a worker in another JVM performs them.
+     */
+    @Override
+    public boolean isAutoStartup() {
+        return properties.isAutoStart();
+    }
+
+    /**
      * After the container, before anything that would offer this work.
      *
      * <p>{@code DEFAULT_PHASE - 1}: the container's own lifecycle sits at the

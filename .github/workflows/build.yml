@@ -247,6 +247,33 @@ jobs:
           COMPOSE="$(docs/guide/examples/tree-world.sh "$WORK/compose.yaml")"
           DBO_GUIDE_COMPOSE="$COMPOSE" ./gradlew :guide:test
 
+  samples-separated:
+    # The clinic's application and its worker as two JVMs, under each of the
+    # worker's profiles: an HTTP lane into one tenant, and the deployment's
+    # own substrate. The stories run the two embedded in one context, so a
+    # process boundary is the one thing they cannot show; this starts both
+    # the way a reader does and has one step performed across it.
+    #
+    # Beside the guide's jobs rather than behind the suite, for their reason:
+    # what it needs is the two applications and a docker daemon.
+    #
+    # Under `edge`. The `substrate` profile is left out: across two JVMs its
+    # worker attaches and is never offered the run, which is the store's to
+    # fix, and a job that is always red says nothing.
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "25"
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Both applications, separated
+        run: ./samples/check-separated.sh edge
+
   guide-as-tests:
     # The same chapters, as JUnit, against the pinned image.
     #

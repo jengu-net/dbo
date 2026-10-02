@@ -81,7 +81,8 @@ docker exec dbo-sample-db createdb -U postgres dbo_substrate
 ```
 
 Either way, a step asked of `hogwarts` is performed in the other JVM, and the
-run it answers with says so.
+run it answers with says so. [`../check-separated.sh`](../check-separated.sh)
+does exactly this, under each profile in turn; CI runs it under `edge`.
 
 ## Asking it something
 

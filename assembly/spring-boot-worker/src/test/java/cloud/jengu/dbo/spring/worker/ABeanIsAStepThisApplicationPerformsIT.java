@@ -20,6 +20,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -79,6 +80,27 @@ class ABeanIsAStepThisApplicationPerformsIT {
                     "the worker does not say it performs the bean's step, so an application "
                             + "asking whether its bean was taken up is told the wrong thing");
         });
+    }
+
+    @Test
+    @DisplayName("a worker configured not to start performs nothing until it is started by "
+            + "name, so an application can keep its own copy of the steps still")
+    void aWorkerLeftStillPerformsNothing() {
+        application.withUserConfiguration(AnApplication.class)
+                .withPropertyValues("dbo.worker.auto-start=false")
+                .run(context -> {
+                    AnApplication.Report report = context.getBean(AnApplication.Report.class);
+                    DboWorker worker = context.getBean(DboWorker.class);
+                    assertFalse(worker.isRunning(),
+                            "the context started a worker configured not to start");
+                    assertFalse(report.performed.await(2, TimeUnit.SECONDS),
+                            "a worker left still was offered work and performed it, so "
+                                    + "dbo.worker.auto-start is read and then ignored");
+
+                    worker.start();
+                    assertTrue(report.performed.await(20, TimeUnit.SECONDS),
+                            "started by name, the worker still performed nothing");
+                });
     }
 
     @Test
