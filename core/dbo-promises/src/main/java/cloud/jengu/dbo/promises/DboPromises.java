@@ -1179,6 +1179,21 @@ public enum DboPromises implements Promise {
             + "that is nobody's failure is reported by nobody. Streams run several at a "
             + "time, each drained before it gives way."),
 
+    TEN_A_DOOR_OPENS_WHEN_ITS_TENANT_SERVES("A tenant's doors answer once it is serving "
+            + "and not before. While it comes up each one says 503 with Retry-After — never a "
+            + "200 that lets a client start writing into a tenant whose bring-up can still "
+            + "fail, and never a 404 for a tenant that answered a moment ago. A tenant waiting "
+            + "for an upstream it is brought up from — a dependency, the projection a zone is "
+            + "read through, the zone it federates through — builds nothing until that "
+            + "upstream serves, and then comes up, rather than going most of the way up and "
+            + "back down on every scan."),
+
+    TEN_SERVING_IS_NOT_TAKEN_BACK_BY_A_LATER_STEP("A tenant once serving is not taken back "
+            + "down by a step that came after it — telling the host, offering its work to the "
+            + "fleet. Such a step that fails leaves the tenant serving, reported degraded with "
+            + "the reason beside it, its doors and storage the ones it came up with; the step "
+            + "is tried again on every scan, and the tenant reads serving once it takes."),
+
     TEN_APPLYING_IS_ASKED_FOR_AND_RECORDED("Applying what is declared can be asked for, "
             + "and the ask is the whole of the interface: it opens the same pass the "
             + "deployment runs on its own and answers with what that pass did, so there is "

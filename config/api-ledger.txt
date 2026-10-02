@@ -2998,6 +2998,7 @@ cloud.jengu.dbo.promises.DboPromises                                   TEN_A_CHA
 cloud.jengu.dbo.promises.DboPromises                                   TEN_A_DECLARATION_IS_A_RECORD:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_A_DECLARATION_NAMES_ITS_REFERENT:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_A_DECLARED_SET_IS_APPLIED_AS_ONE_PASS:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   TEN_A_DOOR_OPENS_WHEN_ITS_TENANT_SERVES:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_A_FEED_SAYS_WHAT_CHANGED_NOT_WHAT_IT_SAYS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_A_PARTNER_MANAGES_TENANTS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_A_REDECLARATION_IS_NOTICED:cloud.jengu.dbo.promises.DboPromises
@@ -3014,6 +3015,7 @@ cloud.jengu.dbo.promises.DboPromises                                   TEN_FAIRN
 cloud.jengu.dbo.promises.DboPromises                                   TEN_READY_WHEN_ITS_CRITICAL_DEFINITIONS_ARRIVED:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_REGISTRY_SCOPED_ACCESS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_SERVED_FROM_WHAT_WAS_APPLIED:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   TEN_SERVING_IS_NOT_TAKEN_BACK_BY_A_LATER_STEP:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_SHARED_TIER_ISOLATION:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_STRUCTURAL_SCOPING:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_WHAT_A_TENANT_CARES_ABOUT_IS_EDITABLE:cloud.jengu.dbo.promises.DboPromises
@@ -4275,6 +4277,7 @@ cloud.jengu.dbo.tenant.TenantState                                     record
 cloud.jengu.dbo.tenant.TenantState                                     state():cloud.jengu.dbo.tenant.TenantState.State
 cloud.jengu.dbo.tenant.TenantState                                     toString():String
 cloud.jengu.dbo.tenant.TenantState.State                               COMING_UP:cloud.jengu.dbo.tenant.TenantState.State
+cloud.jengu.dbo.tenant.TenantState.State                               DEGRADED:cloud.jengu.dbo.tenant.TenantState.State
 cloud.jengu.dbo.tenant.TenantState.State                               FAILED:cloud.jengu.dbo.tenant.TenantState.State
 cloud.jengu.dbo.tenant.TenantState.State                               SERVING:cloud.jengu.dbo.tenant.TenantState.State
 cloud.jengu.dbo.tenant.TenantState.State                               enum

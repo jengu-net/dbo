@@ -157,7 +157,7 @@ public final class FleetReader {
             }
             boolean serving = rows(tenants.body(), "tenants").stream()
                     .anyMatch(state -> tenant.equals(state.get("code"))
-                            && "serving".equals(state.get("state")));
+                            && answering(String.valueOf(state.get("state"))));
             if (!serving) {
                 continue;
             }
@@ -186,6 +186,15 @@ public final class FleetReader {
                 "no node in this fleet reports serving '" + tenant + "'");
     }
 
+    /**
+     * Whether a node's word for a tenant means it answers. A degraded tenant
+     * does: it is serving and still owed a step that came after, and its doors
+     * stay open while that is retried.
+     */
+    private static boolean answering(String state) {
+        return "serving".equals(state) || "degraded".equals(state);
+    }
+
     private Reading.NodeReading readNode(Node node, RunFilter filter) {
         Answer tenants = get(node.base().resolve("/runtime/tenants"), node.opsToken());
         if (tenants.outcome() != Reading.Outcome.ANSWERED) {
@@ -205,7 +214,7 @@ public final class FleetReader {
 
     private Reading.TenantReading readTenant(Node node, String code, String state,
             RunFilter filter) {
-        if (!"serving".equals(state)) {
+        if (!answering(state)) {
             return new Reading.TenantReading(code, state, Reading.Outcome.NOT_SERVING,
                     "the node is not serving this tenant, so there is nobody to ask", List.of());
         }

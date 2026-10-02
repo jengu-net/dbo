@@ -14,6 +14,15 @@ public record TenantState(String code, State state) {
         /** Answering: the endpoint is up and the engine is wired. */
         SERVING,
         /**
+         * Answering, with something it was owed after it began serving not yet
+         * done — the host not yet told, its work not yet offered to the fleet.
+         * Its doors stay open: a tenant already serving is never taken back
+         * down for a step that came after, because whoever was already talking
+         * to it would see it vanish. The reason is beside the state, and the
+         * step is retried until it takes.
+         */
+        DEGRADED,
+        /**
          * Declared, and not answering yet for a reason that resolves itself —
          * a dependency whose upstream is not up, or a scan that has not
          * reached it. The next round is where it changes.

@@ -594,6 +594,66 @@ public final class TenantRuntimeManager implements AutoCloseable {
     private record Trouble(cloud.jengu.dbo.work.Failure failure, String reason) {}
 
     /**
+     * What a serving tenant is still owed, by step, until each one takes.
+     *
+     * <p>Kept apart from the bring-up because what follows publication cannot
+     * be undone by rolling back: the tenant's doors are open and somebody may
+     * already be writing through them.
+     */
+    private final Map<String, Map<String, Runnable>> owed = new ConcurrentHashMap<>();
+
+    /**
+     * A step taken once the tenant is serving, which degrades it rather than
+     * taking it down when it fails.
+     *
+     * <p>A step after publication that threw used to unwind the whole
+     * bring-up — surfaces, streams, the pool — under a tenant whose doors had
+     * already answered, so a client that had started saw its tenant vanish
+     * and its writes with it. Now the step is owed: the tenant is reported
+     * degraded with the reason beside it, keeps every door, and the step is
+     * tried again on each scan until it takes.
+     */
+    private void owe(String code, String step, Runnable act) {
+        try {
+            act.run();
+        } catch (RuntimeException | LinkageError failed) {
+            owed.computeIfAbsent(code, ignored -> new java.util.concurrent.ConcurrentSkipListMap<>())
+                    .put(step, act);
+            stillOwed(code, step, failed);
+        }
+    }
+
+    /** Tries again whatever a serving tenant is still owed. */
+    private void settleWhatIsOwed(String code) {
+        Map<String, Runnable> steps = owed.get(code);
+        if (steps == null) {
+            return;
+        }
+        for (Map.Entry<String, Runnable> step : List.copyOf(steps.entrySet())) {
+            try {
+                step.getValue().run();
+                steps.remove(step.getKey());
+                reportedFailures.removeIf(k -> k.startsWith(code + ":" + step.getKey() + ":"));
+                LOG.info("tenant {} is no longer owed {}", code, step.getKey());
+            } catch (RuntimeException | LinkageError failed) {
+                stillOwed(code, step.getKey(), failed);
+            }
+        }
+        if (steps.isEmpty()) {
+            owed.remove(code, steps);
+        }
+    }
+
+    private void stillOwed(String code, String step, Throwable failed) {
+        trouble.put(code, new Trouble(cloud.jengu.dbo.work.Failure.of(failed),
+                "serving, and still owed " + step + ": " + withItsCauses(failed)));
+        if (reportedFailures.add(code + ":" + step + ":" + failed)) {
+            LOG.warn("tenant {} is serving and degraded: {} did not complete, and is retried "
+                    + "on every scan until it does", code, step, failed);
+        }
+    }
+
+    /**
      * A failure as somebody outside this process needs to read it: the
      * exception and what it was caused by. A wrapper names where it happened
      * and only its cause says what happened — "provisioning failed" is true
@@ -739,11 +799,12 @@ public final class TenantRuntimeManager implements AutoCloseable {
         };
         this.declaredPort = port;
         this.ownsServer = shared == null;
+        HttpServer server;
         if (shared != null) {
-            this.sharedServer = shared;
+            server = shared;
         } else {
             try {
-                this.sharedServer = HttpServer.create(new InetSocketAddress(host, port), 0);
+                server = HttpServer.create(new InetSocketAddress(host, port), 0);
             } catch (IOException e) {
                 // "Address already in use" with no address in it is the least
                 // useful sentence a bring-up can end on: the whole runtime fails to
@@ -756,9 +817,13 @@ public final class TenantRuntimeManager implements AutoCloseable {
             // A thread per request, dead afterwards. Surfaces still clear what
             // a request bound, because a host's server is a pool and a door
             // that is safe only on this executor is safe by accident.
-            sharedServer.setExecutor(Executors.newVirtualThreadPerTaskExecutor());
-            sharedServer.start();
+            server.setExecutor(Executors.newVirtualThreadPerTaskExecutor());
+            server.start();
         }
+        // Every surface goes through this, so a tenant's doors answer 503
+        // until it is published as serving — whichever part of a bring-up
+        // mounted them, including the parts written after this line.
+        this.sharedServer = new DoorsOpenWhenServing(server, runtimes::containsKey);
         if (authorityConfig != null && authorityConfig.upstream() != null) {
             String hubBase = authorityConfig.issuerBase() != null
                     ? authorityConfig.issuerBase()
@@ -1791,6 +1856,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
                     trouble.remove(spec.code());
                     trouble.remove("spec:" + named);
                     noticeRedeclaration(serving, spec);
+                    settleWhatIsOwed(spec.code());
                 }
                 if (serving == null) {
                     long began = System.nanoTime();
@@ -1799,10 +1865,16 @@ public final class TenantRuntimeManager implements AutoCloseable {
                     // performs from here on. After bring-up, because what is
                     // followed is the tenant's own database and there is none
                     // before it.
-                    enrolTheProcessor(spec);
-                    followForJoining(spec.code(), null);
+                    owe(spec.code(), "enrolling the deployment's processor",
+                            () -> enrolTheProcessor(spec));
+                    owe(spec.code(), "offering its work to the fleet",
+                            () -> followForJoining(spec.code(), null));
                     states.put(spec.code(), TenantState.State.SERVING);
-                    trouble.remove(spec.code());
+                    // Unless something it was owed is the reason standing
+                    // against it now, which replaced whatever was there.
+                    if (!owed.containsKey(spec.code())) {
+                        trouble.remove(spec.code());
+                    }
                     trouble.remove("spec:" + named);
                     factsOf(spec.code()).ifPresent(facts -> reached(TenantPoint.SERVING, facts));
                     reportedFailures.removeIf(k -> k.startsWith(named + ":"));
@@ -2331,11 +2403,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
         // difference between waiting and being taken down: past the teardown
         // the same refusal leaves the tenant unmounted until its upstream
         // appears, and it was serving perfectly well before anybody edited it.
-        for (TenantSpec.Dependency dependency : declared.dependencies()) {
-            if (!runtimes.containsKey(dependency.name())) {
-                throw new UpstreamNotReady(code, dependency.name());
-            }
-        }
+        upstreamsAreServing(declared);
         LOG.info("tenant {} is being rebuilt where it stands: {}", code, change.says());
         runtimes.remove(code);
         listener.tenantDown(code);
@@ -2547,7 +2615,9 @@ public final class TenantRuntimeManager implements AutoCloseable {
     public List<TenantState> tenantStates() {
         List<TenantState> out = new java.util.ArrayList<>();
         states.forEach((code, state) -> out.add(new TenantState(code,
-                runtimes.containsKey(code) ? TenantState.State.SERVING : state)));
+                !runtimes.containsKey(code) ? state
+                        : owed.containsKey(code) ? TenantState.State.DEGRADED
+                        : TenantState.State.SERVING)));
         out.sort(java.util.Comparator.comparing(TenantState::code));
         return List.copyOf(out);
     }
@@ -2601,7 +2671,12 @@ public final class TenantRuntimeManager implements AutoCloseable {
         try {
             mountTenant(spec);
         } catch (RuntimeException | Error incomplete) {
-            rollBack(spec.code());
+            // Only what was never published. Everything after publication is
+            // owed rather than thrown, so this is the guard, not the path: a
+            // tenant somebody may already be talking to is not unmounted.
+            if (!runtimes.containsKey(spec.code())) {
+                rollBack(spec.code());
+            }
             throw incomplete;
         }
     }
@@ -2618,6 +2693,46 @@ public final class TenantRuntimeManager implements AutoCloseable {
         unmount(code, staged);
     }
 
+    /**
+     * Every tenant this one is brought up from, serving — asked before anything
+     * is created, or the bring-up waits.
+     *
+     * <p>All of them, here, and not each where it is first needed. The declared
+     * upstream was asked here; the projection a zone is read through was asked
+     * at wiring and the zone behind a member's identity hub when the hub was
+     * built — both after the database, the authority and every surface were up
+     * — so a tenant arriving before them went most of the way up, was rolled
+     * back, and did it again on every scan until they came. A wait has nothing
+     * to undo when it is decided before there is anything.
+     *
+     * <p>Serving means published: an upstream is in the runtimes only once its
+     * own bring-up has finished, so a face root still taking its face is not
+     * one anybody can stream from yet.
+     */
+    private void upstreamsAreServing(TenantSpec spec) {
+        for (TenantSpec.Dependency dependency : spec.dependencies()) {
+            // The declared upstream, which has to be up whichever way this
+            // tenant ends up reading it: a projection of a zone is brought up
+            // from that zone, so the zone comes first either way.
+            TenantRuntime named = runtimes.get(dependency.name());
+            if (named == null) {
+                throw new UpstreamNotReady(spec.code(), dependency.name());
+            }
+            // And the projection standing between them, where the zone is
+            // written in another face: that is the tenant actually read.
+            String from = ZoneProjections.servedBy(spec, dependency, named.spec().face());
+            if (!runtimes.containsKey(from)) {
+                throw new UpstreamNotReady(spec.code(), from);
+            }
+        }
+        // The zone a member federates through: its hub is built from the
+        // zone's own records and authority.
+        if (authorityConfig != null && spec.zone() != null && !spec.zone().equals(spec.code())
+                && !zoneHubs.containsKey(spec.zone()) && !runtimes.containsKey(spec.zone())) {
+            throw new UpstreamNotReady(spec.code(), spec.zone());
+        }
+    }
+
     private void mountTenant(TenantSpec spec) {
         // Dependencies wire against the upstream's LIVE runtime —
         // like the zone hub, an upstream that isn't up yet stops bring-up
@@ -2625,16 +2740,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
         // The same exception the wiring itself throws: a dependent met before
         // its upstream is COMING_UP rather than FAILED, which is the
         // difference between a wait and a fault on the operator's card.
-        for (TenantSpec.Dependency dependency : spec.dependencies()) {
-            // The declared upstream, which has to be up whichever way this
-            // tenant ends up reading it: a projection of a zone is brought up
-            // from that zone, so the zone comes first either way. Whether a
-            // projection stands between them is settled at wiring, where the
-            // upstream's own face is known.
-            if (!runtimes.containsKey(dependency.name())) {
-                throw new UpstreamNotReady(spec.code(), dependency.name());
-            }
-        }
+        upstreamsAreServing(spec);
         theZoneItNamesSaysItIsOne(spec);
         // Resolved before anything is created. A tenant declaring a version
         // nothing provides is refused because nothing provides it, and asking
@@ -3229,6 +3335,10 @@ public final class TenantRuntimeManager implements AutoCloseable {
                         vaults.get(spec.code()), laneRuns),
                 (name, failed) -> LOG.warn("tenant {}: activity {} failed at {}",
                         spec.code(), name, TenantPoint.SURFACES.spelling(), failed)));
+        // Its listeners told too. A listener could select this point and was
+        // never called at it, which is a registration that reads as accepted
+        // and does nothing for the life of the deployment.
+        reached(TenantPoint.SURFACES, facts);
         wireDependencies(spec, runtime, db.dataSource());
         readyOnItsFace(spec, runtime);
         readyOnItsZones(spec);
@@ -3258,7 +3368,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
         runtimes.put(spec.code(), runtime);
         mounting.remove(spec.code());
         cutWhatOthersWillComeUpFrom(spec);
-        listener.tenantUp(runtime);
+        owe(spec.code(), "announcing it to the host", () -> listener.tenantUp(runtime));
     }
 
     /**
@@ -3862,7 +3972,17 @@ public final class TenantRuntimeManager implements AutoCloseable {
     public int syncRound() {
         java.util.List<cloud.jengu.dbo.sync.ContentSyncEngine> streams =
                 new java.util.ArrayList<>();
-        syncEngines.values().forEach(streams::addAll);
+        // Only a serving tenant's. A tenant's streams are wired part-way through
+        // its bring-up, which then drains its face chain itself and may still
+        // fail and be taken back down; a round reading them meanwhile is a
+        // second reader of a cursor the bring-up is reading, and work done
+        // into a tenant that is about to be unmounted. Its streams join the
+        // rounds once it is published, from wherever the bring-up acked.
+        syncEngines.forEach((code, wired) -> {
+            if (runtimes.containsKey(code)) {
+                streams.addAll(wired);
+            }
+        });
         java.util.concurrent.atomic.AtomicInteger seen =
                 new java.util.concurrent.atomic.AtomicInteger();
         // Several at once, and each drained before it gives way. Drained is
@@ -4129,8 +4249,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
         return ((java.util.function.Function<String, cloud.jengu.dbo.auth.IdentityHub>) zone -> {
             javax.sql.DataSource zoneDs = tenantDataSources.get(zone);
             if (zoneDs == null) {
-                throw new IllegalStateException(spec.code() + ": zone '" + zone
-                        + "' is not up yet — retrying on the next scan");
+                throw new UpstreamNotReady(spec.code(), zone);
             }
             cloud.jengu.dbo.core.api.ObjectStore zoneStore =
                     new PgObjectStore(zoneDs, cloud.jengu.dbo.auth.ZoneModel.registrations());
@@ -4300,6 +4419,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
         }
         sweeps.remove(code);
         syncEngines.remove(code);
+        owed.remove(code);
         String adminPath = maintenanceContexts.remove(code);
         if (adminPath != null) {
             sharedServer.removeContext(adminPath);
@@ -4580,9 +4700,11 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 long serving = 0;
                 long comingUp = 0;
                 long failed = 0;
+                long degraded = 0;
                 for (TenantState state : tenantStates()) {
                     switch (state.state()) {
                         case SERVING -> serving++;
+                        case DEGRADED -> degraded++;
                         case COMING_UP -> comingUp++;
                         case FAILED -> failed++;
                         default -> { }
@@ -4596,6 +4718,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 // is counted where it can be seen rather than nowhere.
                 failed += trouble.keySet().stream().filter(key -> key.startsWith("spec:")).count();
                 pass.counted("serving", serving)
+                        .counted("degraded", degraded)
                         .counted("coming_up", comingUp)
                         .counted("failed", failed)
                         .done();

@@ -30,7 +30,7 @@ what is running.
 else's. [Isolation](../data-isolation/why-a-tenant-is-a-database.md) is a
 property of this move, and every move after it inherits it.
 
-**Coming up, serving or failed.** The three states below: the only part of the
+**Coming up, serving, degraded or failed.** The four states below: the only part of the
 sequence a running node reports, because it is the only part that can differ
 from what was asked for.
 
@@ -42,9 +42,14 @@ import the archive by the everyday import route. So bringing a tenant back from
 a backup is not a recovery procedure somebody maintains separately. It is
 onboarding, with the archive already written.
 
-## The three states a node reports
+## The four states a node reports
 
 **Serving** — the endpoint is up and the engine is wired.
+
+**Degraded** — serving, and still owed a step that comes after serving: the
+host told, the tenant's work offered to the fleet. Its doors stay open and the
+reason is beside the state; the step is retried on every scan, and the tenant
+reads serving once it takes.
 
 **Coming up** — declared, and not answering yet for a reason that resolves
 itself: a dependency whose upstream is not up, or a scan that has not reached
@@ -57,6 +62,37 @@ The difference between the second and the third is the whole value of the
 answer. Both are "not serving". One is a system working normally and the other
 is a system waiting for a person, and a status that cannot tell them apart
 makes an operator watch a healthy thing and ignore a broken one.
+
+## The doors open when the tenant serves
+
+A tenant's surfaces are mounted as its bring-up goes, and a bring-up has work
+left after they are: its face to drain, its vocabularies to publish, its
+upstreams to be made somebody's. Until that is done every door under
+`/t/{code}/` answers **503 with `Retry-After`**. It does not answer 200,
+because a client that starts on a 200 writes into a tenant whose bring-up can
+still fail; and it does not answer 404, which says nothing is here, when the
+truth is that something is and is not ready.
+
+Answering 503 was chosen over mounting the doors only at the end. Mounting late
+would answer the same question with a 404 indistinguishable from a tenant
+nobody declared, and it would have made every surface — dbo's and an
+activity's — remember to be mounted in a second, later step. The gate is one
+place every surface passes through, whoever mounted it.
+
+Three rules keep this true:
+
+- **A wait builds nothing.** A tenant brought up from another — a dependency,
+  the projection a zone is read through, the zone it federates through — checks
+  that every one of them is serving before it provisions anything. A tenant that
+  arrives first is coming up, with no database and no door, and comes up when
+  they do.
+- **Serving is not taken back.** Once a tenant is published, what follows is
+  owed rather than thrown: a step that fails degrades it, and its doors, streams
+  and storage stay the ones it came up with. Only a bring-up that never reached
+  serving is rolled back, and nobody was told about that one.
+- **A stream has one reader.** A tenant coming up drains its own face chain;
+  the round that keeps streams in step reads only serving tenants', and a
+  stream is read by one caller at a time, so a change is applied once.
 
 <div class="takeaway" markdown>
 The answer comes from runtime state, never from re-reading the declarations. So
@@ -77,9 +113,9 @@ fleet view walks tenant by tenant with a credential each. What a node is doing
 about the tenants it was told about is a different kind of fact — about the
 node, not about anybody's records — and it is asked of the node.
 
-## Two ways this was wrong before it was right
+## Three ways this was wrong before it was right
 
-Both worth stating, because they read identically to whoever declared the
+Each worth stating, because they read identically to whoever declared the
 tenant and they are the reason the states are separated at all.
 
 **Storage that had not arrived yet was waited for on the thread that brings
@@ -94,6 +130,16 @@ The retry then died on its own leftover OIDC context, and the account said
 silence about the specification that was actually wrong. A status is only worth
 having if a retry reports the original cause rather than the wreckage of the
 last attempt.
+
+And a third, which was the same shape one step later. **A tenant answered at
+its doors before its bring-up had finished, and the bring-up could still roll
+back.** Two writers met inside it — its own drain of the face chain and the
+reconciler's round reading the same stream from the same cursor — and the
+second write of a definition nobody held a moment before failed on the first
+one's history row. The bring-up was rolled back, its context removed, and a
+client that had already started read `404 No context found` and lost what it
+had written. Both writers now take turns, and a client cannot start until there
+is nothing left to roll back.
 
 <div class="further" markdown>
 What a tenant *is* is [a tenant is a database](../data-isolation/why-a-tenant-is-a-database.md);
