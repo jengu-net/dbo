@@ -54,7 +54,11 @@ lost.
 
 A tenant opens a **door** on the deployment's substrate — a long-lived workflow
 addressed by a known id — and a participant holds a **lane** that sends asks to
-it and waits on events for the answers. The carrier is full duplex over one
+it and waits on events for the answers. The door is opened when a participant
+that signs its asks is enrolled on the tenant, at bring-up or later, and not
+before: an ask on the stream is admitted by its signature alone, so until such
+a participant exists a door could only refuse, and each one costs a durable
+instance and three substrate connections. The carrier is full duplex over one
 channel: work goes out, and travel, access and result events come home.
 
 What this buys over HTTP is that a participant needs no route into the tenant

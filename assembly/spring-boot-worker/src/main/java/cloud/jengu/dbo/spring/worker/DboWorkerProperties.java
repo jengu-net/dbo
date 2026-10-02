@@ -285,17 +285,37 @@ public class DboWorkerProperties {
         private Token token = new Token();
 
         /**
+         * How the work is carried, when the base alone does not say:
+         * {@code substrate} for a lane that names a base all the same.
+         */
+        private String carrier;
+
+        /**
          * Whether this lane is carried by the substrate rather than by HTTP.
          *
-         * <p><b>Inferred from what the lane was given rather than named.</b> A
-         * base and a credential is a lane into somebody else's deployment,
-         * reached over a port; neither is a lane into the store this
-         * application is part of, reached over the database it already runs on.
-         * A property saying which would be a third thing to keep consistent
-         * with the two that already decide it.
+         * <p><b>Inferred from what the lane was given, unless said.</b> A base
+         * and a credential is a lane into somebody else's deployment, reached
+         * over a port; neither is a lane into the store this application is
+         * part of, reached over the database it already runs on. That covers a
+         * worker and nothing else.
+         *
+         * <p>An application that also ASKS a tenant for work is the case the
+         * inference cannot cover. Asking is the tenant's step door, which is
+         * HTTP and takes a credential, wherever the work is then performed —
+         * so such an application names a base and a client for asking, and
+         * says {@code carrier: substrate} for the work to travel over the
+         * substrate all the same.
          */
         public boolean overTheSubstrate() {
-            return base == null;
+            return base == null || "substrate".equalsIgnoreCase(carrier);
+        }
+
+        public String getCarrier() {
+            return carrier;
+        }
+
+        public void setCarrier(String carrier) {
+            this.carrier = carrier;
         }
 
         public String getTenant() {

@@ -407,9 +407,32 @@ public final class TenantRuntimeManager implements AutoCloseable {
      */
     private final Map<String, java.util.List<String>> stepContexts =
             new java.util.concurrent.ConcurrentHashMap<>();
-    /** Each tenant's door on the stream, while it is served; none unless a substrate was given. */
-    private final Map<String, cloud.jengu.dbo.stream.StreamDoor> doors =
-            new java.util.concurrent.ConcurrentHashMap<>();
+    /**
+     * Each tenant's door on the stream, while it is served and somebody can
+     * ask through it; none unless a substrate was given.
+     */
+    private final Map<String, OpenDoor> doors = new java.util.concurrent.ConcurrentHashMap<>();
+
+    /** A door, and its subscription to the tenant's wake-ups, which go together. */
+    private record OpenDoor(cloud.jengu.dbo.stream.StreamDoor door, AutoCloseable heard)
+            implements AutoCloseable {
+        @Override
+        public void close() {
+            try {
+                heard.close();
+            } catch (Exception ignored) {
+                // A subscription is a list entry; closing one cannot fail
+                // in a way that should keep the door open.
+            }
+            door.close();
+        }
+    }
+
+    /** When each serving tenant was last asked whether it wants a door, by code. */
+    private final Map<String, Long> doorLooked = new java.util.concurrent.ConcurrentHashMap<>();
+
+    /** How often a serving tenant without a door is asked again. */
+    private static final long DOOR_LOOK_MILLIS = 30_000;
     private volatile javax.sql.DataSource substrate;
     /** The doors open or opening on it, which is what its pool is sized by. */
     private final java.util.concurrent.atomic.AtomicInteger doorsHeld =
@@ -490,6 +513,124 @@ public final class TenantRuntimeManager implements AutoCloseable {
                         substratePoolFor(doorsHeld.get()));
             }
         }
+    }
+
+    /**
+     * Whether a tenant has anybody who could ask through a door on the stream.
+     *
+     * <p>A door on the stream admits an ask by the asker's signature and by
+     * nothing else — that plane carries no token — so it serves only a
+     * participant enrolled with a key it signs with. Until one is, the door
+     * would refuse every ask, and it costs a durable-workflow instance and
+     * three substrate connections to do so: a world of twenty tenants paid
+     * twenty of them for the one or two anybody reached that way.
+     *
+     * <p>Not the deployment's own processor. It is enrolled with keys on
+     * every tenant whose register holds a step, so that a payload can be
+     * sealed to it and its openings checked — but it asks through the lane
+     * in this process, never through a door, and a door opened for it would
+     * be every tenant's again.
+     *
+     * <p>Not a declared lane either. Where a host's lane is declared is a fact
+     * about the host's configuration, which this container sees only when
+     * the host is inside it; an enrolment is on the tenant wherever the host
+     * runs.
+     */
+    private boolean wantsADoor(cloud.jengu.dbo.auth.TenantAuthority authority) {
+        Processor performing = processor;
+        return authority.signers().stream()
+                .anyMatch(signer -> performing == null || !signer.equals(performing.name()));
+    }
+
+    /**
+     * Opens a tenant's door on the stream if a substrate was given, none is
+     * open, and somebody could ask through one.
+     *
+     * <p>At most once per tenant, however many enrolments or passes ask at
+     * the same moment: the map's own entry is the lock, so a tenant taken
+     * down meanwhile either finds the door and closes it or is found gone and
+     * gets none.
+     */
+    private void openTheDoorIfWanted(String code, cloud.jengu.dbo.auth.TenantAuthority authority,
+            cloud.jengu.dbo.runner.http.LaneHandler.Lanes lanes,
+            cloud.jengu.dbo.runner.InProcessWakeups claimable) {
+        if (substrate == null || doors.containsKey(code) || !wantsADoor(authority)) {
+            return;
+        }
+        doors.computeIfAbsent(code, opening -> {
+            // Taken down, or brought up again as somebody else, while this
+            // was deciding: a door opened now would serve nobody's tenant.
+            cloud.jengu.dbo.auth.TenantAuthority now = authorities.get(code);
+            if (now != null && now != authority) {
+                return null;
+            }
+            WorkGrants grants = new WorkGrants(authority);
+            // Grown BEFORE the door opens, because opening one is when its
+            // listener takes the connection it then keeps. Counted rather
+            // than read off the map, since several tenants open at once and
+            // a door being opened is not in it yet.
+            doorsHeld.incrementAndGet();
+            sizeSubstrate();
+            cloud.jengu.dbo.stream.StreamDoor door;
+            try {
+                door = new cloud.jengu.dbo.stream.StreamDoor(substrate, code, grants, lanes);
+            } catch (RuntimeException notOpened) {
+                doorsHeld.decrementAndGet();
+                sizeSubstrate();
+                throw notOpened;
+            }
+            LOG.info("stream door opened: tenant={}", code);
+            // The door is how a tenant says it has work to a participant that
+            // holds no connection into it: a run becoming claimable reaches
+            // the door, which publishes it on the substrate the participant is
+            // already listening to. Subscribed here rather than inside the
+            // door, because the seam belongs to the tenant and the door is one
+            // of possibly several listeners.
+            return new OpenDoor(door, claimable.wake(door::workAppeared));
+        });
+    }
+
+    /**
+     * The same, for a tenant already serving: what it was brought up with is
+     * read back from where its bring-up left it.
+     *
+     * <p>A door that will not open is not the tenant failing — its HTTP door
+     * and its records are serving — so it is said once and asked again on a
+     * later pass.
+     */
+    private void openTheDoorLater(String code) {
+        cloud.jengu.dbo.auth.TenantAuthority authority = authorities.get(code);
+        cloud.jengu.dbo.runner.http.LaneHandler.Lanes lanes = laneFactories.get(code);
+        cloud.jengu.dbo.runner.InProcessWakeups claimable = wakeups.get(code);
+        if (authority == null || lanes == null || claimable == null) {
+            return;
+        }
+        try {
+            openTheDoorIfWanted(code, authority, lanes, claimable);
+        } catch (RuntimeException notOpened) {
+            if (reportedFailures.add(code + ":stream door:" + notOpened)) {
+                LOG.warn("tenant {}: its door on the stream did not open, and is tried again "
+                        + "on a later pass", code, notOpened);
+            }
+        }
+    }
+
+    /**
+     * Asks a serving tenant again whether it wants a door, at most every
+     * {@link #DOOR_LOOK_MILLIS}: an enrolment written through another node
+     * reaches this one only through the records.
+     */
+    private void lookForADoor(String code) {
+        if (substrate == null || doors.containsKey(code)) {
+            return;
+        }
+        long now = System.currentTimeMillis();
+        Long last = doorLooked.get(code);
+        if (last != null && now - last < DOOR_LOOK_MILLIS) {
+            return;
+        }
+        doorLooked.put(code, now);
+        openTheDoorLater(code);
     }
     /** And its replication surface. */
     private final Map<String, String> replicationContexts =
@@ -1228,6 +1369,14 @@ public final class TenantRuntimeManager implements AutoCloseable {
         return Optional.ofNullable(tenantDataSources.get(code));
     }
 
+    /**
+     * Whether this container holds a door on the stream for the tenant: for an
+     * operator asking why a participant on the substrate is or is not answered.
+     */
+    public boolean streamDoorOpen(String code) {
+        return doors.containsKey(code);
+    }
+
     public Optional<TenantRuntime> runtime(String code) {
         return Optional.ofNullable(runtimes.get(code));
     }
@@ -1898,6 +2047,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
                     trouble.remove("spec:" + named);
                     noticeRedeclaration(serving, spec);
                     settleWhatIsOwed(spec.code());
+                    lookForADoor(spec.code());
                 }
                 if (serving == null) {
                     long began = System.nanoTime();
@@ -3354,38 +3504,14 @@ public final class TenantRuntimeManager implements AutoCloseable {
                                     null,
                                     runResults);
                     };
-            if (substrate != null) {
-                // The same lane on the store's own stream: a door per tenant
-                // on the substrate, guarded by the same authority and the
-                // same participation scope, for a service that connects to
-                // the substrate and to nothing else. Opened before the HTTP
-                // door so a door that fails to open leaves nothing mounted
-                // that a retry would trip over.
-                WorkGrants grants = new WorkGrants(authority);
-                // Grown BEFORE the door opens, because opening one is when
-                // its listener takes the connection it then keeps. Counted
-                // rather than read off the map, since several tenants come
-                // up at once and a door being opened is not in it yet.
-                doorsHeld.incrementAndGet();
-                sizeSubstrate();
-                cloud.jengu.dbo.stream.StreamDoor door;
-                try {
-                    door = new cloud.jengu.dbo.stream.StreamDoor(substrate, spec.code(), grants,
-                            laneFactory);
-                } catch (RuntimeException notOpened) {
-                    doorsHeld.decrementAndGet();
-                    sizeSubstrate();
-                    throw notOpened;
-                }
-                doors.put(spec.code(), door);
-                // The door is how a tenant says it has work to a fleet that
-                // holds no connection into it: a run becoming claimable
-                // reaches the door, which publishes it on the substrate the
-                // participants are already listening to. Subscribed here
-                // rather than inside the door, because the seam belongs to the
-                // tenant and the door is one of possibly several listeners.
-                leftBehind.add(claimable.wake(door::workAppeared));
-            }
+            // The same lane on the store's own stream, for a participant that
+            // connects to the substrate and to nothing else: a door per tenant
+            // on the substrate, guarded by the same authority and the same
+            // participation scope. Opened here only if somebody can already
+            // use it, and before the HTTP door so a door that fails to open
+            // leaves nothing mounted that a retry would trip over; otherwise
+            // when somebody who can is enrolled.
+            openTheDoorIfWanted(spec.code(), authority, laneFactory, claimable);
             if (spec.managedBy() != null) {
                 // The relation, made true at the door: the partner's own
                 // authority is trusted here because this tenant declared it,
@@ -3416,6 +3542,16 @@ public final class TenantRuntimeManager implements AutoCloseable {
             // Kept for the writeback, after the doors are mounted from it: a
             // fleet consumer reports through this and nothing else.
             laneFactories.put(spec.code(), laneFactory);
+            // An enrolment is what makes the door worth its cost, so it is
+            // also what opens it — on its own thread, because the enrolment
+            // is somebody else's write and a door is a durable layer coming up.
+            final String doorFor = spec.code();
+            leftBehind.add(authority.whenASignerIsEnrolled(enrolled -> {
+                if (substrate != null && !doors.containsKey(doorFor)) {
+                    Thread.ofVirtual().name("dbo-lane-door-opening-" + doorFor)
+                            .start(() -> openTheDoorLater(doorFor));
+                }
+            }));
             workContexts.put(spec.code(), workPath);
             // The step door stood here too, behind `!spec.steps().isEmpty()`.
             // Same conversion, same place below.
@@ -4582,7 +4718,9 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 }
             }
         }
-        cloud.jengu.dbo.stream.StreamDoor door = doors.remove(code);
+        laneFactories.remove(code);
+        doorLooked.remove(code);
+        OpenDoor door = doors.remove(code);
         if (door != null) {
             door.close();
             doorsHeld.decrementAndGet();

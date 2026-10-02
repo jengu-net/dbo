@@ -847,6 +847,11 @@ public enum DboPromises implements Promise {
             + "HTTP: work goes out and travel, access and result events come home as they "
             + "happen on the same channel. It serves exactly the verbs the other two do, "
             + "and a runner cannot tell which it holds."),
+    PROC_A_STREAM_DOOR_OPENS_FOR_WHOEVER_CAN_ASK(
+            "A tenant's door on the deployment's stream is opened when a participant that signs "
+            + "its asks is enrolled on it, at bring-up or at any time after, and not before: a "
+            + "tenant nobody can reach that way holds no door on the substrate, and one enrolled "
+            + "later is served through a door opened for it."),
     PROC_A_DEPARTED_ROUTEE_IS_A_STATEMENT(
             "A routee missing from a router's report is something the router said, not a "
             + "gap — distinguishable from a quiet router because the cursor moved. A "

@@ -124,6 +124,17 @@ public final class TheTenantIsServing implements BeforeAllCallback {
                 .encodeToString(sealingOfThisJvm.getPrivate().getEncoded());
     }
 
+    /** The public half this worker is sealed to, as a tenant enrols it. */
+    static String sealingPublicOfThisJvm() {
+        return cloud.jengu.dbo.core.api.seal.ParticipantKey.of(sealingOfThisJvm.getPublic())
+                .render();
+    }
+
+    /** The public half its signatures are checked against. */
+    static String signingPublicOfThisJvm() {
+        return cloud.jengu.dbo.core.api.seal.SigningKey.of(signingOfThisJvm.getPublic()).render();
+    }
+
     /** The private half it signs its asks with. */
     static String signingKeyOfThisJvm() {
         return java.util.Base64.getEncoder()

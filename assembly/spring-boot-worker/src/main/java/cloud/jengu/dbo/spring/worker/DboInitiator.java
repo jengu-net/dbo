@@ -321,7 +321,7 @@ public final class DboInitiator {
                 .orElseThrow(() -> new IllegalArgumentException("this application holds no lane "
                         + "into '" + tenant + "', so it has no address to ask and no credential "
                         + "to ask with; declare the lane under dbo.worker.lanes"));
-        if (lane.overTheSubstrate()) {
+        if (lane.getBase() == null) {
             // The substrate carries claims and reports, not this. A lane over
             // it is held by an enrolled participant with no route into the
             // tenant at all, which is the whole point of that plane — so the
@@ -329,8 +329,8 @@ public final class DboInitiator {
             // request built against a base URI that lane never had.
             throw new IllegalArgumentException("the lane into '" + tenant + "' is over the "
                     + "substrate, which carries work already authored and offers no way to "
-                    + "author any or to ask after it: a participant that starts runs holds an "
-                    + "HTTP lane");
+                    + "author any or to ask after it: a participant that starts runs names the "
+                    + "tenant's base and a client to ask with, and says carrier: substrate");
         }
         return lane;
     }

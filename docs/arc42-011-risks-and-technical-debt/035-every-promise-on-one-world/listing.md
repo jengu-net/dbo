@@ -638,18 +638,21 @@ build counters, which live inside the container).
 **A deployment with a substrate.** The lane over the stream, and what lands
 on the shared plane, are now the technical story US-DBO-ON-THE-STREAM, walked
 by `AParticipantHoldsItsLaneOnTheStreamIT` on one runtime with one substrate
-and one tenant. `AHostHoldsALaneByInstallingABundleIT` stays apart, because it
-installs the lane into a Felix of its own, and so does the sample's own
-`TheWorkArrivesOverTheSubstrateIT`, which proves the wrapper. Rowling Land was
-given a substrate to hold them and every story ran about two and a half times
-slower: a tenant's door on the stream launches a durable-workflow instance of
-its own, and a world of twenty tenants is twenty of them. That is a finding
-about substrates at scale, recorded rather than worked around here. With the
-world loaded, the wake-up leg also slept through a released run — the door
-coalesces nudges inside 200 ms and sends none after the window, so on a busy
-tenant the last run of a burst may go unannounced until the poll. Not proven:
-the story's wake-up leg runs on a quiet tenant, before any other leg has made
-a run of its step.
+and one tenant, because its legs read the whole plane after their own traffic.
+`AHostHoldsALaneByInstallingABundleIT` stays apart, because it installs the
+lane into a Felix of its own. Rowling Land first given a substrate ran every
+story about two and a half times slower, because every tenant's door on the
+stream launched a durable-workflow instance of its own. A door now opens only
+when a participant that signs its asks is enrolled on the tenant, at bring-up
+or later, and Rowling Land has a substrate: St Jerome's lane is carried by it
+and Hogwarts' by HTTP, one worker holding both. The story suite took about
+ten minutes with it, as without. So `TheWorkArrivesOverTheSubstrateIT` is
+deleted: its promise is leg `33` of the edge-roundtrip story, the same bean and
+outcome over each carrier. With the world loaded, the wake-up leg also slept
+through a released run — the door coalesces nudges inside 200 ms and sends
+none after the window, so on a busy tenant the last run of a burst may go
+unannounced until the poll. Not proven: the story's wake-up leg runs on a
+quiet tenant, before any other leg has made a run of its step.
 
 **Erasure has no door.** `TenantRuntimeManager.erase` is an operator act and
 nothing a deployment serves reaches it, so erasure-by-drop is proven only
@@ -674,7 +677,7 @@ walks the rest on the harness's shared deployment.
 
 ## The assemblies and samples proving themselves
 
-The sample tests (`TheApplicationServesItsWorldIT`, `ABeanOfThisApplicationPerformsTheWorkIT`, `TheWorkArrivesOverTheSubstrateIT`) fold into the stories, which become the sample application's tests. The assembly tests stay: they prove the wrapper (item 028).
+The sample tests (`TheApplicationServesItsWorldIT`, `ABeanOfThisApplicationPerformsTheWorkIT`, `TheWorkArrivesOverTheSubstrateIT`) are folded into the stories, which are the sample application's tests. The assembly tests stay: they prove the wrapper (item 028).
 
 | Class | Boots | Promises | W | Status |
 |---|---|---|---|---|
@@ -685,5 +688,5 @@ The sample tests (`TheApplicationServesItsWorldIT`, `ABeanOfThisApplicationPerfo
 | `AnApplicationThatAddedThisJarServesATenantIT` | spring | 0 | 0 | stays |
 | `TheApplicationServesItsWorldIT` | spring | 1 | 1 | deleted |
 | `TheContainerComesUpInsideTheApplicationIT` | spring | 0 | 0 | stays |
-| `TheWorkArrivesOverTheSubstrateIT` | spring | 1 | 1 | stays — a deployment with a substrate |
+| `TheWorkArrivesOverTheSubstrateIT` | spring | 1 | 1 | deleted; leg `33` of `WorkLeavesTheClinicAndComesBackIT`, one worker holding a lane over each carrier |
 

@@ -62,6 +62,9 @@ class WorkLeavesTheClinicAndComesBackIT {
 
     private static final String HOSPITAL = "hogwarts";
 
+    /** The clinic whose lane the worker holds over the substrate. */
+    private static final String CLINIC = "st-jerome";
+
     private static final StoryNames NAMES = StoryNames.of(DboStories.EDGE_ROUNDTRIP);
 
     /**
@@ -147,6 +150,14 @@ class WorkLeavesTheClinicAndComesBackIT {
     /** And hearing what the work came to. */
     @Autowired
     cloud.jengu.dbo.samples.worker.HearingBack hearing;
+
+    /** The clinic asking for somebody to be recorded, at whichever tenant. */
+    @Autowired
+    cloud.jengu.dbo.samples.server.AskingForARegistration registering;
+
+    /** The lanes the clinic's worker holds, as the application configured them. */
+    @Autowired
+    cloud.jengu.dbo.spring.worker.DboWorkerProperties lanes;
 
     /** The clinic's application, reading the hospital's work as it changes. */
     @Autowired
@@ -1439,6 +1450,66 @@ class WorkLeavesTheClinicAndComesBackIT {
                 never.statusCode() == 404 && after.body().equals(never.body()),
                 "an ended run and one that never existed answer differently, so asking says "
                         + "which runs happened: " + after.body() + " / " + never.body());
+    }
+
+    // ── the same worker, two carriers ──
+
+    @Test
+    @Order(33)
+    @DisplayName("the clinic's own worker records a patient at Hogwarts over HTTP and at St "
+            + "Jerome over the deployment's substrate: the same bean, the same outcome, and "
+            + "nothing on the run that says which carried it")
+    @Proving(DboPromises.PROC_A_HOST_HOLDS_A_LANE_WHEREVER_IT_IS)
+    void theSameWorkerHoldsBothCarriers() {
+        // What the application was configured with, read rather than assumed:
+        // a lane naming a base is carried over HTTP, and one naming none is
+        // carried by the substrate the serving half runs on.
+        Map<String, Boolean> carriedBySubstrate = new java.util.HashMap<>();
+        lanes.getLanes().forEach(lane ->
+                carriedBySubstrate.put(lane.getTenant(), lane.overTheSubstrate()));
+        assertEquals(Boolean.FALSE, carriedBySubstrate.get(HOSPITAL),
+                "the clinic's lane into Hogwarts is not over HTTP: " + carriedBySubstrate);
+        assertEquals(Boolean.TRUE, carriedBySubstrate.get(CLINIC),
+                "the clinic's lane into St Jerome is not over the substrate: "
+                        + carriedBySubstrate);
+        String worker = lanes.getIdentity().getName();
+
+        var overHttp = registering.register(HOSPITAL, person(NAMES.value("carried-over-http")));
+        var overTheSubstrate = registering.register(CLINIC, """
+                {"resourceType":"Patient",
+                 "identifier":[{"system":"urn:st-jerome:mrn","value":"%s"}],
+                 "name":[{"family":"Lovegood","given":["Luna"]}]}"""
+                .formatted(NAMES.value("carried-over-the-substrate")));
+        var heardOverHttp = hearing.settled(HOSPITAL, overHttp, Duration.ofMinutes(3));
+        var heardOverTheSubstrate = hearing.settled(CLINIC, overTheSubstrate,
+                Duration.ofMinutes(3));
+
+        Proves.that(DboPromises.PROC_A_HOST_HOLDS_A_LANE_WHEREVER_IT_IS,
+                "completed".equals(heardOverHttp.state())
+                        && "completed".equals(heardOverTheSubstrate.state()),
+                "one carrier finished the registration and the other did not: over HTTP "
+                        + heardOverHttp.body() + " / over the substrate "
+                        + heardOverTheSubstrate.body());
+        Proves.that(DboPromises.PROC_A_HOST_HOLDS_A_LANE_WHEREVER_IT_IS,
+                cloud.jengu.dbo.samples.worker.HearingBack.counted(heardOverHttp, "recorded")
+                        .equals(cloud.jengu.dbo.samples.worker.HearingBack.counted(
+                                heardOverTheSubstrate, "recorded"))
+                        && cloud.jengu.dbo.samples.worker.HearingBack.produced(heardOverHttp)
+                                .stream().anyMatch(one -> one.startsWith("Patient/"))
+                        && cloud.jengu.dbo.samples.worker.HearingBack.produced(
+                                heardOverTheSubstrate).stream()
+                                .anyMatch(one -> one.startsWith("Patient/")),
+                "the same step did not come to the same outcome on the two carriers: "
+                        + heardOverHttp.body() + " / " + heardOverTheSubstrate.body());
+        // The same worker's name on both runs: over the substrate the run
+        // records the worker's identity, not the enrolment it signed with, so
+        // nothing on the run tells the carriers apart.
+        Proves.that(DboPromises.PROC_A_HOST_HOLDS_A_LANE_WHEREVER_IT_IS,
+                dbo.asking(HOSPITAL).work().by(worker).stream()
+                        .anyMatch(run -> run.id().equals(overHttp.run()))
+                        && dbo.asking(CLINIC).work().by(worker).stream()
+                                .anyMatch(run -> run.id().equals(overTheSubstrate.run())),
+                "the two runs are not both recorded as performed by " + worker);
     }
 
     /** The server root, which a context's path is resolved against. */

@@ -41,6 +41,30 @@ public final class DboTestProperties {
      */
     public static final String LANE_CARRIER = "dbo.test.lane.carrier";
 
+    /**
+     * Whether the deployment has a substrate, for lanes the application itself
+     * names rather than one this test derives.
+     *
+     * <p>{@code true} gives the serving half a substrate and the worker a
+     * participant on it, holding private halves minted once for this JVM. What
+     * the application then needs in order to enrol that participant on a
+     * tenant — its name and the PUBLIC halves — is readable as
+     * {@link #SUBSTRATE_PARTICIPANT}, {@link #SUBSTRATE_SEALING_KEY} and
+     * {@link #SUBSTRATE_SIGNING_KEY}, so it enrols it the way it would enrol
+     * any worker it was told about. Which lanes go over the substrate stays
+     * the application's own configuration: a lane naming no base.
+     */
+    public static final String SUBSTRATE = "dbo.test.substrate";
+
+    /** The participant the worker holds its substrate lanes as. Derived. */
+    public static final String SUBSTRATE_PARTICIPANT = "dbo.test.substrate.participant";
+
+    /** The public half it is sealed to, as a JWK. Derived. */
+    public static final String SUBSTRATE_SEALING_KEY = "dbo.test.substrate.sealing-key";
+
+    /** The public half it signs with, as a JWK. Derived. */
+    public static final String SUBSTRATE_SIGNING_KEY = "dbo.test.substrate.signing-key";
+
     private static final String DEFAULT_IMAGE = "postgres:17-alpine";
 
     private static final List<String> DEFAULT_SCOPES =

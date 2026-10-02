@@ -14,8 +14,11 @@
 ## The scene
 
 Ines, Meristem's builder, runs the deployment with a substrate: a database
-the runtime is given before any tenant is served, so every tenant's door to
-the stream opens with the tenant. Three participants take part:
+the runtime is given before any tenant is served. A tenant's door to the
+stream is not opened with the tenant. It opens when a participant that signs
+its asks is enrolled there, which here is after the tenant came up, and every
+lane below goes through a door opened that way. Three participants take
+part:
 
 - an **analyser**, enrolled with its own keys, performing an assay;
 - an **imager**, enrolled with its own keys, whose scans are large;
@@ -82,20 +85,16 @@ citations say it is.
 |---|---|---|
 | `REQ-DBO-PROC-A-LANE-OVER-THE-STREAM` | A lane runs over the store's own stream, full duplex, beside in-process and HTTP: work goes out and travel, access and result events come home as they happen on the same channel. It serves exactly the verbs the other two do, and a runner cannot tell which it holds. | PROVEN |
 | `REQ-DBO-PROC-A-HOST-HOLDS-A-LANE-WHEREVER-IT-IS` | A host that reaches the store over HTTP obtains the same lane as one that holds the store in-process: the tenant serves the participation verbs on its own private surface, guarded by its own authority, and a runner cannot tell the two apart. The entitlement is derived from the credential and never asked for by the caller, and a credential bounded to steps may work only as itself. | PROVEN |
+| `REQ-DBO-PROC-A-STREAM-DOOR-OPENS-FOR-WHOEVER-CAN-ASK` | A tenant's door on the deployment's stream is opened when a participant that signs its asks is enrolled on it, at bring-up or at any time after, and not before: a tenant nobody can reach that way holds no door on the substrate, and one enrolled later is served through a door opened for it. | PROVEN |
 | `REQ-DBO-PROC-A-WAKE-UP-IS-NOT-HOW-WORK-ARRIVES` | A lane may say that it has work, and a runner waiting on one looks again instead of waiting out its tick. What arrives is that something changed and never the work: the runner then polls and claims through the ordinary path, because the claim race is what decides who takes a run and a second mechanism deciding it would be a second answer beside the run record's account of what is owed and by whom. The poll stays underneath as the fallback, so a runner whose lane can say nothing — or whose wake-up never arrives — does the work anyway, and a delivery that goes missing is a latency bug rather than a lost run. A lane that cannot say is not degraded, and nothing above the facade can tell which kind it holds except by how long it waited. | PROVEN |
 | `REQ-DBO-WF-TWO-PLANES` | Records live in the tenant plane, structurally isolated. The shared platform plane carries coordination and the copies work needs in flight — manifests readable, because routing is what they are for, and payloads sealed to the participant meant to open them. Isolation of a record is structural; of a copy in flight, cryptographic. | PROVEN |
 | `REQ-DBO-WF-CONTENT-FREE-PLATFORM-PLANE` | The platform plane never holds tenant credentials, and never holds resource content in a form readable in that plane. A sealed payload satisfies this; the plaintext form would not, however briefly. | PROVEN |
 
-Coverage: {PROVEN=5} — a leg marked PLANNED cites a promise that exists and is not yet cited by any test.
+Coverage: {PROVEN=6} — a leg marked PLANNED cites a promise that exists and is not yet cited by any test.
 <!-- story:end -->
 
 ## What the store cannot do yet
 
-- **A door on the stream costs a durable-workflow instance per tenant.** A
-  deployment of twenty tenants on a substrate ran its work about two and a
-  half times slower than the same deployment without one. A deployment that
-  wants the stream for a few tenants still pays for it on every tenant
-  served.
 - **The last wake-up of a burst can go unsent.** The door coalesces wake-ups
   inside a short window and sends none after it, so on a busy tenant the
   last run of a burst may wait for the poll. Nothing is lost; it costs
@@ -103,6 +102,4 @@ Coverage: {PROVEN=5} — a leg marked PLANNED cites a promise that exists and is
 
 ## Open decisions
 
-- **Whether the stream is opened per tenant** rather than for the whole
-  runtime, so a deployment pays for the substrate only where a participant
-  holds a lane on it.
+None at present.

@@ -67,30 +67,24 @@ public final class ADeploymentForThisTest
         int port = aFreePort();
         derived.put("server.port", String.valueOf(port));
 
+        if ("true".equalsIgnoreCase(environment.getProperty(DboTestProperties.SUBSTRATE))) {
+            aSubstrate(derived, database);
+            // The public halves, for the application to enrol the participant
+            // with wherever its own lanes say it reaches.
+            derived.put(DboTestProperties.SUBSTRATE_PARTICIPANT, TheTenantIsServing.ENROLLED);
+            derived.put(DboTestProperties.SUBSTRATE_SEALING_KEY,
+                    TheTenantIsServing.sealingPublicOfThisJvm());
+            derived.put(DboTestProperties.SUBSTRATE_SIGNING_KEY,
+                    TheTenantIsServing.signingPublicOfThisJvm());
+        }
+
         String tenant = asked.laneTenant();
         if (tenant != null) {
             derived.put("dbo.worker.lanes[0].tenant", tenant);
             if (asked.laneOverTheSubstrate()) {
                 // NO BASE, which is how a lane says it is carried by the
-                // deployment's own substrate. The serving half is pointed at
-                // the same one, because a door and the participant reading it
-                // have to be on one database or there is nothing between them.
-                String substrate = TheDatabaseForThisJvm.substrateUrl();
-                derived.put("dbo.substrate.url", substrate);
-                derived.put("dbo.substrate.user", database.getUsername());
-                derived.put("dbo.substrate.password", database.getPassword());
-                derived.put("dbo.worker.substrate.url", substrate);
-                derived.put("dbo.worker.substrate.user", database.getUsername());
-                derived.put("dbo.worker.substrate.password", database.getPassword());
-                derived.put("dbo.worker.substrate.participant", TheTenantIsServing.ENROLLED);
-                derived.put("dbo.worker.substrate.provider", "cloud.jengu.test");
-                // The PRIVATE halves. Their public halves are enrolled against
-                // this participant once the tenant is serving, because only a
-                // tenant that exists holds a client record to put them on.
-                derived.put("dbo.worker.substrate.sealing-key",
-                        TheTenantIsServing.sealingKeyOfThisJvm());
-                derived.put("dbo.worker.substrate.signing-key",
-                        TheTenantIsServing.signingKeyOfThisJvm());
+                // deployment's own substrate.
+                aSubstrate(derived, database);
             } else {
                 derived.put("dbo.worker.lanes[0].base",
                         "http://127.0.0.1:" + port + "/t/" + tenant + "/");
@@ -125,6 +119,30 @@ public final class ADeploymentForThisTest
         throw new IllegalStateException("this context cannot be given the test's declarations: "
                 + context.getClass().getName() + " is not a GenericApplicationContext, and the "
                 + "runtime has already been told to wait for a source nobody would register");
+    }
+
+    /**
+     * A substrate for both halves, and the worker a participant on it.
+     *
+     * <p>The serving half is pointed at the same database as the worker,
+     * because a door and the participant reading it have to be on one
+     * database or there is nothing between them.
+     */
+    private static void aSubstrate(Map<String, Object> derived, PostgreSQLContainer<?> database) {
+        String substrate = TheDatabaseForThisJvm.substrateUrl();
+        derived.put("dbo.substrate.url", substrate);
+        derived.put("dbo.substrate.user", database.getUsername());
+        derived.put("dbo.substrate.password", database.getPassword());
+        derived.put("dbo.worker.substrate.url", substrate);
+        derived.put("dbo.worker.substrate.user", database.getUsername());
+        derived.put("dbo.worker.substrate.password", database.getPassword());
+        derived.put("dbo.worker.substrate.participant", TheTenantIsServing.ENROLLED);
+        derived.put("dbo.worker.substrate.provider", "cloud.jengu.test");
+        // The PRIVATE halves. Their public halves are enrolled against this
+        // participant once a tenant is serving, because only a tenant that
+        // exists holds a client record to put them on.
+        derived.put("dbo.worker.substrate.sealing-key", TheTenantIsServing.sealingKeyOfThisJvm());
+        derived.put("dbo.worker.substrate.signing-key", TheTenantIsServing.signingKeyOfThisJvm());
     }
 
     private static DboTestProperties asked(ConfigurableEnvironment environment) {

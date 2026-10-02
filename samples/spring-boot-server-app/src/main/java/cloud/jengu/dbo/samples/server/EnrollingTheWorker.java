@@ -66,10 +66,12 @@ public final class EnrollingTheWorker implements TenantLifecycleListener {
         }
         // The clients the worker's HTTP lanes sign in with: this application's
         // own lanes when the worker is embedded, and the same lanes a worker
-        // in another JVM is configured with when it is not.
+        // in another JVM is configured with when it is not. A lane whose work
+        // the substrate carries keeps its client when it names a base: that
+        // is the credential this application asks the tenant for work with.
         for (DboWorkerProperties.Lane lane : lanes.getLanes()) {
             DboWorkerProperties.Token token = lane.getToken();
-            if (!code.equals(lane.getTenant()) || lane.overTheSubstrate() || token == null
+            if (!code.equals(lane.getTenant()) || lane.getBase() == null || token == null
                     || blank(token.getClientId()) || blank(token.getClientSecret())) {
                 continue;
             }

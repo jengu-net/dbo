@@ -225,6 +225,8 @@ public enum DboStories implements Story {
                     // can tell which carrier it holds.
                     DboPromises.PROC_A_LANE_OVER_THE_STREAM,
                     DboPromises.PROC_A_HOST_HOLDS_A_LANE_WHEREVER_IT_IS,
+                    // A door for whoever can ask through one, whenever they arrive.
+                    DboPromises.PROC_A_STREAM_DOOR_OPENS_FOR_WHOEVER_CAN_ASK,
                     // Told there is work, and still claiming it the ordinary way.
                     DboPromises.PROC_A_WAKE_UP_IS_NOT_HOW_WORK_ARRIVES,
                     // What crosses the shared plane is a manifest and sealed

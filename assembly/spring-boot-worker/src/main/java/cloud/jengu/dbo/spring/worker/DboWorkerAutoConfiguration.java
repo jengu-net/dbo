@@ -266,10 +266,20 @@ public class DboWorkerAutoConfiguration {
             if (lane.getTenant() == null || lane.getTenant().isBlank()) {
                 wrong.add("a lane declares no tenant");
             }
+            if (lane.getCarrier() != null && !lane.getCarrier().isBlank()
+                    && !"substrate".equalsIgnoreCase(lane.getCarrier())
+                    && !"http".equalsIgnoreCase(lane.getCarrier())) {
+                wrong.add(named + " names carrier '" + lane.getCarrier() + "', and a lane is "
+                        + "carried over http or over the substrate");
+            }
+            if ("http".equalsIgnoreCase(lane.getCarrier()) && lane.getBase() == null) {
+                wrong.add(named + " says it is carried over http and names no base to reach");
+            }
             if (lane.overTheSubstrate()) {
                 // Carried by the deployment's own substrate: no port to reach
                 // and no token to carry, because that plane holds neither. What
-                // it needs instead is the enrolment, checked once below.
+                // it needs instead is the enrolment, checked once below. A
+                // base and a client beside it are for asking, and optional.
                 continue;
             }
             DboWorkerProperties.Token token = lane.getToken();

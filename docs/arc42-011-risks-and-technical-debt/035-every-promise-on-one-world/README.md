@@ -450,11 +450,10 @@ None at present.
   stories run at once, that holds only for a type no story writes into that
   tenant. The world has to keep that true on purpose, or the leg asserts on
   the story's own records instead.
-- **Two lane carriers today mean two contexts.** The server sample's tests
-  have a `stories` profile over HTTP and an `over-the-substrate` profile, and each one is a context of its
-  own. Edge roundtrip proves the two carriers indistinguishable, so it needs
-  both in the one context: a worker holding one lane over each, toward two
-  different world members.
+- **Both lane carriers live in the one context.** The worker holds Hogwarts'
+  lane over HTTP and St Jerome's over the substrate, and St Jerome's still
+  names a base and a client, because the clinic asks St Jerome for work and
+  asking is the tenant's HTTP step door whichever way the work then travels.
 - **A tenant declared mid-run waits for the pass in progress.** `scanOnce`
   is synchronized, and a pass returns only when everything it brought up is
   up. A story that declares a tenant while another story's tenant is coming

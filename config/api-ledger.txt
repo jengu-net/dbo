@@ -250,12 +250,14 @@ cloud.jengu.dbo.auth.TenantAuthority                                   retireCre
 cloud.jengu.dbo.auth.TenantAuthority                                   roleGrants(boolean):List
 cloud.jengu.dbo.auth.TenantAuthority                                   rotateSigningKey():String
 cloud.jengu.dbo.auth.TenantAuthority                                   setFactor(String,String,String):void
+cloud.jengu.dbo.auth.TenantAuthority                                   signers():List
 cloud.jengu.dbo.auth.TenantAuthority                                   signingKey(String):Optional
 cloud.jengu.dbo.auth.TenantAuthority                                   token(String,String,String):cloud.jengu.dbo.auth.TenantAuthority.TokenResult
 cloud.jengu.dbo.auth.TenantAuthority                                   token(String,String,String,String):cloud.jengu.dbo.auth.TenantAuthority.TokenResult
 cloud.jengu.dbo.auth.TenantAuthority                                   trust(String,Supplier,String):void
 cloud.jengu.dbo.auth.TenantAuthority                                   validate(String):Optional
 cloud.jengu.dbo.auth.TenantAuthority                                   verifyFactor(String,String,String):boolean
+cloud.jengu.dbo.auth.TenantAuthority                                   whenASignerIsEnrolled(Consumer):AutoCloseable
 cloud.jengu.dbo.auth.TenantAuthority                                   withdrawRoleGrant(String):boolean
 cloud.jengu.dbo.auth.TenantAuthority                                   withdrawRoleGrant(String,String):boolean
 cloud.jengu.dbo.auth.TenantAuthority.AuthContext                       actClient():String
@@ -2879,6 +2881,7 @@ cloud.jengu.dbo.promises.DboPromises                                   PROC_A_RU
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_SLOT_IS_REFERRED_OR_GIVEN_AND_MAY_REPEAT:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_STEP_CODE_BELONGS_TO_ONE_LEVEL:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_STEP_GRANTS_THE_RIGHT_TO_OVERRIDE:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   PROC_A_STREAM_DOOR_OPENS_FOR_WHOEVER_CAN_ASK:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_TENANT_ADMITS_OR_DECLINES_WHAT_IS_DONE_TO_IT:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_TENANT_AUTHORISES_A_REGISTER_AND_SEES_IT_CHANGE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_TENANT_READS_WHAT_IS_OPENED_OF_ITS_DATA:cloud.jengu.dbo.promises.DboPromises
@@ -4141,6 +4144,7 @@ cloud.jengu.dbo.tenant.TenantRuntimeManager                            start(lon
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            stepIncidents():Map
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            stepJoiner():Optional
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            stepSubstrates():Map
+cloud.jengu.dbo.tenant.TenantRuntimeManager                            streamDoorOpen(String):boolean
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            streamsOf(String):List
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            streamsTogether(int):void
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            substrate(DataSource):void

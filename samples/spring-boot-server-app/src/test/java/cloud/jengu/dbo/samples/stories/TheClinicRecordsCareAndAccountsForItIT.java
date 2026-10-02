@@ -111,12 +111,19 @@ class TheClinicRecordsCareAndAccountsForItIT {
         return URLEncoder.encode(value, StandardCharsets.UTF_8);
     }
 
-    /** The client the clinic's application asks the clinic for work with. */
+    /**
+     * The credential the clinic's application asks the clinic for work with:
+     * the client its lane signs in with over HTTP, or over the substrate the
+     * participant it enrolled, whose signature is what the door admitted.
+     */
     private String clinicsClient() {
-        return lanes.getLanes().stream().filter(lane -> CLINIC.equals(lane.getTenant()))
-                .map(lane -> lane.getToken().getClientId()).findFirst()
+        var lane = lanes.getLanes().stream().filter(one -> CLINIC.equals(one.getTenant()))
+                .findFirst()
                 .orElseThrow(() -> new AssertionError("the application holds no lane into "
                         + CLINIC));
+        return lane.overTheSubstrate()
+                ? environment.getRequiredProperty("clinic.enrolment.participant")
+                : lane.getToken().getClientId();
     }
 
     // --8<-- [start:produced]

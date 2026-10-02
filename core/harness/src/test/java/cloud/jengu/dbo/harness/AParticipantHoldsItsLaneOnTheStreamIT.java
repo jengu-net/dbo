@@ -77,13 +77,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * payload too large for a message travels beside it, by reference, in the same
  * sealed form it would have had inside it.
  *
- * <p><b>Not on Rowling Land, and the substrate is why.</b> The stream door is
- * opened by giving the runtime a substrate before a tenant is served, and each
- * tenant's door is a durable-workflow instance of its own. Rowling Land given
- * a substrate ran every story about two and a half times slower, because a
- * world of twenty tenants is twenty such instances. So this deployment is the
- * story's own: one runtime, one substrate, and one tenant whose doors every
- * leg walks through.
+ * <p><b>Not on Rowling Land, and the plane is why.</b> Rowling Land has a
+ * substrate, and St Jerome's lane is carried by it, so the same worker holding
+ * one lane over each carrier is walked there. What is claimed here is about the
+ * substrate's own rows — what a spill left, what is readable — and those legs
+ * read the whole plane after their own traffic, in an order chosen for it. So
+ * this deployment is the story's own: one runtime, one substrate, and one
+ * tenant whose door opens when its first participant that signs is enrolled,
+ * after the tenant came up.
  *
  * <p><b>The legs share the plane, and the order is chosen for it.</b> Every
  * leg leaves rows on the substrate, so a leg that reads the whole plane reads
@@ -181,8 +182,8 @@ class AParticipantHoldsItsLaneOnTheStreamIT {
         new java.security.SecureRandom().nextBytes(kek);
         manager = new TenantRuntimeManager(dir, provisioner, "127.0.0.1", 0, null,
                 new TenantRuntimeManager.AuthorityConfig(kek, null));
-        // Before the tenant is served, so the door opens with it: a door that
-        // arrived afterwards would have nothing to publish a wake-up on.
+        // Before the tenant is served. The door does not open with it: nobody
+        // enrolled on the tenant could ask through one yet.
         manager.substrate(substrate);
         Files.writeString(dir.resolve(TENANT + ".json"), """
                 {"code":"%s","face":"r4","audit":{"level":"writes"},"types":[
@@ -195,6 +196,9 @@ class AParticipantHoldsItsLaneOnTheStreamIT {
 
         manager.authority(TENANT).ensureClient("courier", "courier-secret",
                 List.of("work/" + ASSAY_STEP));
+        // A client that signs in with a token is not one that asks on the
+        // stream, so the tenant serves, and has a courier, and still no door.
+        doorBeforeAnySigner = manager.streamDoorOpen(TENANT);
         sealing = KeyWrap.newParticipantKeyPair();
         signing = SigningKey.newKeyPair();
         manager.authority(TENANT).ensureClient("analyser", "analyser-secret",
@@ -206,9 +210,32 @@ class AParticipantHoldsItsLaneOnTheStreamIT {
                 List.of("work/" + IMAGE_STEP), ParticipantKey.of(imagerSealing.getPublic()),
                 SigningKey.of(imagerSigning.getPublic()));
 
+        // Every leg below goes through a door opened after the tenant came
+        // up, which is the one claim about it the legs cannot make alone.
+        long giveUp = System.nanoTime() + Duration.ofMinutes(1).toNanos();
+        while (!manager.streamDoorOpen(TENANT) && System.nanoTime() < giveUp) {
+            Thread.sleep(100);
+        }
+        doorAfterTheSigner = manager.streamDoorOpen(TENANT);
         courier().introduce(ASSAY);
         HttpLane.to(laneUri, () -> token("imager", "imager-secret"), TENANT, "imager",
                 executor("imager")).introduce(IMAGE);
+    }
+
+    static boolean doorBeforeAnySigner;
+    static boolean doorAfterTheSigner;
+
+    @Test
+    @Order(0)
+    @DisplayName("a tenant nobody can ask on the stream holds no door there, and one opens "
+            + "when a participant that signs is enrolled after the tenant came up")
+    @Proving(DboPromises.PROC_A_STREAM_DOOR_OPENS_FOR_WHOEVER_CAN_ASK)
+    void theDoorOpensForWhoeverCanAsk() {
+        assertFalse(doorBeforeAnySigner, "the tenant held a door on the stream before anybody "
+                + "who could ask through one was enrolled, which every tenant on a deployment "
+                + "with a substrate then pays for");
+        assertTrue(doorAfterTheSigner, "a participant that signs was enrolled after the tenant "
+                + "came up and no door opened for it, so it can reach nothing on the stream");
     }
 
     @AfterAll

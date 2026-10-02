@@ -11,10 +11,14 @@
 # tenant issue for them as the tenant comes up. What is here is what a test
 # adds to it: the world the harness stands up, and a quicker poll, because a
 # story waits on every run it asks for. No lane is named for the harness to
-# derive, so the lanes the stories exercise are the ones a reader runs.
+# derive: the lanes are the application's own, with St Jerome's carried by the
+# deployment's substrate so that one worker holds both carriers.
 dbo:
   test:
     world: ../sample-world
+    # The deployment has a substrate, and the clinic's worker a participant
+    # on it. Which lanes it carries is said below, and only St Jerome's is.
+    substrate: true
   # What the deployment gave its nodes for the questions an operator asks
   # them: what a node serves and what it carries. A host's configuration, the
   # same as anybody running the store would set.
@@ -22,3 +26,32 @@ dbo:
     "[dbo.tenant.ops.token]": stories-ops
   worker:
     poll: 500ms
+    # BOTH CARRIERS, ONE WORKER. Hogwarts' lane is over HTTP, as the
+    # application's own configuration has it; St Jerome's work is carried by
+    # the deployment's substrate. It still names a base and a client, because
+    # the clinic ASKS St Jerome for work, and asking is the tenant's step door
+    # whichever way the work then travels. Both tenants declare the same care.*
+    # steps and the same beans perform them, which is what lets a story hold
+    # the two outcomes side by side.
+    lanes:
+      - tenant: hogwarts
+        base: http://127.0.0.1:${server.port:8080}/t/hogwarts/
+        token:
+          client-id: sample-admissions-worker
+          client-secret: a-sample-secret-for-the-clinics-worker
+      - tenant: st-jerome
+        base: http://127.0.0.1:${server.port:8080}/t/st-jerome/
+        carrier: substrate
+        token:
+          client-id: sample-admissions-worker
+          client-secret: a-sample-secret-for-the-clinics-worker
+
+# The participant St Jerome's lane is held as, enrolled by the clinic's own
+# EnrollingTheWorker the way a worker in another JVM hands its enrolment over.
+# What it is called and the public halves are the deployment's facts, derived.
+clinic:
+  enrolment:
+    tenant: st-jerome
+    participant: ${dbo.test.substrate.participant}
+    sealing-key: ${dbo.test.substrate.sealing-key}
+    signing-key: ${dbo.test.substrate.signing-key}

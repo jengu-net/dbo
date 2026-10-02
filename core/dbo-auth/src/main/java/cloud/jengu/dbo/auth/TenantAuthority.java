@@ -395,6 +395,7 @@ public final class TenantAuthority {
                 && Set.copyOf(scopesOf(existing.get())).equals(Set.copyOf(scopes))
                 && Objects.equals(participantKeyOf(existing.get()).orElse(null), participantKey)
                 && Objects.equals(signingKeyOf(existing.get()).orElse(null), signingKey)) {
+            signerEnrolled(clientId, signingKey);
             return;
         }
         String payload = clientPayload(clientId, SecretHash.hash(secret), scopes,
@@ -406,7 +407,49 @@ public final class TenantAuthority {
             store.putIfAbsent(IdentityRef.identifier(IdentityModel.CLIENT_ID_SYSTEM, clientId),
                     PutRequest.create("ClientApplication", payload.getBytes(StandardCharsets.UTF_8)));
         }
+        signerEnrolled(clientId, signingKey);
     }
+
+    /**
+     * Who is told that a participant holding a signing key is enrolled here.
+     *
+     * <p>A participant that signs is one that can ask without a token, which
+     * is what a door on the deployment's own stream is for: an ask there is
+     * admitted by its signature and by nothing else, so until such a record
+     * exists that door could only refuse. Told after the record is written,
+     * and told again when an ensure finds it already so — the listener decides
+     * whether that is news.
+     */
+    public AutoCloseable whenASignerIsEnrolled(java.util.function.Consumer<String> told) {
+        signerListeners.add(told);
+        return () -> signerListeners.remove(told);
+    }
+
+    /**
+     * The participants enrolled here with a key they sign with, by client id.
+     *
+     * <p>Read from the records rather than from what this process was told,
+     * because an enrolment made through another node, or before this one
+     * started, is as much an enrolment as one made here.
+     */
+    public List<String> signers() {
+        return store.select(cloud.jengu.dbo.core.api.Criteria.of("ClientApplication")).stream()
+                .filter(client -> signingKeyOf(client).isPresent())
+                .map(client -> field(client, "clientId"))
+                .toList();
+    }
+
+    private void signerEnrolled(String clientId, SigningKey signingKey) {
+        if (signingKey == null) {
+            return;
+        }
+        for (java.util.function.Consumer<String> told : signerListeners) {
+            told.accept(clientId);
+        }
+    }
+
+    private final List<java.util.function.Consumer<String>> signerListeners =
+            new java.util.concurrent.CopyOnWriteArrayList<>();
 
     /** §16.5: a relying party or PKCE app — redirect targets validated at /authorize. */
     public void ensureClient(String clientId, String secretOrNull, List<String> scopes,

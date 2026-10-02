@@ -77,9 +77,5 @@ names the test behind each.
 
 ## What the store cannot do yet
 
-- **A door on the stream costs a durable-workflow instance per tenant.** A
-  deployment of twenty tenants on a substrate ran its work about two and a half
-  times slower than without one, and a deployment that wants the stream for a
-  few tenants pays for it on every tenant served.
 - **The last wake-up of a burst can go unsent**, so on a busy tenant the last
   run of a burst may wait for the poll. Nothing is lost; it costs latency.
