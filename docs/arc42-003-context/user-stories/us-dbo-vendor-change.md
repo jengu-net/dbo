@@ -52,6 +52,13 @@ recognised as identical rather than rewritten, so a restore interrupted
 halfway can simply be run again — which is the only way anybody actually
 operates one.
 
+## The nightly backup goes back in too
+
+The backup the clinic's door gives out every night is the same sealed file,
+and it is restored through the same door: after an edit made since, restoring
+it gives back the record as the backup held it, version and all. A backup is a
+restore into the store that made it, so its history is the history it had.
+
 ## Joins
 
 The promises this story rests on, projected from the catalogue rather than
