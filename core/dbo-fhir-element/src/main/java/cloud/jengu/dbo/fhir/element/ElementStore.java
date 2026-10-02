@@ -293,25 +293,31 @@ public final class ElementStore implements FhirStoreFacade,
     }
 
     /**
-     * The view built again from what the store holds now, and put in place of
-     * the one being served only once it is whole.
+     * The view built again from what the store holds now, under the lock a
+     * first build takes.
      *
-     * <p>Built and swapped under the same lock a first build takes, and never
-     * by emptying the field first. Emptied first, a reader in the gap found no
-     * view at all — and a read with no view has no pack to judge a stamp
-     * against, so an object newer than the pack was served while the view was
-     * being rebuilt, which is a tenth of a second on an idle machine and much
-     * longer on a busy one. And two rebuilds at once — the write that moved a
-     * profile, and the round that saw it arrive — could finish in either order:
-     * the second to start found the first one's view in place and kept it,
-     * though the first had read the store before the write it was racing.
-     * Under the lock, the later rebuild reads the store after the earlier one
-     * has finished.
+     * <p>Two rebuilds at once — the write that moved a profile, and the round
+     * that saw it arrive — could finish in either order, and the second to
+     * start found the first one's view in place and kept it, though the first
+     * had read the store before the write it was racing. Under the lock, the
+     * later rebuild empties and builds after the earlier one has finished, so
+     * it reads the store as it is.
+     *
+     * <p>Emptied first rather than swapped at the end, on purpose. What is
+     * built over this store asks it for its view — the version's registrations
+     * and the terminology both reach it through {@link #elementPayloads} — and
+     * mid-build that has to find nothing rather than the view being replaced.
+     * Swapped at the end, a conversion asked for straight after its map was
+     * written ran against the view from before the map, every time. A reader
+     * meanwhile finds the field empty and waits on the lock for the new view —
+     * {@link #refuseIfTooNew} included, which read the bare field, found
+     * nothing, and served an object newer than the pack.
      */
     private void rebuildTheView() {
         building.lock();
         try {
-            payloads = builtView();
+            payloads = null;
+            payloads();
         } finally {
             building.unlock();
         }
@@ -930,7 +936,18 @@ public final class ElementStore implements FhirStoreFacade,
      * operates on it in the meantime.
      */
     private void refuseIfTooNew(StoredObject stored) {
-        if (stored.shape() == null || !(((Object) payloads) instanceof ElementPayloads pack)) {
+        if (stored.shape() == null) {
+            return;
+        }
+        // The view, waited for while it is being rebuilt. Read as a bare
+        // field, a rebuild in progress looked like no view at all and the
+        // object was served; empty for good only where nothing reads the
+        // view, and then there is no pack here to judge a stamp against.
+        Object view = payloads;
+        if (view == null && !nothingHereReadsTheView()) {
+            view = payloads();
+        }
+        if (!(view instanceof ElementPayloads pack)) {
             return;
         }
         for (String entry : stored.shape()) {
