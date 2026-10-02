@@ -137,9 +137,13 @@ public final class R5Terminology implements cloud.jengu.dbo.fhir.common.FhirTerm
         String shellJson = personality.ctxInternal().newJsonParser()
                 .encodeResourceToString(shellOf(cs));
 
-        PutResult engineResult = new R5Store(store, personality, "").putCanonical(shellJson);
-        long imported = terminology.importSystem(url, cs.getVersion(), flat.iterator());
-        return new IngestResult(engineResult.id(), engineResult.versionId(), imported);
+        // The shell inside the import, so nobody reassembles the system from
+        // a shell whose concepts have not landed.
+        cloud.jengu.dbo.terminology.TerminologyStore.Imported<PutResult> imported =
+                terminology.importSystemBeside(url, cs.getVersion(), flat.iterator(),
+                        () -> new R5Store(store, personality, "").putCanonical(shellJson));
+        return new IngestResult(imported.written().id(), imported.written().versionId(),
+                imported.concepts());
     }
 
     @Override

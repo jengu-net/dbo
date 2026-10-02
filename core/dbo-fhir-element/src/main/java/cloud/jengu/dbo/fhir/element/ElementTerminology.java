@@ -170,10 +170,13 @@ final class ElementTerminology implements FhirTerminology {
         List<Concept> flat = new ArrayList<>();
         flatten(cs, null, flat);
 
-        PutResult engineResult = canonical.putCanonical(json(shellOf(cs, flat.size())));
-        long imported = terminology.importSystem(url, cs.getNamedChildValue("version"),
-                flat.iterator());
-        return new IngestResult(engineResult.id(), engineResult.versionId(), imported);
+        // The shell inside the import, so nobody reassembles the system from
+        // a shell whose concepts have not landed.
+        cloud.jengu.dbo.terminology.TerminologyStore.Imported<PutResult> imported =
+                terminology.importSystemBeside(url, cs.getNamedChildValue("version"),
+                        flat.iterator(), () -> canonical.putCanonical(json(shellOf(cs, flat.size()))));
+        return new IngestResult(imported.written().id(), imported.written().versionId(),
+                imported.concepts());
     }
 
     @Override

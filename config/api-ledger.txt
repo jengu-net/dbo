@@ -4409,6 +4409,7 @@ cloud.jengu.dbo.terminology.TerminologyStore                           class
 cloud.jengu.dbo.terminology.TerminologyStore                           conceptCount(String):long
 cloud.jengu.dbo.terminology.TerminologyStore                           expand(cloud.jengu.dbo.terminology.Compose,String,int,int):cloud.jengu.dbo.terminology.TerminologyStore.Expansion
 cloud.jengu.dbo.terminology.TerminologyStore                           importSystem(String,String,Iterator):long
+cloud.jengu.dbo.terminology.TerminologyStore                           importSystemBeside(String,String,Iterator,Supplier):cloud.jengu.dbo.terminology.TerminologyStore.Imported
 cloud.jengu.dbo.terminology.TerminologyStore                           importSystems(List):long
 cloud.jengu.dbo.terminology.TerminologyStore                           lookup(String,String):Optional
 cloud.jengu.dbo.terminology.TerminologyStore                           new(DataSource)
@@ -4432,6 +4433,13 @@ cloud.jengu.dbo.terminology.TerminologyStore.Expansion                 new(long,
 cloud.jengu.dbo.terminology.TerminologyStore.Expansion                 record
 cloud.jengu.dbo.terminology.TerminologyStore.Expansion                 toString():String
 cloud.jengu.dbo.terminology.TerminologyStore.Expansion                 total():long
+cloud.jengu.dbo.terminology.TerminologyStore.Imported                  concepts():long
+cloud.jengu.dbo.terminology.TerminologyStore.Imported                  equals(Object):boolean
+cloud.jengu.dbo.terminology.TerminologyStore.Imported                  hashCode():int
+cloud.jengu.dbo.terminology.TerminologyStore.Imported                  new(long,Object)
+cloud.jengu.dbo.terminology.TerminologyStore.Imported                  record
+cloud.jengu.dbo.terminology.TerminologyStore.Imported                  toString():String
+cloud.jengu.dbo.terminology.TerminologyStore.Imported                  written():Object
 cloud.jengu.dbo.terminology.TerminologyStore.System                    concepts():List
 cloud.jengu.dbo.terminology.TerminologyStore.System                    equals(Object):boolean
 cloud.jengu.dbo.terminology.TerminologyStore.System                    hashCode():int

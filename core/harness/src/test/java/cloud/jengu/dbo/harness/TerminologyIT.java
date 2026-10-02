@@ -108,6 +108,42 @@ class TerminologyIT {
     }
 
     /**
+     * A code system leaves this store reassembled — its resource, and its
+     * concepts from the native form — and a stream reads the resource as soon
+     * as it is on the feed. Written first and on its own, the resource was
+     * there while its concepts were still being copied in, and a read in
+     * between sent a system with no codes, which nothing ever sent again.
+     */
+    @Test
+    @org.junit.jupiter.api.DisplayName("a code system is never reassembled from its resource "
+            + "before its concepts have landed")
+    @Proving(DboPromises.SYNC_TERMINOLOGY_GRAIN_SURVIVES)
+    void aCodeSystemIsNeverReadHalfWritten() throws Exception {
+        String url = "https://terms.dbo.test/arriving-" + java.util.UUID.randomUUID();
+        int concepts = 40_000;
+        String written = bigCodeSystem(concepts, "1.0").replace(BIG_SYS, url);
+        Thread writer = Thread.ofVirtual().start(() -> terminology.ingestCodeSystem(written));
+        int whole = 0;
+        java.util.List<Integer> partial = new java.util.ArrayList<>();
+        while (writer.isAlive()) {
+            java.util.Optional<String> assembled = terminology.codeSystemResource(url);
+            if (assembled.isPresent()) {
+                int held = assembled.get().split("\"code\":\"C", -1).length - 1;
+                if (held == concepts) {
+                    whole++;
+                } else {
+                    partial.add(held);
+                }
+            }
+        }
+        writer.join();
+        assertTrue(terminology.codeSystemResource(url).isPresent(), "the system never landed");
+        assertTrue(partial.isEmpty(), "the system was read with " + partial.size()
+                + " partial answers, the first holding " + (partial.isEmpty() ? 0 : partial.get(0))
+                + " of " + concepts + " codes, beside " + whole + " whole ones");
+    }
+
+    /**
      * A chunk of a feed carries every version of a record that changed
      * within it, and the destination keeps the chunk's terminology as one
      * unit — so a code system twice in a chunk has to end the way keeping

@@ -102,6 +102,29 @@ public final class TerminologyStore {
 
     /** Replace-all import of one system's concepts, streamed through COPY in one transaction. */
     public long importSystem(String systemUrl, String version, Iterator<Concept> concepts) {
+        return importSystemBeside(systemUrl, version, concepts, () -> null).concepts();
+    }
+
+    /** What an import landed, and what was written beside it. */
+    public record Imported<T>(long concepts, T written) {}
+
+    /**
+     * Replace-all import of one system's concepts, with a write that has to be
+     * seen together with them made before they commit.
+     *
+     * <p>The write is the system's resource — the shell a face stores, which
+     * names the system and how many concepts it has. Written first and
+     * committed on its own, the shell was on the feed before its concepts
+     * existed, and a stream reading it in between rebuilt the system from
+     * nothing: its dependent took a code system with no codes, the change was
+     * acked, and nothing ever sent it again. Made inside the import's hold,
+     * the shell can be read as soon as it commits, and whoever reassembles the
+     * system from it waits in {@link #allConcepts} for the concepts to commit
+     * too. A write that fails rolls the import back, so a refused resource
+     * changes no answer.
+     */
+    public <T> Imported<T> importSystemBeside(String systemUrl, String version,
+            Iterator<Concept> concepts, java.util.function.Supplier<T> beside) {
         try (Connection c = ds.getConnection()) {
             c.setAutoCommit(false);
             try {
@@ -126,8 +149,9 @@ public final class TerminologyStore {
                     ps.setLong(3, rows);
                     ps.executeUpdate();
                 }
+                T written = beside.get();
                 c.commit();
-                return rows;
+                return new Imported<>(rows, written);
             } catch (Throwable t) {
                 c.rollback();
                 throw t;
@@ -158,6 +182,16 @@ public final class TerminologyStore {
      * written for real once the concepts have landed.
      */
     private static void holdTheSystems(Connection c, List<String> urls) throws SQLException {
+        // The system's own key as well as its row: a reader reassembling a
+        // system that does not exist yet has no committed row to wait on.
+        try (PreparedStatement ps = c.prepareStatement(
+                "SELECT pg_advisory_xact_lock(?, hashtext(?))")) {
+            for (String url : urls.stream().distinct().sorted().toList()) {
+                ps.setInt(1, IMPORTING);
+                ps.setString(2, url);
+                ps.executeQuery().close();
+            }
+        }
         try (PreparedStatement ps = c.prepareStatement("""
                 INSERT INTO definitions.term_system (url, version, concept_count, updated_at)
                 VALUES (?, NULL, 0, now())
@@ -386,19 +420,47 @@ public final class TerminologyStore {
         }
     }
 
-    /** All concepts of a system, hierarchy fields included (resource reassembly). */
+    /** The key space an import holds a system by, apart from every other advisory key. */
+    private static final int IMPORTING = 0x7465726d;
+
+    /**
+     * All concepts of a system, hierarchy fields included (resource reassembly).
+     *
+     * <p>Read once no import of the system is in flight. Reassembly is how a
+     * system leaves this store, and one read part-way through an import —
+     * between the shell and its concepts — sends a system with no codes that
+     * is never sent again. Bounded, so a reader never waits on a stuck import
+     * for ever; one that gives up fails, and a stream retries it.
+     */
     public List<Concept> allConcepts(String system) {
-        try (Connection c = ds.getConnection();
-             PreparedStatement ps = c.prepareStatement("""
-                     SELECT code, display, parent_code, designations::text, properties::text
-                     FROM definitions.term_concept WHERE system = ? ORDER BY code""")) {
-            ps.setString(1, system);
-            try (ResultSet rs = ps.executeQuery()) {
-                List<Concept> out = new ArrayList<>();
-                while (rs.next()) {
-                    out.add(readConcept(rs));
+        try (Connection c = ds.getConnection()) {
+            c.setAutoCommit(false);
+            try {
+                try (PreparedStatement ps = c.prepareStatement("SET LOCAL lock_timeout = '60s'")) {
+                    ps.execute();
                 }
+                try (PreparedStatement ps = c.prepareStatement(
+                        "SELECT pg_advisory_xact_lock_shared(?, hashtext(?))")) {
+                    ps.setInt(1, IMPORTING);
+                    ps.setString(2, system);
+                    ps.executeQuery().close();
+                }
+                List<Concept> out = new ArrayList<>();
+                try (PreparedStatement ps = c.prepareStatement("""
+                        SELECT code, display, parent_code, designations::text, properties::text
+                        FROM definitions.term_concept WHERE system = ? ORDER BY code""")) {
+                    ps.setString(1, system);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        while (rs.next()) {
+                            out.add(readConcept(rs));
+                        }
+                    }
+                }
+                c.commit();
                 return out;
+            } catch (Throwable t) {
+                c.rollback();
+                throw t;
             }
         } catch (SQLException e) {
             throw new IllegalStateException("read failed", e);
