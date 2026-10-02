@@ -950,6 +950,12 @@ public enum DboPromises implements Promise {
             + "diffs and audit records they produced are navigable."),
     // ── CORE — migrated from hand-written prose (2026-08-27) ──
 
+    CORE_TWO_WRITERS_OF_ONE_OBJECT_TAKE_TURNS(
+            "Two writers of one thing at the same moment take turns rather than one of them "
+            + "failing: an object two writers create at once is created by one and changed by "
+            + "the other, alone or inside a unit, and a code system imported twice at once "
+            + "ends on the import that finished last. Writers of different things never wait "
+            + "for each other."),
     CORE_PAYLOAD_IS_TRUTH(
             "A stored object's payload is the single source of truth; every searchable "
             + "projection is derived from it and can always be rebuilt."),
@@ -2161,6 +2167,12 @@ public enum DboPromises implements Promise {
             "A tenant's own object with the same base identity overrides the streamed "
             + "copy — version-neutrally, across FHIR versions and business versions; "
             + "removing the override falls back to the live upstream version."),
+    SYNC_A_STREAM_APPLIES_EACH_CHANGE_ONCE(
+            "A stream read by two callers at once — a tenant draining its face while it "
+            + "comes up, and the round that keeps every stream in step — applies each change "
+            + "it carries once: one reader at a time per stream, the next reading on from "
+            + "where the last acked. Other streams, the same tenant's included, run beside "
+            + "it."),
     SYNC_DIRECT_UPSTREAM_ONLY(
             "A tenant declares dependencies only against its direct upstream; chains "
             + "compose hop by hop."),

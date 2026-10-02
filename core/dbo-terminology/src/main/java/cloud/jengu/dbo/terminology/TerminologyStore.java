@@ -63,6 +63,7 @@ public final class TerminologyStore {
         try (Connection c = ds.getConnection()) {
             c.setAutoCommit(false);
             try {
+                holdTheSystems(c, systems.stream().map(System::url).toList());
                 try (PreparedStatement ps = c.prepareStatement(
                         "DELETE FROM definitions.term_concept WHERE system = ANY (?)")) {
                     ps.setArray(1, c.createArrayOf("text",
@@ -104,6 +105,7 @@ public final class TerminologyStore {
         try (Connection c = ds.getConnection()) {
             c.setAutoCommit(false);
             try {
+                holdTheSystems(c, List.of(systemUrl));
                 try (PreparedStatement ps = c.prepareStatement(
                         "DELETE FROM definitions.term_concept WHERE system = ?")) {
                     ps.setString(1, systemUrl);
@@ -132,6 +134,39 @@ public final class TerminologyStore {
             }
         } catch (SQLException | IOException e) {
             throw new IllegalStateException("terminology import failed for " + systemUrl, e);
+        }
+    }
+
+    /**
+     * Holds each system's own row until the import commits, before anything of
+     * it is deleted.
+     *
+     * <p>An import replaces a system's concepts: delete what is there, copy
+     * what arrived. Two imports of one system at once each deleted what was
+     * committed — nothing of the other's — and the later copy then met the
+     * earlier one's rows as a duplicate key, failing the import and every
+     * other system travelling in its unit. Two imports of one system is
+     * ordinary: a tenant takes a code system from its face and from a zone, and
+     * a stream applies what a bring-up is also publishing. Holding the row
+     * makes the second wait for the first and then replace what the first
+     * committed, so the later import is the one that stands, as it would be
+     * one after the other.
+     *
+     * <p>The row is the system's, so imports of different systems never wait
+     * for each other; and they are taken in one order, so two units naming
+     * overlapping systems cannot each hold what the other wants. The count is
+     * written for real once the concepts have landed.
+     */
+    private static void holdTheSystems(Connection c, List<String> urls) throws SQLException {
+        try (PreparedStatement ps = c.prepareStatement("""
+                INSERT INTO definitions.term_system (url, version, concept_count, updated_at)
+                VALUES (?, NULL, 0, now())
+                ON CONFLICT (url) DO UPDATE SET updated_at = now()""")) {
+            for (String url : urls.stream().distinct().sorted().toList()) {
+                ps.setString(1, url);
+                ps.addBatch();
+            }
+            ps.executeBatch();
         }
     }
 

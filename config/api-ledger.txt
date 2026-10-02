@@ -2766,6 +2766,7 @@ cloud.jengu.dbo.promises.DboPromises                                   CORE_READ
 cloud.jengu.dbo.promises.DboPromises                                   CORE_REFERENCE_EDGES:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   CORE_REINDEX_IS_AN_OPERATION:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   CORE_SIBLING_MODELS:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   CORE_TWO_WRITERS_OF_ONE_OBJECT_TAKE_TURNS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   CORE_UPGRADE_ON_READ:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   CORE_VERSIONED_HISTORY:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   EVT_A_TENANT_DELIVERS:cloud.jengu.dbo.promises.DboPromises
@@ -2981,6 +2982,7 @@ cloud.jengu.dbo.promises.DboPromises                                   SRCH_THE_
 cloud.jengu.dbo.promises.DboPromises                                   SRCH_TIER1_PARITY:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SRCH_TYPED_ORDERING:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_ANY_TYPE:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   SYNC_A_STREAM_APPLIES_EACH_CHANGE_ONCE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_CONVERT_ON_APPLY:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_DECLARED_ONLY:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_DIRECT_UPSTREAM_ONLY:cloud.jengu.dbo.promises.DboPromises

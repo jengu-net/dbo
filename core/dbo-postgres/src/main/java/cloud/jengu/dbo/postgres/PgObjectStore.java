@@ -192,6 +192,28 @@ public final class PgObjectStore implements ObjectStore {
                 }
             }
         }
+        // The rows that were not there are claimed and read again, for the
+        // reason claimCreation gives: FOR UPDATE above locked only what exists.
+        java.util.List<UUID> absent = new ArrayList<>();
+        for (UUID uuid : uuids) {
+            if (!current.containsKey(uuid)) {
+                absent.add(uuid);
+            }
+        }
+        if (!absent.isEmpty()) {
+            claimCreation(c, absent);
+            try (PreparedStatement ps = c.prepareStatement(
+                    "SELECT id, type, version_id, chain_hash FROM %s_data WHERE id = ANY(?) FOR UPDATE"
+                            .formatted(d))) {
+                ps.setArray(1, c.createArrayOf("uuid", absent.toArray()));
+                try (ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) {
+                        current.put((UUID) rs.getObject(1),
+                                new Object[] {rs.getString(2), rs.getLong(3), rs.getBytes(4)});
+                    }
+                }
+            }
+        }
         Instant now = Instant.now();
         long[] versions = new long[n];
         boolean[] created = new boolean[n];
@@ -508,6 +530,10 @@ public final class PgObjectStore implements ObjectStore {
         String d = Domains.tables(domain);
 
         Long current = lockVersion(c, domain, type.typeName(), uuid);
+        if (current == null) {
+            claimCreation(c, List.of(uuid));
+            current = lockVersion(c, domain, type.typeName(), uuid);
+        }
         if (request.expectedVersion() != null) {
             long actual = current == null ? 0 : current;
             if (actual != request.expectedVersion()) {
@@ -1544,6 +1570,37 @@ public final class PgObjectStore implements ObjectStore {
     private long currentVersion(Connection c, TypeRegistration type, String id) throws SQLException {
         Long v = lockVersion(c, type.domain(), type.typeName(), UUID.fromString(id));
         return v == null ? 0 : v;
+    }
+
+    /**
+     * Claims the creation of objects that do not exist yet, until this
+     * transaction ends.
+     *
+     * <p>{@code SELECT ... FOR UPDATE} is how a write holds its object while it
+     * decides the next version, and it locks rows: an object nobody has written
+     * has no row, so two writers creating it at once both read "absent", both
+     * decided on version 1, and the second met the first's history row as a
+     * duplicate key — a failed write, and for a stream the whole chunk rolled
+     * back with it. Two writers of one new object is ordinary: the same
+     * definition reaching a tenant by two routes, or a client retrying a
+     * create. So the second waits here for the first to commit, reads the row
+     * the first made, and writes version 2.
+     *
+     * <p>Keyed by object and taken in one order, so writers of different
+     * objects never wait for each other and two units claiming overlapping sets
+     * cannot each hold what the other wants.
+     */
+    private static void claimCreation(Connection c, java.util.Collection<UUID> ids)
+            throws SQLException {
+        Long[] keys = ids.stream()
+                .map(id -> id.getMostSignificantBits() ^ id.getLeastSignificantBits())
+                .distinct().sorted().toArray(Long[]::new);
+        try (PreparedStatement ps = c.prepareStatement("""
+                SELECT pg_advisory_xact_lock(k)
+                FROM (SELECT k FROM unnest(?::bigint[]) AS k ORDER BY k) ordered""")) {
+            ps.setArray(1, c.createArrayOf("bigint", keys));
+            ps.executeQuery().close();
+        }
     }
 
     private Long lockVersion(Connection c, String domain, String typeName, UUID id)

@@ -58,6 +58,24 @@ public final class ContentSyncEngine {
     private final Map<String, PayloadConverter> convertersByFrom = new LinkedHashMap<>();
     private volatile cloud.jengu.dbo.work.Runs runs;
 
+    /**
+     * One reader of this stream at a time.
+     *
+     * <p>A stream is one cursor, and a round is read, apply, then ack: two
+     * callers in that sequence together read the same chunk from the same
+     * position and both apply it. Two callers is the ordinary case, not a
+     * misuse — a tenant coming up drains its face chain itself so that it is
+     * not published before its structures arrive, while the reconciler's round
+     * is already reading every wired stream — and the second apply of a
+     * definition nobody held a moment before met the first one's version 1 in
+     * the history, rolled its whole chunk back, and with it the bring-up.
+     *
+     * <p>Per stream and nothing wider: other streams, including the same
+     * tenant's, run beside this one, because they read other cursors.
+     */
+    private final java.util.concurrent.locks.ReentrantLock reading =
+            new java.util.concurrent.locks.ReentrantLock();
+
     public ContentSyncEngine(ContentDependency dependency, ChangeFeed sourceFeed,
             ObjectStore targetStore, DataSource targetDataSource, String targetDomain,
             String targetPayloadVersion, List<PayloadConverter> converters) {
@@ -150,6 +168,15 @@ public final class ContentSyncEngine {
             throw new IllegalStateException("this stream was not given anywhere to record runs — "
                     + "withRuns(...) is how a mechanic becomes a stream somebody can watch");
         }
+        reading.lock();
+        try {
+            return passHoldingTheStream(chunkSize);
+        } finally {
+            reading.unlock();
+        }
+    }
+
+    private cloud.jengu.dbo.work.Run passHoldingTheStream(int chunkSize) {
         cloud.jengu.dbo.work.Run sweep = runs.sweep(PROCESS, STEP, dependency.name(),
                 List.of(targetDomain));
         cloud.jengu.dbo.work.Runs.Pass pass = runs.pass(sweep);
@@ -204,6 +231,15 @@ public final class ContentSyncEngine {
 
     /** One sync round: read the upstream feed, apply declared changes, ack. Returns events seen. */
     public int syncOnce(int chunkSize) {
+        reading.lock();
+        try {
+            return syncOnceHoldingTheStream(chunkSize);
+        } finally {
+            reading.unlock();
+        }
+    }
+
+    private int syncOnceHoldingTheStream(int chunkSize) {
         // Asked for rather than filtered afterwards. What the upstream sends
         // is what this dependency declared and, where its filter is derived,
         // the canonicals it names — so the work of reading, moving and parsing
@@ -303,6 +339,15 @@ public final class ContentSyncEngine {
 
     /** Re-attempts parked (shadowed) events — the fallback path after a local override is removed. */
     public int reconcile() {
+        reading.lock();
+        try {
+            return reconcileHoldingTheStream();
+        } finally {
+            reading.unlock();
+        }
+    }
+
+    private int reconcileHoldingTheStream() {
         int applied = 0;
         for (ShadowedEvent shadowed : shadowedEvents()) {
             FeedItem replay = new FeedItem(0, shadowed.objectId(), shadowed.typeName(),
