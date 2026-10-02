@@ -261,7 +261,7 @@ Another 33 classes do not feed a story:
    the harness as `AnApplianceCarriesPatientDataByWorkIT`: two databases and a
    lane between them, with no runtime. Moving it onto the application would
    put the store's engine and the driver on the application's classpath,
-   which puts two copies of one package in one JVM, each a different class.
+   which is the two-class-space trouble item 033 is about.
 3. **Fit the promises, one story at a time.** Work from the listing's
    `to fit` rows. For each promise, find the leg where the journey already
    does what it is about, use the source class's arrangement as that leg's
