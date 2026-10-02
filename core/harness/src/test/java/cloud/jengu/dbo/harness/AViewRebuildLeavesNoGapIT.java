@@ -74,6 +74,44 @@ class AViewRebuildLeavesNoGapIT {
         }
     }
 
+    @Test
+    @DisplayName("a profile written while the view is being rebuilt is taken, rather than failing "
+            + "on rows the rebuild expanded first")
+    @Proving(DboPromises.VER_A_DEFINITION_IS_EXPANDED_WHEN_IT_ARRIVES)
+    void aProfileWrittenDuringARebuildIsTaken() throws Exception {
+        SharedTenants.Tenant tenant = SharedTenants.of(SharedTenants.Shape.R4_RESHAPE);
+        FhirStoreFacade store = tenant.store();
+        AtomicBoolean rebuilding = new AtomicBoolean(true);
+        // The round that rebuilds a tenant's view when a profile arrives,
+        // which is also what expands the profile into rows.
+        Thread round = Thread.ofVirtual().start(() -> {
+            while (rebuilding.get()) {
+                try {
+                    store.shapesChanged();
+                } catch (RuntimeException alsoRacing) {
+                    // counted below by what the writes answered
+                }
+            }
+        });
+        java.util.List<String> refused = new java.util.ArrayList<>();
+        try {
+            for (int i = 0; i < 20; i++) {
+                String profile = "https://gap.dbo.test/StructureDefinition/written-"
+                        + UUID.randomUUID();
+                try {
+                    store.create(basicShape(profile, "1.0.0"));
+                } catch (RuntimeException failed) {
+                    refused.add(failed.getClass().getSimpleName() + ": " + failed.getMessage());
+                }
+            }
+        } finally {
+            rebuilding.set(false);
+            round.join();
+        }
+        assertEquals(java.util.List.of(), refused,
+                "a profile written while the view was rebuilt was not taken");
+    }
+
     private static String basicShape(String url, String version) {
         return """
                 {"resourceType":"StructureDefinition","url":"%s","version":"%s",

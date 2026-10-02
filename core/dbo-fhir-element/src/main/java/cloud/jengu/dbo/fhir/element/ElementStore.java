@@ -1627,9 +1627,25 @@ public final class ElementStore implements FhirStoreFacade,
      * from — asked for only when there is one, so a tenant whose definitions
      * all carry their own snapshot never builds a view to expand them.
      *
+     * <p>One at a time per tenant, under the view's own lock. The write that
+     * moved a profile and the round that saw it arrive both expand, and both
+     * found the same definition not yet expanded and wrote its rows: the
+     * second failed on the first's, and the write that had already been
+     * stored answered 500. Taken in turn, the second finds the rows current
+     * and writes nothing.
+     *
      * @return how many definitions were expanded
      */
     public int expandDefinitionsHeld() {
+        building.lock();
+        try {
+            return expandHeldInTurn();
+        } finally {
+            building.unlock();
+        }
+    }
+
+    private int expandHeldInTurn() {
         if (definitions == null
                 || types.stream().noneMatch(t -> "StructureDefinition".equals(t.typeName()))) {
             return 0;
