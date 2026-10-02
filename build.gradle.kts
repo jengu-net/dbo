@@ -172,6 +172,61 @@ subprojects {
     }
 }
 
+// ONE WORLD AT A TIME, and everything else beside it.
+//
+// The build runs its projects in parallel (gradle.properties), and that is
+// safe only because of this: a test task that boots a world — a Postgres
+// container, a runtime over it, its tenants' toolchains — holds the one
+// permit, and the next such task waits for it. Two worlds in one machine is
+// two heaps of four gigabytes and two databases, which a 16 GB laptop or a
+// hosted runner does not have room for. What runs beside a world is the rest
+// of the build: compiling, packaging, the unit suites that boot nothing.
+// dboConcurrentWorlds raises it, per invocation, on a machine that has the
+// room.
+//
+// Which tasks hold it is a list, because whether a task boots a world is a
+// fact about its classpath that is only known once it resolves — too late to
+// declare. So the list is checked against that fact: a test task that is not
+// listed and finds the container library on its classpath fails before it
+// runs, naming itself, rather than quietly booting a second world beside the
+// first.
+abstract class AWorld : org.gradle.api.services.BuildService<org.gradle.api.services.BuildServiceParameters.None>
+val aWorld = gradle.sharedServices.registerIfAbsent("aWorld", AWorld::class) {
+    maxParallelUsages.set(((findProperty("dboConcurrentWorlds") as String?) ?: "1").toInt())
+}
+val worldProjects = setOf(
+    ":core:harness", ":core:conformance", ":assembly:spring-boot-test",
+    ":assembly:spring-boot-server", ":samples:spring-boot-server-app",
+)
+// The definitions gate is CPU and nothing else, so it COULD run beside a
+// world — and measured, it should not by default: beside the stories on an
+// eight-core laptop it took 10.8 minutes instead of 5.6 and the stories 18.4
+// instead of 12.7, so the two together finished later than one after the
+// other. The stories wait on conditions with deadlines, and a machine busy
+// comparing definitions is a machine those waits run long on. It holds the
+// permit unless dboDefinitionsBesideAWorld=true says the machine has the
+// cores for both; its build cache is what keeps it off most runs anyway.
+val cpuBound = setOf(":core:dbo-fhir-element:definitionsTest")
+val definitionsBesideAWorld = (findProperty("dboDefinitionsBesideAWorld") as String?) == "true"
+subprojects {
+    tasks.withType<Test>().configureEach {
+        val holdsAWorld = project.path in worldProjects
+                || (path in cpuBound && !definitionsBesideAWorld)
+        if (holdsAWorld) {
+            usesService(aWorld)
+        }
+        val taskPath = path
+        val runtime = classpath
+        doFirst {
+            if (!holdsAWorld && runtime.any { it.name.startsWith("testcontainers") }) {
+                throw GradleException("$taskPath can start a container and does not hold "
+                        + "the world permit, so it could boot a second world beside the "
+                        + "first: add its project to worldProjects in the root build.")
+            }
+        }
+    }
+}
+
 subprojects {
     // afterEvaluate, because each module sets its own developer-machine
     // number in its build script, and an override that runs first is not one.
