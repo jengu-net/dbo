@@ -4,7 +4,7 @@ and one touching sources went to forty-five. The cache can only ever return the
 part CI barely spends time on. The forty minutes is the container suites, and
 nearly all of it is ONE task — `:core:harness:test` — so `org.gradle.parallel`
 cannot reach it and the only dial that can is a second fork, whose cost item
-023 has already measured the parts of. Next: items 002 and 003, or that one
+023 has already measured the parts of. Next: items 003 and 035, or that one
 measurement.**
 
 # The build repeats work whose inputs did not change
@@ -88,8 +88,8 @@ tasks that drive Docker, and they are excluded on purpose and correctly.
 Nothing about caching can reach them.
 
 What can is fewer and shorter container suites: one world serving more of
-the proofs, which is item 003, on an application that runs the stories, which
-is item 002. This item should not be read as the answer to the forty
+the proofs, which is item 003, on the application that runs the stories, which
+is item 035. This item should not be read as the answer to the forty
 minutes. It is the answer to paying the forty minutes for a paragraph, and
 that part now costs thirty-seven.
 
