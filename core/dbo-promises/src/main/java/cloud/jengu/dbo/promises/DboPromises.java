@@ -309,11 +309,10 @@ public enum DboPromises implements Promise {
     PROC_FAILURE_IS_RELEASED("A failing or throwing step service releases the run with the "
             + "reason — never closed, never lost — and a later cycle may take it again."),
 
-    PROC_A_STEP_HELD_LATE_IS_OFFERED_WHAT_WAITED("A participant that comes to hold a step "
-            + "after it started asking for work — a service registered once its lane was "
-            + "already polled — is offered the work that was waiting at that step, not only "
-            + "what arrives afterwards. Work does not depend on the order a runner's "
-            + "services and lanes happened to arrive in."),
+    PROC_A_RUNNER_ASKS_ONCE_IT_HOLDS_ITS_STEPS("A runner told which steps its host is about "
+            + "to register asks no lane for work until it holds them all, so a host whose lanes "
+            + "arrive before its services does not move its participant past the work of the "
+            + "steps still arriving — work that would then never be offered to it."),
 
     PROC_RUNNER_DECLARES_ITS_VITALS("The runner re-declares each service with an extensible "
             + "metadata block, replaced never accumulated; presence stays derived from the "

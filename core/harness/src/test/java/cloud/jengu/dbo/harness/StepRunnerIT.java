@@ -251,47 +251,36 @@ class StepRunnerIT {
     }
 
     @Test
-    @DisplayName("a service registered after its lane was polled is offered the work that was "
-            + "already waiting for it")
-    @Proving(DboPromises.PROC_A_STEP_HELD_LATE_IS_OFFERED_WHAT_WAITED)
-    void aServiceThatArrivesLateFindsItsBacklog() {
+    @DisplayName("a runner told which steps it is about to hold asks for no work until it "
+            + "holds them all, so its first poll does not pass the work of the last to arrive")
+    @Proving(DboPromises.PROC_A_RUNNER_ASKS_ONCE_IT_HOLDS_ITS_STEPS)
+    void aRunnerWaitsForTheStepsItWasToldOf() throws InterruptedException {
         PgChangeFeed feed = new PgChangeFeed(ds, WorkModel.DOMAIN);
-        String before = feed.headCursor();
-        Run waiting = runs.pipeline(PROCESS, "label", PROCESS + "/label/late",
+        Run waiting = runs.pipeline(PROCESS, "label", PROCESS + "/label/awaited",
                 List.of(WorkModel.DOMAIN));
 
         AtomicReference<String> performed = new AtomicReference<>();
-        try (StepRunner runner = new StepRunner(Duration.ofMinutes(5), Duration.ofMillis(50))) {
-            // Another step first, so the lane is polled while the run's own
-            // step is held by nobody here — which is how a worker starts when
-            // its lane arrives before the last of its services.
+        try (StepRunner runner = new StepRunner(Duration.ofMinutes(5), Duration.ofMillis(50))
+                .awaiting(List.of(PROCESS + ".seal", PROCESS + ".label"))) {
+            // The lane and one of the two services first, and the loop
+            // running — the order a container that opens its lanes as it
+            // starts hands them over in.
+            runner.attach(lane("t-awaited", "runner-awaited"));
             runner.register(service("seal", performed));
-            runner.attach(lane("t-late", "runner-late"));
-            Eventually.cycling(runner, "the lane's cursor passed the waiting run",
-                    () -> passed(feed, before, "runner-late", waiting));
-            assertTrue(runs.byId(waiting.id()).orElseThrow().open(),
-                    "nothing here holds the run's step yet, so nothing performed it");
+            runner.start();
+            // Forty of its ticks: a runner that was going to poll has.
+            for (int tick = 0; tick < 20; tick++) {
+                Thread.sleep(100);
+                assertEquals(null, feed.cursorOf("runner-awaited"),
+                        "the runner asked for work holding one of the two steps it was told of, "
+                                + "and its cursor moved past the work of the other");
+            }
 
             runner.register(service("label", performed));
-            Eventually.cycling(runner, "the run that waited reached the service that came "
-                    + "for it — a cursor already past a run never offers it on its own",
-                    () -> waiting.key().equals(performed.get()));
+            Eventually.until("the run waiting at the second step was performed and closed",
+                    () -> { }, () -> !runs.byId(waiting.id()).orElseThrow().open());
         }
-        assertTrue(!runs.byId(waiting.id()).orElseThrow().open(), "performed and closed");
-    }
-
-    /**
-     * Whether the consumer's cursor is past the run: the feed shows it, and
-     * nothing left for the consumer to read names it. Both, because a run
-     * still behind the feed's transaction horizon is in neither place.
-     */
-    private static boolean passed(PgChangeFeed feed, String before, String consumer, Run run) {
-        String cursor = feed.cursorOf(consumer);
-        return cursor != null
-                && feed.read(before, 10_000).items().stream()
-                        .anyMatch(item -> run.id().equals(item.objectId()))
-                && feed.read(cursor, 10_000).items().stream()
-                        .noneMatch(item -> run.id().equals(item.objectId()));
+        assertEquals(waiting.key(), performed.get(), "the service that came for it performed it");
     }
 
     private static StepService service(String step, AtomicReference<String> performed) {

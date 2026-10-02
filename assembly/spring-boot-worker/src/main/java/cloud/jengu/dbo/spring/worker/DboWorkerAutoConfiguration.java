@@ -62,13 +62,25 @@ public class DboWorkerAutoConfiguration {
 
     /** What performing work tells the container. */
     @Bean
-    public FrameworkContribution dboWorkerFrameworkContribution(DboWorkerProperties properties) {
+    public FrameworkContribution dboWorkerFrameworkContribution(DboWorkerProperties properties,
+            ObjectProvider<StepService> steps) {
         return () -> {
             Map<String, String> framework = new LinkedHashMap<>();
             framework.put("dbo.runner.poll.millis",
                     String.valueOf(properties.getPoll().toMillis()));
             framework.put("dbo.runner.hold.millis",
                     String.valueOf(properties.getHold().toMillis()));
+            // THE STEPS BEFORE THE FIRST POLL. The container opens a lane
+            // over the substrate as it starts, and this application registers
+            // its steps once the container is up — so the runner would poll
+            // that lane holding some of them, and a poll moves the
+            // participant's cursor past the work of the steps it did not yet
+            // hold, for good. Told which steps are coming, it asks for none
+            // until it holds them all.
+            List<String> performing = performing(steps).stream().map(StepService::step).toList();
+            if (!performing.isEmpty()) {
+                framework.put("dbo.runner.awaits", String.join(",", performing));
+            }
             if (!properties.anyLaneOverTheSubstrate()) {
                 // The stream bundle is installed either way and reads the
                 // tenants it is a host for; naming none is how it stays inert.
@@ -143,11 +155,7 @@ public class DboWorkerAutoConfiguration {
         // server and a worker has both kinds of bean in one context — and
         // registering a fleet one here would have the runner poll every lane it
         // holds for a step no tenant declares, and try to introduce it to each.
-        List<StepService> performing = steps.orderedStream()
-                .filter(step -> org.springframework.core.annotation.AnnotationUtils
-                        .findAnnotation(step.getClass(),
-                                cloud.jengu.dbo.runner.FleetStep.class) == null)
-                .toList();
+        List<StepService> performing = performing(steps);
         refuseADuplicateStep(performing);
         refuseALaneThatCannotBeUsed(properties);
         refuseAnOverrideOfAStepThisApplicationBrought(performing, properties);
@@ -165,6 +173,15 @@ public class DboWorkerAutoConfiguration {
         tokens.forEach(token -> supplied.put(token.tenant(), token));
         return new DboWorker(runtime, properties, performing,
                 DboWorker.tokensFor(properties, supplied));
+    }
+
+    /** The application's own steps: every StepService bean but the fleet's. */
+    private static List<StepService> performing(ObjectProvider<StepService> steps) {
+        return steps.orderedStream()
+                .filter(step -> org.springframework.core.annotation.AnnotationUtils
+                        .findAnnotation(step.getClass(),
+                                cloud.jengu.dbo.runner.FleetStep.class) == null)
+                .toList();
     }
 
     /**

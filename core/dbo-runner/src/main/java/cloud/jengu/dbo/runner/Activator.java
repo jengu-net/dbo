@@ -26,6 +26,12 @@ public final class Activator implements BundleActivator {
     /** Framework properties, with the poll cadence the only dial. */
     static final String POLL_MILLIS = "dbo.runner.poll.millis";
     static final String HOLD_MILLIS = "dbo.runner.hold.millis";
+    /**
+     * The step codes the host is about to register, comma-separated: the
+     * runner asks no lane for work until it holds them all. Absent, it asks
+     * from the start, as a container whose steps are bundles always has.
+     */
+    static final String AWAITS = "dbo.runner.awaits";
 
     private StepRunner runner;
     private ServiceTracker<StepService, StepService> services;
@@ -36,6 +42,11 @@ public final class Activator implements BundleActivator {
         runner = new StepRunner(
                 Duration.ofMillis(millis(context, HOLD_MILLIS, 300_000)),
                 Duration.ofMillis(millis(context, POLL_MILLIS, 2_000)));
+        String awaits = context.getProperty(AWAITS);
+        if (awaits != null && !awaits.isBlank()) {
+            runner.awaiting(java.util.Arrays.stream(awaits.split(","))
+                    .map(String::trim).filter(code -> !code.isEmpty()).toList());
+        }
         services = new ServiceTracker<>(context, StepService.class,
                 new ServiceTrackerCustomizer<>() {
 

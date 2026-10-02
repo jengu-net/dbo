@@ -2864,6 +2864,7 @@ cloud.jengu.dbo.promises.DboPromises                                   PROC_A_RE
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_REFUSED_RESULT_ENDS_THE_RUN:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_RESULT_IS_WRITTEN_BY_THE_TENANT:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_ROUTED_TREE_TRAVELS_AS_A_LANE_VERB:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   PROC_A_RUNNER_ASKS_ONCE_IT_HOLDS_ITS_STEPS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_RUN_ANSWERS_ITS_INITIATOR:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_RUN_ANSWERS_ONLY_FOR_ITS_INPUTS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_RUN_CONTEXT_ENDS_WITH_ITS_RUN:cloud.jengu.dbo.promises.DboPromises
@@ -2871,7 +2872,6 @@ cloud.jengu.dbo.promises.DboPromises                                   PROC_A_RU
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_SLOT_IS_REFERRED_OR_GIVEN_AND_MAY_REPEAT:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_STEP_CODE_BELONGS_TO_ONE_LEVEL:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_STEP_GRANTS_THE_RIGHT_TO_OVERRIDE:cloud.jengu.dbo.promises.DboPromises
-cloud.jengu.dbo.promises.DboPromises                                   PROC_A_STEP_HELD_LATE_IS_OFFERED_WHAT_WAITED:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_TENANT_ADMITS_OR_DECLINES_WHAT_IS_DONE_TO_IT:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_TENANT_AUTHORISES_A_REGISTER_AND_SEES_IT_CHANGE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_TENANT_READS_WHAT_IS_OPENED_OF_ITS_DATA:cloud.jengu.dbo.promises.DboPromises
@@ -3333,6 +3333,7 @@ cloud.jengu.dbo.runner.ProvingLane.Offer                               notYet():
 cloud.jengu.dbo.runner.ProvingLane.Offer                               wakeable():cloud.jengu.dbo.runner.ProvingLane.Offer
 cloud.jengu.dbo.runner.ProvingLane.Offer                               with(String,String,String):cloud.jengu.dbo.runner.ProvingLane.Offer
 cloud.jengu.dbo.runner.StepRunner                                      attach(cloud.jengu.dbo.runner.Lane):cloud.jengu.dbo.runner.StepRunner
+cloud.jengu.dbo.runner.StepRunner                                      awaiting(Collection):cloud.jengu.dbo.runner.StepRunner
 cloud.jengu.dbo.runner.StepRunner                                      class
 cloud.jengu.dbo.runner.StepRunner                                      close():void
 cloud.jengu.dbo.runner.StepRunner                                      cycle():int
@@ -4785,7 +4786,6 @@ cloud.jengu.dbo.work.Runs                                              sweep(Str
 cloud.jengu.dbo.work.Runs                                              sweep(String,String,String,List):cloud.jengu.dbo.work.Run
 cloud.jengu.dbo.work.Runs                                              tally(cloud.jengu.dbo.work.Run,Map):cloud.jengu.dbo.work.Run
 cloud.jengu.dbo.work.Runs                                              traced(cloud.jengu.dbo.work.Run,String):cloud.jengu.dbo.work.Run
-cloud.jengu.dbo.work.Runs                                              waitingFor(String,String):List
 cloud.jengu.dbo.work.Runs.Claimable                                    NOBODY:cloud.jengu.dbo.work.Runs.Claimable
 cloud.jengu.dbo.work.Runs.Claimable                                    appeared(cloud.jengu.dbo.work.Run):void
 cloud.jengu.dbo.work.Runs.Claimable                                    interface

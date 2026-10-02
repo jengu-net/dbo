@@ -89,6 +89,8 @@ public final class StepRunner implements AutoCloseable {
             new java.util.concurrent.Semaphore(0);
     private volatile Thread loop;
     private volatile boolean running;
+    /** The steps the loop waits for before it asks any lane for work; empty waits for none. */
+    private volatile java.util.Set<String> awaited = java.util.Set.of();
 
     public StepRunner(Duration holdFor, Duration pollEvery) {
         this(holdFor, pollEvery, Telemetry.installed());
@@ -168,6 +170,32 @@ public final class StepRunner implements AutoCloseable {
             LOG.warn("a lane's wake-ups did not stop: tenant={} {}",
                     tenant, stopping.getMessage());
         }
+    }
+
+    /**
+     * The steps this runner is about to hold, which the loop waits for before
+     * it asks any lane for work.
+     *
+     * <p>A poll is a read of the participant's feed, acked as it is read, and
+     * it is narrowed to the steps held at that moment — so a lane polled while
+     * the runner holds three of the seven steps it is about to is a cursor moved
+     * past the work of the other four, which is then never offered. That is the
+     * ordinary shape of a host whose lanes arrive before its services: a
+     * container that opens its lanes as it starts, and an application that
+     * registers its steps once the container is up. A host that knows its
+     * steps says so here, and its first poll asks for all of them.
+     *
+     * <p>Only the loop waits. {@link #cycle()} is the caller's to drive, and a
+     * caller driving it has decided for itself when to ask.
+     */
+    public StepRunner awaiting(java.util.Collection<String> steps) {
+        this.awaited = java.util.Set.copyOf(steps);
+        return this;
+    }
+
+    /** Whether every step this runner was told to wait for is held. */
+    private boolean holdsWhatItAwaits() {
+        return services.keySet().containsAll(awaited);
     }
 
     /** Starts the loop. Registering and attaching while running is fine. */
@@ -292,7 +320,9 @@ public final class StepRunner implements AutoCloseable {
     private void run() {
         while (running) {
             try {
-                cycle();
+                if (holdsWhatItAwaits()) {
+                    cycle();
+                }
                 // The tick, or less if a lane said to look again. The poll is
                 // the FALLBACK and not the mechanism: a wake-up that never
                 // arrives costs the latency a runner had before wake-ups

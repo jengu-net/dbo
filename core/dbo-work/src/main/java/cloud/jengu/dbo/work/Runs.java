@@ -787,22 +787,6 @@ public final class Runs {
     }
 
     /**
-     * What is waiting at one step for an executor to take it: open, held by
-     * automation, whoever may end up claiming it.
-     *
-     * <p>A query rather than the feed, for the one moment the feed cannot
-     * answer: a participant that comes to hold a step has a cursor that may
-     * already be past the work that was waiting for it.
-     */
-    public List<Run> waitingFor(String process, String step) {
-        return store.select(Criteria.of(WorkModel.TYPE)
-                        .eq("process", EnvelopeValue.of(process))
-                        .eq("step", EnvelopeValue.of(step))
-                        .eq("holder", EnvelopeValue.of(Holder.AUTOMATION.wire()))).stream()
-                .map(Run::of).toList();
-    }
-
-    /**
      * The automation backlog: work waiting for a person at this step, here
      *. A number, per step and per zone, rather than an opinion about how
      * much is automated.
