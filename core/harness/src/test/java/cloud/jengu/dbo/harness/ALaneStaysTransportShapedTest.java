@@ -140,7 +140,12 @@ class ALaneStaysTransportShapedTest {
         // all four are data, which is what keeps this verb inside the first
         // rule: what it does NOT do is hand over the vault, and a verb that
         // did would have named a handle here and failed.
-        assertEquals(21, verbs.size(),
+        // 22 since a result carries records for the tenant to write. They go
+        // out as documents and the run comes back as the tenant left it, so
+        // the verb hands over data both ways; it is abstract because a lane
+        // that inherited it would drop a step's records and still close its
+        // run as done.
+        assertEquals(22, verbs.size(),
                 "the verb count changed; a new verb is exactly what these rules are for");
         return verbs;
     }

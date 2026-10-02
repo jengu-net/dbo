@@ -700,8 +700,8 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
                     .map(cloud.jengu.dbo.fhir.common.FhirTypeConfig::typeName)
                     .collect(java.util.stream.Collectors.toSet());
             java.util.Set<String> seen = new java.util.HashSet<>();
-            for (Object one : Json.array(root, "steps")) {
-                String stepCode = Json.str(one, "code");
+            for (Object step : Json.array(root, "steps")) {
+                String stepCode = Json.str(step, "code");
                 // A step's name is the engine's, so it is checked against the
                 // engine's rule here rather than at the first run of it: the
                 // spec is read once and the run is attempted under load.
@@ -712,7 +712,7 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
                             + "not say which was meant");
                 }
                 java.util.Map<String, String> slots = new java.util.LinkedHashMap<>();
-                if (Json.objOpt(one, "slots") instanceof java.util.Map<?, ?> named) {
+                if (Json.objOpt(step, "slots") instanceof java.util.Map<?, ?> named) {
                     named.forEach((slot, type) -> slots.put(String.valueOf(slot),
                             String.valueOf(type)));
                 }
@@ -732,7 +732,7 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
                     }
                 }
                 java.util.Set<String> writes = new java.util.LinkedHashSet<>();
-                for (Object type : Json.objOpt(one, "writes") instanceof List<?> named
+                for (Object type : Json.objOpt(step, "writes") instanceof List<?> named
                         ? named : List.of()) {
                     // A type this tenant holds, checked where it was written:
                     // a step declared to write what the tenant cannot hold

@@ -124,6 +124,13 @@ spec:
                         type: object
                         additionalProperties:
                           type: string
+                      # The types a result of this step may ask the tenant to
+                      # write. Each is a type the tenant holds; a step naming
+                      # none writes nothing.
+                      writes:
+                        type: array
+                        items:
+                          type: string
                 # Steps the DEPLOYMENT performs for every tenant that admits
                 # them, declared in the management tenant's registration and
                 # refused in anybody else's. Declared here all the same: the
