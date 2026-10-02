@@ -765,36 +765,34 @@ class TheStandardMovesUnderTheDataIT {
     @DisplayName("what an envelope would cost to build from the root's compiled parameters is "
             + "small: few parameters reach past plain navigation")
     @Proving(DboPromises.SRCH_A_PARAMETER_IS_COMPILED_WHEN_IT_ARRIVES)
-    void fewParametersReachPastNavigation() throws java.sql.SQLException {
+    void fewParametersReachPastNavigation() {
         int all = 0;
         int beyond = 0;
         int refused = 0;
         // What the root declares: a tenant compiles the parameters of the types
         // it holds, and the root holds the version's own four.
         String[] declared = {"StructureDefinition", "SearchParameter", "ValueSet", "CodeSystem"};
-        try (var c = java.sql.DriverManager.getConnection(tenantDatabase("fhir-r4"),
-                        environment.getRequiredProperty("dbo.admin.user"),
-                        environment.getRequiredProperty("dbo.admin.password"));
-                var ps = c.prepareStatement("SELECT unenforceable, predicate, "
+        record Compiled(String unenforceable, String predicate, String[] paths) {
+        }
+        for (Compiled one : new WhatTheDatabaseHolds(environment, "fhir-r4").each(
+                "SELECT unenforceable, predicate, "
                         + "ARRAY(SELECT jsonb_array_elements_text(paths)) "
-                        + "FROM definitions.definition_parameter WHERE base = ANY(?)")) {
-            ps.setArray(1, c.createArrayOf("text", declared));
-            try (var rs = ps.executeQuery()) {
-                while (rs.next()) {
-                    all++;
-                    if (rs.getString(1) != null) {
-                        refused++;
-                        continue;
-                    }
-                    boolean past = rs.getString(2) != null;
-                    for (String path : (String[]) rs.getArray(3).getArray()) {
-                        past |= path.contains("? (") || path.contains("like_regex")
-                                || path.contains("starts with") || path.contains("==")
-                                || path.contains(".type()") || path.contains("exists(");
-                    }
-                    beyond += past ? 1 : 0;
-                }
+                        + "FROM definitions.definition_parameter WHERE base = ANY(?)",
+                rs -> new Compiled(rs.getString(1), rs.getString(2),
+                        (String[]) rs.getArray(3).getArray()),
+                (Object) declared)) {
+            all++;
+            if (one.unenforceable() != null) {
+                refused++;
+                continue;
             }
+            boolean past = one.predicate() != null;
+            for (String path : one.paths()) {
+                past |= path.contains("? (") || path.contains("like_regex")
+                        || path.contains("starts with") || path.contains("==")
+                        || path.contains(".type()") || path.contains("exists(");
+            }
+            beyond += past ? 1 : 0;
         }
         Proves.that(DboPromises.SRCH_A_PARAMETER_IS_COMPILED_WHEN_IT_ARRIVES,
                 all > 50 && beyond < 20,
@@ -812,7 +810,7 @@ class TheStandardMovesUnderTheDataIT {
     @DisplayName("the version arrives at its root expanded into rows: where each element is, "
             + "under what, and what binds it, the version's own examples included")
     @Proving(DboPromises.VER_A_DEFINITION_IS_EXPANDED_WHEN_IT_ARRIVES)
-    void theVersionArrivesExpanded() throws java.sql.SQLException {
+    void theVersionArrivesExpanded() {
         Proves.that(DboPromises.VER_A_DEFINITION_IS_EXPANDED_WHEN_IT_ARRIVES,
                 Long.parseLong(rows(ROOT, "SELECT count(*)::text FROM "
                         + "definitions.definition_element").get(0)) > 10_000
@@ -843,7 +841,7 @@ class TheStandardMovesUnderTheDataIT {
     @Order(28)
     @DisplayName("an element that cannot be located says so by name, and is the exception")
     @Proving(DboPromises.VER_AN_ELEMENT_THAT_DOES_NOT_TRANSLATE_IS_REFUSED_BY_NAME)
-    void whatCannotBeLocatedSaysSo() throws java.sql.SQLException {
+    void whatCannotBeLocatedSaysSo() {
         List<String> said = rows(ROOT, "SELECT element_id || ' | ' || unenforceable FROM "
                 + "definitions.definition_element WHERE canonical = ? "
                 + "AND unenforceable IS NOT NULL ORDER BY ordinal",
@@ -902,7 +900,7 @@ class TheStandardMovesUnderTheDataIT {
     @DisplayName("an element nothing defines is found where the rows reach, and what is defined "
             + "is not")
     @Proving(DboPromises.VAL_TIER_ONE_IS_ANSWERED_IN_THE_DATABASE)
-    void anUndefinedElementIsFound() throws java.sql.SQLException {
+    void anUndefinedElementIsFound() {
         String unknown = "SELECT path FROM dbo.unknown_issues(?::jsonb, ?) ORDER BY path";
         Proves.that(DboPromises.VAL_TIER_ONE_IS_ANSWERED_IN_THE_DATABASE,
                 rows(ROOT, unknown, "{\"resourceType\":\"Patient\",\"favouriteColour\":\"blue\"}",
@@ -921,7 +919,7 @@ class TheStandardMovesUnderTheDataIT {
             + "refused by name, never both")
     @Proving({DboPromises.VAL_AN_INVARIANT_IS_COMPILED_WHEN_IT_ARRIVES,
             DboPromises.VAL_AN_INVARIANT_THAT_DOES_NOT_TRANSLATE_IS_REFUSED_BY_NAME})
-    void theRulesAreHeldAsRows() throws java.sql.SQLException {
+    void theRulesAreHeldAsRows() {
         List<String> patient = rows(ROOT, "SELECT key || ' ' || severity || ' ' || "
                 + "coalesce(path, '-') FROM definitions.definition_invariant WHERE canonical = ? "
                 + "AND element_id = 'Patient' ORDER BY key", PATIENT);
@@ -949,7 +947,7 @@ class TheStandardMovesUnderTheDataIT {
     private String pinned;
 
     private List<String> issues(String tenant, String profile, String document)
-            throws java.sql.SQLException {
+            {
         return rows(tenant, "SELECT key || ' | ' || detail FROM dbo.validate(?::jsonb, ?) "
                 + "WHERE severity = 'error' ORDER BY path, key", document, profile);
     }
@@ -960,7 +958,7 @@ class TheStandardMovesUnderTheDataIT {
             + "and they read the definitions from one schema of their own")
     @Proving({DboPromises.VER_THE_FACE_SQL_SHIPS_WITH_THE_RELEASE,
             DboPromises.VER_DEFINITIONS_LIVE_IN_A_SCHEMA_OF_THEIR_OWN})
-    void theReleaseInstalledItsOwnFunctions() throws java.sql.SQLException {
+    void theReleaseInstalledItsOwnFunctions() {
         Proves.that(DboPromises.VER_THE_FACE_SQL_SHIPS_WITH_THE_RELEASE,
                 rows(clinicCode, "SELECT p.proname FROM pg_proc p JOIN pg_namespace n "
                         + "ON n.oid = p.pronamespace WHERE n.nspname = 'dbo' ORDER BY p.proname")
@@ -1092,7 +1090,7 @@ class TheStandardMovesUnderTheDataIT {
     @DisplayName("the walk reaches what was expanded, and a reference is resolved against the "
             + "records the clinic holds")
     @Proving(DboPromises.VAL_TIER_ONE_IS_ANSWERED_IN_THE_DATABASE)
-    void aReferenceIsResolvedAgainstTheRecords() throws java.sql.SQLException {
+    void aReferenceIsResolvedAgainstTheRecords() {
         assertTrue(rows(clinicCode, "SELECT path FROM definitions.definition_element "
                 + "WHERE canonical = ? AND path LIKE 'StructureDefinition.snapshot.element.%'",
                 SHAPE).isEmpty(), "the walk descended into a structure's own snapshot");
@@ -1125,7 +1123,7 @@ class TheStandardMovesUnderTheDataIT {
             + "its key")
     @Proving({DboPromises.VAL_TIER_ONE_IS_ANSWERED_IN_THE_DATABASE,
             DboPromises.VAL_AN_INVARIANT_IS_ANSWERED_IN_THE_DATABASE})
-    void slicingIsCompiledAndRulesAreKeyed() throws java.sql.SQLException {
+    void slicingIsCompiledAndRulesAreKeyed() {
         String bp = "http://hl7.org/fhir/StructureDefinition/bp";
         List<String> systolic = rows(ROOT, "SELECT unnest(steps) FROM "
                 + "definitions.definition_element WHERE canonical = ? "
@@ -1288,23 +1286,8 @@ class TheStandardMovesUnderTheDataIT {
     }
 
     /** One column of a query against a tenant's database, as text. */
-    private List<String> rows(String tenant, String sql, String... parameters)
-            throws java.sql.SQLException {
-        List<String> found = new java.util.ArrayList<>();
-        try (var c = java.sql.DriverManager.getConnection(tenantDatabase(tenant),
-                        environment.getRequiredProperty("dbo.admin.user"),
-                        environment.getRequiredProperty("dbo.admin.password"));
-                var ps = c.prepareStatement(sql)) {
-            for (int i = 0; i < parameters.length; i++) {
-                ps.setString(i + 1, parameters[i]);
-            }
-            try (var rs = ps.executeQuery()) {
-                while (rs.next()) {
-                    found.add(rs.getString(1));
-                }
-            }
-        }
-        return found;
+    private List<String> rows(String tenant, String sql, String... parameters) {
+        return new WhatTheDatabaseHolds(environment, tenant).rows(sql, (Object[]) parameters);
     }
 
     private boolean untilRows(String tenant, String sql, String... parameters) throws Exception {
@@ -1346,12 +1329,6 @@ class TheStandardMovesUnderTheDataIT {
             n++;
         }
         return n;
-    }
-
-    private String tenantDatabase(String tenant) {
-        String admin = environment.getRequiredProperty("dbo.admin.jdbc-url");
-        return admin.substring(0, admin.lastIndexOf('/') + 1) + "tenant_"
-                + tenant.replace('-', '_');
     }
 
     private String countedObservation;

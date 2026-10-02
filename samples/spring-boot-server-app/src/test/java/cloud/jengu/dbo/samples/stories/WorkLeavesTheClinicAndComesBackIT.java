@@ -1434,27 +1434,13 @@ class WorkLeavesTheClinicAndComesBackIT {
 
     /** The hospital's client records, read from its own database as an operator would. */
     private List<String> clientRecords(String clientId) {
-        String admin = environment.getRequiredProperty("dbo.admin.jdbc-url");
-        List<String> found = new ArrayList<>();
-        try (var c = java.sql.DriverManager.getConnection(
-                        admin.substring(0, admin.lastIndexOf('/') + 1) + "tenant_" + HOSPITAL,
-                        environment.getRequiredProperty("dbo.admin.user"),
-                        environment.getRequiredProperty("dbo.admin.password"));
-                var ps = c.prepareStatement("SELECT convert_from(payload, 'UTF8') FROM "
+        return new WhatTheDatabaseHolds(environment, HOSPITAL).rows(
+                        "SELECT convert_from(payload, 'UTF8') FROM "
                         + cloud.jengu.dbo.core.api.Domains.tables(
                                 cloud.jengu.dbo.auth.IdentityModel.DOMAIN)
-                        + "_data WHERE type = 'ClientApplication' AND NOT deleted");
-                var rs = ps.executeQuery()) {
-            while (rs.next()) {
-                if (rs.getString(1).contains("\"clientId\":\"" + clientId + "\"")) {
-                    found.add(rs.getString(1));
-                }
-            }
-        } catch (java.sql.SQLException unreadable) {
-            throw new IllegalStateException("the hospital's database could not be read",
-                    unreadable);
-        }
-        return found;
+                        + "_data WHERE type = 'ClientApplication' AND NOT deleted").stream()
+                .filter(row -> row.contains("\"clientId\":\"" + clientId + "\""))
+                .toList();
     }
 
     /** A lane a participant holds as itself, at the hospital's work surface. */

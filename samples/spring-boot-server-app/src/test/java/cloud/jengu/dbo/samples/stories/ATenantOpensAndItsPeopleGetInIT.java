@@ -345,21 +345,13 @@ class ATenantOpensAndItsPeopleGetInIT {
 
         // Read the way an operator reads it: from the clinic's own database,
         // where the grant is a record in the identity domain.
-        String grant = null;
-        try (var c = java.sql.DriverManager.getConnection(tenantDatabase(second),
-                        environment.getRequiredProperty("dbo.admin.user"),
-                        environment.getRequiredProperty("dbo.admin.password"));
-                var ps = c.prepareStatement("SELECT convert_from(payload, 'UTF8') FROM "
+        String grant = new WhatTheDatabaseHolds(environment, second).rows(
+                        "SELECT convert_from(payload, 'UTF8') FROM "
                         + cloud.jengu.dbo.core.api.Domains.tables(
                                 cloud.jengu.dbo.auth.IdentityModel.DOMAIN)
-                        + "_data WHERE type = 'RoleGrant' AND NOT deleted");
-                var rs = ps.executeQuery()) {
-            while (rs.next()) {
-                if (rs.getString(1).contains("\"laborant\"")) {
-                    grant = rs.getString(1);
-                }
-            }
-        }
+                        + "_data WHERE type = 'RoleGrant' AND NOT deleted").stream()
+                .filter(row -> row.contains("\"laborant\"")).reduce((first, last) -> last)
+                .orElse(null);
         Proves.that(DboPromises.AUTH_ORG_MODEL_IS_THE_AUTH_MODEL,
                 grant != null && grant.contains("withdrawnAt")
                         && grant.contains("user/Specimen.read"),
@@ -789,16 +781,9 @@ class ATenantOpensAndItsPeopleGetInIT {
         assertTrue(lookup.body().contains("Married"), lookup.body());
         // From the root, and not from a package read here: importing the
         // baseline from a carried package leaves a marker system behind.
-        long imported;
-        try (var c = java.sql.DriverManager.getConnection(tenantDatabase(BANK),
-                        environment.getRequiredProperty("dbo.admin.user"),
-                        environment.getRequiredProperty("dbo.admin.password"));
-                var ps = c.prepareStatement("SELECT count(*) FROM definitions.term_system "
+        long imported = new WhatTheDatabaseHolds(environment, BANK).count(
+                "SELECT count(*) FROM definitions.term_system "
                         + "WHERE url LIKE 'urn:dbo:terminology-baseline:%'");
-                var rs = ps.executeQuery()) {
-            rs.next();
-            imported = rs.getLong(1);
-        }
         Proves.that(DboPromises.TERM_BINDINGS_ANSWERED_FROM_RECORDS, imported == 0,
                 "the clinic imported the terminology baseline from a carried package");
     }
@@ -1072,19 +1057,11 @@ class ATenantOpensAndItsPeopleGetInIT {
             + "transaction from holding it, and its own vocabulary arrived as a recorded pass")
     @Proving(DboPromises.PROC_CONFIG_APPLIES_AS_A_SWEEP)
     void aClinicsDatabaseIsProvisionedAndItsVocabularyRecorded() throws Exception {
-        String settings = null;
-        try (var c = java.sql.DriverManager.getConnection(
-                        environment.getRequiredProperty("dbo.admin.jdbc-url"),
-                        environment.getRequiredProperty("dbo.admin.user"),
-                        environment.getRequiredProperty("dbo.admin.password"));
-                var ps = c.prepareStatement("SELECT array_to_string(s.setconfig, ',') FROM "
+        String settings = WhatTheDatabaseHolds.theServer(environment).one(
+                "SELECT array_to_string(s.setconfig, ',') FROM "
                         + "pg_db_role_setting s JOIN pg_database d ON d.oid = s.setdatabase "
-                        + "WHERE d.datname = ? AND s.setrole = 0")) {
-            ps.setString(1, "tenant_" + second.replace('-', '_'));
-            try (var rs = ps.executeQuery()) {
-                settings = rs.next() ? rs.getString(1) : null;
-            }
-        }
+                        + "WHERE d.datname = ? AND s.setrole = 0",
+                "tenant_" + second.replace('-', '_'));
         assertTrue(settings != null && settings.contains("idle_in_transaction_session_timeout=60s")
                 && settings.contains("transaction_timeout=300s"),
                 "the clinic's database carries no timeouts: " + settings);
@@ -1148,19 +1125,9 @@ class ATenantOpensAndItsPeopleGetInIT {
             assertTrue(dbo.until(longCode, true, Duration.ofMinutes(10)),
                     "a long hyphenated code did not come up: " + longCode);
             assertEquals(200, dbo.get(fhir(longCode) + "/metadata", null).statusCode());
-            long databases;
-            try (var c = java.sql.DriverManager.getConnection(
-                            environment.getRequiredProperty("dbo.admin.jdbc-url"),
-                            environment.getRequiredProperty("dbo.admin.user"),
-                            environment.getRequiredProperty("dbo.admin.password"));
-                    var ps = c.prepareStatement(
-                            "SELECT count(*) FROM pg_database WHERE datname = ?")) {
-                ps.setString(1, "tenant_" + unserved.replace('-', '_'));
-                try (var rs = ps.executeQuery()) {
-                    rs.next();
-                    databases = rs.getLong(1);
-                }
-            }
+            long databases = WhatTheDatabaseHolds.theServer(environment).count(
+                    "SELECT count(*) FROM pg_database WHERE datname = ?",
+                    "tenant_" + unserved.replace('-', '_'));
             assertFalse(dbo.serving().contains(unserved), "a clinic on no face was served");
             assertEquals(0, databases, "a clinic nothing can serve was given a database");
         } finally {
@@ -1438,14 +1405,6 @@ class ATenantOpensAndItsPeopleGetInIT {
         assertTrue(written.accepted(), written.body());
         return written.idOrFail();
     }
-
-    /** The clinic's own database, on the server the deployment's admin connection names. */
-    private String tenantDatabase(String tenant) {
-        String admin = environment.getRequiredProperty("dbo.admin.jdbc-url");
-        return admin.substring(0, admin.lastIndexOf('/') + 1) + "tenant_"
-                + tenant.replace('-', '_');
-    }
-
 
     /** The clinic's application, as a client of the clinic. */
     private static String app() {

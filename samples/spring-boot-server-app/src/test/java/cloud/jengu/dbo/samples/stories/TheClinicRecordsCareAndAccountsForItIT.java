@@ -910,7 +910,7 @@ class TheClinicRecordsCareAndAccountsForItIT {
     @DisplayName("a type whose envelope is computed where the bytes are is searched by it, and "
             + "a reindex happens there too")
     @Proving(DboPromises.SRCH_THE_DATABASE_ENVELOPE_LOSES_NOTHING_BEFORE_IT_IS_USED)
-    void anEnvelopeComputedWhereTheBytesAre() throws java.sql.SQLException {
+    void anEnvelopeComputedWhereTheBytesAre() {
         String url = names.canonical("ValueSet/declared");
         assertEquals(201, recordsDoor.post("/ValueSet", """
                 {"resourceType":"ValueSet","url":"%s","version":"1","status":"active",
@@ -927,15 +927,11 @@ class TheClinicRecordsCareAndAccountsForItIT {
         String id = store.getByIdentifier("ValueSet", List.of(new cloud.jengu.dbo.core.api
                 .Identifier(cloud.jengu.dbo.core.api.Identifier.CANONICAL_SYSTEM, url)))
                 .get(0).id();
-        try (var c = java.sql.DriverManager.getConnection(tenantDatabase(records),
-                        environment.getRequiredProperty("dbo.admin.user"),
-                        environment.getRequiredProperty("dbo.admin.password"));
-                var ps = c.prepareStatement("UPDATE " + cloud.jengu.dbo.core.api.Domains.tables(
+        assertEquals(1, new WhatTheDatabaseHolds(environment, records).change(
+                "UPDATE " + cloud.jengu.dbo.core.api.Domains.tables(
                         cloud.jengu.dbo.core.api.Domains.DEFINITIONS)
-                        + "_data SET envelope = '{}'::jsonb WHERE id = ?::uuid")) {
-            ps.setString(1, id);
-            assertEquals(1, ps.executeUpdate(), "the envelope was not where it was looked for");
-        }
+                        + "_data SET envelope = '{}'::jsonb WHERE id = ?::uuid", id),
+                "the envelope was not where it was looked for");
         store.rebuildEnvelopes("ValueSet");
         Proves.that(DboPromises.SRCH_THE_DATABASE_ENVELOPE_LOSES_NOTHING_BEFORE_IT_IS_USED,
                 fullUrls(recordsDoor.get("/ValueSet?url=" + encoded(url)).body()) == 1,
@@ -1014,19 +1010,11 @@ class TheClinicRecordsCareAndAccountsForItIT {
                 recordsDoor.get("/metadata").body().contains("marital-status"),
                 "the statement does not say the clinic can search by its own parameter");
 
-        String row = null;
-        try (var c = java.sql.DriverManager.getConnection(tenantDatabase(records),
-                        environment.getRequiredProperty("dbo.admin.user"),
-                        environment.getRequiredProperty("dbo.admin.password"));
-                var ps = c.prepareStatement("SELECT kind || ' ' || expression || ' ' || "
+        String row = new WhatTheDatabaseHolds(environment, records).one(
+                "SELECT kind || ' ' || expression || ' ' || "
                         + "coalesce(unenforceable, 'enforceable') || ' ' || paths::text "
                         + "FROM definitions.definition_parameter "
                         + "WHERE base = 'Patient' AND code = 'marital-status'");
-                var rs = ps.executeQuery()) {
-            if (rs.next()) {
-                row = rs.getString(1);
-            }
-        }
         Proves.that(DboPromises.SRCH_A_PARAMETER_IS_COMPILED_WHEN_IT_ARRIVES,
                 row != null && row.startsWith("token Patient.maritalStatus enforceable")
                         && !row.endsWith("[]"),
@@ -1051,16 +1039,8 @@ class TheClinicRecordsCareAndAccountsForItIT {
             }
         }
         String index = store.registrationOf("Patient").domain() + "_patient_registered_ix";
-        boolean built;
-        try (var c = java.sql.DriverManager.getConnection(tenantDatabase(records),
-                        environment.getRequiredProperty("dbo.admin.user"),
-                        environment.getRequiredProperty("dbo.admin.password"));
-                var ps = c.prepareStatement("SELECT 1 FROM pg_indexes WHERE indexname = ?")) {
-            ps.setString(1, index);
-            try (var rs = ps.executeQuery()) {
-                built = rs.next();
-            }
-        }
+        boolean built = new WhatTheDatabaseHolds(environment, records).one(
+                "SELECT 1 FROM pg_indexes WHERE indexname = ?", index) != null;
         Proves.that(DboPromises.SRCH_DECLARED_INDEXES, declared && built,
                 "a date parameter the clinic wrote is not indexed: declared=" + declared
                         + " " + index + " built=" + built);
@@ -1176,23 +1156,14 @@ class TheClinicRecordsCareAndAccountsForItIT {
     @Order(31)
     @DisplayName("behind the membrane, a birth date is held only as coarse as the vault allows")
     @Proving(DboPromises.PDI_STRUCTURAL_VAULT)
-    void aGeneralisedElementIsCoarseAtRest() throws java.sql.SQLException {
+    void aGeneralisedElementIsCoarseAtRest() {
         String hospital = "hogwarts";
         String id = tenants.store(hospital).orElseThrow().put(cloud.jengu.dbo.core.api.PutRequest
                 .create("Patient", ("{\"resourceType\":\"Patient\",\"birthDate\":\"1970-01-01\","
                         + "\"name\":[{\"family\":\"" + names.value("coarse") + "\"}]}")
                         .getBytes(StandardCharsets.UTF_8))).id();
-        String atRest;
-        try (var c = java.sql.DriverManager.getConnection(tenantDatabase(hospital),
-                        environment.getRequiredProperty("dbo.admin.user"),
-                        environment.getRequiredProperty("dbo.admin.password"));
-                var ps = c.prepareStatement("SELECT convert_from(payload, 'UTF8') FROM "
-                        + "state.r5_data WHERE id = ?::uuid")) {
-            ps.setString(1, id);
-            try (var rs = ps.executeQuery()) {
-                atRest = rs.next() ? rs.getString(1) : null;
-            }
-        }
+        String atRest = new WhatTheDatabaseHolds(environment, hospital).one(
+                "SELECT convert_from(payload, 'UTF8') FROM state.r5_data WHERE id = ?::uuid", id);
         Proves.that(DboPromises.PDI_STRUCTURAL_VAULT,
                 atRest != null && atRest.contains("\"birthDate\":\"1970\"")
                         && !atRest.contains("1970-01-01"),
@@ -1204,22 +1175,11 @@ class TheClinicRecordsCareAndAccountsForItIT {
     private static final String ROOT = "fhir-r4";
 
     /** One value from a query against a tenant's database, as text. */
-    private String one(String tenant, String sql, String... parameters)
-            throws java.sql.SQLException {
-        try (var c = java.sql.DriverManager.getConnection(tenantDatabase(tenant),
-                        environment.getRequiredProperty("dbo.admin.user"),
-                        environment.getRequiredProperty("dbo.admin.password"));
-                var ps = c.prepareStatement(sql)) {
-            for (int i = 0; i < parameters.length; i++) {
-                ps.setString(i + 1, parameters[i]);
-            }
-            try (var rs = ps.executeQuery()) {
-                return rs.next() ? rs.getString(1) : null;
-            }
-        }
+    private String one(String tenant, String sql, String... parameters) {
+        return new WhatTheDatabaseHolds(environment, tenant).one(sql, (Object[]) parameters);
     }
 
-    private boolean pairs(String kind, String hit, String expected) throws java.sql.SQLException {
+    private boolean pairs(String kind, String hit, String expected) {
         return "true".equals(one(ROOT, "SELECT (COALESCE(jsonb_object_agg(key, vs), '{}'::jsonb) "
                 + "= ?::jsonb)::text FROM (SELECT key, jsonb_agg(value) AS vs FROM "
                 + "dbo.envelope_pairs('k', ?, ?::jsonb) GROUP BY key) one", expected, kind, hit));
@@ -1230,7 +1190,7 @@ class TheClinicRecordsCareAndAccountsForItIT {
     @DisplayName("each kind of search parameter is extracted in the database into the shape a "
             + "search asks by")
     @Proving(DboPromises.SRCH_THE_ENVELOPE_IS_EXTRACTED_WHERE_THE_BYTES_ARE)
-    void eachKindIsExtractedWhereTheBytesAre() throws java.sql.SQLException {
+    void eachKindIsExtractedWhereTheBytesAre() {
         Proves.that(DboPromises.SRCH_THE_ENVELOPE_IS_EXTRACTED_WHERE_THE_BYTES_ARE,
                 pairs("token", "{\"coding\":[{\"system\":\"urn:s\",\"code\":\"c\"}]}",
                         "{\"k\":[{\"t\":\"tok\",\"s\":\"urn:s\",\"v\":\"c\"},"
@@ -1265,7 +1225,7 @@ class TheClinicRecordsCareAndAccountsForItIT {
     @DisplayName("what the database extracts loses nothing the engine stored: the envelope, "
             + "the claims and the edges, over the documents the root carries")
     @Proving(DboPromises.SRCH_THE_DATABASE_ENVELOPE_LOSES_NOTHING_BEFORE_IT_IS_USED)
-    void theDatabaseLosesNothingTheEngineStored() throws java.sql.SQLException {
+    void theDatabaseLosesNothingTheEngineStored() {
         String definitions = cloud.jengu.dbo.core.api.Domains.tables(
                 cloud.jengu.dbo.core.api.Domains.DEFINITIONS);
         java.util.Map<String, String> differing = new java.util.TreeMap<>();
@@ -1322,12 +1282,6 @@ class TheClinicRecordsCareAndAccountsForItIT {
             n++;
         }
         return n;
-    }
-
-    private String tenantDatabase(String tenant) {
-        String admin = environment.getRequiredProperty("dbo.admin.jdbc-url");
-        return admin.substring(0, admin.lastIndexOf('/') + 1) + "tenant_"
-                + tenant.replace('-', '_');
     }
 
     @org.junit.jupiter.api.AfterAll

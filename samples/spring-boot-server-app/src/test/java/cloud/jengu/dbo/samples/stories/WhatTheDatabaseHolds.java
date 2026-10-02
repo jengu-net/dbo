@@ -20,6 +20,11 @@ import java.util.Optional;
  * log what passes through it. Those are answered beneath the store's doors,
  * with the connection the deployment itself was given, and every question is
  * asked about a value or a key the story made.
+ *
+ * <p>And some are about how the store keeps what it was told: a grant withdrawn
+ * rather than deleted, a parameter compiled into a row, an index built, a
+ * database provisioned with its timeouts. Those are read here too, the way an
+ * operator would read them, so every story asks its database one way.
  */
 final class WhatTheDatabaseHolds {
 
@@ -28,13 +33,93 @@ final class WhatTheDatabaseHolds {
     private final String password;
 
     WhatTheDatabaseHolds(Environment environment, String tenant) {
-        String admin = environment.getRequiredProperty("dbo.admin.jdbc-url");
-        int slash = admin.lastIndexOf('/');
-        int params = admin.indexOf('?', slash);
-        this.url = admin.substring(0, slash + 1) + "tenant_" + tenant.replace('-', '_')
-                + (params < 0 ? "" : admin.substring(params));
+        this(tenantUrl(environment.getRequiredProperty("dbo.admin.jdbc-url"), tenant),
+                environment);
+    }
+
+    private WhatTheDatabaseHolds(String url, Environment environment) {
+        this.url = url;
         this.user = environment.getRequiredProperty("dbo.admin.user");
         this.password = environment.getRequiredProperty("dbo.admin.password");
+    }
+
+    /**
+     * The server the tenants' databases are on, for what is asked of it rather
+     * than of one of them: which databases exist, and how each is set.
+     */
+    static WhatTheDatabaseHolds theServer(Environment environment) {
+        return new WhatTheDatabaseHolds(environment.getRequiredProperty("dbo.admin.jdbc-url"),
+                environment);
+    }
+
+    private static String tenantUrl(String admin, String tenant) {
+        int slash = admin.lastIndexOf('/');
+        int params = admin.indexOf('?', slash);
+        return admin.substring(0, slash + 1) + "tenant_" + tenant.replace('-', '_')
+                + (params < 0 ? "" : admin.substring(params));
+    }
+
+    /** How one row is read, for a question whose answer is more than one column. */
+    @FunctionalInterface
+    interface Row<T> {
+        T read(ResultSet row) throws SQLException;
+    }
+
+    /**
+     * Every row a question answers, read the way it says.
+     *
+     * @param parameters bound in order; a {@code String[]} is bound as a text array
+     */
+    <T> List<T> each(String sql, Row<T> row, Object... parameters) {
+        List<T> found = new ArrayList<>();
+        try (Connection c = connect(); PreparedStatement ps = c.prepareStatement(sql)) {
+            bind(c, ps, parameters);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    found.add(row.read(rs));
+                }
+            }
+        } catch (SQLException unreadable) {
+            throw new IllegalStateException("could not ask " + url + ": " + sql, unreadable);
+        }
+        return found;
+    }
+
+    /** One column, as text, a row each. */
+    List<String> rows(String sql, Object... parameters) {
+        return each(sql, rs -> rs.getString(1), parameters);
+    }
+
+    /** The first row's first column, as text, or null where there is no row. */
+    String one(String sql, Object... parameters) {
+        List<String> found = rows(sql, parameters);
+        return found.isEmpty() ? null : found.get(0);
+    }
+
+    /** A count, asked as one. */
+    long count(String sql, Object... parameters) {
+        return each(sql, rs -> rs.getLong(1), parameters).get(0);
+    }
+
+    /** A statement that changes rows, answering how many it changed. */
+    int change(String sql, Object... parameters) {
+        try (Connection c = connect(); PreparedStatement ps = c.prepareStatement(sql)) {
+            bind(c, ps, parameters);
+            return ps.executeUpdate();
+        } catch (SQLException refused) {
+            throw new IllegalStateException("could not change " + url + ": " + sql, refused);
+        }
+    }
+
+    private static void bind(Connection c, PreparedStatement ps, Object... parameters)
+            throws SQLException {
+        for (int i = 0; i < parameters.length; i++) {
+            if (parameters[i] instanceof String[] texts) {
+                ps.setArray(i + 1, c.createArrayOf("text", texts));
+            } else {
+                ps.setObject(i + 1, parameters[i]);
+            }
+        }
     }
 
     /** A server setting as a fresh session on this database sees it. */
