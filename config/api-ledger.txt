@@ -2943,6 +2943,7 @@ cloud.jengu.dbo.promises.DboPromises                                   PROC_TASK
 cloud.jengu.dbo.promises.DboPromises                                   PROC_TASK_SAYS_WHERE_THE_WORK_IS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_THE_JOINER_OFFERS_EVERY_TENANTS_WORK:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_THE_LANE_HAS_TWO_BOUNDS:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   PROC_THE_REGISTER_IS_READ_AT_A_DOOR:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_THE_ROUTER_HOLDS_THE_CLAIM:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_THE_WRITEBACK_PASSES_THE_TENANTS_RULES:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_TRACE_JOIN:cloud.jengu.dbo.promises.DboPromises
@@ -4039,6 +4040,17 @@ cloud.jengu.dbo.tenant.PersonErasure                                   declarati
 cloud.jengu.dbo.tenant.PersonErasure                                   erase(String):cloud.jengu.dbo.work.Run
 cloud.jengu.dbo.tenant.PersonErasure                                   key(String):String
 cloud.jengu.dbo.tenant.PersonErasure                                   new(cloud.jengu.dbo.pdi.PersonVault,cloud.jengu.dbo.work.Runs)
+cloud.jengu.dbo.tenant.RegisterHandler                                 SCOPE:String
+cloud.jengu.dbo.tenant.RegisterHandler                                 class
+cloud.jengu.dbo.tenant.RegisterHandler                                 handle(HttpExchange):void
+cloud.jengu.dbo.tenant.RegisterHandler                                 new(cloud.jengu.dbo.auth.TenantAuthority,Supplier,String)
+cloud.jengu.dbo.tenant.RegisterHandler.Reading                         changed():Optional
+cloud.jengu.dbo.tenant.RegisterHandler.Reading                         declined():Set
+cloud.jengu.dbo.tenant.RegisterHandler.Reading                         disagreements():List
+cloud.jengu.dbo.tenant.RegisterHandler.Reading                         interface
+cloud.jengu.dbo.tenant.RegisterHandler.Reading                         register():List
+cloud.jengu.dbo.tenant.RegisterHandler.Reading                         unapproved():List
+cloud.jengu.dbo.tenant.RegisterHandler.Reading                         unapprovedProcessing():List
 cloud.jengu.dbo.tenant.RegisterVersusTrail                             class
 cloud.jengu.dbo.tenant.RegisterVersusTrail                             of(List,Set,cloud.jengu.dbo.core.api.ObjectStore):List
 cloud.jengu.dbo.tenant.RegisterVersusTrail.Incident                    by():String

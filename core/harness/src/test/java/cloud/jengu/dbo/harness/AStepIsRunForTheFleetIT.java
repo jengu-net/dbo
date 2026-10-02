@@ -69,14 +69,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * to each tenant's own rules, and one bean found for a step rather than wired
  * to it.
  *
- * <p><b>Not in Rowling Land</b>, for two reasons a reader can check. The
- * register, the disagreement incidents, the unauthorised rows, a processor's
- * enrolment and the beans awaiting a declaration are answered only inside the
- * deployment's own process: no door serves them, so a story acting through
- * the sample application cannot ask. And the rest needs the management tenant
- * to declare what {@code mom} does not: two steps placed on one substrate, a
- * step every tenant must accept, a step that waits for approval, a step
- * withdrawn, and a processor named.
+ * <p><b>Not in Rowling Land</b>, because the legs on this class's own runtime
+ * need the management tenant to declare what {@code mom} does not: two steps placed on one
+ * substrate, a step every tenant must accept, a step that waits for approval,
+ * a step withdrawn, and a processor named. A fleet step is declared for the
+ * whole deployment and cannot be scoped to tenants a leg makes, so any of
+ * these declared in Rowling Land would change every shared tenant. What a
+ * tenant reads of a fleet step at its register door, and authorising what it
+ * read, is walked in Rowling Land by the fleet-step story.
  *
  * <p><b>One runtime of the class's own</b>, under one management declaration
  * that carries every step these legs ask about. Each leg group has step codes
@@ -132,7 +132,6 @@ class AStepIsRunForTheFleetIT {
     private static final String PROCESSOR = "fleet-processor";
     private static final String ENROL_STEP = "fleet.enrolling.normalise";
     private static final String ENROL_SECOND = "fleet.enrolling.review";
-    private static final String ENROL_THIRD = "fleet.enrolling.third";
 
     // ---- A tenant admits or declines. ----
 
@@ -588,66 +587,6 @@ class AStepIsRunForTheFleetIT {
                         + "enrolment has become one act per step after all");
     }
 
-    @Test
-    @Order(10)
-    @DisplayName("a tenant that authorised the register it read sees no change, and one that "
-            + "read a different register sees one")
-    @Proving(DboPromises.PROC_A_TENANT_AUTHORISES_A_REGISTER_AND_SEES_IT_CHANGE)
-    void authorisingIsOneComparison() throws Exception {
-        assertEquals(Optional.empty(), manager.fleetRegisterChanged(ENROL_ONE),
-                "a tenant that never read a register is being told whether it changed, and "
-                        + "never having read one is a different answer");
-
-        // EVERY ROW IT READ, in one act. That is what authorising is: all at
-        // once from the tenant's side, and individually named so the store can
-        // still say which single row is new when the deployment adds one. The
-        // whole register, every leg group's rows included, because the
-        // comparison is over the whole of it.
-        String asItIs = manager.fleetRegister(ENROL_ONE).stream()
-                .map(row -> '"' + row.digest() + '"')
-                .collect(java.util.stream.Collectors.joining(","));
-        Files.writeString(dir.resolve(ENROL_ONE + ".json"),
-                basicTenant(ENROL_ONE, ",\"authorised\":[" + asItIs + "]"));
-        manager.scanOnce();
-
-        assertEquals(Optional.of(false), manager.fleetRegisterChanged(ENROL_ONE),
-                "a tenant that authorised exactly what is happening is told it changed: "
-                        + manager.fleetRegister(ENROL_ONE));
-
-        // The deployment widens what it opens. The tenant's copy stops
-        // matching, which is the whole mechanism — a change it can see in one
-        // comparison rather than by reading rows.
-        declared.put(ENROL_THIRD, enrolling(ENROL_THIRD));
-        declare();
-
-        assertEquals(Optional.of(true), manager.fleetRegisterChanged(ENROL_ONE),
-                "the deployment added a row it opens and the tenant's authorisation still "
-                        + "matches, so a deployment can widen what it reads unnoticed");
-    }
-
-    @Test
-    @Order(11)
-    @DisplayName("moving a row's posture changes the register too, so a deployment cannot "
-            + "approve its own widening")
-    @Proving(DboPromises.PROC_A_TENANT_AUTHORISES_A_REGISTER_AND_SEES_IT_CHANGE)
-    void thePostureIsPartOfWhatWasAuthorised() {
-        var asDeclared = enrollingRows(ENROL_ONE);
-        String before = FleetRegister.digestOf(asDeclared);
-
-        var moved = asDeclared.stream()
-                .map(row -> new FleetRegister.Row(row.step(), row.slot(), row.type(),
-                        row.required(), TenantSpec.FleetStep.Posture.APPLIED))
-                .toList();
-
-        assertFalse(before.equals(FleetRegister.digestOf(moved)),
-                "a row moved from one posture to another leaves the register's value unchanged, "
-                        + "so a deployment could move a row from 'not until approved' to "
-                        + "'processed and named' without the tenant's copy ceasing to match — "
-                        + "which is a deployment approving its own widening");
-        assertTrue(before.equals(FleetRegister.digestOf(asDeclared)),
-                "the same rows give two values, so no tenant could ever authorise anything");
-    }
-
     // ======== A tenant admits or declines what is done to it ========
 
     @Test
@@ -893,26 +832,6 @@ class AStepIsRunForTheFleetIT {
         assertEquals(TenantSpec.FleetStep.Posture.PROCESSED_AND_NAMED, row.posture(),
                 "the row does not carry the posture, so what happens to work nobody has "
                         + "authorised yet is not readable where the decision is made");
-    }
-
-    @Test
-    @Order(21)
-    @DisplayName("a step the tenant declined contributes no rows, because declined and not "
-            + "performed are one fact from its side")
-    @Proving(DboPromises.PROC_A_TENANT_READS_WHAT_IS_OPENED_OF_ITS_DATA)
-    void aDeclinedStepIsNotOnTheRegister() {
-        // Asked of the derivation directly: the tenant above cannot decline
-        // this step, because the deployment requires it — which is the point,
-        // and is why the declining case is asked here rather than by writing a
-        // declaration the store would rightly refuse.
-        List<FleetRegister.Row> declined = FleetRegister.of(
-                SharedTenants.manager().fleetRegister(sharedOne.code()).isEmpty()
-                        ? List.of() : readingSteps(),
-                Set.of(READ_PROCESSOR));
-
-        assertTrue(declined.isEmpty(),
-                "a declined step still appears on the register, so a tenant reads rows for "
-                        + "processing that will never happen: " + declined);
     }
 
     @Test
@@ -1365,12 +1284,6 @@ class AStepIsRunForTheFleetIT {
     }
 
     // ======== Helpers for the legs on the shared deployment ========
-
-    private List<TenantSpec.FleetStep> readingSteps() {
-        return List.of(new TenantSpec.FleetStep(READ_PROCESSOR,
-                Map.of("record", "Reference(Basic)"), Set.of("record"), true,
-                TenantSpec.FleetStep.Posture.PROCESSED_AND_NAMED, "reading"));
-    }
 
     private static Executor readingPerformer() {
         return new Executor("performing-bean", "1", "cloud.jengu.test", Scope.BASELINE);

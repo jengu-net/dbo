@@ -15,13 +15,15 @@
 
 This is a technical story. It is told from the side of whoever operates a
 deployment and the application that performs its steps, and it does not
-take place in Rowling Land. There are two reasons. The register, the
-incidents, the unauthorised rows, a processor's enrolment and the beans
-waiting for a declaration are answered only inside the deployment's
-process, and no door serves them. And the scene needs `registry` to declare
+take place in Rowling Land, because the scene needs `registry` to declare
 things `mom` does not: two steps placed on one substrate, a step every
 tenant must accept, a step that waits for approval, a step that is
-withdrawn, and a named processor.
+withdrawn, and a named processor. A fleet step is declared for the whole
+deployment, so declaring one of these in Rowling Land would change every
+tenant there; the store has no way to scope a fleet step to some tenants.
+What a tenant and its operator read of a fleet step — the register, its
+incidents, whether it changed since the tenant authorised it — is walked in
+Rowling Land, in [the fleet-step story](us-dbo-fleet-step.md).
 
 Petra's deployment holds one tenant behind the personal-data membrane, two
 tenants the processor is enrolled on, one tenant that says nothing about
@@ -61,11 +63,6 @@ payload is sealed to, and one an opening is checked against. Every tenant
 that comes up holds that enrolment. When `registry` adds a step, the same
 enrolment covers it, and no tenant has to do anything a second time.
 
-A tenant authorises the register it read by writing down its digest, and
-whether anything changed since is then one comparison. When the deployment
-widens what it opens, the tenant's copy stops matching. Moving a row's
-posture changes the digest too, so the deployment cannot approve its own
-widening.
 
 ## A tenant admits or declines
 
@@ -97,8 +94,7 @@ tenants who believe it is being done.
 
 On the shared deployment, a tenant's register has one row for each slot a
 step opens: the step, the slot, the declared type, whether the tenant may
-decline it, and its posture. A step that only routes is not on it, and
-neither is a step the tenant declined.
+decline it, and its posture. A step that only routes is not on it.
 
 A router declared to open nothing opens its run's input anyway and reports
 the opening, signed with the key it enrolled. Nothing stops it. The tenant's
@@ -149,18 +145,15 @@ Coverage: {PROVEN=14} — a leg marked PLANNED cites a promise that exists and i
 
 ## What the store cannot do yet
 
-- **No door serves what this scene reads.** The register, the disagreement
-  incidents, the unauthorised rows, whether a register changed and the
-  beans waiting for a declaration are answered only inside the deployment's
-  process. A tenant cannot read them, and neither can an application built
-  on the store.
+- **A fleet step cannot be scoped to some tenants.** It is declared for the
+  whole deployment, so a step every tenant must accept, one that waits for
+  approval or one withdrawn cannot be shown in a world whose other tenants
+  are in use.
 - **A deployment's configuration cannot name a processor.** Enrolling one
   on every tenant is built. Saying who it is still takes code that holds
   the deployment's manager.
 
 ## Open decisions
 
-- **Which door the register is read through**, under which scope, and
-  whether the operator's view and the tenant's view are one door or two.
 - **Whether this story moves into Rowling Land** once those doors exist and
   `mom` declares a required step and one that waits for approval.

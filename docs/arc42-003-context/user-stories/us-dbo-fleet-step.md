@@ -75,12 +75,28 @@ At the clinic's own lane a participant sees the same three shapes of slot: a
 referred record arrives resolved, a given object arrives with no id and no
 version, and a list arrives in the order it was written.
 
+## What the clinic reads of it
+
+The clinic reads its register at its own door, with a credential carrying the
+scope it authorises a register with. It has one row: the check opens the
+organisation and only carries the proposal and the notes. A credential that
+reads records is refused there, naming the scope it lacks, and so is the
+operator's token.
+
+The check ran over the clinic's data under that row, which the clinic never
+authorised, so its account holds an incident naming the step, the slot and
+since when. The operator reads at the node that the clinic has a row standing
+and an incident against it, and nothing of the clinic's records. The clinic
+then authorises the register it read, by writing the rows' digests into its
+declaration: it is told nothing changed, and the incident clears. Authorising
+a register it did not read is a change at once.
+
 ## A tenant says no in one line
 
 The clinic declines the check. Its own door then refuses to start one and says
 why, and a run of the check authored inside the clinic is never offered.
 Hogwarts said nothing, which admits the step, and its work goes on being
-offered.
+offered. The clinic's register now has no rows, and says what it declined.
 
 ## Joins
 
@@ -110,31 +126,20 @@ citations say it is.
 | `REQ-DBO-PROC-A-PROCESSOR-IS-ENROLLED-PER-TENANT` | An application performing the deployment's steps is enrolled on EACH tenant it performs for, with the public halves of the keys a payload is sealed to and an opening is checked against. Per tenant rather than once for the fleet, because a payload is sealed to an enrolled participant and enrolling at fleet level would mean something re-seals a tenant's payload and therefore holds tenant keys — the thing the carrier rule exists to exclude. One record per tenant covers every step on that tenant's register, because enrolment being per tenant must not become enrolment one step at a time. Only public halves reach the store, so a copy of the record opens nothing, and the credential it carries is minted and held by nobody: the processor is authenticated by its signature and never signs in. | PROVEN |
 | `REQ-DBO-PROC-A-TENANT-AUTHORISES-A-REGISTER-AND-SEES-IT-CHANGE` | A tenant authorises a register by writing down which one it read — the register's own digest, one value for the whole of it — so authorising is answerable all at once and a tenant approving rows one at a time could never be sure it had finished — and every row is named individually inside that act, so the store can still say which single row is new or widened. Whether what the deployment does with its data has changed since is then ONE COMPARISON rather than an audit. The digest covers every field a tenant would decide on, including the posture, so a deployment cannot move a row from not-until-approved to processed-and-named without the tenant's copy ceasing to match — which would be a deployment approving its own widening. Never having read a register is a different answer from having read a different one. | PROVEN |
 | `REQ-DBO-PROC-AN-UNAUTHORISED-ROW-OBEYS-ITS-POSTURE` | What happens to work under a row a tenant has not authorised is the row's own posture, stated by the deployment where the row is declared. A row that says NOT UNTIL APPROVED has that tenant's work withheld from the step entirely — refusal is real here and nowhere else in this design, because approval is known before anything is sealed, so not offering the work actually prevents the processing. A row that says PROCESSED AND NAMED runs, and the cost is carried by an incident that stands until the row is authorised: it names the tenant, the step and what is being opened, and says how long, because an incident reading the same on day one and day ninety is one nobody acts on. A row that says APPLIED runs under the agreement and raises nothing. Processed-and-named is the default, because a halting default would turn an unanswered register into an outage caused by nobody clicking. Per row, so a deployment may halt for a new row without stopping everything else. | PROVEN |
+| `REQ-DBO-PROC-THE-REGISTER-IS-READ-AT-A-DOOR` | A tenant reads its register and the incidents kept against it at a door of its own, under the scope it authorises a register with: the rows the deployment's steps open of its data, the steps it declined, whether what is done changed since it authorised, never present for a tenant that never did, and every opening that ran unauthorised or disagrees with its trail. Whoever operates the deployment reads, under the operator's token, which tenants have rows standing unauthorised and how many incidents each holds, and which beans wait for a step nobody declared — and never which of a tenant's records were opened. | PROVEN |
 
-Coverage: {PROVEN=18} — a leg marked PLANNED cites a promise that exists and is not yet cited by any test.
+Coverage: {PROVEN=19} — a leg marked PLANNED cites a promise that exists and is not yet cited by any test.
 <!-- story:end -->
 
 ## What the store cannot do yet
 
-- **A tenant cannot read its register.** The store derives the register of
-  what the deployment opens of a tenant's data, the incidents where the trail
-  disagrees with it, the rows a tenant has not authorised and whether the
-  register changed since it authorised one. It answers all four only inside the
-  deployment's own process. No door gives them to the tenant or to an
-  application built on the store.
 - **A deployment cannot name its processor.** Enrolling the deployment's
   processor on every tenant is built, but nothing in a deployment's
   configuration says who the processor is or which public keys it holds, so
   no deployment enrols one.
-- **A bean whose step nothing declares is noticed only inside the process.**
-  The deployment knows which beans are waiting for a declaration, and says so
-  to nobody.
 
 ## Open decisions
 
-- **Which door the register is read through**: the tenant's own, under which
-  scope, and in what words. The answer decides whether a tenant's say in what
-  is done to its data is something it can check or something it is told.
 - **How a deployment names its processor**, and where the private halves of
   its keys live while the bean that performs the step runs inside the
   deployment.

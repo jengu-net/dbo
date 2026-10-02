@@ -326,6 +326,8 @@ public final class TenantRuntimeManager implements AutoCloseable {
     private final Map<String, String> authorityContexts = new ConcurrentHashMap<>();
     private final Map<String, String> identityContexts = new ConcurrentHashMap<>();
     private final Map<String, String> fleetContexts = new ConcurrentHashMap<>();
+    /** Where each tenant reads its register, for the same teardown. */
+    private final Map<String, String> registerContexts = new ConcurrentHashMap<>();
     private final Map<String, String> erasureContexts = new ConcurrentHashMap<>();
     private final Map<String, String> blobContexts = new ConcurrentHashMap<>();
     /**
@@ -2384,7 +2386,37 @@ public final class TenantRuntimeManager implements AutoCloseable {
             }
             return cloud.jengu.dbo.core.wire.RecordWire.write(Map.of("steps", installed));
         }));
-        LOG.info("runtime state: serving /runtime/tenants and /runtime/catalogue");
+        // What the deployment does for every tenant, as the one answering for
+        // it reads it: which tenants have not authorised what is done to them,
+        // which rows run without that, which disagree with their trail, and
+        // which of the application's beans wait for a step nobody declared.
+        // Counts and the deployment's own rows, never a tenant's records: what
+        // was opened, and of whom, is in the tenant's own account at its
+        // register door.
+        sharedServer.createContext("/runtime/fleet", opsGuarded(expected, () -> {
+            List<Map<String, Object>> tenants = new java.util.ArrayList<>();
+            for (String code : new java.util.TreeSet<>(runtimes.keySet())) {
+                Map<String, Object> row = new java.util.LinkedHashMap<>();
+                row.put("code", code);
+                row.put("declined", List.copyOf(new java.util.TreeSet<>(declinedBy(code))));
+                fleetRegisterChanged(code).ifPresent(changed ->
+                        row.put("changedSinceAuthorised", changed));
+                row.put("unapproved", unapprovedRows(code).stream()
+                        .map(unapproved -> unapproved.step() + "/" + unapproved.slot())
+                        .toList());
+                row.put("withheld", List.copyOf(withheldFrom(code)));
+                row.put("unauthorisedIncidents", unapprovedProcessing(code).size());
+                row.put("disagreements", fleetDisagreements(code).size());
+                tenants.add(row);
+            }
+            Map<String, Object> answer = new java.util.LinkedHashMap<>();
+            answer.put("steps", List.copyOf(new java.util.TreeSet<>(fleetStepCodes)));
+            answer.put("awaitingDeclaration", List.copyOf(new java.util.TreeSet<>(
+                    awaitingDeclaration())));
+            answer.put("tenants", tenants);
+            return cloud.jengu.dbo.core.wire.RecordWire.write(answer);
+        }));
+        LOG.info("runtime state: serving /runtime/tenants, /runtime/catalogue and /runtime/fleet");
     }
 
     /** The actor an erasure asked at the door is recorded under. */
@@ -3464,6 +3496,45 @@ public final class TenantRuntimeManager implements AutoCloseable {
                     declarations -> spec.code().equals(managementCode)
                             ? classify(declarations) : null));
             configurationContexts.put(spec.code(), configurationPath);
+            // What the deployment's steps open of this tenant's data, and the
+            // account kept against it, beside the door the tenant authorises
+            // them through. Derived on every ask, from the same methods the
+            // joiner acts on, so the door cannot disagree with what happens.
+            String registerPath = "/t/" + spec.code() + "/register";
+            final String reading = spec.code();
+            sharedServer.createContext(registerPath, new RegisterHandler(authority,
+                    () -> new RegisterHandler.Reading() {
+                        @Override
+                        public List<FleetRegister.Row> register() {
+                            return fleetRegister(reading);
+                        }
+
+                        @Override
+                        public Set<String> declined() {
+                            return declinedBy(reading);
+                        }
+
+                        @Override
+                        public Optional<Boolean> changed() {
+                            return fleetRegisterChanged(reading);
+                        }
+
+                        @Override
+                        public List<FleetRegister.Row> unapproved() {
+                            return unapprovedRows(reading);
+                        }
+
+                        @Override
+                        public List<UnapprovedProcessing.Incident> unapprovedProcessing() {
+                            return TenantRuntimeManager.this.unapprovedProcessing(reading);
+                        }
+
+                        @Override
+                        public List<RegisterVersusTrail.Incident> disagreements() {
+                            return fleetDisagreements(reading);
+                        }
+                    }, registerPath));
+            registerContexts.put(spec.code(), registerPath);
         }
         // The maintenance surface, when the tenant has an authority to guard
         // it: backups are system-plane, and a tenant with no authority has no
@@ -4817,6 +4888,10 @@ public final class TenantRuntimeManager implements AutoCloseable {
         String adminPath = maintenanceContexts.remove(code);
         if (adminPath != null) {
             sharedServer.removeContext(adminPath);
+        }
+        String registerPath = registerContexts.remove(code);
+        if (registerPath != null) {
+            sharedServer.removeContext(registerPath);
         }
         String configurationPath = configurationContexts.remove(code);
         if (configurationPath != null) {

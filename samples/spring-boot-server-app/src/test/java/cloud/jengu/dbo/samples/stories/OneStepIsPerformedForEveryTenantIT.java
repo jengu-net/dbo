@@ -464,11 +464,139 @@ class OneStepIsPerformedForEveryTenantIT {
 
     // ── a tenant says no in one line ──
 
+    // ── what the clinic reads of what is done to its data ──
+
     @Test
     @Order(10)
+    @DisplayName("the clinic reads at its own door what the deployment opens of its data: one "
+            + "row, for the one slot the check opens, and none for what it only carries")
+    @Proving({DboPromises.PROC_A_TENANT_READS_WHAT_IS_OPENED_OF_ITS_DATA,
+            DboPromises.PROC_THE_REGISTER_IS_READ_AT_A_DOOR})
+    void theClinicReadsItsRegister() {
+        HttpResponse<String> register = dbo.get(dbo.at(CLINIC) + "/register",
+                configurationToken(CLINIC));
+        assertEquals(200, register.statusCode(), register.body());
+        List<Map<?, ?>> rows = rowsOf(register.body(), "rows");
+        Proves.that(DboPromises.PROC_A_TENANT_READS_WHAT_IS_OPENED_OF_ITS_DATA,
+                rows.size() == 1 && STEP.equals(rows.get(0).get("step"))
+                        && "org".equals(rows.get(0).get("slot"))
+                        && "processed-and-named".equals(rows.get(0).get("posture")),
+                "the clinic's register is not one row for the one slot the deployment's check "
+                        + "opens, so what is opened of its data and what it reads differ: "
+                        + register.body());
+        // The proposal and the notes travel with the run and are never opened
+        // by the step, so they disclose nothing and are not on the register.
+        Proves.that(DboPromises.PROC_A_TENANT_READS_WHAT_IS_OPENED_OF_ITS_DATA,
+                rows.stream().noneMatch(row -> "proposed".equals(row.get("slot"))
+                        || "notes".equals(row.get("slot"))),
+                "a slot the step only carries is on the register: " + register.body());
+        Proves.that(DboPromises.PROC_THE_REGISTER_IS_READ_AT_A_DOOR,
+                !fieldsOf(register.body()).containsKey("changedSinceAuthorised"),
+                "the clinic never authorised a register and is told whether it changed, and "
+                        + "never having read one is a different answer: " + register.body());
+
+        // Reading the records is not entitlement to read what the deployment
+        // may open of them, and the operator's token is not a tenant's.
+        HttpResponse<String> withRecords = dbo.get(dbo.at(CLINIC) + "/register",
+                dbo.token(CLINIC));
+        Proves.that(DboPromises.PROC_THE_REGISTER_IS_READ_AT_A_DOOR,
+                withRecords.statusCode() == 403 && withRecords.body().contains("configuration"),
+                "a credential that reads records read the register, or was refused without "
+                        + "saying which grant it lacks: " + withRecords.statusCode() + " "
+                        + withRecords.body());
+        Proves.that(DboPromises.PROC_THE_REGISTER_IS_READ_AT_A_DOOR,
+                dbo.get(dbo.at(CLINIC) + "/register", OPS).statusCode() == 401,
+                "the deployment's operator token read a tenant's register at the tenant's door");
+    }
+
+    @Test
+    @Order(11)
+    @DisplayName("the check ran over the clinic's data under a row it never authorised, and its "
+            + "account says so — and the operator reads that it stands without reading the data")
+    @Proving({DboPromises.PROC_AN_UNAUTHORISED_ROW_OBEYS_ITS_POSTURE,
+            DboPromises.PROC_THE_REGISTER_IS_READ_AT_A_DOOR})
+    void whatRanUnauthorisedIsNamed() {
+        assertTrue(clinicsCheck != null, "the clinic's check was not performed in leg 7");
+        HttpResponse<String> incidents = dbo.get(dbo.at(CLINIC) + "/register/incidents",
+                configurationToken(CLINIC));
+        assertEquals(200, incidents.statusCode(), incidents.body());
+        List<Map<?, ?>> unauthorised = rowsOf(incidents.body(), "unauthorised");
+        Proves.that(DboPromises.PROC_AN_UNAUTHORISED_ROW_OBEYS_ITS_POSTURE,
+                unauthorised.stream().anyMatch(row -> STEP.equals(row.get("step"))
+                        && "org".equals(row.get("slot")) && row.get("since") != null
+                        && String.valueOf(row.get("says")).contains(CLINIC)),
+                "the check ran over the clinic's data under the default row, which it never "
+                        + "authorised, and no incident names the step, the slot and since "
+                        + "when: " + incidents.body());
+
+        HttpResponse<String> fleet = dbo.get(
+                URI.create(dbo.at(HOSPITAL)).resolve("/runtime/fleet").toString(), OPS);
+        assertEquals(200, fleet.statusCode(), fleet.body());
+        Map<?, ?> clinicsRow = rowsOf(fleet.body(), "tenants").stream()
+                .filter(row -> CLINIC.equals(row.get("code"))).findFirst()
+                .orElseThrow(() -> new AssertionError("the operator's fleet view does not "
+                        + "name the clinic: " + fleet.body()));
+        Proves.that(DboPromises.PROC_THE_REGISTER_IS_READ_AT_A_DOOR,
+                clinicsRow.get("unauthorisedIncidents") instanceof Number count
+                        && count.intValue() >= 1
+                        && List.of(STEP + "/org").equals(clinicsRow.get("unapproved"))
+                        && !fleet.body().contains(clinicOrganisation),
+                "the operator cannot read that the clinic has an unauthorised row standing, or "
+                        + "reads the clinic's own records doing so: " + clinicsRow);
+        // Every bean the sample application holds names a step the deployment
+        // declares, so nothing is waiting, and the node says so rather than
+        // keeping it to itself.
+        Proves.that(DboPromises.PROC_THE_REGISTER_IS_READ_AT_A_DOOR,
+                List.of().equals(fieldsOf(fleet.body()).get("awaitingDeclaration")),
+                "the node does not say which of its beans wait for a declaration: "
+                        + fleet.body());
+        Proves.that(DboPromises.PROC_THE_REGISTER_IS_READ_AT_A_DOOR,
+                dbo.get(URI.create(dbo.at(HOSPITAL)).resolve("/runtime/fleet").toString(),
+                        configurationToken(CLINIC)).statusCode() == 401,
+                "a tenant's credential read the whole deployment's fleet view");
+    }
+
+    @Test
+    @Order(12)
+    @DisplayName("the clinic authorises the register it read in one act and is told nothing "
+            + "changed, its incident clears, and a register it did not read is a change")
+    @Proving({DboPromises.PROC_A_TENANT_AUTHORISES_A_REGISTER_AND_SEES_IT_CHANGE,
+            DboPromises.PROC_AN_UNAUTHORISED_ROW_OBEYS_ITS_POSTURE})
+    void theClinicAuthorisesWhatItRead() throws InterruptedException {
+        // EVERY ROW IT READ, in one act: that is what authorising is.
+        List<Map<?, ?>> rows = rowsOf(dbo.get(dbo.at(CLINIC) + "/register",
+                configurationToken(CLINIC)).body(), "rows");
+        String asItIs = rows.stream().map(row -> "\"" + row.get("digest") + "\"")
+                .collect(java.util.stream.Collectors.joining(","));
+        dbo.declare(CLINIC, clinic(OWN_STEP, ",\"authorised\":[" + asItIs + "]"));
+        Proves.that(DboPromises.PROC_A_TENANT_AUTHORISES_A_REGISTER_AND_SEES_IT_CHANGE,
+                until(() -> Boolean.FALSE.equals(registerField(CLINIC,
+                        "changedSinceAuthorised")), Duration.ofMinutes(2)),
+                "the clinic authorised exactly the register it read and is not told that "
+                        + "nothing changed: " + dbo.get(dbo.at(CLINIC) + "/register",
+                        configurationToken(CLINIC)).body());
+        Proves.that(DboPromises.PROC_AN_UNAUTHORISED_ROW_OBEYS_ITS_POSTURE,
+                rowsOf(dbo.get(dbo.at(CLINIC) + "/register/incidents",
+                        configurationToken(CLINIC)).body(), "unauthorised").isEmpty(),
+                "the clinic authorised the row and its incident still stands");
+
+        // A register it did not read: the comparison is the whole mechanism, so
+        // a copy that is not what the deployment does is a change, at once.
+        dbo.declare(CLINIC, clinic(OWN_STEP, ",\"authorised\":[\"" + NAMES.value("stale")
+                + "\"]"));
+        Proves.that(DboPromises.PROC_A_TENANT_AUTHORISES_A_REGISTER_AND_SEES_IT_CHANGE,
+                until(() -> Boolean.TRUE.equals(registerField(CLINIC,
+                        "changedSinceAuthorised")), Duration.ofMinutes(2)),
+                "the clinic's authorisation names a register that is not the one in force, and "
+                        + "it is not told the register changed");
+    }
+
+    @Test
+    @Order(13)
     @DisplayName("the clinic declines the check: its door says so, and its work is not offered "
             + "while the hospital, which said nothing, goes on being served")
-    @Proving(DboPromises.PROC_A_TENANT_ADMITS_OR_DECLINES_WHAT_IS_DONE_TO_IT)
+    @Proving({DboPromises.PROC_A_TENANT_ADMITS_OR_DECLINES_WHAT_IS_DONE_TO_IT,
+            DboPromises.PROC_A_TENANT_READS_WHAT_IS_OPENED_OF_ITS_DATA})
     void theClinicDeclines() throws InterruptedException {
         // --8<-- [start:declines]
         dbo.declare(CLINIC, clinic(OWN_STEP, ",\"declines\":[\"" + STEP + "\"]"));
@@ -515,6 +643,49 @@ class OneStepIsPerformedForEveryTenantIT {
                 queue.queueOf(SUBSTRATE, FleetWork.idFor(CLINIC, declined.id())).isEmpty(),
                 "the clinic declined the step and its work was offered to it anyway, so "
                         + "declining is a note in a file rather than a rule");
+
+        // From the clinic's side a step declined and a step not performed are
+        // one fact, so the register it reads has no row for it.
+        HttpResponse<String> register = dbo.get(dbo.at(CLINIC) + "/register",
+                configurationToken(CLINIC));
+        Proves.that(DboPromises.PROC_A_TENANT_READS_WHAT_IS_OPENED_OF_ITS_DATA,
+                rowsOf(register.body(), "rows").isEmpty()
+                        && String.valueOf(fieldsOf(register.body()).get("declined"))
+                                .contains(STEP),
+                "the clinic declined the check and its register still lists what the check "
+                        + "opens, or does not say it declined: " + register.body());
+    }
+
+    /**
+     * A credential the tenant issued for saying what it agrees to: the
+     * configuration scope, the one a register is authorised with and read by.
+     */
+    private String configurationToken(String tenant) {
+        String client = NAMES.value("registrar");
+        TenantAuthority authority = tenants.authority(tenant).orElseThrow();
+        authority.ensureClient(client, client + "-secret", List.of("configuration"));
+        if (authority.token(client, client + "-secret", null)
+                instanceof TenantAuthority.TokenResult.Issued issued) {
+            return issued.accessToken();
+        }
+        throw new AssertionError(tenant + " issued no token for its registrar");
+    }
+
+    private Object registerField(String tenant, String field) {
+        return fieldsOf(dbo.get(dbo.at(tenant) + "/register", configurationToken(tenant))
+                .body()).get(field);
+    }
+
+    private static Map<?, ?> fieldsOf(String body) {
+        return (Map<?, ?>) cloud.jengu.dbo.core.wire.RecordWire.read(body);
+    }
+
+    private static List<Map<?, ?>> rowsOf(String body, String field) {
+        Object listed = fieldsOf(body).get(field);
+        return listed instanceof List<?> rows
+                ? rows.stream().filter(Map.class::isInstance).<Map<?, ?>>map(row -> (Map<?, ?>) row)
+                        .toList()
+                : List.of();
     }
 
     // ── what the legs are made of ──

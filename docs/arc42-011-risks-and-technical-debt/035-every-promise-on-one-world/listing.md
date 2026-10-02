@@ -523,19 +523,19 @@ Story class: `OneStepIsPerformedForEveryTenantIT` — on the world. Hogwarts and
 | Promise | Proven now by | W | Leg in the story class |
 |---|---|---|---|
 | `PROC_AN_APPLICATION_STEP_IS_THE_DEPLOYMENTS_TO_DECLARE` | `ADeploymentDeclaresItsOwnStepsTest` |  | `1` `aClinicMayNotOfferTheDeploymentsStep`, `4` `theHospitalIsAskedForACheck` |
-| `PROC_AN_UNAUTHORISED_ROW_OBEYS_ITS_POSTURE` | `AStepIsRunForTheFleetIT` | W | none: not on the world |
+| `PROC_AN_UNAUTHORISED_ROW_OBEYS_ITS_POSTURE` | `AStepIsRunForTheFleetIT` | W | `11` `whatRanUnauthorisedIsNamed`, `12` `theClinicAuthorisesWhatItRead` (processed and named); the other two postures not on the world |
 | `PROC_A_BEAN_IS_FOUND_RATHER_THAN_WIRED` | `AStepIsRunForTheFleetIT` | W | `6` `theBeanPerformsTheHospitalsCheck` |
 | `PROC_A_CONSUMER_TAKES_ONLY_ITS_OWN_STEPS` | `AStepIsRunForTheFleetIT` | W | none: not on the world |
-| `PROC_A_DISAGREEMENT_IS_AN_INCIDENT_NOT_A_REFUSAL` | `AStepIsRunForTheFleetIT` | W | none: no door |
+| `PROC_A_DISAGREEMENT_IS_AN_INCIDENT_NOT_A_REFUSAL` | `AStepIsRunForTheFleetIT` | W | none: `mom` declares no router that opens what it said it would not |
 | `PROC_A_FLEET_PERFORMER_IS_HANDED_ITS_OBJECTS` | `AStepIsRunForTheFleetIT` | W | `6` `theBeanPerformsTheHospitalsCheck` |
 | `PROC_A_PARTICIPANT_ASKS_FOR_WORK_IT_NEED_NOT_PERFORM` | `AStepIsRunForTheFleetIT` | W | `4` `theHospitalIsAskedForACheck` |
 | `PROC_A_PROCESSOR_IS_ENROLLED_PER_TENANT` | `AStepIsRunForTheFleetIT` | W | none: no configuration |
 | `PROC_A_REFERENCE_MAY_BE_A_SEARCH` | `AStepIsRunForTheFleetIT` | W | `4` `theHospitalIsAskedForACheck`, `5` `aSearchMustNameOne` |
 | `PROC_A_SLOT_IS_REFERRED_OR_GIVEN_AND_MAY_REPEAT` | — | W | `4` `theHospitalIsAskedForACheck`, `9` `allThreeShapesArrive` |
 | `PROC_A_STEP_CODE_BELONGS_TO_ONE_LEVEL` | — | W | `1` `aClinicMayNotOfferTheDeploymentsStep`, `2` `renamingItIsTheWayIn` |
-| `PROC_A_TENANT_ADMITS_OR_DECLINES_WHAT_IS_DONE_TO_IT` | `AStepIsRunForTheFleetIT` | W | `10` `theClinicDeclines` |
-| `PROC_A_TENANT_AUTHORISES_A_REGISTER_AND_SEES_IT_CHANGE` | `AStepIsRunForTheFleetIT` | W | none: no door |
-| `PROC_A_TENANT_READS_WHAT_IS_OPENED_OF_ITS_DATA` | `AStepIsRunForTheFleetIT` | W | none: no door |
+| `PROC_A_TENANT_ADMITS_OR_DECLINES_WHAT_IS_DONE_TO_IT` | `AStepIsRunForTheFleetIT` | W | `13` `theClinicDeclines` |
+| `PROC_A_TENANT_AUTHORISES_A_REGISTER_AND_SEES_IT_CHANGE` | `WhatARegisterSaysTest` (posture in the digest) | | `12` `theClinicAuthorisesWhatItRead` |
+| `PROC_A_TENANT_READS_WHAT_IS_OPENED_OF_ITS_DATA` | `AStepIsRunForTheFleetIT` (a router is not on it) | W | `10` `theClinicReadsItsRegister`, `13` `theClinicDeclines` |
 | `PROC_DECLARING_A_STEP_PREPARES_ITS_SUBSTRATE` | `AStepIsRunForTheFleetIT` | W | `3` `theStepHasSomewhereForItsWork` |
 | `PROC_ONE_BEAN_PERFORMS_FOR_EVERY_TENANT` | `AStepIsRunForTheFleetIT` | W | `7` `theSameBeanPerformsTheClinicsCheck` |
 | `PROC_THE_JOINER_OFFERS_EVERY_TENANTS_WORK` | — |  | `6`, `7`, `8` `readingAgainOffersOnce` |
@@ -667,14 +667,19 @@ half of two places).
 **A second container.** `AHostHoldsALaneByInstallingABundleIT` installs the
 lane into a Felix of its own; it joins the OSGi classes above.
 
-**What only the deployment's process can answer.** The fleet-step story's
-leftovers, now the technical story
+**What only the deployment's own declaration can show.** The fleet-step
+story's leftovers, now the technical story
 [US-DBO-A-STEP-IS-RUN-FOR-THE-FLEET](../../arc42-003-context/user-stories/us-dbo-a-step-is-run-for-the-fleet.md),
-walked in `AStepIsRunForTheFleetIT`: the register, disagreement incidents,
-unauthorised rows and processor enrolment have no door, and the rest need
-`mom` to declare more than Rowling Land does. The class brings up one
-runtime of its own for every leg that needs a management declaration, and
-walks the rest on the harness's shared deployment.
+walked in `AStepIsRunForTheFleetIT`. A tenant's register and its incidents
+have a door now (`/t/<code>/register`, and `/runtime/fleet` for the operator),
+so reading the register, authorising it and the processed-and-named incident
+are legs `10` to `13` of the fleet-step story on the world. What stays needs
+the management tenant to declare more than `mom` does — a required step, one
+not until approved, one withdrawn, two placed together, a named processor —
+and a fleet step is declared for the whole deployment: the store cannot scope
+one to tenants a leg makes, so declaring any of these on the world would change
+every shared tenant. The class keeps its own runtime for those, and walks the
+consumer, router and writeback legs on the harness's shared deployment.
 
 ## The assemblies and samples proving themselves
 

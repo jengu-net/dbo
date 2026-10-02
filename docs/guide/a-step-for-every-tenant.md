@@ -77,6 +77,25 @@ Its door then refuses to start one and says why, and a run of the check authored
 inside the clinic is never offered. Hogwarts said nothing, which admits the
 step.
 
+## A tenant reads what is done to its data
+
+Each tenant has a register: one row for every slot the deployment's steps open
+of its data, with the step, the slot, the type, whether it may be declined and
+what happens to work it has not authorised. The check opens the organisation
+and only carries the proposal and the notes, so the register has one row. A
+clinic reads it at its own door, `GET /t/<code>/register`, with a credential
+carrying the `configuration` scope: the same scope it authorises a register
+with, by writing the digests of the rows it read into its declaration as
+`authorised`. The register then says whether what is done changed since, and
+says nothing of the kind to a tenant that never authorised one.
+
+`GET /t/<code>/register/incidents` is the account kept against it: work that ran
+under a row the tenant never authorised, naming the step, the slot and since
+when, and openings its trail shows that the register does not. Whoever operates
+the deployment reads, at `/runtime/fleet` under the operator's token, which
+tenants have rows standing and how many incidents each holds, and never which
+records were opened.
+
 ## What the store guarantees
 
 - **A step code belongs to one level**, checked where it is declared, and the
@@ -91,6 +110,8 @@ step.
   tally, through the tenant's own lane and rules.
 - **A slot arrives in one of three shapes**: a referred record resolved, a given
   object with no id and no version, and a list in the order it was sent.
+- **A tenant reads its register and its incidents at its own door**, and
+  authorising what it read is one comparison from then on.
 
 The [joins table](../arc42-003-context/user-stories/us-dbo-fleet-step.md#joins)
 names the test behind each.
@@ -99,9 +120,6 @@ names the test behind each.
 
 - **A fleet step writes nothing.** No tenant's declaration says what the
   deployment's step may write, so its result is a tally and no records.
-- **A tenant cannot read its register.** What the deployment opens of a
-  tenant's data, the incidents where the trail disagrees with it and the rows a
-  tenant has not authorised are answered only inside the deployment's process.
 - **A deployment cannot name its processor** in configuration, so none is
   enrolled.
 - **A bean whose step nothing declares is noticed only inside the process.**

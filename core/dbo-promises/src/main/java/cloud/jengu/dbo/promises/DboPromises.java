@@ -804,6 +804,15 @@ public enum DboPromises implements Promise {
             + "the record opens nothing, and the credential it carries is minted and held by "
             + "nobody: the processor is authenticated by its signature and never signs in."),
 
+    PROC_THE_REGISTER_IS_READ_AT_A_DOOR(
+            "A tenant reads its register and the incidents kept against it at a door of its own, "
+            + "under the scope it authorises a register with: the rows the deployment's steps "
+            + "open of its data, the steps it declined, whether what is done changed since it "
+            + "authorised, never present for a tenant that never did, and every opening that ran "
+            + "unauthorised or disagrees with its trail. Whoever operates the deployment reads, "
+            + "under the operator's token, which tenants have rows standing unauthorised and how "
+            + "many incidents each holds, and which beans wait for a step nobody declared — and "
+            + "never which of a tenant's records were opened."),
     PROC_A_TENANT_AUTHORISES_A_REGISTER_AND_SEES_IT_CHANGE(
             "A tenant authorises a register by writing down which one it read — the register's "
             + "own digest, one value for the whole of it — so authorising is answerable all at "

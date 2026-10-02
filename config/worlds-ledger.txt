@@ -38,7 +38,7 @@ ADeploymentIsEquippedBeforeItStartsIT                    deployment
 AHostHoldsALaneByInstallingABundleIT                     container
 AParticipantHoldsItsLaneOnTheStreamIT                    whole plane
 ARollingUpgradeReadsAsOneStepIT                          deployment — two nodes, each built with a step catalogue of its own carrying one step at two versions; the sample world is one node
-AStepIsRunForTheFleetIT                                  deployment
+AStepIsRunForTheFleetIT                                  deployment — its management tenant declares fleet steps the sample world cannot: a required step, one not until approved, one withdrawn, two on one substrate, and a named processor; a fleet step is declared for the whole deployment and cannot be scoped to tenants a leg makes, so any of these on the world would change every shared tenant
 AStoreWithoutSuperuserStillMountsIT                      sweep
 ATenantSubscribesToItsVersionIT                          lifecycle
 ATenantsDoorsOpenWhenItServesIT                          lifecycle

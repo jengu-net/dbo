@@ -213,7 +213,9 @@ public enum DboStories implements Story {
                     DboPromises.PROC_A_DISAGREEMENT_IS_AN_INCIDENT_NOT_A_REFUSAL,
                     DboPromises.PROC_A_PROCESSOR_IS_ENROLLED_PER_TENANT,
                     DboPromises.PROC_A_TENANT_AUTHORISES_A_REGISTER_AND_SEES_IT_CHANGE,
-                    DboPromises.PROC_AN_UNAUTHORISED_ROW_OBEYS_ITS_POSTURE
+                    DboPromises.PROC_AN_UNAUTHORISED_ROW_OBEYS_ITS_POSTURE,
+                    // And reads all of that at its own door.
+                    DboPromises.PROC_THE_REGISTER_IS_READ_AT_A_DOOR
             )),
 
     ON_THE_STREAM("A deployment whose participants hold their lanes over its own durable "

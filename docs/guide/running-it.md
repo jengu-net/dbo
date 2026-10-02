@@ -109,5 +109,8 @@ nobody authorised and the posture they obey, a processor enrolled per tenant, a
 substrate prepared and kept, and a writeback held to each tenant's rules.
 [US-DBO-A-STEP-IS-RUN-FOR-THE-FLEET](../arc42-003-context/user-stories/us-dbo-a-step-is-run-for-the-fleet.md).
 
-Not yet: no door serves what this scene reads, so a tenant and an application
-cannot read it; and a deployment's configuration cannot name a processor.
+A tenant reads its register and its incidents at `/t/<code>/register`, and the
+operator reads which tenants have rows standing unauthorised at
+`/runtime/fleet`. Not yet: a deployment's configuration cannot name a
+processor, and the scenes that need the management tenant to declare more than
+the sample world does are walked on a deployment of their own.
