@@ -143,7 +143,7 @@ Story class: `TheClinicRecordsCareAndAccountsForItIT` — exists; today shared.
 | `SRCH_A_REINDEX_HOLDS_NO_TRANSACTION_WHILE_IT_EXTRACTS` | without a world: AReindexDoesNotHoldATransactionOpenIT |  | assert where the story passes it |
 | `SRCH_CUSTOM_PARAMETERS` | — | W | to fit |
 | `SRCH_DECLARED_INDEXES` | — |  | to fit |
-| `SRCH_SEVERAL_VALUES_MEAN_ANY_OF_THEM` | without a world: ACommaMeansOrInASearchIT |  | assert where the story passes it |
+| `SRCH_SEVERAL_VALUES_MEAN_ANY_OF_THEM` | `TheClinicRecordsCareAndAccountsForItIT` |  | moved; `ACommaMeansOrInASearchIT` deleted |
 | `SRCH_THE_DATABASE_ENVELOPE_LOSES_NOTHING_BEFORE_IT_IS_USED` | `TheEnvelopeIsTheSameFromEitherSideIT` | W | to fit |
 | `SRCH_THE_ENVELOPE_IS_EXTRACTED_WHERE_THE_BYTES_ARE` | `TheEnvelopeIsTheSameFromEitherSideIT` | W | to fit |
 | `SRCH_TYPED_ORDERING` | without a world: ADateIsTheSpanItNamesTest, FhirR4IT … |  | assert where the story passes it |

@@ -1266,6 +1266,105 @@ class TheClinicRecordsCareAndAccountsForItIT {
     }
 
     @Test
+    @Order(35)
+    @DisplayName("several values for one search parameter are any of them, a backslash keeps a "
+            + "comma that belongs to the value, and an any-of between two ranges is refused "
+            + "rather than answered empty")
+    @Proving(DboPromises.SRCH_SEVERAL_VALUES_MEAN_ANY_OF_THEM)
+    void aCommaMeansAnyOfThem() {
+        // Three patients and three observations of the clinic's own, under a
+        // code system named for this story: every question below is scoped to
+        // them, because the clinic holds everybody else's records too.
+        String lab = names.canonical("lab");
+        String tamm = names.value("tamm");
+        String kask = names.value("kask");
+        String saarKuusk = names.value("saar") + ",Kuusk";
+        String her = written("Patient", """
+                {"resourceType":"Patient","identifier":[{"system":"%s","value":"%s"}],
+                 "name":[{"family":"%s"}]}""".formatted(MRN, names.value("her"), tamm));
+        String him = written("Patient", """
+                {"resourceType":"Patient","identifier":[{"system":"%s","value":"%s"}],
+                 "name":[{"family":"%s"}]}""".formatted(MRN, names.value("him"), kask));
+        written("Patient", """
+                {"resourceType":"Patient","identifier":[{"system":"%s","value":"%s"}],
+                 "name":[{"family":"%s"}]}""".formatted(MRN, names.value("them"),
+                saarKuusk.replace("\\", "\\\\")));
+        written("Observation", observed(lab, "one", "final", her));
+        written("Observation", observed(lab, "two", "amended", him));
+        written("Observation", observed(lab, "three", "cancelled", null));
+        String ours = "code=" + lab + "|one," + lab + "|two," + lab + "|three";
+
+        Proves.that(DboPromises.SRCH_SEVERAL_VALUES_MEAN_ANY_OF_THEM,
+                found("Observation", ours + "&status=final,amended") == 2,
+                "the union of two statuses was not answered");
+        Proves.that(DboPromises.SRCH_SEVERAL_VALUES_MEAN_ANY_OF_THEM,
+                found("Observation", ours + "&status=final") == 1
+                        && found("Observation", ours + "&status=final,nosuchstatus") == 1,
+                "an unmatched alternative changed the answer, so the values are being ANDed");
+        // Each alternative is a whole token, its system its own.
+        Proves.that(DboPromises.SRCH_SEVERAL_VALUES_MEAN_ANY_OF_THEM,
+                found("Observation", "code=" + lab + "|one," + lab + "|two") == 2
+                        && found("Observation", "code=https://elsewhere.test|one,"
+                                + "https://elsewhere.test|two") == 0,
+                "the system is not read per alternative");
+        String both = bodyOf("Patient", "family=" + tamm + "," + kask);
+        Proves.that(DboPromises.SRCH_SEVERAL_VALUES_MEAN_ANY_OF_THEM,
+                both.contains(tamm) && both.contains(kask) && !both.contains(saarKuusk),
+                "two family names did not answer both of them and only them: " + both);
+        String escaped = bodyOf("Patient", "family=" + saarKuusk.replace(",", "\\,"));
+        Proves.that(DboPromises.SRCH_SEVERAL_VALUES_MEAN_ANY_OF_THEM,
+                escaped.contains(saarKuusk) && !escaped.contains(tamm),
+                "the escaped comma was taken for a separator: " + escaped);
+        Proves.that(DboPromises.SRCH_SEVERAL_VALUES_MEAN_ANY_OF_THEM,
+                found("Observation", "subject=Patient/" + her + ",Patient/" + him) == 2,
+                "either of two patients was not one question");
+        // Excluding several is excluding each: nothing carries either tag, so
+        // all three remain, rather than excluding one literal "a,b".
+        Proves.that(DboPromises.SRCH_SEVERAL_VALUES_MEAN_ANY_OF_THEM,
+                found("Observation", ours + "&_tag:not=a,b") == 3,
+                "a comma under :not did not exclude each value");
+        // One edge reaches one target type, and two date windows are two
+        // ranges: neither is an any-of the store can state yet, so each is
+        // said rather than answered empty.
+        for (String cannot : List.of("subject=Patient/" + her + ",Group/x",
+                "date=2024-01-01,2024-02-01", "_lastUpdated=2024-01-01,2024-02-01")) {
+            HttpResponse<String> refused = dbo.search(CLINIC, "Observation", cannot);
+            Proves.that(DboPromises.SRCH_SEVERAL_VALUES_MEAN_ANY_OF_THEM,
+                    refused.statusCode() == 400,
+                    "an any-of the store cannot express was answered: " + cannot + " -> "
+                            + refused.statusCode() + " " + refused.body());
+        }
+    }
+
+    private String written(String type, String document) {
+        var stored = dbo.write(CLINIC, type, document);
+        assertTrue(stored.accepted(), stored.body());
+        return stored.idOrFail();
+    }
+
+    private static String observed(String system, String code, String status, String subject) {
+        return """
+                {"resourceType":"Observation",%s"status":"%s",
+                 "code":{"coding":[{"system":"%s","code":"%s"}]}}"""
+                .formatted(subject == null ? ""
+                        : "\"subject\":{\"reference\":\"Patient/" + subject + "\"},",
+                        status, system, code);
+    }
+
+    private int found(String type, String query) {
+        HttpResponse<String> answered = dbo.search(CLINIC, type, query);
+        assertEquals(200, answered.statusCode(), query + " -> " + answered.body());
+        return dbo.says(answered).at("entry.resource.id").size();
+    }
+
+    private String bodyOf(String type, String query) {
+        HttpResponse<String> answered = dbo.search(CLINIC, type, query);
+        assertEquals(200, answered.statusCode(), query + " -> " + answered.body());
+        int entry = answered.body().indexOf("\"entry\"");
+        return entry < 0 ? "" : answered.body().substring(entry);
+    }
+
+    @Test
     @Order(34)
     @DisplayName("the clinic can be asked whether a record would be accepted without writing "
             + "it, and the write agrees with the verdict either way")
