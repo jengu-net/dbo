@@ -210,10 +210,18 @@ val cpuBound = setOf(":core:dbo-fhir-element:definitionsTest")
 val definitionsBesideAWorld = (findProperty("dboDefinitionsBesideAWorld") as String?) == "true"
 subprojects {
     tasks.withType<Test>().configureEach {
-        val holdsAWorld = project.path in worldProjects
-                || (path in cpuBound && !definitionsBesideAWorld)
+        val bootsAWorld = project.path in worldProjects
+        val holdsAWorld = bootsAWorld || (path in cpuBound && !definitionsBesideAWorld)
         if (holdsAWorld) {
             usesService(aWorld)
+        }
+        // And never from the cache, which is gradle.properties' rule for a
+        // task that drives Docker: what the container held is an input no
+        // task can declare, so a restored pass is evidence about nobody's
+        // world. Said once here, for every task that boots one, because the
+        // stories never said it for themselves and were being restored.
+        if (bootsAWorld) {
+            outputs.cacheIf("it boots a world, and a world is not an input") { false }
         }
         val taskPath = path
         val runtime = classpath
