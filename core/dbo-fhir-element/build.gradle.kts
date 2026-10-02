@@ -151,3 +151,57 @@ tasks.test {
     // holds all three to the same claim in one run.
     maxHeapSize = "4g"
 }
+
+// THE DEFINITIONS GATE, in a task of its own: every definition every carried
+// face publishes, indexed both ways and compared
+// (DefinitionsAreIndexedWithoutTheToolchainTest). It is minutes of CPU, and
+// its answer depends on the pinned packages and on the code that indexes
+// them, not on anything else this module's tests touch. In the module's test
+// task it was re-run by every change to every other test here; in a task of
+// its own, the build cache answers for it whenever its classpath is unchanged.
+//
+// What the classpath is, and is not. This module's main output and what it
+// reaches, the packages fragment, JUnit. NOT the promise catalogue: the test
+// cites a promise, which needs the constant to compile and nothing at run
+// time — an annotation whose type is absent is not there to read, and JUnit
+// never reads it — and the catalogue changes in one commit in five, none of
+// which can change whether two indexes agree. The citation still reaches the
+// projector: the processor writes it into this source set's output, which the
+// harness reads beside the module's test output.
+//
+// Narrower than the module's main output it cannot honestly be. The classes
+// the gate names reach 33 of the module's 40 by their own references
+// (ElementVersion reaches the store), so a jar of "just what it uses" would be
+// the module again with seven classes missing.
+val definitionsTestSources: SourceSet = sourceSets.create("definitionsTest") {
+    compileClasspath += sourceSets.main.get().output
+    runtimeClasspath += sourceSets.main.get().output
+}
+configurations[definitionsTestSources.implementationConfigurationName]
+    .extendsFrom(configurations.implementation.get())
+configurations[definitionsTestSources.runtimeOnlyConfigurationName]
+    .extendsFrom(configurations.runtimeOnly.get())
+
+dependencies {
+    add(definitionsTestSources.implementationConfigurationName, "org.junit.jupiter:junit-jupiter:5.11.4")
+    add(definitionsTestSources.compileOnlyConfigurationName, project(":core:dbo-promises"))
+    add(definitionsTestSources.annotationProcessorConfigurationName, project(":promise"))
+    add(definitionsTestSources.runtimeOnlyConfigurationName, project(":core:dbo-fhir-packages"))
+    add(definitionsTestSources.runtimeOnlyConfigurationName, "org.slf4j:slf4j-simple:2.0.18")
+    add(definitionsTestSources.runtimeOnlyConfigurationName, "org.junit.platform:junit-platform-launcher")
+}
+
+val definitionsTest = tasks.register<Test>("definitionsTest") {
+    description = "Indexes every carried definition both ways and holds the two to one answer."
+    group = "verification"
+    testClassesDirs = definitionsTestSources.output.classesDirs
+    classpath = definitionsTestSources.runtimeClasspath
+    useJUnitPlatform()
+    // Three faces' definitions resident at once, and their comparisons
+    // running side by side.
+    maxHeapSize = "4g"
+}
+
+tasks.named("check") {
+    dependsOn(definitionsTest)
+}

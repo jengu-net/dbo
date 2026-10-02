@@ -19,6 +19,11 @@ evaluationDependsOn(":core:dbo-fhir-element")
 val dboFhirElementTestOutput = project(":core:dbo-fhir-element")
         .extensions.getByType(SourceSetContainer::class.java)
         .getByName("test").output
+// And its definitions gate, a source set of its own so the build cache can
+// answer for it (see that module's build); same index, same trap.
+val dboFhirElementDefinitionsTestOutput = project(":core:dbo-fhir-element")
+        .extensions.getByType(SourceSetContainer::class.java)
+        .getByName("definitionsTest").output
 
 // The console's own tests cite too: the catalogue half is proven there,
 // without a store, because it needs none. Same trap as the two above — the
@@ -118,6 +123,7 @@ dependencies {
     testImplementation(project(":core:dbo-asking"))
     testImplementation(dboWorkTestOutput)
     testImplementation(dboFhirElementTestOutput)
+    testImplementation(dboFhirElementDefinitionsTestOutput)
     testImplementation(dboTenantTestOutput)
     testImplementation("org.osgi:osgi.core:8.0.0")
     testImplementation("org.testcontainers:testcontainers-postgresql:2.0.5")
