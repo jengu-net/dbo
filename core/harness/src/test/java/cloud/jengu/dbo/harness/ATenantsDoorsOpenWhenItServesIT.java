@@ -48,10 +48,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class ATenantsDoorsOpenWhenItServesIT {
 
     private static final String TOKEN = "ATenantsDoorsOpenWhenItServesIT";
-    private static final String HELD = "pooratud";
-    private static final String ANNOUNCED = "teatatud";
-    private static final String ZONE = "vald";
-    private static final String MEMBER = "valla-kliinik";
+    private static final String HELD = "uksed-pooratud";
+    private static final String ANNOUNCED = "uksed-teatatud";
+    private static final String ZONE = "uksed-vald";
+    private static final String MEMBER = "uksed-valla-kliinik";
 
     private Path dir;
     private LocalDatabasePerTenantProvisioner provisioner;
