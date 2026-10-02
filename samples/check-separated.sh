@@ -74,8 +74,14 @@ SERVER_BIN="$PWD/$SERVER_HOME/build/install/spring-boot-server-app/bin/spring-bo
 WORKER_BIN="$PWD/$WORKER_HOME/build/install/spring-boot-worker-app/bin/spring-boot-worker-app"
 
 echo "=== a database for the deployment"
-# A database per tenant and a pool per database, plus the substrate's own:
-# more connections than Postgres allows by default.
+# Above Postgres' default of a hundred because of what the pools MAY grow to,
+# not what they hold. Each holds one connection while idle and opens more
+# under load: eight tenants at eight each, a fleet step's substrate at four,
+# the serving substrate at three per door plus two, and the worker's lane at
+# five come to about a hundred between the two applications — the default
+# exactly, with nothing to spare for the check's own psql. What they hold is
+# well under it: sampled once a second, the peak was sixty-three, while the
+# substrate profile's tenants came up.
 docker run -d --name "$DB" -p 127.0.0.1::5432 -e POSTGRES_PASSWORD=sample \
     postgres:17-alpine postgres -c max_connections=400 >/dev/null
 PG_PORT="$(docker port "$DB" 5432/tcp | head -1 | sed 's/.*://')"

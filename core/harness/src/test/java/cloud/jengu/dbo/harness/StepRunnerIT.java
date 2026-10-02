@@ -249,4 +249,64 @@ class StepRunnerIT {
         assertTrue(servedBy.contains(one.key()) || servedBy.contains(two.key()),
                 "work flowed through the lanes: " + servedBy);
     }
+
+    @Test
+    @DisplayName("a service registered after its lane was polled is offered the work that was "
+            + "already waiting for it")
+    @Proving(DboPromises.PROC_A_STEP_HELD_LATE_IS_OFFERED_WHAT_WAITED)
+    void aServiceThatArrivesLateFindsItsBacklog() {
+        PgChangeFeed feed = new PgChangeFeed(ds, WorkModel.DOMAIN);
+        String before = feed.headCursor();
+        Run waiting = runs.pipeline(PROCESS, "label", PROCESS + "/label/late",
+                List.of(WorkModel.DOMAIN));
+
+        AtomicReference<String> performed = new AtomicReference<>();
+        try (StepRunner runner = new StepRunner(Duration.ofMinutes(5), Duration.ofMillis(50))) {
+            // Another step first, so the lane is polled while the run's own
+            // step is held by nobody here — which is how a worker starts when
+            // its lane arrives before the last of its services.
+            runner.register(service("seal", performed));
+            runner.attach(lane("t-late", "runner-late"));
+            Eventually.cycling(runner, "the lane's cursor passed the waiting run",
+                    () -> passed(feed, before, "runner-late", waiting));
+            assertTrue(runs.byId(waiting.id()).orElseThrow().open(),
+                    "nothing here holds the run's step yet, so nothing performed it");
+
+            runner.register(service("label", performed));
+            Eventually.cycling(runner, "the run that waited reached the service that came "
+                    + "for it — a cursor already past a run never offers it on its own",
+                    () -> waiting.key().equals(performed.get()));
+        }
+        assertTrue(!runs.byId(waiting.id()).orElseThrow().open(), "performed and closed");
+    }
+
+    /**
+     * Whether the consumer's cursor is past the run: the feed shows it, and
+     * nothing left for the consumer to read names it. Both, because a run
+     * still behind the feed's transaction horizon is in neither place.
+     */
+    private static boolean passed(PgChangeFeed feed, String before, String consumer, Run run) {
+        String cursor = feed.cursorOf(consumer);
+        return cursor != null
+                && feed.read(before, 10_000).items().stream()
+                        .anyMatch(item -> run.id().equals(item.objectId()))
+                && feed.read(cursor, 10_000).items().stream()
+                        .noneMatch(item -> run.id().equals(item.objectId()));
+    }
+
+    private static StepService service(String step, AtomicReference<String> performed) {
+        return new StepService() {
+
+            @Override
+            public String step() {
+                return PROCESS + "." + step;
+            }
+
+            @Override
+            public Outcome perform(Work work) {
+                performed.set(work.run().key());
+                return Outcome.done();
+            }
+        };
+    }
 }

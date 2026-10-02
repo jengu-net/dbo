@@ -1,14 +1,14 @@
-**Open, and one of its two questions is answered. The keys are the
-application's and the reasoning is not a preference: a store that held a
-participant's private halves could sign as it, which is the one thing the
-signing key exists to prevent. The pool question was measured rather than
-argued, and the measurement moved it: a co-located process holds TWENTY
-connections on the substrate against a default `max_connections` of 100, from
-two pools neither of which is sized. Sharing a pool is no longer the
-interesting half of that — sizing one is, and the lane's is sized now: a host
-holding one lane keeps five connections instead of ten, and one holding a dozen
-gets thirty-eight instead of running out at ten. The serving side's is left,
-because its demand is known after its pool is built and not before.**
+**Open, and down to its last decision. The keys are the application's and
+the reasoning is not a preference: a store that held a participant's private
+halves could sign as it, which is the one thing the signing key exists to
+prevent. Both pools are sized now. The lane's is sized from the lanes it
+carries: a host holding one lane keeps five connections instead of ten, and
+one holding a dozen gets thirty-eight instead of running out at ten. The
+serving side's grows: three connections for each tenant's door on the stream,
+added as the door opens and given back as it closes, because its demand is
+known after its pool is built and not before. What is left is whether a
+co-located worker shares the serving half's pool, and after sizing there is
+little on the other side of that.**
 
 # Where a worker's substrate and keys come from
 
@@ -86,18 +86,38 @@ now costs five connections where it cost ten, and the substrate's total went
 from twenty to fifteen.
 
 **It is not tidiness.** A fixed ten was survivable only while a lane's listener
-could not hold a connection at all — which is what
-[item 033](../033-the-notification-listener-cannot-unwrap/README.md) was doing
-to it. Fixing the lane's unwrap in that item is what made each lane start
+could not hold a connection at all, because its connection came from a copy of
+the driver it could not unwrap. Fixing that is what made each lane start
 holding one, so a host with more than ten lanes would have waited on a listener
 nobody was going to give up. Almost every worker serves many tenants, which
-item 031 said while building the carrier. The two changes belong in one set and
-are in one.
+item 031 said while building the carrier.
 
-The serving side's pool is not sized here, and the reason is not symmetry: its
-demand is one held connection per tenant whose door is on the stream, and it is
-built before any tenant is up. Deriving it needs either a stated expectation or
-a pool that grows, and that is a decision rather than an arithmetic.
+### The serving side's pool grows with its doors
+
+`dbo-substrate` starts at two connections and grows by
+`StreamDoor.CONNECTIONS` — three — as each tenant's door opens, shrinking again
+as one closes. The three are what a door holds: its listener, for the door's
+life; its serving loop, one statement at a time; and what runs beside the loop
+— the keeper waiting on a generation, a wake-up being sent, the durable layer's
+own polls. The two beyond the doors are a door being opened and a payload set
+aside. Growing rather than a stated expectation, because how many tenants a
+node serves changes while it runs, and a number written in configuration is
+right on the day it was written.
+
+**It had to be done in the same change as the doors' connections.** The
+serving pool was handed the database URL, so the driver was whichever copy had
+registered itself first — under the Spring Boot assemblies, the
+application's — and no door's listener could unwrap it. Each door retried once
+a second and held nothing, which is why Hikari's default of ten survived eight
+doors. The pool now opens its connections through `SubstrateConnections`, the
+stream bundle's own driver resolution, the same as the lane's; each door's
+listener then holds its connection, and a fixed ten falls short from the
+fourth door. The fleet steps' substrates take their connections the same way,
+for the same reason.
+
+Measured with `samples/check-separated.sh substrate`, eight tenants served and
+a worker in its own JVM: no unwrap warning on either side, where the server
+logged one per door per second before.
 
 ### The per-step fear was unfounded
 
@@ -108,27 +128,8 @@ of the durable layer, and it is fixed: two steps sharing a substrate are served
 by one consumer. The dial this item is about — place steps together and pay
 once, or apart and pay per — works as designed.
 
-### And a ceiling to check before it is met
-
-The serving side's pool needs one held connection per tenant whose door is on
-the stream, and its size does not grow with the tenants it serves. Ten is the
-default; a node carrying about two dozen tenants is the shape this runtime is
-built for. That is a ceiling, and it is not currently being met for a reason
-that will go away: while
-[item 033](../033-the-notification-listener-cannot-unwrap/README.md) crosses
-the class space, a door's listener cannot unwrap its connection and degrades to
-polling, so it is not holding one. **Fixing 033 is what makes this bite.**
-
-The measurement that settles it is the one above, taken on a node serving more
-tenants than the pool is sized for, with 033's remaining half fixed. Until
-then it is a coupling worth writing down rather than a number.
-
 ## What is left
 
-- Size the SERVING side's substrate pool, which needs a decision the lane's did
-  not: its demand is per served tenant and it is built before any tenant is up,
-  so either a deployment states what to expect or the pool has to grow.
-- Then decide whether a co-located worker shares the serving half's pool. The
+- Decide whether a co-located worker shares the serving half's pool. The
   argument against is unchanged — the store manages its connections per tenant
   on purpose — and after sizing there is much less on the other side of it.
-- Take the ceiling measurement once 033's class space is answered.

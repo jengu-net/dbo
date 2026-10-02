@@ -256,10 +256,6 @@ jobs:
     #
     # Beside the guide's jobs rather than behind the suite, for their reason:
     # what it needs is the two applications and a docker daemon.
-    #
-    # Under `edge`. The `substrate` profile is left out: across two JVMs its
-    # worker attaches and is never offered the run, which is the store's to
-    # fix, and a job that is always red says nothing.
     runs-on: ubuntu-latest
     timeout-minutes: 45
     permissions:
@@ -272,7 +268,7 @@ jobs:
           java-version: "25"
       - uses: gradle/actions/setup-gradle@v4
       - name: Both applications, separated
-        run: ./samples/check-separated.sh edge
+        run: ./samples/check-separated.sh edge substrate
 
   guide-as-tests:
     # The same chapters, as JUnit, against the pinned image.

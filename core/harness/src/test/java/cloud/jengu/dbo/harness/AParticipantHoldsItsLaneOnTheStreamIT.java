@@ -3,6 +3,7 @@ package cloud.jengu.dbo.harness;
 import cloud.jengu.dbo.core.api.Criteria;
 import cloud.jengu.dbo.core.api.ObjectStore;
 import cloud.jengu.dbo.core.api.PutRequest;
+import cloud.jengu.dbo.core.api.StoredObject;
 import cloud.jengu.dbo.core.api.seal.KeyWrap;
 import cloud.jengu.dbo.core.api.seal.ParticipantKey;
 import cloud.jengu.dbo.core.api.seal.SigningKey;
@@ -21,6 +22,7 @@ import cloud.jengu.dbo.work.Executor;
 import cloud.jengu.dbo.work.Holder;
 import cloud.jengu.dbo.work.Run;
 import cloud.jengu.dbo.work.RunKind;
+import cloud.jengu.dbo.work.RunSlot;
 import cloud.jengu.dbo.work.Runs;
 import cloud.jengu.dbo.work.Scope;
 import cloud.jengu.dbo.work.WorkModel;
@@ -599,6 +601,77 @@ class AParticipantHoldsItsLaneOnTheStreamIT {
         assertFalse(everyRowOfTheSubstrate().stream()
                 .anyMatch(r -> r.contains("\"resourceType\":\"Basic\"")),
                 "nothing readable landed even for the refused ask");
+    }
+
+    /*
+     * A worker records the runs it performs under its own name while the
+     * stream admits it by its enrolment's, so the two differ wherever a
+     * deployment enrols for the whole tenant — which is how a worker
+     * application beside the store is set up. The keys are the enrolment's:
+     * sealed to the executor's name instead, the work was refused as having
+     * nothing to seal to, and a run the worker had claimed went no further.
+     */
+    @Test
+    @Order(8)
+    @DisplayName("a worker reporting under a name of its own is sealed to and signs with the "
+            + "keys of the enrolment it holds the stream by")
+    @Proving({DboPromises.PROC_A_LANE_OVER_THE_STREAM,
+            DboPromises.PROC_A_PARTICIPANT_OFFERS_ITS_KEY_AT_ENROLMENT})
+    void anExecutorNamedApartOpensWithItsEnrolmentsKeys() throws Exception {
+        KeyPair fleetSealing = KeyWrap.newParticipantKeyPair();
+        KeyPair fleetSigning = SigningKey.newKeyPair();
+        // For the whole tenant: an enrolment bounded to steps may work only
+        // as itself, and this one is about working as somebody else.
+        manager.authority(TENANT).ensureClient("fleet-enrolment", "fleet-secret",
+                List.of("work"), ParticipantKey.of(fleetSealing.getPublic()),
+                SigningKey.of(fleetSigning.getPublic()));
+        Run run = runFor("named-apart");
+        try (StreamLane lane = StreamLane.holding(substrate, TENANT, "fleet-enrolment",
+                executor("fleet-worker"), fleetSealing.getPrivate(),
+                fleetSigning.getPrivate())) {
+            Run held = lane.claim(run, Duration.ofMinutes(5)).orElseThrow();
+            assertEquals("fleet-worker", held.assignment().executor().name(),
+                    "the run names the worker, not the enrolment");
+            assertEquals(1, lane.inputs(held).size(),
+                    "sealed to the enrolment's key and opened with its private half");
+            lane.closed(held);
+        }
+        assertEquals(Holder.NOBODY, runs.byKey(run.key()).orElseThrow().holder(),
+                "closed on the head an opening signed by the enrolment's key left");
+    }
+
+    /*
+     * A given object has no record: the run carries it, sealed, and the
+     * worker reports opening it like any input — signed, chained, and
+     * committed to by its next link. The store recorded an opening on the
+     * document the reference names, and a given object's token names none,
+     * so the opening could not be recorded, the worker heard only that the
+     * verb did not complete, and the run could never close.
+     */
+    @Test
+    @Order(9)
+    @DisplayName("an object given with the run is opened over the stream like any input: the "
+            + "opening lands on the run that carried it, and the run closes on that chain")
+    @Proving({DboPromises.PROC_A_SLOT_IS_REFERRED_OR_GIVEN_AND_MAY_REPEAT,
+            DboPromises.PROC_A_LANE_OVER_THE_STREAM})
+    void aGivenObjectIsOpenedAndTheRunCloses() throws Exception {
+        Run run = runs.filling(ASSAY, RunKind.PIPELINE, "given-over-the-stream",
+                Map.of("specimen", RunSlot.given(
+                        "{\"resourceType\":\"Basic\",\"code\":{\"text\":\"given\"}}")));
+        try (StreamLane lane = StreamLane.holding(substrate, TENANT, "analyser",
+                executor("analyser"), sealing.getPrivate(), signing.getPrivate())) {
+            Run held = lane.claim(run, Duration.ofMinutes(5)).orElseThrow();
+            Map<String, List<StoredObject>> opened = lane.inputs(held);
+            assertEquals("Basic", opened.get("specimen").get(0).typeName(),
+                    "the given object opened here, with the key held here");
+            lane.closed(held);
+        }
+        assertEquals(Holder.NOBODY, runs.byKey(run.key()).orElseThrow().holder(),
+                "closed on the head the opening left");
+        assertTrue(entries(WorkModel.TYPE, run.id()).stream()
+                        .anyMatch(e -> e.contains("\"code\":\"access\"")
+                                && e.contains("\"by\":\"analyser\"")),
+                "the opening of what the run carried is on the run's own trail");
     }
 
     // ------------------------------------------------------------ fixtures

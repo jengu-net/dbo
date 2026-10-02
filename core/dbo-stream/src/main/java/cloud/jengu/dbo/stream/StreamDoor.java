@@ -65,6 +65,21 @@ public final class StreamDoor implements AutoCloseable {
      */
     static final String SPILLED = "spilled";
 
+    /**
+     * How many substrate connections one door needs, for a pool that carries
+     * several to be sized by.
+     *
+     * <p>One held for the door's life: the durable layer's listener, which is
+     * what makes a verb or a wake-up reach the door at once rather than on its
+     * polling interval. One for the serving loop, which takes one at a time —
+     * the check for a message, the verb's step, the event that answers it. And
+     * one for what runs beside the loop: the keeper waiting on the generation,
+     * a wake-up being sent, the durable layer's own queue and schedule polls.
+     * The same three a host's lane over this substrate is sized by, for the
+     * same reasons from the other end.
+     */
+    public static final int CONNECTIONS = 3;
+
     /** The substrate's name for a tenant's door, by generation. */
     public static String workflowId(String tenant, int generation) {
         return "dbo-lane-door-" + tenant + "-" + generation;
@@ -342,6 +357,12 @@ public final class StreamDoor implements AutoCloseable {
             }
             answer = service.serve(access, verb.get(), body);
         } catch (RuntimeException failed) {
+            // Said here, as the HTTP door says it: the asker hears only that
+            // the verb did not complete, so a cause not logged on this side
+            // is a cause nobody can find.
+            org.slf4j.LoggerFactory.getLogger(StreamDoor.class).error(
+                    "lane verb failed on the stream: tenant={} verb={}", tenant,
+                    ask.get("verb"), failed);
             envelope.put("status", 500);
             envelope.put(LaneVerbs.REFUSED, Boolean.TRUE);
             envelope.put(LaneVerbs.REASON, "the verb did not complete");

@@ -725,9 +725,22 @@ public final class Activator implements BundleActivator {
         String substrateUrl = ctx.getProperty("dbo.substrate.url");
         if (substrateUrl != null) {
             com.zaxxer.hikari.HikariConfig substrate = new com.zaxxer.hikari.HikariConfig();
-            substrate.setJdbcUrl(substrateUrl);
-            substrate.setUsername(ctx.getProperty("dbo.substrate.user"));
-            substrate.setPassword(ctx.getProperty("dbo.substrate.password"));
+            // Connections the stream bundle's driver opens, because the doors
+            // run the durable layer from that bundle. A pool given the URL is
+            // handed whichever copy of the driver registered first — under the
+            // Spring Boot assemblies, the application's — which no door's
+            // listener can unwrap: each retries once a second and its
+            // wake-ups degrade to polls.
+            substrate.setDataSource(new cloud.jengu.dbo.stream.SubstrateConnections(
+                    substrateUrl, ctx.getProperty("dbo.substrate.user"),
+                    ctx.getProperty("dbo.substrate.password")));
+            // Sized for no doors yet: the manager grows it as each tenant's
+            // door opens and shrinks it as one closes, because what the pool
+            // carries is per door and how many doors there will be is not
+            // known here. Hikari's default of ten, whatever it carries, is
+            // short of a sample world's eight doors.
+            substrate.setMaximumPoolSize(TenantRuntimeManager.substratePoolFor(0));
+            substrate.setMinimumIdle(1);
             substrate.setPoolName("dbo-substrate");
             manager.substrate(new com.zaxxer.hikari.HikariDataSource(substrate));
         }

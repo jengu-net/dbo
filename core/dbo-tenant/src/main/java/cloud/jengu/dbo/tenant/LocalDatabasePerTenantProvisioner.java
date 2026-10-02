@@ -55,10 +55,12 @@ public final class LocalDatabasePerTenantProvisioner implements TenantDatabasePr
         // cost this placement decision exists to let a deployment control.
         return pools.computeIfAbsent("substrate:" + dbName, key -> {
             HikariConfig config = new HikariConfig();
-            config.setDriverClassName("org.postgresql.Driver");
-            config.setJdbcUrl(tenantUrl(dbName));
-            config.setUsername(user);
-            config.setPassword(password);
+            // Opened by the stream bundle's driver, for the reason the
+            // substrate's own pool is: the step queue's durable layer runs
+            // from that bundle, and a connection from another copy of the
+            // driver is one its listener cannot unwrap.
+            config.setDataSource(new cloud.jengu.dbo.stream.SubstrateConnections(
+                    tenantUrl(dbName), user, password));
             // Smaller than a tenant's eight: what holds a connection here is
             // the durable layer's listener and the work it hands out, not a
             // face serving reads.

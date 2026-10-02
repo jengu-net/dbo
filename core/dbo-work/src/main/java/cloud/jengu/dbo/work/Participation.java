@@ -1,12 +1,12 @@
 package cloud.jengu.dbo.work;
 
 import cloud.jengu.dbo.core.api.feed.ChangeFeed;
+import cloud.jengu.dbo.core.api.feed.ChangeKind;
 import cloud.jengu.dbo.core.api.feed.FeedChunk;
 import cloud.jengu.dbo.core.api.feed.FeedItem;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -73,21 +73,59 @@ public final class Participation {
         if (chunk.items().isEmpty()) {
             return List.of();
         }
-        List<Run> mine = new ArrayList<>();
+        java.util.Map<String, Run> mine = new java.util.LinkedHashMap<>();
         Instant now = Instant.now();
         for (FeedItem item : chunk.items()) {
+            if (ExecutorModel.TYPE.equals(item.typeName())) {
+                waitingForANewlyHeldStep(item, now)
+                        .forEach(run -> mine.putIfAbsent(run.id(), run));
+                continue;
+            }
             if (!WorkModel.TYPE.equals(item.typeName())) {
                 continue;
             }
             runs.byId(item.objectId())
                     .filter(run -> steps.contains(run.step()))
-                    .filter(run -> run.item() == null)
-                    .filter(run -> !run.claimed(now))
-                    .filter(Run::open)
-                    .ifPresent(mine::add);
+                    .filter(run -> offerable(run, now))
+                    .ifPresent(run -> mine.putIfAbsent(run.id(), run));
         }
         feed.ack(participant, chunk.nextCursor());
-        return List.copyOf(mine);
+        return List.copyOf(mine.values());
+    }
+
+    /**
+     * The work that was already waiting at a step this participant has just
+     * come to hold.
+     *
+     * <p>The cursor is acked past everything it reads, including runs of steps
+     * the participant did not hold at the time — which is right, or it would
+     * stall on other participants' work. But a participant's steps are not
+     * fixed: a runner's services arrive one by one, and a lane can be polling
+     * before the last of them has. Without this, a run waiting for a step
+     * registered a moment later is behind the cursor for good and is never
+     * offered to the participant that could do it.
+     *
+     * <p>So the moment a step is first held — its declaration CREATED, which a
+     * re-declaration is not — is read off the same feed, and what waits at
+     * that step is asked for once, by query. In feed order, so the backlog is
+     * everything behind the cursor and the feed carries everything after it.
+     */
+    private List<Run> waitingForANewlyHeldStep(FeedItem item, Instant now) {
+        if (identity == null || item.kind() != ChangeKind.CREATED || item.deleted()
+                || item.payload() == null) {
+            return List.of();
+        }
+        Declarations.Declared declared = Declarations.read(item.payload());
+        if (!declared.name().equals(identity.name()) || !steps.contains(declared.step())) {
+            return List.of();
+        }
+        return runs.waitingFor(declared.process(), declared.step()).stream()
+                .filter(run -> offerable(run, now))
+                .toList();
+    }
+
+    private static boolean offerable(Run run, Instant now) {
+        return run.item() == null && !run.claimed(now) && run.open();
     }
 
     /**

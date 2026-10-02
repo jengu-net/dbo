@@ -2871,6 +2871,7 @@ cloud.jengu.dbo.promises.DboPromises                                   PROC_A_RU
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_SLOT_IS_REFERRED_OR_GIVEN_AND_MAY_REPEAT:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_STEP_CODE_BELONGS_TO_ONE_LEVEL:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_STEP_GRANTS_THE_RIGHT_TO_OVERRIDE:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   PROC_A_STEP_HELD_LATE_IS_OFFERED_WHAT_WAITED:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_TENANT_ADMITS_OR_DECLINES_WHAT_IS_DONE_TO_IT:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_TENANT_AUTHORISES_A_REGISTER_AND_SEES_IT_CHANGE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_TENANT_READS_WHAT_IS_OPENED_OF_ITS_DATA:cloud.jengu.dbo.promises.DboPromises
@@ -3545,6 +3546,7 @@ cloud.jengu.dbo.stream.StepJoiner                                      unfollow(
 cloud.jengu.dbo.stream.StreamAsk                                       bytesOf(Object):String
 cloud.jengu.dbo.stream.StreamAsk                                       class
 cloud.jengu.dbo.stream.StreamAsk                                       signedOver(Object,Object,String):byte[]
+cloud.jengu.dbo.stream.StreamDoor                                      CONNECTIONS:int
 cloud.jengu.dbo.stream.StreamDoor                                      class
 cloud.jengu.dbo.stream.StreamDoor                                      close():void
 cloud.jengu.dbo.stream.StreamDoor                                      new(DataSource,String,cloud.jengu.dbo.runner.http.LaneHandler.SignedGrants,cloud.jengu.dbo.runner.http.LaneHandler.Lanes)
@@ -3557,6 +3559,17 @@ cloud.jengu.dbo.stream.StreamLane                                      class
 cloud.jengu.dbo.stream.StreamLane                                      close():void
 cloud.jengu.dbo.stream.StreamLane                                      holding(DataSource,String,String,cloud.jengu.dbo.work.Executor,PrivateKey,PrivateKey):cloud.jengu.dbo.stream.StreamLane
 cloud.jengu.dbo.stream.StreamLane                                      wakeups():Optional
+cloud.jengu.dbo.stream.SubstrateConnections                            class
+cloud.jengu.dbo.stream.SubstrateConnections                            getConnection():Connection
+cloud.jengu.dbo.stream.SubstrateConnections                            getConnection(String,String):Connection
+cloud.jengu.dbo.stream.SubstrateConnections                            getLogWriter():PrintWriter
+cloud.jengu.dbo.stream.SubstrateConnections                            getLoginTimeout():int
+cloud.jengu.dbo.stream.SubstrateConnections                            getParentLogger():Logger
+cloud.jengu.dbo.stream.SubstrateConnections                            isWrapperFor(Class):boolean
+cloud.jengu.dbo.stream.SubstrateConnections                            new(String,String,String)
+cloud.jengu.dbo.stream.SubstrateConnections                            setLogWriter(PrintWriter):void
+cloud.jengu.dbo.stream.SubstrateConnections                            setLoginTimeout(int):void
+cloud.jengu.dbo.stream.SubstrateConnections                            unwrap(Class):Object
 cloud.jengu.dbo.subscriptions.NotificationComposer                     compose(cloud.jengu.dbo.subscriptions.TopicSubscription,cloud.jengu.dbo.subscriptions.TopicSpec,cloud.jengu.dbo.core.api.feed.FeedItem,long):String
 cloud.jengu.dbo.subscriptions.NotificationComposer                     interface
 cloud.jengu.dbo.subscriptions.NotificationTransport                    deliver(String,String):void
@@ -4772,6 +4785,7 @@ cloud.jengu.dbo.work.Runs                                              sweep(Str
 cloud.jengu.dbo.work.Runs                                              sweep(String,String,String,List):cloud.jengu.dbo.work.Run
 cloud.jengu.dbo.work.Runs                                              tally(cloud.jengu.dbo.work.Run,Map):cloud.jengu.dbo.work.Run
 cloud.jengu.dbo.work.Runs                                              traced(cloud.jengu.dbo.work.Run,String):cloud.jengu.dbo.work.Run
+cloud.jengu.dbo.work.Runs                                              waitingFor(String,String):List
 cloud.jengu.dbo.work.Runs.Claimable                                    NOBODY:cloud.jengu.dbo.work.Runs.Claimable
 cloud.jengu.dbo.work.Runs.Claimable                                    appeared(cloud.jengu.dbo.work.Run):void
 cloud.jengu.dbo.work.Runs.Claimable                                    interface

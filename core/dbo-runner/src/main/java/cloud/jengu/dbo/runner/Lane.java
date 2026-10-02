@@ -1207,11 +1207,23 @@ public interface Lane {
                     throw new IllegalStateException(tenant + ": run '" + current.key()
                             + "' — the opening is not signed by '" + by + "'");
                 }
-                int slash = reference.indexOf('/');
-                trail.opened(current, by, reference.substring(0, slash),
-                        reference.substring(slash + 1),
+                cloud.jengu.dbo.work.RunChain.Link recorded =
                         new cloud.jengu.dbo.work.RunChain.Link("access", previous, link.link(),
-                                by, reference, link.signature()));
+                                by, reference, link.signature());
+                int slash = reference.indexOf('/');
+                if (slash < 0) {
+                    // A GIVEN object, named by its token. No record holds it
+                    // — the run carried it — so there is no document for the
+                    // entry to land on, and the run that carried it is where
+                    // the opening is recorded. Not recording it is not an
+                    // option: the participant's next link commits to this
+                    // one, and a chain missing it cannot close.
+                    trail.opened(current, by, cloud.jengu.dbo.work.WorkModel.TYPE, current.id(),
+                            recorded);
+                } else {
+                    trail.opened(current, by, reference.substring(0, slash),
+                            reference.substring(slash + 1), recorded);
+                }
                 return link.link();
             }
 

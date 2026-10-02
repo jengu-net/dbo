@@ -411,6 +411,9 @@ public final class TenantRuntimeManager implements AutoCloseable {
     private final Map<String, cloud.jengu.dbo.stream.StreamDoor> doors =
             new java.util.concurrent.ConcurrentHashMap<>();
     private volatile javax.sql.DataSource substrate;
+    /** The doors open or opening on it, which is what its pool is sized by. */
+    private final java.util.concurrent.atomic.AtomicInteger doorsHeld =
+            new java.util.concurrent.atomic.AtomicInteger();
     /**
      * The application-level processor this deployment enrols on every tenant
      * that admits a step it opens.
@@ -457,6 +460,36 @@ public final class TenantRuntimeManager implements AutoCloseable {
      */
     public void substrate(javax.sql.DataSource substrate) {
         this.substrate = substrate;
+    }
+
+    /**
+     * What a pool onto the substrate has to hold for this many doors.
+     *
+     * <p>Each door needs {@link cloud.jengu.dbo.stream.StreamDoor#CONNECTIONS},
+     * one of them for as long as it is open; the two beyond them are what is
+     * not any one door's — a door being opened, which migrates and counts its
+     * generations before it is a door, and a payload set aside beside a
+     * message.
+     */
+    static int substratePoolFor(int doorsOpen) {
+        return doorsOpen * cloud.jengu.dbo.stream.StreamDoor.CONNECTIONS + 2;
+    }
+
+    /**
+     * The substrate's pool, resized to the doors it carries or is about to.
+     *
+     * <p>Only when the pool is one that can say so: a deployment that handed
+     * in a data source of its own sized it itself, and is told nothing.
+     */
+    private void sizeSubstrate() {
+        if (substrate instanceof com.zaxxer.hikari.HikariDataSource pool) {
+            // Read under the lock rather than passed in, so two doors opening
+            // at once cannot leave the smaller of their two answers in place.
+            synchronized (doorsHeld) {
+                pool.getHikariConfigMXBean().setMaximumPoolSize(
+                        substratePoolFor(doorsHeld.get()));
+            }
+        }
     }
     /** And its replication surface. */
     private final Map<String, String> replicationContexts =
@@ -1272,8 +1305,23 @@ public final class TenantRuntimeManager implements AutoCloseable {
         if (factory == null) {
             return java.util.Optional.empty();
         }
-        return java.util.Optional.of(factory.laneFor(identity.name(), identity,
-                cloud.jengu.dbo.runner.Lane.Entitlement.ofSteps(stepCode)));
+        // The performer as the caller while the lane is built, because the
+        // lane reads its own keys as the caller's — the credential a door
+        // verified. Here nothing went through a door: the processor enrolled
+        // under the name it performs as, and that is whose keys these are.
+        String outer = cloud.jengu.dbo.core.api.Caller.current();
+        String outerFor = cloud.jengu.dbo.core.api.Caller.onBehalfOf();
+        cloud.jengu.dbo.core.api.Caller.set(identity.name());
+        try {
+            return java.util.Optional.of(factory.laneFor(identity.name(), identity,
+                    cloud.jengu.dbo.runner.Lane.Entitlement.ofSteps(stepCode)));
+        } finally {
+            if (outerFor == null) {
+                cloud.jengu.dbo.core.api.Caller.set(outer);
+            } else {
+                cloud.jengu.dbo.core.api.Caller.setChain(outer, outerFor);
+            }
+        }
     }
 
     /**
@@ -2965,8 +3013,18 @@ public final class TenantRuntimeManager implements AutoCloseable {
             // only for the types each step declared it writes.
             RunResults runResults = new RunResults(spec.code(), spec.steps(), store);
             cloud.jengu.dbo.runner.http.LaneHandler.Lanes laneFactory =
-                    (participant, identity, entitlement) ->
-                            cloud.jengu.dbo.runner.Lane.inProcess(spec.code(), laneRuns,
+                    (participant, identity, entitlement) -> {
+                        // WHOSE KEYS the asker's own are: the credential the
+                        // door verified, which the verb service has made the
+                        // caller before asking for this lane. Not the
+                        // executor's name — a worker on the stream records
+                        // runs under a name of its own while its keys are
+                        // its enrolment's — and not the participant named in
+                        // the body, which over HTTP is only a cursor's name.
+                        // The fleet's lane has no door, and makes its
+                        // performer the caller before asking.
+                        String asker = cloud.jengu.dbo.core.api.Caller.current();
+                        return cloud.jengu.dbo.runner.Lane.inProcess(spec.code(), laneRuns,
                                     laneFeed, laneDeclarations, participant, identity,
                                     runtime.engine(), laneIntroductions, entitlement,
                                     laneTrackables,
@@ -3039,20 +3097,28 @@ public final class TenantRuntimeManager implements AutoCloseable {
                                     new cloud.jengu.dbo.runner.Lane.Keys() {
                                         @Override
                                         public java.util.Optional<cloud.jengu.dbo.core.api.seal.ParticipantKey>
-                                                of(String participant) {
-                                            return authority.participantKey(participant);
+                                                of(String named) {
+                                            return authority.participantKey(holder(named));
                                         }
 
                                         @Override
                                         public java.util.Optional<cloud.jengu.dbo.core.api.seal.SigningKey>
-                                                signing(String participant) {
-                                            return authority.signingKey(participant);
+                                                signing(String named) {
+                                            return authority.signingKey(holder(named));
+                                        }
+
+                                        // The asker's own name means the
+                                        // asker's credential; any other
+                                        // name — a routee — is its own.
+                                        private String holder(String named) {
+                                            return named.equals(identity.name()) ? asker : named;
                                         }
                                     },
                                     // Nothing here says when work appears: a
                                     // participant over this door polls.
                                     null,
                                     runResults);
+                    };
             if (substrate != null) {
                 // The same lane on the store's own stream: a door per tenant
                 // on the substrate, guarded by the same authority and the
@@ -3061,9 +3127,21 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 // door so a door that fails to open leaves nothing mounted
                 // that a retry would trip over.
                 WorkGrants grants = new WorkGrants(authority);
-                cloud.jengu.dbo.stream.StreamDoor door =
-                        new cloud.jengu.dbo.stream.StreamDoor(substrate, spec.code(), grants,
-                                laneFactory);
+                // Grown BEFORE the door opens, because opening one is when
+                // its listener takes the connection it then keeps. Counted
+                // rather than read off the map, since several tenants come
+                // up at once and a door being opened is not in it yet.
+                doorsHeld.incrementAndGet();
+                sizeSubstrate();
+                cloud.jengu.dbo.stream.StreamDoor door;
+                try {
+                    door = new cloud.jengu.dbo.stream.StreamDoor(substrate, spec.code(), grants,
+                            laneFactory);
+                } catch (RuntimeException notOpened) {
+                    doorsHeld.decrementAndGet();
+                    sizeSubstrate();
+                    throw notOpened;
+                }
                 doors.put(spec.code(), door);
                 // The door is how a tenant says it has work to a fleet that
                 // holds no connection into it: a run becoming claimable
@@ -4258,6 +4336,8 @@ public final class TenantRuntimeManager implements AutoCloseable {
         cloud.jengu.dbo.stream.StreamDoor door = doors.remove(code);
         if (door != null) {
             door.close();
+            doorsHeld.decrementAndGet();
+            sizeSubstrate();
         }
         // After the subscriptions above have been closed, so nothing is left
         // holding a reference to a door that is going: a seam that outlived

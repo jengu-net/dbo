@@ -222,7 +222,12 @@ public final class Declarations {
     }
 
     private static Declared read(StoredObject stored) {
-        Object json = Json.parse(new String(stored.payload(), StandardCharsets.UTF_8));
+        return read(stored.payload());
+    }
+
+    /** A declaration as its record's payload holds it, for a reader of the feed. */
+    static Declared read(byte[] payload) {
+        Object json = Json.parse(new String(payload, StandardCharsets.UTF_8));
         Object consumer = ((Map<?, ?>) json).get("consumer");
         java.util.Map<String, String> metadata = new java.util.LinkedHashMap<>();
         if (((Map<?, ?>) json).get("metadata") instanceof Map<?, ?> block) {
