@@ -61,7 +61,7 @@ dependencies {
     // the shared stack has its own copy inside and exports none of it, and a
     // second exporter of com.fasterxml.jackson.core would be a split package
     // over a library two bundles use for different things.
-    embedded("com.fasterxml.jackson.core:jackson-core:2.22.1")
+    embedded("com.fasterxml.jackson.core:jackson-core:2.22.3")
     testImplementation("org.junit.jupiter:junit-jupiter:5.11.4")
     // this face's tests cite the store's promises; dbo-promises is a leaf
     // (it depends on the promise framework and nothing else), so citing from
