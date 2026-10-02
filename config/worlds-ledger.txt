@@ -34,7 +34,7 @@
 #
 # undecided-allowed: 0
 ADefinitionIsExpandedWhenItArrivesIT                     first boot
-ADeploymentIsEquippedBeforeItStartsIT                    deployment
+ADeploymentIsEquippedBeforeItStartsIT                    deployment — an image directory set between bring-ups beside a tenant that read the chain, a bootstrap secret in custody, the hub's upstream and the zone's broker secrets, all given to the runtime before it is built; the image legs that need none of that walk the world in the standard-moves story
 AHostHoldsALaneByInstallingABundleIT                     container
 AParticipantHoldsItsLaneOnTheStreamIT                    whole plane
 ARollingUpgradeReadsAsOneStepIT                          deployment — two nodes, each built with a step catalogue of its own carrying one step at two versions; the sample world is one node

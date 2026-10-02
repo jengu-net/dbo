@@ -628,7 +628,12 @@ broker, and one r4 face root under both the image legs and the projection
 legs. It folds `AFaceIsCutOnceAndBroughtUpFromIT`,
 `ATenantComesUpFromTheFaceImageIT`, `AZoneReachesAnotherFaceThroughOneProjectionIT`,
 `ADeploymentPresentsItsOwnCredentialIT`, `ZoneIT` and `FederatedAuthIT`, which
-are deleted. The hub legs could move to Rowling Land with a world change rather
+are deleted. Two of its image legs moved to the world, where the stories keep
+images too: a second root on a version loading it from the image is leg `40`
+of the standard-moves story, judged by its definitions predating it rather than
+by a timing, and the first tenant on a version cutting it is leg `39` there.
+What stays needs an image directory set between bring-ups, a chain-read tenant
+to compare against, a secret in custody or the hub's brokers. The hub legs could move to Rowling Land with a world change rather
 than a test change: `rl` brokers its members but declares no person identifier
 domain, so a member cannot resolve the hub's subject. Two classes stay on their
 own: `WhatTheLoadedSpecificationCostsIT`, which measures the specification's

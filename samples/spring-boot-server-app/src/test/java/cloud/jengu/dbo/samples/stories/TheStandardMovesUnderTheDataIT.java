@@ -423,6 +423,52 @@ class TheStandardMovesUnderTheDataIT {
         }
     }
 
+    @Test
+    @Order(40)
+    @DisplayName("a second root on a version the world already serves loads it from the image "
+            + "rather than reading the packages again, and publishes what it loaded")
+    @Proving(DboPromises.TEN_A_TENANT_COMES_UP_FROM_THE_FACE_IMAGE)
+    void aSecondRootLoadsTheVersion() {
+        // The database's own clock, read before the root exists: a definition
+        // the root read for itself is written after this, and one it loaded
+        // carries the moment the world's first root wrote it.
+        WhatTheDatabaseHolds server = WhatTheDatabaseHolds.theServer(environment);
+        String before = server.one("SELECT now()::text");
+        String second = names.tenant("second-root");
+        dbo.declare(second, """
+                {"code":"%s","face":"r4","faceRoot":true,"audit":{"level":"none"},
+                 "types":[
+                  {"name":"StructureDefinition","identity":"canonical","handling":"operational"},
+                  {"name":"SearchParameter","identity":"canonical","handling":"operational"},
+                  {"name":"ValueSet","identity":"canonical","handling":"operational"},
+                  {"name":"CodeSystem","identity":"canonical","handling":"operational"}]}"""
+                .formatted(second));
+        try {
+            assertTrue(dbo.until(second, true, Duration.ofMinutes(10)),
+                    second + " never came up: " + dbo.serving());
+            String data = cloud.jengu.dbo.core.api.Domains.tables(
+                    cloud.jengu.dbo.core.api.Domains.DEFINITIONS);
+            WhatTheDatabaseHolds itself = new WhatTheDatabaseHolds(environment, second);
+            WhatTheDatabaseHolds first = new WhatTheDatabaseHolds(environment, "fhir-r4");
+            long loaded = itself.count("SELECT count(*) FROM " + data
+                    + "_data WHERE last_updated < ?::timestamptz", before);
+            long held = first.count("SELECT count(*) FROM " + data + "_data");
+            Proves.that(DboPromises.TEN_A_TENANT_COMES_UP_FROM_THE_FACE_IMAGE,
+                    loaded > 1000 && loaded <= held,
+                    "the second root holds " + loaded + " definitions written before it "
+                            + "existed, against the " + held + " the world's root holds, so it "
+                            + "read the packages again rather than loading what was cut");
+            // A root exists to be streamed from, so what it loaded has to be
+            // offered too: a root holding every definition and publishing none
+            // would leave its subscribers reading an empty feed.
+            Proves.that(DboPromises.TEN_A_TENANT_COMES_UP_FROM_THE_FACE_IMAGE,
+                    itself.count("SELECT count(*) FROM " + data + "_outbox") > 1000,
+                    "the second root publishes nothing of what it loaded");
+        } finally {
+            dbo.retract(second);
+        }
+    }
+
     // ── helpers ───────────────────────────────────────────────────────────
 
     private String oldStock;
