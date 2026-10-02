@@ -90,6 +90,11 @@ final class Json {
                 }
                 sb.append('"');
             }
+            // Plain where it was read plain: BigDecimal's own toString turns
+            // 0.0000001 into 1E-7, and a decimal read from a literal with no
+            // exponent has a scale of zero or more.
+            case java.math.BigDecimal decimal -> sb.append(
+                    decimal.scale() >= 0 ? decimal.toPlainString() : decimal.toString());
             default -> sb.append(node);
         }
     }
@@ -165,6 +170,9 @@ final class Json {
                     char esc = s.charAt(i++);
                     switch (esc) {
                         case 'n' -> sb.append('\n');
+                        case 'r' -> sb.append('\r');
+                        case 'b' -> sb.append('\b');
+                        case 'f' -> sb.append('\f');
                         case 't' -> sb.append('\t');
                         case 'u' -> {
                             sb.append((char) Integer.parseInt(s, i, i + 4, 16));
@@ -188,13 +196,27 @@ final class Json {
                 case "true" -> Boolean.TRUE;
                 case "false" -> Boolean.FALSE;
                 case "null" -> null;
-                default -> {
-                    if (literal.contains(".") || literal.contains("e") || literal.contains("E")) {
-                        yield Double.parseDouble(literal);
-                    }
-                    yield Long.parseLong(literal);
-                }
+                default -> number(literal);
             };
+        }
+
+        /**
+         * A number as written. A whole one is a {@code Long}; anything else is
+         * a {@code BigDecimal} built from the literal, because that is how the
+         * store carries a decimal everywhere else and the only form that keeps
+         * its precision — a FHIR {@code 37.40} read as a double is written
+         * back as {@code 37.4}, which is a different value to FHIR.
+         */
+        private static Number number(String literal) {
+            if (literal.indexOf('.') < 0 && literal.indexOf('e') < 0
+                    && literal.indexOf('E') < 0) {
+                try {
+                    return Long.parseLong(literal);
+                } catch (NumberFormatException tooLong) {
+                    // Past a long, and still exact as a decimal.
+                }
+            }
+            return new java.math.BigDecimal(literal);
         }
 
         private void skipWs() {

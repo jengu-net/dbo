@@ -117,6 +117,9 @@ final class Json {
                     char esc = s.charAt(i++);
                     switch (esc) {
                         case 'n' -> sb.append('\n');
+                        case 'r' -> sb.append('\r');
+                        case 'b' -> sb.append('\b');
+                        case 'f' -> sb.append('\f');
                         case 't' -> sb.append('\t');
                         case 'u' -> {
                             sb.append((char) Integer.parseInt(s, i, i + 4, 16));
@@ -140,8 +143,27 @@ final class Json {
                 case "true" -> Boolean.TRUE;
                 case "false" -> Boolean.FALSE;
                 case "null" -> null;
-                default -> Long.parseLong(literal);
+                default -> number(literal);
             };
+        }
+
+        /**
+         * A number as written. A whole one is a {@code Long}; anything else is
+         * a {@code BigDecimal} built from the literal, because that is how the
+         * store carries a decimal everywhere else and the only form that keeps
+         * its precision — a FHIR {@code 37.40} is not a {@code 37.4}, and a
+         * step's given object is written back out from what this returns.
+         */
+        private static Number number(String literal) {
+            if (literal.indexOf('.') < 0 && literal.indexOf('e') < 0
+                    && literal.indexOf('E') < 0) {
+                try {
+                    return Long.parseLong(literal);
+                } catch (NumberFormatException tooLong) {
+                    // Past a long, and still exact as a decimal.
+                }
+            }
+            return new java.math.BigDecimal(literal);
         }
 
         private void skipWs() {

@@ -241,7 +241,7 @@ class TheClinicRecordsCareAndAccountsForItIT {
                 {"resourceType":"Observation","id":"temperature","status":"final",
                  "code":{"text":"Body temperature"},
                  "subject":{"reference":"Patient?identifier=%s|%s"},
-                 "valueQuantity":{"value":38}}""".formatted(MRN, hers()), """
+                 "valueQuantity":{"value":37.4}}""".formatted(MRN, hers()), """
                 {"resourceType":"Observation","status":"final",
                  "code":{"text":"Visit summary"},
                  "subject":{"reference":"Patient?identifier=%s|%s"},
