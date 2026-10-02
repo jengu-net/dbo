@@ -60,7 +60,7 @@ others, and what it read, when, and what it was for is written down as the job
 runs rather than reconciled afterwards. A plain read still reaches the data
 too, and closing that is unfinished.</p>
 
-[How work is declared, and performed →](docs/guide/work/)
+[How work is declared, and performed →](docs/guide/processes-and-steps/)
 </div>
 </section>
 
@@ -81,7 +81,7 @@ including the operator, so it is evidence rather than a log somebody could have
 tidied.
 
 <p class="start">Start with <a href="docs/guide/personal-data/">personal data</a>, then
-<a href="docs/guide/erasure/">erasure</a>.</p>
+<a href="docs/guide/what-a-person-can-ask-for/">what a person can ask for</a>.</p>
 </div>
 
 <div class="col" markdown>
@@ -92,8 +92,8 @@ data never means being able to read it. Backup is export and restore is import,
 so every backup is restore-tested by daily use. One PostgreSQL database per
 tenant and nothing else to operate — no broker, no cache, no search cluster.
 
-<p class="start">Start with <a href="docs/guide/lifecycle/">a tenant's whole
-life</a>, then <a href="docs/guide/export-and-import/">leaving</a>.</p>
+<p class="start">Start with <a href="docs/guide/a-tenant-opens/">a tenant
+opening</a>, then <a href="docs/guide/export-and-import/">leaving</a>.</p>
 </div>
 
 <div class="col" markdown>
@@ -104,8 +104,8 @@ declaration is where the domain lives. Work is a record in the same store as the
 data, which is what lets two organisations that do not trust each other share a
 process rather than a file drop.
 
-<p class="start">Start with <a href="docs/guide/how-it-fits/">the engine and its
-faces</a>, then <a href="docs/guide/work/">work</a>.</p>
+<p class="start">Start with <a href="docs/guide/tenants-and-faces/">tenants and
+faces</a>, then <a href="docs/guide/processes-and-steps/">processes and steps</a>.</p>
 </div>
 </div>
 </div>

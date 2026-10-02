@@ -2,111 +2,38 @@
 title: Terminology
 eyebrow: Guide
 standfirst: >-
-  Code systems and value sets are records like any other — written, read,
-  searched and versioned — and the codes a write is validated against are
-  those records, not a table somebody loaded.
+  Code systems and value sets are records like any other, and the codes a
+  record is checked against are those records rather than a table somebody
+  loaded.
 template: essay.html
 ---
 
-[Validation](validation.md) ended on a refusal you could not fully explain. The store said a
-code was not in a value set and named the value set by url and version. This
-chapter is where those come from, and why you did not have to install anything
-for it to happen.
+## Terminology is records
 
-The short version: **terminology is records**. A code system is a resource you
-write, read, search and version like a patient. There is no terminology table,
-no lookup service to deploy, and no second copy to keep in step.
+A tenant that declares `CodeSystem` and `ValueSet` holds them, identified by
+their canonical `url`, written, versioned and searched like a patient. There is
+no terminology table and no lookup service to deploy. Every tenant answers
+`$lookup`, `$expand` and `$validate-code` from its own concepts, whichever FHIR
+version it speaks.
 
-## Writing one
+## Where it comes from
 
-A tenant that declares `CodeSystem` and `ValueSet` can hold them. In this
-world that is `rl` — why it is the one holding them is the subject of the
-zones chapter; here it is simply a tenant with the types declared.
+Most of a tenant's terminology is somebody else's: the version's own, from its
+face root, and a jurisdiction's, from its zone. Both arrive because the tenant
+declared a dependency on them, as `replicated` copies it cannot edit
+([one tenant in two places](one-tenant-in-two-places.md)). A code system arrives
+whole and is taken apart into the tenant's own concepts, so it is answered
+locally rather than by a server that may not be reachable this afternoon.
 
-```bash
---8<-- "docs/guide/examples/snippets/zone-publishes.sh"
-```
+A tenant may hold code systems of its own too. One with the same canonical as
+an upstream copy shadows it, and says so.
 
-```
-201
-201
-```
+## What a code means here
 
-Two ordinary writes. Both types are declared with `identity: canonical`, which
-[Records](records.md) covered: they are identified by their `url`, so writing one twice
-replaces it rather than making a second.
-
-## It answers questions, not just stores documents
-
-A code system that is only stored is a document. Ask it something:
-
-```bash
---8<-- "docs/guide/examples/snippets/zone-lookup.sh"
-```
-
-```json
-{"resourceType":"Parameters","parameter":[
-  {"name":"name","valueString":"urn:rl:wards"},
-  {"name":"display","valueString":"Dai Llewellyn Ward"}]}
-```
-
-And a value set composed over it expands to the concepts it includes:
-
-```bash
---8<-- "docs/guide/examples/snippets/zone-expand.sh"
-```
-
-```
-4 concepts
-  creature Creature-Induced Injuries
-  dai Dai Llewellyn Ward
-  potion Potion and Plant Poisoning
-  spell Spell Damage
-```
-
-The expansion was computed from the concepts as records. Nothing was
-pre-rendered at write time, so a code added to the system is in the next
-expansion without a rebuild step.
-
-## The standard's own terminology is no different
-
-The value set that refused `purple` in [Validation](validation.md) is not a
-special case:
-
-```bash
---8<-- "docs/guide/examples/snippets/core-terminology.sh"
-```
-
-```json
-{"resourceType":"Parameters","parameter":[
-  {"name":"name","valueString":"http://hl7.org/fhir/administrative-gender"},
-  {"name":"display","valueString":"Female"}]}
-```
-
-That code system is in the tenant, as records, and the validator read it there.
-Which is also why the insurer validates against R4's copy of that value set and
-the hospital against R5's, with no flag passed by any caller: they hold
-different records.
-
-The store's own vocabularies are records too — the codes for handling, for
-audit events, for processes, steps and runs. Everything the store says about
-itself, it says in the shape it asks you to use.
-
-<div class="further" markdown>
-This chapter is the mechanism: what a code system is, and what it answers.
-*Whose* codes they are, how a jurisdiction publishes them and how they reach
-the tenants that agreed to take them, is the zones chapter.
-</div>
-
-## What you would otherwise have written
-
-A terminology table, and the import job that fills it, and the question of
-which release of which code system it currently holds.
-
-Then the second copy, because the validator needs one too, and the drift
-between them that nobody notices until a code validates in one place and not
-the other.
-
-And a lookup service in front of both, with its own availability, so that a
-write can fail because terminology is down rather than because the code was
-wrong.
+A coded value is checked against the terminology the tenant holds, and the
+answer follows the binding's strength: a required binding violated is a
+refusal, a weaker one is advice the caller is given. A system the tenant never
+loaded is **unresolvable** rather than invalid: one says this store's content
+is incomplete and the other says the caller's data is wrong, and a caller who
+cannot tell them apart cannot act on either
+([care is recorded](care-is-recorded.md#what-the-store-guarantees)).

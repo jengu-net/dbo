@@ -131,11 +131,11 @@ The tenant is twelve lines of JSON, and it is the whole model:
 ```
 
 `face` is which standard is mapped onto the engine — [the engine has no FHIR in
-it](../docs/guide/how-it-fits.md). `identity` says how this type is identified, which decides
+it](../docs/guide/tenants-and-faces.md). `identity` says how this type is identified, which decides
 what a conditional write means. `handling` is the declaration the engine
 enforces: versioned, audited, retained, exportable. And `code` got its own
 database, which is [why a forgotten filter returns
-nothing](../docs/guide/personal-data.md).
+nothing](../docs/guide/tenants-and-faces.md).
 
 ## Two things here that a deployment must not copy
 

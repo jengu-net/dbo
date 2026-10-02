@@ -2,157 +2,67 @@
 title: Personal data
 eyebrow: Guide
 standfirst: >-
-  A tenant can put the elements that identify a person behind a membrane — held
-  encrypted under that person's own key, reassembled for a reader who may see
-  them, and answered for only when the asker says why.
+  A tenant can put what identifies a person behind a membrane: sealed under
+  that person's own key, reassembled for a reader who may see it, answered for
+  only when the asker says why, and erased by destroying the key.
 template: essay.html
 ---
 
-Most stores treat *personal data* as a policy: a column marked sensitive, a
-review before an export, a rule somebody is supposed to follow. It works until
-the one time somebody does not follow it.
-
-Here it is structural. A tenant that declares it keeps the identifying elements
-of a person somewhere the main store cannot read, and everything that reaches
-them goes through a door that records what it did.
-
 ## One line turns it on
 
-```json
-"pdi": true
-```
-
-That is the whole declaration, and it is **per tenant** — a deployment can hold
-a clinical tenant behind the membrane and a terminology tenant that has no
+`"pdi": true` in a tenant's declaration, decided when the tenant is declared,
+because it moves where identifying data lives. It is per tenant: a deployment
+can hold a clinical tenant behind the membrane and a terminology tenant with no
 people in it at all.
 
-!!! warning "It is a cold change"
+## What is sealed
 
-    Turning it on moves where identifying data lives, so it is not something a
-    serving tenant absorbs — the same class of change as switching a tenant's
-    face. Decide it when the tenant is declared. [Lifecycle](lifecycle.md) has
-    the general rule.
+The face says which elements identify somebody, for the types that are about
+people — `Person`, `Patient`, `Practitioner`, `RelatedPerson`. Their
+identifiers, names, contact details, addresses and photos are held in the
+tenant's person vault under the person's own key; the birth date is sealed too,
+with the year kept in the clear beside it so a reader not entitled to the date
+can still work with an age band. What the main store holds is pseudonymous: a
+sealed blob and a pseudonym, and none of the person in a form an operator, a
+backup or a replica could read.
 
-## What counts as identifying
+Each person has a key of their own, stored wrapped under the deployment's
+working key, which comes from custody rather than from the store. A person's
+`Patient` and the `Person` who is them are one human under one key.
 
-Not a guess, and not a per-field annotation somebody maintains. The face
-declares it for the types that are about people — `Person`, `Patient`,
-`Practitioner`, `RelatedPerson`:
+## Reading is unchanged; asking is not
 
-| Element | What happens to it |
-|---|---|
-| `identifier`, `name`, `telecom`, `address`, `photo`, `contact` | **sealed** — held in the vault under the person's key |
-| `birthDate` | **generalised** — sealed like the rest, with the year kept in the clear beside it |
+A caller who may see the person gets the whole record back, reassembled, with
+nothing to remember. A caller who may not gets it without the person. What a
+recipient sees is declared, not inferred from how much it may write, and the
+strict mode is the default
+([what a person can ask for](what-a-person-can-ask-for.md)).
 
-That last row is worth a sentence, because it looks like a compromise and is
-not. The exact date is sealed with everything else; what is kept in the clear
-is the year alone. A reader holding the key still gets the whole date — the
-lookup below returns `1980-07-31` — and a reader without it sees a year.
+What changes is asking. A search by name is refused rather than answered empty,
+because an empty answer would say nobody here is called that. A lookup by an
+identifier is an identification, refused until the request states a purpose in
+its `Purpose-Of-Use` header, and the trail records the purpose. A purpose is an
+assertion, never an authorisation: it widens nothing.
 
-The coarse value has to be computed on write, because a reader who cannot
-decrypt has no plaintext to derive a year *from*. What it buys is ordinary
-clinical work — cohorts, age bands, plausibility — for readers who are not
-entitled to a birth date.
+## Doors of their own
 
-## Reading is unchanged, which is the point
+Identifying somebody, deriving and resolving a pseudonym, keeping content
+sealed to a person, and erasing somebody are each a door with a scope a grant
+over the records does not reach. A credential that may write every type may
+knock on none of them.
 
-A caller who may see the person gets the whole resource back, reassembled. No
-second call, no decrypt step, no flag to remember.
+## Erasure destroys the key
 
-That is deliberate and it is the difference between a membrane and a
-convention: **isolation is beneath the API, not a caller discipline.** Code that
-was written before the tenant turned this on keeps working, and code written
-after it cannot forget to do the right thing, because there is nothing to
-forget.
+Erasing a person destroys their key. Every copy of their identifying data —
+the history, the archives, an appliance that replicated it last week — becomes
+pseudonymous at once, with nobody chasing rows across systems that may not be
+reachable. History stays byte for byte; the person goes out of it. Being erased
+and being undisclosed are different states, and only the second is reversible
+by a better credential.
 
-What changes is not reading. It is *asking*.
+Erasure is asked for like work and answered by a run: asking twice finds the
+same run, and its tally says how far it got and whether there was a key to
+destroy. The trail survives it, and stops naming anybody.
 
-## Asking by name is refused, not answered empty
-
-```bash
---8<-- "docs/guide/examples/snippets/pdi-name-search.sh"
-```
-
-```
-this store holds Patient.name under the membrane and cannot match on it: only
-exact lookup on the elements it indexes is supported, and a name is not one of
-them. An empty result would have said nobody matches, which is a different
-thing.
-```
-
-Under the membrane the identifying elements are not in the searchable payload
-at all, so a name query matches nothing — and returning an empty bundle would
-say **nobody here is called that**, which is a different fact with a different
-consequence.
-
-!!! danger "The silence is the hole this exists to close"
-
-    An answer a caller cannot distinguish from the truth is worse than a
-    refusal they can act on, and this one would never appear in a read audit —
-    because no read happened. A store that quietly answered *no matches* would
-    be lying to a clinician looking for a patient who is right there.
-
-So it says it cannot match on that element, rather than pretending the answer
-is empty.
-
-## Exact lookups work, and say why they are asking
-
-What the vault *does* index is exact: a claimed identifier, `system|value`. That
-is the question a real integration asks — a national number, a chart number,
-somebody arriving with a referral.
-
-```bash
---8<-- "docs/guide/examples/snippets/search.sh"
-```
-
-But the credential has to have said what it is for:
-
-```bash
---8<-- "docs/guide/examples/snippets/pdi-no-purpose.sh"
-```
-
-```
-searching Patient by identifier is an identifying access and needs a stated
-purpose — an HL7 PurposeOfUse code such as TREAT or PATRQT. Without one this
-store will not match on it, and will not pretend the answer is empty.
-```
-
-Resolving a person by their national number is a **disclosure**, and a
-disclosure without a stated reason is refused. The hospital's own credential
-states `TREAT`, which is why every other chapter's searches work —
-[Authority](authority.md) is where that is set.
-
-The match itself runs over keyed hashes rather than values, and every
-resolution leaves a fingerprint in [the trail](the-trail.md). After erasure the
-answer is empty, and the person is not distinguishable from one who was never
-here — which is [Erasure](erasure.md).
-
-## What the store holds when nobody is looking
-
-Pseudonymous records. The payload in the main store carries the clinical
-content and not the person; the identifying elements are ciphertext in the
-vault, wrapped per person.
-
-This is what makes the operational story honest rather than aspirational: a
-backup, a restore, a replica, an operator with database access — none of them
-reach identifying data, because it is not there in a readable form.
-[Encryption](encryption.md) is how the keys work, and
-[Export and import](export-and-import.md) is the archive carrying ciphertext
-end to end.
-
-## What you would otherwise have written
-
-A column-level encryption scheme, and the key-management story that was going
-to be a later ticket.
-
-A rule that says *do not log identifiers*, and the grep you run after somebody
-does.
-
-A search that quietly returns nothing for data you cannot index, and the
-support ticket from a clinician who was certain the patient was there.
-
-A purpose-of-use field threaded through every call, validated by nothing, blank
-in a third of the rows — and the audit question it cannot answer.
-
-And the conversation about whether the analytics replica counts as personal
-data, held after it was built.
+Erasing a whole tenant is different: an operator drops its database
+([running it](running-it.md#a-tenant-is-erased)).

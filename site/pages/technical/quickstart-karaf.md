@@ -136,7 +136,7 @@ JSON
 
 `face` is which standard is mapped onto the engine, and `r5` is a different
 answer from the `r4` the example tenant gives — [the engine has no FHIR in
-it](../docs/guide/how-it-fits.md), so both faces sit over the same store. Give it a
+it](../docs/guide/tenants-and-faces.md), so both faces sit over the same store. Give it a
 minute; a face and a vocabulary are being built from nothing.
 
 ```bash
