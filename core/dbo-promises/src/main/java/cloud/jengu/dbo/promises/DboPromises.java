@@ -1273,6 +1273,12 @@ public enum DboPromises implements Promise {
     TEN_REGISTRY_SCOPED_ACCESS(
             "Application code obtains a tenant's data services from the service "
             + "registry and can use them without ever seeing credentials. (R5, §4)"),
+    TEN_ERASURE_HAS_A_DOOR_OF_ITS_OWN(
+            "Erasing a tenant is asked at a door of its own, behind a credential the deployment "
+            + "gives for erasure and for nothing else: the operator's own token reads the node "
+            + "and erases nothing. Every erasure states its reason, which is recorded beside who "
+            + "asked; a tenant still declared, and the management tenant, are refused; and "
+            + "asking again for an erasure that already happened answers the same."),
     TEN_ERASURE_BY_DROP(
             "Dropping a tenant's database and blob storage removes all its data — "
             + "including durable workflow history and feed state."),

@@ -24,6 +24,9 @@ dbo:
   # same as anybody running the store would set.
   framework:
     "[dbo.tenant.ops.token]": stories-ops
+    # And, separately, whoever it gave erasure to: the one act here nobody
+    # takes back is not something reading the node entitles anybody to.
+    "[dbo.tenant.erase.token]": stories-erase
   worker:
     poll: 500ms
     # BOTH CARRIERS, ONE WORKER. Hogwarts' lane is over HTTP, as the

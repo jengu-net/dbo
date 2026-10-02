@@ -718,6 +718,9 @@ public final class Activator implements BundleActivator {
         // A runtime can be asked what it is serving, when a deployment has
         // said who may ask.
         manager.serveRuntimeState(ctx.getProperty("dbo.tenant.ops.token"));
+        // And erased, by whoever a deployment gave erasure to: a token of its
+        // own, because it is the one act here that cannot be undone.
+        manager.serveErasure(ctx.getProperty("dbo.tenant.erase.token"));
         watchExtensions(ctx);
         // The durable substrate, when this deployment has one: each tenant's
         // lane then has a door on the stream beside its HTTP door, for a

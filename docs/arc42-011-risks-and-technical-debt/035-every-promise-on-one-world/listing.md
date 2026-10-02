@@ -89,7 +89,7 @@ Story class: `TheClinicRecordsCareAndAccountsForItIT` — exists; today shared.
 | `ATenantAuthorsItsOwnSearchParameterIT` | own (sweep) | 4 | 3 | deleted |
 | `ATenantDeliversWhatItSubscribedToIT` | shared | 2 | 2 | deleted |
 | `TheEnvelopeIsTheSameFromEitherSideIT` | shared | 2 | 2 | stays — trimmed to the two in-process store legs; the version measured |
-| `ABlobIsTenantDataIT` | own (lifecycle) | 1 | 1 | deleted; walked in `ATenantIsErasedIT` |
+| `ABlobIsTenantDataIT` | own (lifecycle) | 1 | 1 | deleted; walked in `AClinicIsErasedIT` (story, on the world) |
 | `ATenantHoldsItsOwnDeclarationIT` | shared | 2 | 1 | deleted |
 | `ATypeSaysWhereItsEnvelopeIsComputedIT` | shared | 1 | 1 | deleted |
 | `ContentHeldWholeIsReachableOverTheWireIT` | shared | 1 | 1 | deleted |
@@ -133,7 +133,7 @@ Story class: `TheClinicRecordsCareAndAccountsForItIT` — exists; today shared.
 | `EVT_DURABLE_DELIVERY` | — |  | PLANNED — nothing cites it |
 | `EVT_FHIR_SUBSCRIPTIONS` | — | W | to fit |
 | `EVT_IN_PROCESS_SURFACE` | — |  | PLANNED — nothing cites it |
-| `OPS_TENANT_BLOBS_ARE_TENANT_DATA` | `ATenantIsErasedIT` | W | US-DBO-A-TENANT-IS-ERASED |
+| `OPS_TENANT_BLOBS_ARE_TENANT_DATA` | `AClinicIsErasedIT` | | US-DBO-A-TENANT-IS-ERASED |
 | `OPS_TENANT_BLOB_STORAGE` | — |  | PLANNED — nothing cites it |
 | `POL_APPEND_ONLY_DISCIPLINE` | without a world: PolicyIT |  | assert where the story passes it |
 | `POL_CUSTOM_AUDIT_EVENTS` | without a world: ContributedAuditEventTest, PolicyIT |  | assert where the story passes it |
@@ -166,7 +166,7 @@ Story class: `WhatAPersonCanAskForIT` — on the world, at Hogwarts.
 |---|---|---|---|---|
 | `AHumanHeldAsTwoRecordsIT` | shared | 6 | 3 | deleted |
 | `DelegationIT` | shared | 2 | 2 | deleted |
-| `TenantRuntimeIT` | own (sweep) | 4 | 2 | deleted; walked in `ATenantIsErasedIT` |
+| `TenantRuntimeIT` | own (sweep) | 4 | 2 | deleted; walked in `AClinicIsErasedIT` (story, on the world) |
 | `APseudonymResolvesBackToItsPersonIT` | shared | 2 | 1 | deleted; its page-boundary walk is `PdiIT#theWalkCrossesItsOwnPageBoundary`, without a world |
 | `AStoreWithoutSuperuserStillMountsIT` | own (sweep) | 1 | 1 | stays: it needs a store role that is not superuser, and the world's is; it is also the proof that an isolated tenant refuses a database that would log its people |
 | `IdentificationIsReachableFromOutsideIT` | shared | 1 | 1 | deleted |
@@ -207,7 +207,7 @@ Story class: `WhatAPersonCanAskForIT` — on the world, at Hogwarts.
 | `PROC_CONFIG_APPLIES_AS_A_SWEEP` | `TenantRuntimeIT` |  | to fit |
 | `SCIM_DEPROVISION_IS_A_STATE` | `TheGuideRunsIT` | W | to fit |
 | `SRCH_HONEST_CAPABILITY` | — | W | in clinical record's legs |
-| `TEN_ERASURE_BY_DROP` | `ATenantIsErasedIT` | W | US-DBO-A-TENANT-IS-ERASED |
+| `TEN_ERASURE_BY_DROP` | `AClinicIsErasedIT` | | US-DBO-A-TENANT-IS-ERASED |
 | `TERM_EVERY_TENANT_ANSWERS` | `TenantRuntimeIT` | W | to fit |
 | `VER_CONCURRENT_VERSIONS` | `TenantRuntimeIT` |  | to fit |
 
@@ -654,10 +654,11 @@ none after the window, so on a busy tenant the last run of a burst may go
 unannounced until the poll. Not proven: the story's wake-up leg runs on a
 quiet tenant, before any other leg has made a run of its step.
 
-**Erasure has no door.** `TenantRuntimeManager.erase` is an operator act and
-nothing a deployment serves reaches it, so erasure-by-drop is proven only
-against the provisioner — now the technical story US-DBO-A-TENANT-IS-ERASED,
-in `ATenantIsErasedIT`, one runtime for what was two.
+**Erasure has a door.** `POST /runtime/erase/<code>`, under a token of its
+own rather than the operator's, with a reason, refusing a tenant still
+declared and answering the same when asked again. US-DBO-A-TENANT-IS-ERASED is
+walked on the world by `AClinicIsErasedIT`, on a clinic the story declares,
+retracts and erases, and `ATenantIsErasedIT` is deleted.
 
 **Libraries proven without a runtime.** `ARunsTrailIsChainedFromTheTaskIT`
 (the pruned trail), `AnApplianceCarriesPatientDataByWorkIT` (the appliance

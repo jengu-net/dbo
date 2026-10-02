@@ -3021,6 +3021,7 @@ cloud.jengu.dbo.promises.DboPromises                                   TEN_CREDE
 cloud.jengu.dbo.promises.DboPromises                                   TEN_DECLARED_TOGETHER_COME_UP_TOGETHER:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_DEDICATED_DATABASE_TIER:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_ERASURE_BY_DROP:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   TEN_ERASURE_HAS_A_DOOR_OF_ITS_OWN:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_FAIRNESS_QUOTAS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_READY_WHEN_ITS_CRITICAL_DEFINITIONS_ARRIVED:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_REGISTRY_SCOPED_ACCESS:cloud.jengu.dbo.promises.DboPromises
@@ -4102,6 +4103,8 @@ cloud.jengu.dbo.tenant.TenantDeclarationModel                          TYPE:Stri
 cloud.jengu.dbo.tenant.TenantDeclarationModel                          class
 cloud.jengu.dbo.tenant.TenantDeclarationModel                          of(String):cloud.jengu.dbo.core.api.Identifier
 cloud.jengu.dbo.tenant.TenantDeclarationModel                          registrations():List
+cloud.jengu.dbo.tenant.TenantRuntimeManager                            ERASER:String
+cloud.jengu.dbo.tenant.TenantRuntimeManager                            ERASE_PATH:String
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            ERASE_STEP:String
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            RETRACT_STEP:String
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            SERVE_STEP:String
@@ -4119,6 +4122,7 @@ cloud.jengu.dbo.tenant.TenantRuntimeManager                            codes():S
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            databaseOf(String):Optional
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            declaredFrom(cloud.jengu.dbo.sync.ConfigSource):cloud.jengu.dbo.tenant.TenantRuntimeManager
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            erase(String):void
+cloud.jengu.dbo.tenant.TenantRuntimeManager                            erase(String,String):void
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            faceImagesIn(Path):cloud.jengu.dbo.tenant.TenantRuntimeManager
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            factsOf(String):Optional
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            fleetDisagreements(String):List
@@ -4138,6 +4142,7 @@ cloud.jengu.dbo.tenant.TenantRuntimeManager                            pruneSign
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            redeclarations():Map
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            runtime(String):Optional
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            scanOnce():Set
+cloud.jengu.dbo.tenant.TenantRuntimeManager                            serveErasure(String):void
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            serveRuntimeState(String):void
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            shapesRound():int
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            start(long):void

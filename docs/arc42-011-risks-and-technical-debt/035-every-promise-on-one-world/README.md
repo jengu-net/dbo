@@ -4,13 +4,13 @@ and a half minutes. Of the harness classes that booted a world, 55 are deleted
 and every other one is classified in the listing with the reason it stays —
 grouped into the technical stories they become (the version measured,
 bring-up made to go wrong, what a deployment is given before it starts, a
-deployment with a substrate, erasure that has no door, a second container)
+deployment with a substrate, a second container)
 or deferred with the eleven set aside at the start. Walking the stories found
 eight store defects, each fixed with a test that fails without the fix, and
-one test-tool defect: credentials cached past their lifetime. Two findings are
-recorded rather than worked around: a substrate costs a durable-workflow
-instance per tenant door, which slowed the whole world about two and a half
-times, and erasure is an operator act with no door to it.
+one test-tool defect: credentials cached past their lifetime. The two findings
+recorded then are closed: a tenant's door on the stream opens only for a
+participant that signs, so Rowling Land carries a substrate at no cost to the
+stories, and erasure has a door of its own.
 Next: the technical stories, and the full verify before pushing.**
 
 # Every promise proven on one world, inside its story

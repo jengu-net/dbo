@@ -12,10 +12,22 @@
 
 ## The scene
 
-An operator erases a clinic that held a recording, and one that held records.
-It is an operator act, deliberately: nothing a deployment serves reaches it,
-and nothing a tenant's declaration disappearing does touches data. Retracting
-stops serving; erasing removes.
+An operator erases a clinic that held a recording and records. It is an
+operator act, deliberately, and nothing a tenant's declaration disappearing
+does touches data: retracting stops serving; erasing removes. The clinic is
+retracted first, and then erased at the deployment's erasure door.
+
+## Who may erase, and when
+
+The door is `POST /runtime/erase/<code>`, and it answers only the token the
+deployment gave for erasure. The operator's own token, which reads what a node
+serves, is refused there, because the one act nobody takes back is not
+something reading the node entitles anybody to. An erasure states its reason,
+which the management tenant's record of it keeps beside who asked; one that
+states none is refused for it. A clinic still declared is refused, because the
+next pass would bring it up again, empty, under the same code. Asking again for
+an erasure that happened answers the same, so an operator whose request timed
+out can simply ask again.
 
 ## The content goes with the database
 
@@ -33,9 +45,8 @@ refused by name.
 
 ## What the store cannot do yet
 
-Erasure has no door. It is asked of the provisioner by whoever operates the
-deployment, which is why this story is walked on a runtime of its own rather
-than in Rowling Land, where other stories are still using the tenants.
+Nothing this scene needs. It is walked in Rowling Land, on a clinic the story
+declares and erases itself.
 
 ## Joins
 
@@ -49,6 +60,7 @@ citations say it is.
 |---|---|---|
 | `REQ-DBO-TEN-ERASURE-BY-DROP` | Dropping a tenant's database and blob storage removes all its data — including durable workflow history and feed state. | PROVEN |
 | `REQ-DBO-OPS-TENANT-BLOBS-ARE-TENANT-DATA` | Binary content a tenant holds is kept in that tenant's own database and returned byte for byte, needing no credential and no provisioning of its own; erasure-by-drop removes it with the tenant, because it is in what gets dropped rather than in a second place something has to reach. | PROVEN |
+| `REQ-DBO-TEN-ERASURE-HAS-A-DOOR-OF-ITS-OWN` | Erasing a tenant is asked at a door of its own, behind a credential the deployment gives for erasure and for nothing else: the operator's own token reads the node and erases nothing. Every erasure states its reason, which is recorded beside who asked; a tenant still declared, and the management tenant, are refused; and asking again for an erasure that already happened answers the same. | PROVEN |
 
-Coverage: {PROVEN=2} — a leg marked PLANNED cites a promise that exists and is not yet cited by any test.
+Coverage: {PROVEN=3} — a leg marked PLANNED cites a promise that exists and is not yet cited by any test.
 <!-- story:end -->

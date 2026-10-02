@@ -616,7 +616,8 @@ public enum DboStories implements Story {
             + "were kept.",
             List.of(
                     DboPromises.TEN_ERASURE_BY_DROP,
-                    DboPromises.OPS_TENANT_BLOBS_ARE_TENANT_DATA
+                    DboPromises.OPS_TENANT_BLOBS_ARE_TENANT_DATA,
+                    DboPromises.TEN_ERASURE_HAS_A_DOOR_OF_ITS_OWN
             ));
 
     private final String title;

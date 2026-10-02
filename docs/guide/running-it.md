@@ -45,8 +45,10 @@ recordings go with it and nothing survives because a sweep forgot a second
 system. Retracting a declaration stops serving; erasing removes.
 [US-DBO-A-TENANT-IS-ERASED](../arc42-003-context/user-stories/us-dbo-a-tenant-is-erased.md).
 
-Not yet: erasure has no door. It is asked of the provisioner by whoever operates
-the deployment.
+It is asked at the deployment's erasure door, `POST /runtime/erase/<code>`,
+under a token the deployment gives for erasure and nothing else, with the
+reason stated in the body. A tenant still declared is refused, and asking again
+answers the same.
 
 ## What is built, and what is planned
 

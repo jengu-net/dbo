@@ -2387,6 +2387,135 @@ public final class TenantRuntimeManager implements AutoCloseable {
         LOG.info("runtime state: serving /runtime/tenants and /runtime/catalogue");
     }
 
+    /** The actor an erasure asked at the door is recorded under. */
+    public static final String ERASER = "holder-of-the-erasure-token";
+
+    /** Where erasure is asked for: {@code POST /runtime/erase/<code>}. */
+    public static final String ERASE_PATH = "/runtime/erase";
+
+    /**
+     * Serves erasure at {@code POST /runtime/erase/<code>}, behind a token of
+     * its own.
+     *
+     * <p><b>Its own token, not the operator's.</b> The ops token answers what a
+     * node serves and carries — questions whose worst answer is a disclosure
+     * about the deployment. Erasure is the one act here that cannot be undone,
+     * so a deployment gives it to whoever it chooses separately, and one that
+     * has not chosen has no door to it at all: unset, nothing is registered,
+     * and the only way to erase is from inside the process.
+     *
+     * <p><b>A reason, every time.</b> The body names why
+     * ({@code {"reason":"..."}}), and the reason is what the erasure's run in
+     * the management tenant records beside who asked — a drop with no account
+     * of itself is the record nobody can answer for later.
+     *
+     * <p><b>Never a tenant still declared.</b> A declaration is the deployment
+     * saying a tenant should be served; erasing one would be undone by the
+     * next pass bringing up an empty tenant under the same code, which reads
+     * as data loss rather than as erasure. So the order is the one the
+     * tenant's life already has: retract it, then erase it. Refused with 409,
+     * naming the code. The management tenant is refused the same way, for the
+     * reason {@link #erase} gives.
+     *
+     * <p><b>Idempotent.</b> Erasing a tenant that is already gone does the same
+     * thing again — the drop is of a database that may not exist — and
+     * answers the same, so an operator whose first request timed out can ask
+     * again without having to find out first whether it happened.
+     */
+    public void serveErasure(String eraseToken) {
+        if (eraseToken == null || eraseToken.isBlank()) {
+            return;
+        }
+        byte[] expected = eraseToken.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        sharedServer.createContext(ERASE_PATH, exchange -> {
+            try {
+                String presented = exchange.getRequestHeaders().getFirst("Authorization");
+                byte[] offered = presented == null || !presented.startsWith("Bearer ")
+                        ? new byte[0]
+                        : presented.substring(7).getBytes(java.nio.charset.StandardCharsets.UTF_8);
+                if (!java.security.MessageDigest.isEqual(expected, offered)) {
+                    respond(exchange, 401, "{\"error\":\"unauthorized\"}");
+                    return;
+                }
+                if (!"POST".equals(exchange.getRequestMethod())) {
+                    respond(exchange, 405, "{\"error\":\"invalid_request\"}");
+                    return;
+                }
+                String path = exchange.getRequestURI().getPath();
+                String code = path.length() > ERASE_PATH.length() + 1
+                        ? path.substring(ERASE_PATH.length() + 1) : "";
+                Object body;
+                try {
+                    body = cloud.jengu.dbo.core.wire.RecordWire.read(new String(
+                            exchange.getRequestBody().readAllBytes(),
+                            java.nio.charset.StandardCharsets.UTF_8));
+                } catch (RuntimeException unreadable) {
+                    body = null;
+                }
+                String reason = body instanceof Map<?, ?> said && said.get("reason") != null
+                        ? String.valueOf(said.get("reason")).trim() : "";
+                ErasureAsked asked = askToErase(code, reason);
+                Map<String, Object> answer = new java.util.LinkedHashMap<>();
+                answer.put("code", code);
+                if (asked.refusal() != null) {
+                    answer.put("error", "invalid_request");
+                    answer.put("error_description", asked.refusal());
+                } else {
+                    answer.put("erased", Boolean.TRUE);
+                    answer.put("reason", reason);
+                }
+                respond(exchange, asked.status(),
+                        cloud.jengu.dbo.core.wire.RecordWire.write(answer));
+            } finally {
+                exchange.close();
+            }
+        });
+        LOG.info("erasure: serving {}/<code> behind its own token", ERASE_PATH);
+    }
+
+    /** What the erasure door decided: a status, and a refusal's reason where it refused. */
+    record ErasureAsked(int status, String refusal) {
+    }
+
+    /**
+     * The erasure door's decision, apart from HTTP: who may is the token's
+     * business, and everything after it is here.
+     */
+    ErasureAsked askToErase(String code, String reason) {
+        if (!TenantSpec.isCode(code)) {
+            return new ErasureAsked(400, "'" + code + "' is not a tenant code, so there is "
+                    + "nothing it could name to erase");
+        }
+        if (reason == null || reason.isBlank()) {
+            return new ErasureAsked(400, "an erasure states its reason, and the run that "
+                    + "records it keeps the reason beside who asked: send {\"reason\":\"...\"}");
+        }
+        if (code.equals(managementCode)) {
+            return new ErasureAsked(409, "'" + code + "' is the management tenant, which holds "
+                    + "the record of every erasure");
+        }
+        boolean declared;
+        synchronized (this) {
+            declared = declaredNow().stream().map(TenantRuntimeManager::codeOf)
+                    .anyMatch(named -> named.filter(code::equals).isPresent());
+        }
+        if (declared) {
+            return new ErasureAsked(409, "'" + code + "' is still declared, and the next pass "
+                    + "would bring it up again, empty, under the same code. Retract it first: "
+                    + "remove its declaration, and erase it once it is no longer served");
+        }
+        // Whoever holds the erasure token, named as that: the token is the
+        // whole of what is known about the asker, and the run says so rather
+        // than recording the scan loop's "system".
+        cloud.jengu.dbo.core.api.Caller.set(ERASER);
+        try {
+            erase(code, reason);
+        } finally {
+            cloud.jengu.dbo.core.api.Caller.clear();
+        }
+        return new ErasureAsked(200, null);
+    }
+
     /**
      * A deployment-level answer behind the deployment's token: GET only, the
      * token compared in constant time, and a refusal that says nothing about
@@ -5042,6 +5171,11 @@ public final class TenantRuntimeManager implements AutoCloseable {
      * they carry different authority, and one of them cannot be undone.
      */
     public synchronized void erase(String code) {
+        erase(code, "erased on request");
+    }
+
+    /** The same, with the reason the erasure's run records. */
+    public synchronized void erase(String code, String reason) {
         if (code.equals(managementCode)) {
             throw new IllegalArgumentException(
                     "the management tenant holds the record of every erasure, and erasing it "
@@ -5056,7 +5190,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
                     TENANT_PROCESS + "/" + ERASE_STEP + "/" + code + "/" + java.time.Instant.now(),
                     java.util.List.of(cloud.jengu.dbo.work.WorkModel.DOMAIN));
             runs.closed(runs.selected(erasure, cloud.jengu.dbo.work.Scope.organisation(code),
-                    actor(), "erased on request"));
+                    actor(), reason));
         });
         provisioner.deprovision(code);
         states.remove(code);
