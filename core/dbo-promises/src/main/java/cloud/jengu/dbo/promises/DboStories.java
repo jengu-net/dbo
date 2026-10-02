@@ -168,6 +168,7 @@ public enum DboStories implements Story {
                     DboPromises.TEN_APPLYING_IS_ASKED_FOR_AND_RECORDED,
                     DboPromises.TEN_A_CHANGE_IS_NOT_A_RETRACTION,
                     DboPromises.TEN_A_REDECLARATION_IS_NOTICED,
+                    DboPromises.TEN_A_SLOW_BRING_UP_HOLDS_UP_ONLY_ITSELF,
                     DboPromises.TEN_A_DECLARATION_IS_A_RECORD,
                     DboPromises.TEN_A_DECLARATION_NAMES_ITS_REFERENT,
                     DboPromises.TEN_A_CHANGE_CAN_BE_CLASSIFIED_WITHOUT_APPLYING,

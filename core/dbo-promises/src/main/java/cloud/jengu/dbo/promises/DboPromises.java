@@ -1226,6 +1226,13 @@ public enum DboPromises implements Promise {
             + "trouble rather than a queue everybody behind it is stuck in, which is what "
             + "made a busy deployment indistinguishable from a broken one."),
 
+    TEN_A_SLOW_BRING_UP_HOLDS_UP_ONLY_ITSELF("A tenant slow to come up — storage that "
+            + "is late, a schema another node is still writing — holds up nobody else. A "
+            + "tenant withdrawn meanwhile stops being served on the deployment's next beat, "
+            + "and a tenant declared or declared differently meanwhile is begun as soon as "
+            + "the node has room for it, rather than once every bring-up in front of it is "
+            + "done."),
+
     TEN_A_DECLARATION_IS_A_RECORD("What a deployment has been told to serve is records "
             + "in the managing tenant, applied from whatever source declares them like any "
             + "other configuration — so what is declared can be asked of the store rather "

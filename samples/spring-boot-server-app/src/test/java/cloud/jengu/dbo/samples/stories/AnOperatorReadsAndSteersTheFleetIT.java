@@ -153,10 +153,7 @@ class AnOperatorReadsAndSteersTheFleetIT {
         // like a fault.
         dbo.retract(broken);
         boolean gone = false;
-        // Three minutes, as this story's other waits on the scan are: a
-        // retraction is read at the end of a pass, and a pass carries every
-        // bring-up begun in it, which on this world is often over a minute.
-        for (int i = 0; i < 360 && !gone; i++) {
+        for (int i = 0; i < 120 && !gone; i++) {
             Thread.sleep(500);
             gone = stateReportedFor(ask("/runtime/tenants", OPS).body(), broken) == null;
         }
@@ -513,7 +510,7 @@ class AnOperatorReadsAndSteersTheFleetIT {
     @Proving(DboPromises.PROC_CONFIG_WITHDRAWAL_IS_DECLARED)
     void aWithdrawnDeclarationLeavesTheRecord() throws InterruptedException {
         dbo.retract(redeclared);
-        boolean gone = dbo.until(redeclared, false, Duration.ofMinutes(3));
+        boolean gone = dbo.until(redeclared, false, Duration.ofMinutes(1));
         long giveUp = System.nanoTime() + Duration.ofMinutes(1).toNanos();
         while (!declarationsOf(redeclared).isEmpty() && System.nanoTime() < giveUp) {
             Thread.sleep(1000);
@@ -821,55 +818,155 @@ class AnOperatorReadsAndSteersTheFleetIT {
             + "nothing at all and a new tenant are each said, and asking leaves no trace")
     @Proving(DboPromises.TEN_A_CHANGE_CAN_BE_CLASSIFIED_WITHOUT_APPLYING)
     void aChangeCanBeAskedAboutBeforeItIsMade() throws InterruptedException {
-        String asked = NAMES.tenant("asked-about");
+        asked = NAMES.tenant("asked-about");
         dbo.declare(asked, previewed(asked, "r4", "Observation"));
-        try {
-            assertTrue(dbo.until(asked, true, Duration.ofMinutes(10)), "not served");
-            String operator = NAMES.value("an-operator");
-            tenants.authority(MANAGEMENT).orElseThrow().ensureClient(operator, "operator-secret",
-                    List.of(cloud.jengu.dbo.auth.Scopes.CONFIGURATION));
-            String bearer = managementToken(operator, "operator-secret");
+        assertTrue(dbo.until(asked, true, Duration.ofMinutes(10)), "not served");
+        String operator = NAMES.value("an-operator");
+        tenants.authority(MANAGEMENT).orElseThrow().ensureClient(operator, "operator-secret",
+                List.of(cloud.jengu.dbo.auth.Scopes.CONFIGURATION));
+        String bearer = managementToken(operator, "operator-secret");
 
-            String rewire = preview(bearer, previewed(asked, "r4", "Observation", "Patient"));
-            Proves.that(DboPromises.TEN_A_CHANGE_CAN_BE_CLASSIFIED_WITHOUT_APPLYING,
-                    rewire.contains("\"kind\":\"rewire\"") && rewire.contains("types")
-                            && rewire.contains("\"applied\":0")
-                            && !dbo.capability(asked).serves("Patient"),
-                    "adding a type was not said as a rebuild, or was built: " + rewire);
-            String cold = preview(bearer, previewed(asked, "r5", "Observation"));
-            Proves.that(DboPromises.TEN_A_CHANGE_CAN_BE_CLASSIFIED_WITHOUT_APPLYING,
-                    cold.contains("\"kind\":\"cold\"") && cold.contains("face")
-                            && cold.contains("retracted"),
-                    "a cold change was not said by name: " + cold);
-            Proves.that(DboPromises.TEN_A_CHANGE_CAN_BE_CLASSIFIED_WITHOUT_APPLYING,
-                    preview(bearer, previewed(asked, "r4", "Observation"))
-                            .contains("\"kind\":\"unchanged\""),
-                    "no change was not said as none");
-            String fresh = NAMES.tenant("never-declared");
-            Proves.that(DboPromises.TEN_A_CHANGE_CAN_BE_CLASSIFIED_WITHOUT_APPLYING,
-                    preview(bearer, previewed(fresh, "r4", "Observation"))
-                            .contains("\"kind\":\"new\"") && !dbo.serving().contains(fresh),
-                    "a new tenant was not said as new, or was opened");
-            HttpResponse<String> misspelt = dbo.send(HttpRequest.newBuilder(URI.create(
-                            dbo.at(MANAGEMENT) + "/configuration/preveiw"))
-                    .header("Content-Type", "application/json")
-                    .POST(HttpRequest.BodyPublishers.ofString(proposal(
-                            previewed(asked, "r4", "Observation", "Encounter")))), bearer);
-            Proves.that(DboPromises.TEN_A_CHANGE_CAN_BE_CLASSIFIED_WITHOUT_APPLYING,
-                    misspelt.statusCode() == 404 && !dbo.capability(asked).serves("Encounter"),
-                    "a near miss of the preview applied the change");
-            Proves.that(DboPromises.TEN_A_CHANGE_CAN_BE_CLASSIFIED_WITHOUT_APPLYING,
-                    "".equals(String.valueOf(rowFor(asked).get("declaredDifferently"))),
-                    "asking left a trace the sweep took for a redeclaration: " + rowFor(asked));
+        String rewire = preview(bearer, previewed(asked, "r4", "Observation", "Patient"));
+        Proves.that(DboPromises.TEN_A_CHANGE_CAN_BE_CLASSIFIED_WITHOUT_APPLYING,
+                rewire.contains("\"kind\":\"rewire\"") && rewire.contains("types")
+                        && rewire.contains("\"applied\":0")
+                        && !dbo.capability(asked).serves("Patient"),
+                "adding a type was not said as a rebuild, or was built: " + rewire);
+        String cold = preview(bearer, previewed(asked, "r5", "Observation"));
+        Proves.that(DboPromises.TEN_A_CHANGE_CAN_BE_CLASSIFIED_WITHOUT_APPLYING,
+                cold.contains("\"kind\":\"cold\"") && cold.contains("face")
+                        && cold.contains("retracted"),
+                "a cold change was not said by name: " + cold);
+        Proves.that(DboPromises.TEN_A_CHANGE_CAN_BE_CLASSIFIED_WITHOUT_APPLYING,
+                preview(bearer, previewed(asked, "r4", "Observation"))
+                        .contains("\"kind\":\"unchanged\""),
+                "no change was not said as none");
+        String fresh = NAMES.tenant("never-declared");
+        Proves.that(DboPromises.TEN_A_CHANGE_CAN_BE_CLASSIFIED_WITHOUT_APPLYING,
+                preview(bearer, previewed(fresh, "r4", "Observation"))
+                        .contains("\"kind\":\"new\"") && !dbo.serving().contains(fresh),
+                "a new tenant was not said as new, or was opened");
+        HttpResponse<String> misspelt = dbo.send(HttpRequest.newBuilder(URI.create(
+                        dbo.at(MANAGEMENT) + "/configuration/preveiw"))
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(proposal(
+                        previewed(asked, "r4", "Observation", "Encounter")))), bearer);
+        Proves.that(DboPromises.TEN_A_CHANGE_CAN_BE_CLASSIFIED_WITHOUT_APPLYING,
+                misspelt.statusCode() == 404 && !dbo.capability(asked).serves("Encounter"),
+                "a near miss of the preview applied the change");
+        Proves.that(DboPromises.TEN_A_CHANGE_CAN_BE_CLASSIFIED_WITHOUT_APPLYING,
+                "".equals(String.valueOf(rowFor(asked).get("declaredDifferently"))),
+                "asking left a trace the sweep took for a redeclaration: " + rowFor(asked));
+    }
+
+    /** The tenant a change was asked about, withdrawn by the leg after. */
+    private String asked;
+
+    @Test
+    @Order(26)
+    @DisplayName("a tenant slow to come up holds up only itself: one withdrawn meanwhile "
+            + "stops being served on the next beat, and one declared meanwhile comes up")
+    @Proving(DboPromises.TEN_A_SLOW_BRING_UP_HOLDS_UP_ONLY_ITSELF)
+    void aSlowBringUpHoldsUpOnlyItself() throws Exception {
+        // Withdrawn meanwhile: the tenant the change was asked about, serving
+        // since the leg before.
+        String withdrawn = asked;
+        String slow = NAMES.tenant("slow-to-come-up");
+        String later = NAMES.tenant("declared-meanwhile");
+        assertTrue(dbo.until(withdrawn, true, Duration.ofMinutes(1)), "not served");
+        // Slow the way a tenant really is when another node of the deployment
+        // is writing its schema: that node holds the schema lock in the
+        // tenant's database, and this one waits for it. The database is made
+        // first, as a node that got there first would have made it.
+        String admin = environment.getRequiredProperty("dbo.admin.jdbc-url");
+        String user = environment.getRequiredProperty("dbo.admin.user");
+        String password = environment.getRequiredProperty("dbo.admin.password");
+        String database = "tenant_" + slow.replace('-', '_');
+        try (java.sql.Connection server = java.sql.DriverManager.getConnection(admin, user, password);
+                java.sql.Statement make = server.createStatement()) {
+            make.execute("CREATE DATABASE " + database);
+        }
+        String inIt = admin.replaceFirst("/[^/?]+(\\?|$)", "/" + database + "$1");
+        try (java.sql.Connection otherNode = java.sql.DriverManager.getConnection(inIt, user, password)) {
+            try (java.sql.Statement hold = otherNode.createStatement()) {
+                hold.execute("SELECT pg_advisory_lock(" + SCHEMA_LOCK + ")");
+            }
+            dbo.declare(slow, typed(slow, "r4", "Observation"));
+            assertTrue(waitingOnTheSchema(otherNode, Duration.ofMinutes(5)),
+                    "the slow tenant's bring-up never reached its schema, so nothing here "
+                            + "is slow and this proves nothing");
+
+            dbo.retract(withdrawn);
+            dbo.declare(later, typed(later, "r4", "Observation"));
+            Proves.that(DboPromises.TEN_A_SLOW_BRING_UP_HOLDS_UP_ONLY_ITSELF,
+                    dbo.until(withdrawn, false, Duration.ofSeconds(30)),
+                    "a tenant withdrawn while another was coming up stayed served until that "
+                            + "one finished: " + dbo.serving());
+            Proves.that(DboPromises.TEN_A_SLOW_BRING_UP_HOLDS_UP_ONLY_ITSELF,
+                    dbo.until(later, true, Duration.ofMinutes(3)),
+                    "a tenant declared while another was coming up waited for it: "
+                            + dbo.serving());
+            assertFalse(dbo.serving().contains(slow),
+                    "the slow tenant came up through a lock another node holds");
+
+            try (java.sql.Statement release = otherNode.createStatement()) {
+                release.execute("SELECT pg_advisory_unlock(" + SCHEMA_LOCK + ")");
+            }
+            assertTrue(dbo.until(slow, true, Duration.ofMinutes(3)),
+                    "the slow tenant did not come up once the schema was free: "
+                            + rowFor(slow));
         } finally {
-            dbo.retract(asked);
+            dbo.retract(slow);
+            dbo.retract(later);
+            dbo.retract(withdrawn);
         }
     }
+
+    /** The lock a node takes in a tenant's database while it writes the schema. */
+    private static final long SCHEMA_LOCK = 0x64626F5F636F7265L;
+
+    /** Whether somebody other than {@code holder} is waiting for the schema lock it holds. */
+    private static boolean waitingOnTheSchema(java.sql.Connection holder, Duration give)
+            throws Exception {
+        long giveUp = System.nanoTime() + give.toNanos();
+        while (System.nanoTime() < giveUp) {
+            try (java.sql.Statement ask = holder.createStatement();
+                    java.sql.ResultSet waiting = ask.executeQuery(
+                            "SELECT count(*) FROM pg_locks WHERE locktype = 'advisory' "
+                                    + "AND NOT granted AND database = (SELECT oid FROM "
+                                    + "pg_database WHERE datname = current_database())")) {
+                waiting.next();
+                if (waiting.getLong(1) > 0) {
+                    return true;
+                }
+            }
+            Thread.sleep(500);
+        }
+        return false;
+    }
+
+    /** A tenant of {@code code} with the given types, and nothing else to wait for. */
+    private static String typed(String code, String face, String... types) {
+        StringBuilder declared = new StringBuilder();
+        for (String type : types) {
+            declared.append(declared.isEmpty() ? "" : ",")
+                    .append("{\"name\":\"").append(type)
+                    .append("\",\"identity\":\"internal\",\"handling\":\"operational\"}");
+        }
+        return "{\"code\":\"" + code + "\",\"face\":\"" + face
+                + "\",\"audit\":{\"level\":\"none\"},\"types\":[" + declared + "]}";
+    }
+
+    @Autowired
+    org.springframework.core.env.Environment environment;
 
     @org.junit.jupiter.api.AfterAll
     void theConfiguredTenantIsWithdrawn() {
         if (configured != null) {
             dbo.retract(configured);
+        }
+        if (asked != null) {
+            dbo.retract(asked);
         }
     }
 

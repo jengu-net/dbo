@@ -1789,7 +1789,40 @@ public final class TenantRuntimeManager implements AutoCloseable {
         return ownIssuer.replace("/t/" + code + "/", "/t/" + partner + "/");
     }
 
-    public synchronized Set<String> scanOnce() {
+    /**
+     * One pass, and every bring-up it began, finished: what the asker sees
+     * returned is what the deployment serves once the declarations it just
+     * read have been acted on. The beat the deployment runs on its own does
+     * not wait like this — see {@link #pass()} — but a caller asking for a
+     * pass is asking what came of it.
+     */
+    public Set<String> scanOnce() {
+        pass();
+        // Outside the monitor: a bring-up takes none, and the beat goes on
+        // meanwhile, so a tenant withdrawn while this waits is still taken
+        // down on time.
+        awaitBringUps();
+        synchronized (this) {
+            settle();
+        }
+        return codes();
+    }
+
+    /**
+     * One beat of the deployment, which begins what each declaration asks for
+     * and returns without waiting for it.
+     *
+     * <p><b>Not waiting is the point.</b> A pass that waited for its bring-ups
+     * was as long as the slowest of them, and everything else a pass does
+     * waited too: a tenant withdrawn while another was coming up stayed
+     * served until that one finished, a serving tenant declared differently
+     * kept what it was, and the next pass could not start to notice either.
+     * A bring-up is minutes of somebody else's storage when it is slow, so a
+     * retraction took minutes for a reason that had nothing to do with the
+     * tenant retracted. Now each tenant's work is its own: begun here, at
+     * most one at a time per tenant, and the pass moves on.
+     */
+    private synchronized void pass() {
         // The declarations first, then what this deployment does about them.
         // Applying is what turns a source into the records the sweep below
         // reads; a deployment with no managing tenant has no records and reads
@@ -1815,7 +1848,15 @@ public final class TenantRuntimeManager implements AutoCloseable {
         java.util.List<cloud.jengu.dbo.sync.ConfigApplication.Declared> declarations =
                 new java.util.ArrayList<>(declaredNow());
         declarations.addAll(ZoneProjections.neededBy(declarations));
-        together(declarations, declaration -> {
+        // What is declared is known before anything is begun, because the
+        // retraction below reads it and the work no longer finishes first.
+        // The same codes the work itself would add: a parsed spec's, or the
+        // code a refused one still names.
+        for (cloud.jengu.dbo.sync.ConfigApplication.Declared declaration : declarations) {
+            codeOf(declaration).ifPresent(declared::add);
+        }
+        for (cloud.jengu.dbo.sync.ConfigApplication.Declared declaration : declarations) {
+          begin(codeOf(declaration).orElse("spec:" + declaration.name()), () -> {
             String named = declaration.name();
             try {
                 TenantSpec spec = TenantSpec.parse(new String(declaration.payload(),
@@ -1860,7 +1901,16 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 }
                 if (serving == null) {
                     long began = System.nanoTime();
-                    bringUp(spec);
+                    // Bounded across passes, not within one: how many
+                    // validators a node holds at once is the same question
+                    // whichever beat began the bring-up.
+                    java.util.concurrent.Semaphore room = broughtUpRoom;
+                    room.acquireUninterruptibly();
+                    try {
+                        bringUp(spec);
+                    } finally {
+                        room.release();
+                    }
                     // Its work is offered to the steps the deployment
                     // performs from here on. After bring-up, because what is
                     // followed is the tenant's own database and there is none
@@ -1957,12 +2007,16 @@ public final class TenantRuntimeManager implements AutoCloseable {
                             + "failures suppressed until it changes)", named, e);
                 }
             }
-        });
+          });
+        }
         for (String code : Set.copyOf(runtimes.keySet())) {
             // The management tenant is declared by configuration and is not in
             // this directory, so the loop that retracts undeclared tenants
-            // would retract the thing recording retractions.
-            if (!declared.contains(code) && !code.equals(managementCode)) {
+            // would retract the thing recording retractions. A tenant whose
+            // own work is still running is left to the first pass after it,
+            // so a retraction never meets that tenant half-rebuilt.
+            if (!declared.contains(code) && !code.equals(managementCode)
+                    && !working.containsKey(code)) {
                 takeDown(code, "the declaration was withdrawn");
             }
         }
@@ -1972,6 +2026,21 @@ public final class TenantRuntimeManager implements AutoCloseable {
         if (managementCode != null) {
             declared.add(managementCode);
         }
+        lastDeclared = declared;
+        settle();
+    }
+
+    /** What the last pass found declared, which is what the states are kept to. */
+    private volatile Set<String> lastDeclared = Set.of();
+
+    /**
+     * What a pass concludes about the whole deployment: states and reasons
+     * kept to what is declared, the step incidents, the rollup and the
+     * record. Run at the end of every pass, and again by an asker once the
+     * bring-ups it waited for are done, so what they brought up is counted.
+     */
+    private synchronized void settle() {
+        Set<String> declared = lastDeclared;
         states.keySet().retainAll(declared);
         trouble.keySet().removeIf(key -> !declared.contains(key) && !key.startsWith("spec:")
                 && !key.equals(SOURCE_TROUBLE));
@@ -2000,7 +2069,66 @@ public final class TenantRuntimeManager implements AutoCloseable {
         stepIncidents.retain(runtimes.keySet());
         rollup();
         recordServing();
-        return codes();
+    }
+
+    /**
+     * The work a pass began for one tenant, by its code — or by the name of a
+     * declaration that names none — until it is finished.
+     */
+    private final Map<String, java.util.concurrent.CompletableFuture<Void>> working =
+            new ConcurrentHashMap<>();
+
+    /**
+     * Begins one tenant's work on a thread of its own, unless that tenant's
+     * work from an earlier pass is still running, in which case the pass
+     * after it looks again. One at a time per tenant, so two passes never
+     * bring the same tenant up twice; any number of tenants at once, so none
+     * waits on another's.
+     */
+    private void begin(String key, Runnable work) {
+        java.util.concurrent.CompletableFuture<Void> done =
+                new java.util.concurrent.CompletableFuture<>();
+        if (working.putIfAbsent(key, done) != null) {
+            return;
+        }
+        Thread.ofVirtual().name("dbo-tenant-" + key).start(() -> {
+            try {
+                work.run();
+            } catch (Throwable escaped) {
+                // Whatever the work did not catch for itself, for the reason
+                // given where several bring-ups used to run together: a
+                // virtual thread that dies takes its reason with it.
+                LOG.error("bring-up died with nothing catching it: work={}", key, escaped);
+            } finally {
+                working.remove(key, done);
+                done.complete(null);
+            }
+        });
+    }
+
+    /** Every tenant's work begun so far, finished. */
+    private void awaitBringUps() {
+        for (java.util.concurrent.CompletableFuture<Void> one : List.copyOf(working.values())) {
+            awaited(one);
+        }
+    }
+
+    /** One tenant's work, if any is running, finished. */
+    private void awaitBringUp(String code) {
+        java.util.concurrent.CompletableFuture<Void> one = working.get(code);
+        if (one != null) {
+            awaited(one);
+        }
+    }
+
+    private static void awaited(java.util.concurrent.CompletableFuture<Void> one) {
+        try {
+            one.get();
+        } catch (InterruptedException stopping) {
+            Thread.currentThread().interrupt();
+        } catch (java.util.concurrent.ExecutionException impossible) {
+            // completed normally by construction; the work's failures are its own
+        }
     }
 
     /**
@@ -2367,7 +2495,15 @@ public final class TenantRuntimeManager implements AutoCloseable {
                     declared.code(), change.says());
             return;
         }
-        rebuild(serving, declared, change);
+        // A rebuild is a bring-up where the tenant stands, and holds what one
+        // holds, so it takes its turn in the same room.
+        java.util.concurrent.Semaphore room = broughtUpRoom;
+        room.acquireUninterruptibly();
+        try {
+            rebuild(serving, declared, change);
+        } finally {
+            room.release();
+        }
     }
 
     /**
@@ -2488,6 +2624,10 @@ public final class TenantRuntimeManager implements AutoCloseable {
      */
     private volatile int broughtUpTogether = 2;
 
+    /** The room {@link #broughtUpTogether} describes, shared by every pass. */
+    private volatile java.util.concurrent.Semaphore broughtUpRoom =
+            new java.util.concurrent.Semaphore(2);
+
     /**
      * How many tenants may come up at once here. A deployment whose tenants
      * are slow to provision and whose node has room can raise it; one is the
@@ -2499,25 +2639,14 @@ public final class TenantRuntimeManager implements AutoCloseable {
                     + "serves nothing: " + atOnce);
         }
         this.broughtUpTogether = atOnce;
+        this.broughtUpRoom = new java.util.concurrent.Semaphore(atOnce);
     }
 
     /**
-     * Runs the work for each declaration, several at a time, and returns when
-     * every one of them is finished.
-     *
-     * <p>Waiting is the point. A scan says what it serves, and a scan that
-     * returned before its bring-ups finished would be answering about a
-     * moment that had not happened yet — the caller's whole question is
-     * whether the tenants are there. What it stops being is <b>sequential</b>:
-     * nobody waits for the tenant in front of them any more.
-     *
-     * <p>Each one carries its own failure, as it did when they were in a loop:
-     * a bring-up that throws is that tenant's trouble and nobody else's.
+     * Runs the work for each item, several at a time, and returns when every
+     * one of them is finished. Each one carries its own failure: work that
+     * throws is that item's trouble and nobody else's.
      */
-    private <T> void together(java.util.List<T> work, java.util.function.Consumer<T> each) {
-        together(work, broughtUpTogether, each);
-    }
-
     private <T> void together(java.util.List<T> work, int bound,
             java.util.function.Consumer<T> each) {
         int atOnce = bound;
@@ -4780,6 +4909,9 @@ public final class TenantRuntimeManager implements AutoCloseable {
                     "the management tenant holds the record of every erasure, and erasing it "
                             + "would erase the account of what was erased");
         }
+        // Its own work finished first: a database dropped under a bring-up
+        // still writing its schema would come up serving nothing.
+        awaitBringUp(code);
         takeDown(code, "erased by " + cloud.jengu.dbo.core.api.Caller.current());
         managementRuns().ifPresent(runs -> {
             cloud.jengu.dbo.work.Run erasure = runs.pipeline(TENANT_PROCESS, ERASE_STEP,
@@ -4810,7 +4942,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
         scanner = Thread.ofVirtual().name("dbo-tenant-scanner").start(() -> {
             while (running) {
                 try {
-                    scanOnce();
+                    pass();
                     Thread.sleep(pollMillis);
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
@@ -4899,6 +5031,10 @@ public final class TenantRuntimeManager implements AutoCloseable {
         stopped(scanner);
         stopped(reconciler);
         stopped(joining);
+        // The tenants' own work, which the beat no longer waits for: a
+        // bring-up finishing after the takedown below would mount a tenant
+        // nobody closes.
+        awaitBringUps();
         // Before the tenants, because a consumer still polling has work in
         // hand to report through a lane into a tenant that is going.
         consumers.values().forEach(consumer -> {
