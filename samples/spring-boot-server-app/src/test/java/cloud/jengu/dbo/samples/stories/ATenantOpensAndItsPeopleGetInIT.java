@@ -1162,6 +1162,49 @@ class ATenantOpensAndItsPeopleGetInIT {
                 "a member of a zone that is its own broker is not served: " + dbo.serving());
     }
 
+    @Test
+    @Order(36)
+    @DisplayName("a clinic declared only in the application's memory comes up, and one it "
+            + "stops declaring is withdrawn, with no file written anywhere")
+    void aClinicNobodyWroteDownComesUpAndGoes() throws Exception {
+        // The deployment waits for the source the test registers, and a
+        // source never registered fails by saying nothing: the application
+        // starts and serves nobody. So the claim is a tenant no file declares
+        // coming up, which cannot happen unless that whole chain worked.
+        String unwritten = names.tenant("unwritten");
+        java.nio.file.Path world = java.nio.file.Path.of(
+                environment.getRequiredProperty("dbo.test.world"));
+        try (var files = java.nio.file.Files.walk(world)) {
+            assertTrue(files.filter(java.nio.file.Files::isRegularFile)
+                            .noneMatch(file -> mentions(file, unwritten)),
+                    "a file in the world declares the clinic, so its coming up proves nothing "
+                            + "about a declaration held in memory");
+        }
+        dbo.declare(unwritten, """
+                {"code":"%s","face":"r4","audit":{"level":"none"},
+                 "types":[
+                  {"name":"Observation","identity":"internal","handling":"operational"}]}"""
+                .formatted(unwritten));
+        assertTrue(dbo.until(unwritten, true, Duration.ofMinutes(10)),
+                "a clinic declared in memory never came up: either the source was never "
+                        + "registered and the deployment is still waiting for one, or it is "
+                        + "read and this clinic is not in it: " + dbo.serving());
+        // Withdrawing is the same act in reverse, which is what makes a
+        // complete fetch load-bearing rather than decorative.
+        assertTrue(dbo.retract(unwritten),
+                "the clinic was not declared by this story, so its withdrawal is about nothing");
+        assertTrue(dbo.until(unwritten, false, Duration.ofMinutes(1)),
+                "a clinic the application stopped declaring is still served: " + dbo.serving());
+    }
+
+    private static boolean mentions(java.nio.file.Path file, String code) {
+        try {
+            return java.nio.file.Files.readString(file).contains(code);
+        } catch (java.io.IOException | java.io.UncheckedIOException unreadable) {
+            return false;
+        }
+    }
+
     // ── helpers ───────────────────────────────────────────────────────────
 
     /** What the deployment's application pass says about one declaration, if anything. */

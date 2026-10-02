@@ -47,23 +47,8 @@ dependencies {
     annotationProcessor(
         "org.springframework.boot:spring-boot-configuration-processor:$springBootVersion")
 
-    // A real application to boot, and it is the sample's: an assembly proving
-    // itself against an application somebody would write is the same argument
-    // the server assembly's own test makes.
-    testImplementation(project(":samples:spring-boot-server-app"))
-    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
-    testRuntimeOnly("ch.qos.logback:logback-classic:1.5.18")
-
     // The packages a face is expanded from. A test's world holds face roots,
     // and a face root builds a version out of the specification — which is a
     // classpath question here rather than a container one.
     runtimeOnly(project(":core:dbo-fhir-packages"))
-}
-
-tasks.test {
-    useJUnitPlatform()
-    // This boots an application that brings a tenant up, which expands a whole
-    // FHIR version out of the specification. The rule that a test task loading
-    // the validator says its own number rather than inheriting one.
-    maxHeapSize = "3g"
 }

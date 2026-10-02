@@ -680,7 +680,7 @@ The sample tests (`TheApplicationServesItsWorldIT`, `ABeanOfThisApplicationPerfo
 |---|---|---|---|---|
 | `ABeanIsAStepThisApplicationPerformsIT` | spring | 0 | 0 | stays |
 | `ABeanOfThisApplicationPerformsTheWorkIT` | spring | 6 | 3 | deleted |
-| `ATestDeclaresTheDeploymentItRunsAgainstIT` | spring | 0 | 0 | stays |
+| `ATestDeclaresTheDeploymentItRunsAgainstIT` | spring | 0 | 0 | deleted; a leg of US-DBO-TENANT-OPENING declares a clinic held only in memory |
 | `AddingThisJarMakesTheApplicationANodeIT` | spring | 0 | 0 | stays |
 | `AnApplicationThatAddedThisJarServesATenantIT` | spring | 0 | 0 | stays |
 | `TheApplicationServesItsWorldIT` | spring | 1 | 1 | deleted |

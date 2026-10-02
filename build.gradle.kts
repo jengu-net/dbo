@@ -195,8 +195,8 @@ val aWorld = gradle.sharedServices.registerIfAbsent("aWorld", AWorld::class) {
     maxParallelUsages.set(((findProperty("dboConcurrentWorlds") as String?) ?: "1").toInt())
 }
 val worldProjects = setOf(
-    ":core:harness", ":core:conformance", ":assembly:spring-boot-test",
-    ":assembly:spring-boot-server", ":samples:spring-boot-server-app",
+    ":core:harness", ":core:conformance", ":assembly:spring-boot-server",
+    ":samples:spring-boot-server-app",
 )
 // The definitions gate is CPU and nothing else, so it COULD run beside a
 // world — and measured, it should not by default: beside the stories on an
