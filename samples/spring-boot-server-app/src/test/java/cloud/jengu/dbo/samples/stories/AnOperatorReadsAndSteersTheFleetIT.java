@@ -287,9 +287,13 @@ class AnOperatorReadsAndSteersTheFleetIT {
     @Test
     @Order(6)
     @DisplayName("what a node reports about work leaves it as labelled measurements from a "
-            + "closed vocabulary")
-    @Proving(DboPromises.PROC_NUMBERS_LEAVE_AS_LABELS_NEVER_AS_TEXT)
+            + "closed vocabulary, and a node with nothing collecting still counts")
+    @Proving({DboPromises.PROC_NUMBERS_LEAVE_AS_LABELS_NEVER_AS_TEXT,
+            DboPromises.PROC_REPORTING_RUNS_WHERE_NOTHING_COLLECTS})
     void numbersLeaveAsLabelsAndNeverAsText() {
+        // Nothing in Rowling Land collects, which is the default rather than
+        // a fallback: the emitting path runs everywhere and only its
+        // destination differs, so it is never first exercised in production.
         for (cloud.jengu.dbo.telemetry.Label label : cloud.jengu.dbo.telemetry.Label.values()) {
             String name = label.name().toLowerCase(Locale.ROOT);
             Proves.that(DboPromises.PROC_NUMBERS_LEAVE_AS_LABELS_NEVER_AS_TEXT,

@@ -444,11 +444,11 @@ Story class: `WorkLeavesTheClinicAndComesBackIT` — exists; today shared.
 
 ## US-DBO-FLEET-HEALTH
 
-Story class: `AnOperatorReadsAndSteersTheFleetIT` — exists; today own (sweep).
+Story class: `AnOperatorReadsAndSteersTheFleetIT`, on the world.
 
 | Class | Boots | Promises | W | Status |
 |---|---|---|---|---|
-| `AnOperatorReadsAndSteersTheFleetIT` (story class) | own (sweep) | 14 | 12 | moved but for two nodes |
+| `AnOperatorReadsAndSteersTheFleetIT` (harness class) | own (deployment) | 14 | 12 | moved; the two-node network map stays as `ARollingUpgradeReadsAsOneStepIT` |
 | `ADeploymentRecordsWhatItWasToldToServeIT` | own (sweep) | 6 | 3 | deleted |
 | `ADeclarationIsAppliedThroughTheFaceIT` | shared | 6 | 2 | deleted |
 | `ATenantDeclaredDifferentlyIsNoticedIT` | own (sweep) | 3 | 2 | deleted |
