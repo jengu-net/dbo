@@ -213,6 +213,21 @@ public enum DboPromises implements Promise {
             + "that gets logged and passed around, and it is not a key to the documents "
             + "the run was given."),
 
+    PROC_A_RUN_IS_COLLECTED_BY_ITS_ASKER(
+            "A step that declares an answer gives its run's requester a window, from the "
+            + "moment the result is written until the step's declared length later, in which "
+            + "it alone reads what the run was given and each version the run produced, read "
+            + "as that version. The run is over and nobody holds it: collecting is optional, "
+            + "so the window is a time beside the run and never a state of it, and the asker "
+            + "may shut it early by saying it is done. A step that declares no answer closes "
+            + "as it always did and opens no window."),
+
+    PROC_AN_UNCOLLECTED_ANSWER_LAPSES(
+            "Past its window a run's context answers its asker exactly as a run that never "
+            + "existed, byte for byte. The window shuts by the clock, with no transition of "
+            + "the run and no sweep, and the run's answer still names the versions it "
+            + "produced."),
+
     PROC_A_WAKE_UP_IS_NOT_HOW_WORK_ARRIVES("A lane may say that it has work, and a runner "
             + "waiting on one looks again instead of waiting out its tick. What arrives is "
             + "that something changed and never the work: the runner then polls and claims "

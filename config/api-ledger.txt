@@ -2917,6 +2917,7 @@ cloud.jengu.dbo.promises.DboPromises                                   PRM_REGIS
 cloud.jengu.dbo.promises.DboPromises                                   PRM_STATUS_IS_DERIVED:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_AN_APPLICATION_STEP_IS_THE_DEPLOYMENTS_TO_DECLARE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_AN_UNAUTHORISED_ROW_OBEYS_ITS_POSTURE:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   PROC_AN_UNCOLLECTED_ANSWER_LAPSES:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_AUDIT_REPLICATES_AS_RECORDED:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_AUTOMATION_IS_A_DECLARED_SWITCH:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_AUTOMATION_IS_DECLARED:cloud.jengu.dbo.promises.DboPromises
@@ -2943,6 +2944,7 @@ cloud.jengu.dbo.promises.DboPromises                                   PROC_A_RU
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_RUN_ANSWERS_ONLY_FOR_ITS_INPUTS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_RUN_CONTEXT_ENDS_WITH_ITS_RUN:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_RUN_CONTEXT_IS_ITS_PERFORMERS:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   PROC_A_RUN_IS_COLLECTED_BY_ITS_ASKER:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_RUN_KEEPS_STATUS_CLAIMANT_AND_ELIGIBILITY_APART:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_RUN_NAMES_WHAT_IT_PRODUCED:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_SLOT_IS_REFERRED_OR_GIVEN_AND_MAY_REPEAT:cloud.jengu.dbo.promises.DboPromises
@@ -4727,6 +4729,7 @@ cloud.jengu.dbo.work.Run                                               attempts(
 cloud.jengu.dbo.work.Run                                               automation():boolean
 cloud.jengu.dbo.work.Run                                               awaits(Instant):cloud.jengu.dbo.work.Awaits
 cloud.jengu.dbo.work.Run                                               claimed(Instant):boolean
+cloud.jengu.dbo.work.Run                                               collectableBy(String,Instant):boolean
 cloud.jengu.dbo.work.Run                                               correlated():Optional
 cloud.jengu.dbo.work.Run                                               correlation():String
 cloud.jengu.dbo.work.Run                                               domains():List
@@ -4745,6 +4748,7 @@ cloud.jengu.dbo.work.Run                                               milestone
 cloud.jengu.dbo.work.Run                                               named(String):cloud.jengu.dbo.work.Run
 cloud.jengu.dbo.work.Run                                               needsAPerson():boolean
 cloud.jengu.dbo.work.Run                                               new(String,long,String,String,String,cloud.jengu.dbo.work.RunKind,String,String,String,Map,cloud.jengu.dbo.work.Run.Item,List,cloud.jengu.dbo.work.Run.Assignment,cloud.jengu.dbo.work.Run.Produced,String,Map,cloud.jengu.dbo.work.Run.Milestone,String,String,cloud.jengu.dbo.work.Status,boolean,Instant,String,int,cloud.jengu.dbo.core.process.RetryPolicy)
+cloud.jengu.dbo.work.Run                                               new(String,long,String,String,String,cloud.jengu.dbo.work.RunKind,String,String,String,Map,cloud.jengu.dbo.work.Run.Item,List,cloud.jengu.dbo.work.Run.Assignment,cloud.jengu.dbo.work.Run.Produced,String,Map,cloud.jengu.dbo.work.Run.Milestone,String,String,cloud.jengu.dbo.work.Status,boolean,Instant,String,int,cloud.jengu.dbo.core.process.RetryPolicy,cloud.jengu.dbo.work.Run.Window)
 cloud.jengu.dbo.work.Run                                               notBefore():Instant
 cloud.jengu.dbo.work.Run                                               of(cloud.jengu.dbo.core.api.StoredObject):cloud.jengu.dbo.work.Run
 cloud.jengu.dbo.work.Run                                               open():boolean
@@ -4764,6 +4768,7 @@ cloud.jengu.dbo.work.Run                                               toString(
 cloud.jengu.dbo.work.Run                                               trace():String
 cloud.jengu.dbo.work.Run                                               traceContext():Optional
 cloud.jengu.dbo.work.Run                                               versionId():long
+cloud.jengu.dbo.work.Run                                               window():cloud.jengu.dbo.work.Run.Window
 cloud.jengu.dbo.work.Run.Assignment                                    at():cloud.jengu.dbo.work.Scope
 cloud.jengu.dbo.work.Run.Assignment                                    claimant():String
 cloud.jengu.dbo.work.Run.Assignment                                    equals(Object):boolean
@@ -4804,6 +4809,13 @@ cloud.jengu.dbo.work.Run.Produced                                      record
 cloud.jengu.dbo.work.Run.Produced                                      toString():String
 cloud.jengu.dbo.work.Run.Produced                                      versions():List
 cloud.jengu.dbo.work.Run.Produced                                      watermark():Map
+cloud.jengu.dbo.work.Run.Window                                        collect():Duration
+cloud.jengu.dbo.work.Run.Window                                        equals(Object):boolean
+cloud.jengu.dbo.work.Run.Window                                        hashCode():int
+cloud.jengu.dbo.work.Run.Window                                        new(Duration,Instant)
+cloud.jengu.dbo.work.Run.Window                                        record
+cloud.jengu.dbo.work.Run.Window                                        toString():String
+cloud.jengu.dbo.work.Run.Window                                        until():Instant
 cloud.jengu.dbo.work.RunChain                                          accessLink(String,String,String,String):String
 cloud.jengu.dbo.work.RunChain                                          class
 cloud.jengu.dbo.work.RunChain                                          head(cloud.jengu.dbo.work.Run,List):Optional
@@ -4901,12 +4913,14 @@ cloud.jengu.dbo.work.Runs                                              claimAsPe
 cloud.jengu.dbo.work.Runs                                              class
 cloud.jengu.dbo.work.Runs                                              closed(cloud.jengu.dbo.work.Run):cloud.jengu.dbo.work.Run
 cloud.jengu.dbo.work.Runs                                              closed(cloud.jengu.dbo.work.Run,List):cloud.jengu.dbo.work.Run
+cloud.jengu.dbo.work.Runs                                              collected(cloud.jengu.dbo.work.Run,Instant):cloud.jengu.dbo.work.Run
 cloud.jengu.dbo.work.Runs                                              correlated(cloud.jengu.dbo.work.Run,String):cloud.jengu.dbo.work.Run
 cloud.jengu.dbo.work.Runs                                              due(Instant):List
 cloud.jengu.dbo.work.Runs                                              fellThrough(cloud.jengu.dbo.work.Run,cloud.jengu.dbo.work.Scope,String):cloud.jengu.dbo.work.Run
 cloud.jengu.dbo.work.Runs                                              filling(cloud.jengu.dbo.core.process.StepDeclaration,cloud.jengu.dbo.work.RunKind,String,Map):cloud.jengu.dbo.work.Run
 cloud.jengu.dbo.work.Runs                                              filling(cloud.jengu.dbo.core.process.StepDeclaration,cloud.jengu.dbo.work.RunKind,String,Map,String):cloud.jengu.dbo.work.Run
 cloud.jengu.dbo.work.Runs                                              filling(cloud.jengu.dbo.core.process.StepDeclaration,cloud.jengu.dbo.work.RunKind,String,Map,String,String):cloud.jengu.dbo.work.Run
+cloud.jengu.dbo.work.Runs                                              filling(cloud.jengu.dbo.core.process.StepDeclaration,cloud.jengu.dbo.work.RunKind,String,Map,String,String,Duration):cloud.jengu.dbo.work.Run
 cloud.jengu.dbo.work.Runs                                              forPeople(cloud.jengu.dbo.work.Run,String):cloud.jengu.dbo.work.Run
 cloud.jengu.dbo.work.Runs                                              item(cloud.jengu.dbo.work.Run,String,cloud.jengu.dbo.work.Failure,String):cloud.jengu.dbo.work.Run
 cloud.jengu.dbo.work.Runs                                              items(cloud.jengu.dbo.work.Run):List

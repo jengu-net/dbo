@@ -30,7 +30,48 @@ public record Run(String id, long versionId, String key, String process, String 
         Assignment assignment, Produced produced, String stepVersion,
         Map<String, RunSlot> inputs, Milestone milestone, String requester,
         String refused, Status status, boolean automation, java.time.Instant notBefore,
-        String statusReason, int attempts, cloud.jengu.dbo.core.process.RetryPolicy retry) {
+        String statusReason, int attempts, cloud.jengu.dbo.core.process.RetryPolicy retry,
+        Window window) {
+
+    /** A run whose asker collects nothing. */
+    public Run(String id, long versionId, String key, String process, String step,
+            RunKind kind, String parent, String correlation, String trace,
+            Map<String, Long> tally, Item item, java.util.List<String> domains,
+            Assignment assignment, Produced produced, String stepVersion,
+            Map<String, RunSlot> inputs, Milestone milestone, String requester,
+            String refused, Status status, boolean automation, java.time.Instant notBefore,
+            String statusReason, int attempts, cloud.jengu.dbo.core.process.RetryPolicy retry) {
+        this(id, versionId, key, process, step, kind, parent, correlation, trace, tally, item,
+                domains, assignment, produced, stepVersion, inputs, milestone, requester, refused,
+                status, automation, notBefore, statusReason, attempts, retry, null);
+    }
+
+    /**
+     * How long the run's requester may collect what it was given and what it
+     * produced, once its work is over.
+     *
+     * <p>A time beside the run rather than a state of it. The run is over when
+     * its result is written and nobody owes it anything: collecting is
+     * optional, and a result nobody collects is not work left undone. So the
+     * window is read by comparing the clock with {@code until}, and closing it
+     * needs no transition and no sweep.
+     *
+     * @param collect how long after the result is written, as the step
+     *                declared it when the run was authored
+     * @param until   when the window shuts, or null while the result is not
+     *                written — set as the run completes, and moved to now when
+     *                the requester says it is done collecting
+     */
+    public record Window(java.time.Duration collect, java.time.Instant until) {}
+
+    /**
+     * Whether the client named may collect from this run now: the run's
+     * requester, its work over, inside the window its step declared.
+     */
+    public boolean collectableBy(String client, java.time.Instant now) {
+        return client != null && client.equals(requester) && !open() && window != null
+                && window.until() != null && now.isBefore(window.until());
+    }
 
     /**
      * A run named only by its key, for a verb whose lane reads the store's
@@ -45,7 +86,7 @@ public record Run(String id, long versionId, String key, String process, String 
     public static Run named(String key) {
         return new Run(null, 0, key, null, null, null, null, null, null,
                 Map.of(), null, java.util.List.of(), null, Produced.NOTHING, null,
-                Map.of(), null, null, null, null, false, null, null, 0, null);
+                Map.of(), null, null, null, null, false, null, null, 0, null, null);
     }
 
     /**
@@ -351,7 +392,19 @@ public record Run(String id, long versionId, String key, String process, String 
                 optional(json, "requester"), optional(json, "refused"), status, automation,
                 notBefore == null ? null : java.time.Instant.parse(notBefore.toString()),
                 optional(json, "statusReason"),
-                attempts instanceof Number count ? count.intValue() : 0, retry(json));
+                attempts instanceof Number count ? count.intValue() : 0, retry(json),
+                window(json));
+    }
+
+    /** The asker's window, as the run recorded it, or null where it has none. */
+    private static Window window(Object json) {
+        Object collect = ((Map<?, ?>) json).get("collect");
+        if (collect == null) {
+            return null;
+        }
+        Object until = ((Map<?, ?>) json).get("collectUntil");
+        return new Window(java.time.Duration.parse(collect.toString()),
+                until == null ? null : java.time.Instant.parse(until.toString()));
     }
 
     /**

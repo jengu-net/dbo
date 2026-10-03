@@ -47,6 +47,14 @@ final class ElementRecordProjection implements RecordProjection {
      */
     static final String RUN_TASK_PROFILE = "https://dbo.dev/fhir/StructureDefinition/run-as-task";
 
+    /**
+     * Until when the application that asked for a run may collect what it was
+     * given and what it produced: a time beside the task's status rather than
+     * a status of its own, because the work is over either way.
+     */
+    static final String COLLECTABLE_UNTIL =
+            "https://dbo.dev/fhir/StructureDefinition/collectable-until";
+
     private static final String RUN_OUTPUT = "urn:dbo:run:output";
     private static final String RUN_INPUT = "urn:dbo:run:input";
     private static final String MILESTONE = "urn:dbo:run:milestone";
@@ -176,6 +184,7 @@ final class ElementRecordProjection implements RecordProjection {
                 // concept on the wire is described by a definition a client
                 // can fetch.
                 shapeStampExtension(),
+                collectableUntilExtension(),
                 runTaskProfile());
     }
 
@@ -320,6 +329,26 @@ final class ElementRecordProjection implements RecordProjection {
                 + "{\"id\":\"Extension\",\"path\":\"Extension\"},"
                 + "{\"id\":\"Extension.url\",\"path\":\"Extension.url\",\"fixedUri\":"
                 + Json.quoted(ElementAncestors.SHAPE_URL) + "}]}}";
+    }
+
+    private static String collectableUntilExtension() {
+        return "{\"resourceType\":\"StructureDefinition\",\"url\":"
+                + Json.quoted(COLLECTABLE_UNTIL)
+                + ",\"name\":\"DboCollectableUntil\",\"status\":\"active\""
+                + ",\"kind\":\"complex-type\",\"abstract\":false,\"type\":\"Extension\""
+                + ",\"description\":\"Until when the application that asked for this task "
+                + "may collect what it was given and the versions it produced. The task is "
+                + "over either way; the window is a time beside it, and it shuts at this "
+                + "instant or when the asker says it is done collecting.\""
+                + ",\"baseDefinition\":\"http://hl7.org/fhir/StructureDefinition/Extension\""
+                + ",\"derivation\":\"constraint\""
+                + ",\"context\":[{\"type\":\"element\",\"expression\":\"Task\"}]"
+                + ",\"differential\":{\"element\":["
+                + "{\"id\":\"Extension\",\"path\":\"Extension\",\"max\":\"1\"},"
+                + "{\"id\":\"Extension.url\",\"path\":\"Extension.url\",\"fixedUri\":"
+                + Json.quoted(COLLECTABLE_UNTIL) + "},"
+                + "{\"id\":\"Extension.value[x]\",\"path\":\"Extension.value[x]\""
+                + ",\"min\":1,\"type\":[{\"code\":\"instant\"}]}]}}";
     }
 
     /** Which content mode a definition declares. */
@@ -559,6 +588,11 @@ final class ElementRecordProjection implements RecordProjection {
                 .append(",\"meta\":{\"versionId\":").append(Json.quoted(String.valueOf(record.versionId())))
                 .append('}');
         contained(record, json);
+        if (run.get("collectUntil") != null) {
+            json.append(",\"extension\":[{\"url\":").append(Json.quoted(COLLECTABLE_UNTIL))
+                    .append(",\"valueInstant\":")
+                    .append(Json.quoted(String.valueOf(run.get("collectUntil")))).append("}]");
+        }
         json.append(",\"identifier\":[{\"system\":\"").append(RUN).append("\",\"value\":")
                 .append(Json.quoted(String.valueOf(run.get("key")))).append('}');
         if (run.get("correlation") != null) {

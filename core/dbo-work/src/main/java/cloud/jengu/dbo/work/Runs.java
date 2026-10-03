@@ -301,6 +301,24 @@ public final class Runs {
     public Run filling(cloud.jengu.dbo.core.process.StepDeclaration step, RunKind kind,
             String scope, Map<String, RunSlot> inputs, String requester,
             String forPeopleBecause) {
+        return filling(step, kind, scope, inputs, requester, forPeopleBecause, null);
+    }
+
+    /**
+     * The same, for a step that gives its requester a window to collect in
+     * once the work is over.
+     *
+     * <p>The length is recorded as the run is authored, as the retry is, so
+     * the run is held to what its step said when it was asked for wherever it
+     * is performed — and so the close that opens the window needs nothing
+     * but the run.
+     *
+     * @param collect how long after the result is written the requester may
+     *                collect, or null for a step that declares no answer
+     */
+    public Run filling(cloud.jengu.dbo.core.process.StepDeclaration step, RunKind kind,
+            String scope, Map<String, RunSlot> inputs, String requester,
+            String forPeopleBecause, java.time.Duration collect) {
         for (String slot : inputs.keySet()) {
             if (!step.slots().containsKey(slot)) {
                 throw new IllegalArgumentException(step.id() + " declares no slot '" + slot
@@ -326,7 +344,8 @@ public final class Runs {
                 List.copyOf(step.writes()),
                 requester == null ? null : new Run.Assignment(null, null, null, null, requester),
                 Run.Produced.NOTHING, step.version(),
-                java.util.Collections.unmodifiableMap(ordered), null, requester, null)));
+                java.util.Collections.unmodifiableMap(ordered), null, requester, null,
+                collect == null ? null : new Run.Window(collect, null))));
     }
 
     /**
@@ -798,8 +817,47 @@ public final class Runs {
 
     /** Done, said by the store itself — a sweep converging, an item not found again. */
     private Run completed(Run run) {
-        return update(run, snapshot -> snapshot.withStanding(
-                snapshot.standing().as(Status.COMPLETED)));
+        return update(run, snapshot -> answered(snapshot.withStanding(
+                snapshot.standing().as(Status.COMPLETED))));
+    }
+
+    /**
+     * The asker's window opened, where its step declared one: from now, which
+     * is when the result was written, for as long as the step said.
+     *
+     * <p>In the advance that completes the run and not after it, so nobody
+     * reads a run that is over and not yet collectable, and nothing has to
+     * remember to open it.
+     */
+    private static State answered(State completed) {
+        Run.Window window = completed.window();
+        return window == null ? completed : completed.withWindow(new Run.Window(
+                window.collect(), java.time.Instant.now().plus(window.collect())));
+    }
+
+    /**
+     * The requester has collected what it wanted: its window shuts now rather
+     * than when the step said it would.
+     *
+     * <p>A window already shut, or one never opened, is left as it is — the
+     * requester saying it is done twice asks for nothing new, and a run whose
+     * result is not written has no window to shut.
+     */
+    public Run collected(Run run, java.time.Instant now) {
+        Run current = byKey(run.key()).orElse(run);
+        if (current.window() == null || current.window().until() == null
+                || !now.isBefore(current.window().until())) {
+            // Nothing to shut, and nothing written: a version saying nothing
+            // happened would be a change somebody reads.
+            return current;
+        }
+        return update(current, snapshot -> {
+            Run.Window window = snapshot.window();
+            if (window == null || window.until() == null || !now.isBefore(window.until())) {
+                return snapshot;
+            }
+            return snapshot.withWindow(new Run.Window(window.collect(), now));
+        });
     }
 
     /**
@@ -841,9 +899,9 @@ public final class Runs {
                     watermark.merge(parts[0], Long.parseLong(parts[2]), Math::max);
                 }
             }
-            return snapshot.withProduced(new Run.Produced(List.copyOf(named),
+            return answered(snapshot.withProduced(new Run.Produced(List.copyOf(named),
                             Map.copyOf(watermark), before.counted() + versions.size()))
-                    .withStanding(snapshot.standing().as(Status.COMPLETED));
+                    .withStanding(snapshot.standing().as(Status.COMPLETED)));
         });
     }
 
@@ -893,6 +951,8 @@ public final class Runs {
         return update(run, snapshot -> snapshot.withStanding(snapshot.standing()
                         .as(Status.READY).openTo(automation).because(because).attempted(0)
                         .notBefore(null)).withRefused(null)
+                .withWindow(snapshot.window() == null ? null
+                        : new Run.Window(snapshot.window().collect(), null))
                 .withAssignment(
                 new Run.Assignment(
                         snapshot.assignment() == null ? null : snapshot.assignment().at(),
@@ -1147,7 +1207,7 @@ public final class Runs {
                 run.parent(), run.correlation(), run.trace(), run.tally(), run.item(),
                 run.domains(),
                 run.assignment(), run.produced(), run.stepVersion(), run.inputs(),
-                run.milestone(), run.requester(), run.refused());
+                run.milestone(), run.requester(), run.refused(), run.window());
     }
 
     /**
@@ -1373,7 +1433,18 @@ public final class Runs {
             String parent, String correlation, String trace, Map<String, Long> tally, Run.Item item,
             List<String> domains, Run.Assignment assignment, Run.Produced produced,
             String stepVersion, Map<String, RunSlot> inputs, Run.Milestone milestone,
-            String requester, String refused) {
+            String requester, String refused, Run.Window window) {
+
+        /** A run whose asker collects nothing. */
+        State(String key, String process, String step, RunKind kind, Standing standing,
+                String parent, String correlation, String trace, Map<String, Long> tally,
+                Run.Item item, List<String> domains, Run.Assignment assignment,
+                Run.Produced produced, String stepVersion, Map<String, RunSlot> inputs,
+                Run.Milestone milestone, String requester, String refused) {
+            this(key, process, step, kind, standing, parent, correlation, trace, tally, item,
+                    domains, assignment, produced, stepVersion, inputs, milestone, requester,
+                    refused, null);
+        }
 
         /** A reference is a string; an object is itself. */
         private static String value(RunSlot slot, String raw) {
@@ -1400,43 +1471,49 @@ public final class Runs {
 
         State withStanding(Standing standing) {
             return new State(key, process, step, kind, standing, parent, correlation, trace, tally, item,
-                    domains, assignment, produced, stepVersion, inputs, milestone, requester, refused);
+                    domains, assignment, produced, stepVersion, inputs, milestone, requester, refused, window);
         }
 
         State withTally(Map<String, Long> tally) {
             return new State(key, process, step, kind, standing, parent, correlation, trace,
                     Map.copyOf(tally), item, domains, assignment, produced, stepVersion,
-                    inputs, milestone, requester, refused);
+                    inputs, milestone, requester, refused, window);
         }
 
         State withAssignment(Run.Assignment assignment) {
             return new State(key, process, step, kind, standing, parent, correlation, trace, tally, item,
-                    domains, assignment, produced, stepVersion, inputs, milestone, requester, refused);
+                    domains, assignment, produced, stepVersion, inputs, milestone, requester, refused, window);
         }
 
         State withProduced(Run.Produced produced) {
             return new State(key, process, step, kind, standing, parent, correlation, trace, tally, item,
-                    domains, assignment, produced, stepVersion, inputs, milestone, requester, refused);
+                    domains, assignment, produced, stepVersion, inputs, milestone, requester, refused, window);
         }
 
         State withTrace(String trace) {
             return new State(key, process, step, kind, standing, parent, correlation, trace,
-                    tally, item, domains, assignment, produced, stepVersion, inputs, milestone, requester, refused);
+                    tally, item, domains, assignment, produced, stepVersion, inputs, milestone, requester, refused, window);
         }
 
         State withCorrelation(String correlation) {
             return new State(key, process, step, kind, standing, parent, correlation, trace, tally, item,
-                    domains, assignment, produced, stepVersion, inputs, milestone, requester, refused);
+                    domains, assignment, produced, stepVersion, inputs, milestone, requester, refused, window);
         }
 
         State withMilestone(Run.Milestone milestone) {
             return new State(key, process, step, kind, standing, parent, correlation, trace, tally, item,
-                    domains, assignment, produced, stepVersion, inputs, milestone, requester, refused);
+                    domains, assignment, produced, stepVersion, inputs, milestone, requester, refused, window);
+        }
+
+        State withWindow(Run.Window window) {
+            return new State(key, process, step, kind, standing, parent, correlation, trace, tally, item,
+                    domains, assignment, produced, stepVersion, inputs, milestone, requester, refused,
+                    window);
         }
 
         State withRefused(String refused) {
             return new State(key, process, step, kind, standing, parent, correlation, trace, tally, item,
-                    domains, assignment, produced, stepVersion, inputs, milestone, requester, refused);
+                    domains, assignment, produced, stepVersion, inputs, milestone, requester, refused, window);
         }
 
         byte[] payload() {
@@ -1524,6 +1601,13 @@ public final class Runs {
             }
             if (refused != null) {
                 json.append(",\"refused\":").append(Json.quoted(refused));
+            }
+            if (window != null) {
+                json.append(",\"collect\":").append(Json.quoted(window.collect().toString()));
+                if (window.until() != null) {
+                    json.append(",\"collectUntil\":")
+                            .append(Json.quoted(window.until().toString()));
+                }
             }
             if (!inputs.isEmpty()) {
                 json.append(",\"inputs\":{");

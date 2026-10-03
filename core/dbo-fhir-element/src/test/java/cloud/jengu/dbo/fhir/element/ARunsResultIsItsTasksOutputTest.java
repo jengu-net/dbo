@@ -57,6 +57,29 @@ class ARunsResultIsItsTasksOutputTest {
     }
 
     @Test
+    @DisplayName("a run whose asker may collect says until when, beside a status that is "
+            + "completed, and a run with no window says nothing of one")
+    @Proving(DboPromises.PROC_A_RUN_IS_COLLECTED_BY_ITS_ASKER)
+    void theWindowIsBesideTheStatus() {
+        Map<?, ?> task = rendered("""
+                {"key":"care.records.register/one","process":"care.records",
+                 "step":"register","kind":"pipeline","status":"completed",
+                 "produced":{"counted":1,"versions":["Patient/p1/1"]},
+                 "collect":"PT15M","collectUntil":"2026-10-03T12:15:00Z",
+                 "requester":"the-asker"}""");
+
+        assertEquals("completed", task.get("status"),
+                "a run its asker may still collect from reads as work under way");
+        assertEquals(List.of(Map.of("url",
+                        "https://dbo.dev/fhir/StructureDefinition/collectable-until",
+                        "valueInstant", "2026-10-03T12:15:00Z")), task.get("extension"),
+                "the window is not on the task");
+        assertEquals(null, rendered("""
+                {"key":"k/none","process":"m.p","step":"s","kind":"pipeline",
+                 "status":"completed"}""").get("extension"));
+    }
+
+    @Test
     @DisplayName("a run past its manifest's cap says how many versions it produced, so the "
             + "named ones are not read as all of them")
     @Proving(DboPromises.PROC_A_RUN_ANSWERS_ITS_INITIATOR)

@@ -374,7 +374,10 @@ final class StepSurface implements HttpHandler {
         }
         Run run = runs.filling(declaration, RunKind.PIPELINE, scope, inputs, requester,
                 step == null || step.automate() == null ? null
-                        : forPeopleBecause(step.automate(), inputs));
+                        : forPeopleBecause(step.automate(), inputs),
+                // The asker's window, recorded as the run is authored so the
+                // close that opens it needs nothing but the run.
+                step == null || step.answer() == null ? null : step.answer().collect());
         // The key as well as the id, because they answer different questions
         // and only one of them is this surface's. The id addresses the
         // context; the key is the name the rest of the work model is asked by
