@@ -18,7 +18,6 @@ import cloud.jengu.dbo.tenant.TenantSpec;
 import cloud.jengu.dbo.tenant.UnapprovedProcessing;
 import cloud.jengu.dbo.work.Executor;
 import cloud.jengu.dbo.work.FleetWork;
-import cloud.jengu.dbo.work.Holder;
 import cloud.jengu.dbo.work.Run;
 import cloud.jengu.dbo.work.RunKind;
 import cloud.jengu.dbo.work.Runs;
@@ -1072,7 +1071,7 @@ class AStepIsRunForTheFleetIT {
 
         Runs runs = new Runs(sharedOne.engine());
         assertTrue(until(() -> runs.byKey(authored.key())
-                        .map(run -> run.holder() == Holder.NOBODY).orElse(false)),
+                        .map(run -> !run.open()).orElse(false)),
                 "the run never closed in the tenant that authored it, so work the deployment "
                         + "performed is not on that tenant's record: "
                         + runs.byKey(authored.key()));
@@ -1126,7 +1125,7 @@ class AStepIsRunForTheFleetIT {
                 "the refusal does not name the action the step never declared, which is the "
                         + "one thing somebody has to add: " + refusal.getMessage());
         assertTrue(new Runs(sharedOne.engine()).byKey(authored.key())
-                        .map(run -> run.holder() != Holder.NOBODY).orElse(false),
+                        .map(run -> run.open()).orElse(false),
                 "the run closed anyway, so the refusal was a message rather than a rule");
     }
 

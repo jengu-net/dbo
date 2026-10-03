@@ -14,7 +14,6 @@ import cloud.jengu.dbo.spring.test.DboTestContext;
 import cloud.jengu.dbo.spring.worker.DboInitiator;
 import cloud.jengu.dbo.work.Executor;
 import cloud.jengu.dbo.work.FleetWork;
-import cloud.jengu.dbo.work.Holder;
 import cloud.jengu.dbo.work.Run;
 import cloud.jengu.dbo.work.RunKind;
 import cloud.jengu.dbo.work.RunSlot;
@@ -756,9 +755,9 @@ class OneStepIsPerformedForEveryTenantIT {
 
     /** The run once nobody holds it any more, or null if that never happened. */
     private Run untilClosed(String tenant, String key) throws InterruptedException {
-        until(() -> runs(tenant).byKey(key).map(run -> run.holder() == Holder.NOBODY)
+        until(() -> runs(tenant).byKey(key).map(run -> !run.open())
                 .orElse(false), Duration.ofMinutes(3));
-        return runs(tenant).byKey(key).filter(run -> run.holder() == Holder.NOBODY)
+        return runs(tenant).byKey(key).filter(run -> !run.open())
                 .orElse(null);
     }
 

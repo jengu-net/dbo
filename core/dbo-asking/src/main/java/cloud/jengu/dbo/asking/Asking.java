@@ -151,12 +151,12 @@ public final class Asking implements Questions {
          * Everything not finished with.
          *
          * <p>A run nobody holds is done or abandoned; everything else is
-         * owed by somebody or something. Asked as a negation because that is
-         * what open means here, and the store answers it.
+         * owed by somebody or something. Asked as the holders that still owe,
+         * which is the same list the run itself answers "open" from.
          */
         public Work open() {
-            return also("open", criteria -> criteria.notEq("holder",
-                    EnvelopeValue.of(Holder.NOBODY.wire())));
+            return also("open", criteria -> criteria.anyOf("holder", Holder.owing().stream()
+                    .map(holder -> EnvelopeValue.of(holder.wire())).toList()));
         }
 
         /**

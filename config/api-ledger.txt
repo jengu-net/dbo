@@ -4588,6 +4588,8 @@ cloud.jengu.dbo.work.Holder                                            NOBODY:cl
 cloud.jengu.dbo.work.Holder                                            PERSON:cloud.jengu.dbo.work.Holder
 cloud.jengu.dbo.work.Holder                                            RETRY:cloud.jengu.dbo.work.Holder
 cloud.jengu.dbo.work.Holder                                            enum
+cloud.jengu.dbo.work.Holder                                            owes():boolean
+cloud.jengu.dbo.work.Holder                                            owing():List
 cloud.jengu.dbo.work.Holder                                            valueOf(String):cloud.jengu.dbo.work.Holder
 cloud.jengu.dbo.work.Holder                                            values():cloud.jengu.dbo.work.Holder[]
 cloud.jengu.dbo.work.Holder                                            wire():String

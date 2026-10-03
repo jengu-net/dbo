@@ -195,9 +195,8 @@ public final class Across implements Questions {
             // A comma is "any of these" on this surface, which the store
             // promises and answers; `:not` was never answered for a Task at
             // all, so the negation was unreachable as well as wrong.
-            return new WorkAcross(asked.also("open", "owner="
-                    + Holder.AUTOMATION.wire() + "," + Holder.RETRY.wire()
-                    + "," + Holder.PERSON.wire()));
+            return new WorkAcross(asked.also("open", "owner=" + String.join(",",
+                    Holder.owing().stream().map(Holder::wire).toList())));
         }
 
         @Override

@@ -213,7 +213,7 @@ public record Run(String id, long versionId, String key, String process, String 
 
     /** Whether anybody is owed anything. */
     public boolean open() {
-        return holder != Holder.NOBODY;
+        return holder.owes();
     }
 
     /** Whether this is work waiting for a human rather than for a clock. */

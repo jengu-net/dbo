@@ -29,6 +29,20 @@ public enum Holder {
     /** Done, or abandoned. Nothing is owed. */
     NOBODY;
 
+    /**
+     * Whether a run held this way is still owed anything — the one answer to
+     * "is it over", which {@link Run#open} and the questions asked of many
+     * runs at once both read, so the two cannot disagree about it.
+     */
+    public boolean owes() {
+        return this != NOBODY;
+    }
+
+    /** Every holder that still owes something, in declaration order. */
+    public static java.util.List<Holder> owing() {
+        return java.util.Arrays.stream(values()).filter(Holder::owes).toList();
+    }
+
     /** Lowercase: this crosses a wire and an envelope as a word, not a Java name. */
     public String wire() {
         return name().toLowerCase(java.util.Locale.ROOT);

@@ -973,8 +973,7 @@ class WorkLeavesTheClinicAndComesBackIT {
                 refused.getMessage().contains(suppressed)
                         && refused.getMessage().contains("missing before")
                         && chainOf(held).size() == 1
-                        && runs.byKey(held.key()).orElseThrow().holder()
-                                != cloud.jengu.dbo.work.Holder.NOBODY,
+                        && runs.byKey(held.key()).orElseThrow().open(),
                 "a link committing to one the store never received was not refused by name, "
                         + "or something landed after the hop, or the run stopped being owed: "
                         + refused.getMessage());
@@ -1002,8 +1001,7 @@ class WorkLeavesTheClinicAndComesBackIT {
                 "a close committing to the wrong head, or to none, was not refused by name: "
                         + refused.getMessage() + " / " + none.getMessage());
         Proves.that(DboPromises.POL_A_RUNS_TRAIL_IS_CHAINED_FROM_THE_TASK,
-                runs.byKey(held.key()).orElseThrow().holder()
-                        != cloud.jengu.dbo.work.Holder.NOBODY
+                runs.byKey(held.key()).orElseThrow().open()
                         && chainOf(held).stream()
                                 .filter(e -> "access".equals(e.get("code"))).count() == 2,
                 "the run closed without a result, or its openings are not on record");
@@ -1112,7 +1110,7 @@ class WorkLeavesTheClinicAndComesBackIT {
 
         Run released = runs.byKey(held.key()).orElseThrow();
         Proves.that(DboPromises.PROC_DONE_MEANS_DONE,
-                released.holder() != cloud.jengu.dbo.work.Holder.NOBODY
+                released.open()
                         && released.assignment() != null
                         && released.assignment().executor() == null
                         && String.valueOf(released.assignment().note()).contains("lapsed"),
@@ -1122,8 +1120,7 @@ class WorkLeavesTheClinicAndComesBackIT {
                 () -> gateway.closed(held, cloud.jengu.dbo.work.RunChain.root(held)),
                 "a report after the claim lapsed closed the run");
         Proves.that(DboPromises.PROC_THE_ROUTER_HOLDS_THE_CLAIM,
-                runs.byKey(held.key()).orElseThrow().holder()
-                        != cloud.jengu.dbo.work.Holder.NOBODY,
+                runs.byKey(held.key()).orElseThrow().open(),
                 "the run stopped being owed after a late report");
     }
 
