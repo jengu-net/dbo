@@ -354,8 +354,10 @@ class SyncStreamsIT {
     /** A feed whose upstream is not there — what a tenant being down looks like from here. */
     private static cloud.jengu.dbo.core.api.feed.ChangeFeed unreachableFeed() {
         return new cloud.jengu.dbo.core.api.feed.ChangeFeed() {
-            private IllegalStateException down() {
-                return new IllegalStateException(
+            // What a feed over a lane raises when the far side does not
+            // answer, which is the one fault a sweep is told will pass.
+            private cloud.jengu.dbo.core.api.StoreUnreachableException down() {
+                return new cloud.jengu.dbo.core.api.StoreUnreachableException(
                         "connection refused: the upstream tenant is down");
             }
 

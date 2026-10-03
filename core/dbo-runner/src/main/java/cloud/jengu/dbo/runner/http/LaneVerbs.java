@@ -59,6 +59,12 @@ public enum LaneVerbs {
     public static final String COUNTS = "counts";
     public static final String MILESTONE_NAME = "milestone";
     public static final String REASON = "reason";
+    /**
+     * What kind of failure a release is — {@code record}, {@code unreachable},
+     * {@code lapsed} or {@code unknown} — which routes it. Absent is a
+     * hand-back that is not a failure.
+     */
+    public static final String FAILURE = "failure";
     public static final String DECLARED = "declared";
     public static final String STEP = "step";
     /**

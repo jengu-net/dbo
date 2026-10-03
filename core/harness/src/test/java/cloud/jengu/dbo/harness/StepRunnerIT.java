@@ -46,6 +46,9 @@ class StepRunnerIT {
 
     private static final String PROCESS = "dbo.lab.result";
 
+    /** A process whose dispatch step is declared, as {@code <module>.<process>}. */
+    private static final String DISPATCHING = "lab.result";
+
     static PGSimpleDataSource ds;
     static PgObjectStore store;
     static Runs runs;
@@ -65,7 +68,13 @@ class StepRunnerIT {
                 (type, payload) -> new cloud.jengu.dbo.core.api.Envelope(),
                 List.of()));
         store = new PgObjectStore(ds, registrations);
-        runs = new Runs(store);
+        // The dispatch step says a printer that does not answer will answer
+        // later, which is what lets a failure of it go back to automation.
+        runs = new Runs(store, cloud.jengu.dbo.core.process.Steps.of(
+                cloud.jengu.dbo.core.process.StepDeclaration.of(DISPATCHING + ".dispatch", "1",
+                                WorkModel.DOMAIN)
+                        .retrying(new cloud.jengu.dbo.core.process.RetryPolicy(
+                                List.of("unreachable"), "PT0S", 3))));
         declarations = new Declarations(store, new PgChangeFeed(ds, WorkModel.DOMAIN),
                 Duration.ofSeconds(30));
     }
@@ -137,11 +146,11 @@ class StepRunnerIT {
     }
 
     @Test
-    @DisplayName("a throwing service releases with the reason — released is not done — and "
-            + "a later cycle takes it again and succeeds")
+    @DisplayName("a service throwing a fault its step declared will pass releases with the "
+            + "reason — released is not done — and a later cycle takes it again and succeeds")
     @Proving(DboPromises.PROC_FAILURE_IS_RELEASED)
     void failureIsReleasedThenRetaken() {
-        Run work = runs.pipeline(PROCESS, "dispatch", PROCESS + "/dispatch/one",
+        Run work = runs.pipeline(DISPATCHING, "dispatch", DISPATCHING + "/dispatch/one",
                 List.of(WorkModel.DOMAIN));
 
         java.util.concurrent.atomic.AtomicInteger attempts =
@@ -151,13 +160,14 @@ class StepRunnerIT {
 
                 @Override
                 public String step() {
-                    return PROCESS + ".dispatch";
+                    return DISPATCHING + ".dispatch";
                 }
 
                 @Override
                 public Outcome perform(Work work) {
                     if (attempts.incrementAndGet() == 1) {
-                        throw new IllegalStateException("the printer is on fire");
+                        throw new cloud.jengu.dbo.core.api.StoreUnreachableException(
+                                "the printer is not answering");
                     }
                     return Outcome.done();
                 }

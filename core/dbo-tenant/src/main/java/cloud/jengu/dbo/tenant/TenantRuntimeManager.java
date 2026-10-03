@@ -2196,7 +2196,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 // somebody has to open to fix it.
                 trouble.put(codeOf(declaration).orElse("spec:" + named),
                         new Trouble(stillComing
-                                ? cloud.jengu.dbo.work.Failure.TRANSIENT
+                                ? cloud.jengu.dbo.work.Failure.UNREACHABLE
                                 : cloud.jengu.dbo.work.Failure.of(e),
                                 withItsCauses(e)));
                 if (stillComing) {
@@ -5048,7 +5048,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
             // in which the records stop moving, and an operator reading a
             // ledger that says nothing would conclude they are current.
             trouble.put(SOURCE_TROUBLE, new Trouble(
-                    cloud.jengu.dbo.work.Failure.TRANSIENT, String.valueOf(e)));
+                    cloud.jengu.dbo.work.Failure.UNREACHABLE, String.valueOf(e)));
             LOG.warn("the declarations could not be read; the tenants already declared are "
                     + "unaffected and the records stand as they were", e);
             throw e;

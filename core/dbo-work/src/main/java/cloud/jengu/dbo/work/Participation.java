@@ -108,17 +108,24 @@ public final class Participation {
     }
 
     /**
-     * Hands back everything whose claim has lapsed, so it can be taken again.
+     * Hands back everything whose claim has lapsed, and readies what was held
+     * back and is due, so it can be taken again.
      *
      * <p>Anybody may run this — it is the tenant's own housekeeping rather than
      * the dead participant's, which is the point: the participant that needed
      * noticing is the one that cannot notice.
      */
     public static int releaseLapsed(Runs runs) {
-        List<Run> lapsed = runs.lapsed(Instant.now());
+        Instant now = Instant.now();
+        List<Run> lapsed = runs.lapsed(now);
+        // A lapse is a failure like any other, routed by what the step
+        // declared: an executor that died said nothing about why, so it goes
+        // back to automation only where the step said a lapse will pass.
         lapsed.forEach(run -> runs.released(run,
                 "the claim lapsed at " + run.assignment().until()
-                        + " — released, which is not the same as done"));
+                        + " — released, which is not the same as done", Failure.LAPSED));
+        // And what was held back and is due, offered again.
+        runs.due(now);
         return lapsed.size();
     }
 

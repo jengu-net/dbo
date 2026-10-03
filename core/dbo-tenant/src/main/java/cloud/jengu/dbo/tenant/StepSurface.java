@@ -328,8 +328,13 @@ final class StepSurface implements HttpHandler {
         }
         String scope = Optional.ofNullable(Json.strOpt(body, "scope"))
                 .orElseGet(cloud.jengu.dbo.core.UuidV7::newId);
-        Run run = runs.filling(declaration(stepCode, slots), RunKind.PIPELINE, scope, inputs,
-                requester);
+        StepDeclaration declaration = declaration(stepCode, slots);
+        if (step != null && step.retry() != null) {
+            // Recorded on the run as it is authored, so its failures are
+            // routed by what this tenant declared wherever it is performed.
+            declaration = declaration.retrying(step.retry());
+        }
+        Run run = runs.filling(declaration, RunKind.PIPELINE, scope, inputs, requester);
         // The key as well as the id, because they answer different questions
         // and only one of them is this surface's. The id addresses the
         // context; the key is the name the rest of the work model is asked by

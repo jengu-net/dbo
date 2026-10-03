@@ -189,9 +189,9 @@ class ARemoteLaneIsIndistinguishableIT {
         }
 
         @Override
-        public void released(Run run, String reason) {
+        public void released(Run run, String reason, cloud.jengu.dbo.work.Failure failure) {
             across("released", () -> {
-                farSide.released(run, reason);
+                farSide.released(run, reason, failure);
                 return null;
             });
         }

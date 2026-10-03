@@ -184,15 +184,13 @@ public final class Runner {
         try {
             return report(claimed, handler.handle(claimed));
         } catch (Exception failed) {
-            // The class decides whose it is: a record that is wrong is a
-            // person's, and an unavailable system is a retry and nobody's card.
+            // The class and the step's declared retry decide where it goes:
+            // a record that is wrong ends it, a fault the step said will pass
+            // goes back to automation later, and anything else to a person.
             Failure failure = Failure.of(failed);
             runs.item(claimed, self.name(), failure, String.valueOf(failed.getMessage()));
             Run latest = runs.byKey(claimed.key()).orElse(claimed);
-            return failure == Failure.RECORD
-                    ? runs.held(latest, Holder.PERSON)
-                    : giveBack(latest, "the work failed and may succeed later: "
-                            + failed.getMessage());
+            return runs.released(latest, "the work failed: " + failed.getMessage(), failure);
         }
     }
 }

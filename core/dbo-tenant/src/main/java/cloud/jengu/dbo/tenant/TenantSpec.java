@@ -52,13 +52,22 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
      * @param slots  slot name to the type it takes, in declaration order
      * @param writes the types a result of this step may ask the tenant to
      *               write, each one this tenant holds
+     * @param retry  which of its failures automation is given again, after how
+     *               long and how many times, or null for none — a failure the
+     *               step did not declare would pass goes to a person
      */
     public record Step(String code, java.util.Map<String, String> slots,
-            java.util.Set<String> writes) {
+            java.util.Set<String> writes, cloud.jengu.dbo.core.process.RetryPolicy retry) {
 
         /** A step whose result writes nothing — it decides, counts, or answers. */
         public Step(String code, java.util.Map<String, String> slots) {
             this(code, slots, java.util.Set.of());
+        }
+
+        /** A step that retries nothing. */
+        public Step(String code, java.util.Map<String, String> slots,
+                java.util.Set<String> writes) {
+            this(code, slots, writes, null);
         }
 
         public Step {
@@ -744,7 +753,24 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
                     }
                     writes.add(String.valueOf(type));
                 }
-                steps.add(new Step(stepCode, slots, writes));
+                // Which failures pass is the step's to say, and it is read
+                // here so a policy that cannot hold is refused where it was
+                // written rather than at the first failure.
+                Object retryNode = Json.objOpt(step, "retry");
+                cloud.jengu.dbo.core.process.RetryPolicy retry = null;
+                if (retryNode != null) {
+                    String attempts = Json.strOpt(retryNode, "attempts");
+                    try {
+                        retry = new cloud.jengu.dbo.core.process.RetryPolicy(
+                                Json.strings(retryNode, "on"), Json.strOpt(retryNode, "after"),
+                                attempts == null ? 1
+                                        : new java.math.BigDecimal(attempts).intValueExact());
+                    } catch (IllegalArgumentException | ArithmeticException wrong) {
+                        throw new IllegalArgumentException(code + ": step '" + stepCode
+                                + "' — " + wrong.getMessage(), wrong);
+                    }
+                }
+                steps.add(new Step(stepCode, slots, writes, retry));
             }
         }
         // The steps the DEPLOYMENT performs, which only the management

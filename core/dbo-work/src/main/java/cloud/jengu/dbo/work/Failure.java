@@ -1,26 +1,37 @@
 package cloud.jengu.dbo.work;
 
 /**
- * Which kind of failure this is, and therefore who it belongs to
+ * Which kind of failure this is, and therefore where the work goes next
  * (REQ-DBO-PROC-ESCALATION-BY-FAILURE-CLASS).
  *
- * <p>A record that is wrong is a person's job. A store that is unavailable is a
- * retry and nobody's card. Only the first makes work: a queue that collects
- * transient faults becomes a graveyard, and a graveyard stops being read — after
- * which the one card that mattered is in it.
+ * <p>A record that is wrong ends the work: trying again would be refused in
+ * the same words. A system that did not answer, and a claim nobody extended,
+ * may pass — but only the step knows whether its do, so whether automation is
+ * given the work again is the step's declared retry, never this class's
+ * guess. Anything else is a failure nobody said would pass, and it goes to a
+ * person: an unknown fault that recurs is what somebody should see, not what
+ * a machine should keep trying without end.
  *
  * <p>Classified from the <b>exception class</b> rather than from a message,
  * because the line is already drawn in the type system and a parallel taxonomy
- * would drift from it. A caller that knows better says so explicitly; a caller
- * that does not gets the safe reading.
+ * would drift from it.
  */
 public enum Failure {
 
     /** The thing being processed is wrong, and re-running will not change that. */
     RECORD,
 
-    /** Something the run depends on was unavailable, and may not be next time. */
-    TRANSIENT;
+    /**
+     * Something the work depends on did not answer — the store, or a system
+     * reached over I/O — and may next time.
+     */
+    UNREACHABLE,
+
+    /** Whoever held the work stopped extending its claim, and said nothing about why. */
+    LAPSED,
+
+    /** Not known to be either, so not known to pass. */
+    UNKNOWN;
 
     /**
      * The class of a thrown failure.
@@ -29,12 +40,12 @@ public enum Failure {
      * a payload arrives as here — is the record's, and so is every refusal the
      * engine states in its own words: an unknown type, a handling rule, a policy,
      * an identity that belongs to something else. None of them changes by being
-     * tried again, and a retry that can only fail identically is a person's card
-     * arriving late.
+     * tried again.
      *
-     * <p>Anything else is treated as transient, which is the safe direction: a
-     * transient fault wrongly called a record fault puts a card in front of a
-     * person who can do nothing about it, once per occurrence.
+     * <p>The store saying it could not be reached, and any I/O failure, is
+     * unreachable. Anything else is unknown. It used to be called transient,
+     * as the safe direction for a person's queue — and it was retried silently
+     * and without end, which is not safe for anybody waiting on the work.
      */
     public static Failure of(Throwable cause) {
         for (Throwable t = cause; t != null; t = t.getCause()) {
@@ -46,15 +57,31 @@ public enum Failure {
                 return RECORD;
             }
         }
-        return TRANSIENT;
+        for (Throwable t = cause; t != null; t = t.getCause()) {
+            if (t instanceof cloud.jengu.dbo.core.api.StoreUnreachableException
+                    || t instanceof java.io.IOException
+                    || t instanceof java.io.UncheckedIOException) {
+                return UNREACHABLE;
+            }
+        }
+        return UNKNOWN;
     }
 
-    /** Who a failure of this class belongs to. */
+    /**
+     * Who an item of this class waits for: a sweep's outcome that may pass is
+     * held for the next pass, and every other is a person's card.
+     */
     public Holder holder() {
-        return this == RECORD ? Holder.PERSON : Holder.RETRY;
+        return this == UNREACHABLE ? Holder.RETRY : Holder.PERSON;
     }
 
+    /** The word, as an item records it and as a step's retry names a fault. */
     public String wire() {
         return name().toLowerCase(java.util.Locale.ROOT);
+    }
+
+    /** The failure a word names, or null for none. */
+    public static Failure ofWire(String wire) {
+        return wire == null ? null : valueOf(wire.toUpperCase(java.util.Locale.ROOT));
     }
 }

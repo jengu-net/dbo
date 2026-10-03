@@ -230,8 +230,15 @@ public interface Lane {
      */
     Run milestone(Run run, String milestone, Map<String, Long> counts, Duration holdFor);
 
-    /** Not done, and why — for the next taker. */
-    void released(Run run, String reason);
+    /**
+     * Not done, and why — for the next taker, and routed by what failed.
+     *
+     * <p>The failure decides where the run goes: back to automation later
+     * for a fault the step declared will pass, ended for a record fault, and
+     * to people otherwise. Null is a hand-back that is not a failure, which
+     * leaves who may take it as it was.
+     */
+    void released(Run run, String reason, cloud.jengu.dbo.work.Failure failure);
 
     /** Done. */
     void closed(Run run);
@@ -745,8 +752,9 @@ public interface Lane {
             }
 
             @Override
-            public void released(Run run, String reason) {
-                runs.released(run, reason);
+            public void released(Run run, String reason,
+                    cloud.jengu.dbo.work.Failure failure) {
+                runs.released(run, reason, failure);
             }
 
             @Override

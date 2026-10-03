@@ -20,7 +20,7 @@ public record Run(String id, long versionId, String key, String process, String 
         Assignment assignment, Produced produced, String stepVersion,
         Map<String, RunSlot> inputs, Milestone milestone, String requester,
         String refused, Status status, boolean automation, java.time.Instant notBefore,
-        String statusReason, int attempts) {
+        String statusReason, int attempts, cloud.jengu.dbo.core.process.RetryPolicy retry) {
 
     /**
      * A run described by who holds it, which is how a run was described
@@ -40,7 +40,7 @@ public record Run(String id, long versionId, String key, String process, String 
         this(id, versionId, key, process, step, kind, holder, parent, correlation, trace, tally,
                 item, domains, assignment, produced, stepVersion, inputs, milestone, requester,
                 refused, statusOf(holder, assignment, refused), holder != Holder.PERSON, null,
-                null, 0);
+                null, 0, null);
     }
 
     private static Status statusOf(Holder holder, Assignment assignment, String refused) {
@@ -68,7 +68,7 @@ public record Run(String id, long versionId, String key, String process, String 
     public static Run named(String key) {
         return new Run(null, 0, key, null, null, null, null, null, null, null,
                 Map.of(), null, java.util.List.of(), null, Produced.NOTHING, null,
-                Map.of(), null, null, null, null, false, null, null, 0);
+                Map.of(), null, null, null, null, false, null, null, 0, null);
     }
 
     /**
@@ -273,6 +273,15 @@ public record Run(String id, long versionId, String key, String process, String 
         return status != null && !status.over();
     }
 
+    /**
+     * Which failures of this run automation is given again — its step's
+     * declared retry, recorded when the run was authored so a step declared
+     * anywhere is held to it — or null for none.
+     */
+    public cloud.jengu.dbo.core.process.RetryPolicy retry() {
+        return retry;
+    }
+
     /** Whether a person holds this run: claimed as a {@code PractitionerRole}. */
     public boolean heldByAPerson() {
         return status == Status.IN_PROGRESS && assignment != null && assignment.role() != null;
@@ -362,7 +371,7 @@ public record Run(String id, long versionId, String key, String process, String 
                 optional(json, "requester"), optional(json, "refused"), status, automation,
                 notBefore == null ? null : java.time.Instant.parse(notBefore.toString()),
                 optional(json, "statusReason"),
-                attempts instanceof Number count ? count.intValue() : 0);
+                attempts instanceof Number count ? count.intValue() : 0, retry(json));
     }
 
     /**
@@ -429,6 +438,19 @@ public record Run(String id, long versionId, String key, String process, String 
         long counted = raw.get("counted") instanceof Number number ? number.longValue()
                 : versions.size();
         return new Produced(java.util.List.copyOf(versions), Map.copyOf(watermark), counted);
+    }
+
+    /** The step's retry, as the run recorded it when it was authored. */
+    private static cloud.jengu.dbo.core.process.RetryPolicy retry(Object json) {
+        if (!(((Map<?, ?>) json).get("retry") instanceof Map<?, ?> raw)) {
+            return null;
+        }
+        java.util.List<String> on = new java.util.ArrayList<>();
+        if (raw.get("on") instanceof java.util.List<?> faults) {
+            faults.forEach(fault -> on.add(fault.toString()));
+        }
+        return new cloud.jengu.dbo.core.process.RetryPolicy(on, str(raw, "after"),
+                raw.get("attempts") instanceof Number count ? count.intValue() : 1);
     }
 
     private static Assignment assignment(Object json) {

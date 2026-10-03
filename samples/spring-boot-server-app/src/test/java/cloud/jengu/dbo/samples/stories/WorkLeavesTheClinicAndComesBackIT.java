@@ -445,11 +445,16 @@ class WorkLeavesTheClinicAndComesBackIT {
     @Proving({DboPromises.PROC_FAILURE_IS_RELEASED, DboPromises.PROC_DONE_MEANS_DONE})
     void aFailureIsReleasedNotClosed() {
         Run held = runs.byKey(runKey).orElseThrow();
-        bench.released(held, "the control sample was out of range");
+        bench.released(held, "the control sample was out of range",
+                cloud.jengu.dbo.work.Failure.UNKNOWN);
 
         Run handed = runs.byKey(runKey).orElseThrow();
         Proves.that(DboPromises.PROC_DONE_MEANS_DONE, handed.open(),
                 "released is not handed back, so nobody can take it again");
+        Proves.that(DboPromises.PROC_FAILURE_IS_RELEASED, !handed.automation()
+                        && handed.status() == cloud.jengu.dbo.work.Status.READY,
+                "a failure the step never said would pass went back to automation rather than "
+                        + "to people: " + handed.status() + " automation=" + handed.automation());
         Proves.that(DboPromises.PROC_FAILURE_IS_RELEASED,
                 "the control sample was out of range".equals(handed.assignment().note()),
                 "the reason is not on the record for whoever takes it next: "

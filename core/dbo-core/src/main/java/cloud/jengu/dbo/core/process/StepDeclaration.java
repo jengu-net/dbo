@@ -57,11 +57,24 @@ import java.util.Set;
  *                    name rather than asserted by each executor differently.
  *                    Empty means the step has not said, not that progress may
  *                    not be reported.
+ * @param retry       which failures of this step automation is given again,
+ *                    after how long and how many times — or null, when none
+ *                    is: a failure the step did not declare would pass goes to
+ *                    a person
  */
 public record StepDeclaration(StepId id, String version, Set<String> reads, Set<String> writes,
         Optional<String> consumes, Optional<String> produces, Optional<String> overridable,
         Set<String> actions, java.util.Map<String, String> slots,
-        java.util.List<String> milestones) {
+        java.util.List<String> milestones, RetryPolicy retry) {
+
+    /** A step that declares no retry. */
+    public StepDeclaration(StepId id, String version, Set<String> reads, Set<String> writes,
+            Optional<String> consumes, Optional<String> produces, Optional<String> overridable,
+            Set<String> actions, java.util.Map<String, String> slots,
+            java.util.List<String> milestones) {
+        this(id, version, reads, writes, consumes, produces, overridable, actions, slots,
+                milestones, null);
+    }
 
     public StepDeclaration {
         if (id == null || version == null || version.isBlank()) {
@@ -86,24 +99,26 @@ public record StepDeclaration(StepId id, String version, Set<String> reads, Set<
 
     public StepDeclaration consuming(String shapeReference) {
         return new StepDeclaration(id, version, reads, writes,
-                Optional.of(shapeReference), produces, overridable, actions, slots, milestones);
+                Optional.of(shapeReference), produces, overridable, actions, slots, milestones,
+                retry);
     }
 
     public StepDeclaration producing(String shapeReference) {
         return new StepDeclaration(id, version, reads, writes,
-                consumes, Optional.of(shapeReference), overridable, actions, slots, milestones);
+                consumes, Optional.of(shapeReference), overridable, actions, slots, milestones,
+                retry);
     }
 
     /** Opened to a scope class, deliberately — the default is nobody. */
     public StepDeclaration overridableBy(String scopeClass) {
         return new StepDeclaration(id, version, reads, writes, consumes, produces,
-                Optional.of(scopeClass), actions, slots, milestones);
+                Optional.of(scopeClass), actions, slots, milestones, retry);
     }
 
     /** What a holder of this step may do — declared so a role can later narrow it. */
     public StepDeclaration containing(String... actions) {
         return new StepDeclaration(id, version, reads, writes, consumes, produces,
-                overridable, Set.of(actions), slots, milestones);
+                overridable, Set.of(actions), slots, milestones, retry);
     }
 
     /**
@@ -118,7 +133,7 @@ public record StepDeclaration(StepId id, String version, Set<String> reads, Set<
                     + "which shape it means would depend on ordering");
         }
         return new StepDeclaration(id, version, reads, writes, consumes, produces,
-                overridable, actions, declared, milestones);
+                overridable, actions, declared, milestones, retry);
     }
 
     /**
@@ -127,7 +142,16 @@ public record StepDeclaration(StepId id, String version, Set<String> reads, Set<
      */
     public StepDeclaration reaching(String... milestones) {
         return new StepDeclaration(id, version, reads, writes, consumes, produces,
-                overridable, actions, slots, java.util.List.of(milestones));
+                overridable, actions, slots, java.util.List.of(milestones), retry);
+    }
+
+    /**
+     * Declares which failures automation is given again — the step's own
+     * word, because only the step knows which of its faults will pass.
+     */
+    public StepDeclaration retrying(RetryPolicy policy) {
+        return new StepDeclaration(id, version, reads, writes, consumes, produces,
+                overridable, actions, slots, milestones, policy);
     }
 
     /** Whether this step may write that domain at all. */

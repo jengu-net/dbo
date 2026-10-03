@@ -131,6 +131,23 @@ spec:
                         type: array
                         items:
                           type: string
+                      # Which of its failures automation is given again: the
+                      # faults that pass (unreachable, lapsed), how long a
+                      # task is held back, and how many times before a
+                      # person is given it instead.
+                      retry:
+                        type: object
+                        properties:
+                          on:
+                            type: array
+                            items:
+                              type: string
+                              enum: [unreachable, lapsed]
+                          after:
+                            type: string
+                          attempts:
+                            type: integer
+                            minimum: 1
                 # Steps the DEPLOYMENT performs for every tenant that admits
                 # them, declared in the management tenant's registration and
                 # refused in anybody else's. Declared here all the same: the

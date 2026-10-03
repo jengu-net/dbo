@@ -302,7 +302,7 @@ public final class Runs {
         step.slots().keySet().forEach(slot -> ordered.put(slot, inputs.get(slot)));
         String key = step.id() + "/" + scope;
         return byKey(key).orElseGet(() -> write(new State(key, step.id().processId(),
-                step.id().step(), kind, Standing.OPEN, null, null, null, Map.of(), null,
+                step.id().step(), kind, Standing.OPEN.retrying(step.retry()), null, null, null, Map.of(), null,
                 List.copyOf(step.writes()),
                 requester == null ? null : new Run.Assignment(null, null, null, null, requester),
                 Run.Produced.NOTHING, step.version(),
@@ -636,6 +636,72 @@ public final class Runs {
     }
 
     /**
+     * Hands back what failed, routed by what the step declared
+     * (REQ-DBO-PROC-ESCALATION-BY-FAILURE-CLASS).
+     *
+     * <ul>
+     * <li>A fault the step declared will pass returns the run held back,
+     * open to automation again once its not-before passes, and counts the
+     * attempt. Past the declared attempts it goes to a person instead, so a
+     * fault that will not pass is seen rather than ended quietly.
+     * <li>A record fault ends the run as failed: trying again would be
+     * refused in the same words.
+     * <li>Anything else returns it to the list open to people alone, with the
+     * failure as its reason. Nobody said it would pass, and an unknown fault
+     * retried without end is one nobody ever sees.
+     * </ul>
+     *
+     * <p>The policy is the one the run recorded when it was authored, or
+     * else the step's declaration in this store's catalogue.
+     */
+    public Run released(Run run, String because, Failure failure) {
+        if (failure == null) {
+            return released(run, because);
+        }
+        cloud.jengu.dbo.core.process.RetryPolicy declared = run.retry() != null ? run.retry()
+                : steps.byId(run.process() + "." + run.step())
+                        .map(cloud.jengu.dbo.core.process.StepDeclaration::retry).orElse(null);
+        java.time.Instant now = java.time.Instant.now();
+        return update(run, snapshot -> {
+            State handed = snapshot.withAssignment(new Run.Assignment(
+                    snapshot.assignment() == null ? null : snapshot.assignment().at(),
+                    null, because, null));
+            Standing standing = snapshot.standing().because(because);
+            if (failure == Failure.RECORD) {
+                return handed.withStanding(standing.as(Status.FAILED));
+            }
+            if (declared != null && declared.passes(failure.wire())
+                    && standing.attempts() < declared.attempts()) {
+                return handed.withStanding(standing.as(Status.ON_HOLD).openTo(true)
+                        .notBefore(now.plus(declared.delay()))
+                        .attempted(standing.attempts() + 1));
+            }
+            return handed.withStanding(standing.as(Status.READY).openTo(false).notBefore(null));
+        });
+    }
+
+    /**
+     * Runs held back whose not-before has passed, made ready again — and so
+     * offered again, because readying one is a version and a version is what
+     * a taker's poll sees.
+     */
+    public List<Run> due(java.time.Instant now) {
+        List<Run> due = cloud.jengu.dbo.core.api.Answered.pagedBy(store::page,
+                        Criteria.of(WorkModel.TYPE)
+                                .eq("status", EnvelopeValue.of(Status.ON_HOLD.wire())))
+                .map(Run::of)
+                .filter(run -> run.notBefore() != null && !run.notBefore().isAfter(now))
+                .filter(run -> !WorkModel.authoredElsewhere(run.key()))
+                .toList();
+        List<Run> readied = new ArrayList<>();
+        for (Run run : due) {
+            readied.add(update(run, snapshot -> snapshot.withStanding(
+                    snapshot.standing().as(Status.READY).notBefore(null))));
+        }
+        return readied;
+    }
+
+    /**
      * Claims that have lapsed, so somebody can take them again.
      *
      * <p>Walked a page at a time rather than selected whole. What is asked
@@ -777,22 +843,31 @@ public final class Runs {
     }
 
     /**
-     * A closed run, deliberately open again
-     * (REQ-DBO-PROC-CLOSED-CAN-BE-REOPENED).
+     * A closed run, or one waiting for people, deliberately open to
+     * automation again (REQ-DBO-PROC-CLOSED-CAN-BE-REOPENED).
      *
      * <p>Discovering a close was wrong must not require inventing a second
      * run to disagree with the first: the run itself becomes claimable again
-     * — the released shape, a holder and no executor — with the reason on
-     * the record. It goes through the step's declared {@code reopen} action,
+     * — ready, with no executor and its attempts counted afresh — with the
+     * reason on the record. It goes through the step's declared {@code reopen} action,
      * which is what a supervisor's role will later narrow: reopening
      * is the judgment the action vocabulary exists for.
      */
     public Run reopen(Run run, String because) {
+        return reopen(run, because, true);
+    }
+
+    /**
+     * The same, saying whether automation may take it again or only a
+     * person — what a person who has looked at a failure decides.
+     */
+    public Run reopen(Run run, String because, boolean automation) {
         requireAction(run, "reopen");
         // A refusal is a reason the run ENDED, and a reopened run has not —
         // so the reason goes with the ending rather than outliving it.
         return update(run, snapshot -> snapshot.withStanding(snapshot.standing()
-                        .as(Status.READY).openTo(true).because(because)).withRefused(null)
+                        .as(Status.READY).openTo(automation).because(because).attempted(0)
+                        .notBefore(null)).withRefused(null)
                 .withAssignment(
                 new Run.Assignment(
                         snapshot.assignment() == null ? null : snapshot.assignment().at(),
@@ -1197,34 +1272,40 @@ public final class Runs {
      *                     step declared would pass
      */
     record Standing(Status status, boolean automation, java.time.Instant notBefore,
-            String statusReason, int attempts) {
+            String statusReason, int attempts,
+            cloud.jengu.dbo.core.process.RetryPolicy retry) {
 
         /** Open, unclaimed, and anybody's to take. */
-        static final Standing OPEN = new Standing(Status.READY, true, null, null, 0);
+        static final Standing OPEN = new Standing(Status.READY, true, null, null, 0, null);
 
         static Standing of(Run run) {
             return new Standing(run.status() == null ? Status.READY : run.status(),
-                    run.automation(), run.notBefore(), run.statusReason(), run.attempts());
+                    run.automation(), run.notBefore(), run.statusReason(), run.attempts(),
+                    run.retry());
         }
 
         Standing as(Status status) {
-            return new Standing(status, automation, notBefore, statusReason, attempts);
+            return new Standing(status, automation, notBefore, statusReason, attempts, retry);
         }
 
         Standing because(String reason) {
-            return new Standing(status, automation, notBefore, reason, attempts);
+            return new Standing(status, automation, notBefore, reason, attempts, retry);
         }
 
         Standing openTo(boolean automation) {
-            return new Standing(status, automation, notBefore, statusReason, attempts);
+            return new Standing(status, automation, notBefore, statusReason, attempts, retry);
         }
 
         Standing notBefore(java.time.Instant when) {
-            return new Standing(status, automation, when, statusReason, attempts);
+            return new Standing(status, automation, when, statusReason, attempts, retry);
         }
 
         Standing attempted(int attempts) {
-            return new Standing(status, automation, notBefore, statusReason, attempts);
+            return new Standing(status, automation, notBefore, statusReason, attempts, retry);
+        }
+
+        Standing retrying(cloud.jengu.dbo.core.process.RetryPolicy retry) {
+            return new Standing(status, automation, notBefore, statusReason, attempts, retry);
         }
 
         /**
@@ -1335,6 +1416,17 @@ public final class Runs {
             }
             if (standing.attempts() > 0) {
                 json.append(",\"attempts\":").append(standing.attempts());
+            }
+            if (standing.retry() != null) {
+                json.append(",\"retry\":{\"after\":")
+                        .append(Json.quoted(standing.retry().after()))
+                        .append(",\"attempts\":").append(standing.retry().attempts())
+                        .append(",\"on\":[");
+                for (int at = 0; at < standing.retry().on().size(); at++) {
+                    json.append(at == 0 ? "" : ",")
+                            .append(Json.quoted(standing.retry().on().get(at)));
+                }
+                json.append("]}");
             }
             if (parent != null) {
                 json.append(",\"parent\":").append(Json.quoted(parent));

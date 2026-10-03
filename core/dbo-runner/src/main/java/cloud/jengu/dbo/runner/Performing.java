@@ -1,5 +1,6 @@
 package cloud.jengu.dbo.runner;
 
+import cloud.jengu.dbo.work.Failure;
 import cloud.jengu.dbo.work.Run;
 
 import java.time.Duration;
@@ -31,8 +32,10 @@ public final class Performing {
      * Performs it, reports it, and says what happened.
      *
      * <p>Throwing is released rather than swallowed: released is not done, and
-     * a later cycle may take it again — from wherever the work had got to,
-     * which is why what is released is the latest run and not the claim.
+     * where the run goes next is the failure's to decide — back to automation
+     * for a fault the step declared will pass, to a person otherwise — from
+     * wherever the work had got to, which is why what is released is the
+     * latest run and not the claim.
      *
      * @param lane     into the tenant whose work this is
      * @param claimed  the run, already held by this identity
@@ -76,19 +79,22 @@ public final class Performing {
                     }
                 }
             } else if (outcome instanceof Outcome.Failed failed) {
-                lane.released(latest.get(), failed.reason());
+                // A service saying it failed has said nothing about whether
+                // it will pass, so it goes to people unless it threw a fault
+                // the step declared will.
+                lane.released(latest.get(), failed.reason(), Failure.UNKNOWN);
             } else if (outcome instanceof Outcome.Refused refused) {
                 // Only the tenant refuses a result. A service saying so on
                 // the tenant's behalf has failed, and is released like one
                 // rather than ending work nobody refused.
                 String reason = "the service answered as the tenant: " + refused.reason();
-                lane.released(latest.get(), reason);
+                lane.released(latest.get(), reason, Failure.UNKNOWN);
                 return Outcome.failed(reason);
             }
             return outcome;
         } catch (RuntimeException thrown) {
             String reason = "the service threw: " + thrown.getMessage();
-            lane.released(latest.get(), reason);
+            lane.released(latest.get(), reason, Failure.of(thrown));
             return Outcome.failed(reason);
         }
     }

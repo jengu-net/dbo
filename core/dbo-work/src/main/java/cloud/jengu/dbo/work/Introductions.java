@@ -200,6 +200,12 @@ public final class Introductions {
             json.append('}');
         }
         strings(json, "milestones", step.milestones());
+        if (step.retry() != null) {
+            json.append(",\"retry\":{\"after\":").append(Json.quoted(step.retry().after()))
+                    .append(",\"attempts\":").append(step.retry().attempts());
+            strings(json, "on", step.retry().on());
+            json.append('}');
+        }
         return json.append('}').toString().getBytes(StandardCharsets.UTF_8);
     }
 
@@ -225,7 +231,12 @@ public final class Introductions {
                 optional(json, "overridable"),
                 Set.copyOf(strings(json, "actions")),
                 slots(json),
-                strings(json, "milestones"));
+                strings(json, "milestones"),
+                json.get("retry") instanceof Map<?, ?> retry
+                        ? new cloud.jengu.dbo.core.process.RetryPolicy(strings(retry, "on"),
+                                String.valueOf(retry.get("after")),
+                                ((Number) retry.get("attempts")).intValue())
+                        : null);
         return new Introduced(step, String.valueOf(json.get("introducer")));
     }
 

@@ -716,7 +716,7 @@ final class ElementRecordProjection implements RecordProjection {
         if (item == null) {
             return;
         }
-        boolean aPersonsJob = "record".equals(String.valueOf(item.get("failure")));
+        boolean aPersonsJob = !"unreachable".equals(String.valueOf(item.get("failure")));
         json.append(",\"contained\":[{\"resourceType\":\"OperationOutcome\",\"id\":\"outcome\"")
                 .append(",\"issue\":[{\"severity\":\"")
                 .append(aPersonsJob ? "error" : "warning")

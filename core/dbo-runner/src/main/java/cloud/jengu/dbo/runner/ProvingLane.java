@@ -324,7 +324,7 @@ public final class ProvingLane implements Lane {
     }
 
     @Override
-    public void released(Run run, String because) {
+    public void released(Run run, String because, cloud.jengu.dbo.work.Failure failure) {
         this.ended = Ended.RELEASED;
         this.reason = because;
         this.performed++;

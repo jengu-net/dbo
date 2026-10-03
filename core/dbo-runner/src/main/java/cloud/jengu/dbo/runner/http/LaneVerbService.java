@@ -99,7 +99,8 @@ public final class LaneVerbService {
             case MILESTONE -> lane.milestone(run(body),
                     string(body, LaneVerbs.MILESTONE_NAME), counts(body), holdFor(body));
             case RELEASED -> {
-                lane.released(run(body), string(body, LaneVerbs.REASON));
+                lane.released(run(body), string(body, LaneVerbs.REASON),
+                        cloud.jengu.dbo.work.Failure.ofWire(string(body, LaneVerbs.FAILURE)));
                 yield null;
             }
             case CLOSED -> {

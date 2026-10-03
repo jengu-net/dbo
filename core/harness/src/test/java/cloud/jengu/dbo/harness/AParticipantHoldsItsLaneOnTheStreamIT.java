@@ -448,7 +448,7 @@ class AParticipantHoldsItsLaneOnTheStreamIT {
                     "the runner performed work that was claimed by somebody else");
 
             // The store making a run claimable, through its own machinery.
-            courierLane.released(waiting, "handing it to whoever is listening");
+            courierLane.released(waiting, "handing it to whoever is listening", null);
 
             assertTrue(performed.await(WAKE_UP_PATIENCE.toSeconds(), TimeUnit.SECONDS),
                     "a run became claimable and the runner slept through it: the wake-up did "

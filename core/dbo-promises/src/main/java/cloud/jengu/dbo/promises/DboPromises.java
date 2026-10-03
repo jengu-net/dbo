@@ -320,7 +320,8 @@ public enum DboPromises implements Promise {
             + "tenants whose lanes it is handed."),
 
     PROC_FAILURE_IS_RELEASED("A failing or throwing step service releases the run with the "
-            + "reason — never closed, never lost — and a later cycle may take it again."),
+            + "reason — never closed, never lost — back to the list: open to automation again "
+            + "only for a fault its step declared will pass, and to people otherwise."),
 
     PROC_A_RUNNER_ASKS_ONCE_IT_HOLDS_ITS_STEPS("A runner told which steps its host is about "
             + "to register asks no lane for work until it holds them all, so a host whose lanes "
@@ -361,10 +362,11 @@ public enum DboPromises implements Promise {
             + "not declared actions is not narrowed, and releasing is never narrowed — "
             + "failure honesty must not be refusable."),
 
-    PROC_CLOSED_CAN_BE_REOPENED("A closed run can be reopened — a deliberate, "
-            + "recorded act through the step's declared reopen action — making the run "
-            + "claimable again with the reason on the record, instead of a second run "
-            + "invented to disagree with the first."),
+    PROC_CLOSED_CAN_BE_REOPENED("A closed run, or one waiting for people, can be reopened "
+            + "— a deliberate, recorded act through the step's declared reopen action — making "
+            + "the run claimable again with the reason on the record, and saying whether "
+            + "automation may take it, instead of a second run invented to disagree with the "
+            + "first."),
 
     PROC_SUPERVISION_IS_ITS_OWN_ENTITLEMENT("Undoing a judgment already made about "
             + "work is reached through the lane like every other act, and by its own half "
@@ -409,10 +411,14 @@ public enum DboPromises implements Promise {
             + "with a tally and K item outcomes, and does not abandon the remaining "
             + "N minus K."),
 
-    PROC_ESCALATION_BY_FAILURE_CLASS("A record that is wrong reaches a person; a store "
-            + "that is unavailable is a retry and nobody's card. Only record-class "
-            + "failures make work, or the queue becomes a graveyard and stops being "
-            + "read."),
+    PROC_ESCALATION_BY_FAILURE_CLASS("A failure goes where its step declared. A fault the "
+            + "step declares will pass returns the task held back, open to automation again "
+            + "after a delay, and counted, and past the declared attempts it goes to a person; "
+            + "a record fault ends the task as failed, because trying again would be refused "
+            + "in the same words; and any other failure returns it to the list open only to "
+            + "people, with the failure as its reason. A lapsed claim passes only where the "
+            + "step says so. So a fault nobody said would pass is seen rather than retried "
+            + "without end."),
 
     PROC_CLOSE_BY_RE_EVALUATION("Where a condition is machine-checkable, fixing the "
             + "cause closes the run on the next pass; closing by hand exists only for "

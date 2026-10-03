@@ -1330,6 +1330,17 @@ cloud.jengu.dbo.core.face.ReferenceResolution.Resolver                 interface
 cloud.jengu.dbo.core.face.ReferenceResolution.Resolver                 resolve(String,String):Optional
 cloud.jengu.dbo.core.face.ShapeConversion                              convert(String,byte[],String,int):Optional
 cloud.jengu.dbo.core.face.ShapeConversion                              interface
+cloud.jengu.dbo.core.process.RetryPolicy                               FAULTS:List
+cloud.jengu.dbo.core.process.RetryPolicy                               after():String
+cloud.jengu.dbo.core.process.RetryPolicy                               attempts():int
+cloud.jengu.dbo.core.process.RetryPolicy                               delay():Duration
+cloud.jengu.dbo.core.process.RetryPolicy                               equals(Object):boolean
+cloud.jengu.dbo.core.process.RetryPolicy                               hashCode():int
+cloud.jengu.dbo.core.process.RetryPolicy                               new(List,String,int)
+cloud.jengu.dbo.core.process.RetryPolicy                               on():List
+cloud.jengu.dbo.core.process.RetryPolicy                               passes(String):boolean
+cloud.jengu.dbo.core.process.RetryPolicy                               record
+cloud.jengu.dbo.core.process.RetryPolicy                               toString():String
 cloud.jengu.dbo.core.process.SlotShape                                 declared():String
 cloud.jengu.dbo.core.process.SlotShape                                 equals(Object):boolean
 cloud.jengu.dbo.core.process.SlotShape                                 from():cloud.jengu.dbo.core.process.SlotShape.Source
@@ -1355,6 +1366,7 @@ cloud.jengu.dbo.core.process.StepDeclaration                           hashCode(
 cloud.jengu.dbo.core.process.StepDeclaration                           id():cloud.jengu.dbo.core.process.StepId
 cloud.jengu.dbo.core.process.StepDeclaration                           milestones():List
 cloud.jengu.dbo.core.process.StepDeclaration                           new(cloud.jengu.dbo.core.process.StepId,String,Set,Set,Optional,Optional,Optional,Set,Map,List)
+cloud.jengu.dbo.core.process.StepDeclaration                           new(cloud.jengu.dbo.core.process.StepId,String,Set,Set,Optional,Optional,Optional,Set,Map,List,cloud.jengu.dbo.core.process.RetryPolicy)
 cloud.jengu.dbo.core.process.StepDeclaration                           of(String,String,String):cloud.jengu.dbo.core.process.StepDeclaration
 cloud.jengu.dbo.core.process.StepDeclaration                           overridable():Optional
 cloud.jengu.dbo.core.process.StepDeclaration                           overridableBy(String):cloud.jengu.dbo.core.process.StepDeclaration
@@ -1363,6 +1375,8 @@ cloud.jengu.dbo.core.process.StepDeclaration                           producing
 cloud.jengu.dbo.core.process.StepDeclaration                           reaching(String[]):cloud.jengu.dbo.core.process.StepDeclaration
 cloud.jengu.dbo.core.process.StepDeclaration                           reads():Set
 cloud.jengu.dbo.core.process.StepDeclaration                           record
+cloud.jengu.dbo.core.process.StepDeclaration                           retry():cloud.jengu.dbo.core.process.RetryPolicy
+cloud.jengu.dbo.core.process.StepDeclaration                           retrying(cloud.jengu.dbo.core.process.RetryPolicy):cloud.jengu.dbo.core.process.StepDeclaration
 cloud.jengu.dbo.core.process.StepDeclaration                           slots():Map
 cloud.jengu.dbo.core.process.StepDeclaration                           taking(String,String):cloud.jengu.dbo.core.process.StepDeclaration
 cloud.jengu.dbo.core.process.StepDeclaration                           toString():String
@@ -3239,7 +3253,7 @@ cloud.jengu.dbo.runner.Lane                                            milestone
 cloud.jengu.dbo.runner.Lane                                            opened(cloud.jengu.dbo.work.Run,String,cloud.jengu.dbo.work.RunChain.Link):String
 cloud.jengu.dbo.runner.Lane                                            poll(Set,int):List
 cloud.jengu.dbo.runner.Lane                                            releaseLapsed():int
-cloud.jengu.dbo.runner.Lane                                            released(cloud.jengu.dbo.work.Run,String):void
+cloud.jengu.dbo.runner.Lane                                            released(cloud.jengu.dbo.work.Run,String,cloud.jengu.dbo.work.Failure):void
 cloud.jengu.dbo.runner.Lane                                            reopen(cloud.jengu.dbo.work.Run,String):void
 cloud.jengu.dbo.runner.Lane                                            routes(List):void
 cloud.jengu.dbo.runner.Lane                                            sealed(cloud.jengu.dbo.work.Run):cloud.jengu.dbo.work.SealedWork
@@ -3333,7 +3347,7 @@ cloud.jengu.dbo.runner.ProvingLane                                     poll(Set,
 cloud.jengu.dbo.runner.ProvingLane                                     polls():int
 cloud.jengu.dbo.runner.ProvingLane                                     reason():String
 cloud.jengu.dbo.runner.ProvingLane                                     releaseLapsed():int
-cloud.jengu.dbo.runner.ProvingLane                                     released(cloud.jengu.dbo.work.Run,String):void
+cloud.jengu.dbo.runner.ProvingLane                                     released(cloud.jengu.dbo.work.Run,String,cloud.jengu.dbo.work.Failure):void
 cloud.jengu.dbo.runner.ProvingLane                                     reopen(cloud.jengu.dbo.work.Run,String):void
 cloud.jengu.dbo.runner.ProvingLane                                     routes(List):void
 cloud.jengu.dbo.runner.ProvingLane                                     saysItHasWork():cloud.jengu.dbo.runner.ProvingLane
@@ -3456,6 +3470,7 @@ cloud.jengu.dbo.runner.http.LaneVerbs                                  COUNTS:St
 cloud.jengu.dbo.runner.http.LaneVerbs                                  DECLARE:cloud.jengu.dbo.runner.http.LaneVerbs
 cloud.jengu.dbo.runner.http.LaneVerbs                                  DECLARED:String
 cloud.jengu.dbo.runner.http.LaneVerbs                                  ENTITLED_STEPS:String
+cloud.jengu.dbo.runner.http.LaneVerbs                                  FAILURE:String
 cloud.jengu.dbo.runner.http.LaneVerbs                                  HEAD:String
 cloud.jengu.dbo.runner.http.LaneVerbs                                  HOLD_FOR_MILLIS:String
 cloud.jengu.dbo.runner.http.LaneVerbs                                  IDENTIFIED:cloud.jengu.dbo.runner.http.LaneVerbs
@@ -3509,7 +3524,7 @@ cloud.jengu.dbo.runner.http.WireLane                                   new(cloud
 cloud.jengu.dbo.runner.http.WireLane                                   opened(cloud.jengu.dbo.work.Run,String,cloud.jengu.dbo.work.RunChain.Link):String
 cloud.jengu.dbo.runner.http.WireLane                                   poll(Set,int):List
 cloud.jengu.dbo.runner.http.WireLane                                   releaseLapsed():int
-cloud.jengu.dbo.runner.http.WireLane                                   released(cloud.jengu.dbo.work.Run,String):void
+cloud.jengu.dbo.runner.http.WireLane                                   released(cloud.jengu.dbo.work.Run,String,cloud.jengu.dbo.work.Failure):void
 cloud.jengu.dbo.runner.http.WireLane                                   reopen(cloud.jengu.dbo.work.Run,String):void
 cloud.jengu.dbo.runner.http.WireLane                                   routes(List):void
 cloud.jengu.dbo.runner.http.WireLane                                   sealed(cloud.jengu.dbo.work.Run):cloud.jengu.dbo.work.SealedWork
@@ -4301,7 +4316,9 @@ cloud.jengu.dbo.tenant.TenantSpec.Step                                 equals(Ob
 cloud.jengu.dbo.tenant.TenantSpec.Step                                 hashCode():int
 cloud.jengu.dbo.tenant.TenantSpec.Step                                 new(String,Map)
 cloud.jengu.dbo.tenant.TenantSpec.Step                                 new(String,Map,Set)
+cloud.jengu.dbo.tenant.TenantSpec.Step                                 new(String,Map,Set,cloud.jengu.dbo.core.process.RetryPolicy)
 cloud.jengu.dbo.tenant.TenantSpec.Step                                 record
+cloud.jengu.dbo.tenant.TenantSpec.Step                                 retry():cloud.jengu.dbo.core.process.RetryPolicy
 cloud.jengu.dbo.tenant.TenantSpec.Step                                 slots():Map
 cloud.jengu.dbo.tenant.TenantSpec.Step                                 toString():String
 cloud.jengu.dbo.tenant.TenantSpec.Step                                 writes():Set
@@ -4567,11 +4584,14 @@ cloud.jengu.dbo.work.ExecutorModel                                     registrat
 cloud.jengu.dbo.work.ExecutorResolution                                class
 cloud.jengu.dbo.work.ExecutorResolution                                new(Supplier)
 cloud.jengu.dbo.work.ExecutorResolution                                resolve(cloud.jengu.dbo.work.StepGrant,List,List,cloud.jengu.dbo.work.Work):cloud.jengu.dbo.work.Resolution
+cloud.jengu.dbo.work.Failure                                           LAPSED:cloud.jengu.dbo.work.Failure
 cloud.jengu.dbo.work.Failure                                           RECORD:cloud.jengu.dbo.work.Failure
-cloud.jengu.dbo.work.Failure                                           TRANSIENT:cloud.jengu.dbo.work.Failure
+cloud.jengu.dbo.work.Failure                                           UNKNOWN:cloud.jengu.dbo.work.Failure
+cloud.jengu.dbo.work.Failure                                           UNREACHABLE:cloud.jengu.dbo.work.Failure
 cloud.jengu.dbo.work.Failure                                           enum
 cloud.jengu.dbo.work.Failure                                           holder():cloud.jengu.dbo.work.Holder
 cloud.jengu.dbo.work.Failure                                           of(Throwable):cloud.jengu.dbo.work.Failure
+cloud.jengu.dbo.work.Failure                                           ofWire(String):cloud.jengu.dbo.work.Failure
 cloud.jengu.dbo.work.Failure                                           valueOf(String):cloud.jengu.dbo.work.Failure
 cloud.jengu.dbo.work.Failure                                           values():cloud.jengu.dbo.work.Failure[]
 cloud.jengu.dbo.work.Failure                                           wire():String
@@ -4667,7 +4687,7 @@ cloud.jengu.dbo.work.Run                                               milestone
 cloud.jengu.dbo.work.Run                                               named(String):cloud.jengu.dbo.work.Run
 cloud.jengu.dbo.work.Run                                               needsAPerson():boolean
 cloud.jengu.dbo.work.Run                                               new(String,long,String,String,String,cloud.jengu.dbo.work.RunKind,cloud.jengu.dbo.work.Holder,String,String,String,Map,cloud.jengu.dbo.work.Run.Item,List,cloud.jengu.dbo.work.Run.Assignment,cloud.jengu.dbo.work.Run.Produced,String,Map,cloud.jengu.dbo.work.Run.Milestone,String,String)
-cloud.jengu.dbo.work.Run                                               new(String,long,String,String,String,cloud.jengu.dbo.work.RunKind,cloud.jengu.dbo.work.Holder,String,String,String,Map,cloud.jengu.dbo.work.Run.Item,List,cloud.jengu.dbo.work.Run.Assignment,cloud.jengu.dbo.work.Run.Produced,String,Map,cloud.jengu.dbo.work.Run.Milestone,String,String,cloud.jengu.dbo.work.Status,boolean,Instant,String,int)
+cloud.jengu.dbo.work.Run                                               new(String,long,String,String,String,cloud.jengu.dbo.work.RunKind,cloud.jengu.dbo.work.Holder,String,String,String,Map,cloud.jengu.dbo.work.Run.Item,List,cloud.jengu.dbo.work.Run.Assignment,cloud.jengu.dbo.work.Run.Produced,String,Map,cloud.jengu.dbo.work.Run.Milestone,String,String,cloud.jengu.dbo.work.Status,boolean,Instant,String,int,cloud.jengu.dbo.core.process.RetryPolicy)
 cloud.jengu.dbo.work.Run                                               notBefore():Instant
 cloud.jengu.dbo.work.Run                                               of(cloud.jengu.dbo.core.api.StoredObject):cloud.jengu.dbo.work.Run
 cloud.jengu.dbo.work.Run                                               open():boolean
@@ -4677,6 +4697,7 @@ cloud.jengu.dbo.work.Run                                               produced(
 cloud.jengu.dbo.work.Run                                               record
 cloud.jengu.dbo.work.Run                                               refused():String
 cloud.jengu.dbo.work.Run                                               requester():String
+cloud.jengu.dbo.work.Run                                               retry():cloud.jengu.dbo.core.process.RetryPolicy
 cloud.jengu.dbo.work.Run                                               status():cloud.jengu.dbo.work.Status
 cloud.jengu.dbo.work.Run                                               statusReason():String
 cloud.jengu.dbo.work.Run                                               step():String
@@ -4823,6 +4844,7 @@ cloud.jengu.dbo.work.Runs                                              class
 cloud.jengu.dbo.work.Runs                                              closed(cloud.jengu.dbo.work.Run):cloud.jengu.dbo.work.Run
 cloud.jengu.dbo.work.Runs                                              closed(cloud.jengu.dbo.work.Run,List):cloud.jengu.dbo.work.Run
 cloud.jengu.dbo.work.Runs                                              correlated(cloud.jengu.dbo.work.Run,String):cloud.jengu.dbo.work.Run
+cloud.jengu.dbo.work.Runs                                              due(Instant):List
 cloud.jengu.dbo.work.Runs                                              fellThrough(cloud.jengu.dbo.work.Run,cloud.jengu.dbo.work.Scope,String):cloud.jengu.dbo.work.Run
 cloud.jengu.dbo.work.Runs                                              filling(cloud.jengu.dbo.core.process.StepDeclaration,cloud.jengu.dbo.work.RunKind,String,Map):cloud.jengu.dbo.work.Run
 cloud.jengu.dbo.work.Runs                                              filling(cloud.jengu.dbo.core.process.StepDeclaration,cloud.jengu.dbo.work.RunKind,String,Map,String):cloud.jengu.dbo.work.Run
@@ -4845,7 +4867,9 @@ cloud.jengu.dbo.work.Runs                                              pipeline(
 cloud.jengu.dbo.work.Runs                                              produced(cloud.jengu.dbo.work.Run,String,String,long):cloud.jengu.dbo.work.Run
 cloud.jengu.dbo.work.Runs                                              refused(cloud.jengu.dbo.work.Run,String):cloud.jengu.dbo.work.Run
 cloud.jengu.dbo.work.Runs                                              released(cloud.jengu.dbo.work.Run,String):cloud.jengu.dbo.work.Run
+cloud.jengu.dbo.work.Runs                                              released(cloud.jengu.dbo.work.Run,String,cloud.jengu.dbo.work.Failure):cloud.jengu.dbo.work.Run
 cloud.jengu.dbo.work.Runs                                              reopen(cloud.jengu.dbo.work.Run,String):cloud.jengu.dbo.work.Run
+cloud.jengu.dbo.work.Runs                                              reopen(cloud.jengu.dbo.work.Run,String,boolean):cloud.jengu.dbo.work.Run
 cloud.jengu.dbo.work.Runs                                              requireClosable(cloud.jengu.dbo.work.Run):void
 cloud.jengu.dbo.work.Runs                                              selected(cloud.jengu.dbo.work.Run,cloud.jengu.dbo.work.Scope,cloud.jengu.dbo.work.Executor):cloud.jengu.dbo.work.Run
 cloud.jengu.dbo.work.Runs                                              selected(cloud.jengu.dbo.work.Run,cloud.jengu.dbo.work.Scope,cloud.jengu.dbo.work.Executor,String):cloud.jengu.dbo.work.Run

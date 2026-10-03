@@ -151,10 +151,13 @@ public class WireLane implements Lane {
     }
 
     @Override
-    public void released(Run run, String reason) {
+    public void released(Run run, String reason, cloud.jengu.dbo.work.Failure failure) {
         Map<String, Object> body = verb();
         body.put(LaneVerbs.RUN, RecordWire.encode(run));
         body.put(LaneVerbs.REASON, reason);
+        if (failure != null) {
+            body.put(LaneVerbs.FAILURE, failure.wire());
+        }
         post(LaneVerbs.RELEASED, body);
     }
 

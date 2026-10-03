@@ -43,7 +43,7 @@ class AReferenceRunnerCarriesWorkIT {
     /** The role whoever opens work at a workplace holds it as. */
     private static final String BENCH_ROLE = "PractitionerRole/bench";
 
-    private static final String PROCESS = "dbo.lab.result";
+    private static final String PROCESS = "lab.result";
 
     static PGSimpleDataSource ds;
     static Runs runs;
@@ -55,7 +55,15 @@ class AReferenceRunnerCarriesWorkIT {
         ds.setUrl(SharedPostgres.urlFor("AReferenceRunnerCarriesWorkIT"));
         ds.setUser(SharedPostgres.get().getUsername());
         ds.setPassword(SharedPostgres.get().getPassword());
-        runs = new Runs(new PgObjectStore(ds, WorkModel.registrations()));
+        // The step whose system goes away says it comes back, which is what
+        // lets its failure go to automation again rather than to a person.
+        runs = new Runs(new PgObjectStore(ds, WorkModel.registrations()),
+                cloud.jengu.dbo.core.process.Steps.of(
+                        cloud.jengu.dbo.core.process.StepDeclaration.of(
+                                        PROCESS + ".validate-down", "1.0", WorkModel.DOMAIN)
+                                .overridableBy("zone")
+                                .retrying(new cloud.jengu.dbo.core.process.RetryPolicy(
+                                        List.of("unreachable"), "PT0S", 3))));
         declarations = new Declarations(store(), new PgChangeFeed(ds, WorkModel.DOMAIN),
                 Duration.ofMinutes(5));
     }
