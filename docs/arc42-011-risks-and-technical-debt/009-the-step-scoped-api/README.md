@@ -40,6 +40,12 @@ through that context recorded as a disclosure naming the run, an end to the run
 that takes its context with it, and the proof that a withheld record and an
 invented id answer identically — as do an ended run and one that never was.
 
+The context and the `done` verb answer only the client holding the run: the one
+that started it at the step door, until a lane claims it, and then the client
+that claimed it, recorded on the run as its claimant. Any other credential with
+`work`, holding the run's id, gets the 404 a run that never existed gets
+(`PROC_A_RUN_CONTEXT_IS_ITS_PERFORMERS`).
+
 Still open, deliberately: reach is the named documents with no traversal, the
 context is read-only, and the general surface is untouched.
 

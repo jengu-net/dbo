@@ -1452,10 +1452,75 @@ class WorkLeavesTheClinicAndComesBackIT {
                         + "which runs happened: " + after.body() + " / " + never.body());
     }
 
+    @Test
+    @Order(33)
+    @DisplayName("a second porter at the ward, holding a credential for work and the id of the "
+            + "run the first porter holds, reads nothing through it and cannot end it — it is "
+            + "told the run is not there")
+    @Proving(DboPromises.PROC_A_RUN_CONTEXT_IS_ITS_PERFORMERS)
+    void anotherPorterCannotReadTheRunTheFirstHolds() {
+        String porter = dbo.workToken(WARD);
+        HttpResponse<String> started = dbo.send(HttpRequest.newBuilder(
+                        URI.create(dbo.at(WARD) + "/step/" + FETCH))
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(
+                        "{\"inputs\":{\"patient\":\"Patient/" + porterPatient + "\"}}")),
+                porter);
+        assertEquals(201, started.statusCode(), started.body());
+        String run = dbo.says(started).one("run").orElseThrow();
+        String context = root() + dbo.says(started).one("context").orElseThrow();
+
+        // Another client of the same ward, that may act in work exactly as
+        // the first may. What it lacks is the run: it did not start it and
+        // no lane handed it over.
+        TenantAuthority ward = tenants.authority(WARD).orElseThrow();
+        String second = NAMES.value("second-porter");
+        ward.ensureClient(second, second + "-secret",
+                List.of(cloud.jengu.dbo.auth.Scopes.WORK));
+        String stranger = ward.token(second, second + "-secret", null)
+                instanceof TenantAuthority.TokenResult.Issued minted
+                ? minted.accessToken() : null;
+        assertTrue(stranger != null, "the ward would not issue the second porter a token");
+
+        HttpResponse<String> document = dbo.get(context + "/Patient/" + porterPatient, stranger);
+        HttpResponse<String> metadata = dbo.get(context + "/metadata", stranger);
+        HttpResponse<String> ended = dbo.send(HttpRequest.newBuilder(
+                        URI.create(dbo.at(WARD) + "/run/" + run + "/done"))
+                .POST(HttpRequest.BodyPublishers.noBody()), stranger);
+        String invented = "01a00000-0000-7000-8000-0000000000fe";
+        HttpResponse<String> never = dbo.get(root() + "/t/" + WARD + "/run/" + invented
+                + "/fhir/Patient/" + porterPatient, stranger);
+        Proves.that(DboPromises.PROC_A_RUN_CONTEXT_IS_ITS_PERFORMERS,
+                document.statusCode() == 404 && document.body().equals(never.body()),
+                "a client that does not hold the run read its patient, or was told something "
+                        + "other than that the run is not there: " + document.statusCode()
+                        + " " + document.body() + " / " + never.body());
+        Proves.that(DboPromises.PROC_A_RUN_CONTEXT_IS_ITS_PERFORMERS,
+                metadata.statusCode() == 404,
+                "a client that does not hold the run read what its context answers for: "
+                        + metadata.statusCode() + " " + metadata.body());
+        Proves.that(DboPromises.PROC_A_RUN_CONTEXT_IS_ITS_PERFORMERS,
+                ended.statusCode() == 404,
+                "a client that does not hold the run ended it: " + ended.statusCode() + " "
+                        + ended.body());
+
+        // The porter holding it is untouched: the run is still its, still
+        // open, and it ends it.
+        HttpResponse<String> inside = dbo.get(context + "/Patient/" + porterPatient, porter);
+        Proves.that(DboPromises.PROC_A_RUN_CONTEXT_IS_ITS_PERFORMERS,
+                inside.statusCode() == 200,
+                "the porter holding the run no longer reads it: " + inside.statusCode() + " "
+                        + inside.body());
+        HttpResponse<String> done = dbo.send(HttpRequest.newBuilder(
+                        URI.create(dbo.at(WARD) + "/run/" + run + "/done"))
+                .POST(HttpRequest.BodyPublishers.noBody()), porter);
+        assertEquals(200, done.statusCode(), done.body());
+    }
+
     // ── the same worker, two carriers ──
 
     @Test
-    @Order(33)
+    @Order(34)
     @DisplayName("the clinic's own worker records a patient at Hogwarts over HTTP and at St "
             + "Jerome over the deployment's substrate: the same bean, the same outcome, and "
             + "nothing on the run that says which carried it")

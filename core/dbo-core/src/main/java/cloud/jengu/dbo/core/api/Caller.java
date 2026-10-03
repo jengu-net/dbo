@@ -59,6 +59,19 @@ public final class Caller {
         return actor != null ? actor : "system";
     }
 
+    /**
+     * The actor a serving surface set, or null outside an authenticated
+     * request — where {@link #current()} says "system".
+     *
+     * <p>For recording who holds something rather than who did something. An
+     * audit entry with no request behind it is honestly the system's; a claim
+     * with none behind it is held by no client, and recording "system" would
+     * make it a name a credential could be issued under.
+     */
+    public static String authenticated() {
+        return CURRENT.get();
+    }
+
     public static void clear() {
         CURRENT.remove();
         ON_BEHALF_OF.remove();

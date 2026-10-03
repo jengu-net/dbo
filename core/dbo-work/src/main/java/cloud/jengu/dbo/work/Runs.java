@@ -255,6 +255,14 @@ public final class Runs {
      * is; a run found rather than started keeps the requester it was
      * started with.
      *
+     * <p><b>And the requester holds it, until a lane takes it.</b> This is the
+     * synchronous half: whoever starts a run at the step door may read what
+     * it was given and say it is done, with nothing in between, so starting
+     * it is taking it. Recorded as the claimant rather than inferred from the
+     * requester, because the two part company the moment a participant claims
+     * the run on a lane — the asker is still owed the answer, and the context
+     * is the performer's.
+     *
      * @param requester the client id of the credential that asked, as the
      *                  authority read it — never as the request said it
      */
@@ -280,7 +288,9 @@ public final class Runs {
         String key = step.id() + "/" + scope;
         return byKey(key).orElseGet(() -> write(new State(key, step.id().processId(),
                 step.id().step(), kind, Holder.AUTOMATION, null, null, null, Map.of(), null,
-                List.copyOf(step.writes()), null, Run.Produced.NOTHING, step.version(),
+                List.copyOf(step.writes()),
+                requester == null ? null : new Run.Assignment(null, null, null, null, requester),
+                Run.Produced.NOTHING, step.version(),
                 java.util.Collections.unmodifiableMap(ordered), null, requester, null)));
     }
 
@@ -371,7 +381,8 @@ public final class Runs {
      * fact about their rule, and a run is where it stays readable.
      */
     public Run selected(Run run, Scope at, Executor executor, String note) {
-        return update(run, snapshot -> snapshot.withAssignment(new Run.Assignment(at, executor, note)));
+        return update(run, snapshot -> snapshot.withAssignment(
+                new Run.Assignment(at, executor, note, null, claimantOf(snapshot))));
     }
 
     /**
@@ -386,7 +397,7 @@ public final class Runs {
      */
     public Run fellThrough(Run run, Scope at, String reason) {
         Run recorded = update(run, snapshot -> snapshot.withAssignment(
-                new Run.Assignment(at, null, reason)));
+                new Run.Assignment(at, null, reason, null, claimantOf(snapshot))));
         return held(recorded, Holder.PERSON);
     }
 
@@ -424,6 +435,22 @@ public final class Runs {
      *         stands, which is the same answer to the same question: not now
      */
     public Optional<Run> claim(Run seen, Executor by, java.time.Instant until) {
+        return claim(seen, by, until, null);
+    }
+
+    /**
+     * The same, naming the client whose credential took it.
+     *
+     * <p>Recorded on the run as its claimant, replacing whoever held it
+     * before — the starter of a run asked for at the step door among them —
+     * because who holds a run is who may read its context and end it, and a
+     * run that could not say so would leave that to whoever learned its id.
+     *
+     * @param claimant the client id the authority read off the credential
+     *                 that asked, or null for a claim taken in process
+     */
+    public Optional<Run> claim(Run seen, Executor by, java.time.Instant until,
+            String claimant) {
         refuseIfAuthoredElsewhere(seen, "claimed");
         requireAdmits(seen, by);
         Run current = byKey(seen.key()).orElse(null);
@@ -440,7 +467,7 @@ public final class Runs {
         }
         State claimed = state(current).withAssignment(
                 new Run.Assignment(current.assignment() == null ? null : current.assignment().at(),
-                        by, null, until)).withHolder(Holder.AUTOMATION);
+                        by, null, until, claimant)).withHolder(Holder.AUTOMATION);
         try {
             store.put(new PutRequest(WorkModel.TYPE, current.id(), current.versionId(),
                     claimed.payload()));
@@ -465,7 +492,8 @@ public final class Runs {
         return update(tallied, snapshot -> snapshot.withAssignment(new Run.Assignment(
                 snapshot.assignment() == null ? null : snapshot.assignment().at(),
                 snapshot.assignment() == null ? null : snapshot.assignment().executor(),
-                snapshot.assignment() == null ? null : snapshot.assignment().note(), until)));
+                snapshot.assignment() == null ? null : snapshot.assignment().note(), until,
+                claimantOf(snapshot))));
     }
 
     /**
@@ -510,7 +538,7 @@ public final class Runs {
                         snapshot.assignment() == null ? null : snapshot.assignment().at(),
                         snapshot.assignment() == null ? null : snapshot.assignment().executor(),
                         snapshot.assignment() == null ? null : snapshot.assignment().note(),
-                        until)));
+                        until, claimantOf(snapshot))));
     }
 
     /** A point the step's own map does not contain, refused naming both sides. */
@@ -901,6 +929,15 @@ public final class Runs {
 
     // ------------------------------------------------------------- writing
 
+    /**
+     * Who holds the run as it stands, carried through an advance that is not
+     * a change of hands. Progress and resolution move the deadline and the
+     * account; only a claim, a release and a reopening move the holder.
+     */
+    private static String claimantOf(State snapshot) {
+        return snapshot.assignment() == null ? null : snapshot.assignment().claimant();
+    }
+
     private State state(Run run) {
         return new State(run.key(), run.process(), run.step(), run.kind(), run.holder(),
                 run.parent(), run.correlation(), run.trace(), run.tally(), run.item(),
@@ -1182,6 +1219,9 @@ public final class Runs {
                 if (assignment.until() != null) {
                     json.append(",\"until\":")
                             .append(Json.quoted(assignment.until().toString()));
+                }
+                if (assignment.claimant() != null) {
+                    json.append(",\"claimant\":").append(Json.quoted(assignment.claimant()));
                 }
             }
             if (stepVersion != null) {

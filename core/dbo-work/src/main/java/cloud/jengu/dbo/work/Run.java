@@ -135,13 +135,44 @@ public record Run(String id, long versionId, String key, String process, String 
      *                 participant that dies mid-claim must not hold work for
      *                 ever, and the only thing that can be relied on to notice
      *                 is the clock
+     * @param claimant the client whose credential holds the run, as the
+     *                 authority read it: the one that started it at the step
+     *                 door until a lane takes it, then the one that claimed it
+     *                 there — or null when no client holds it, because the
+     *                 run was authored or claimed in process, or released.
+     *                 Beside the executor rather than read off it, because the
+     *                 executor is what performs, and a host holding a lane for
+     *                 a participant names the participant and not itself
      */
-    public record Assignment(Scope at, Executor executor, String note, java.time.Instant until) {
+    public record Assignment(Scope at, Executor executor, String note, java.time.Instant until,
+            String claimant) {
+
+        /** An assignment no client is recorded as holding. */
+        public Assignment(Scope at, Executor executor, String note, java.time.Instant until) {
+            this(at, executor, note, until, null);
+        }
 
         /** An assignment nothing is holding to a deadline. */
         public Assignment(Scope at, Executor executor, String note) {
             this(at, executor, note, null);
         }
+    }
+
+    /**
+     * Whether the client named holds this run right now, and so may read its
+     * context and end it.
+     *
+     * <p>Held means open, recorded as that client's, and — for a claim taken
+     * on a lane — inside its deadline: a lapsed claim nobody has released yet
+     * is held by nobody, whatever it still says. A hold taken at the step door
+     * carries no deadline, because the starter performing the work inline is
+     * not a participant that can die mid-claim unnoticed; it ends with the run,
+     * or when a lane takes the run over.
+     */
+    public boolean heldBy(String client, java.time.Instant now) {
+        return client != null && open() && assignment != null
+                && client.equals(assignment.claimant())
+                && (assignment.until() == null || assignment.until().isAfter(now));
     }
 
     /** Whether somebody is holding this run right now, rather than for ever. */
@@ -320,14 +351,16 @@ public record Run(String id, long versionId, String key, String process, String 
             executor = new Executor(str(raw, "name"), str(raw, "version"), str(raw, "provider"),
                     Scope.of(str(raw, "scope")));
         }
-        if (at == null && executor == null && note == null
+        Object claimant = ((Map<?, ?>) json).get("claimant");
+        if (at == null && executor == null && note == null && claimant == null
                 && ((Map<?, ?>) json).get("until") == null) {
             return null;
         }
         Object until = ((Map<?, ?>) json).get("until");
         return new Assignment(Scope.of(at == null ? null : at.toString()), executor,
                 note == null ? null : note.toString(),
-                until == null ? null : java.time.Instant.parse(until.toString()));
+                until == null ? null : java.time.Instant.parse(until.toString()),
+                claimant == null ? null : claimant.toString());
     }
 
     /** Whether this run is in front of a person because nothing automated took it. */

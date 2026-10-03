@@ -193,6 +193,17 @@ public enum DboPromises implements Promise {
             + "is the difference between access granted to a step and access granted once "
             + "by way of one."),
 
+    PROC_A_RUN_CONTEXT_IS_ITS_PERFORMERS(
+            "A run context answers the client performing the run and nobody else, and so "
+            + "does the run's end. Whoever starts a run at the step door holds it, reading "
+            + "what it was given and saying it is done, until a participant claims it on a "
+            + "lane — and from then on the context is the claimant's. Another credential "
+            + "that may act in work at the same tenant, holding the run's id, reads none "
+            + "of it and cannot end it, and is answered exactly as for a run that never "
+            + "existed; so is everybody while nobody holds the run. A run's id is a thing "
+            + "that gets logged and passed around, and it is not a key to the documents "
+            + "the run was given."),
+
     PROC_A_WAKE_UP_IS_NOT_HOW_WORK_ARRIVES("A lane may say that it has work, and a runner "
             + "waiting on one looks again instead of waiting out its tick. What arrives is "
             + "that something changed and never the work: the runner then polls and claims "

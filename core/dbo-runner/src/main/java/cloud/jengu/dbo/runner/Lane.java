@@ -708,8 +708,12 @@ public interface Lane {
                             + "' is not entitled to claim '" + step + "' — it holds "
                             + entitlement);
                 }
-                Optional<Run> claimed =
-                        runs.claim(stored, identity, java.time.Instant.now().plus(holdFor));
+                // Claimed by the credential the door validated, which is who
+                // may then read the run's context and end it — the client
+                // set as the caller, not the executor named in the body.
+                Optional<Run> claimed = runs.claim(stored, identity,
+                        java.time.Instant.now().plus(holdFor),
+                        cloud.jengu.dbo.core.api.Caller.authenticated());
                 // The hop. Taking the work is the store handing it to this
                 // participant, and that is a fact about the task's journey —
                 // recorded as travel, never as a reading, because nothing has

@@ -98,6 +98,7 @@ public enum DboStories implements Story {
                     // wakes a runner, and what a fault leaves behind.
                     DboPromises.PROC_A_RUN_ANSWERS_ONLY_FOR_ITS_INPUTS,
                     DboPromises.PROC_A_RUN_CONTEXT_ENDS_WITH_ITS_RUN,
+                    DboPromises.PROC_A_RUN_CONTEXT_IS_ITS_PERFORMERS,
                     DboPromises.PROC_A_WAKE_UP_IS_NOT_HOW_WORK_ARRIVES,
                     DboPromises.PROC_A_FAULT_THE_CALLER_IS_NOT_TOLD_IS_STILL_RECORDED,
                     DboPromises.PROC_CATALOGUE_IN_STORE,
