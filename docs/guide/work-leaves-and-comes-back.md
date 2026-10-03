@@ -107,6 +107,34 @@ door still refuses it by name, a run of it is authored by the hospital as a
 participant may take stays the intersection of its credential and what the
 step admits.
 
+## A step as a bundle of the clinic's own
+
+The clinic ships a driver for its ward thermometers, and the driver is an OSGi
+bundle: it registers the step it performs, which is how a bundle contributes
+anything.
+
+```java
+--8<-- "samples/ward-thermometer/src/main/java/cloud/jengu/dbo/samples/thermometer/Thermometer.java:driver"
+```
+
+A bundle performing a step belongs in the runner's class space, so it has to
+be in the store's one framework. The clinic owns that framework: it creates it
+with the properties the store names beside its own, installs its bundle, and
+publishes it as a bean.
+
+```java
+--8<-- "samples/spring-boot-server-app/src/main/java/cloud/jengu/dbo/samples/server/OwningTheFramework.java:framework"
+```
+
+The assemblies find the bean and install the store into it instead of creating
+a framework of their own. Hogwarts declares `hogwarts.ward.observe`, no bean
+performs it, and the run completes, performed by the bundle over the clinic's
+lane. The store checks the framework it is handed: one created without its
+properties, a bundle that would take one of the store's shared packages for
+itself, and a bundle that does not resolve are refused by name before anything
+is served. When the application stops, the store takes its own bundles out and
+leaves the framework to the clinic.
+
 ## A run's own context
 
 A run started at a tenant's step door also answers as a FHIR base of its own,
@@ -175,6 +203,8 @@ been told `ready` and then `in-progress`, is told `completed`.
   is offered to no machine and refused to one that claims it; a person takes it
   with their own token, as the role they hold.
 - **The run answers its initiator**, and anybody else is told it is not there.
+- **An application may own the one framework.** The store installs into it,
+  refuses one that lacks what it needs by name, and never stops it.
 
 The [joins table](../arc42-003-context/user-stories/us-dbo-edge-roundtrip.md#joins)
 names the test behind each.

@@ -43,6 +43,13 @@ is opened towards it, and it opens nothing towards any tenant.
 A container serving tenants installs the same bundle, because the door is in
 it. It is told no tenants to hold a lane into, so it holds none.
 
+The Spring Boot assemblies follow the same rule. An application that provides
+an OSGi framework of its own, created with the launch properties the store
+names, has the store installed into it beside the application's bundles; one
+that provides none gets a framework the store creates. Either way the JVM
+holds one framework, the store checks the one it is handed before installing,
+and on close takes out its own bundles and leaves the framework to its owner.
+
 A worked example of the second shape — two organisations, the managing tenant,
 the applications in front of them and the participants outside — is drawn on
 the site under Technical, where a reader planning a deployment is standing.

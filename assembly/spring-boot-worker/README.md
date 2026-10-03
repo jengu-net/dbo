@@ -247,6 +247,19 @@ publishes rather than from the builder's own properties. A host that set one
 property to two values is refused at refresh, naming the property and both
 values, because there is no correct answer available to it.
 
+## A step as a bundle of the application's own
+
+The worker follows the server's rule: **a context holding a bean of type
+`org.osgi.framework.launch.Framework` gets the store installed into that
+framework, and one without gets a framework of the store's own.** The
+application creates it with `DboFramework.properties()` beside its own
+properties, and a bundle it installs there that registers a `StepService` is a
+step this worker performs, over the same lanes as its beans. What is supported
+and what is not — including that bundles in one container can see each
+other's services — is
+[the server's to say](../spring-boot-server/README.md#bundles-of-the-applications-own),
+and the same holds here.
+
 ## What this deliberately does not do
 
 - **Hold a store.** See the one rule.

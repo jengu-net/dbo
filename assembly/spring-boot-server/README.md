@@ -205,6 +205,77 @@ publishes rather than from the builder's own properties. A host that set one
 property to two values is refused at refresh, naming the property and both
 values, because there is no correct answer available to it.
 
+## Bundles of the application's own
+
+An application with OSGi bundles of its own — a device driver that performs a
+step is the standing case — puts them in the store's one framework by owning
+that framework. **If the context has a bean of type
+`org.osgi.framework.launch.Framework`, the store installs into it; if not, the
+store creates one, as above.** Either way there is one framework in the JVM.
+
+```java
+@Bean(destroyMethod = "stop")
+Framework clinicFramework(DboFramework dbo) throws Exception {
+    Map<String, String> properties = new HashMap<>(dbo.properties());
+    properties.put("org.osgi.framework.storage", /* the application's */);
+    Framework framework = ServiceLoader.load(FrameworkFactory.class).findFirst()
+            .orElseThrow().newFramework(properties);
+    framework.start();
+    framework.getBundleContext().installBundle(location, driverJar).start();
+    return framework;
+}
+```
+
+`samples/spring-boot-server-app`'s `OwningTheFramework` is this, running, and
+the stories run over it.
+
+What is supported:
+
+- **Installing the application's bundles, in the order it states.** It
+  installs and starts them itself, before or after the store's; the store
+  neither lists nor orders them.
+- **Sharing packages, under the store's rules.** `DboFramework.properties()`
+  carries the shared packages at the versions the store's own manifests
+  declare, closed over their `uses:`, plus every property the store's
+  activators read. An application sharing packages of its own appends them to
+  `org.osgi.framework.system.packages.extra`. The store checks the framework
+  it is handed at context refresh and refuses one missing any of them, naming
+  each.
+- **A bundle's `StepService` is a step this application performs.** The
+  runner's whiteboard takes it up beside the beans the assembly registered,
+  over the same lanes.
+- **Finding the services its bundles register**, through its own
+  `BundleContext` — `framework.getBundleContext()`. `DboTenants` and the
+  worker's beans stay the way to the store's services.
+- **Refusals by name.** A bundle that would take a shared package from the
+  application rather than the system bundle — an export the store's import
+  range accepts — fails refresh naming the bundle and the package; so does a
+  bundle that still does not resolve once the store is in, with the packages
+  nothing provides.
+
+What is not:
+
+- **Two frameworks.** A second one holds a second copy of every bundle.
+- **The store's index files as a way in.** `META-INF/dbo/bundles.index` and
+  `shared.index` are the assemblies' own statements; one an application ships
+  is installed with no promise behind it.
+- **The store starting or stopping the framework.** It must be started when
+  handed over. On close the store withdraws what it registered and stops,
+  uninstalls and refreshes its own bundles, and the framework keeps running
+  with the application's. Its bundle cache holds the store's bundles only
+  while the store is in it, started transiently at the framework's initial
+  start level; start levels are otherwise the owner's. The ServiceLoader
+  mediator, an extension of the system bundle, stays attached, because
+  detaching one restarts the framework. The store keeps none of its data in
+  the framework's storage area.
+
+**Bundles that share a container can see each other's services.** OSGi has no
+wall between them: an application bundle can look up a tenant's store from the
+registry as easily as the runner looks up its step. What protects a tenant is
+that the store's exported packages are its API — a service is reached through
+the same types and the same guards whoever holds it — and that the store is
+only ever installed beside code its operator chose.
+
 ## What this deliberately does not do
 
 - **Share the application's `DataSource`.** The store manages its own
