@@ -263,10 +263,12 @@ public enum DboPromises implements Promise {
             + "and what the step admits."),
 
     PROC_CLAIM_IS_THE_INTERSECTION("What a participant may claim is the intersection of "
-            + "what its credential covers and what the step admits: the lane narrows the "
-            + "work it offers and refuses a claim outside the entitlement, and the store "
-            + "refuses an executor at a scope the step never opened itself to. A step "
-            + "cannot grant its executor more than the executor already holds."),
+            + "what its credential covers, the scope the step admits, and whether the task is "
+            + "open to automation: the lane narrows the work it offers and refuses a claim "
+            + "outside the entitlement, the store refuses an executor at a scope the step "
+            + "never opened itself to, and a machine is offered no task open to people alone "
+            + "and is refused one when it claims it. A step cannot grant its executor more "
+            + "than the executor already holds."),
 
     PROC_ENTITLEMENT_IS_DECLARED_NOT_DEFAULTED("A lane's entitlement is stated when the "
             + "lane is provisioned — everything, because the host is the tenant, or the "

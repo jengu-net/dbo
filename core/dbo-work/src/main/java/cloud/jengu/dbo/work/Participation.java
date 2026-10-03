@@ -82,8 +82,10 @@ public final class Participation {
             runs.byId(item.objectId())
                     .filter(run -> steps.contains(run.step()))
                     .filter(run -> run.item() == null)
-                    .filter(run -> !run.claimed(now))
-                    .filter(Run::open)
+                    // What automation may take, and nothing else: a run open
+                    // to people alone was offered here too, and the claim
+                    // that followed made it automation's.
+                    .filter(run -> run.forAutomation(now))
                     .ifPresent(mine::add);
         }
         feed.ack(participant, chunk.nextCursor());

@@ -4653,6 +4653,7 @@ cloud.jengu.dbo.work.Run                                               correlati
 cloud.jengu.dbo.work.Run                                               domains():List
 cloud.jengu.dbo.work.Run                                               equals(Object):boolean
 cloud.jengu.dbo.work.Run                                               fellThrough():boolean
+cloud.jengu.dbo.work.Run                                               forAutomation(Instant):boolean
 cloud.jengu.dbo.work.Run                                               hashCode():int
 cloud.jengu.dbo.work.Run                                               heldBy(String,Instant):boolean
 cloud.jengu.dbo.work.Run                                               heldByAPerson():boolean
@@ -4855,6 +4856,7 @@ cloud.jengu.dbo.work.Runs                                              traced(cl
 cloud.jengu.dbo.work.Runs.Claimable                                    NOBODY:cloud.jengu.dbo.work.Runs.Claimable
 cloud.jengu.dbo.work.Runs.Claimable                                    appeared(cloud.jengu.dbo.work.Run):void
 cloud.jengu.dbo.work.Runs.Claimable                                    interface
+cloud.jengu.dbo.work.Runs.ClosedToAutomation                           class
 cloud.jengu.dbo.work.Runs.Contended                                    class
 cloud.jengu.dbo.work.Runs.Contended                                    new(String,Throwable)
 cloud.jengu.dbo.work.Runs.NotAMilestone                                class

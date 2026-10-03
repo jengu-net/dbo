@@ -220,6 +220,18 @@ public record Run(String id, long versionId, String key, String process, String 
                 && (assignment.until() == null || assignment.until().isAfter(now));
     }
 
+    /**
+     * Whether automation may take this run now: open, open to automation as
+     * well as to people, nobody holding it, and its not-before passed.
+     *
+     * <p>A person may take any open run, so this is the only eligibility
+     * question there is.
+     */
+    public boolean forAutomation(java.time.Instant now) {
+        return open() && automation && !claimed(now)
+                && (notBefore == null || !notBefore.isAfter(now));
+    }
+
     /** Whether somebody is holding this run right now, rather than for ever. */
     public boolean claimed(java.time.Instant now) {
         return assignment != null && assignment.until() != null

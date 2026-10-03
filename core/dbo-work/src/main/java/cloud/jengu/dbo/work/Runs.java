@@ -143,6 +143,21 @@ public final class Runs {
     }
 
     /**
+     * A run automation may not take, refused naming why: it is open to people
+     * alone, and the reason it was given to them is on it.
+     *
+     * <p>An {@link IllegalStateException}, because it is settled — asking
+     * again changes nothing until somebody returns the run to automation —
+     * and a lane tells a refusal from a fault by that.
+     */
+    public static final class ClosedToAutomation extends IllegalStateException {
+        ClosedToAutomation(Run run) {
+            super("run '" + run.key() + "' is open to people alone"
+                    + (run.statusReason() == null ? "" : ": " + run.statusReason()));
+        }
+    }
+
+    /**
      * Whether this step admits an executor at that scope.
      *
      * <p>The baseline always may — it is not an override, it is the rule — and
@@ -457,7 +472,17 @@ public final class Runs {
         refuseIfAuthoredElsewhere(seen, "claimed");
         requireAdmits(seen, by);
         Run current = byKey(seen.key()).orElse(null);
-        if (current == null || current.claimed(java.time.Instant.now())) {
+        java.time.Instant now = java.time.Instant.now();
+        if (current == null || !current.open() || current.claimed(now)) {
+            return Optional.empty();
+        }
+        if (!current.automation()) {
+            // Refused, not "not now": a machine is never eligible for this
+            // run, and it was checked here as well as at the poll because a
+            // run's eligibility can change between the two.
+            throw new ClosedToAutomation(current);
+        }
+        if (current.notBefore() != null && current.notBefore().isAfter(now)) {
             return Optional.empty();
         }
         if (!automations.automated(current.process(), current.step(), by.scope())) {
