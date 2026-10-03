@@ -1602,7 +1602,8 @@ class WorkLeavesTheClinicAndComesBackIT {
             + "through the hospital's own identity provider, takes it from the people's list "
             + "as the role she holds, reads the result through the task, and finishes it")
     @Proving({DboPromises.PROC_A_PERSON_CLAIMS_AS_A_PRACTITIONER_ROLE,
-            DboPromises.PROC_AUTOMATION_TAKES_ONLY_WHAT_ITS_STEP_ADMITS})
+            DboPromises.PROC_AUTOMATION_TAKES_ONLY_WHAT_ITS_STEP_ADMITS,
+            DboPromises.PROC_A_RUN_ANSWERS_ITS_INITIATOR})
     void aNurseTakesWhatAutomationMayNot() throws Exception {
         String step = cloud.jengu.dbo.samples.server.AskingForAReview.STEP;
         String normal = result("N");
@@ -1622,6 +1623,16 @@ class WorkLeavesTheClinicAndComesBackIT {
                 waiting.open() && !waiting.automation() && !waiting.claimed(
                         java.time.Instant.now()),
                 "an abnormal result was not left waiting for a person: " + waiting);
+
+        // What the clinic is told meanwhile: on the list, for a person, and
+        // not come to rest — waiting longer will not end it, somebody has to.
+        var told = initiator.answer(HOSPITAL, alarming.run());
+        Proves.that(DboPromises.PROC_A_RUN_ANSWERS_ITS_INITIATOR,
+                "ready".equals(told.state()) && !told.settled()
+                        && told.body().contains("\"requestedPerformer\"")
+                        && told.body().contains("\"code\":\"person\"")
+                        && !told.body().contains("\"code\":\"automation\""),
+                "the clinic is not told the review waits for a person alone: " + told.body());
 
         // Poppy signs in at the ward screen, through Hogwarts's own provider.
         String practitioner = nurse("poppy");
@@ -1654,9 +1665,17 @@ class WorkLeavesTheClinicAndComesBackIT {
                         "Observation/" + high).statusCode() == 404,
                 "another nurse, who does not hold the task, read through it");
 
+        var meanwhile = initiator.answer(HOSPITAL, alarming.run());
+        Proves.that(DboPromises.PROC_A_PERSON_CLAIMS_AS_A_PRACTITIONER_ROLE,
+                "in-progress".equals(meanwhile.state())
+                        && meanwhile.body().contains(String.valueOf(holding.assignment().role()))
+                        && !meanwhile.body().contains("\"Device\""),
+                "the task does not name the nurse's role as its owner: " + meanwhile.body());
+
         assertEquals(200, taking.finish(HOSPITAL, token, alarming.run()).statusCode());
-        assertEquals("completed", initiator.answer(HOSPITAL, alarming.run()).state(),
-                "the clinic was not told the review is done");
+        var done = initiator.answer(HOSPITAL, alarming.run());
+        assertTrue("completed".equals(done.state()) && done.settled(),
+                "the clinic was not told the review is done: " + done.body());
     }
 
     /** A potassium result, interpreted as given. */

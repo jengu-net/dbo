@@ -235,14 +235,19 @@ public final class DboInitiator {
         }
 
         /**
-         * Whether the work has come to rest: the run answered and nothing
-         * automated is still moving it. A run in front of a person is at rest
-         * as far as this application is concerned — waiting longer will not
-         * change it, somebody has to.
+         * Whether the work is over: completed, failed or cancelled.
+         *
+         * <p>A task waiting — for a machine or for a person — is not, and
+         * neither is one somebody holds. {@code ready} used to count, which
+         * was true while ready meant a person had it and stopped being true
+         * when ready came to mean on the list for whoever may take it: an
+         * application would have taken a task automation was about to perform
+         * for one that had come to rest.
          */
         public boolean settled() {
             String state = state();
-            return state != null && !"in-progress".equals(state) && !"on-hold".equals(state);
+            return "completed".equals(state) || "failed".equals(state)
+                    || "cancelled".equals(state);
         }
     }
 

@@ -51,6 +51,8 @@ final class ElementRecordProjection implements RecordProjection {
     private static final String RUN_INPUT = "urn:dbo:run:input";
     private static final String MILESTONE = "urn:dbo:run:milestone";
     private static final String HOLDER = "urn:dbo:run:holder";
+    /** Who may take a task: automation as well as a person, or a person alone. */
+    private static final String PERFORMER = "urn:dbo:run:performer";
     private static final String PROCESS = "urn:dbo:process";
     private static final String STEP = "urn:dbo:step";
     private static final String TALLY = "urn:dbo:run:tally";
@@ -62,6 +64,14 @@ final class ElementRecordProjection implements RecordProjection {
     private final String domain;
     private final boolean auditIsCategorised;
     private final boolean focusIsABackbone;
+    /**
+     * R4 says who may perform a task as {@code performerType}, when it may
+     * start as {@code restriction.period} and why it stands so as one
+     * concept; R5 recast them as {@code requestedPerformer},
+     * {@code requestedPeriod} and a {@code CodeableReference}, and R6 kept
+     * R5's.
+     */
+    private final boolean requestedIsR4;
 
     /**
      * @param domain the storage domain this face claims — a run over any other
@@ -76,6 +86,7 @@ final class ElementRecordProjection implements RecordProjection {
         // R6 recast Task.focus as a repeating backbone with a required
         // value[x]; before it, focus was one Reference.
         this.focusIsABackbone = "r6".equals(code);
+        this.requestedIsR4 = "r4".equals(code);
     }
 
     @Override
@@ -108,6 +119,10 @@ final class ElementRecordProjection implements RecordProjection {
                                 + "nobody's while a retry is scheduled, and a person's "
                                 + "when it needs somebody.",
                         List.of("AUTOMATION", "RETRY", "PERSON", "NOBODY")),
+                codeSystem(PERFORMER, "DboRunPerformer",
+                        "Who may take a task: automation, and a person, who may take any "
+                                + "open task.",
+                        List.of("automation", "person")),
                 codeSystem(PROCESS, "DboProcess",
                         "The process a run belongs to, named by the module that declares it.",
                         null),
@@ -562,8 +577,9 @@ final class ElementRecordProjection implements RecordProjection {
                     .append(Json.quoted(String.valueOf(run.get("correlation")))).append('}');
         }
         json.append(']');
-        json.append(",\"status\":\"")
-                .append(run.get("refused") != null ? "failed" : status(holder)).append('"')
+        json.append(",\"status\":\"").append(run.get("status") != null
+                        ? String.valueOf(run.get("status"))
+                        : run.get("refused") != null ? "failed" : status(holder)).append('"')
                 .append(",\"businessStatus\":{\"coding\":[{\"system\":\"").append(HOLDER)
                 .append("\",\"code\":\"").append(holder).append("\"}");
         // Where the work is, said the step's own way: one concept, two
@@ -597,7 +613,10 @@ final class ElementRecordProjection implements RecordProjection {
                     .append("\",\"value\":").append(Json.quoted(String.valueOf(run.get("parent"))))
                     .append("}}]");
         }
-        owner(run, holder, json);
+        statusReason(run, json);
+        owner(run, json);
+        performers(run, json);
+        notBefore(run, json);
         note(run, json);
         focus(run, json);
         input(run, json);
@@ -620,16 +639,22 @@ final class ElementRecordProjection implements RecordProjection {
     }
 
     /**
-     * Automation owns what it is running; a person-held run names no owner,
-     * because nobody has taken it.
+     * Who holds the task, or held it last: a person as the
+     * {@code PractitionerRole} they took it as, an executor as a
+     * {@code Device}. A task nobody has taken names no owner.
      *
-     * <p>{@code Device}-shaped, and named by what resolution chose: the name
-     * identifies it, and the display carries the version and the provider,
-     * because a provider can be withdrawn and "which behaviour was that" is the
-     * question a year later.
+     * <p>The device is named by what resolution chose: the name identifies
+     * it, and the display carries the version and the provider, because a
+     * provider can be withdrawn and "which behaviour was that" is the question
+     * a year later.
      */
-    private static void owner(Map<?, ?> run, String holder, StringBuilder json) {
-        if (!"automation".equals(holder) && !"retry".equals(holder)) {
+    private static void owner(Map<?, ?> run, StringBuilder json) {
+        if (run.get("role") != null) {
+            json.append(",\"owner\":{\"reference\":")
+                    .append(Json.quoted(String.valueOf(run.get("role")))).append('}');
+            return;
+        }
+        if (!(run.get("executor") instanceof Map<?, ?>)) {
             return;
         }
         json.append(",\"owner\":{\"type\":\"Device\"");
@@ -643,6 +668,47 @@ final class ElementRecordProjection implements RecordProjection {
             json.append(",\"display\":\"dbo\"");
         }
         json.append('}');
+    }
+
+    /** Why the task stands as it does — a failure, a fall-through — in words. */
+    private void statusReason(Map<?, ?> run, StringBuilder json) {
+        if (run.get("statusReason") == null) {
+            return;
+        }
+        String text = Json.quoted(String.valueOf(run.get("statusReason")));
+        json.append(requestedIsR4 ? ",\"statusReason\":{\"text\":" + text + "}"
+                : ",\"statusReason\":{\"concept\":{\"text\":" + text + "}}");
+    }
+
+    /**
+     * Who may take the task: automation and a person, or a person alone. A
+     * task nobody may take any more — over — says nothing about it.
+     */
+    private void performers(Map<?, ?> run, StringBuilder json) {
+        if (!(run.get("performerType") instanceof List<?> eligible) || eligible.isEmpty()
+                || List.of("completed", "failed", "cancelled").contains(
+                        String.valueOf(run.get("status")))) {
+            return;
+        }
+        StringBuilder each = new StringBuilder();
+        for (Object performer : eligible) {
+            String concept = "{\"coding\":[{\"system\":\"" + PERFORMER + "\",\"code\":"
+                    + Json.quoted(String.valueOf(performer)) + "}]}";
+            each.append(each.isEmpty() ? "" : ",")
+                    .append(requestedIsR4 ? concept : "{\"concept\":" + concept + "}");
+        }
+        json.append(requestedIsR4 ? ",\"performerType\":[" : ",\"requestedPerformer\":[")
+                .append(each).append(']');
+    }
+
+    /** Not before when, for a task held back after a failure that may pass. */
+    private void notBefore(Map<?, ?> run, StringBuilder json) {
+        if (run.get("notBefore") == null) {
+            return;
+        }
+        String start = Json.quoted(String.valueOf(run.get("notBefore")));
+        json.append(requestedIsR4 ? ",\"restriction\":{\"period\":{\"start\":" + start + "}}"
+                : ",\"requestedPeriod\":{\"start\":" + start + "}");
     }
 
     /**
