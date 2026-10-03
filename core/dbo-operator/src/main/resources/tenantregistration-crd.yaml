@@ -157,6 +157,22 @@ spec:
                         properties:
                           when:
                             type: string
+                      # Who the application that asked for a run is, once the
+                      # run's work is over: an audience under
+                      # disclosure.perAudience, whose types and mode bound
+                      # what it collects. Declared with collect, and neither
+                      # alone.
+                      answers:
+                        type: string
+                      # How long the asker may collect after the result is
+                      # written, as an ISO-8601 duration.
+                      collect:
+                        type: string
+                      # Why the step reads a person, as a PurposeOfUse code.
+                      # Required where the audience reveals include; the
+                      # collecting request states the same code.
+                      purpose:
+                        type: string
                 # Steps the DEPLOYMENT performs for every tenant that admits
                 # them, declared in the management tenant's registration and
                 # refused in anybody else's. Declared here all the same: the

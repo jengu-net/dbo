@@ -2095,6 +2095,22 @@ public enum DboPromises implements Promise {
             + "both want silence. Naming no audience is the tenant working with its own "
             + "records, and nothing about it changes."),
 
+    IDN_THE_ASKER_IS_A_DECLARED_AUDIENCE(
+            "The application that asked for a run collects what the run was given and "
+            + "produced as an audience the step names, one the tenant declared: its types "
+            + "bound what is collectable and its mode is what a collection reveals, and "
+            + "the request cannot raise either. A step naming an audience the tenant never "
+            + "declared is refused when the declaration is read, and a step naming none "
+            + "leaves its asker the run's answer alone — references, never content."),
+
+    IDN_A_STEP_STATES_ITS_PURPOSE(
+            "A collection reveals a person whole only with two keys: the purpose the step "
+            + "declared, and the same code stated by the collecting request at the moment "
+            + "of reading. A step whose audience reveals a person whole and that states no "
+            + "purpose is refused when it is declared; a request stating no purpose or "
+            + "another one is answered in the strict mode, and neither key alone reveals "
+            + "more than that."),
+
     // ── FEED — migrated from hand-written prose (2026-08-27) ──
 
     FEED_ONE_PRIMITIVE(

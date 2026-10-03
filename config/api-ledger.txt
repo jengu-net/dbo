@@ -2853,9 +2853,11 @@ cloud.jengu.dbo.promises.DboPromises                                   FEED_PUSH
 cloud.jengu.dbo.promises.DboPromises                                   IDN_ANONYMITY_IS_DECLARED_NOT_INFERRED:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   IDN_ASSURANCE_IS_THE_WEAKER_OF_THE_TWO:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   IDN_A_DECISION_IS_EVIDENCE:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   IDN_A_STEP_STATES_ITS_PURPOSE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   IDN_BINDING_IS_REVERSIBLE_AND_KEEPS_ITS_EVIDENCE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   IDN_CLAIM_STRENGTH_BOUNDS_THE_CONCLUSION:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   IDN_IDENTIFICATION_IS_REACHABLE:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   IDN_THE_ASKER_IS_A_DECLARED_AUDIENCE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   IDN_WHAT_A_RECIPIENT_SEES_IS_DECLARED:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   MNT_ACCEPTED_ROOT_RECORDED:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   MNT_ARCHIVE_ROOT_OVER_CONTENTS:cloud.jengu.dbo.promises.DboPromises
@@ -4320,6 +4322,17 @@ cloud.jengu.dbo.tenant.TenantSpec                                      toString(
 cloud.jengu.dbo.tenant.TenantSpec                                      types():List
 cloud.jengu.dbo.tenant.TenantSpec                                      zone():String
 cloud.jengu.dbo.tenant.TenantSpec                                      zoneRoot():boolean
+cloud.jengu.dbo.tenant.TenantSpec.Answer                               audience():String
+cloud.jengu.dbo.tenant.TenantSpec.Answer                               collect():Duration
+cloud.jengu.dbo.tenant.TenantSpec.Answer                               equals(Object):boolean
+cloud.jengu.dbo.tenant.TenantSpec.Answer                               hashCode():int
+cloud.jengu.dbo.tenant.TenantSpec.Answer                               new(String,Set,cloud.jengu.dbo.core.api.Disclosure.Mode,Duration,String)
+cloud.jengu.dbo.tenant.TenantSpec.Answer                               purpose():String
+cloud.jengu.dbo.tenant.TenantSpec.Answer                               record
+cloud.jengu.dbo.tenant.TenantSpec.Answer                               revealing(String):cloud.jengu.dbo.core.api.Disclosure.Mode
+cloud.jengu.dbo.tenant.TenantSpec.Answer                               reveals():cloud.jengu.dbo.core.api.Disclosure.Mode
+cloud.jengu.dbo.tenant.TenantSpec.Answer                               toString():String
+cloud.jengu.dbo.tenant.TenantSpec.Answer                               types():Set
 cloud.jengu.dbo.tenant.TenantSpec.Dependency                           equals(Object):boolean
 cloud.jengu.dbo.tenant.TenantSpec.Dependency                           face():boolean
 cloud.jengu.dbo.tenant.TenantSpec.Dependency                           hashCode():int
@@ -4354,6 +4367,7 @@ cloud.jengu.dbo.tenant.TenantSpec.Scim                                 new(Strin
 cloud.jengu.dbo.tenant.TenantSpec.Scim                                 record
 cloud.jengu.dbo.tenant.TenantSpec.Scim                                 system():String
 cloud.jengu.dbo.tenant.TenantSpec.Scim                                 toString():String
+cloud.jengu.dbo.tenant.TenantSpec.Step                                 answer():cloud.jengu.dbo.tenant.TenantSpec.Answer
 cloud.jengu.dbo.tenant.TenantSpec.Step                                 automate():cloud.jengu.dbo.core.process.AutomationCriterion
 cloud.jengu.dbo.tenant.TenantSpec.Step                                 code():String
 cloud.jengu.dbo.tenant.TenantSpec.Step                                 equals(Object):boolean
@@ -4361,6 +4375,7 @@ cloud.jengu.dbo.tenant.TenantSpec.Step                                 hashCode(
 cloud.jengu.dbo.tenant.TenantSpec.Step                                 new(String,Map)
 cloud.jengu.dbo.tenant.TenantSpec.Step                                 new(String,Map,Set)
 cloud.jengu.dbo.tenant.TenantSpec.Step                                 new(String,Map,Set,cloud.jengu.dbo.core.process.RetryPolicy,cloud.jengu.dbo.core.process.AutomationCriterion)
+cloud.jengu.dbo.tenant.TenantSpec.Step                                 new(String,Map,Set,cloud.jengu.dbo.core.process.RetryPolicy,cloud.jengu.dbo.core.process.AutomationCriterion,cloud.jengu.dbo.tenant.TenantSpec.Answer)
 cloud.jengu.dbo.tenant.TenantSpec.Step                                 record
 cloud.jengu.dbo.tenant.TenantSpec.Step                                 retry():cloud.jengu.dbo.core.process.RetryPolicy
 cloud.jengu.dbo.tenant.TenantSpec.Step                                 slots():Map

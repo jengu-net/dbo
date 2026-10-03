@@ -57,10 +57,20 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
      *               step did not declare would pass goes to a person
      * @param automate when automation may take a task of it, decided over the
      *                 task's inputs as it is authored, or null for always
+     * @param answer   what the application that asked for a run may collect
+     *                 once its work is over, or null where it collects nothing
+     *                 and reads the run's answer alone
      */
     public record Step(String code, java.util.Map<String, String> slots,
             java.util.Set<String> writes, cloud.jengu.dbo.core.process.RetryPolicy retry,
-            cloud.jengu.dbo.core.process.AutomationCriterion automate) {
+            cloud.jengu.dbo.core.process.AutomationCriterion automate, Answer answer) {
+
+        /** A step whose asker collects nothing. */
+        public Step(String code, java.util.Map<String, String> slots,
+                java.util.Set<String> writes, cloud.jengu.dbo.core.process.RetryPolicy retry,
+                cloud.jengu.dbo.core.process.AutomationCriterion automate) {
+            this(code, slots, writes, retry, automate, null);
+        }
 
         /** A step whose result writes nothing — it decides, counts, or answers. */
         public Step(String code, java.util.Map<String, String> slots) {
@@ -97,6 +107,55 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
                             + wrong.getMessage(), wrong);
                 }
             });
+        }
+    }
+
+    /**
+     * Who the application that asked for a run is, once the run's work is
+     * over, and for how long it may collect what the run was given and what
+     * it produced.
+     *
+     * <p><b>An audience the tenant declared</b>, resolved here so the step
+     * and the declaration it leans on are read together: a step naming an
+     * audience nobody declared is configuration that disagrees with itself,
+     * refused where it was written rather than answered as silence at the
+     * first collection. Its types bound what is collectable and its mode is
+     * what a collection reveals; the request cannot raise either.
+     *
+     * <p><b>The purpose is the step's.</b> An audience revealing a person
+     * whole needs one, said here, and a collection reveals her only when the
+     * request states the same code — the reason said when the step was
+     * declared and again at the moment of reading. Either alone gets the
+     * strict mode.
+     *
+     * @param audience the name under {@code disclosure.perAudience}
+     * @param types    what the audience may be answered about
+     * @param reveals  what a collection of a person reveals
+     * @param collect  how long after the result is written the asker may
+     *                 collect
+     * @param purpose  the PurposeOfUse code the step reads a person for, or
+     *                 null for none
+     */
+    public record Answer(String audience, Set<String> types,
+            cloud.jengu.dbo.core.api.Disclosure.Mode reveals, java.time.Duration collect,
+            String purpose) {
+
+        public Answer {
+            types = Set.copyOf(types);
+        }
+
+        /**
+         * What a collection reveals, given the purpose its request stated:
+         * the audience's mode where both keys agree, and never more than the
+         * strict mode otherwise.
+         */
+        public cloud.jengu.dbo.core.api.Disclosure.Mode revealing(String stated) {
+            if (reveals != cloud.jengu.dbo.core.api.Disclosure.Mode.INCLUDE) {
+                return reveals;
+            }
+            return purpose != null && purpose.equals(stated)
+                    ? cloud.jengu.dbo.core.api.Disclosure.Mode.INCLUDE
+                    : cloud.jengu.dbo.core.api.Disclosure.Mode.OMIT;
         }
     }
 
@@ -707,6 +766,10 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
         // first run of it: the spec is where a declaration disagreeing with
         // itself is cheapest to find.
         List<Step> steps = new java.util.ArrayList<>();
+        // Read before the steps, because a step names an audience and is
+        // refused where it names one this tenant never declared.
+        cloud.jengu.dbo.policy.TenantPolicies policies =
+                cloud.jengu.dbo.policy.TenantPolicies.parse(root);
         {
             java.util.Set<String> held = types.stream()
                     .map(cloud.jengu.dbo.fhir.common.FhirTypeConfig::typeName)
@@ -790,7 +853,8 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
                                 + "' — " + wrong.getMessage(), wrong);
                     }
                 }
-                steps.add(new Step(stepCode, slots, writes, retry, automate));
+                steps.add(new Step(stepCode, slots, writes, retry, automate,
+                        answer(code, stepCode, step, policies)));
             }
         }
         // The steps the DEPLOYMENT performs, which only the management
@@ -822,8 +886,7 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
                         Json.strOpt(one, "substrate")));
             }
         }
-        return new TenantSpec(code, face, types, pdi,
-                cloud.jengu.dbo.policy.TenantPolicies.parse(root),
+        return new TenantSpec(code, face, types, pdi, policies,
                 Json.strOpt(root, "zone"), Json.strOpt(root, "broker"),
                 Json.strings(root, "acceptedBrokers"), dependencies, scim,
                 Json.strings(root, "mandatorySteps"), Json.strOpt(root, "managedBy"),
@@ -859,6 +922,62 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
                 // Empty means it has read none, which is a real state and a
                 // different answer from having read a different one.
                 Set.copyOf(Json.strings(root, "authorised")));
+    }
+
+    /**
+     * What a step's asker collects, read where the step is declared, or null
+     * where it declares no answer.
+     *
+     * <p>Every inconsistency is refused here, because each is a tenant that
+     * comes up and then answers its askers wrongly: an audience nobody
+     * declared, a window without an audience or an audience without a window,
+     * a duration that is not one, a purpose that is not a code, and an
+     * audience revealing a person whole on a step that says no reason for it.
+     */
+    private static Answer answer(String code, String stepCode, Object step,
+            cloud.jengu.dbo.policy.TenantPolicies policies) {
+        String answers = Json.strOpt(step, "answers");
+        String collect = Json.strOpt(step, "collect");
+        String purpose = Json.strOpt(step, "purpose");
+        if (purpose != null && !cloud.jengu.dbo.core.api.Disclosure.statable(purpose)) {
+            throw new IllegalArgumentException(code + ": step '" + stepCode + "' states the "
+                    + "purpose '" + purpose + "', which is not a PurposeOfUse code");
+        }
+        if (answers == null && collect == null) {
+            return null;
+        }
+        if (answers == null || collect == null) {
+            throw new IllegalArgumentException(code + ": step '" + stepCode + "' declares "
+                    + (answers == null ? "'collect' and no 'answers' — a window onto nothing "
+                            + "anybody may see" : "'answers' and no 'collect' — an audience "
+                            + "with no time in which to collect")
+                    + "; declare both, or neither for an asker that reads the run's answer "
+                    + "alone");
+        }
+        cloud.jengu.dbo.policy.TenantPolicies.Audience audience = policies.audience(answers);
+        if (audience == null) {
+            throw new IllegalArgumentException(code + ": step '" + stepCode + "' answers '"
+                    + answers + "', and this tenant declares no such audience under "
+                    + "disclosure.perAudience");
+        }
+        java.time.Duration window;
+        try {
+            window = java.time.Duration.parse(collect);
+        } catch (java.time.format.DateTimeParseException wrong) {
+            throw new IllegalArgumentException(code + ": step '" + stepCode + "' collects for '"
+                    + collect + "', which is not an ISO-8601 duration such as PT15M", wrong);
+        }
+        if (window.isNegative() || window.isZero()) {
+            throw new IllegalArgumentException(code + ": step '" + stepCode + "' collects for "
+                    + collect + ", and a window that is already shut is no window");
+        }
+        if (audience.reveals() == cloud.jengu.dbo.core.api.Disclosure.Mode.INCLUDE
+                && purpose == null) {
+            throw new IllegalArgumentException(code + ": step '" + stepCode + "' answers '"
+                    + answers + "', which reveals a person whole, and states no purpose: "
+                    + "declare the PurposeOfUse it reads her for, as \"purpose\": \"TREAT\"");
+        }
+        return new Answer(answers, audience.types(), audience.reveals(), window, purpose);
     }
 
     /**
