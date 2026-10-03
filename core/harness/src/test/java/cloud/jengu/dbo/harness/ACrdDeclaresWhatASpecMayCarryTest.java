@@ -73,14 +73,14 @@ class ACrdDeclaresWhatASpecMayCarryTest {
      */
     private static final List<Pattern> BOUND_TO_A_KEY = List.of(
             // Json.array(root, "types").stream().map(t -> …
-            Pattern.compile("Json\\.\\w+\\(\\s*\\w+\\s*,\\s*\"(?<key>\\w+)\"\\)"
+            Pattern.compile("Json\\.\\w+\\(\\s*(?<of>\\w+)\\s*,\\s*\"(?<key>\\w+)\"\\)"
                     + "\\s*\\.stream\\(\\)\\s*\\.map\\(\\s*(?<var>\\w+)\\s*->"),
             // for (Object one : Json.array(root, "steps"))
             Pattern.compile("for\\s*\\(\\s*[\\w.<>?\\[\\]]+\\s+(?<var>\\w+)\\s*:"
-                    + "\\s*Json\\.\\w+\\(\\s*\\w+\\s*,\\s*\"(?<key>\\w+)\"\\)"),
+                    + "\\s*Json\\.\\w+\\(\\s*(?<of>\\w+)\\s*,\\s*\"(?<key>\\w+)\"\\)"),
             // Object scimNode = Json.objOpt(root, "scim");
             Pattern.compile("[\\w.<>?\\[\\]]+\\s+(?<var>\\w+)\\s*=\\s*"
-                    + "Json\\.obj\\w*\\(\\s*\\w+\\s*,\\s*\"(?<key>\\w+)\"\\)"));
+                    + "Json\\.obj\\w*\\(\\s*(?<of>\\w+)\\s*,\\s*\"(?<key>\\w+)\"\\)"));
 
 
     /**
@@ -138,17 +138,36 @@ class ACrdDeclaresWhatASpecMayCarryTest {
                         + "with a reason");
     }
 
-    /** Which key each nested object the parser holds was read out of. */
+    /**
+     * Which path each nested object the parser holds was read out of.
+     *
+     * <p>The whole path, not the last key: an object read off one that was
+     * itself read off the root — a step's {@code retry} — sits at
+     * {@code steps.retry} in the schema, and naming it by its own key alone
+     * looked for a {@code retry} at the root and found every one missing.
+     */
     private static Map<String, String> boundObjects(String parser) {
-        Map<String, String> under = new java.util.TreeMap<>();
-        under.put("root", "");
+        Map<String, String[]> read = new java.util.TreeMap<>();
         for (Pattern shape : BOUND_TO_A_KEY) {
             Matcher m = shape.matcher(parser);
             while (m.find()) {
-                under.put(m.group("var"), m.group("key"));
+                read.put(m.group("var"), new String[] {m.group("of"), m.group("key")});
             }
         }
+        Map<String, String> under = new java.util.TreeMap<>();
+        under.put("root", "");
+        read.keySet().forEach(variable -> under.put(variable, pathOf(variable, read, 0)));
         return under;
+    }
+
+    private static String pathOf(String variable, Map<String, String[]> read, int depth) {
+        String[] from = read.get(variable);
+        assertTrue(depth < 10 && from != null && (from[0].equals("root")
+                        || read.containsKey(from[0])),
+                "the parser holds " + variable + " and this test cannot follow it back to the "
+                        + "root, so it cannot say where in the schema its keys belong");
+        return from[0].equals("root") ? from[1]
+                : pathOf(from[0], read, depth + 1) + "." + from[1];
     }
 
     /**

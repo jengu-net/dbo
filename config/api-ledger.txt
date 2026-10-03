@@ -1330,6 +1330,13 @@ cloud.jengu.dbo.core.face.ReferenceResolution.Resolver                 interface
 cloud.jengu.dbo.core.face.ReferenceResolution.Resolver                 resolve(String,String):Optional
 cloud.jengu.dbo.core.face.ShapeConversion                              convert(String,byte[],String,int):Optional
 cloud.jengu.dbo.core.face.ShapeConversion                              interface
+cloud.jengu.dbo.core.process.AutomationCriterion                       ALWAYS:cloud.jengu.dbo.core.process.AutomationCriterion
+cloud.jengu.dbo.core.process.AutomationCriterion                       admits(Function):boolean
+cloud.jengu.dbo.core.process.AutomationCriterion                       class
+cloud.jengu.dbo.core.process.AutomationCriterion                       compile(String,Map,BiPredicate):cloud.jengu.dbo.core.process.AutomationCriterion
+cloud.jengu.dbo.core.process.AutomationCriterion                       expression():String
+cloud.jengu.dbo.core.process.AutomationCriterion                       reads():Set
+cloud.jengu.dbo.core.process.AutomationCriterion                       toString():String
 cloud.jengu.dbo.core.process.RetryPolicy                               FAULTS:List
 cloud.jengu.dbo.core.process.RetryPolicy                               after():String
 cloud.jengu.dbo.core.process.RetryPolicy                               attempts():int
@@ -2878,6 +2885,7 @@ cloud.jengu.dbo.promises.DboPromises                                   PROC_AN_U
 cloud.jengu.dbo.promises.DboPromises                                   PROC_AUDIT_REPLICATES_AS_RECORDED:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_AUTOMATION_IS_A_DECLARED_SWITCH:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_AUTOMATION_IS_DECLARED:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   PROC_AUTOMATION_TAKES_ONLY_WHAT_ITS_STEP_ADMITS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_BEAN_IS_FOUND_RATHER_THAN_WIRED:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_CONSUMER_TAKES_ONLY_ITS_OWN_STEPS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_DEPARTED_ROUTEE_IS_A_STATEMENT:cloud.jengu.dbo.promises.DboPromises
@@ -4311,12 +4319,13 @@ cloud.jengu.dbo.tenant.TenantSpec.Scim                                 new(Strin
 cloud.jengu.dbo.tenant.TenantSpec.Scim                                 record
 cloud.jengu.dbo.tenant.TenantSpec.Scim                                 system():String
 cloud.jengu.dbo.tenant.TenantSpec.Scim                                 toString():String
+cloud.jengu.dbo.tenant.TenantSpec.Step                                 automate():cloud.jengu.dbo.core.process.AutomationCriterion
 cloud.jengu.dbo.tenant.TenantSpec.Step                                 code():String
 cloud.jengu.dbo.tenant.TenantSpec.Step                                 equals(Object):boolean
 cloud.jengu.dbo.tenant.TenantSpec.Step                                 hashCode():int
 cloud.jengu.dbo.tenant.TenantSpec.Step                                 new(String,Map)
 cloud.jengu.dbo.tenant.TenantSpec.Step                                 new(String,Map,Set)
-cloud.jengu.dbo.tenant.TenantSpec.Step                                 new(String,Map,Set,cloud.jengu.dbo.core.process.RetryPolicy)
+cloud.jengu.dbo.tenant.TenantSpec.Step                                 new(String,Map,Set,cloud.jengu.dbo.core.process.RetryPolicy,cloud.jengu.dbo.core.process.AutomationCriterion)
 cloud.jengu.dbo.tenant.TenantSpec.Step                                 record
 cloud.jengu.dbo.tenant.TenantSpec.Step                                 retry():cloud.jengu.dbo.core.process.RetryPolicy
 cloud.jengu.dbo.tenant.TenantSpec.Step                                 slots():Map
@@ -4848,6 +4857,7 @@ cloud.jengu.dbo.work.Runs                                              due(Insta
 cloud.jengu.dbo.work.Runs                                              fellThrough(cloud.jengu.dbo.work.Run,cloud.jengu.dbo.work.Scope,String):cloud.jengu.dbo.work.Run
 cloud.jengu.dbo.work.Runs                                              filling(cloud.jengu.dbo.core.process.StepDeclaration,cloud.jengu.dbo.work.RunKind,String,Map):cloud.jengu.dbo.work.Run
 cloud.jengu.dbo.work.Runs                                              filling(cloud.jengu.dbo.core.process.StepDeclaration,cloud.jengu.dbo.work.RunKind,String,Map,String):cloud.jengu.dbo.work.Run
+cloud.jengu.dbo.work.Runs                                              filling(cloud.jengu.dbo.core.process.StepDeclaration,cloud.jengu.dbo.work.RunKind,String,Map,String,String):cloud.jengu.dbo.work.Run
 cloud.jengu.dbo.work.Runs                                              held(cloud.jengu.dbo.work.Run,cloud.jengu.dbo.work.Holder):cloud.jengu.dbo.work.Run
 cloud.jengu.dbo.work.Runs                                              holding(cloud.jengu.dbo.work.Holder):List
 cloud.jengu.dbo.work.Runs                                              item(cloud.jengu.dbo.work.Run,String,cloud.jengu.dbo.work.Failure,String):cloud.jengu.dbo.work.Run

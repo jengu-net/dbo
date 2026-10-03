@@ -334,7 +334,9 @@ final class StepSurface implements HttpHandler {
             // routed by what this tenant declared wherever it is performed.
             declaration = declaration.retrying(step.retry());
         }
-        Run run = runs.filling(declaration, RunKind.PIPELINE, scope, inputs, requester);
+        Run run = runs.filling(declaration, RunKind.PIPELINE, scope, inputs, requester,
+                step == null || step.automate() == null ? null
+                        : forPeopleBecause(step.automate(), inputs));
         // The key as well as the id, because they answer different questions
         // and only one of them is this surface's. The id addresses the
         // context; the key is the name the rest of the work model is asked by
@@ -513,6 +515,41 @@ final class StepSurface implements HttpHandler {
         // A parsed object written back is the same object: what came in was
         // JSON and the maps and lists it became carry nothing else.
         return cloud.jengu.dbo.core.wire.RecordWire.write(object);
+    }
+
+    /**
+     * Why a run is for people alone, or null when its step's condition admits
+     * automation — decided here, once, as the run is authored.
+     *
+     * <p>What a slot names is read as the store holds it, which for a tenant
+     * behind the membrane is the carrier form. That is enough: a condition
+     * reading an element that identifies a person was refused when the step
+     * was declared, so nothing the decision needs is sealed, and deciding is
+     * the machinery's read rather than a disclosure.
+     */
+    private String forPeopleBecause(cloud.jengu.dbo.core.process.AutomationCriterion when,
+            Map<String, cloud.jengu.dbo.work.RunSlot> inputs) {
+        boolean admitted = when.admits(slot -> {
+            cloud.jengu.dbo.work.RunSlot filled = inputs.get(slot);
+            List<Object> values = new java.util.ArrayList<>();
+            if (filled == null) {
+                return values;
+            }
+            for (String value : filled.values()) {
+                if (!filled.referred()) {
+                    values.add(Json.parse(value));
+                    continue;
+                }
+                int slash = value.indexOf('/');
+                if (slash > 0) {
+                    engine.get(value.substring(0, slash), value.substring(slash + 1))
+                            .ifPresent(held -> values.add(Json.parse(
+                                    new String(held.payload(), StandardCharsets.UTF_8))));
+                }
+            }
+            return values;
+        });
+        return admitted ? null : "its step admits automation only when " + when.expression();
     }
 
     /** What the engine is handed: the slots, with the face type as the shape. */

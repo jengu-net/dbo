@@ -55,9 +55,12 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
      * @param retry  which of its failures automation is given again, after how
      *               long and how many times, or null for none — a failure the
      *               step did not declare would pass goes to a person
+     * @param automate when automation may take a task of it, decided over the
+     *                 task's inputs as it is authored, or null for always
      */
     public record Step(String code, java.util.Map<String, String> slots,
-            java.util.Set<String> writes, cloud.jengu.dbo.core.process.RetryPolicy retry) {
+            java.util.Set<String> writes, cloud.jengu.dbo.core.process.RetryPolicy retry,
+            cloud.jengu.dbo.core.process.AutomationCriterion automate) {
 
         /** A step whose result writes nothing — it decides, counts, or answers. */
         public Step(String code, java.util.Map<String, String> slots) {
@@ -67,7 +70,7 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
         /** A step that retries nothing. */
         public Step(String code, java.util.Map<String, String> slots,
                 java.util.Set<String> writes) {
-            this(code, slots, writes, null);
+            this(code, slots, writes, null, null);
         }
 
         public Step {
@@ -770,7 +773,24 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
                                 + "' — " + wrong.getMessage(), wrong);
                     }
                 }
-                steps.add(new Step(stepCode, slots, writes, retry));
+                // When automation may take it, compiled here: a condition the
+                // store cannot evaluate, or one that would have to unseal a
+                // person to decide, is refused where it was written.
+                Object automateNode = Json.objOpt(step, "automate");
+                cloud.jengu.dbo.core.process.AutomationCriterion automate = null;
+                if (automateNode != null) {
+                    cloud.jengu.dbo.pdi.PdiSpec persons = cloud.jengu.dbo.pdi.PdiSpec.fhir();
+                    try {
+                        automate = cloud.jengu.dbo.core.process.AutomationCriterion.compile(
+                                Json.strOpt(automateNode, "when"), slots,
+                                (type, element) -> persons.identifyingElements(type)
+                                        .contains(element));
+                    } catch (IllegalArgumentException wrong) {
+                        throw new IllegalArgumentException(code + ": step '" + stepCode
+                                + "' — " + wrong.getMessage(), wrong);
+                    }
+                }
+                steps.add(new Step(stepCode, slots, writes, retry, automate));
             }
         }
         // The steps the DEPLOYMENT performs, which only the management

@@ -283,6 +283,24 @@ public final class Runs {
      */
     public Run filling(cloud.jengu.dbo.core.process.StepDeclaration step, RunKind kind,
             String scope, Map<String, RunSlot> inputs, String requester) {
+        return filling(step, kind, scope, inputs, requester, null);
+    }
+
+    /**
+     * The same, for a run its step's condition did not admit to automation
+     * (REQ-DBO-PROC-AUTOMATION-TAKES-ONLY-WHAT-ITS-STEP-ADMITS): authored
+     * open to people alone, with why.
+     *
+     * <p>Decided by whoever authored the run, once, because its inputs are
+     * fixed now and the answer cannot change — and by the store, because the
+     * executor could only learn it by reading what a claim would give it.
+     *
+     * @param forPeopleBecause why automation may not take it, or null when it
+     *                         may
+     */
+    public Run filling(cloud.jengu.dbo.core.process.StepDeclaration step, RunKind kind,
+            String scope, Map<String, RunSlot> inputs, String requester,
+            String forPeopleBecause) {
         for (String slot : inputs.keySet()) {
             if (!step.slots().containsKey(slot)) {
                 throw new IllegalArgumentException(step.id() + " declares no slot '" + slot
@@ -302,7 +320,9 @@ public final class Runs {
         step.slots().keySet().forEach(slot -> ordered.put(slot, inputs.get(slot)));
         String key = step.id() + "/" + scope;
         return byKey(key).orElseGet(() -> write(new State(key, step.id().processId(),
-                step.id().step(), kind, Standing.OPEN.retrying(step.retry()), null, null, null, Map.of(), null,
+                step.id().step(), kind, (forPeopleBecause == null ? Standing.OPEN
+                        : Standing.OPEN.openTo(false).because(forPeopleBecause))
+                        .retrying(step.retry()), null, null, null, Map.of(), null,
                 List.copyOf(step.writes()),
                 requester == null ? null : new Run.Assignment(null, null, null, null, requester),
                 Run.Produced.NOTHING, step.version(),

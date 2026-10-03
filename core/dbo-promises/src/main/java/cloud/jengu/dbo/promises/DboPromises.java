@@ -262,6 +262,14 @@ public enum DboPromises implements Promise {
             + "binds anybody, and what it may take stays the intersection of its scopes "
             + "and what the step admits."),
 
+    PROC_AUTOMATION_TAKES_ONLY_WHAT_ITS_STEP_ADMITS("A step may say when automation may take "
+            + "its task, as a condition over the task's inputs, and the store decides it once, "
+            + "when the task is authored: a task the condition does not admit is open to people "
+            + "alone. A condition the store cannot evaluate, or one that reads an element "
+            + "identifying a person — which deciding would mean unsealing — is refused when the "
+            + "step is declared, naming what stopped it. A step that says nothing is open to "
+            + "automation."),
+
     PROC_CLAIM_IS_THE_INTERSECTION("What a participant may claim is the intersection of "
             + "what its credential covers, the scope the step admits, and whether the task is "
             + "open to automation: the lane narrows the work it offers and refuses a claim "

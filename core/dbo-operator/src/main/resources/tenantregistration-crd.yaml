@@ -148,6 +148,15 @@ spec:
                           attempts:
                             type: integer
                             minimum: 1
+                      # When automation may take a task of this step: a
+                      # FHIRPath condition over the task's inputs, decided as
+                      # the task is authored. Absent is always.
+                      automate:
+                        type: object
+                        required: [when]
+                        properties:
+                          when:
+                            type: string
                 # Steps the DEPLOYMENT performs for every tenant that admits
                 # them, declared in the management tenant's registration and
                 # refused in anybody else's. Declared here all the same: the
