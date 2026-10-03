@@ -1173,6 +1173,24 @@ public final class TenantRuntimeManager implements AutoCloseable {
                     return null;
                 });
 
+        // What the deployment's steps open of a tenant's data, and the account
+        // kept against it, read by the tenant under the scope it authorises a
+        // register with — so for a tenant with an authority, which is the only
+        // kind that can say who is asking. Derived on every ask, from the same
+        // methods the joiner acts on, so the door cannot disagree with what
+        // happens.
+        activities.register(TenantPoint.SURFACES,
+                "(" + TenantFacts.HAS_AUTHORITY + "=true)",
+                "the register door",
+                tenant -> {
+                    String code = tenant.facts().code();
+                    String registerPath = "/t/" + code + "/register";
+                    registerContexts.put(code, registerPath);
+                    sharedServer.createContext(registerPath, new RegisterHandler(
+                            tenant.authority(), () -> registerOf(code), registerPath));
+                    return null;
+                });
+
         // Identification. Beside erasure rather than inside maintenance, and
         // for the same reason erasure is: identifying somebody is an act
         // performed for a person, not something done to the store.
@@ -1691,6 +1709,41 @@ public final class TenantRuntimeManager implements AutoCloseable {
         }
         return RegisterVersusTrail.of(fleetRegister(tenant), fleetStepCodes,
                 serving.engine());
+    }
+
+    /** What the register door reads for one tenant, each time it is asked. */
+    private RegisterHandler.Reading registerOf(String code) {
+        return new RegisterHandler.Reading() {
+            @Override
+            public List<FleetRegister.Row> register() {
+                return fleetRegister(code);
+            }
+
+            @Override
+            public Set<String> declined() {
+                return declinedBy(code);
+            }
+
+            @Override
+            public Optional<Boolean> changed() {
+                return fleetRegisterChanged(code);
+            }
+
+            @Override
+            public List<FleetRegister.Row> unapproved() {
+                return unapprovedRows(code);
+            }
+
+            @Override
+            public List<UnapprovedProcessing.Incident> unapprovedProcessing() {
+                return TenantRuntimeManager.this.unapprovedProcessing(code);
+            }
+
+            @Override
+            public List<RegisterVersusTrail.Incident> disagreements() {
+                return fleetDisagreements(code);
+            }
+        };
     }
 
     /** What this tenant wrote down that it will not have done to its data. */
@@ -3496,45 +3549,6 @@ public final class TenantRuntimeManager implements AutoCloseable {
                     declarations -> spec.code().equals(managementCode)
                             ? classify(declarations) : null));
             configurationContexts.put(spec.code(), configurationPath);
-            // What the deployment's steps open of this tenant's data, and the
-            // account kept against it, beside the door the tenant authorises
-            // them through. Derived on every ask, from the same methods the
-            // joiner acts on, so the door cannot disagree with what happens.
-            String registerPath = "/t/" + spec.code() + "/register";
-            final String reading = spec.code();
-            sharedServer.createContext(registerPath, new RegisterHandler(authority,
-                    () -> new RegisterHandler.Reading() {
-                        @Override
-                        public List<FleetRegister.Row> register() {
-                            return fleetRegister(reading);
-                        }
-
-                        @Override
-                        public Set<String> declined() {
-                            return declinedBy(reading);
-                        }
-
-                        @Override
-                        public Optional<Boolean> changed() {
-                            return fleetRegisterChanged(reading);
-                        }
-
-                        @Override
-                        public List<FleetRegister.Row> unapproved() {
-                            return unapprovedRows(reading);
-                        }
-
-                        @Override
-                        public List<UnapprovedProcessing.Incident> unapprovedProcessing() {
-                            return TenantRuntimeManager.this.unapprovedProcessing(reading);
-                        }
-
-                        @Override
-                        public List<RegisterVersusTrail.Incident> disagreements() {
-                            return fleetDisagreements(reading);
-                        }
-                    }, registerPath));
-            registerContexts.put(spec.code(), registerPath);
         }
         // The maintenance surface, when the tenant has an authority to guard
         // it: backups are system-plane, and a tenant with no authority has no
