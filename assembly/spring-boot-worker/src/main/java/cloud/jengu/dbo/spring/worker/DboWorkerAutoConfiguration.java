@@ -1,8 +1,10 @@
 package cloud.jengu.dbo.spring.worker;
 
 import cloud.jengu.dbo.runner.StepService;
+import cloud.jengu.dbo.embedded.DboFramework;
 import cloud.jengu.dbo.embedded.EmbeddedRuntime;
 import cloud.jengu.dbo.embedded.FrameworkContribution;
+import org.osgi.framework.launch.Framework;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -48,16 +50,32 @@ public class DboWorkerAutoConfiguration {
      */
     @Bean(initMethod = "start", destroyMethod = "close")
     @ConditionalOnMissingBean
-    public EmbeddedRuntime dboEmbeddedRuntime(
-            ObjectProvider<FrameworkContribution> contributions) {
-        // EVERY contribution, not this configuration's own. An application
-        // that also serves tenants carries a second one, and the container it
-        // reaches is this one — whichever half of the host happened to build
-        // it.
-        return new EmbeddedRuntime(getClass().getClassLoader(),
-                FrameworkContribution.merged(contributions.orderedStream().toList()),
-                EmbeddedRuntime.storageUnder(
+    public EmbeddedRuntime dboEmbeddedRuntime(DboFramework dbo,
+            ObjectProvider<Framework> hostOwned) {
+        // The application's framework when it has one, so that bundles of
+        // its own share the store's class space; a framework of the store's
+        // own otherwise. Never both: two frameworks hold two copies of every
+        // bundle.
+        Framework owned = hostOwned.getIfAvailable();
+        return owned != null ? new EmbeddedRuntime(dbo, owned)
+                : new EmbeddedRuntime(dbo, EmbeddedRuntime.storageUnder(
                         Path.of(System.getProperty("java.io.tmpdir")), "dbo-embedded"));
+    }
+
+    /**
+     * What a framework has to be created with for the store to live in it.
+     *
+     * <p>Built from EVERY contribution, not this configuration's own. An
+     * application that both serves and performs carries two, and the
+     * container it reaches is one — whichever half of the host built it. An
+     * application that owns its framework injects this and creates the
+     * framework with {@link DboFramework#properties()}.
+     */
+    @Bean
+    @ConditionalOnMissingBean
+    public DboFramework dboFramework(ObjectProvider<FrameworkContribution> contributions) {
+        return new DboFramework(getClass().getClassLoader(),
+                FrameworkContribution.merged(contributions.orderedStream().toList()));
     }
 
     /** What performing work tells the container. */

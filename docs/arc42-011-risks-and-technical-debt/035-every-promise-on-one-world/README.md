@@ -167,8 +167,7 @@ Another 33 classes do not feed a story:
   decisions).
 - 8 are assembly and sample tests. The three sample tests fold into the
   stories, which become the sample application's tests. The five assembly
-  tests stay, because they prove the wrapper
-  ([item 028](../028-the-embedded-host-proves-itself/README.md)).
+  tests stay, because they prove the wrapper.
 
 ## Steps
 

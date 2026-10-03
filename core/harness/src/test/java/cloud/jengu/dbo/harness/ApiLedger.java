@@ -45,7 +45,8 @@ final class ApiLedger {
             "dbo.maintenance",
             "dbo.terminology", "dbo.definitions", "dbo.subscriptions", "dbo.rest", "dbo.scim", "dbo.telemetry",
             "dbo.promises", "dbo.tenant", "dbo.tenant.k8s", "dbo.fhir.common",
-            "dbo.fhir.element", "dbo.fhir.index", "dbo.fhir.validate", "dbo.fhir.r4", "dbo.fhir.r5");
+            "dbo.fhir.element", "dbo.fhir.index", "dbo.fhir.validate", "dbo.fhir.r4", "dbo.fhir.r5",
+            "dbo.embedded");
 
     private ApiLedger() {
     }
@@ -130,7 +131,12 @@ final class ApiLedger {
     private static void collect(Path jar, Set<String> into) throws Exception {
         try (JarFile file = new JarFile(jar.toFile())) {
             Set<String> exported = new TreeSet<>();
-            String header = file.getManifest().getMainAttributes().getValue("Export-Package");
+            java.util.jar.Attributes main = file.getManifest().getMainAttributes();
+            String header = main.getValue("Export-Package");
+            // A plain library — the embedded host is one — has no way to
+            // withhold a package, so every package of this store's it holds
+            // is what an application compiles against.
+            boolean plainLibrary = main.getValue("Bundle-SymbolicName") == null;
             if (header != null) {
                 for (String clause : header.split(",(?=[a-zA-Z])")) {
                     String pkg = clause.split(";")[0].trim();
@@ -147,7 +153,8 @@ final class ApiLedger {
                 String binary = name.substring(0, name.length() - ".class".length())
                         .replace('/', '.');
                 int dot = binary.lastIndexOf('.');
-                if (dot < 0 || !exported.contains(binary.substring(0, dot))) {
+                if (dot < 0 || !(exported.contains(binary.substring(0, dot))
+                        || plainLibrary && binary.startsWith("cloud.jengu.dbo."))) {
                     continue;
                 }
                 Class<?> type = Class.forName(binary, false,

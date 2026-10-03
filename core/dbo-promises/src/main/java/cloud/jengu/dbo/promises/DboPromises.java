@@ -1116,6 +1116,15 @@ public enum DboPromises implements Promise {
     CONT_EMBEDDED_IN_JVM(
             "A host application can boot the full store inside its own JVM for "
             + "dev/test; the only shared dependencies are Felix and the OSGi API. (R2)"),
+    CONT_A_HOST_MAY_OWN_THE_CONTAINER(
+            "An application that owns an OSGi framework — because bundles of its own belong "
+            + "in the store's class space — creates it with the launch properties the store "
+            + "names, and the store installs into it instead of creating a second one. A "
+            + "framework missing any of them is refused at start, naming each; a bundle "
+            + "already there that would take a shared package from the store's bundles, or "
+            + "that does not resolve, is refused by name. Closing removes the store's bundles "
+            + "and what it registered, and never stops a framework the store did not "
+            + "create."),
     CONT_IMPORTS_ARE_COMPUTED_OR_CHECKED(
             "Every bundle with source of its own computes its imports from its bytecode; "
             + "what is written by hand is policy — which JDK surfaces may be absent, and "

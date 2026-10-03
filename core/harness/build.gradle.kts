@@ -47,6 +47,15 @@ val dboRunnerTestOutput = project(":core:dbo-runner")
         .extensions.getByType(SourceSetContainer::class.java)
         .getByName("test").output
 
+// The embedded host's own: installing into a framework an application owns is
+// proven there, against frameworks those tests create. Classes only — its test
+// output also carries a bundle set, and a set on this classpath would be one
+// every embedding here installs.
+evaluationDependsOn(":core:dbo-embedded")
+val dboEmbeddedTestOutput = project(":core:dbo-embedded")
+        .extensions.getByType(SourceSetContainer::class.java)
+        .getByName("test").output
+
 // The user stories' citation index. They walk the sample world as the clinic
 // application's tests, and every promise a story leg proves is proven there and
 // nowhere else once its old class here is gone — so without that index on
@@ -73,8 +82,11 @@ dependencies {
     // a recorder written for two tests. That cost 108 threads contending on
     // one list and turned a forty-minute suite into a two-hour one.
     testRuntimeOnly(dboRunnerTestOutput.classesDirs)
+    testRuntimeOnly(dboEmbeddedTestOutput.classesDirs)
     testImplementation(project(":core:dbo-core"))
     testImplementation(project(":core:dbo-promises"))
+    // The embedded host, whose API the ledger records like a bundle's.
+    testImplementation(project(":core:dbo-embedded"))
     // The reference LOCAL executor under a step service. Test-only and
     // deliberately not on dbo-runner: the participation contract names no
     // orchestrator, and a runner that compiled against one would be naming it.
@@ -275,7 +287,7 @@ val ledgerBundles = mapOf(
     "dbo.promises" to "dbo-promises", "dbo.tenant" to "dbo-tenant",
     "dbo.tenant.k8s" to "dbo-tenant-k8s", "dbo.fhir.common" to "dbo-fhir-common",
     "dbo.fhir.element" to "dbo-fhir-element", "dbo.fhir.r4" to "dbo-fhir-r4",
-    "dbo.fhir.r5" to "dbo-fhir-r5",
+    "dbo.fhir.r5" to "dbo-fhir-r5", "dbo.embedded" to "dbo-embedded",
 )
 
 // Every module whose jar IS production. The reach ledger asks whether one of

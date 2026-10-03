@@ -22,27 +22,38 @@ import java.util.ServiceLoader;
 /**
  * The store, running inside somebody else's application, invisibly.
  *
- * <p>It boots a framework, installs the bundle set an assembly recorded, and
- * takes it all down again. Nothing it publishes names a {@code Bundle}, a
- * {@code BundleContext} or a {@code ServiceReference}, and an application
- * author never learns the word.
+ * <p>It boots a framework, or installs into one the application owns, puts
+ * the bundle set an assembly recorded into it, and takes that set out again.
+ * Nothing it publishes names a {@code Bundle}, a {@code BundleContext} or a
+ * {@code ServiceReference}, and an application author who does not want a
+ * framework of their own never learns the word.
  *
  * <p><b>One framework, however many assemblies.</b> An application holding
  * the serving half and the performing half contributes two bundle lists and
  * gets one container. Two would each hold a copy of every bundle, and for the
  * element bundle that is a full set of parsed FHIR definitions — measured in
  * the container harness at roughly 100 to 215 MB per framework — held twice.
+ *
+ * <p><b>A framework the application owns stays the application's.</b> Its
+ * owner created it with {@link DboFramework#properties()} and installs its own
+ * bundles in its own order. The store installs and starts its own set into it,
+ * and on close stops and uninstalls that set and nothing else; the framework
+ * is never stopped by the party that did not create it.
  */
 public final class EmbeddedRuntime implements AutoCloseable {
 
     private static final Logger LOG = LoggerFactory.getLogger("dbo.spring");
 
-    private final ClassLoader loader;
-    private final Map<String, String> properties;
+    private final DboFramework dbo;
     private final Path storage;
+    private final Framework handed;
 
     private Framework framework;
     private Map<String, Bundle> installed;
+    /** Bundles the store found already there and leaves there: an attached extension. */
+    private java.util.Set<String> adopted = java.util.Set.of();
+    private final List<org.osgi.framework.ServiceRegistration<?>> registered =
+            new java.util.concurrent.CopyOnWriteArrayList<>();
 
     /**
      * @param loader     where the bundle jars and the indexes are read from,
@@ -55,18 +66,41 @@ public final class EmbeddedRuntime implements AutoCloseable {
      * @param storage    where the framework keeps its bundle cache
      */
     public EmbeddedRuntime(ClassLoader loader, Map<String, String> properties, Path storage) {
-        this.loader = loader;
-        this.properties = Map.copyOf(properties);
-        this.storage = storage;
-    }
-
-    /** Whether the container is up. */
-    public boolean running() {
-        return framework != null && framework.getState() == Bundle.ACTIVE;
+        this(new DboFramework(loader, properties), storage);
     }
 
     /**
-     * Boots the container: find, compute, construct, install, start.
+     * A container the store creates for itself.
+     *
+     * @param storage where the framework keeps its bundle cache
+     */
+    public EmbeddedRuntime(DboFramework dbo, Path storage) {
+        this.dbo = dbo;
+        this.storage = storage;
+        this.handed = null;
+    }
+
+    /**
+     * The store installed into a framework the application created and owns.
+     *
+     * <p>The framework must be started and created with
+     * {@link DboFramework#properties()}. Its storage, its bundle cache and its
+     * start levels stay its owner's: the store's own data lives where its
+     * configuration says, never in the framework's storage area.
+     */
+    public EmbeddedRuntime(DboFramework dbo, Framework hostOwned) {
+        this.dbo = dbo;
+        this.storage = null;
+        this.handed = java.util.Objects.requireNonNull(hostOwned, "hostOwned");
+    }
+
+    /** Whether the container is up with the store in it. */
+    public synchronized boolean running() {
+        return framework != null && installed != null && framework.getState() == Bundle.ACTIVE;
+    }
+
+    /**
+     * Brings the store up: find, compute, construct or check, install, start.
      *
      * <p>Installed by stream, in the order the assemblies asked for, and
      * started afterwards rather than one by one — a bundle started before the
@@ -77,45 +111,41 @@ public final class EmbeddedRuntime implements AutoCloseable {
         if (framework != null) {
             return;
         }
-        BundleSet set = BundleSet.on(loader);
-        Map<String, String> config = new HashMap<>(properties);
-        config.put("org.osgi.framework.storage", storage.toAbsolutePath().toString());
-        config.put("org.osgi.framework.storage.clean", "onFirstInit");
-        config.put("org.osgi.framework.system.packages.extra",
-                SharedPackages.from(set.sharedWithTheApplication(), set.all(), slf4jVersion()));
+        BundleSet set = dbo.bundles();
+        Framework into = handed == null ? created() : checked(handed);
+        this.framework = into;
 
-        Framework booting = ServiceLoader.load(FrameworkFactory.class, EmbeddedRuntime.class
-                        .getClassLoader()).findFirst()
-                .orElseThrow(() -> new IllegalStateException(
-                        "no OSGi FrameworkFactory on the classpath, so there is no container to "
-                                + "start. The assemblies depend on one; something has excluded "
-                                + "it."))
-                .newFramework(config);
-        try {
-            booting.start();
-        } catch (BundleException wouldNotStart) {
-            throw new IllegalStateException("the container would not start, so this application "
-                    + "serves nothing of the store", wouldNotStart);
-        }
-        this.framework = booting;
-
-        BundleContext ctx = booting.getBundleContext();
+        BundleContext ctx = into.getBundleContext();
         Map<String, Bundle> put = new LinkedHashMap<>();
         java.util.Set<String> attaching = new java.util.HashSet<>();
+        java.util.Set<String> foundThere = new java.util.HashSet<>();
         for (BundleSet.Found bundle : set.inInstallOrder()) {
             if (bundle.attachesRatherThanRuns()) {
                 attaching.add(bundle.symbolicName());
             }
-            try (InputStream bytes = bundle.open()) {
-                put.put(bundle.symbolicName(), ctx.installBundle(bundle.at().toString(), bytes));
+            try {
+                Bundle already = handed == null ? null : alreadyThere(ctx, bundle);
+                if (already != null) {
+                    put.put(bundle.symbolicName(), already);
+                    foundThere.add(bundle.symbolicName());
+                    continue;
+                }
+                try (InputStream bytes = bundle.open()) {
+                    put.put(bundle.symbolicName(),
+                            ctx.installBundle(bundle.at().toString(), bytes));
+                }
             } catch (BundleException | IOException notInstalled) {
-                stopQuietly();
+                this.installed = put;
+                this.adopted = foundThere;
+                takeDown();
                 throw new IllegalStateException(bundle.symbolicName() + " could not be installed "
-                        + "from " + bundle.at() + ", so the container is incomplete and has "
-                        + "been stopped rather than left serving part of a store", notInstalled);
+                        + "from " + bundle.at() + ", so the container is incomplete and the "
+                        + "store has been taken out of it rather than left serving part of a "
+                        + "store: " + rootOf(notInstalled), notInstalled);
             }
         }
         this.installed = put;
+        this.adopted = foundThere;
 
         List<String> refused = new ArrayList<>();
         for (Map.Entry<String, Bundle> each : put.entrySet()) {
@@ -134,7 +164,11 @@ public final class EmbeddedRuntime implements AutoCloseable {
                 continue;
             }
             try {
-                each.getValue().start();
+                // Transient in somebody else's framework: its cache keeps the
+                // store's bundles only while the store is in it, and a
+                // framework restarted from that cache does not start them on
+                // its own with whatever configuration it then has.
+                each.getValue().start(handed == null ? 0 : Bundle.START_TRANSIENT);
             } catch (BundleException wouldNotStart) {
                 // Collected rather than thrown at the first one. The first
                 // refusal is usually a consequence — a bundle whose import
@@ -145,12 +179,180 @@ public final class EmbeddedRuntime implements AutoCloseable {
             }
         }
         if (!refused.isEmpty()) {
-            stopQuietly();
+            takeDown();
             throw new IllegalStateException("the container did not come up. " + refused.size()
                     + " of " + put.size() + " bundles would not start:\n  "
                     + String.join("\n  ", refused));
         }
-        LOG.info("starting: component=dbo-embedded bundles={} storage={}", put.size(), storage);
+        if (handed != null) {
+            List<String> wrong = new ArrayList<>(splitClassSpace(put));
+            wrong.addAll(unresolvedNeighbours(put));
+            if (!wrong.isEmpty()) {
+                takeDown();
+                throw new IllegalStateException("the container did not come up. The "
+                        + "application's framework holds bundles that stop it working:\n  "
+                        + String.join("\n  ", wrong));
+            }
+        }
+        LOG.info("starting: component=dbo-embedded bundles={} framework={}", put.size(),
+                handed == null ? "own storage=" + storage : "the application's");
+    }
+
+    /** A framework of the store's own, created and started. */
+    private Framework created() {
+        Map<String, String> config = new HashMap<>(dbo.properties());
+        config.put("org.osgi.framework.storage", storage.toAbsolutePath().toString());
+        config.put("org.osgi.framework.storage.clean", "onFirstInit");
+
+        Framework booting = ServiceLoader.load(FrameworkFactory.class, EmbeddedRuntime.class
+                        .getClassLoader()).findFirst()
+                .orElseThrow(() -> new IllegalStateException(
+                        "no OSGi FrameworkFactory on the classpath, so there is no container to "
+                                + "start. The assemblies depend on one; something has excluded "
+                                + "it."))
+                .newFramework(config);
+        try {
+            booting.start();
+        } catch (BundleException wouldNotStart) {
+            throw new IllegalStateException("the container would not start, so this application "
+                    + "serves nothing of the store", wouldNotStart);
+        }
+        return booting;
+    }
+
+    /**
+     * The application's framework, once it is known to carry what the store needs.
+     *
+     * <p>Started by its owner, not here: starting a framework is choosing its
+     * start level and its moment, and both are the owner's.
+     */
+    private Framework checked(Framework framework) {
+        if (framework.getState() != Bundle.ACTIVE) {
+            throw new IllegalStateException("the OSGi framework this application provides is not "
+                    + "started, so the store cannot be installed into it. Start it where it is "
+                    + "created.");
+        }
+        dbo.refuseWhatItDoesNotCarry(framework);
+        return framework;
+    }
+
+    /**
+     * A bundle of the set that the application's framework already holds.
+     *
+     * <p>An extension the system bundle already carries is taken as it is:
+     * an extension cannot be detached from a running framework, so the one a
+     * previous start of the store attached is still there, and installing it
+     * twice is refused. The store's own bundle left behind by a JVM that
+     * stopped without closing — same location — is replaced, because its
+     * cache copy may be a build behind. Anything else with the same symbolic
+     * name is the application's own copy, and two copies of one bundle in
+     * one framework is a conflict the store does not settle by guessing.
+     */
+    private Bundle alreadyThere(BundleContext ctx, BundleSet.Found wanted)
+            throws BundleException {
+        for (Bundle there : ctx.getBundles()) {
+            if (!wanted.symbolicName().equals(there.getSymbolicName())) {
+                continue;
+            }
+            if (wanted.attachesRatherThanRuns() && isFragment(there)) {
+                return there;
+            }
+            if (there.getLocation().equals(wanted.at().toString())) {
+                there.uninstall();
+                refresh(List.of(there));
+                return null;
+            }
+            throw new BundleException("the application's framework already holds "
+                    + there.getSymbolicName() + " [" + there.getBundleId() + "] from "
+                    + there.getLocation() + ", a copy the store did not install");
+        }
+        return null;
+    }
+
+    /**
+     * Shared packages a store bundle took from somebody else's bundle.
+     *
+     * <p>The class space is one only while every shared package comes from
+     * the system bundle. An application bundle exporting one of them at a
+     * version the store's bundles accept can be chosen instead, and the
+     * result resolves and starts and is two classes with one name — the bean
+     * on one side and the whiteboard on the other.
+     */
+    private List<String> splitClassSpace(Map<String, Bundle> ours) {
+        java.util.Set<String> shared = dbo.sharedByName().keySet();
+        java.util.Set<Long> ourIds = new java.util.HashSet<>();
+        ours.values().forEach(bundle -> ourIds.add(bundle.getBundleId()));
+        List<String> split = new ArrayList<>();
+        for (Map.Entry<String, Bundle> each : ours.entrySet()) {
+            org.osgi.framework.wiring.BundleWiring wiring =
+                    each.getValue().adapt(org.osgi.framework.wiring.BundleWiring.class);
+            if (wiring == null) {
+                continue;
+            }
+            for (org.osgi.framework.wiring.BundleWire wire
+                    : wiring.getRequiredWires("osgi.wiring.package")) {
+                Object pkg = wire.getCapability().getAttributes().get("osgi.wiring.package");
+                Bundle provider = wire.getProvider().getBundle();
+                if (pkg != null && shared.contains(pkg.toString())
+                        && provider.getBundleId() != 0
+                        && !ourIds.contains(provider.getBundleId())) {
+                    split.add(each.getKey() + " takes " + pkg + " from " + nameOf(provider)
+                            + " rather than from the application, so that package's classes "
+                            + "would exist twice. Stop " + nameOf(provider) + " exporting " + pkg
+                            + ", or narrow its version");
+                }
+            }
+        }
+        return split;
+    }
+
+    /**
+     * Bundles in the application's framework that do not resolve.
+     *
+     * <p>Asked once the store is in, because an application bundle may be
+     * waiting for a package one of the store's bundles exports. One still
+     * unresolved then is a container that started and in which that bundle
+     * does nothing — named, with the packages nothing provides.
+     */
+    private List<String> unresolvedNeighbours(Map<String, Bundle> ours) {
+        org.osgi.framework.wiring.FrameworkWiring wiring =
+                framework.adapt(org.osgi.framework.wiring.FrameworkWiring.class);
+        wiring.resolveBundles(null);
+        java.util.Set<Long> ourIds = new java.util.HashSet<>();
+        ours.values().forEach(bundle -> ourIds.add(bundle.getBundleId()));
+        List<String> unresolved = new ArrayList<>();
+        for (Bundle there : framework.getBundleContext().getBundles()) {
+            if (there.getState() != Bundle.INSTALLED || ourIds.contains(there.getBundleId())) {
+                continue;
+            }
+            List<String> missing = new ArrayList<>();
+            org.osgi.framework.wiring.BundleRevision revision =
+                    there.adapt(org.osgi.framework.wiring.BundleRevision.class);
+            if (revision != null) {
+                for (org.osgi.resource.Requirement needs
+                        : revision.getRequirements("osgi.wiring.package")) {
+                    if ("optional".equals(needs.getDirectives().get("resolution"))) {
+                        continue;
+                    }
+                    if (wiring.findProviders(needs).isEmpty()) {
+                        missing.add(packageIn(needs.getDirectives().get("filter")));
+                    }
+                }
+            }
+            unresolved.add(nameOf(there) + " does not resolve" + (missing.isEmpty() ? ""
+                    : "; nothing provides " + String.join(", ", missing)));
+        }
+        return unresolved;
+    }
+
+    private static String packageIn(String filter) {
+        java.util.regex.Matcher named = java.util.regex.Pattern
+                .compile("osgi\\.wiring\\.package=([^)]+)").matcher(filter == null ? "" : filter);
+        return named.find() ? named.group(1) : String.valueOf(filter);
+    }
+
+    private static String nameOf(Bundle bundle) {
+        return bundle.getSymbolicName() + " [" + bundle.getBundleId() + "]";
     }
 
     /**
@@ -162,6 +364,14 @@ public final class EmbeddedRuntime implements AutoCloseable {
      * its statics hold. The container harness has the scar: three stopped
      * frameworks and eleven bundle classloaders still reachable while a suite
      * that touches no OSGi at all was running.
+     *
+     * <p>In a framework the application owns, only the store's part goes:
+     * what it registered for the application, then its bundles in reverse
+     * order, uninstalled and refreshed so their classloaders can be
+     * collected. A bundle of the application's that wired to a package only
+     * the store's bundles export is refreshed with them, which is the
+     * framework's rule and not the store's. An attached extension stays,
+     * because detaching one restarts the framework.
      */
     @Override
     public synchronized void close() {
@@ -169,9 +379,7 @@ public final class EmbeddedRuntime implements AutoCloseable {
             return;
         }
         LOG.info("shutdown requested: component=dbo-embedded");
-        stopQuietly();
-        framework = null;
-        installed = null;
+        takeDown();
     }
 
     /** The bundles, by symbolic name. Package-private: a Bundle is not an API. */
@@ -256,6 +464,82 @@ public final class EmbeddedRuntime implements AutoCloseable {
                         != 0;
     }
 
+    /**
+     * Takes out whatever the store put in, and lets go of the framework.
+     *
+     * <p>Its own framework is stopped. The application's is left running
+     * with the store's part removed from it.
+     */
+    private void takeDown() {
+        try {
+            if (handed == null) {
+                stopQuietly();
+                return;
+            }
+            for (org.osgi.framework.ServiceRegistration<?> each : registered) {
+                try {
+                    each.unregister();
+                } catch (IllegalStateException alreadyGone) {
+                    // Withdrawn by its own closer first; nothing to do.
+                }
+            }
+            List<Bundle> ours = new ArrayList<>(installed == null ? List.of()
+                    : installed.entrySet().stream()
+                            .filter(each -> !adopted.contains(each.getKey())
+                                    && !isFragmentOfTheSystemBundle(each.getValue()))
+                            .map(Map.Entry::getValue)
+                            .toList());
+            java.util.Collections.reverse(ours);
+            for (Bundle bundle : ours) {
+                try {
+                    bundle.uninstall();
+                } catch (BundleException | IllegalStateException notUninstalled) {
+                    LOG.warn("{} could not be taken out of the application's framework",
+                            bundle.getSymbolicName(), notUninstalled);
+                }
+            }
+            refresh(ours);
+        } finally {
+            registered.clear();
+            framework = null;
+            installed = null;
+            adopted = java.util.Set.of();
+        }
+    }
+
+    /**
+     * Refreshes these bundles and waits for it, so that what was uninstalled
+     * is gone rather than pending.
+     */
+    private void refresh(List<Bundle> bundles) {
+        if (bundles.isEmpty()) {
+            return;
+        }
+        org.osgi.framework.wiring.FrameworkWiring wiring =
+                handed.adapt(org.osgi.framework.wiring.FrameworkWiring.class);
+        java.util.concurrent.CountDownLatch done = new java.util.concurrent.CountDownLatch(1);
+        wiring.refreshBundles(bundles, event -> done.countDown());
+        try {
+            if (!done.await(30, java.util.concurrent.TimeUnit.SECONDS)) {
+                LOG.warn("the application's framework did not finish refreshing the store's "
+                        + "bundles within 30 seconds");
+            }
+        } catch (InterruptedException interrupted) {
+            Thread.currentThread().interrupt();
+        }
+    }
+
+    /** Remembers a registration made for the application, to withdraw at close. */
+    void registered(org.osgi.framework.ServiceRegistration<?> registration) {
+        registered.add(registration);
+    }
+
+    private static boolean isFragmentOfTheSystemBundle(Bundle bundle) {
+        String host = bundle.getHeaders().get("Fragment-Host");
+        return host != null && (host.startsWith("system.bundle")
+                || host.startsWith("org.apache.felix.framework"));
+    }
+
     private void stopQuietly() {
         try {
             framework.stop();
@@ -265,27 +549,10 @@ public final class EmbeddedRuntime implements AutoCloseable {
                 Thread.currentThread().interrupt();
             }
             LOG.warn("the container did not stop cleanly", didNotStop);
+        } finally {
+            framework = null;
+            installed = null;
         }
-    }
-
-    /**
-     * The version of {@code org.slf4j} the application is holding.
-     *
-     * <p>Read from the API jar's own manifest rather than assumed, because
-     * this is the version the container's bundles have to import at — and it
-     * is the application's choice, not ours. Absent, the package is not
-     * shared and a bundle logging through slf4j will not resolve, which is a
-     * loud failure and the right one: silently dropping the logging of a
-     * store is worse than not starting it.
-     */
-    private String slf4jVersion() {
-        String version = Logger.class.getPackage() == null ? null
-                : Logger.class.getPackage().getImplementationVersion();
-        if (version == null) {
-            LOG.warn("the slf4j API on the classpath does not say its version, so the container "
-                    + "shares org.slf4j without one");
-        }
-        return version;
     }
 
     private static String rootOf(Throwable thrown) {

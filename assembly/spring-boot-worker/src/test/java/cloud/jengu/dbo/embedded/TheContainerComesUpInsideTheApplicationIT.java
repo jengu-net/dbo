@@ -33,8 +33,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  *
  * <p><b>In the host's package, from the worker's module.</b> The bundle
  * identity it reads is not API — a Bundle never leaves {@code dbo-embedded} —
- * so the assertion has to be a neighbour. And it is the worker that carries a
- * bundle set to install: the host deliberately has none of its own.
+ * so the assertion has to be a neighbour. The host proves the same three
+ * things about itself against a test-scope set of one bundle; these are about
+ * the set this assembly installs.
  *
  * <p>No store, no face, no database, and that absence is part of the claim.
  * A driver contributes a step with five bundles installed, and the container

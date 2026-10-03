@@ -1,3 +1,5 @@
+import java.util.jar.JarFile
+
 // The store inside an ordinary JVM: boot a framework, hand it a bundle set
 // and a package list, and let the host reach what it registers.
 //
@@ -39,10 +41,61 @@ dependencies {
     api("org.slf4j:slf4j-api:2.0.18")
 
     testImplementation("org.junit.jupiter:junit-jupiter:5.11.4")
+    // @Proving citations only.
+    testImplementation(project(":core:dbo-promises"))
+    testAnnotationProcessor(project(":promise"))
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
 tasks.test { useJUnitPlatform() }
+
+// A bundle set for this module's own tests: dbo-core, the smallest bundle that
+// resolves on its own, and the packages it exports as the shared list.
+//
+// Test scope only. The property that makes two assemblies share one framework
+// is that this module installs nothing of its own in production; the set here
+// is what lets it boot itself to be asked whether it works, written the way
+// the assemblies write theirs so the same reader reads both.
+val testBundleSet: Configuration = configurations.create("testBundleSet")
+dependencies {
+    testBundleSet(project(":core:dbo-core")) { isTransitive = false }
+}
+val testBundleIndex = tasks.register("testBundleIndex") {
+    description = "Writes the bundle set this module's tests install."
+    val jars = testBundleSet
+    val out = layout.buildDirectory.dir("generated/test-dbo/META-INF/dbo")
+    inputs.files(jars)
+    outputs.dir(out)
+    doLast {
+        val jar = jars.singleFile
+        val manifest = JarFile(jar).use { it.manifest!!.mainAttributes }
+        val symbolic = manifest.getValue("Bundle-SymbolicName").substringBefore(';').trim()
+        val exported = manifest.getValue("Export-Package") ?: ""
+        // Clause by clause, quotes respected: a uses:= directive holds commas
+        // of its own and splitting on the comma alone breaks it.
+        val packages = mutableListOf<String>()
+        var clause = StringBuilder()
+        var quoted = false
+        (exported + ",").forEach { c ->
+            if (c == '"') quoted = !quoted
+            if (c == ',' && !quoted) {
+                val name = clause.toString().substringBefore(';').trim()
+                if (name.isNotEmpty()) packages.add(name)
+                clause = StringBuilder()
+            } else {
+                clause.append(c)
+            }
+        }
+        val dir = out.get().asFile
+        dir.mkdirs()
+        dir.resolve("bundles.index").writeText(symbolic + "\n")
+        dir.resolve("shared.index").writeText(packages.joinToString("\n", postfix = "\n"))
+    }
+}
+sourceSets.named("test") {
+    output.dir(mapOf("builtBy" to listOf(testBundleIndex)),
+        layout.buildDirectory.dir("generated/test-dbo"))
+}
 
 publishing.publications.named<MavenPublication>("maven") {
     artifactId = "dbo-embedded"

@@ -16,7 +16,7 @@ core:conformance             core:dbo-core core:dbo-fhir-common core:dbo-fhir-r4
 core:dbo-asking              core:dbo-core core:dbo-work
 core:dbo-auth                core:dbo-core core:dbo-rest
 core:dbo-definitions         core:dbo-core
-core:dbo-embedded            core:dbo-core
+core:dbo-embedded            core:dbo-core core:dbo-promises promise
 core:dbo-fhir-common         core:dbo-core
 core:dbo-fhir-element        core:dbo-core core:dbo-definitions core:dbo-fhir-common core:dbo-fhir-index core:dbo-fhir-stack core:dbo-fhir-validate core:dbo-promises core:dbo-subscriptions core:dbo-terminology promise
 core:dbo-fhir-r4             core:dbo-core core:dbo-fhir-common core:dbo-fhir-element core:dbo-fhir-stack core:dbo-subscriptions core:dbo-terminology
@@ -43,7 +43,7 @@ core:dbo-terminology         core:dbo-core
 core:dbo-test-model          core:dbo-core
 core:dbo-verify              core:dbo-maintenance
 core:dbo-work                core:dbo-core core:dbo-promises promise
-core:harness                 core:dbo-asking core:dbo-auth core:dbo-core core:dbo-definitions core:dbo-fhir-element core:dbo-fhir-index core:dbo-fhir-r4 core:dbo-fhir-r5 core:dbo-fhir-validate core:dbo-fleet core:dbo-maintenance core:dbo-operator core:dbo-pdi core:dbo-policy core:dbo-postgres core:dbo-promises core:dbo-rest core:dbo-runner core:dbo-stream core:dbo-subscriptions core:dbo-sync core:dbo-telemetry-otlp core:dbo-tenant core:dbo-tenant-k8s core:dbo-terminology core:dbo-test-model core:dbo-work promise
+core:harness                 core:dbo-asking core:dbo-auth core:dbo-core core:dbo-definitions core:dbo-embedded core:dbo-fhir-element core:dbo-fhir-index core:dbo-fhir-r4 core:dbo-fhir-r5 core:dbo-fhir-validate core:dbo-fleet core:dbo-maintenance core:dbo-operator core:dbo-pdi core:dbo-policy core:dbo-postgres core:dbo-promises core:dbo-rest core:dbo-runner core:dbo-stream core:dbo-subscriptions core:dbo-sync core:dbo-telemetry-otlp core:dbo-tenant core:dbo-tenant-k8s core:dbo-terminology core:dbo-test-model core:dbo-work promise
 promise:proving              promise
 samples:spring-boot-server-app assembly:spring-boot-server assembly:spring-boot-test assembly:spring-boot-worker core:dbo-fleet core:dbo-promises promise promise:proving samples:spring-boot-worker-app
 samples:spring-boot-worker-app assembly:spring-boot-worker

@@ -688,7 +688,7 @@ consumer, router and writeback legs on the harness's shared deployment.
 
 ## The assemblies and samples proving themselves
 
-The sample tests (`TheApplicationServesItsWorldIT`, `ABeanOfThisApplicationPerformsTheWorkIT`, `TheWorkArrivesOverTheSubstrateIT`) are folded into the stories, which are the sample application's tests. The assembly tests stay: they prove the wrapper (item 028).
+The sample tests (`TheApplicationServesItsWorldIT`, `ABeanOfThisApplicationPerformsTheWorkIT`, `TheWorkArrivesOverTheSubstrateIT`) are folded into the stories, which are the sample application's tests. The assembly tests stay: they prove the wrapper.
 
 | Class | Boots | Promises | W | Status |
 |---|---|---|---|---|

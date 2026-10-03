@@ -157,12 +157,50 @@ Three things, and each was learnt from a failure rather than reasoned out:
 3. **Free of implementation that needs anything bundle-private** — which is
    what the tenant split is about, and what no build can check for you.
 
+## A framework the application owns
+
+An application whose own bundles belong in the store's class space — a device
+driver registering a `StepService` is the standing case — creates the one
+framework itself and hands it over:
+`new EmbeddedRuntime(dboFramework, framework)`. It is the same rule plain DBO
+follows when it is installed into somebody's container, and it keeps one
+framework per JVM.
+
+- **The launch properties are the store's to name.** The shared packages and
+  every property an activator reads can only be set when a framework is
+  created, so `DboFramework.properties()` returns them and the application
+  passes them with its own. An application sharing packages of its own appends
+  them to `org.osgi.framework.system.packages.extra`.
+- **They are checked, not trusted.** At start the store looks for every
+  shared package among the system bundle's exports at the version it computed,
+  and reads every property back. A framework missing any is refused, naming
+  each, with nothing installed.
+- **The class space is checked once the store is in.** A bundle already in the
+  framework that a store bundle took a shared package from, rather than the
+  system bundle, is refused by its name and the package's: it resolves, starts
+  and is two classes with one name. So is a bundle that still does not resolve
+  once the store's packages are there, with the packages nothing provides.
+- **Lifecycle follows ownership.** The store installs its set, starts it
+  transiently, and on close withdraws what it registered, stops and
+  uninstalls its bundles in reverse order and refreshes them. It never starts
+  or stops the framework. The framework's bundle cache holds the store's
+  bundles only while the store is in it; a copy left by a JVM that died is
+  replaced by location at the next start. The store's bundles take the
+  framework's initial bundle start level, and the start levels are otherwise
+  the owner's. The ServiceLoader mediator, an extension of the system bundle,
+  stays attached after close, because detaching an extension restarts the
+  framework, and the next start takes it as it is.
+- **The store's data stays its own.** Nothing it keeps lives in the
+  framework's storage area; where it keeps things is its configuration.
+
 ## Deliberately not done
 
 - **No `BundleContext` bean, not even as an escape hatch.** An escape hatch
   becomes the supported API the first time somebody ships against it.
 - **No hot reload of bundles.** The application is the unit of deployment.
-- **No bundle set of its own.** See the header.
+- **No bundle set of its own.** See the header. Its tests carry one, in test
+  scope: `dbo-core` alone, so the module boots itself to be asked whether it
+  works.
 
 ## The commands
 

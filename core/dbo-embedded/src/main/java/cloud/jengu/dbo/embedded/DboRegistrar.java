@@ -44,6 +44,7 @@ public final class DboRegistrar {
     public <T> Registration register(Class<T> type, T service, Map<String, String> properties) {
         Hashtable<String, Object> said = new Hashtable<>(properties);
         ServiceRegistration<T> registered = runtime.context().registerService(type, service, said);
+        runtime.registered(registered);
         return () -> {
             try {
                 registered.unregister();
