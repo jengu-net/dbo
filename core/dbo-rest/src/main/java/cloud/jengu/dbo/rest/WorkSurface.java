@@ -18,13 +18,14 @@ public interface WorkSurface {
      * implements them, so the capability statement cannot drift from the
      * filtering.
      *
-     * <p>Three, and they are the three a screen asks about work: whose it is,
-     * which step it is of, and what case it belongs to. What a run's document
+     * <p>The ones a screen asks about work: where it stands and who may take
+     * it — together, who owes it the next act — which step it is of, and what
+     * case it belongs to. What a run's document
      * otherwise carries is the step's business and is not indexed here, so it
      * is not searchable, and leaving it out of this set is how that is said.
      */
     default java.util.Set<String> searchParameters() {
-        return java.util.Set.of("owner", "code", "identifier");
+        return java.util.Set.of("owner", "status", "performer-type", "code", "identifier");
     }
 
     /**

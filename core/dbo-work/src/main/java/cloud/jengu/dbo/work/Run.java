@@ -282,6 +282,20 @@ public record Run(String id, long versionId, String key, String process, String 
         return retry;
     }
 
+    /**
+     * Who owes this run's next act, as it stands now
+     * (REQ-DBO-PROC-WHO-OWES-THE-NEXT-ACT-IS-DERIVED).
+     */
+    public Awaits awaits(java.time.Instant now) {
+        if (!open()) {
+            return Awaits.NOTHING;
+        }
+        if (status == Status.IN_PROGRESS && claimed(now)) {
+            return Awaits.OWNER;
+        }
+        return automation ? Awaits.MACHINE : Awaits.PERSON;
+    }
+
     /** Whether a person holds this run: claimed as a {@code PractitionerRole}. */
     public boolean heldByAPerson() {
         return status == Status.IN_PROGRESS && assignment != null && assignment.role() != null;

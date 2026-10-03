@@ -1,6 +1,6 @@
 package cloud.jengu.dbo.asking;
 
-import cloud.jengu.dbo.work.Holder;
+import cloud.jengu.dbo.work.Awaits;
 
 import java.util.Optional;
 
@@ -25,12 +25,12 @@ import java.util.Optional;
  * @param process     the process it belongs to, absent where the rendering
  *                    carries none
  * @param step        the step it is of
- * @param holder      whose it is now
+ * @param awaits      who owes its next act
  * @param correlation the case it was filed under, absent where nobody set one
  * @param milestone   how far it said it had got, absent where it has said
  *                    nothing
  */
-public record Ongoing(String id, String key, String process, String step, Holder holder,
+public record Ongoing(String id, String key, String process, String step, Awaits awaits,
         String correlation, String milestone) {
 
     public Ongoing {

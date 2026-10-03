@@ -9,7 +9,6 @@ import cloud.jengu.dbo.postgres.PgChangeFeed;
 import cloud.jengu.dbo.postgres.PgObjectStore;
 import cloud.jengu.dbo.promises.DboPromises;
 import cloud.jengu.dbo.promises.Proving;
-import cloud.jengu.dbo.work.Holder;
 import cloud.jengu.dbo.work.Run;
 import cloud.jengu.dbo.work.Runs;
 import cloud.jengu.dbo.subscriptions.RestHookTransport;
@@ -227,7 +226,7 @@ class SubscriptionsIT {
         // person, in the tenant's own store, with the endpoint it could not
         // reach on it. The old dead-letter table could be read by nothing but
         // the engine that wrote it.
-        List<Run> waiting = new Runs(store).holding(Holder.PERSON);
+        List<Run> waiting = new Runs(store).awaiting(cloud.jengu.dbo.work.Awaits.PERSON);
         assertTrue(waiting.stream().anyMatch(run ->
                         run.process().equals("dbo.subscriptions.delivery")
                                 && run.item() != null

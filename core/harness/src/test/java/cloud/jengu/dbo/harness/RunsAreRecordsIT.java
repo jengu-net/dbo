@@ -78,7 +78,7 @@ class RunsAreRecordsIT {
         assertEquals(Holder.PERSON, wrong.holder(), "a record that is wrong is somebody's job");
         assertEquals(Holder.RETRY, away.holder(),
                 "a transient fault on somebody's card is how a queue becomes a graveyard");
-        assertTrue(runs.holding(Holder.PERSON).stream()
+        assertTrue(runs.awaiting(cloud.jengu.dbo.work.Awaits.PERSON).stream()
                         .anyMatch(run -> run.id().equals(wrong.id())),
                 "what waits for a person must be a query, not a log line");
     }

@@ -68,6 +68,7 @@ public enum DboStories implements Story {
                     // And what automation may not take, a person takes as the
                     // role they hold.
                     DboPromises.PROC_A_PERSON_CLAIMS_AS_A_PRACTITIONER_ROLE,
+                    DboPromises.PROC_WHO_OWES_THE_NEXT_ACT_IS_DERIVED,
                     DboPromises.PROC_MANDATORY_STEPS_CLASSIFY_INCIDENTS,
                     // Performing it, and saying so honestly.
                     DboPromises.PROC_INPUTS_ARRIVE_WITH_THE_WORK,

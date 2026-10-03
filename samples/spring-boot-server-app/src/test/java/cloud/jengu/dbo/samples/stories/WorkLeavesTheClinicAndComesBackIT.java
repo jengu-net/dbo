@@ -1603,7 +1603,8 @@ class WorkLeavesTheClinicAndComesBackIT {
             + "as the role she holds, reads the result through the task, and finishes it")
     @Proving({DboPromises.PROC_A_PERSON_CLAIMS_AS_A_PRACTITIONER_ROLE,
             DboPromises.PROC_AUTOMATION_TAKES_ONLY_WHAT_ITS_STEP_ADMITS,
-            DboPromises.PROC_A_RUN_ANSWERS_ITS_INITIATOR})
+            DboPromises.PROC_A_RUN_ANSWERS_ITS_INITIATOR,
+            DboPromises.PROC_WHO_OWES_THE_NEXT_ACT_IS_DERIVED})
     void aNurseTakesWhatAutomationMayNot() throws Exception {
         String step = cloud.jengu.dbo.samples.server.AskingForAReview.STEP;
         String normal = result("N");
@@ -1638,7 +1639,9 @@ class WorkLeavesTheClinicAndComesBackIT {
         String practitioner = nurse("poppy");
         String token = signedIn("poppy");
         var list = taking.waiting(HOSPITAL, token, step);
-        assertTrue(list.stream().anyMatch(task -> task.id().equals(alarming.run()))
+        Proves.that(DboPromises.PROC_WHO_OWES_THE_NEXT_ACT_IS_DERIVED,
+                list.stream().anyMatch(task -> task.id().equals(alarming.run())
+                                && task.awaits() == cloud.jengu.dbo.work.Awaits.PERSON)
                         && list.stream().noneMatch(task -> task.id().equals(routine.run())),
                 "the people's list does not hold the abnormal result alone: " + list);
 

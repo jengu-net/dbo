@@ -85,7 +85,8 @@ class AskingWhatNeedsSomebodyIT {
     @DisplayName("what needs somebody is one question, and the store answers it")
     @Proving(DboPromises.PROC_RUN_HAS_A_RECORD)
     void whatNeedsSomebody() {
-        try (Stream<Ongoing> waiting = asking.work().correlated(CASE).heldBy(Holder.PERSON).stream()) {
+        try (Stream<Ongoing> waiting = asking.work().correlated(CASE)
+                .awaiting(cloud.jengu.dbo.work.Awaits.PERSON).stream()) {
             List<Ongoing> found = waiting.toList();
             assertEquals(1, found.size(),
                     "the one run automation could not finish is what an operator came for, "

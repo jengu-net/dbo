@@ -30,8 +30,9 @@ import java.util.Optional;
  *       {@code tenant-bootstrap} unless said otherwise, because that is the
  *       credential a deployment already holds per tenant and it already
  *       carries the fleet scope</li>
- *   <li>{@code DBO_FLEET_HOLDER} — {@code person}, {@code automation},
- *       {@code retry}, {@code nobody} or {@code any}; any unless said</li>
+ *   <li>{@code DBO_FLEET_AWAITING} — who owes a listed run's next act:
+ *       {@code person}, {@code machine}, {@code owner}, {@code nothing} or
+ *       {@code any}; any unless said</li>
  * </ul>
  *
  * <p>Acting is configured separately, and usually not at all:
@@ -91,9 +92,9 @@ public final class Main {
         }
         String listen = System.getenv("DBO_FLEET_LISTEN");
         if (listen == null || listen.isBlank()) {
-            String holder = env("DBO_FLEET_HOLDER", "any");
+            String awaiting = env("DBO_FLEET_AWAITING", "any");
             System.out.println(RecordWire.write(
-                    reader.read(new FleetReader.RunFilter(null, null, holder, null))));
+                    reader.read(new FleetReader.RunFilter(null, null, awaiting, null))));
             return;
         }
         int colon = listen.lastIndexOf(':');

@@ -4,7 +4,6 @@ import cloud.jengu.dbo.core.api.Domains;
 import cloud.jengu.dbo.core.api.Criteria;
 import cloud.jengu.dbo.core.api.ObjectStore;
 import cloud.jengu.dbo.work.Failure;
-import cloud.jengu.dbo.work.Holder;
 import cloud.jengu.dbo.work.Run;
 import cloud.jengu.dbo.work.Runs;
 import cloud.jengu.dbo.work.WorkModel;
@@ -454,7 +453,7 @@ public final class SubscriptionEngine implements AutoCloseable {
     public record DeadLetter(String subscriptionId, String endpoint, long seq, String reason) {}
 
     public List<DeadLetter> deadLetters() {
-        return runs.holding(Holder.PERSON).stream()
+        return runs.awaiting(cloud.jengu.dbo.work.Awaits.PERSON).stream()
                 .filter(run -> PROCESS.equals(run.process()) && run.item() != null
                         && run.parent() != null)
                 .map(SubscriptionEngine::deadLetterOf)

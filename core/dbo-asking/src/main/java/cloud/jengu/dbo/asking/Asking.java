@@ -4,7 +4,7 @@ import cloud.jengu.dbo.core.api.Answered;
 import cloud.jengu.dbo.core.api.Criteria;
 import cloud.jengu.dbo.core.api.EnvelopeValue;
 import cloud.jengu.dbo.core.api.ObjectStore;
-import cloud.jengu.dbo.work.Holder;
+import cloud.jengu.dbo.work.Awaits;
 import cloud.jengu.dbo.work.Run;
 import cloud.jengu.dbo.work.WorkModel;
 
@@ -151,23 +151,22 @@ public final class Asking implements Questions {
          * Everything not finished with.
          *
          * <p>A run nobody holds is done or abandoned; everything else is
-         * owed by somebody or something. Asked as the holders that still owe,
-         * which is the same list the run itself answers "open" from.
+         * owed by somebody or something. Asked as the statuses that still
+         * owe, which is the same answer the run itself gives to "open".
          */
         public Work open() {
-            return also("open", criteria -> criteria.anyOf("holder", Holder.owing().stream()
-                    .map(holder -> EnvelopeValue.of(holder.wire())).toList()));
+            return also("open", criteria -> criteria.anyOf("status", Awaits.open().stream()
+                    .map(status -> EnvelopeValue.of(status.wire())).toList()));
         }
 
         /**
-         * Whose it is right now.
-         *
-         * <p>{@link Holder#PERSON} is the one to reach for first: automation
-         * exhausted or never attempted, which is the state an operator most
-         * wants and the one a list of runs that worked silently omits.
+         * Who owes the next act. {@link Awaits#PERSON} is the one to reach for
+         * first: automation exhausted, never attempted, or never admitted —
+         * the state an operator most wants, and the one a list of runs that
+         * worked silently omits.
          */
-        public Work heldBy(Holder holder) {
-            return also("heldBy", criteria -> criteria.eq("holder", EnvelopeValue.of(holder.wire())));
+        public Work awaiting(Awaits who) {
+            return also("awaiting", who::narrowing);
         }
 
         /** Of one step, by the code whoever performs it declared. */
@@ -206,7 +205,7 @@ public final class Asking implements Questions {
                     // that holds the whole run hands over exactly what the one
                     // that holds a rendering can.
                     .map(run -> new Ongoing(run.id(), run.key(), run.process(), run.step(),
-                            run.holder(), run.correlation(),
+                            run.awaits(java.time.Instant.now()), run.correlation(),
                             run.milestone() == null ? null : run.milestone().name()))
                     .peek(run -> produced.incrementAndGet())
                     // Told at the close rather than at the open: a walk's

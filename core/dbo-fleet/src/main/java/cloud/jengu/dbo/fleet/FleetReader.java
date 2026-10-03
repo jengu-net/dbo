@@ -48,12 +48,17 @@ import java.util.TreeMap;
 public final class FleetReader {
 
     /** The filter for the run question; every field absent means any. */
-    public record RunFilter(String process, String step, String holder, Integer limit) {
+    /**
+     * @param awaiting who owes the run's next act — {@code person},
+     *                 {@code machine}, {@code owner} or {@code nothing} — or
+     *                 null for any
+     */
+    public record RunFilter(String process, String step, String awaiting, Integer limit) {
 
         public static final RunFilter ANY = new RunFilter(null, null, null, null);
 
-        /** The ones somebody has to look at. */
-        public static RunFilter heldByAPerson() {
+        /** The ones somebody has to look at: ready, and open to people alone. */
+        public static RunFilter awaitingAPerson() {
             return new RunFilter(null, null, "person", null);
         }
 
@@ -65,8 +70,8 @@ public final class FleetReader {
             if (step != null) {
                 body.put("step", step);
             }
-            if (holder != null) {
-                body.put("holder", holder);
+            if (awaiting != null) {
+                body.put("awaiting", awaiting);
             }
             if (limit != null) {
                 body.put("limit", limit);

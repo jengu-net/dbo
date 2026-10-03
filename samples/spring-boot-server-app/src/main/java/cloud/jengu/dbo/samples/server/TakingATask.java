@@ -2,7 +2,7 @@ package cloud.jengu.dbo.samples.server;
 
 import cloud.jengu.dbo.asking.Across;
 import cloud.jengu.dbo.asking.Ongoing;
-import cloud.jengu.dbo.work.Holder;
+import cloud.jengu.dbo.work.Awaits;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -43,7 +43,8 @@ public final class TakingATask {
     }
 
     /**
-     * What waits for a person at one step.
+     * What waits for a person at one step: ready, and open to people alone —
+     * what automation was never given, or gave back.
      *
      * @param step the step's code, {@code <module>.<process>.<step>}
      */
@@ -51,7 +52,7 @@ public final class TakingATask {
         try (var waiting = Across.through(pathAndQuery -> send("GET",
                         root + tenant + "/fhir" + pathAndQuery, bearer).body())
                 .work().ofStep(step.substring(step.lastIndexOf('.') + 1))
-                .heldBy(Holder.PERSON).stream()) {
+                .awaiting(Awaits.PERSON).stream()) {
             return waiting.toList();
         }
     }

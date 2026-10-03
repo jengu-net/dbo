@@ -58,7 +58,7 @@ class UnprojectedWorkIsVisibleIT {
                         .project(runs.asRecord(held)).isPresent(),
                 "no face claims identity, so a FHIR client cannot be shown this at all");
 
-        List<Run> waiting = runs.matching(null, null, Holder.PERSON, 50);
+        List<Run> waiting = runs.matching(null, null, cloud.jengu.dbo.work.Awaits.PERSON, 50);
         assertTrue(waiting.stream().anyMatch(run -> run.key().equals(held.key())),
                 "and it is exactly the work an operator opens the console for: " + waiting);
     }
@@ -71,7 +71,7 @@ class UnprojectedWorkIsVisibleIT {
         runs.pipeline("dbo.terminology.ingest", "publish",
                 "dbo.terminology.ingest/publish/console");
 
-        assertEquals(1, runs.matching("dbo.terminology.ingest", "import", Holder.PERSON, 50).size());
+        assertEquals(1, runs.matching("dbo.terminology.ingest", "import", cloud.jengu.dbo.work.Awaits.PERSON, 50).size());
         assertTrue(runs.matching("dbo.terminology.ingest", null, null, 50).size() >= 2);
         assertTrue(runs.matching("dbo.nothing.at.all", null, null, 50).isEmpty(),
                 "a process nobody ran is an empty list, not everything");

@@ -2,7 +2,6 @@ package cloud.jengu.dbo.tenant;
 
 import cloud.jengu.dbo.auth.TenantAuthority;
 import cloud.jengu.dbo.core.wire.RecordWire;
-import cloud.jengu.dbo.work.Holder;
 import cloud.jengu.dbo.work.Run;
 import cloud.jengu.dbo.work.Runs;
 import cloud.jengu.dbo.work.Trackable;
@@ -163,23 +162,24 @@ public final class FleetHandler implements HttpHandler {
     /**
      * The runs matching the filter, as envelopes. Every filter is an envelope
      * value, so this is the same query the console runs; absent means any,
-     * and a holder is spelt as it is on the wire.
+     * and who is awaited is spelt as it is on the wire.
      */
     private List<Map<String, Object>> envelopes(Map<String, Object> body) {
-        String holderWord = optional(body, "holder");
-        Holder holder = holderWord == null || "any".equalsIgnoreCase(holderWord) ? null
-                : Holder.valueOf(holderWord.toUpperCase(java.util.Locale.ROOT));
+        cloud.jengu.dbo.work.Awaits awaiting =
+                cloud.jengu.dbo.work.Awaits.ofWire(optional(body, "awaiting"));
+        java.time.Instant now = java.time.Instant.now();
         String limitWord = optional(body, "limit");
         int limit = limitWord == null ? DEFAULT_RUN_LIMIT : Integer.parseInt(limitWord);
         List<Map<String, Object>> out = new java.util.ArrayList<>();
         for (Run run : runs.matching(optional(body, "process"), optional(body, "step"),
-                holder, limit)) {
+                awaiting, limit)) {
             Map<String, Object> envelope = new java.util.LinkedHashMap<>();
             envelope.put("key", run.key());
             envelope.put("process", run.process());
             envelope.put("step", run.step());
             envelope.put("kind", run.kind().wire());
-            envelope.put("holder", run.holder().wire());
+            envelope.put("status", run.status().wire());
+            envelope.put("awaiting", run.awaits(now).wire());
             envelope.put("tally", run.tally());
             if (run.stepVersion() != null) {
                 envelope.put("stepVersion", run.stepVersion());

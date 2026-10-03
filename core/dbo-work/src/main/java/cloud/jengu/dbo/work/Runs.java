@@ -894,9 +894,21 @@ public final class Runs {
                         null, because, null)));
     }
 
-    /** Moves a run to a holder — the only field anybody reads first. */
+    /**
+     * Moves a run to what a holder word stood for. Given to people, it is
+     * also let go: a run still under somebody's lease could be taken by
+     * nobody until the lease ran out, and a list of what waits for a person
+     * would not show it meanwhile.
+     */
     public Run held(Run run, Holder holder) {
-        return update(run, snapshot -> snapshot.withStanding(snapshot.standing().held(holder)));
+        return update(run, snapshot -> {
+            State held = snapshot.withStanding(snapshot.standing().held(holder));
+            if (holder == Holder.PERSON && snapshot.assignment() != null) {
+                held = held.withAssignment(new Run.Assignment(snapshot.assignment().at(),
+                        snapshot.assignment().executor(), snapshot.assignment().note(), null));
+            }
+            return held;
+        });
     }
 
     /**
@@ -949,10 +961,12 @@ public final class Runs {
                 .stream().findFirst().map(Run::of);
     }
 
-    /** What is waiting for somebody of this kind — the list an operator opens. */
-    public List<Run> holding(Holder holder) {
-        return store.select(Criteria.of(WorkModel.TYPE)
-                        .eq("holder", EnvelopeValue.of(holder.wire()))).stream()
+    /**
+     * What is waiting for one kind of actor — the list an operator opens is
+     * {@link Awaits#PERSON}: ready, and open to people alone.
+     */
+    public List<Run> awaiting(Awaits who) {
+        return store.select(who.narrowing(Criteria.of(WorkModel.TYPE))).stream()
                 .map(Run::of).toList();
     }
 
@@ -966,11 +980,11 @@ public final class Runs {
      *
      * @param process null for any
      * @param step    null for any
-     * @param holder  null for any
+     * @param who     who owes the next act, or null for any
      * @param limit   how many, because a console that prints ten thousand rows
      *                has answered nothing
      */
-    public List<Run> matching(String process, String step, Holder holder, int limit) {
+    public List<Run> matching(String process, String step, Awaits who, int limit) {
         Criteria criteria = Criteria.of(WorkModel.TYPE).sortByLastUpdated(false).limit(limit);
         if (process != null) {
             criteria.eq("process", EnvelopeValue.of(process));
@@ -978,23 +992,23 @@ public final class Runs {
         if (step != null) {
             criteria.eq("step", EnvelopeValue.of(step));
         }
-        if (holder != null) {
-            criteria.eq("holder", EnvelopeValue.of(holder.wire()));
+        if (who != null) {
+            who.narrowing(criteria);
         }
         return store.select(criteria).stream().map(Run::of).toList();
     }
 
     /**
-     * The automation backlog: work waiting for a person at this step, here
-     *. A number, per step and per zone, rather than an opinion about how
-     * much is automated.
+     * The automation backlog: work at this step, here, that nothing automated
+     * took and so waits for a person
+     * (REQ-DBO-PROC-FALL-THROUGH-IS-COUNTABLE). A number, per step and per
+     * zone, rather than an opinion about how much is automated.
      */
     public long backlog(String process, String step, Scope at) {
-        return store.count(Criteria.of(WorkModel.TYPE)
+        return store.count(Awaits.PERSON.narrowing(Criteria.of(WorkModel.TYPE)
                 .eq("process", EnvelopeValue.of(process))
                 .eq("step", EnvelopeValue.of(step))
-                .eq("scope", EnvelopeValue.of(at.wire()))
-                .eq("holder", EnvelopeValue.of(Holder.PERSON.wire())));
+                .eq("scope", EnvelopeValue.of(at.wire()))));
     }
 
     /** The items of a run, open and closed. */
@@ -1335,8 +1349,7 @@ public final class Runs {
         Standing held(Holder holder) {
             return switch (holder) {
                 case NOBODY -> as(Status.COMPLETED);
-                case PERSON -> as(status.over() || status == Status.ON_HOLD ? Status.READY : status)
-                        .openTo(false).notBefore(null);
+                case PERSON -> as(Status.READY).openTo(false).notBefore(null);
                 case RETRY -> as(Status.ON_HOLD).openTo(true);
                 case AUTOMATION -> as(status.over() || status == Status.ON_HOLD
                         ? Status.READY : status).openTo(true).notBefore(null);

@@ -23,7 +23,8 @@ import org.osgi.framework.FrameworkUtil;
  * rather than a style.
  */
 @Command(scope = "dbo-run", name = "list",
-        description = "Lists runs on this node by holder — by default the ones waiting for a person.")
+        description = "Lists runs on this node by who owes the next act — by default the ones "
+                + "waiting for a person.")
 @Service
 public class RunListCommand implements Action {
 
@@ -36,9 +37,9 @@ public class RunListCommand implements Action {
     @Option(name = "--step", description = "Only this step.")
     private String step;
 
-    @Option(name = "--holder",
-            description = "person (default), automation, retry, nobody, or any.")
-    private String holder = "person";
+    @Option(name = "--awaiting",
+            description = "person (default), machine, owner, nothing, or any.")
+    private String awaiting = "person";
 
     @Option(name = "--limit", description = "How many rows per tenant.")
     private int limit = 50;
@@ -54,7 +55,7 @@ public class RunListCommand implements Action {
         }
         // where the console is standing, unless this line said otherwise
         RunView.list(FrameworkUtil.getBundle(getClass()).getBundleContext(),
-                ConsoleSession.tenantOr(session, tenant), process, step, holder, limit);
+                ConsoleSession.tenantOr(session, tenant), process, step, awaiting, limit);
         return null;
     }
 }

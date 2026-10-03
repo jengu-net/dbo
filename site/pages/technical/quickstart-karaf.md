@@ -170,14 +170,14 @@ The log is a copy. Here is the original:
 
 ```
 dbo:context haldur
-dbo-run:list --holder any
+dbo-run:list --awaiting any
 ```
 
 ```
-TENANT │ PROCESS            │ STEP  │ KIND  │ HOLDER │ TALLY                          │ KEY
-───────┼────────────────────┼───────┼───────┼────────┼────────────────────────────────┼───────────────────────────────────
-haldur │ dbo.tenant.serving │ serve │ sweep │ nobody │ coming_up=0 serving=3 failed=0  │ dbo.tenant.serving/serve/deployment
-haldur │ dbo.config.applied │ apply │ sweep │ nobody │ skipped=0 read=2 applied=2 …    │ dbo.config.applied/apply/deployment
+TENANT │ PROCESS            │ STEP  │ KIND  │ STATUS    │ AWAITS  │ TALLY                          │ KEY
+───────┼────────────────────┼───────┼───────┼───────────┼─────────┼────────────────────────────────┼───────────────────────────────────
+haldur │ dbo.tenant.serving │ serve │ sweep │ completed │ nothing │ coming_up=0 serving=3 failed=0  │ dbo.tenant.serving/serve/deployment
+haldur │ dbo.config.applied │ apply │ sweep │ completed │ nothing │ skipped=0 read=2 applied=2 …    │ dbo.config.applied/apply/deployment
 ```
 
 Bringing your tenant up was a **step of a process**, and it left a **run** —

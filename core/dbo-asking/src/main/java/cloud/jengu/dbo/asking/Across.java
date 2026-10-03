@@ -1,7 +1,8 @@
 package cloud.jengu.dbo.asking;
 
 import cloud.jengu.dbo.core.api.StoredObject;
-import cloud.jengu.dbo.work.Holder;
+import cloud.jengu.dbo.work.Awaits;
+import cloud.jengu.dbo.work.Status;
 import cloud.jengu.dbo.work.Run;
 
 import java.net.URI;
@@ -183,25 +184,25 @@ public final class Across implements Questions {
 
         @Override
         public Questions.Work open() {
-            // The holders that still owe something, named rather than negated.
-            //
-            // It rendered `status:not=completed`, and that is a different
-            // question: a run abandoned rather than finished has a Task that
-            // is not completed, so the surface called it open while the store
-            // called it closed — Holder.NOBODY is "done, OR ABANDONED". A
-            // vocabulary whose whole claim is that a caller cannot tell the
-            // bindings apart cannot have a word meaning two things.
-            //
-            // A comma is "any of these" on this surface, which the store
-            // promises and answers; `:not` was never answered for a Task at
-            // all, so the negation was unreachable as well as wrong.
-            return new WorkAcross(asked.also("open", "owner=" + String.join(",",
-                    Holder.owing().stream().map(Holder::wire).toList())));
+            // The statuses that still owe something, named rather than
+            // negated: a comma is "any of these" on this surface, and `:not`
+            // was never answered for a Task at all.
+            return new WorkAcross(asked.also("open", "status=" + String.join(",",
+                    Awaits.open().stream().map(Status::wire).toList())));
         }
 
         @Override
-        public Questions.Work heldBy(Holder holder) {
-            return new WorkAcross(asked.also("heldBy", "owner=" + Asked.encoded(holder.wire())));
+        public Questions.Work awaiting(Awaits who) {
+            // The same narrowing the store makes from the envelope, said in
+            // the Task's own parameters: its status, and who may perform it.
+            return new WorkAcross(asked.also("awaiting", switch (who) {
+                case OWNER -> "status=" + Status.IN_PROGRESS.wire();
+                case MACHINE -> "status=" + Status.READY.wire() + "," + Status.ON_HOLD.wire()
+                        + "&performer-type=automation";
+                case PERSON -> "status=" + Status.READY.wire() + "&performer-type=person";
+                case NOTHING -> "status=" + Status.COMPLETED.wire() + ","
+                        + Status.FAILED.wire() + "," + Status.CANCELLED.wire();
+            }));
         }
 
         @Override
@@ -254,7 +255,9 @@ public final class Across implements Questions {
                     member = new String(within.get(0), java.nio.charset.StandardCharsets.UTF_8);
                 }
             }
-            String holder = Bundles.beside(member, "urn:dbo:run:holder", "code");
+            String status = Bundles.field(member, "status");
+            boolean automation = member.contains(
+                    "\"system\":\"urn:dbo:run:performer\",\"code\":\"automation\"");
             String milestone = Bundles.beside(member, "urn:dbo:run:milestone", "code");
             String correlation = Bundles.beside(member, "urn:dbo:correlation", "value");
             return new Ongoing(
@@ -262,10 +265,20 @@ public final class Across implements Questions {
                     Bundles.beside(member, "urn:dbo:run", "value"),
                     emptyToNull(Bundles.beside(member, "urn:dbo:process", "code")),
                     Bundles.beside(member, "urn:dbo:step", "code"),
-                    holder.isEmpty() ? Holder.NOBODY : Holder.valueOf(
-                            holder.toUpperCase(java.util.Locale.ROOT)),
+                    awaits(status, automation),
                     emptyToNull(correlation),
                     emptyToNull(milestone));
+        }
+
+        /** Who a rendered run waits for, from its status and who may perform it. */
+        private static Awaits awaits(String status, boolean automation) {
+            if (Status.IN_PROGRESS.wire().equals(status)) {
+                return Awaits.OWNER;
+            }
+            if (Status.READY.wire().equals(status) || Status.ON_HOLD.wire().equals(status)) {
+                return automation ? Awaits.MACHINE : Awaits.PERSON;
+            }
+            return Awaits.NOTHING;
         }
 
         private static String emptyToNull(String value) {

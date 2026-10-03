@@ -178,7 +178,7 @@ public final class FleetService implements AutoCloseable {
             FleetReader.RunFilter filter;
             try {
                 filter = new FleetReader.RunFilter(query.get("process"), query.get("step"),
-                        query.get("holder"),
+                        query.get("awaiting"),
                         query.containsKey("limit") ? Integer.parseInt(query.get("limit")) : null);
             } catch (NumberFormatException notANumber) {
                 respond(exchange, 400, "{\"error\":\"invalid_request\",\"detail\":\"limit is a "

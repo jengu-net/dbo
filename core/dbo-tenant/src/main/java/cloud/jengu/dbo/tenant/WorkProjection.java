@@ -93,6 +93,20 @@ final class WorkProjection implements WorkSurface {
                     .map(String::trim).filter(one -> !one.isEmpty())
                     .map(cloud.jengu.dbo.core.api.EnvelopeValue::of).toList());
         }
+        if (query.get("status") != null) {
+            // Any of them, as owner is: "still owed" is three statuses.
+            criteria.anyOf("status", java.util.Arrays.stream(query.get("status").split(","))
+                    .map(String::trim).filter(one -> !one.isEmpty())
+                    .map(cloud.jengu.dbo.core.api.EnvelopeValue::of).toList());
+        }
+        if (query.get("performer-type") != null) {
+            // Who may perform it, as the widest kind it admits: a person may
+            // take every open task, so "person" asks for the tasks open to
+            // people alone — the list an operator opens — and "automation"
+            // for those a machine may take as well.
+            criteria.eq("eligible",
+                    cloud.jengu.dbo.core.api.EnvelopeValue.of(query.get("performer-type")));
+        }
         if (query.get("code") != null) {
             criteria.eq("step", cloud.jengu.dbo.core.api.EnvelopeValue.of(query.get("code")));
         }

@@ -513,9 +513,16 @@ public enum DboPromises implements Promise {
             + "terminology overlay — never a code path that happens to be "
             + "unreachable."),
 
-    PROC_FALL_THROUGH_IS_COUNTABLE("Work no executor took is held by a person and "
+    PROC_FALL_THROUGH_IS_COUNTABLE("Work no executor took is open only to people and "
             + "counted per step and per zone. That number is the automation backlog "
             + "stated as a fact rather than an opinion."),
+
+    PROC_WHO_OWES_THE_NEXT_ACT_IS_DERIVED("Who owes a run's next act is derived from its "
+            + "status, its claimant and who may take it, never stored beside them: a claimed "
+            + "run waits for its owner, an unclaimed one open to automation for a machine and "
+            + "is nobody's card, one open to people alone for a person, and one that is over "
+            + "for nothing. Waiting for a person is one question, ready and for a person alone, "
+            + "asked the same of the store, across the wire and at the console."),
 
     PROC_EXECUTOR_DECLARES_ITSELF("A participant announces process, step, scope, "
             + "version and provider as a record in the tenant's store, and resolution "

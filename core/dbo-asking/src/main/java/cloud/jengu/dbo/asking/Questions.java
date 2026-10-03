@@ -1,7 +1,7 @@
 package cloud.jengu.dbo.asking;
 
 import cloud.jengu.dbo.core.api.StoredObject;
-import cloud.jengu.dbo.work.Holder;
+import cloud.jengu.dbo.work.Awaits;
 
 import java.time.Instant;
 import java.util.stream.Stream;
@@ -45,8 +45,12 @@ public interface Questions {
         /** Everything not finished with. */
         Work open();
 
-        /** Whose it is right now. */
-        Work heldBy(Holder holder);
+        /**
+         * Who owes the next act: the owner of a claimed run, a machine, a
+         * person, or nothing. {@link Awaits#PERSON} is the list an operator
+         * opens — ready, and open to people alone.
+         */
+        Work awaiting(Awaits who);
 
         /** Of one step, by the code whoever performs it declared. */
         Work ofStep(String step);

@@ -15,9 +15,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  *
  * <p>Pinned on the question rather than on an answer, because what went wrong
  * was the question. {@code status:not=completed} reads as open and is not:
- * {@code Holder.NOBODY} is "done, OR abandoned", so an abandoned run's Task is
- * not completed and the surface called it open while the store called it
- * closed. A word in this vocabulary may not mean two things.
+ * a run can end without being done — failed, cancelled — and its Task is not
+ * completed, so the surface would call it open while the store called it over.
+ * A word in this vocabulary may not mean two things.
  *
  * <p>That the two bindings answer alike is walked against a tenant in the
  * clinical story; this is the half that needs no tenant at all.
@@ -25,9 +25,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class WhatOpenAsksAcrossTheWireTest {
 
     @Test
-    @DisplayName("open names the holders that still owe something, because a negation asked a "
-            + "different question and the surface never answered it")
-    void openAsksForTheHoldersThatStillOwe() {
+    @DisplayName("open names the statuses that still owe something, because a negation asked "
+            + "a different question and the surface never answered it")
+    void openAsksForTheStatusesThatStillOwe() {
         List<String> asked = new ArrayList<>();
         Questions recording = Across.through(pathAndQuery -> {
             asked.add(pathAndQuery);
@@ -38,9 +38,26 @@ class WhatOpenAsksAcrossTheWireTest {
         recording.work().open().count();
 
         assertEquals(1, asked.size(), "one question, one request: " + asked);
-        assertTrue(asked.get(0).contains("owner=automation,retry,person"),
-                "open did not ask for the holders that still owe: " + asked.get(0));
+        assertTrue(asked.get(0).contains("status=ready,in-progress,on-hold"),
+                "open did not ask for the statuses that still owe: " + asked.get(0));
         assertFalse(asked.get(0).contains(":not"),
                 "open asked a negation, which this surface does not answer: " + asked.get(0));
+    }
+
+    @Test
+    @DisplayName("what waits for a person is asked as the Task's own status and performer "
+            + "type: ready, and for a person alone")
+    void whatWaitsForAPersonIsAskedInTheTasksOwnWords() {
+        List<String> asked = new ArrayList<>();
+        Questions recording = Across.through(pathAndQuery -> {
+            asked.add(pathAndQuery);
+            return "{\"resourceType\":\"Bundle\",\"type\":\"searchset\",\"total\":0,"
+                    + "\"entry\":[]}";
+        });
+
+        recording.work().awaiting(cloud.jengu.dbo.work.Awaits.PERSON).count();
+
+        assertTrue(asked.get(0).contains("status=ready&performer-type=person"),
+                "a person's list was not asked as ready and for a person alone: " + asked.get(0));
     }
 }

@@ -1,7 +1,7 @@
 package cloud.jengu.dbo.karaf.commands;
 
 import cloud.jengu.dbo.core.api.ObjectStore;
-import cloud.jengu.dbo.work.Holder;
+import cloud.jengu.dbo.work.Awaits;
 import cloud.jengu.dbo.work.Run;
 import cloud.jengu.dbo.work.Runs;
 import org.apache.karaf.shell.support.table.ShellTable;
@@ -10,7 +10,6 @@ import org.osgi.framework.ServiceReference;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.TreeMap;
@@ -43,7 +42,7 @@ final class RunView {
 
     /** Prints the runs somebody asked for. */
     static void list(BundleContext context, String tenant, String process, String step,
-            String holder, int limit) {
+            String awaiting, int limit) {
         Map<String, Runs> byTenant = byTenant(context, tenant);
         if (byTenant.isEmpty()) {
             System.out.println("There are no runs to read: runs live in the tenant whose work"
@@ -51,15 +50,16 @@ final class RunView {
             System.out.println(Tenants.whyNothingIsServed(context));
             return;
         }
-        Holder wanted = "any".equalsIgnoreCase(holder) ? null
-                : Holder.valueOf(holder.toUpperCase(Locale.ROOT));
+        Awaits wanted = Awaits.ofWire(awaiting);
+        java.time.Instant now = java.time.Instant.now();
 
         ShellTable table = new ShellTable();
         table.column("TENANT");
         table.column("PROCESS");
         table.column("STEP");
         table.column("KIND");
-        table.column("HOLDER");
+        table.column("STATUS");
+        table.column("AWAITS");
         table.column("TALLY");
         table.column("KEY");
         int rows = 0;
@@ -67,12 +67,13 @@ final class RunView {
             for (Run run : entry.getValue().matching(process, step, wanted, limit)) {
                 rows++;
                 table.addRow().addContent(entry.getKey(), run.process(), run.step(),
-                        run.kind().wire(), run.holder().wire(), tally(run), run.key());
+                        run.kind().wire(), run.status().wire(), run.awaits(now).wire(),
+                        tally(run), run.key());
             }
         }
         if (rows == 0) {
-            System.out.println("Nothing is " + (wanted == null ? "recorded" : "held by "
-                    + wanted.wire()) + " here.");
+            System.out.println(wanted == null ? "Nothing is recorded here."
+                    : "Nothing here awaits " + wanted.wire() + ".");
             return;
         }
         table.print(System.out);
@@ -113,13 +114,14 @@ final class RunView {
     private static void offerKeys(Map<String, Runs> byTenant, String tenant) {
         ShellTable table = new ShellTable();
         table.column("TENANT");
-        table.column("HOLDER");
+        table.column("AWAITS");
         table.column("KEY");
         int rows = 0;
         for (Map.Entry<String, Runs> entry : byTenant.entrySet()) {
             for (Run run : entry.getValue().matching(null, null, null, 20)) {
                 rows++;
-                table.addRow().addContent(entry.getKey(), run.holder().wire(), run.key());
+                table.addRow().addContent(entry.getKey(),
+                        run.awaits(java.time.Instant.now()).wire(), run.key());
             }
         }
         if (rows == 0) {
@@ -140,7 +142,13 @@ final class RunView {
         facts.addRow().addContent("process", run.process());
         facts.addRow().addContent("step", run.step());
         facts.addRow().addContent("kind", run.kind().wire());
-        facts.addRow().addContent("holder", run.holder().wire());
+        facts.addRow().addContent("status", run.status().wire());
+        facts.addRow().addContent("awaits", run.awaits(java.time.Instant.now()).wire());
+        facts.addRow().addContent("open to", run.automation() ? "automation and people"
+                : "people alone");
+        if (run.statusReason() != null) {
+            facts.addRow().addContent("because", run.statusReason());
+        }
         facts.addRow().addContent("domains", String.join(", ", run.domains()));
         facts.addRow().addContent("tally", tally(run));
         // echoed, never interpreted: it is the other system's word
@@ -157,6 +165,9 @@ final class RunView {
                         + assignment.executor().provider() + ") from "
                         + assignment.executor().scope().wire());
             }
+            if (assignment.role() != null) {
+                facts.addRow().addContent("held as", assignment.role());
+            }
             if (assignment.note() != null) {
                 facts.addRow().addContent("note", assignment.note());
             }
@@ -169,7 +180,7 @@ final class RunView {
         }
         System.out.println();
         ShellTable outcomes = new ShellTable();
-        outcomes.column("HOLDER");
+        outcomes.column("AWAITS");
         outcomes.column("CLASS");
         outcomes.column("REFERENCE");
         outcomes.column("REASON");
@@ -177,7 +188,7 @@ final class RunView {
             if (item.item() == null) {
                 continue;
             }
-            outcomes.addRow().addContent(item.holder().wire(),
+            outcomes.addRow().addContent(item.awaits(java.time.Instant.now()).wire(),
                     item.item().failure() == null ? "" : item.item().failure().wire(),
                     item.item().reference(), item.item().message());
         }
