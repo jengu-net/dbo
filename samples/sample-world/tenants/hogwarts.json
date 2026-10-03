@@ -16,6 +16,7 @@
     { "code": "hogwarts.admission.admit", "slots": { "patient": "Reference(Patient)" } },
     { "code": "hogwarts.admission.register", "slots": { "patient": "Patient" },
       "writes": ["Patient", "Encounter"] },
+    { "code": "hogwarts.ward.observe", "slots": { "patient": "Reference(Patient)" } },
     { "code": "care.records.register", "slots": { "patient": "Patient" },
       "writes": ["Patient"] },
     { "code": "care.records.identify", "slots": { "person": "Person" },

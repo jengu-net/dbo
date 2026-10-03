@@ -47,3 +47,4 @@ core:harness                 core:dbo-asking core:dbo-auth core:dbo-core core:db
 promise:proving              promise
 samples:spring-boot-server-app assembly:spring-boot-server assembly:spring-boot-test assembly:spring-boot-worker core:dbo-fleet core:dbo-promises promise promise:proving samples:spring-boot-worker-app
 samples:spring-boot-worker-app assembly:spring-boot-worker
+samples:ward-thermometer     core:dbo-runner

@@ -50,6 +50,17 @@ it. The worker's beans arrive in this context, its lane is this application's
 own port, and as `hogwarts` comes up this application has it issue the client
 that lane signs in with.
 
+## The clinic's own framework
+
+The clinic also ships a bundle: the ward thermometer's driver in
+[`../ward-thermometer`](../ward-thermometer), which performs
+`hogwarts.ward.observe`. With `--clinic.framework.owned=true` this application
+creates the OSGi framework itself, with the properties the store names, and
+installs that bundle into it
+([`OwningTheFramework.java`](src/main/java/cloud/jengu/dbo/samples/server/OwningTheFramework.java));
+the store is then installed into the same framework instead of one of its own.
+The stories run this way.
+
 ## Running the worker in a JVM of its own
 
 The same steps, performed somewhere else. Start this application under the

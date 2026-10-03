@@ -51,6 +51,9 @@ public enum DboStories implements Story {
                     DboPromises.PROC_A_HOST_HOLDS_A_LANE_WHEREVER_IT_IS,
                     DboPromises.PROC_LANE_IS_A_TENANT_SERVICE,
                     DboPromises.PROC_STEP_SERVICE_EMBEDDABLE,
+                    // And a step service can be a bundle of the application's
+                    // own, in the framework the application owns.
+                    DboPromises.CONT_A_HOST_MAY_OWN_THE_CONTAINER,
                     DboPromises.PROC_A_LANE_OVER_THE_STREAM,
                     DboPromises.WF_POSTGRES_SUBSTRATE,
                     DboPromises.WF_TWO_PLANES,

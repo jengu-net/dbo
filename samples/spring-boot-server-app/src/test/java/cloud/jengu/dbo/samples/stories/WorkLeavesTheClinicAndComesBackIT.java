@@ -1688,6 +1688,67 @@ class WorkLeavesTheClinicAndComesBackIT {
                 "the clinic was not told the review is done: " + done.body());
     }
 
+    // ── a driver the clinic ships as a bundle of its own ──
+
+    /** The clinic's own framework, which the store was installed into. */
+    @Autowired
+    org.osgi.framework.launch.Framework clinicFramework;
+
+    /** Every bean that performs a step, so the leg can say none of them did. */
+    @Autowired
+    List<cloud.jengu.dbo.runner.StepService> beansThatPerform;
+
+    @Test
+    @Order(36)
+    @DisplayName("a step the hospital declares is performed by a driver bundle the clinic "
+            + "installed into its own framework, with no bean performing it: the assembly "
+            + "installed the store beside the bundle, and the runner took the bundle's service "
+            + "up as it takes a bean's")
+    @Proving({DboPromises.CONT_A_HOST_MAY_OWN_THE_CONTAINER,
+            DboPromises.PROC_STEP_SERVICE_EMBEDDABLE})
+    void aDriverBundleOfTheClinicsPerformsADeclaredStep() {
+        String observe = "hogwarts.ward.observe";
+        Proves.that(DboPromises.CONT_A_HOST_MAY_OWN_THE_CONTAINER,
+                beansThatPerform.stream().noneMatch(bean -> observe.equals(bean.step())),
+                "a bean performs " + observe + ", so whatever performs it proves nothing about "
+                        + "the clinic's bundle");
+        org.osgi.framework.Bundle driver = inTheClinicsFramework(
+                "cloud.jengu.dbo.samples.thermometer");
+        org.osgi.framework.Bundle runner = inTheClinicsFramework("cloud.jengu.dbo.runner");
+        Proves.that(DboPromises.CONT_A_HOST_MAY_OWN_THE_CONTAINER,
+                driver.getState() == org.osgi.framework.Bundle.ACTIVE
+                        && runner.getState() == org.osgi.framework.Bundle.ACTIVE,
+                "the clinic's framework does not hold its driver and the store's runner, both "
+                        + "running: driver " + driver.getState() + ", runner "
+                        + runner.getState());
+
+        var patient = dbo.write(HOSPITAL, "Patient", """
+                {"resourceType":"Patient","name":[{"family":"%s"}]}""".formatted(
+                NAMES.value("observed")));
+        assertTrue(patient.accepted(), "the patient was not accepted: " + patient.body());
+        cloud.jengu.dbo.spring.worker.DboInitiator.Started started = initiator.start(HOSPITAL,
+                observe, Map.of("patient", "Patient/" + patient.idOrFail()));
+        started.runOrFail();
+
+        cloud.jengu.dbo.spring.worker.DboInitiator.Answer answer =
+                hearing.settled(HOSPITAL, started, Duration.ofMinutes(3));
+        Proves.that(DboPromises.PROC_STEP_SERVICE_EMBEDDABLE, "completed".equals(answer.state()),
+                "the ward observation was never performed: " + answer.body());
+        Proves.that(DboPromises.CONT_A_HOST_MAY_OWN_THE_CONTAINER,
+                cloud.jengu.dbo.samples.worker.HearingBack.counted(answer, "bundle")
+                        .equals(java.util.Optional.of(driver.getBundleId())),
+                "the run was not performed by the clinic's driver bundle, which counts its own "
+                        + "bundle id: " + answer.body());
+    }
+
+    private org.osgi.framework.Bundle inTheClinicsFramework(String symbolicName) {
+        return java.util.Arrays.stream(clinicFramework.getBundleContext().getBundles())
+                .filter(bundle -> symbolicName.equals(bundle.getSymbolicName()))
+                .findFirst()
+                .orElseThrow(() -> new AssertionError(symbolicName + " is not in the clinic's "
+                        + "framework"));
+    }
+
     /** A potassium result, interpreted as given. */
     private String result(String interpretation) {
         var written = dbo.write(HOSPITAL, "Observation", """

@@ -69,6 +69,20 @@ dependencies {
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
+// The clinic's own bundle, carried as a resource rather than as classes: it is
+// installed into the framework the application owns (OwningTheFramework), and
+// its classes belong to that framework's class space, not to the application's.
+val ownBundles: Configuration = configurations.create("ownBundles")
+dependencies {
+    ownBundles(project(":samples:ward-thermometer")) { isTransitive = false }
+}
+tasks.named<ProcessResources>("processResources") {
+    from(ownBundles) {
+        into("bundles")
+        rename { "ward-thermometer.jar" }
+    }
+}
+
 tasks.withType<Test>().configureEach {
     useJUnitPlatform()
     // Faces are cut once and brought up from, as the sample world's own

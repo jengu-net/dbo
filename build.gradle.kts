@@ -423,7 +423,8 @@ subprojects {
         ":core:harness", ":core:dbo-server", ":core:conformance", ":bench:runner",
         // and the applications built on the Spring Boot assemblies: something
         // to read and run rather than something to depend on
-        ":samples:spring-boot-server-app", ":samples:spring-boot-worker-app")
+        ":samples:spring-boot-server-app", ":samples:spring-boot-worker-app",
+        ":samples:ward-thermometer")
     if (project.path !in notALibrary) {
         apply(plugin = "maven-publish")
         apply(plugin = "signing")

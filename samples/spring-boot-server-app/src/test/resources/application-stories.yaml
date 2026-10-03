@@ -53,6 +53,12 @@ dbo:
 # EnrollingTheWorker the way a worker in another JVM hands its enrolment over.
 # What it is called and the public halves are the deployment's facts, derived.
 clinic:
+  # The clinic owns the framework and the store installs into it, so every
+  # story runs over the shape an application with bundles of its own has —
+  # the ward thermometer's driver among them. It costs the stories nothing:
+  # the bundles, the class space and the one framework are the same.
+  framework:
+    owned: true
   enrolment:
     tenant: st-jerome
     participant: ${dbo.test.substrate.participant}
