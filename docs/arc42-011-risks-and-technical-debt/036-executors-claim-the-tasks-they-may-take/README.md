@@ -1,7 +1,6 @@
-**Proposed, for review. Nothing is built and no issue is filed. A run's
-holder answers three questions in one field, and automation can take work it
-was never meant to touch; this is the design that separates them, with four
-questions only the user can answer.**
+**Decided, and not built. No issue is filed. A run's holder answers three
+questions in one field, and automation can take work it was never meant to
+touch; this is the design that separates them.**
 
 # Executors claim the tasks they may take
 
@@ -206,17 +205,15 @@ green.
    the envelope, the run and the vocabulary. The guide is rewritten. Each
    promise lands with the commit that proves it.
 
-## Open questions
+## Decided
 
-1. **How a person proves who they are on a claim.** With their own token
-   through the tenant's identity provider, mapped to a `PractitionerRole`, or
-   on the application's credential with the application naming the role? The
-   first is proposed: a trail entry that says what an application asserted is
-   weaker than one the person signed.
-2. **Is a lapsed lease transient?** It is the commonest failure there is, and
-   an executor that dies says nothing about why. Proposed: declarable as
-   `lapsed`, and not transient by default.
-3. **Past the attempt cap, a person or the end?** Proposed: a person, open
-   only to people, so a fault that will not pass is seen.
-4. **Does `holder` stay readable for one release** for applications outside
-   this repository, or does it go when the last reader here moves?
+- **A person claims with their own token,** issued by the tenant's identity
+  provider and mapped to a `PractitionerRole`. A trail entry the person signed
+  is stronger than one that records what an application asserted about them.
+- **A lapsed lease is not transient by default.** A step may list `lapsed`
+  among its retryable faults; otherwise the task goes to people, because an
+  executor that died said nothing about why.
+- **Past the attempt cap, the task goes to a person,** open only to people, so
+  a fault that will not pass is seen rather than ended quietly.
+- **`holder` goes when the last reader in this repository has moved** to
+  status, owner and eligibility. There is nobody outside it to carry along.
