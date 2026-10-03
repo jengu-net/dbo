@@ -93,7 +93,7 @@ dependencies {
     testImplementation("dev.dbos:transact:1.0.0")
     constraints {
         // as in dbo-stream: DBOS carries Jackson 3 below its advisory.
-        testImplementation("tools.jackson.core:jackson-databind:3.2.1")
+        testImplementation("tools.jackson.core:jackson-databind:3.2.3")
     }
     testImplementation(project(":core:dbo-runner"))
     testImplementation(project(":core:dbo-stream"))
