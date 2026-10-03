@@ -148,14 +148,21 @@ class StepRunnerIT {
     @Test
     @DisplayName("a service throwing a fault its step declared will pass releases with the "
             + "reason — released is not done — and a later cycle takes it again and succeeds")
-    @Proving(DboPromises.PROC_FAILURE_IS_RELEASED)
+    @Proving({DboPromises.PROC_FAILURE_IS_RELEASED,
+            DboPromises.PROC_A_CLAIM_IS_LOST_TO_SOMEBODY_NOT_TO_THE_CLOCK})
     void failureIsReleasedThenRetaken() {
         Run work = runs.pipeline(DISPATCHING, "dispatch", DISPATCHING + "/dispatch/one",
                 List.of(WorkModel.DOMAIN));
 
         java.util.concurrent.atomic.AtomicInteger attempts =
                 new java.util.concurrent.atomic.AtomicInteger();
-        try (StepRunner runner = new StepRunner(Duration.ofMillis(100), Duration.ofMillis(50))) {
+        // Every claim this runner takes has passed its deadline before the
+        // runner reads the work it claimed — which is what a loaded machine
+        // did to the hundred milliseconds this held for, now and then. Made
+        // the ordinary case here, so whether a holder slower than its own
+        // deadline is still handed its work is asked on every run rather than
+        // on the runs that happen to be slow.
+        try (StepRunner runner = new StepRunner(Duration.ZERO, Duration.ofMillis(50))) {
             runner.register(new StepService() {
 
                 @Override
@@ -178,25 +185,20 @@ class StepRunnerIT {
             Run released = runs.byId(work.id()).orElseThrow();
             assertTrue(released.open(), "released is not done — still open");
 
-            // The claim must lapse before anybody may take it again; the
-            // runner's own housekeeping hands it back on a later cycle. Cycle
-            // until the run closes rather than counting cycles: delivery is
-            // at-least-once, and on a loaded machine the short claim can lapse
-            // MID-perform, so a third legitimate take is not a failure.
+            // The release holds the run back until its not-before, which this
+            // step declares as now, and the runner's own housekeeping readies
+            // it on the next cycle — a version, and so a feed entry the lane's
+            // poll reads. Cycle until the run closes rather than counting
+            // cycles: delivery is at-least-once, so a third take is not a
+            // failure.
             //
-            // A LIVENESS wait, not a budget, and the number is large because
-            // how long the retake takes is not this test's subject. The
-            // release has to reach the lane's feed to be polled, and the feed
-            // withholds an event until the transaction horizon has passed it.
-            // This database is never write-quiet — the runner writes its own
-            // declaration on every cycle — so the horizon falls back to the
-            // CLUSTER's xmin, and these classes share one Postgres. A long
-            // transaction in a neighbouring class's database can therefore
-            // hold this run's release off the feed for as long as it lasts.
-            //
-            // Thirty seconds was enough until a heavier class joined the four
-            // that run concurrently, at which point this failed on a commit
-            // that could not have touched it.
+            // A LIVENESS wait, not a budget. The feed holds an event back only
+            // while a write in THIS database is in flight when it is read, and
+            // the only writer here is the runner, which never reads while it
+            // writes — so neighbouring classes on the shared server cannot
+            // hold the release off the feed. What load still stretches is how
+            // long each cycle takes, which is why this waits on the run and not
+            // on a count.
             long deadline = System.nanoTime() + Eventually.PATIENCE.toNanos();
             while (runs.byId(work.id()).orElseThrow().open()
                     && System.nanoTime() < deadline) {
@@ -214,14 +216,47 @@ class StepRunnerIT {
         // is the release-and-retake this test is actually about.
         assertTrue(!runs.byId(work.id()).orElseThrow().open(),
                 attempts.get() < 2
-                        ? "the runner was never offered the released run again — attempts="
-                                + attempts.get() + ", so nothing here exercised the retake. "
-                                + "The release reaches a runner over the lane's feed, and "
-                                + "the feed withholds an event until the transaction horizon "
-                                + "passes it."
+                        ? "the service was handed the run " + attempts.get() + " time(s), "
+                                + "so nothing here exercised the retake: "
+                                + runs.byId(work.id()).orElseThrow().status() + ", "
+                                + (runs.byId(work.id()).orElseThrow().automation()
+                                        ? "open to automation" : "open to people alone")
+                                + ", because: "
+                                + runs.byId(work.id()).orElseThrow().statusReason()
                         : "the run was performed again and is still open, so a retake does "
                                 + "not close it: attempts=" + attempts.get());
         assertTrue(attempts.get() >= 2, "the retake actually performed: " + attempts.get());
+    }
+
+    @Test
+    @DisplayName("a holder slower than its own deadline is still handed the work it claimed, "
+            + "and loses it only when somebody acts on the run — here, the housekeeping that "
+            + "hands it back")
+    @Proving(DboPromises.PROC_A_CLAIM_IS_LOST_TO_SOMEBODY_NOT_TO_THE_CLOCK)
+    void aHolderSlowerThanItsDeadlineKeepsItsClaim() {
+        Run work = runs.pipeline(DISPATCHING, "dispatch", DISPATCHING + "/dispatch/slow",
+                List.of(WorkModel.DOMAIN));
+        Lane lane = lane("t-slow", "runner-slow");
+
+        // A deadline that has passed before the holder reads anything: the
+        // claim lands, and by the time the holder asks for what it claimed the
+        // clock is past it. Nobody else has done anything to the run.
+        Run held = lane.claim(work, Duration.ZERO).orElseThrow();
+        assertEquals(Map.of(), lane.inputs(held),
+                "the holder was refused the work it claimed though nobody had taken it from it");
+
+        // The deadline is what lets somebody else notice. Once somebody has —
+        // the tenant's housekeeping, handing the run back — the holder is
+        // fenced off, and the read it was given a moment ago is refused.
+        lane.releaseLapsed();
+        assertTrue(runs.byId(work.id()).orElseThrow().assignment().executor() == null,
+                "housekeeping did not hand the lapsed claim back: "
+                        + runs.byId(work.id()).orElseThrow().assignment());
+        IllegalStateException fenced = org.junit.jupiter.api.Assertions.assertThrows(
+                IllegalStateException.class, () -> lane.inputs(held),
+                "a holder whose run was handed back was still given its inputs");
+        assertTrue(fenced.getMessage().contains("not claimed by runner-slow"),
+                "refused, but not for holding nothing: " + fenced.getMessage());
     }
 
     @Test

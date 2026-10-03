@@ -910,9 +910,7 @@ public interface Lane {
                 // the entitlement — not the asking.
                 Run current = runs.byKey(run.key()).orElseThrow(() -> new IllegalStateException(
                         tenant + ": no run '" + run.key() + "' to read inputs of"));
-                if (current.assignment() == null
-                        || !identity.equals(current.assignment().executor())
-                        || !current.claimed(java.time.Instant.now())) {
+                if (!heldByThisIdentity(current)) {
                     throw new IllegalStateException(tenant + ": run '" + run.key()
                             + "' is not claimed by " + identity.name()
                             + " — inputs travel with a claim, never with a question");
@@ -1259,14 +1257,34 @@ public interface Lane {
             private Run claimedByThisIdentity(Run run) {
                 Run current = runs.byKey(run.key()).orElseThrow(() -> new IllegalStateException(
                         tenant + ": no run '" + run.key() + "'"));
-                if (current.assignment() == null
-                        || !identity.equals(current.assignment().executor())
-                        || !current.claimed(java.time.Instant.now())) {
+                if (!heldByThisIdentity(current)) {
                     throw new IllegalStateException(tenant + ": run '" + run.key()
                             + "' is not claimed by " + identity.name()
                             + " — inputs travel with a claim, never with a question");
                 }
                 return current;
+            }
+
+            /**
+             * Whether the run's claim is this identity's and nobody has acted on
+             * it since — judged by what is written on the run, never by the
+             * clock.
+             *
+             * <p>The deadline is for everybody else: past it, the tenant's
+             * housekeeping may hand the run back and another participant may
+             * take it, and either is a write that ends this claim. Until one of
+             * them happens nobody else holds the run, and the holder is the
+             * only one who can do its work. Reading the clock here told a holder
+             * that had merely paused — a collector, a swapped-out page, a short
+             * hold on a loaded machine — that it held nothing, before the work
+             * reached its service. Its runner then released the run as the
+             * service's own failure, an unknown one, and it went to people
+             * having been attempted by nobody.
+             */
+            private boolean heldByThisIdentity(Run current) {
+                return current.assignment() != null
+                        && identity.equals(current.assignment().executor())
+                        && current.assignment().until() != null;
             }
         };
     }

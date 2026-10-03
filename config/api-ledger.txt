@@ -2924,6 +2924,7 @@ cloud.jengu.dbo.promises.DboPromises                                   PROC_AUTO
 cloud.jengu.dbo.promises.DboPromises                                   PROC_AUTOMATION_IS_DECLARED:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_AUTOMATION_TAKES_ONLY_WHAT_ITS_STEP_ADMITS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_BEAN_IS_FOUND_RATHER_THAN_WIRED:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   PROC_A_CLAIM_IS_LOST_TO_SOMEBODY_NOT_TO_THE_CLOCK:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_CONSUMER_TAKES_ONLY_ITS_OWN_STEPS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_DEPARTED_ROUTEE_IS_A_STATEMENT:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_DISAGREEMENT_IS_AN_INCIDENT_NOT_A_REFUSAL:cloud.jengu.dbo.promises.DboPromises

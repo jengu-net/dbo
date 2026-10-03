@@ -363,6 +363,14 @@ public enum DboPromises implements Promise {
             + "reason — never closed, never lost — back to the list: open to automation again "
             + "only for a fault its step declared will pass, and to people otherwise."),
 
+    PROC_A_CLAIM_IS_LOST_TO_SOMEBODY_NOT_TO_THE_CLOCK("A participant holds the run it "
+            + "claimed until somebody acts on the run — the housekeeping that hands a lapsed "
+            + "claim back, or another participant taking it — and not merely until its "
+            + "deadline passes. The deadline is what lets others notice a holder that died; "
+            + "it never tells a holder that paused that its work has gone, so a holder slower "
+            + "than its own deadline is still handed the work it claimed, and a run nobody "
+            + "began is not sent to people as the failure of work that never happened."),
+
     PROC_A_RUNNER_ASKS_ONCE_IT_HOLDS_ITS_STEPS("A runner told which steps its host is about "
             + "to register asks no lane for work until it holds them all, so a host whose lanes "
             + "arrive before its services does not move its participant past the work of the "
