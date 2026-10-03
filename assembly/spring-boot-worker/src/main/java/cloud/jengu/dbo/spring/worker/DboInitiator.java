@@ -39,6 +39,15 @@ import java.util.function.Supplier;
  * step produced — and nothing more. The credential that asks for work holds no
  * door onto the tenant's records, and does not need one to learn how its work
  * ended.
+ *
+ * <p><b>And, where the step declared it, it collects.</b> A step that answers
+ * gives the application that asked a window once the work is over, in which
+ * it reads what the run was given and each version the run produced — as the
+ * audience the step names, so as much as the tenant declared that audience
+ * sees and no more. A person is revealed whole only when this application
+ * states the purpose the step declared. Each collection is on the tenant's
+ * trail as a reading, and the window shuts by the clock or when this
+ * application says it has collected.
  */
 public final class DboInitiator {
 
@@ -316,6 +325,121 @@ public final class DboInitiator {
             last = answer(tenant, run);
         }
         return last;
+    }
+
+    /**
+     * One record, collected through a run.
+     *
+     * @param status the HTTP status: 200 with the record as the step's
+     *               audience sees it, 410 for a version that removed it, and
+     *               404 for anything the run did not give or produce, a run
+     *               whose window has shut, and a run this application did not
+     *               ask for — the last three deliberately the same answer
+     * @param body   the record on a 200, the refusal otherwise
+     */
+    public record Collected(int status, String body) {
+
+        /** Whether the record was collected. */
+        public boolean found() {
+            return status == 200;
+        }
+
+        /** The record, or an exception saying why there is none. */
+        public String recordOrFail() {
+            if (!found()) {
+                throw new IllegalStateException("nothing was collected: " + status + " " + body);
+            }
+            return body;
+        }
+    }
+
+    /**
+     * Collects one record through a run this application asked for, once its
+     * work is over and while its window is open.
+     *
+     * <p>What the run was given is named {@code Type/id}; what it produced is
+     * named as the version it produced, {@code Type/id/_history/n}, exactly as
+     * the run's answer lists it — a later version of the record is not what
+     * the run did. What comes back is the record as the audience the step
+     * names sees it: for a person, the strict mode, which is everything but
+     * what identifies her.
+     *
+     * @param tenant    the tenant the run was started on
+     * @param run       the run's id, as {@link Started#run()} gave it
+     * @param reference the record, as the run names it
+     */
+    public Collected collect(String tenant, String run, String reference) {
+        return collecting(tenant, run, reference, null);
+    }
+
+    /**
+     * The same, stating why this application reads a person.
+     *
+     * <p>The second key. A step whose audience may see a person whole
+     * declared the purpose it reads her for, and she is revealed only when
+     * the collecting request states that same code. Another code, or none,
+     * is answered in the strict mode rather than refused — so stating a
+     * purpose cannot be used to learn whether a record would have been worth
+     * refusing.
+     *
+     * @param purpose the PurposeOfUse code — {@code TREAT}, say — or null
+     */
+    public Collected collecting(String tenant, String run, String reference, String purpose) {
+        HttpRequest.Builder request = toTheRun(tenant, run,
+                "/fhir/" + reference.replaceAll("^/+", "")).GET();
+        if (purpose != null) {
+            request.header("Purpose-Of-Use", purpose);
+        }
+        try {
+            HttpResponse<String> answered =
+                    http.send(request.build(), HttpResponse.BodyHandlers.ofString());
+            return new Collected(answered.statusCode(), answered.body());
+        } catch (java.io.IOException | InterruptedException failed) {
+            if (failed instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+            }
+            throw new IllegalStateException("collecting '" + reference + "' through run '" + run
+                    + "' on '" + tenant + "' did not complete", failed);
+        }
+    }
+
+    /**
+     * Says this application has collected what it wanted, which shuts its
+     * window now rather than when the step said it would.
+     *
+     * <p>Said once the run's answer has settled. It is the run's one
+     * {@code done}, and on a run this application started and is still
+     * performing itself, it ends the work rather than the window.
+     *
+     * @return whether a window was open to shut — false for one already shut,
+     *         or a run this application cannot collect from, which are the
+     *         same answer
+     */
+    public boolean collected(String tenant, String run) {
+        HttpRequest request = toTheRun(tenant, run, "/done")
+                .POST(HttpRequest.BodyPublishers.noBody()).build();
+        try {
+            return http.send(request, HttpResponse.BodyHandlers.ofString()).statusCode() == 200;
+        } catch (java.io.IOException | InterruptedException failed) {
+            if (failed instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+            }
+            throw new IllegalStateException("saying run '" + run + "' on '" + tenant
+                    + "' was collected did not complete", failed);
+        }
+    }
+
+    /** A request to a run's own address, on the credential that asked for it. */
+    private HttpRequest.Builder toTheRun(String tenant, String run, String path) {
+        DboWorkerProperties.Lane lane = askable(tenant);
+        Supplier<String> token = tokens.get(tenant);
+        HttpRequest.Builder request = HttpRequest.newBuilder(
+                URI.create(lane.getBase().toString().replaceAll("/+$", "") + "/run/" + run
+                        + path));
+        if (token != null) {
+            request.header("Authorization", "Bearer " + token.get());
+        }
+        return request;
     }
 
     /** The HTTP lane into a tenant, which is where work is asked for and answered. */
