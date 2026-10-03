@@ -87,6 +87,8 @@ public final class RecordWire {
             case Number n -> n;
             case byte[] bytes -> Base64.getEncoder().encodeToString(bytes);
             case Instant instant -> instant.toString();
+            // ISO-8601, as a declaration writes one: PT15M.
+            case java.time.Duration duration -> duration.toString();
             case Enum<?> constant -> constant.name();
             case Optional<?> optional -> optional.map(RecordWire::encode).orElse(null);
             case Map<?, ?> map -> encodeMap(map);
@@ -188,6 +190,9 @@ public final class RecordWire {
         }
         if (target == Instant.class) {
             return Instant.parse(String.valueOf(node));
+        }
+        if (target == java.time.Duration.class) {
+            return java.time.Duration.parse(String.valueOf(node));
         }
         if (target.isEnum()) {
             return constantOf(target, String.valueOf(node));

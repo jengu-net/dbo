@@ -63,7 +63,12 @@ class RecordWireCarriesTheRecordAsDeclaredTest {
             "Patient: the identifier is already held", cloud.jengu.dbo.work.Status.FAILED, false,
             Instant.parse("2026-08-29T10:16:30Z"), "the identifier is already held", 2,
             new cloud.jengu.dbo.core.process.RetryPolicy(List.of("unreachable", "lapsed"),
-                    "PT1M", 5));
+                    "PT1M", 5),
+            // A duration, which the wire carried nothing of until a run had
+            // one: a run whose step answers its asker could not be offered
+            // to anybody, and sat ready.
+            new Run.Window(java.time.Duration.ofMinutes(15),
+                    Instant.parse("2026-08-29T10:31:30Z")));
 
     @Test
     @DisplayName("every component a run declares survives the wire, and a new one fails here")
