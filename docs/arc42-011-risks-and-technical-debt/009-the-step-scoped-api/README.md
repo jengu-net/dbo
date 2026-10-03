@@ -3,8 +3,9 @@ plain read still bypasses it. The slice that exists is built and proven; what
 is left is traversal, a write refusal that needs it, and demoting the general
 surface. The traversal half is not this item's to design — item 021 defers the
 same question from the other side and has it written out, and one answer has to
-serve both doors. How an application reads what its run produced is designed
-below, its questions answered, and none of it is built.**
+serve both doors. How an application reads what its run produced is built: the
+asker collects, for a window its step declares, as the audience the step
+names.**
 
 # The step-scoped API
 
@@ -121,47 +122,47 @@ tries again.
 
 ## The asker collects what the run produced
 
-**Proposed, for review. Nothing below is built.**
+**Built.** An application learns from the answer *which* record a run wrote, as
+`Type/id/_history/n`, and the credential that asks for work holds no records
+door. The performer's context closes in the same advance that records the
+versions, so it can never show them. Collection is how the asker reads them.
 
-An application learns from the answer *which* record a run wrote, as
-`Type/id/_history/n`, and cannot read it: the credential that asks for work
-holds no records door, and the run's context has closed by the time the
-versions exist, because they are recorded in the same advance that ends the
-run. So every story leg that proves what a step wrote reads it on the general
-surface, which is the door this item exists to demote.
+### The window
 
-### The decision
-
-**A step may declare an answer, and the asker may then collect it for a
-window after the run's work is over.** The step names the audience the asker
-is:
+**A step may declare an answer, and the asker may then collect it for a window
+after the run's work is over.** The step names the audience the asker is, how
+long it may collect, and — where the audience may see a person whole — why:
 
 ```json
-{ "code": "hogwarts.admission.register", "slots": { "patient": "Patient" },
-  "writes": ["Patient", "Encounter"], "answers": "desk", "collect": "PT15M" }
+{ "code": "care.records.correct",
+  "slots": { "record": "Reference(Patient)", "corrected": "Patient" },
+  "writes": ["Patient"], "answers": "ward", "collect": "PT15M", "purpose": "TREAT" }
 ```
 
-`desk` is an ordinary entry in the tenant's `disclosure.perAudience`. When the
-result is written the run's work is over, and nobody holds it, as today. What
-the run gains is a separate fact: **its requester may collect until T**, where
-T is the time the result was written plus `collect`. Until T, the run's
-existing context at `/run/<id>/fhir/…` answers the client recorded as its
-requester and nobody else, for exactly what the run was given and the versions
-it produced, read as those versions (`Type/id/_history/n`) rather than as
-whatever is current. A collection read compares the clock with T, so the window
-closing needs no transition and no sweep. The asker ends it early with
-`POST /run/<id>/done`, which moves T to now. Past T the context answers as a
-run that never existed. A step that declares no answer has no window.
+`ward` is an ordinary entry in the tenant's `disclosure.perAudience`. The run
+records the step's `collect` when it is authored, and the advance that
+completes it records T, the time the result was written plus `collect`. When
+the result is written the run's work is over and nobody holds it, as before;
+the `Task` reads `completed` and carries T as the `collectable-until`
+extension. Until T the run's context at `/run/<id>/fhir/…` answers the client
+recorded as its requester, and nobody else, for what the run was given (as
+`Type/id`) and for each version it produced, read as that version
+(`Type/id/_history/n`); the record as it stands now, or another version of it,
+is not what the run did and answers 404. A collection read compares the clock
+with T, so the window closing needs no transition and no sweep.
+`POST /run/<id>/done` from the asker moves T to now. Past T the context
+answers as a run that never existed, byte for byte. A refused result opens no
+window, and a reopened run's T is cleared with its ending.
 
-**Why a window and not a holder.** The holder answers who owes the next act,
+**Why a window and not a holder.** The holder answered who owes the next act,
 and the asker owes nothing: collecting is optional, and a result nobody
-collects is not work left undone. A holder value would also make every reader
-of that field treat a finished run as open — the `Task` status in the answer,
-`awaiting` and `settled`, the operator's lists, escalation, and the eleven
-places that ask whether nobody holds a run. Obligation and access are two
-questions, and they coincided only while the performer was a run's only
-reader. So the reach rule reads: **the performer while it holds the run; the
-requester while its window is open.**
+collects is not work left undone. A holder value would make every reader of a
+run's status treat a finished run as open — the answer's `Task`, `awaiting` and
+`settled`, the operator's lists. Obligation and access are two questions, and
+they coincided only while the performer was a run's only reader. So the reach
+rule reads: **the performer while it holds the run; the requester while its
+window is open.** While a participant performs the run, the asker reads
+nothing through it.
 
 ### Why not the others
 
@@ -181,37 +182,77 @@ requester while its window is open.**
 ### Personal data, purpose, the trail
 
 - **What the asker sees is the audience the step names.** Its `types` bound
-  what is collectable and its `reveals` fixes the mode; the request cannot
-  raise it. No audience named means references only. A step naming an
-  audience the tenant has not declared is refused when the declaration is
-  read, since that is configuration and not a serving answer.
+  what is collectable — a type outside them is absent in the words a document
+  the run was never given gets — and its `reveals` fixes the mode; the request
+  cannot raise it. A step naming an audience the tenant has not declared is
+  refused when the declaration is read.
+- **`answers` and `collect` come together.** Either alone is refused when the
+  step is declared: a window onto nothing anybody may see, or an audience with
+  no time to collect in. A step declaring neither leaves its asker the answer
+  alone, references only, and closes exactly as before.
 - **The strict mode is the default.** On a tenant with `pdi: true` an `omit`
   audience collects the record pseudonymously, birth date generalised to the
   year — the record as the vault leaves it, reassembled at read time, so an
   erasure after the run still reaches everything the asker could collect.
-- **The purpose is the step's.** An audience that reveals `include` is
-  refused at declaration unless the step states `"purpose": "TREAT"` (any
-  statable code). An identifying collection also states the same code in its
-  `Purpose-Of-Use` header: two keys, the step's said when it was declared and
-  the request's said at the moment of reading. A header naming another code, or
-  none, gets the audience's default and never more. The start door still states
-  and accepts none, so a slot search on an identifying element stays refused.
-- **Collecting is a reading.** Each read within the window is an access
-  entry about the document, landing beside every other reading of it, with the
+- **The purpose is the step's, and the request's.** An audience that reveals
+  `include` is refused at declaration unless the step states `"purpose"` (any
+  statable code). A collection reveals the person whole only when its
+  `Purpose-Of-Use` header states the same code: two keys, the step's said when
+  it was declared and the request's said at the moment of reading. A header
+  naming another code, or none, gets the strict mode and never a refusal. The
+  start door still states and accepts none, so a slot search on an identifying
+  element stays refused.
+- **Collecting is a reading.** Each read within the window is an access entry
+  about the document, landing beside every other reading of it, with the
   asker's client as actor, the run as occasion and the step's purpose. It is
-  never travel. Reading the answer itself stays no entry, because it carries
+  never travel. A version may be collected any number of times, each a reading
+  of its own. Reading the answer itself stays no entry, because it carries
   references only.
+
+### How it is built, where it departs from the design
+
+- **The mode is decided at the door, from the step's resolved audience,** not
+  by naming the audience on the policy seam. The policy layer fixes a named
+  audience's declared mode over whatever the request asked, which is right for
+  a partner's credential and cannot express the second key: an `include`
+  audience read without the matching purpose has to fall to the strict mode,
+  and through that seam the declared mode would win whatever the request
+  stated. So the step
+  carries its audience's types and mode, resolved when the spec is read, and
+  the door sets the read's mode and purpose itself.
+- **A produced version is read through the face's version read,** which reads
+  the record's history beneath it, so its access entry says `history` where a
+  read of a given document says `read`. Both carry the run and the purpose.
+- **The run carries its window across the lane.** The collect length is on
+  the run from its authoring, so the lane's wire carries a duration; without
+  it a run of an answering step could not be offered and sat ready.
+- **The window needs a requester and the run's work over.** A step-door starter
+  that performs its run inline holds it and reads it as its performer; its own
+  `done` ends the work, and the next one, inside the window, shuts the window.
+
+`IDN_THE_ASKER_IS_A_DECLARED_AUDIENCE` and `IDN_A_STEP_STATES_ITS_PURPOSE` are
+proven at the declaration in `AStepDeclaresWhatItsAskerCollectsTest`;
+`PROC_A_RUN_IS_COLLECTED_BY_ITS_ASKER` and `PROC_AN_UNCOLLECTED_ANSWER_LAPSES`
+over the work domain's records in `AnAnswerOpensAWindowBesideTheRunTest`; all
+six, with `PROC_THE_ASKER_READS_NOTHING_WHILE_THE_WORK_IS_DONE` and
+`POL_COLLECTING_IS_A_READING`, over the door in
+`TheAskerCollectsWhatItsRunProducedTest`, the clock in the test's hand. The
+stories prove it end to end: the clinical record's
+`whatWasWrittenIsWhatIsRead` and `aVisitLandsWhole` collect what St Jerome
+wrote, and person rights' `readingHerIsNotTheSameAsWritingHer` and
+`sheIsShownWholeOnlyForTheStepsPurpose` collect Liis at Hogwarts as the desk
+sees her, whole with both keys, pseudonymous with one, and find each reading
+on her trail. Finding her by her number stays at the identifying door.
 
 ### Search
 
 **A set is a repeating slot.** *The ward* is a step with `"encounters":
 "Reference(Encounter)[]"`, started over `Encounter?status=in-progress`; the
 door resolves the search when the run is authored and records what matched,
-which is already built, and the asker collects them. Listing and counting
-without content is [asking](../021-asking-the-store/README.md), on the other
-side of the asking-against-unsealing line. No search runs inside a context: it
-would be traversal by another name, and traversal is 021's to answer for both
-doors.
+and the asker collects them. Listing and counting without content is
+[asking](../021-asking-the-store/README.md), on the other side of the
+asking-against-unsealing line. No search runs inside a context: it would be
+traversal by another name, and traversal is 021's to answer for both doors.
 
 ### The listed gaps
 
@@ -219,76 +260,12 @@ doors.
   takes: a `Binary` the run named or produced, under the same audience and
   purpose. Carrying content in with a run and out with a result is separate.
 - **`Write.delete`.** A deletion produces a tombstone version; the answer names
-  it and collecting it answers gone, as a version read does, disclosing
+  it and collecting it answers gone (410), as a version read does, disclosing
   nothing.
 - **Conditional create.** When the condition matches, the run names a version
   it did not write — so it must be named as matched rather than produced, and
   a condition on an identifying element is an identification, refused as a
   slot search is.
-
-### Promises it would add
-
-- `PROC_A_RUN_IS_COLLECTED_BY_ITS_ASKER` — a step that declares an answer
-  gives its run's requester a window, from the result's write until `collect`
-  later, in which it alone reads what the run was given and the versions it
-  produced; the run is over and nobody holds it, and the asker may close the
-  window early.
-- `PROC_AN_UNCOLLECTED_ANSWER_LAPSES` — past the window the context answers
-  as a run that never existed, with no transition and no sweep; the answer
-  still names the versions.
-- `PROC_THE_ASKER_READS_NOTHING_WHILE_THE_WORK_IS_DONE` — while the run's work
-  is open, its context does not answer the asker.
-- `IDN_THE_ASKER_IS_A_DECLARED_AUDIENCE` — what the asker sees is the audience
-  the step names, and none named is references only.
-- `IDN_A_STEP_STATES_ITS_PURPOSE` — an identifying collection needs the
-  step's declared purpose and the same code stated by the request; neither
-  alone reveals more than the audience's default.
-- `POL_COLLECTING_IS_A_READING` — each collection is an access entry naming
-  the asker, the run and the purpose.
-
-### What it closes
-
-The guide gaps "an application cannot read a record's content back through a
-run" (care is recorded), "reading her back is the records surface's" (what a
-person can ask for) and the answer half of the read-only context bullet (work
-leaves and comes back). The legs that move: `whatWasWrittenIsWhatIsRead` in
-`TheClinicRecordsCareAndAccountsForItIT`, and `readingHerIsNotTheSameAsWritingHer`
-in `WhatAPersonCanAskForIT` — the pseudonymous read through an `omit` desk
-step, the treating read through a step declaring `TREAT`. Finding her by her
-number stays at the identifying door.
-
-### Build order
-
-1. The context checks whom it serves: the performer while it holds the run,
-   nobody else. Today any `work` credential enters any held context.
-2. `answers`, `collect` and `purpose` in the tenant's spec, with the
-   declaration-time refusals.
-3. The window: `committed` on an answering run records T beside the close, and
-   `done` from the requester moves it to now. The `Task` reads `completed`,
-   with T on it as an extension.
-4. The requester's reach: inputs and produced versions, by version, under the
-   audience's mode and the step's purpose, with the access entry. Past T the
-   context answers as a run that never existed, which is the whole lapse.
-5. `DboInitiator.collect` and `collected`, in the sample worker application.
-6. The two legs move and the guide's gaps are rewritten. Each promise lands
-   with the commit that proves it.
-
-### Decided
-
-- **Two keys for `include`.** The step declares the purpose, and the
-  collecting request states the same code. Either alone reveals nothing more
-  than the audience's default, which is how an identifying lookup already
-  works: the reason is said at the moment of reading, not only at design time.
-- **Finding somebody by her number stays at the identifying door.** It never
-  becomes a step. The application asks there, with a purpose, and starts a run
-  over the id it is given.
-- **A version may be collected any number of times within the window,** each
-  collection a reading of its own on the trail. A retry or a reload is the
-  ordinary case, and one collection per version would lose the answer to a
-  dropped connection.
-- **A window, not a holder.** The run is over when its result is written, and
-  the requester's access is a time beside it rather than a state of it, for
-  the reasons under the decision.
 
 ## Sequence
 

@@ -311,7 +311,14 @@ held as the `PractitionerRole` they act in — so a person's readings through it
 name the practitioner, not an application speaking for them. Everybody else,
 and everybody once the run is over, is answered as for a run that never existed
 (`PROC_A_RUN_CONTEXT_IS_ITS_PERFORMERS`,
-`PROC_A_PERSON_CLAIMS_AS_A_PRACTITIONER_ROLE`).
+`PROC_A_PERSON_CLAIMS_AS_A_PRACTITIONER_ROLE`) — save the client that asked for
+the run, when its step declares an answer. That client collects, for the window
+the step declares after the result is written, what the run was given and each
+version it produced, as the audience the step names; a person whole only when
+the step's declared purpose and the request's agree; each collection a reading
+on the trail (`PROC_A_RUN_IS_COLLECTED_BY_ITS_ASKER`,
+`IDN_THE_ASKER_IS_A_DECLARED_AUDIENCE`, `IDN_A_STEP_STATES_ITS_PURPOSE`,
+`POL_COLLECTING_IS_A_READING`).
 
 What is still true of everything else:
 
