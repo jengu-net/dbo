@@ -115,6 +115,16 @@ public final class WorkModel {
             envelope.value("step", EnvelopeValue.of(Json.str(run, "step")));
             envelope.value("kind", EnvelopeValue.of(Json.str(run, "kind")));
             envelope.value("holder", EnvelopeValue.of(Json.str(run, "holder")));
+            // Status and eligibility, so what waits for whom is a query.
+            // Eligibility is indexed as the widest executor the run admits —
+            // automation, or a person alone — because a person may take
+            // every open run and only the first answer separates any.
+            field(run, "status").ifPresent(status ->
+                    envelope.value("status", EnvelopeValue.of(status)));
+            if (((Map<?, ?>) run).get("performerType") instanceof List<?> eligible) {
+                envelope.value("eligible", EnvelopeValue.of(
+                        eligible.contains("automation") ? "automation" : "person"));
+            }
             field(run, "parent").ifPresent(parent ->
                     envelope.value("parent", EnvelopeValue.of(parent)));
             // Echoed, never parsed: a cross-system join queryable from either

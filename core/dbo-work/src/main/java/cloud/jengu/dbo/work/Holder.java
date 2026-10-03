@@ -48,6 +48,25 @@ public enum Holder {
         return name().toLowerCase(java.util.Locale.ROOT);
     }
 
+    /**
+     * The holder a run's status, eligibility and claimant come to.
+     *
+     * <p>Derived, never stored as a fact of its own: it answered three
+     * questions in one word, and a word that is written beside the three can
+     * disagree with them. Over is nobody's; a person holding it, or a run open
+     * to people alone, is a person's; one held back is a retry; the rest is
+     * automation's.
+     */
+    public static Holder derived(Status status, boolean automation, boolean heldByAPerson) {
+        if (status == null || status.over()) {
+            return NOBODY;
+        }
+        if (heldByAPerson || !automation) {
+            return PERSON;
+        }
+        return status == Status.ON_HOLD ? RETRY : AUTOMATION;
+    }
+
     static Holder of(String wire) {
         return wire == null ? NOBODY : valueOf(wire.toUpperCase(java.util.Locale.ROOT));
     }

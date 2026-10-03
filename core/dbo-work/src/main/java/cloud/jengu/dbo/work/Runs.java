@@ -184,7 +184,7 @@ public final class Runs {
     /** The same over declared storage domains. */
     public Run pipeline(String process, String step, String key, List<String> domains) {
         return byKey(key).orElseGet(() -> write(new State(key, process, step, RunKind.PIPELINE,
-                Holder.AUTOMATION, null, null, null, Map.of(), null, List.copyOf(domains),
+                Standing.OPEN, null, null, null, Map.of(), null, List.copyOf(domains),
                 null, Run.Produced.NOTHING, null)));
     }
 
@@ -287,7 +287,7 @@ public final class Runs {
         step.slots().keySet().forEach(slot -> ordered.put(slot, inputs.get(slot)));
         String key = step.id() + "/" + scope;
         return byKey(key).orElseGet(() -> write(new State(key, step.id().processId(),
-                step.id().step(), kind, Holder.AUTOMATION, null, null, null, Map.of(), null,
+                step.id().step(), kind, Standing.OPEN, null, null, null, Map.of(), null,
                 List.copyOf(step.writes()),
                 requester == null ? null : new Run.Assignment(null, null, null, null, requester),
                 Run.Produced.NOTHING, step.version(),
@@ -323,7 +323,7 @@ public final class Runs {
     public Run sweep(String process, String step, String scope, List<String> domains) {
         String key = process + "/" + step + "/" + scope;
         return byKey(key).orElseGet(() -> write(new State(key, process, step, RunKind.SWEEP,
-                Holder.AUTOMATION, null, null, null, Map.of(), null, List.copyOf(domains),
+                Standing.OPEN, null, null, null, Map.of(), null, List.copyOf(domains),
                 null, Run.Produced.NOTHING, null)));
     }
 
@@ -355,7 +355,8 @@ public final class Runs {
                 // failed and its retry are one causal thread. A child minting
                 // or dropping either would break the join at exactly the
                 // moment somebody is reading the trace to find out why.
-                failure.holder(), parent.key(), parent.correlation(), parent.trace(), Map.of(),
+                Standing.OPEN.held(failure.holder()), parent.key(), parent.correlation(),
+                parent.trace(), Map.of(),
                 new Run.Item(reference, failure, message), parent.domains(),
                 parent.assignment(), Run.Produced.NOTHING, parent.stepVersion()));
     }
@@ -382,7 +383,8 @@ public final class Runs {
      */
     public Run selected(Run run, Scope at, Executor executor, String note) {
         return update(run, snapshot -> snapshot.withAssignment(
-                new Run.Assignment(at, executor, note, null, claimantOf(snapshot))));
+                new Run.Assignment(at, executor, note, null, claimantOf(snapshot),
+                        roleOf(snapshot))));
     }
 
     /**
@@ -397,7 +399,8 @@ public final class Runs {
      */
     public Run fellThrough(Run run, Scope at, String reason) {
         Run recorded = update(run, snapshot -> snapshot.withAssignment(
-                new Run.Assignment(at, null, reason, null, claimantOf(snapshot))));
+                new Run.Assignment(at, null, reason, null, claimantOf(snapshot),
+                        roleOf(snapshot))));
         return held(recorded, Holder.PERSON);
     }
 
@@ -467,13 +470,58 @@ public final class Runs {
         }
         State claimed = state(current).withAssignment(
                 new Run.Assignment(current.assignment() == null ? null : current.assignment().at(),
-                        by, null, until, claimant)).withHolder(Holder.AUTOMATION);
+                        by, null, until, claimant))
+                .withStanding(Standing.of(current).as(Status.IN_PROGRESS).notBefore(null));
         try {
             store.put(new PutRequest(WorkModel.TYPE, current.id(), current.versionId(),
                     claimed.payload()));
         } catch (cloud.jengu.dbo.core.api.VersionConflictException lost) {
             // Somebody wrote between the read and the write, which for a claim
             // means somebody else took it. Not an error: it is the answer.
+            return Optional.empty();
+        }
+        return byKey(seen.key());
+    }
+
+    /**
+     * A person takes this run, as the {@code PractitionerRole} they hold.
+     *
+     * <p>The same conditional write an executor's claim is, on the same
+     * lease, so two people opening one task produce one holder — and a person
+     * is no more entitled to hold it twice than a process is. What differs is
+     * what the run then says holds it: a role the tenant holds, never a
+     * device, because a person is not one.
+     *
+     * <p>A person may take any open run. Whether automation may also take it
+     * is a question about automation, and the switch that stops new automatic
+     * claims has nothing to say about a person's.
+     *
+     * @param role     {@code PractitionerRole/<id>}, which the tenant holds
+     * @param until    when the claim lapses
+     * @param claimant the client the authority read off the person's token,
+     *                 which is who then reads the run's context and ends it
+     * @return the claimed run, or empty when somebody holds it already or it
+     *         is over
+     */
+    public Optional<Run> claimAsPerson(Run seen, String role, java.time.Instant until,
+            String claimant) {
+        refuseIfAuthoredElsewhere(seen, "claimed");
+        if (role == null || !role.startsWith("PractitionerRole/")) {
+            throw new IllegalArgumentException("a person claims as a PractitionerRole, and '"
+                    + role + "' is not one");
+        }
+        Run current = byKey(seen.key()).orElse(null);
+        if (current == null || !current.open() || current.claimed(java.time.Instant.now())) {
+            return Optional.empty();
+        }
+        State claimed = state(current).withAssignment(
+                new Run.Assignment(current.assignment() == null ? null : current.assignment().at(),
+                        null, null, until, claimant, role))
+                .withStanding(Standing.of(current).as(Status.IN_PROGRESS).notBefore(null));
+        try {
+            store.put(new PutRequest(WorkModel.TYPE, current.id(), current.versionId(),
+                    claimed.payload()));
+        } catch (cloud.jengu.dbo.core.api.VersionConflictException lost) {
             return Optional.empty();
         }
         return byKey(seen.key());
@@ -493,7 +541,7 @@ public final class Runs {
                 snapshot.assignment() == null ? null : snapshot.assignment().at(),
                 snapshot.assignment() == null ? null : snapshot.assignment().executor(),
                 snapshot.assignment() == null ? null : snapshot.assignment().note(), until,
-                claimantOf(snapshot))));
+                claimantOf(snapshot), roleOf(snapshot))));
     }
 
     /**
@@ -538,7 +586,7 @@ public final class Runs {
                         snapshot.assignment() == null ? null : snapshot.assignment().at(),
                         snapshot.assignment() == null ? null : snapshot.assignment().executor(),
                         snapshot.assignment() == null ? null : snapshot.assignment().note(),
-                        until, claimantOf(snapshot))));
+                        until, claimantOf(snapshot), roleOf(snapshot))));
     }
 
     /** A point the step's own map does not contain, refused naming both sides. */
@@ -559,7 +607,7 @@ public final class Runs {
     public Run released(Run run, String because) {
         return update(run, snapshot -> snapshot.withAssignment(new Run.Assignment(
                 snapshot.assignment() == null ? null : snapshot.assignment().at(),
-                null, because, null)));
+                null, because, null)).withStanding(snapshot.standing().as(Status.READY)));
     }
 
     /**
@@ -573,7 +621,7 @@ public final class Runs {
     public List<Run> lapsed(java.time.Instant now) {
         return cloud.jengu.dbo.core.api.Answered.pagedBy(store::page,
                         Criteria.of(WorkModel.TYPE)
-                                .eq("holder", EnvelopeValue.of(Holder.AUTOMATION.wire())))
+                                .eq("status", EnvelopeValue.of(Status.IN_PROGRESS.wire())))
                 .map(Run::of)
                 .filter(run -> run.assignment() != null && run.assignment().until() != null
                         && !run.assignment().until().isAfter(now))
@@ -679,7 +727,7 @@ public final class Runs {
             }
             return snapshot.withProduced(new Run.Produced(List.copyOf(named),
                             Map.copyOf(watermark), before.counted() + versions.size()))
-                    .withHolder(Holder.NOBODY);
+                    .withStanding(snapshot.standing().as(Status.COMPLETED));
         });
     }
 
@@ -699,7 +747,8 @@ public final class Runs {
      * refused.
      */
     public Run refused(Run run, String because) {
-        return update(run, snapshot -> snapshot.withHolder(Holder.NOBODY).withRefused(because));
+        return update(run, snapshot -> snapshot.withStanding(
+                snapshot.standing().as(Status.FAILED).because(because)).withRefused(because));
     }
 
     /**
@@ -717,7 +766,8 @@ public final class Runs {
         requireAction(run, "reopen");
         // A refusal is a reason the run ENDED, and a reopened run has not —
         // so the reason goes with the ending rather than outliving it.
-        return update(run, snapshot -> snapshot.withHolder(Holder.AUTOMATION).withRefused(null)
+        return update(run, snapshot -> snapshot.withStanding(snapshot.standing()
+                        .as(Status.READY).openTo(true).because(because)).withRefused(null)
                 .withAssignment(
                 new Run.Assignment(
                         snapshot.assignment() == null ? null : snapshot.assignment().at(),
@@ -726,7 +776,7 @@ public final class Runs {
 
     /** Moves a run to a holder — the only field anybody reads first. */
     public Run held(Run run, Holder holder) {
-        return update(run, snapshot -> snapshot.withHolder(holder));
+        return update(run, snapshot -> snapshot.withStanding(snapshot.standing().held(holder)));
     }
 
     /**
@@ -938,8 +988,13 @@ public final class Runs {
         return snapshot.assignment() == null ? null : snapshot.assignment().claimant();
     }
 
+    /** The role a person holds the run as, carried through the same advances. */
+    private static String roleOf(State snapshot) {
+        return snapshot.assignment() == null ? null : snapshot.assignment().role();
+    }
+
     private State state(Run run) {
-        return new State(run.key(), run.process(), run.step(), run.kind(), run.holder(),
+        return new State(run.key(), run.process(), run.step(), run.kind(), Standing.of(run),
                 run.parent(), run.correlation(), run.trace(), run.tally(), run.item(),
                 run.domains(),
                 run.assignment(), run.produced(), run.stepVersion(), run.inputs(),
@@ -1102,8 +1157,69 @@ public final class Runs {
         }
     }
 
+
+    /**
+     * Where a run stands and who may take it next — the facts its holder
+     * used to answer in one word, kept apart.
+     *
+     * @param status       where it is in its life
+     * @param automation   whether automation may take it as well as a person.
+     *                     A person may always take an open run, so this is the
+     *                     whole of eligibility
+     * @param notBefore    when it may next be taken, or null for now
+     * @param statusReason why it stands so, in words, or null
+     * @param attempts     how many times automation has failed it in a way the
+     *                     step declared would pass
+     */
+    record Standing(Status status, boolean automation, java.time.Instant notBefore,
+            String statusReason, int attempts) {
+
+        /** Open, unclaimed, and anybody's to take. */
+        static final Standing OPEN = new Standing(Status.READY, true, null, null, 0);
+
+        static Standing of(Run run) {
+            return new Standing(run.status() == null ? Status.READY : run.status(),
+                    run.automation(), run.notBefore(), run.statusReason(), run.attempts());
+        }
+
+        Standing as(Status status) {
+            return new Standing(status, automation, notBefore, statusReason, attempts);
+        }
+
+        Standing because(String reason) {
+            return new Standing(status, automation, notBefore, reason, attempts);
+        }
+
+        Standing openTo(boolean automation) {
+            return new Standing(status, automation, notBefore, statusReason, attempts);
+        }
+
+        Standing notBefore(java.time.Instant when) {
+            return new Standing(status, automation, when, statusReason, attempts);
+        }
+
+        Standing attempted(int attempts) {
+            return new Standing(status, automation, notBefore, statusReason, attempts);
+        }
+
+        /**
+         * What a holder word asks for, said in the facts it stood for: over,
+         * open to people alone, held back for automation, or automation's.
+         */
+        Standing held(Holder holder) {
+            return switch (holder) {
+                case NOBODY -> as(Status.COMPLETED);
+                case PERSON -> as(status.over() || status == Status.ON_HOLD ? Status.READY : status)
+                        .openTo(false).notBefore(null);
+                case RETRY -> as(Status.ON_HOLD).openTo(true);
+                case AUTOMATION -> as(status.over() || status == Status.ON_HOLD
+                        ? Status.READY : status).openTo(true).notBefore(null);
+            };
+        }
+    }
+
     /** The payload shape, in one place, so no caller authors a run by hand. */
-    private record State(String key, String process, String step, RunKind kind, Holder holder,
+    private record State(String key, String process, String step, RunKind kind, Standing standing,
             String parent, String correlation, String trace, Map<String, Long> tally, Run.Item item,
             List<String> domains, Run.Assignment assignment, Run.Produced produced,
             String stepVersion, Map<String, RunSlot> inputs, Run.Milestone milestone,
@@ -1115,61 +1231,61 @@ public final class Runs {
         }
 
         /** The pre-inputs shape — every run that fills no slots. */
-        State(String key, String process, String step, RunKind kind, Holder holder,
+        State(String key, String process, String step, RunKind kind, Standing standing,
                 String parent, String correlation, String trace, Map<String, Long> tally, Run.Item item,
                 List<String> domains, Run.Assignment assignment, Run.Produced produced,
                 String stepVersion) {
-            this(key, process, step, kind, holder, parent, correlation, trace, tally, item,
+            this(key, process, step, kind, standing, parent, correlation, trace, tally, item,
                     domains, assignment, produced, stepVersion, Map.of());
         }
 
         /** The pre-milestone shape. */
-        State(String key, String process, String step, RunKind kind, Holder holder,
+        State(String key, String process, String step, RunKind kind, Standing standing,
                 String parent, String correlation, String trace, Map<String, Long> tally, Run.Item item,
                 List<String> domains, Run.Assignment assignment, Run.Produced produced,
                 String stepVersion, Map<String, RunSlot> inputs) {
-            this(key, process, step, kind, holder, parent, correlation, trace, tally, item,
+            this(key, process, step, kind, standing, parent, correlation, trace, tally, item,
                     domains, assignment, produced, stepVersion, inputs, null, null, null);
         }
 
-        State withHolder(Holder holder) {
-            return new State(key, process, step, kind, holder, parent, correlation, trace, tally, item,
+        State withStanding(Standing standing) {
+            return new State(key, process, step, kind, standing, parent, correlation, trace, tally, item,
                     domains, assignment, produced, stepVersion, inputs, milestone, requester, refused);
         }
 
         State withTally(Map<String, Long> tally) {
-            return new State(key, process, step, kind, holder, parent, correlation, trace,
+            return new State(key, process, step, kind, standing, parent, correlation, trace,
                     Map.copyOf(tally), item, domains, assignment, produced, stepVersion,
                     inputs, milestone, requester, refused);
         }
 
         State withAssignment(Run.Assignment assignment) {
-            return new State(key, process, step, kind, holder, parent, correlation, trace, tally, item,
+            return new State(key, process, step, kind, standing, parent, correlation, trace, tally, item,
                     domains, assignment, produced, stepVersion, inputs, milestone, requester, refused);
         }
 
         State withProduced(Run.Produced produced) {
-            return new State(key, process, step, kind, holder, parent, correlation, trace, tally, item,
+            return new State(key, process, step, kind, standing, parent, correlation, trace, tally, item,
                     domains, assignment, produced, stepVersion, inputs, milestone, requester, refused);
         }
 
         State withTrace(String trace) {
-            return new State(key, process, step, kind, holder, parent, correlation, trace,
+            return new State(key, process, step, kind, standing, parent, correlation, trace,
                     tally, item, domains, assignment, produced, stepVersion, inputs, milestone, requester, refused);
         }
 
         State withCorrelation(String correlation) {
-            return new State(key, process, step, kind, holder, parent, correlation, trace, tally, item,
+            return new State(key, process, step, kind, standing, parent, correlation, trace, tally, item,
                     domains, assignment, produced, stepVersion, inputs, milestone, requester, refused);
         }
 
         State withMilestone(Run.Milestone milestone) {
-            return new State(key, process, step, kind, holder, parent, correlation, trace, tally, item,
+            return new State(key, process, step, kind, standing, parent, correlation, trace, tally, item,
                     domains, assignment, produced, stepVersion, inputs, milestone, requester, refused);
         }
 
         State withRefused(String refused) {
-            return new State(key, process, step, kind, holder, parent, correlation, trace, tally, item,
+            return new State(key, process, step, kind, standing, parent, correlation, trace, tally, item,
                     domains, assignment, produced, stepVersion, inputs, milestone, requester, refused);
         }
 
@@ -1179,7 +1295,22 @@ public final class Runs {
                     .append(",\"process\":").append(Json.quoted(process))
                     .append(",\"step\":").append(Json.quoted(step))
                     .append(",\"kind\":").append(Json.quoted(kind.wire()))
-                    .append(",\"holder\":").append(Json.quoted(holder.wire()));
+                    .append(",\"holder\":").append(Json.quoted(Holder.derived(standing.status(),
+                            standing.automation(), standing.status() == Status.IN_PROGRESS
+                                    && assignment != null && assignment.role() != null).wire()))
+                    .append(",\"status\":").append(Json.quoted(standing.status().wire()))
+                    .append(",\"performerType\":").append(standing.automation()
+                            ? "[\"automation\",\"person\"]" : "[\"person\"]");
+            if (standing.notBefore() != null) {
+                json.append(",\"notBefore\":")
+                        .append(Json.quoted(standing.notBefore().toString()));
+            }
+            if (standing.statusReason() != null) {
+                json.append(",\"statusReason\":").append(Json.quoted(standing.statusReason()));
+            }
+            if (standing.attempts() > 0) {
+                json.append(",\"attempts\":").append(standing.attempts());
+            }
             if (parent != null) {
                 json.append(",\"parent\":").append(Json.quoted(parent));
             }
@@ -1222,6 +1353,9 @@ public final class Runs {
                 }
                 if (assignment.claimant() != null) {
                     json.append(",\"claimant\":").append(Json.quoted(assignment.claimant()));
+                }
+                if (assignment.role() != null) {
+                    json.append(",\"role\":").append(Json.quoted(assignment.role()));
                 }
             }
             if (stepVersion != null) {

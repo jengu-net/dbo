@@ -19,7 +19,41 @@ public record Run(String id, long versionId, String key, String process, String 
         Map<String, Long> tally, Item item, java.util.List<String> domains,
         Assignment assignment, Produced produced, String stepVersion,
         Map<String, RunSlot> inputs, Milestone milestone, String requester,
-        String refused) {
+        String refused, Status status, boolean automation, java.time.Instant notBefore,
+        String statusReason, int attempts) {
+
+    /**
+     * A run described by who holds it, which is how a run was described
+     * before its status, eligibility and not-before were kept apart.
+     *
+     * <p>The three are derived from the holder here, the way the holder is
+     * now derived from them: automation running is open to automation and
+     * claimed when an assignment carries a deadline, a retry is held back,
+     * a person's is open to people alone, and nobody's is done.
+     */
+    public Run(String id, long versionId, String key, String process, String step,
+            RunKind kind, Holder holder, String parent, String correlation, String trace,
+            Map<String, Long> tally, Item item, java.util.List<String> domains,
+            Assignment assignment, Produced produced, String stepVersion,
+            Map<String, RunSlot> inputs, Milestone milestone, String requester,
+            String refused) {
+        this(id, versionId, key, process, step, kind, holder, parent, correlation, trace, tally,
+                item, domains, assignment, produced, stepVersion, inputs, milestone, requester,
+                refused, statusOf(holder, assignment, refused), holder != Holder.PERSON, null,
+                null, 0);
+    }
+
+    private static Status statusOf(Holder holder, Assignment assignment, String refused) {
+        if (holder == null) {
+            return null;
+        }
+        return switch (holder) {
+            case NOBODY -> refused != null ? Status.FAILED : Status.COMPLETED;
+            case RETRY -> Status.ON_HOLD;
+            case PERSON, AUTOMATION -> assignment != null && assignment.until() != null
+                    ? Status.IN_PROGRESS : Status.READY;
+        };
+    }
 
     /**
      * A run named only by its key, for a verb whose lane reads the store's
@@ -34,7 +68,7 @@ public record Run(String id, long versionId, String key, String process, String 
     public static Run named(String key) {
         return new Run(null, 0, key, null, null, null, null, null, null, null,
                 Map.of(), null, java.util.List.of(), null, Produced.NOTHING, null,
-                Map.of(), null, null, null);
+                Map.of(), null, null, null, null, false, null, null, 0);
     }
 
     /**
@@ -143,9 +177,20 @@ public record Run(String id, long versionId, String key, String process, String 
      *                 Beside the executor rather than read off it, because the
      *                 executor is what performs, and a host holding a lane for
      *                 a participant names the participant and not itself
+     * @param role     the {@code PractitionerRole} a person claimed the run as,
+     *                 as {@code PractitionerRole/<id>}, or null when what holds
+     *                 it is not a person. Beside the executor rather than
+     *                 instead of it, because a person is not a device and a
+     *                 run that named one as the other would say so wrongly
      */
     public record Assignment(Scope at, Executor executor, String note, java.time.Instant until,
-            String claimant) {
+            String claimant, String role) {
+
+        /** An executor's assignment, or nobody's: no person holds it. */
+        public Assignment(Scope at, Executor executor, String note, java.time.Instant until,
+                String claimant) {
+            this(at, executor, note, until, claimant, null);
+        }
 
         /** An assignment no client is recorded as holding. */
         public Assignment(Scope at, Executor executor, String note, java.time.Instant until) {
@@ -213,7 +258,12 @@ public record Run(String id, long versionId, String key, String process, String 
 
     /** Whether anybody is owed anything. */
     public boolean open() {
-        return holder.owes();
+        return status != null && !status.over();
+    }
+
+    /** Whether a person holds this run: claimed as a {@code PractitionerRole}. */
+    public boolean heldByAPerson() {
+        return status == Status.IN_PROGRESS && assignment != null && assignment.role() != null;
     }
 
     /** Whether this is work waiting for a human rather than for a clock. */
@@ -266,15 +316,41 @@ public record Run(String id, long versionId, String key, String process, String 
                     raw.get("position") instanceof Number position ? position.intValue() : 0,
                     raw.get("total") instanceof Number total ? total.intValue() : 0);
         }
+        Assignment assignment = assignment(json);
+        Status status = Status.of(optional(json, "status"));
+        boolean automation;
+        if (((Map<?, ?>) json).get("performerType") instanceof java.util.List<?> eligible) {
+            automation = eligible.contains("automation");
+        } else {
+            automation = !"person".equals(optional(json, "holder"));
+        }
+        if (status == null) {
+            // A run written before its status was kept, read the way its
+            // holder described it.
+            Holder said = Holder.of(Json.str(json, "holder"));
+            status = said == Holder.NOBODY
+                    ? (optional(json, "refused") != null ? Status.FAILED : Status.COMPLETED)
+                    : said == Holder.RETRY ? Status.ON_HOLD
+                    : assignment != null && assignment.until() != null ? Status.IN_PROGRESS
+                    : Status.READY;
+        }
+        Object notBefore = ((Map<?, ?>) json).get("notBefore");
+        Object attempts = ((Map<?, ?>) json).get("attempts");
         return new Run(stored.id(), stored.versionId(), Json.str(json, "key"),
                 Json.str(json, "process"), Json.str(json, "step"),
-                RunKind.of(Json.str(json, "kind")), Holder.of(Json.str(json, "holder")),
+                RunKind.of(Json.str(json, "kind")),
+                Holder.derived(status, automation,
+                        status == Status.IN_PROGRESS && assignment != null
+                                && assignment.role() != null),
                 optional(json, "parent"), optional(json, "correlation"),
                 optional(json, "trace"),
-                Map.copyOf(tally), item, java.util.List.copyOf(domains), assignment(json),
+                Map.copyOf(tally), item, java.util.List.copyOf(domains), assignment,
                 produced(json), optional(json, "stepVersion"),
                 java.util.Collections.unmodifiableMap(inputs), milestone,
-                optional(json, "requester"), optional(json, "refused"));
+                optional(json, "requester"), optional(json, "refused"), status, automation,
+                notBefore == null ? null : java.time.Instant.parse(notBefore.toString()),
+                optional(json, "statusReason"),
+                attempts instanceof Number count ? count.intValue() : 0);
     }
 
     /**
@@ -352,7 +428,8 @@ public record Run(String id, long versionId, String key, String process, String 
                     Scope.of(str(raw, "scope")));
         }
         Object claimant = ((Map<?, ?>) json).get("claimant");
-        if (at == null && executor == null && note == null && claimant == null
+        Object role = ((Map<?, ?>) json).get("role");
+        if (at == null && executor == null && note == null && claimant == null && role == null
                 && ((Map<?, ?>) json).get("until") == null) {
             return null;
         }
@@ -360,7 +437,8 @@ public record Run(String id, long versionId, String key, String process, String 
         return new Assignment(Scope.of(at == null ? null : at.toString()), executor,
                 note == null ? null : note.toString(),
                 until == null ? null : java.time.Instant.parse(until.toString()),
-                claimant == null ? null : claimant.toString());
+                claimant == null ? null : claimant.toString(),
+                role == null ? null : role.toString());
     }
 
     /** Whether this run is in front of a person because nothing automated took it. */

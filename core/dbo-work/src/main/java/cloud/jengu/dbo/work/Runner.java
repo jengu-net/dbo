@@ -124,15 +124,23 @@ public final class Runner {
     }
 
     /**
-     * A workplace: somebody opened this run, so this participant is holding it
-     * now.
+     * A workplace: a person opened this run, and holds it now as the role
+     * they hold here.
      *
      * <p>The same claim a service makes, for the same reason — two people
      * opening one piece of work is the case a lease exists for, and a person is
-     * no more entitled to hold it twice than a process is.
+     * no more entitled to hold it twice than a process is. What the run then
+     * says holds it is the person, by their role: it was this participant's
+     * executor, so a person at a screen was recorded as a device running
+     * automation, and a list of what waits for people could not see that
+     * somebody had it.
+     *
+     * @param role the {@code PractitionerRole} the person holds, as
+     *             {@code PractitionerRole/<id>}
      */
-    public Optional<Run> open(String key) {
-        return runs.byKey(key).flatMap(run -> participation.claim(run, hold));
+    public Optional<Run> open(String key, String role) {
+        return runs.byKey(key).flatMap(run -> runs.claimAsPerson(run, role,
+                java.time.Instant.now().plus(hold), null));
     }
 
     /** Progress, which extends the claim. */
