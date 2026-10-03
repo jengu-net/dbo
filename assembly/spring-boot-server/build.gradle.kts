@@ -164,7 +164,7 @@ dependencies {
     testImplementation("org.springframework:spring-test:7.0.9")
     testImplementation("org.springframework:spring-web:7.0.9")
     testImplementation("org.springframework.boot:spring-boot-test:$springBootVersion")
-    testImplementation("org.assertj:assertj-core:3.27.3")
+    testImplementation("org.assertj:assertj-core:3.27.7")
     testRuntimeOnly("ch.qos.logback:logback-classic:1.5.18")
     // A real application: a real servlet container, a real database, a real
     // tenant. The claim this assembly exists to make cannot be made against
