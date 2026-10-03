@@ -13,10 +13,10 @@
 > something happened and cannot say to whom.
 >
 > Two things surprised the engineer who wrote this down, and both are
-> the store being stricter than expected. A credential that may write
-> every type in the clinic still reads Liis back **pseudonymously**,
-> because what a recipient sees is declared rather than inferred from
-> how much they can write. And looking her up by her national identifier
+> the store being stricter than expected. The clinic that asked for her
+> to be recorded reads her back **pseudonymously**, because what an asker
+> sees is declared rather than inferred from what it asked for. And
+> looking her up by her national identifier
 > is refused outright until the caller says what it is *for*.
 
 ## The scene
@@ -27,9 +27,17 @@ the person who can write the most can also see the most.
 
 ## Reading her is not the same as writing her
 
-The clinic's own application credential may write every type there is. It
-reads Liis back without her name, and with her birth date generalised to the
-year.
+The clinic's application asked for Liis to be recorded, and reads her back
+through the run that recorded her, for the few minutes the step allows. It
+holds no records credential, and it is shown her as the audience the hospital
+declared for the step: without her name, and with her birth date generalised
+to the year — whatever reason it gives.
+
+Where the hospital lets a step's asker see a person whole, the step says why
+when it is declared, and the asker says the same thing as it reads. Two keys,
+because a reason said once at design time is not a reason said by whoever is
+looking now; either alone gets the strict mode. Each of those readings is on
+her trail, naming who read, through which run, and why.
 
 Generalising it rather than removing it is deliberate. A reader who may not identify
 her may still legitimately need to know roughly when she was born, and a
@@ -114,6 +122,10 @@ citations say it is.
 | `REQ-DBO-IDN-ANONYMITY-IS-DECLARED-NOT-INFERRED` | Anonymous on purpose is something a subject says, not something absence implies. Two unbound subjects are otherwise identical — one expects to be identified and the other must not be — and an intention cannot be stated by an absence, so the declaration is positive, states its basis, and is refused without one. While it stands, binding is refused rather than discouraged; declaring it over a standing identity is refused too, because the identification has to be withdrawn first rather than shadowed. Withdrawal stays available throughout, and a person may lift their own declaration. | PROVEN |
 | `REQ-DBO-IDN-BINDING-IS-REVERSIBLE-AND-KEEPS-ITS-EVIDENCE` | Attaching an identity to a subject can be undone, and undoing it takes the identity without touching the care: a wrong binding put one person's records in another's, so withdrawal must always be available and must leave the clinical data alone. What is withdrawn stays answerable — that somebody was identified, and that it was undone, are both facts a regulator may ask about — so events are append-only and a mistaken withdrawal is as recoverable as a mistaken binding. A binding names who made it and why, and one subject's bindings say nothing about another's. | PROVEN |
 | `REQ-DBO-IDN-WHAT-A-RECIPIENT-SEES-IS-DECLARED` | What may leave and what this particular recipient may see are different questions, and a tenant answers the second by declaring an audience: which types it is answered about at all, and what a read of one of them reveals. A type outside the declaration is absent rather than refused, because a refusal naming it would tell the recipient it exists. The mode follows the declaration rather than the request — a recipient that could ask for more would make the declaration advice — and an audience nobody declared sees nothing, because a typo in a serving surface and a partner who was removed both want silence. Naming no audience is the tenant working with its own records, and nothing about it changes. | PROVEN |
+| `REQ-DBO-PROC-A-RUN-IS-COLLECTED-BY-ITS-ASKER` | A step that declares an answer gives its run's requester a window, from the moment the result is written until the step's declared length later, in which it alone reads what the run was given and each version the run produced, read as that version. The run is over and nobody holds it: collecting is optional, so the window is a time beside the run and never a state of it, and the asker may shut it early by saying it is done. A step that declares no answer closes as it always did and opens no window. | PROVEN |
+| `REQ-DBO-IDN-THE-ASKER-IS-A-DECLARED-AUDIENCE` | The application that asked for a run collects what the run was given and produced as an audience the step names, one the tenant declared: its types bound what is collectable and its mode is what a collection reveals, and the request cannot raise either. A step naming an audience the tenant never declared is refused when the declaration is read, and a step naming none leaves its asker the run's answer alone — references, never content. | PROVEN |
+| `REQ-DBO-IDN-A-STEP-STATES-ITS-PURPOSE` | A collection reveals a person whole only with two keys: the purpose the step declared, and the same code stated by the collecting request at the moment of reading. A step whose audience reveals a person whole and that states no purpose is refused when it is declared; a request stating no purpose or another one is answered in the strict mode, and neither key alone reveals more than that. | PROVEN |
+| `REQ-DBO-POL-COLLECTING-IS-A-READING` | Each collection an asker makes through its run's window is an access entry about the document, landing beside every other reading of it, naming the asker's client as actor, the run as occasion and the step's purpose — never travel, and whatever the tenant's audit level. A version may be collected any number of times within the window, each a reading of its own. Reading the run's answer stays no entry, because it carries references only. | PROVEN |
 | `REQ-DBO-AUTH-FEDERATED-HUMANS` | Human authentication is federated to the configured identity broker; the authority resolves the verified national identifier to a Practitioner through the vault index and owns authorization only. Local credentials are an embedded/dev fallback, never the production path. | PROVEN |
 | `REQ-DBO-AUTH-PSEUDONYMOUS-TOKENS` | Human tokens carry the practitioner's record id and SMART user scopes — no name, no national code; a captured token identifies no one. | PROVEN |
 | `REQ-DBO-AUTH-ON-BEHALF-OF` | Automated processes act in the name of a human via token exchange — subject stays the practitioner, an act claim names the client, scopes attenuate; durable workflows delegate through Delegation records that outlive tokens and are revocable by ending their period. Every delegated mutation is attributable to both the process and the person. | PROVEN |
@@ -132,7 +144,7 @@ citations say it is.
 | `REQ-DBO-PDI-A-REFUSAL-ANSWERS-AS-A-REFUSAL` | A search refused for want of a stated purpose answers as a refusal the caller can act on, never as a fault: the request was well formed and this store is not broken, it declined. Answering 500 told a caller to retry and report it, under a message written to tell them to state a purpose instead — so the one refusal the design argues hardest for was the one a caller was least able to read. | PROVEN |
 | `REQ-DBO-PDI-AN-ID-THE-STORE-NEVER-ASSIGNED-IS-NOT-A-FAULT` | A vault lookup for a record id this store never assigned answers that it holds nothing, decided before the database is asked. A caller's malformed id is the caller's mistake, and handing it to the database to cast made it the server's: a tenant with a vault answered 500 where the same request answered 400 without one, so turning the membrane on turned a refusal into a fault — and the membrane is supposed to be invisible to everything except what it protects. | PROVEN |
 
-Coverage: {PROVEN=28} — a leg marked PLANNED cites a promise that exists and is not yet cited by any test.
+Coverage: {PROVEN=32} — a leg marked PLANNED cites a promise that exists and is not yet cited by any test.
 <!-- story:end -->
 
 ## What the store cannot do yet

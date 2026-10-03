@@ -149,30 +149,40 @@ class TheClinicRecordsCareAndAccountsForItIT {
 
     @Test
     @Order(1)
-    @DisplayName("a patient is written and reads back as what was written, an element nothing "
-            + "indexes included")
+    @DisplayName("a patient is written and the clinic that asked collects her through its run "
+            + "as what was written, an element nothing indexes included")
     @Proving({DboPromises.CORE_PAYLOAD_IS_TRUTH, DboPromises.CORE_READ_YOUR_WRITES,
-            DboPromises.CORE_DECLARED_TRUTH_FORM})
+            DboPromises.CORE_DECLARED_TRUTH_FORM, DboPromises.PROC_A_RUN_IS_COLLECTED_BY_ITS_ASKER})
     void whatWasWrittenIsWhatIsRead() {
         // The clinic's application asks for her to be recorded; the step
         // answers with her, and the clinic writes her.
         // --8<-- [start:register]
-        liis = writtenBy(registering.register(CLINIC, """
+        var asked = registering.register(CLINIC, """
                 {"resourceType":"Patient",
                  "identifier":[{"system":"%s","value":"%s"}],
                  "name":[{"family":"Tamm","given":["Liis"]}],
-                 "birthDate":"1990-01-01"}""".formatted(MRN, hers())), "Patient");
+                 "birthDate":"1990-01-01"}""".formatted(MRN, hers()));
+        var answer = hearing.settled(CLINIC, asked, Duration.ofMinutes(3));
         // --8<-- [end:register]
+        assertEquals("completed", answer.state(), "the run did not complete: " + answer.body());
+        liis = cloud.jengu.dbo.samples.worker.HearingBack.produced(answer).get(0)
+                .split("/")[1];
 
-        HttpResponse<String> read = dbo.read(CLINIC, "Patient", liis);
-        assertEquals(200, read.statusCode(), read.body());
-        var record = dbo.says(read);
+        // And reads her back through the run that wrote her, as the desk the
+        // clinic declared for the step: no records credential anywhere.
+        // --8<-- [start:collect]
+        var read = registering.registered(CLINIC, asked, answer);
+        // --8<-- [end:collect]
+        Proves.that(DboPromises.PROC_A_RUN_IS_COLLECTED_BY_ITS_ASKER, read.found(),
+                "the clinic could not collect what its run wrote: " + read.status() + " "
+                        + read.body());
+        Map<?, ?> record = (Map<?, ?>) cloud.jengu.dbo.core.wire.RecordWire.read(read.body());
         Proves.that(DboPromises.CORE_READ_YOUR_WRITES,
-                record.at("name.family").contains("Tamm"),
+                String.valueOf(record.get("name")).contains("Tamm"),
                 "the write had returned and the read straight after it did not see it: "
                         + read.body());
         Proves.that(DboPromises.CORE_PAYLOAD_IS_TRUTH,
-                record.one("birthDate").equals(Optional.of("1990-01-01")),
+                "1990-01-01".equals(record.get("birthDate")),
                 "an element nothing indexes did not come back as written, so the record was "
                         + "rebuilt from something other than its payload: " + read.body());
     }
@@ -251,7 +261,7 @@ class TheClinicRecordsCareAndAccountsForItIT {
         // answers with both observations as one result, which the clinic
         // commits as one transaction.
         // --8<-- [start:visit]
-        var visit = hearing.settled(CLINIC, visiting.record(CLINIC, List.of("""
+        var asked = visiting.record(CLINIC, List.of("""
                 {"resourceType":"Observation","id":"temperature","status":"final",
                  "code":{"text":"Body temperature"},
                  "subject":{"reference":"Patient?identifier=%s|%s"},
@@ -260,7 +270,8 @@ class TheClinicRecordsCareAndAccountsForItIT {
                  "code":{"text":"Visit summary"},
                  "subject":{"reference":"Patient?identifier=%s|%s"},
                  "hasMember":[{"reference":"urn:uuid:temperature"}]}"""
-                .formatted(MRN, hers()))), Duration.ofMinutes(3));
+                .formatted(MRN, hers())));
+        var visit = hearing.settled(CLINIC, asked, Duration.ofMinutes(3));
         // --8<-- [end:visit]
         Proves.that(DboPromises.CORE_ATOMIC_TRANSACTION_BUNDLE,
                 "completed".equals(visit.state()), "the visit did not land: " + visit.body());
@@ -271,17 +282,25 @@ class TheClinicRecordsCareAndAccountsForItIT {
         List<String> landed = cloud.jengu.dbo.samples.worker.HearingBack.produced(visit);
         assertEquals(2, landed.size(), "the visit's two observations say where they landed: "
                 + visit.body());
-        String summary = landed.get(1).replaceAll("/_history/.*$", "");
-        HttpResponse<String> stored = clinic.get("/" + summary);
-        assertEquals(200, stored.statusCode(), stored.body());
-        var said = dbo.says(stored);
+        // Read back through the visit's own run, each observation as the
+        // version the visit wrote.
+        // --8<-- [start:recorded]
+        var recorded = visiting.recorded(CLINIC, asked, visit);
+        // --8<-- [end:recorded]
+        var stored = recorded.get(1);
+        assertTrue(stored.found(), "the clinic could not collect what its visit recorded: "
+                + stored.status() + " " + stored.body());
+        Map<?, ?> said = (Map<?, ?>) cloud.jengu.dbo.core.wire.RecordWire.read(stored.body());
         Proves.that(DboPromises.CORE_CONDITIONAL_REFERENCES,
-                said.one("subject.reference").equals(Optional.of("Patient/" + liis)),
+                said.get("subject") instanceof Map<?, ?> subject
+                        && ("Patient/" + liis).equals(subject.get("reference")),
                 "the record number the sender knew was left as a question rather than "
                         + "resolved to the patient this store holds: " + stored.body());
         String temperature = landed.get(0).replaceAll("/_history/.*$", "");
         Proves.that(DboPromises.CORE_REFERENCE_EDGES,
-                said.at("hasMember.reference").equals(List.of(temperature)),
+                said.get("hasMember") instanceof List<?> members && members.size() == 1
+                        && members.get(0) instanceof Map<?, ?> member
+                        && temperature.equals(member.get("reference")),
                 "the reference between two entries of one visit did not land on the record "
                         + "the other entry became: " + stored.body());
     }

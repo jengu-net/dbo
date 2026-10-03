@@ -27,7 +27,8 @@ downstream.
 
 ## One patient, however many times she arrives
 
-Liis is written once and reads back as what was written. Not as something
+Liis is written once, and the clinic that asked for it reads her back through
+the run that wrote her, as what was written. Not as something
 reassembled from indexed columns — her birth date comes back although nothing
 searches on it, because the payload is the record and every projection is
 derived from it.
@@ -111,6 +112,7 @@ citations say it is.
 | `REQ-DBO-CORE-CONDITIONAL-UPSERT` | A write may be addressed by identity rather than by id: `PUT [type]?identifier=…` or `?url=…` creates the resource when absent and replaces it when present, standalone and inside a bundle. Configuration that must match a source can therefore be expressed as itself, rather than as a create that silently does nothing when the record already exists. | PROVEN |
 | `REQ-DBO-CORE-IDENTITY-KEYED-CONDITIONALS` | Conditional writes are accepted only when keyed on the type's primary identity; a conditional write on any other criterion is rejected. | PROVEN |
 | `REQ-DBO-CORE-READ-YOUR-WRITES` | A write returns only after its data and its change event are committed in one transaction. (D1) | PROVEN |
+| `REQ-DBO-PROC-A-RUN-IS-COLLECTED-BY-ITS-ASKER` | A step that declares an answer gives its run's requester a window, from the moment the result is written until the step's declared length later, in which it alone reads what the run was given and each version the run produced, read as that version. The run is over and nobody holds it: collecting is optional, so the window is a time beside the run and never a state of it, and the asker may shut it early by saying it is done. A step that declares no answer closes as it always did and opens no window. | PROVEN |
 | `REQ-DBO-CORE-VERSIONED-HISTORY` | Every write appends an immutable version; version-aware reads and optimistic concurrency (ETag) are first-class. | PROVEN |
 | `REQ-DBO-CORE-PARAMETERIZED-SQL` | No value is ever concatenated into SQL text. (D2) | PROVEN |
 | `REQ-DBO-CORE-SIBLING-MODELS` | Non-FHIR object models ride the same engine as FHIR resources, not beside it. (R6) | PROVEN |
@@ -163,7 +165,7 @@ citations say it is.
 | `REQ-DBO-OPS-TENANT-BLOB-STORAGE` | Planned — Binary content lives in per-tenant blob storage provisioned credential-blind; erasure-by-drop extends to it; small deployments fall back to Postgres behind the same interface. | PLANNED |
 | `REQ-DBO-EVT-A-TENANT-DELIVERS` | A tenant serving a face that composes notifications mounts its own dispatcher: a subscription it holds is matched against what changes and the subscriber is posted to, with the name of what changed rather than the record itself where the channel asked for no payload. | PROVEN |
 
-Coverage: {PROVEN=56, PLANNED=3} — a leg marked PLANNED cites a promise that exists and is not yet cited by any test.
+Coverage: {PROVEN=57, PLANNED=3} — a leg marked PLANNED cites a promise that exists and is not yet cited by any test.
 <!-- story:end -->
 
 ## What the store cannot do yet

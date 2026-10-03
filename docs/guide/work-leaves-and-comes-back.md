@@ -143,8 +143,17 @@ records surface refuses outright. It reads the documents the
 run was started over and nothing else: a record of a declared type the run was
 not given answers exactly as an id nothing ever minted, so asking cannot reveal
 what exists. Its capability statement lists only the step's types. When the
-work is ended, at `/t/<tenant>/run/<id>/done`, the context answers as a run
-that never existed, so performing a step leaves no standing way in behind it.
+work is ended, at `/t/<tenant>/run/<id>/done`, the context answers its
+performer as a run that never existed, so performing a step leaves no standing
+way in behind it.
+
+A step that declares an answer — `"answers"` naming an audience, `"collect"` a
+duration — opens the same context to the application that asked for the run,
+once the work is over and for that long. It reads what the run was given and
+each version the run produced, at `Type/id/_history/n`, as the audience sees
+it; `DboInitiator.collect` asks for one, and `collected` shuts the window
+early ([reading back what was written](care-is-recorded.md#reading-back-what-was-written)).
+While a participant performs the run, the asker reads nothing through it.
 
 ## What automation may not take, a nurse does
 
@@ -219,6 +228,4 @@ stream. What an application cannot do yet is narrower than the story:
 - **A step cannot delete, or create conditionally.** A result is creates, and
   updates against a version.
 - **A run's context is read-only, and reaches only what the run names.** It
-  follows no reference, and an application reading its own run back through
-  `DboInitiator` is answered with references to what was written, not the
-  records.
+  follows no reference.

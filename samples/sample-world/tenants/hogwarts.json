@@ -12,18 +12,24 @@
       "types": ["StructureDefinition", "SearchParameter", "ValueSet", "CodeSystem"] },
     { "name": "rl", "types": ["CodeSystem", "ValueSet"] }
   ],
+  "disclosure": {
+    "perAudience": {
+      "desk": { "types": ["Patient"], "reveals": "omit" },
+      "ward": { "types": ["Patient"], "reveals": "include" }
+    }
+  },
   "steps": [
     { "code": "hogwarts.admission.admit", "slots": { "patient": "Reference(Patient)" } },
     { "code": "hogwarts.admission.register", "slots": { "patient": "Patient" },
       "writes": ["Patient", "Encounter"] },
     { "code": "hogwarts.ward.observe", "slots": { "patient": "Reference(Patient)" } },
     { "code": "care.records.register", "slots": { "patient": "Patient" },
-      "writes": ["Patient"] },
+      "writes": ["Patient"], "answers": "desk", "collect": "PT15M" },
     { "code": "care.records.identify", "slots": { "person": "Person" },
       "writes": ["Person"] },
     { "code": "care.records.correct",
       "slots": { "record": "Reference(Patient)", "corrected": "Patient" },
-      "writes": ["Patient"] },
+      "writes": ["Patient"], "answers": "ward", "collect": "PT15M", "purpose": "TREAT" },
     { "code": "care.results.review", "slots": { "result": "Reference(Observation)" },
       "automate": { "when": "result.interpretation.coding.code = 'N'" } }
   ],

@@ -73,6 +73,26 @@ A step that says nothing is open to automation.
 because an executor that died said nothing about why. What happens to the
 others is [below](#when-a-run-fails).
 
+## `answers`, `collect` and `purpose`: what the asker reads back
+
+```json
+{ "code": "care.records.correct",
+  "slots": { "record": "Reference(Patient)", "corrected": "Patient" },
+  "writes": ["Patient"], "answers": "ward", "collect": "PT15M", "purpose": "TREAT" }
+```
+
+`answers` names an audience under the tenant's `disclosure.perAudience`, and
+`collect` how long after the result is written the application that asked may
+collect through the run: what it was given, as `Type/id`, and each version it
+produced, as `Type/id/_history/n`. The audience's `types` bound what it may
+collect and its `reveals` is what a collection of a person shows; the request
+cannot raise either. An audience that reveals `include` needs `purpose`, and a
+collection shows the person whole only when its `Purpose-Of-Use` header states
+the same code — otherwise, the strict mode. Each collection is a reading on
+the trail. The two come together or not at all, an undeclared audience is
+refused, and a step that says neither leaves its asker the answer alone
+([reading back what was written](care-is-recorded.md#reading-back-what-was-written)).
+
 ## A run
 
 Performing a step once is a **run**, and a run is a record in the tenant's own

@@ -9,14 +9,19 @@
     { "name": "rl", "types": ["CodeSystem", "ValueSet"] },
     { "name": "hogwarts", "types": ["Encounter"] }
   ],
+  "disclosure": {
+    "perAudience": {
+      "desk": { "types": ["Patient", "Observation"], "reveals": "omit" }
+    }
+  },
   "steps": [
     { "code": "care.records.register", "slots": { "patient": "Patient" },
-      "writes": ["Patient"] },
+      "writes": ["Patient"], "answers": "desk", "collect": "PT15M" },
     { "code": "care.records.correct",
       "slots": { "record": "Reference(Patient)", "corrected": "Patient" },
-      "writes": ["Patient"] },
+      "writes": ["Patient"], "answers": "desk", "collect": "PT15M" },
     { "code": "care.visit.record", "slots": { "observations": "Observation[]" },
-      "writes": ["Observation"] }
+      "writes": ["Observation"], "answers": "desk", "collect": "PT15M" }
   ],
   "types": [
     { "name": "StructureDefinition", "identity": "canonical", "handling": "replicated" },

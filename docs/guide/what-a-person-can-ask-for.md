@@ -27,6 +27,47 @@ From then on what identifies somebody lives in the tenant's person vault, under
 that person's own key, and the records hold pseudonymous data
 ([personal data](personal-data.md)).
 
+## Reading her back
+
+The clinic's application asked for Liis to be recorded, and reads her back
+through the run that recorded her — never through a records credential. What
+it is shown is an audience Hogwarts declares, named by each step:
+
+```json
+"disclosure": {
+  "perAudience": {
+    "desk": { "types": ["Patient"], "reveals": "omit" },
+    "ward": { "types": ["Patient"], "reveals": "include" }
+  }
+},
+"steps": [
+  { "code": "care.records.register", "slots": { "patient": "Patient" },
+    "writes": ["Patient"], "answers": "desk", "collect": "PT15M" },
+  { "code": "care.records.correct",
+    "slots": { "record": "Reference(Patient)", "corrected": "Patient" },
+    "writes": ["Patient"], "answers": "ward", "collect": "PT15M", "purpose": "TREAT" }
+]
+```
+
+A registration answers the desk, which sees nobody whole: the clinic collects
+Liis without her name and with her birth date generalised to the year, and
+stating a reason changes nothing. A correction answers the ward, which may see
+her whole — and so the step had to say why when it was declared, and it is
+refused unless it does. The clinic states the same reason as it reads:
+
+```java
+--8<-- "samples/spring-boot-server-app/src/main/java/cloud/jengu/dbo/samples/server/AskingForACorrection.java:asking"
+```
+
+```java
+--8<-- "samples/spring-boot-server-app/src/test/java/cloud/jengu/dbo/samples/stories/WhatAPersonCanAskForIT.java:treating"
+```
+
+Two keys: the purpose the step declared, and the same code stated at the
+moment of reading. Either alone is the strict mode, and never a refusal. Each
+collection lands on her trail as a reading, naming the clinic's client, the run
+and the purpose.
+
 ## Who somebody is
 
 A patient record is somebody in one capacity; a `Person` is the human, carrying
@@ -65,10 +106,12 @@ there to destroy is what tells erased apart from never-held.
 
 ## What the store guarantees
 
-- **Reading her is not writing her.** A credential that may write every type
-  reads Liis back without her name and with her birth date generalised to the
-  year, because what a recipient sees is declared rather than inferred from how
-  much it may write. The strict mode is the default.
+- **Reading her is not writing her.** The clinic that asked for her to be
+  recorded reads her back as the audience the step names, without her name and
+  with her birth date generalised to the year, because what a recipient sees is
+  declared rather than inferred from what it asked for. The strict mode is the
+  default, and she is shown whole only when the step's declared purpose and the
+  reader's agree.
 - **Looking somebody up is an act with a reason.** A search by her national
   number is refused until the request states a purpose, and the refusal names
   the codes that would work. Then it finds her and nobody else, and the trail
@@ -92,10 +135,6 @@ names the test behind each.
 
 ## What the store cannot do yet
 
-- **Reading her back is the records surface's.** The application learns that
-  the hospital wrote her, and where; it cannot read her through the run that
-  wrote her. The story reads her on the records surface, with and without a
-  stated purpose.
 - **Content is not scoped to a run.** A recording kept for her is put through
   the hospital's content door, sealed to her; a step cannot hand content over
   with its result, and a run cannot carry content in or out.

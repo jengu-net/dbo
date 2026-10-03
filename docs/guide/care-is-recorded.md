@@ -35,6 +35,12 @@ names a record the clinic holds, and the step is handed that record;
 what the step may ask the clinic to write, and a record of any other type is
 refused before anything is read.
 
+`answers` and `collect` say what the application that asked may read back
+once the work is over, and for how long. `desk` is an audience the clinic
+declares under `disclosure.perAudience`: the types it may be shown and what a
+read of a person reveals. The application is that audience whenever it
+collects through a run of these steps, and nothing it sends can make it more.
+
 ## Asking for a step
 
 The application asks with `DboInitiator`, naming the tenant, the step and what
@@ -113,6 +119,33 @@ where she was written:
 --8<-- "samples/spring-boot-server-app/src/test/java/cloud/jengu/dbo/samples/stories/TheClinicRecordsCareAndAccountsForItIT.java:register"
 ```
 
+## Reading back what was written
+
+The answer names what the clinic wrote; the record itself is collected through
+the same run. For fifteen minutes after the result is written — the step's
+`collect` — the run answers the application that asked for it, and nobody
+else, for what it was given and for each version it produced, read as that
+version. Registering somebody collects the patient the clinic wrote, as the
+desk is shown her (the `registered` method of the class quoted above):
+
+```java
+--8<-- "samples/spring-boot-server-app/src/test/java/cloud/jengu/dbo/samples/stories/TheClinicRecordsCareAndAccountsForItIT.java:collect"
+```
+
+and a visit collects each observation it recorded:
+
+```java
+--8<-- "samples/spring-boot-server-app/src/test/java/cloud/jengu/dbo/samples/stories/TheClinicRecordsCareAndAccountsForItIT.java:recorded"
+```
+
+The run is over while this happens, and nobody holds it: collecting is
+optional, so the window is a time beside the run rather than a state of it,
+and it shuts by the clock with nothing swept. `DboInitiator.collected` shuts it
+sooner. Past it the run answers as one that never existed. Each collection is
+a reading on the clinic's trail, naming the application's client and the run
+([the trail](the-trail.md)). The answer itself, read as often as the
+application likes, carries references only and is no reading of anything.
+
 Her visit names her by the number the sender knows, and one observation gathers
 the other by the name it was given:
 
@@ -161,6 +194,8 @@ tenant's records are reached through a step like anything else.
   number is a different patient.
 - **What was written is what is read**, an element nothing indexes included,
   because the payload is the record and every projection is derived from it.
+  The application that asked reads it back through its run, as the audience
+  the step names, until the window the step declared shuts.
 - **Every version is kept.** A correction keeps the version that was wrong, and
   a correction decided on a version that has since moved is refused, with the
   clinic's reason on the run.
@@ -182,10 +217,6 @@ names the test behind each.
 
 ## What the store cannot do yet
 
-- **An application cannot read a record's content back through a run.** The
-  answer names what the clinic wrote, as `Type/id/_history/version`; reading
-  the record itself takes the clinic's records surface, which is where the story
-  reads Liis back to prove what was written.
 - **A step cannot delete, or create conditionally.** A step answers with
   creates and with updates against a version. *Create her unless somebody with
   this number already exists* is a conditional create on the records surface,

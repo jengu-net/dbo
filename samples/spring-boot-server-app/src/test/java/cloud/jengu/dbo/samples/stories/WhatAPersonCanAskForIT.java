@@ -1,6 +1,7 @@
 package cloud.jengu.dbo.samples.stories;
 
 import cloud.jengu.dbo.auth.TenantAuthority;
+import cloud.jengu.dbo.samples.worker.HearingBack;
 import cloud.jengu.dbo.promise.proving.Proves;
 import cloud.jengu.dbo.promises.DboPromises;
 import cloud.jengu.dbo.promises.DboStories;
@@ -24,6 +25,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.List;
+import java.util.Map;
 
 import static cloud.jengu.dbo.samples.stories.APersonsDoors.encoded;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -90,7 +92,13 @@ class WhatAPersonCanAskForIT {
     @Autowired
     cloud.jengu.dbo.samples.worker.HearingBack hearing;
 
+    /** The clinic's own asking, for what the story asks of it directly. */
+    @Autowired
+    cloud.jengu.dbo.spring.worker.DboInitiator initiator;
+
     private APersonsDoors doors;
+    /** The hospital's records surface, where its trail is read. */
+    private ATenantsDoor hospital;
     private WhatTheDatabaseHolds database;
 
     /** Her Patient record, and the Person record that says who she is. */
@@ -118,6 +126,7 @@ class WhatAPersonCanAskForIT {
         TenantAuthority authority = tenants.authority(HOSPITAL).orElseThrow(
                 () -> new AssertionError(HOSPITAL + " has no authority: " + dbo.serving()));
         doors = new APersonsDoors(dbo, authority, HOSPITAL);
+        hospital = new ATenantsDoor(dbo, HOSPITAL);
         database = new WhatTheDatabaseHolds(environment, HOSPITAL);
     }
 
@@ -125,46 +134,107 @@ class WhatAPersonCanAskForIT {
 
     @Test
     @Order(1)
-    @DisplayName("a credential that may write every type still reads Liis back without her "
-            + "name, because what identifies her lives in the vault")
-    @Proving({DboPromises.PDI_STRUCTURAL_VAULT, DboPromises.IDN_WHAT_A_RECIPIENT_SEES_IS_DECLARED})
+    @DisplayName("the clinic that asked for Liis to be recorded collects her through its run "
+            + "without her name, because its desk is declared to see nobody whole and what "
+            + "identifies her lives in the vault")
+    @Proving({DboPromises.PDI_STRUCTURAL_VAULT, DboPromises.IDN_WHAT_A_RECIPIENT_SEES_IS_DECLARED,
+            DboPromises.IDN_THE_ASKER_IS_A_DECLARED_AUDIENCE,
+            DboPromises.PROC_A_RUN_IS_COLLECTED_BY_ITS_ASKER})
     void readingHerIsNotTheSameAsWritingHer() {
         // Written by the hospital, from what a step answered with: the
         // clinic's application gave her and never held a records credential.
-        var written = hearing.settled(HOSPITAL, registering.register(HOSPITAL, """
+        var asked = registering.register(HOSPITAL, """
                 {"resourceType":"Patient",
                  "identifier":[{"system":"%s","value":"%s"}],
                  "name":[{"family":"Tamm","given":["Liis"]}],
-                 "birthDate":"1990-01-01"}""".formatted(NATIONAL_NUMBER, names.value("liis"))),
-                Duration.ofMinutes(3));
+                 "birthDate":"1990-01-01"}""".formatted(NATIONAL_NUMBER, names.value("liis")));
+        var written = hearing.settled(HOSPITAL, asked, Duration.ofMinutes(3));
         assertEquals("completed", written.state(), "Liis was not recorded: " + written.body());
         liis = idOf(written, "Patient");
 
-        HttpResponse<String> read = dbo.read(HOSPITAL, "Patient", liis);
-        var record = dbo.says(read);
-        // Answered rather than refused. What a recipient sees follows what the
-        // hospital declared, not how much the credential may write, and work
-        // that never needed her still runs.
+        // Read back through the run that wrote her, as the desk the hospital
+        // declared for the step: the strict mode, whatever the clinic says.
+        var desk = registering.registered(HOSPITAL, asked, written);
+        Proves.that(DboPromises.PROC_A_RUN_IS_COLLECTED_BY_ITS_ASKER, desk.found(),
+                "the clinic could not collect the record its run wrote: " + desk.status() + " "
+                        + desk.body());
+        Map<?, ?> record = recordIn(desk);
         Proves.that(DboPromises.IDN_WHAT_A_RECIPIENT_SEES_IS_DECLARED,
-                read.statusCode() == 200 && record.has("resourceType") && !record.has("name"),
-                "a credential that may write every type and states no reason was not answered "
-                        + "with her record without her in it: " + read.statusCode() + " "
-                        + read.body());
-        Proves.that(DboPromises.PDI_STRUCTURAL_VAULT, !record.has("name"),
-                "her name came back to a credential nothing declared may identify her: "
-                        + read.body());
-
-        // The other half, so the absence above is the vault's doing and not a
-        // record that lost her name: stating why it reads, the same credential
-        // is given her back.
-        HttpResponse<String> treating = doors.readFor("TREAT", "Patient/" + liis);
-        Proves.that(DboPromises.PDI_STRUCTURAL_VAULT, treating.body().contains("Tamm"),
-                "a read stating treatment did not reassemble her, so the vault is not "
-                        + "holding her name but has lost it: " + treating.body());
+                "Patient".equals(record.get("resourceType")) && !record.containsKey("name"),
+                "the desk was not answered with her record without her in it: " + desk.body());
+        Proves.that(DboPromises.PDI_STRUCTURAL_VAULT, !record.containsKey("name")
+                        && "1990".equals(record.get("birthDate")),
+                "her name, or her whole birth date, came back to an asker nothing declared may "
+                        + "identify her: " + desk.body());
+        var stating = initiator.collecting(HOSPITAL, asked.run(),
+                HearingBack.produced(written).get(0), "TREAT");
+        Proves.that(DboPromises.IDN_THE_ASKER_IS_A_DECLARED_AUDIENCE,
+                stating.found() && !stating.body().contains("Tamm"),
+                "a purpose the clinic stated raised what its desk is shown: " + stating.body());
     }
 
     @Test
     @Order(2)
+    @DisplayName("the clinic that asked for her record to be corrected is shown her whole only "
+            + "when it states the purpose the step declared, and that reading is on her trail")
+    @Proving({DboPromises.PDI_STRUCTURAL_VAULT, DboPromises.IDN_A_STEP_STATES_ITS_PURPOSE,
+            DboPromises.POL_COLLECTING_IS_A_READING,
+            DboPromises.PROC_A_RUN_IS_COLLECTED_BY_ITS_ASKER})
+    void sheIsShownWholeOnlyForTheStepsPurpose() {
+        // --8<-- [start:treating]
+        var asked = correcting.correct(HOSPITAL, "Patient/" + liis, """
+                {"resourceType":"Patient",
+                 "identifier":[{"system":"%s","value":"%s"}],
+                 "name":[{"family":"Tamm","given":["Liis"]}],
+                 "birthDate":"1990-01-01"}""".formatted(NATIONAL_NUMBER, names.value("liis")));
+        var corrected = hearing.settled(HOSPITAL, asked, Duration.ofMinutes(3));
+        var treating = correcting.corrected(HOSPITAL, asked, corrected, "TREAT");
+        // --8<-- [end:treating]
+        assertEquals("completed", corrected.state(), corrected.body());
+
+        // Both keys: the purpose the step declared, stated again by the
+        // clinic as it reads. The other half proves the absences in the leg
+        // before are the vault's doing and not a record that lost her name.
+        Proves.that(DboPromises.IDN_A_STEP_STATES_ITS_PURPOSE,
+                treating.found() && treating.body().contains("Tamm"),
+                "a collection stating the step's own purpose was not shown her: "
+                        + treating.status() + " " + treating.body());
+        Proves.that(DboPromises.PDI_STRUCTURAL_VAULT, treating.body().contains("1990-01-01"),
+                "a reading stating treatment did not reassemble her, so the vault is not "
+                        + "holding her but has lost her: " + treating.body());
+        // Either key alone is the strict mode, and never a refusal.
+        var unstated = correcting.corrected(HOSPITAL, asked, corrected, null);
+        var another = correcting.corrected(HOSPITAL, asked, corrected, "HRESCH");
+        Proves.that(DboPromises.IDN_A_STEP_STATES_ITS_PURPOSE,
+                unstated.found() && !unstated.body().contains("Tamm"),
+                "the step's purpose alone revealed her: " + unstated.body());
+        Proves.that(DboPromises.IDN_A_STEP_STATES_ITS_PURPOSE,
+                another.found() && !another.body().contains("Tamm"),
+                "a purpose the step never declared revealed her: " + another.body());
+
+        // Three collections, three readings: each an access entry about her,
+        // naming the run as its occasion and the step's purpose.
+        HttpResponse<String> trail = hospital.get("/AuditEvent?run="
+                + java.net.URLEncoder.encode(asked.key(), StandardCharsets.UTF_8));
+        assertEquals(200, trail.statusCode(), trail.body());
+        long readings = entriesIn(trail).stream()
+                .filter(entry -> entry.contains("Patient/" + liis) && entry.contains("TREAT"))
+                .count();
+        Proves.that(DboPromises.POL_COLLECTING_IS_A_READING, readings >= 3,
+                "each collection was not a reading of its own on her trail, naming the run "
+                        + "and the step's purpose: " + readings + " in " + trail.body());
+
+        // Done collecting: the window shuts, and her record through the run is
+        // as absent as one the run never wrote.
+        Proves.that(DboPromises.PROC_A_RUN_IS_COLLECTED_BY_ITS_ASKER,
+                initiator.collected(HOSPITAL, asked.run())
+                        && correcting.corrected(HOSPITAL, asked, corrected, "TREAT")
+                                .status() == 404,
+                "the clinic said it had collected, and its run still answered it");
+    }
+
+    @Test
+    @Order(3)
     @DisplayName("what passes through the hospital's database to reach her record is not "
             + "written down there, because the database is pinned not to log parameters")
     @Proving(DboPromises.PDI_PLAINTEXT_IN_FLIGHT_LEAVES_NO_TRACE)
@@ -182,7 +252,7 @@ class WhatAPersonCanAskForIT {
     }
 
     @Test
-    @Order(3)
+    @Order(4)
     @DisplayName("Liis is held as a Patient and as the Person who is her, one human under one "
             + "key, while a second Person claiming her number or her record is refused")
     @Proving({DboPromises.PDI_STRUCTURAL_VAULT, DboPromises.CORE_NO_IMPLICIT_MERGE})
@@ -233,7 +303,7 @@ class WhatAPersonCanAskForIT {
     // ── looking somebody up is an act with a reason ──
 
     @Test
-    @Order(4)
+    @Order(5)
     @DisplayName("looking Liis up by her national number is refused until the caller says "
             + "what it is for, and then finds her and nobody else")
     @Proving({DboPromises.PDI_A_REFUSAL_ANSWERS_AS_A_REFUSAL, DboPromises.PDI_EXACT_RESOLUTION})
@@ -263,7 +333,7 @@ class WhatAPersonCanAskForIT {
     }
 
     @Test
-    @Order(5)
+    @Order(6)
     @DisplayName("every way a record of a person can carry a number, a lookup by it finds the "
             + "record or refuses, and never answers empty for something the hospital holds")
     @Proving({DboPromises.PDI_EXACT_RESOLUTION, DboPromises.CORE_IDENTITY_KEYED_CONDITIONALS})
@@ -301,7 +371,7 @@ class WhatAPersonCanAskForIT {
     // ── who she is, decided rather than guessed ──
 
     @Test
-    @Order(6)
+    @Order(7)
     @DisplayName("identifying somebody is a door of its own: a claim resolves to the people the "
             + "hospital holds, an unchecked one never resolves with certainty, a stranger is an "
             + "answer, and a credential that may write everything may not knock")
@@ -347,7 +417,7 @@ class WhatAPersonCanAskForIT {
     }
 
     @Test
-    @Order(7)
+    @Order(8)
     @DisplayName("a person's decision about who somebody is comes back with the next "
             + "resolution, a binding can be withdrawn, and somebody who declared anonymity is "
             + "not bound")
@@ -412,7 +482,7 @@ class WhatAPersonCanAskForIT {
     // ── a pseudonym, derived and turned back ──
 
     @Test
-    @Order(8)
+    @Order(9)
     @DisplayName("Liis's pseudonym is the same each time it is asked for and is written nowhere, "
             + "another scope or another person answers something else, and none is given "
             + "without a scope")
@@ -448,7 +518,7 @@ class WhatAPersonCanAskForIT {
     }
 
     @Test
-    @Order(9)
+    @Order(10)
     @DisplayName("her pseudonym, with a scope and a reason, is turned back into her; under "
             + "another scope it is nobody; and the trail keeps who asked and why without "
             + "keeping the pseudonym")
@@ -502,7 +572,7 @@ class WhatAPersonCanAskForIT {
     // ── what she said is sealed to her ──
 
     @Test
-    @Order(10)
+    @Order(11)
     @DisplayName("a recording of Liis is kept sealed to her: it reads back as the bytes that "
             + "were sent, and what lies at rest is not those bytes")
     @Proving(DboPromises.PDI_CRYPTO_SHREDDING)
@@ -537,7 +607,7 @@ class WhatAPersonCanAskForIT {
     // ── erasure is its own authority, and it is asked for like any other work ──
 
     @Test
-    @Order(11)
+    @Order(12)
     @DisplayName("Liis asks to be forgotten: the desk's own credential opens a run keyed by "
             + "her, which says how far it got, and asking again finds the same run, while a "
             + "credential that may write everything cannot erase anybody")
@@ -580,7 +650,7 @@ class WhatAPersonCanAskForIT {
     // ── afterwards ──
 
     @Test
-    @Order(12)
+    @Order(13)
     @DisplayName("afterwards her records keep their shape and lose her, even to a reader "
             + "stating treatment, and her number, her pseudonym and her recording reach "
             + "nobody, while the trail still says something happened to her record")
@@ -643,7 +713,7 @@ class WhatAPersonCanAskForIT {
     // ── the people who work here act for each other ──
 
     @Test
-    @Order(13)
+    @Order(14)
     @DisplayName("a process acts in a clinician's name by exchanging their token: the subject "
             + "stays the clinician, the process is named as the actor, the scopes narrow, and "
             + "the trail names both")
@@ -704,7 +774,7 @@ class WhatAPersonCanAskForIT {
     }
 
     @Test
-    @Order(14)
+    @Order(15)
     @DisplayName("a standing delegation lets the process act with no token of the clinician's, "
             + "stays as narrow as it was granted when the clinician's role widens, and carries "
             + "the purpose of each request rather than one of its own")
@@ -757,7 +827,7 @@ class WhatAPersonCanAskForIT {
     }
 
     @Test
-    @Order(15)
+    @Order(16)
     @DisplayName("ending the delegation ends what the process may do, and so does the "
             + "clinician's role ending")
     @Proving(DboPromises.AUTH_ON_BEHALF_OF)
@@ -948,6 +1018,25 @@ class WhatAPersonCanAskForIT {
                 .map(written -> written.split("/")[1]).findFirst()
                 .orElseThrow(() -> new AssertionError("no " + type + " was written: "
                         + answer.body()));
+    }
+
+    /** A record collected through a run, as the map it is. */
+    private static Map<?, ?> recordIn(cloud.jengu.dbo.spring.worker.DboInitiator.Collected one) {
+        return (Map<?, ?>) cloud.jengu.dbo.core.wire.RecordWire.read(one.body());
+    }
+
+    /** Each entry of a searchset, as the text of its resource. */
+    private static List<String> entriesIn(HttpResponse<String> bundle) {
+        Object read = cloud.jengu.dbo.core.wire.RecordWire.read(bundle.body());
+        List<String> entries = new ArrayList<>();
+        if (read instanceof Map<?, ?> map && map.get("entry") instanceof List<?> all) {
+            for (Object entry : all) {
+                if (entry instanceof Map<?, ?> one && one.get("resource") instanceof Map<?, ?> r) {
+                    entries.add(cloud.jengu.dbo.core.wire.RecordWire.write(r));
+                }
+            }
+        }
+        return entries;
     }
 
     private static String idIn(HttpResponse<String> created) {

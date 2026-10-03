@@ -372,6 +372,9 @@ public enum DboStories implements Story {
                     DboPromises.CORE_CONDITIONAL_UPSERT,
                     DboPromises.CORE_IDENTITY_KEYED_CONDITIONALS,
                     DboPromises.CORE_READ_YOUR_WRITES,
+                    // And the clinic reads what it asked for back through the
+                    // run, never through a records credential.
+                    DboPromises.PROC_A_RUN_IS_COLLECTED_BY_ITS_ASKER,
                     DboPromises.CORE_VERSIONED_HISTORY,
                     DboPromises.CORE_PARAMETERIZED_SQL,
                     DboPromises.CORE_SIBLING_MODELS,
@@ -450,6 +453,12 @@ public enum DboStories implements Story {
                     DboPromises.IDN_ANONYMITY_IS_DECLARED_NOT_INFERRED,
                     DboPromises.IDN_BINDING_IS_REVERSIBLE_AND_KEEPS_ITS_EVIDENCE,
                     DboPromises.IDN_WHAT_A_RECIPIENT_SEES_IS_DECLARED,
+                    // The clinic that asked reads her through its run, as the
+                    // audience the step names, whole only for its purpose.
+                    DboPromises.PROC_A_RUN_IS_COLLECTED_BY_ITS_ASKER,
+                    DboPromises.IDN_THE_ASKER_IS_A_DECLARED_AUDIENCE,
+                    DboPromises.IDN_A_STEP_STATES_ITS_PURPOSE,
+                    DboPromises.POL_COLLECTING_IS_A_READING,
                     // How a human gets in, and what their token says about them.
                     DboPromises.AUTH_FEDERATED_HUMANS,
                     DboPromises.AUTH_PSEUDONYMOUS_TOKENS,
