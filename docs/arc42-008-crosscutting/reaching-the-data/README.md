@@ -304,6 +304,15 @@ enters that context and is refused by the tenant's own records surface.
 sharpest property is asserted directly: a withheld record and an invented id
 answer identically, so the door cannot be used to discover what a tenant holds.
 
+The context answers whoever holds the run, and nobody else: the client that
+started it at the step door, the participant that claimed it on a lane, or a
+person who claimed it with their own token from the tenant's identity provider,
+held as the `PractitionerRole` they act in — so a person's readings through it
+name the practitioner, not an application speaking for them. Everybody else,
+and everybody once the run is over, is answered as for a run that never existed
+(`PROC_A_RUN_CONTEXT_IS_ITS_PERFORMERS`,
+`PROC_A_PERSON_CLAIMS_AS_A_PRACTITIONER_ROLE`).
+
 What is still true of everything else:
 
 - A credential holding `system/*.read` reads any record with no step and no run

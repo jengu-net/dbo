@@ -73,7 +73,7 @@ public enum DboStories implements Story {
                     // Performing it, and saying so honestly.
                     DboPromises.PROC_INPUTS_ARRIVE_WITH_THE_WORK,
                     DboPromises.PROC_PROGRESS_NAMES_THE_MILESTONE,
-                    DboPromises.PROC_RUN_SAYS_WHO_HOLDS_IT,
+                    DboPromises.PROC_A_RUN_KEEPS_STATUS_CLAIMANT_AND_ELIGIBILITY_APART,
                     DboPromises.PROC_RUN_NAMES_WHAT_RAN_IT,
                     DboPromises.PROC_RUN_NAMES_THE_STEP_VERSION,
                     DboPromises.PROC_RUN_TALLY_AND_ITEM_OUTCOMES,

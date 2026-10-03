@@ -3321,7 +3321,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
         // which is how a tenant came to cost two of the heaviest object here.
         // The face's own vocabulary is served BY the tenant, so the types
         // that carry it are registered whether or not the tenant listed them:
-        // a client meeting urn:dbo:run:holder must be able to fetch what
+        // a client meeting urn:dbo:run:performer must be able to fetch what
         // defines it, and "the tenant did not ask for CodeSystem" is not an
         // answer a consumer can act on.
         FhirVersion.ForTypes declared = version.forTypes(withVocabularyTypes(spec.types(),

@@ -13,47 +13,24 @@ import java.util.Optional;
  * <p>A read-only view over the stored record: advancing a run is
  * {@link Runs}' business, because every advance is a version, a history link
  * and a feed event — checkpoints, never a heartbeat.
+ *
+ * <p><b>Three facts, kept apart</b>
+ * (REQ-DBO-PROC-A-RUN-KEEPS-STATUS-CLAIMANT-AND-ELIGIBILITY-APART): where it
+ * stands is {@code status}; who holds it is the {@link Assignment} — an
+ * executor, or a person as their {@code PractitionerRole}; and who may take it
+ * next is {@code automation} — whether a machine may as well as a person —
+ * with {@code notBefore}, and {@code statusReason} saying why it stands so.
+ * {@code attempts} counts the failures automation has had that its step's
+ * {@code retry} said would pass. Who owes the next act is derived from these
+ * ({@link #awaits}), never kept beside them.
  */
 public record Run(String id, long versionId, String key, String process, String step,
-        RunKind kind, Holder holder, String parent, String correlation, String trace,
+        RunKind kind, String parent, String correlation, String trace,
         Map<String, Long> tally, Item item, java.util.List<String> domains,
         Assignment assignment, Produced produced, String stepVersion,
         Map<String, RunSlot> inputs, Milestone milestone, String requester,
         String refused, Status status, boolean automation, java.time.Instant notBefore,
         String statusReason, int attempts, cloud.jengu.dbo.core.process.RetryPolicy retry) {
-
-    /**
-     * A run described by who holds it, which is how a run was described
-     * before its status, eligibility and not-before were kept apart.
-     *
-     * <p>The three are derived from the holder here, the way the holder is
-     * now derived from them: automation running is open to automation and
-     * claimed when an assignment carries a deadline, a retry is held back,
-     * a person's is open to people alone, and nobody's is done.
-     */
-    public Run(String id, long versionId, String key, String process, String step,
-            RunKind kind, Holder holder, String parent, String correlation, String trace,
-            Map<String, Long> tally, Item item, java.util.List<String> domains,
-            Assignment assignment, Produced produced, String stepVersion,
-            Map<String, RunSlot> inputs, Milestone milestone, String requester,
-            String refused) {
-        this(id, versionId, key, process, step, kind, holder, parent, correlation, trace, tally,
-                item, domains, assignment, produced, stepVersion, inputs, milestone, requester,
-                refused, statusOf(holder, assignment, refused), holder != Holder.PERSON, null,
-                null, 0, null);
-    }
-
-    private static Status statusOf(Holder holder, Assignment assignment, String refused) {
-        if (holder == null) {
-            return null;
-        }
-        return switch (holder) {
-            case NOBODY -> refused != null ? Status.FAILED : Status.COMPLETED;
-            case RETRY -> Status.ON_HOLD;
-            case PERSON, AUTOMATION -> assignment != null && assignment.until() != null
-                    ? Status.IN_PROGRESS : Status.READY;
-        };
-    }
 
     /**
      * A run named only by its key, for a verb whose lane reads the store's
@@ -66,7 +43,7 @@ public record Run(String id, long versionId, String key, String process, String 
      * to one step reach another's work by naming it wrongly.
      */
     public static Run named(String key) {
-        return new Run(null, 0, key, null, null, null, null, null, null, null,
+        return new Run(null, 0, key, null, null, null, null, null, null,
                 Map.of(), null, java.util.List.of(), null, Produced.NOTHING, null,
                 Map.of(), null, null, null, null, false, null, null, 0, null);
     }
@@ -301,9 +278,12 @@ public record Run(String id, long versionId, String key, String process, String 
         return status == Status.IN_PROGRESS && assignment != null && assignment.role() != null;
     }
 
-    /** Whether this is work waiting for a human rather than for a clock. */
+    /**
+     * Whether this is work waiting for a human rather than for a machine or a
+     * clock: ready, and open to people alone.
+     */
     public boolean needsAPerson() {
-        return holder == Holder.PERSON;
+        return status == Status.READY && !automation;
     }
 
     /**
@@ -353,30 +333,16 @@ public record Run(String id, long versionId, String key, String process, String 
         }
         Assignment assignment = assignment(json);
         Status status = Status.of(optional(json, "status"));
-        boolean automation;
-        if (((Map<?, ?>) json).get("performerType") instanceof java.util.List<?> eligible) {
-            automation = eligible.contains("automation");
-        } else {
-            automation = !"person".equals(optional(json, "holder"));
-        }
         if (status == null) {
-            // A run written before its status was kept, read the way its
-            // holder described it.
-            Holder said = Holder.of(Json.str(json, "holder"));
-            status = said == Holder.NOBODY
-                    ? (optional(json, "refused") != null ? Status.FAILED : Status.COMPLETED)
-                    : said == Holder.RETRY ? Status.ON_HOLD
-                    : assignment != null && assignment.until() != null ? Status.IN_PROGRESS
-                    : Status.READY;
+            status = Status.READY;
         }
+        boolean automation = !(((Map<?, ?>) json).get("performerType")
+                instanceof java.util.List<?> eligible) || eligible.contains("automation");
         Object notBefore = ((Map<?, ?>) json).get("notBefore");
         Object attempts = ((Map<?, ?>) json).get("attempts");
         return new Run(stored.id(), stored.versionId(), Json.str(json, "key"),
                 Json.str(json, "process"), Json.str(json, "step"),
                 RunKind.of(Json.str(json, "kind")),
-                Holder.derived(status, automation,
-                        status == Status.IN_PROGRESS && assignment != null
-                                && assignment.role() != null),
                 optional(json, "parent"), optional(json, "correlation"),
                 optional(json, "trace"),
                 Map.copyOf(tally), item, java.util.List.copyOf(domains), assignment,

@@ -144,7 +144,15 @@ class DbosBelowResumesItsOwnHalfFinishedWorkIT {
             st.execute("CREATE SCHEMA IF NOT EXISTS dbos");
         }
         store = new PgObjectStore(ds, WorkModel.registrations());
-        runs = new Runs(store);
+        // The step says the two ways a process going away shows from here
+        // will pass — its claim lapsing, and the lane not answering mid-report —
+        // which is what lets the work go back to automation rather than to a
+        // person.
+        runs = new Runs(store, cloud.jengu.dbo.core.process.Steps.of(
+                cloud.jengu.dbo.core.process.StepDeclaration.of(PROCESS + "." + STEP, "1",
+                                WorkModel.DOMAIN)
+                        .retrying(new cloud.jengu.dbo.core.process.RetryPolicy(
+                                List.of("unreachable", "lapsed"), "PT0S", 3))));
         declarations = new Declarations(store, new PgChangeFeed(ds, WorkModel.DOMAIN),
                 Duration.ofSeconds(30));
     }
@@ -269,7 +277,10 @@ class DbosBelowResumesItsOwnHalfFinishedWorkIT {
                     } catch (InterruptedException interrupted) {
                         Thread.currentThread().interrupt();
                     }
-                    return Outcome.failed("the process is going away mid-work");
+                    // What the store sees of a process going away: the
+                    // lane stops answering.
+                    throw new cloud.jengu.dbo.core.api.StoreUnreachableException(
+                            "the process is going away mid-work");
                 }
             });
             dying.attach(lane("the-dying-one"));
@@ -340,7 +351,7 @@ class DbosBelowResumesItsOwnHalfFinishedWorkIT {
 
         // ---- dbo above: the work is done, once ----
         Run after = runs.byKey(KEY).orElseThrow();
-        assertFalse(after.open(), "the restarted participant finished the work: " + after.holder());
+        assertFalse(after.open(), "the restarted participant finished the work: " + after.status());
         assertEquals(1L, after.tally().get("enriched"));
 
         // ---- DBOS below: what was checkpointed was not done again ----

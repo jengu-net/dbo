@@ -33,8 +33,10 @@ bean implementing `StepService` is the whole of what it writes for a step:
 run, and the objects its slots name, resolved by whoever holds them. There is
 nothing to fetch and nowhere to fetch it from. Progress is reported as
 milestones with counts, and the outcome is `done` with a tally or `failed` with
-a reason — throwing is the same as failing, and a failed run is released and
-may be taken again.
+a reason — throwing is the same as failing. A failed run is released with its
+reason: back to automation later only for a fault its step declared will pass,
+and to the people's list otherwise
+([processes and steps](processes-and-steps.md#when-a-run-fails)).
 
 Who the worker is, how often it asks and where its lanes go are configuration:
 
@@ -116,6 +118,37 @@ what exists. Its capability statement lists only the step's types. When the
 work is ended, at `/t/<tenant>/run/<id>/done`, the context answers as a run
 that never existed, so performing a step leaves no standing way in behind it.
 
+## What automation may not take, a nurse does
+
+Hogwarts reviews its potassium results, and a machine may review only the
+normal ones. The step says so where it is declared, as a condition over what
+the task is given:
+
+```json
+{ "code": "care.results.review", "slots": { "result": "Reference(Observation)" },
+  "automate": { "when": "result.interpretation.coding.code = 'N'" } }
+```
+
+The clinic asks for every review the same way, and the hospital decides who may
+take each one as it authors the task, from the result itself. The worker's
+`ReviewingAResult` is offered the normal ones and finishes them; an abnormal one
+is open to people alone and waits on the people's list. Poppy signs in at the
+ward screen through Hogwarts's own identity provider, and the ward screen asks
+with her token:
+
+```java
+--8<-- "samples/spring-boot-server-app/src/main/java/cloud/jengu/dbo/samples/server/TakingATask.java:taking"
+```
+
+`waiting` is the people's list: ready, and open to people alone — asked across
+the tenant's door as `Task?status=ready&performer-type=person`. `take` claims
+the task as the `PractitionerRole` she holds there, so the task's `owner` is her
+role, never a device, on a lease she extends with a checkpoint. While she holds
+it the run's context answers her and nobody else — another nurse holding the
+same id is answered 404 — and the reading she makes through it lands on the
+trail under her practitioner. `finish` completes it, and the clinic, which has
+been told `ready` and then `in-progress`, is told `completed`.
+
 ## What the store guarantees
 
 - **Inputs arrive with the work.** A claimed run's inputs are resolved by the
@@ -136,7 +169,11 @@ that never existed, so performing a step leaves no standing way in behind it.
   result refused for what it says — validation, an identity already held, a
   version that moved, an undeclared type — ends the run as `failed` with the
   tenant's reason, and nothing of it is written. A step that threw is released
-  and taken again.
+  to automation again only for a fault its step declared will pass, and to the
+  people's list otherwise.
+- **Automation takes only what its step admits.** A task closed to automation
+  is offered to no machine and refused to one that claims it; a person takes it
+  with their own token, as the role they hold.
 - **The run answers its initiator**, and anybody else is told it is not there.
 
 The [joins table](../arc42-003-context/user-stories/us-dbo-edge-roundtrip.md#joins)

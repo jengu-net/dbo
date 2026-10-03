@@ -12,7 +12,6 @@ import cloud.jengu.dbo.runner.http.HttpLane;
 import cloud.jengu.dbo.spring.server.DboTenants;
 import cloud.jengu.dbo.spring.test.DboTestContext;
 import cloud.jengu.dbo.work.Executor;
-import cloud.jengu.dbo.work.Holder;
 import cloud.jengu.dbo.work.Run;
 import cloud.jengu.dbo.work.Runs;
 import cloud.jengu.dbo.work.Scope;
@@ -373,17 +372,23 @@ class WorkLeavesTheClinicAndComesBackIT {
 
     @Test
     @Order(6)
-    @DisplayName("taking it makes the run say who holds it, under what version of the step, "
-            + "and which executor took it")
-    @Proving({DboPromises.PROC_RUN_SAYS_WHO_HOLDS_IT, DboPromises.PROC_RUN_NAMES_WHAT_RAN_IT,
+    @DisplayName("taking it makes the run say it is in progress, who holds it, under what "
+            + "version of the step, and which executor took it")
+    @Proving({DboPromises.PROC_A_RUN_KEEPS_STATUS_CLAIMANT_AND_ELIGIBILITY_APART,
+            DboPromises.PROC_RUN_NAMES_WHAT_RAN_IT,
             DboPromises.PROC_RUN_NAMES_THE_STEP_VERSION, DboPromises.PROC_EXECUTOR_DECLARES_ITSELF})
     void takingItSaysWhoHoldsIt() {
         Run waiting = runs.byKey(runKey).orElseThrow();
         Run taken = bench.claim(waiting, Duration.ofMinutes(5)).orElseThrow(
                 () -> new AssertionError("the bench could not take work it was entitled to"));
 
-        Proves.that(DboPromises.PROC_RUN_SAYS_WHO_HOLDS_IT, taken.holder() == Holder.AUTOMATION,
-                "automation is running it now, and the run says " + taken.holder());
+        Proves.that(DboPromises.PROC_A_RUN_KEEPS_STATUS_CLAIMANT_AND_ELIGIBILITY_APART,
+                taken.status() == cloud.jengu.dbo.work.Status.IN_PROGRESS
+                        && taken.automation() && taken.assignment().role() == null
+                        && taken.awaits(java.time.Instant.now())
+                                == cloud.jengu.dbo.work.Awaits.OWNER,
+                "automation is running it now, and the run says " + taken.status()
+                        + " automation=" + taken.automation() + " " + taken.assignment());
         Proves.that(DboPromises.PROC_RUN_NAMES_WHAT_RAN_IT,
                 BENCH.equals(taken.assignment().executor().name()),
                 "the run does not name what took it, so a decision cannot be reproduced: "
@@ -486,7 +491,8 @@ class WorkLeavesTheClinicAndComesBackIT {
                 engine.get(WorkModel.TYPE, runs.byKey(runKey).orElseThrow().id())
                         .orElseThrow().payload());
 
-        assertTrue(envelope.paths().containsKey("holder")
+        assertTrue(envelope.paths().containsKey("status")
+                        && envelope.paths().containsKey("eligible")
                         && envelope.paths().containsKey("step"),
                 "state has to be queryable, or the list an operator opens cannot exist: "
                         + envelope.paths().keySet());
@@ -945,8 +951,8 @@ class WorkLeavesTheClinicAndComesBackIT {
         assertEquals(2, lane.inputs(held).size(), "both documents were not opened");
         lane.closed(held);
 
-        assertEquals(cloud.jengu.dbo.work.Holder.NOBODY,
-                runs.byKey(held.key()).orElseThrow().holder(),
+        assertEquals(cloud.jengu.dbo.work.Status.COMPLETED,
+                runs.byKey(held.key()).orElseThrow().status(),
                 "the run did not close on a chain with no hole");
         List<Map<String, String>> chain = chainOf(held);
         Proves.that(DboPromises.POL_A_RUNS_TRAIL_IS_CHAINED_FROM_THE_TASK,
@@ -1060,8 +1066,8 @@ class WorkLeavesTheClinicAndComesBackIT {
                         link.getBytes(java.nio.charset.StandardCharsets.UTF_8),
                         edgeSigning.getPrivate())));
         gateway.closed(held, head);
-        assertEquals(cloud.jengu.dbo.work.Holder.NOBODY,
-                runs.byKey(held.key()).orElseThrow().holder(), "the run did not close");
+        assertEquals(cloud.jengu.dbo.work.Status.COMPLETED,
+                runs.byKey(held.key()).orElseThrow().status(), "the run did not close");
 
         List<Map<String, String>> chain = chainOf(held);
         Proves.that(DboPromises.POL_A_RUNS_TRAIL_IS_CHAINED_FROM_THE_TASK,
@@ -1450,7 +1456,8 @@ class WorkLeavesTheClinicAndComesBackIT {
                         URI.create(dbo.at(WARD) + "/run/" + porterRun + "/done"))
                 .POST(HttpRequest.BodyPublishers.noBody()), porter);
         assertEquals(200, done.statusCode(), done.body());
-        assertEquals(java.util.Optional.of("nobody"), dbo.says(done).one("holder"), done.body());
+        assertEquals(java.util.Optional.of("completed"), dbo.says(done).one("status"),
+                done.body());
 
         HttpResponse<String> after = dbo.get(porterContext + "/Patient/" + porterPatient, porter);
         Proves.that(DboPromises.PROC_A_RUN_CONTEXT_ENDS_WITH_ITS_RUN,

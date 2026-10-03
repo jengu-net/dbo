@@ -33,8 +33,8 @@ public enum Label {
     STEP("step"),
     /** Pipeline or sweep — how the run ends, which changes what a count means. */
     KIND("kind"),
-    /** Who holds it: a person, or something that claimed it. */
-    HOLDER("holder"),
+    /** Where it stands: ready, in progress, on hold, or how it ended. */
+    STATUS("status"),
     /** Baseline, a zone, an organisation — where the work was resolved to. */
     SCOPE("scope"),
     /** What ran it, by name. Not its hostname; see the note on placement. */

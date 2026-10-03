@@ -98,8 +98,8 @@ public final class WorkModel {
     /**
      * <b>State, never subject</b> (REQ-DBO-PROC-RUN-ENVELOPE-DISCLOSES-STATE-NOT-SUBJECT).
      *
-     * <p>Holder, step, kind and counts are indexed, so "what is waiting for a
-     * person" is a query. What a run was <em>about</em> is not: an envelope is
+     * <p>Status, who may take it, step, kind and counts are indexed, so "what
+     * is waiting for a person" is a query. What a run was <em>about</em> is not: an envelope is
      * a disclosure surface, readable by parties entitled to route on it and not
      * to read payloads, so an item reference promoted into it would put the
      * subject of the work in front of everyone who can see that work exists.
@@ -114,7 +114,6 @@ public final class WorkModel {
             envelope.value("process", EnvelopeValue.of(Json.str(run, "process")));
             envelope.value("step", EnvelopeValue.of(Json.str(run, "step")));
             envelope.value("kind", EnvelopeValue.of(Json.str(run, "kind")));
-            envelope.value("holder", EnvelopeValue.of(Json.str(run, "holder")));
             // Status and eligibility, so what waits for whom is a query.
             // Eligibility is indexed as the widest executor the run admits —
             // automation, or a person alone — because a person may take

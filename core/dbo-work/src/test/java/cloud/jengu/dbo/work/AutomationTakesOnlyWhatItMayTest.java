@@ -38,7 +38,7 @@ class AutomationTakesOnlyWhatItMayTest {
     @Proving(DboPromises.PROC_CLAIM_IS_THE_INTERSECTION)
     void aRunForPeopleIsNeitherOfferedNorTaken() {
         Run run = runs.pipeline(PROCESS, STEP);
-        Run forPeople = runs.held(run, Holder.PERSON);
+        Run forPeople = runs.forPeople(run, "it needs somebody");
 
         List<Run> offered = new Participation(runs, held.feed(), "bench", Set.of(STEP), bench)
                 .poll(50);

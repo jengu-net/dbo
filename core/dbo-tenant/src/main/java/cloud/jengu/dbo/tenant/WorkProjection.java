@@ -57,10 +57,10 @@ final class WorkProjection implements WorkSurface {
      * What is outstanding, whose it is, what step it is of — asked of the
      * tenant rather than read one run at a time.
      *
-     * <p>The narrowings are the ones the store already answers about a run,
-     * which is why they are these three: a run's holder, its step and the key
-     * it was correlated under are envelope facts, and everything else a run's
-     * document carries belongs to the step that wrote it.
+     * <p>The narrowings are the ones the store already answers about a run: its
+     * status, who may take it, its step and the key it was correlated under
+     * are envelope facts, and everything else a run's document carries belongs
+     * to the step that wrote it.
      */
     @Override
     public String search(java.util.Map<String, String> query, String baseUrl) {
@@ -86,13 +86,6 @@ final class WorkProjection implements WorkSurface {
                 cloud.jengu.dbo.core.api.Criteria.of(WorkModel.TYPE)
                         .limit(cloud.jengu.dbo.fhir.common.ResultParameters
                                 .count(query.get("_count"), WorkModel.TYPE, 100, 10_000));
-        if (query.get("owner") != null) {
-            // A comma is any of them, which is how "everything still owed by
-            // somebody" is said without a negation the surface does not take.
-            criteria.anyOf("holder", java.util.Arrays.stream(query.get("owner").split(","))
-                    .map(String::trim).filter(one -> !one.isEmpty())
-                    .map(cloud.jengu.dbo.core.api.EnvelopeValue::of).toList());
-        }
         if (query.get("status") != null) {
             // Any of them, as owner is: "still owed" is three statuses.
             criteria.anyOf("status", java.util.Arrays.stream(query.get("status").split(","))

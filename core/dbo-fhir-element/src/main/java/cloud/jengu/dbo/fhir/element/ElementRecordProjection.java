@@ -36,7 +36,7 @@ final class ElementRecordProjection implements RecordProjection {
      * system left a client meeting it unable to tell which it had met, and
      * publishing both a NamingSystem and a CodeSystem there described the
      * ambiguity rather than resolving it. Named like its siblings —
-     * {@code :run:holder}, {@code :run:tally} — which were never ambiguous
+     * {@code :run:performer}, {@code :run:tally} — which were never ambiguous
      * because they were never the run's own identifier.
      */
     /**
@@ -50,7 +50,6 @@ final class ElementRecordProjection implements RecordProjection {
     private static final String RUN_OUTPUT = "urn:dbo:run:output";
     private static final String RUN_INPUT = "urn:dbo:run:input";
     private static final String MILESTONE = "urn:dbo:run:milestone";
-    private static final String HOLDER = "urn:dbo:run:holder";
     /** Who may take a task: automation as well as a person, or a person alone. */
     private static final String PERFORMER = "urn:dbo:run:performer";
     private static final String PROCESS = "urn:dbo:process";
@@ -114,11 +113,6 @@ final class ElementRecordProjection implements RecordProjection {
                                 + "(create, update, delete, read) and applications contribute "
                                 + "business-level codes of their own.",
                         null),
-                codeSystem(HOLDER, "DboRunHolder",
-                        "Whose a run is right now: nobody's while it executes, "
-                                + "nobody's while a retry is scheduled, and a person's "
-                                + "when it needs somebody.",
-                        List.of("AUTOMATION", "RETRY", "PERSON", "NOBODY")),
                 codeSystem(PERFORMER, "DboRunPerformer",
                         "Who may take a task: automation, and a person, who may take any "
                                 + "open task.",
@@ -232,8 +226,8 @@ final class ElementRecordProjection implements RecordProjection {
      * <p>Constraints only where the projection genuinely constrains, because
      * a profile that claims more than the renderer does is a second thing to
      * keep true. {@code intent} is fixed because every rendered run is an
-     * order; {@code status} is not, because it is derived from the holder and
-     * the whole point is that it varies.
+     * order; {@code status} is not, because it is the run's own and the whole
+     * point is that it varies.
      */
     private static String runTaskProfile() {
         return "{\"resourceType\":\"StructureDefinition\",\"url\":"
@@ -241,9 +235,10 @@ final class ElementRecordProjection implements RecordProjection {
                 + ",\"name\":\"DboRunAsTask\",\"status\":\"active\""
                 + ",\"kind\":\"resource\",\"abstract\":false,\"type\":\"Task\""
                 + ",\"description\":\"How this store renders one of its own runs as a Task: "
-                + "the run's key and correlation as identifiers, who holds it and the "
-                + "milestone it reached as businessStatus, the process and step as code, "
-                + "the executor as owner, and the step's declared slots as input.\""
+                + "the run's key and correlation as identifiers, where it stands as status, "
+                + "the milestone it reached as businessStatus, the process and step as code, "
+                + "who holds it as owner — a person's role or an executor — who may take it "
+                + "as the requested performer, and the step's declared slots as input.\""
                 + ",\"baseDefinition\":\"http://hl7.org/fhir/StructureDefinition/Task\""
                 + ",\"derivation\":\"constraint\""
                 + ",\"differential\":{\"element\":["
@@ -261,22 +256,17 @@ final class ElementRecordProjection implements RecordProjection {
                 + "{\"id\":\"Task.identifier:correlation.system\","
                 + "\"path\":\"Task.identifier.system\",\"min\":1,\"fixedUri\":"
                 + Json.quoted(CORRELATION) + "},"
-                // Where the work is: the holder, and the milestone when one was reported.
-                + "{\"id\":\"Task.businessStatus\",\"path\":\"Task.businessStatus\","
-                + "\"min\":1},"
-                + "{\"id\":\"Task.businessStatus.coding\","
-                + "\"path\":\"Task.businessStatus.coding\",\"min\":1},"
-                // Every rendered run is an order; the status varies by holder.
-                // Ordered after businessStatus because a differential follows
-                // the snapshot's element order, and Task's is not alphabetical
-                // — the validator refuses an out-of-order element by name.
+                // Every rendered run is an order; its status varies. A
+                // differential follows the snapshot's element order, and
+                // Task's is not alphabetical — the validator refuses an
+                // out-of-order element by name.
                 + "{\"id\":\"Task.intent\",\"path\":\"Task.intent\",\"min\":1,"
                 + "\"fixedCode\":\"order\"},"
                 // What it is: the process, and the step within it.
                 + "{\"id\":\"Task.code\",\"path\":\"Task.code\",\"min\":1},"
                 + "{\"id\":\"Task.code.coding\",\"path\":\"Task.code.coding\","
                 + "\"min\":2},"
-                // Who ran it, when anybody has claimed it.
+                // Who holds it or held it last, when anybody has claimed it.
                 + "{\"id\":\"Task.owner\",\"path\":\"Task.owner\",\"max\":\"1\"},"
                 // The step's declared slots, filled by the run.
                 + "{\"id\":\"Task.input.type\",\"path\":\"Task.input.type\","
@@ -555,15 +545,15 @@ final class ElementRecordProjection implements RecordProjection {
     /**
      * A run as a {@code Task}.
      *
-     * <p>Holder is the load-bearing field, so it lands twice: as the status a
-     * FHIR client already understands, and as {@code businessStatus}, which
-     * keeps the distinction FHIR's four words lose — automation running and
-     * automation with a retry pending are both "not finished" to a client and
-     * are not the same thing to an operator.
+     * <p>Each fact the run keeps lands in the element FHIR already has for
+     * it: where it stands as {@code status}, who holds it as {@code owner},
+     * who may take it and from when as the requested performer and period,
+     * and why as {@code statusReason}. {@code businessStatus} carries the
+     * milestone a long run reached, which is the step's own word for where
+     * the work is.
      */
     private String task(Record record, String parentId) {
         Map<?, ?> run = (Map<?, ?>) Json.parse(new String(record.payload(), StandardCharsets.UTF_8));
-        String holder = String.valueOf(run.get("holder"));
         StringBuilder json = new StringBuilder(512)
                 .append("{\"resourceType\":\"Task\",\"id\":").append(Json.quoted(record.id()))
                 .append(",\"meta\":{\"versionId\":").append(Json.quoted(String.valueOf(record.versionId())))
@@ -578,27 +568,21 @@ final class ElementRecordProjection implements RecordProjection {
         }
         json.append(']');
         json.append(",\"status\":\"").append(run.get("status") != null
-                        ? String.valueOf(run.get("status"))
-                        : run.get("refused") != null ? "failed" : status(holder)).append('"')
-                .append(",\"businessStatus\":{\"coding\":[{\"system\":\"").append(HOLDER)
-                .append("\",\"code\":\"").append(holder).append("\"}");
-        // Where the work is, said the step's own way: one concept, two
-        // codings — the holder above, and the milestone reached when one is
-        // recorded — with the derived position as the human reader's text.
-        // The position was computed by the store over the step's declared
-        // order; nothing here invents a completeness.
+                ? String.valueOf(run.get("status")) : "ready").append('"');
+        // Where the work is, said the step's own way: the milestone reached,
+        // with the derived position as the human reader's text. The position
+        // was computed by the store over the step's declared order; nothing
+        // here invents a completeness.
         if (run.get("milestone") instanceof Map<?, ?> milestone) {
             String name = String.valueOf(milestone.get("name"));
-            json.append(",{\"system\":\"").append(MILESTONE).append("\",\"code\":")
-                    .append(Json.quoted(name)).append('}');
             long total = milestone.get("total") instanceof Number n ? n.longValue() : 0;
-            json.append("],\"text\":").append(Json.quoted(total > 0
-                    ? name + ", " + milestone.get("position") + " of " + total
-                    : name));
-        } else {
-            json.append(']');
+            json.append(",\"businessStatus\":{\"coding\":[{\"system\":\"").append(MILESTONE)
+                    .append("\",\"code\":").append(Json.quoted(name)).append("}],\"text\":")
+                    .append(Json.quoted(total > 0
+                            ? name + ", " + milestone.get("position") + " of " + total
+                            : name)).append('}');
         }
-        json.append('}').append(",\"intent\":\"order\"")
+        json.append(",\"intent\":\"order\"")
                 .append(",\"code\":{\"coding\":[{\"system\":\"").append(PROCESS)
                 .append("\",\"code\":").append(Json.quoted(String.valueOf(run.get("process"))))
                 .append("},{\"system\":\"").append(STEP).append("\",\"code\":")
@@ -622,20 +606,6 @@ final class ElementRecordProjection implements RecordProjection {
         input(run, json);
         output(run, record, json);
         return json.append('}').toString();
-    }
-
-    /**
-     * FHIR's four words for a state this engine keeps in one field. A person
-     * holding a run is {@code ready}: the work is waiting for a performer, and
-     * what went wrong is in the outcome rather than in the status.
-     */
-    private static String status(String holder) {
-        return switch (holder) {
-            case "nobody" -> "completed";
-            case "retry" -> "on-hold";
-            case "person" -> "ready";
-            default -> "in-progress";
-        };
     }
 
     /**

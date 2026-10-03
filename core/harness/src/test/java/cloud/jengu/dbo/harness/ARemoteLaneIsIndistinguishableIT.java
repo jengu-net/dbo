@@ -341,7 +341,7 @@ class ARemoteLaneIsIndistinguishableIT {
 
         assertTrue(received.get() != null, "the service was handed work over the boundary");
         Run after = runs.byId(work.id()).orElseThrow();
-        assertFalse(after.open(), "the run is closed, not parked: " + after.holder());
+        assertFalse(after.open(), "the run is closed, not parked: " + after.status());
         assertEquals(1L, after.tally().get("validated"),
                 "the tally landed on the record: " + after.tally());
         assertEquals("validated", after.milestone().name(),

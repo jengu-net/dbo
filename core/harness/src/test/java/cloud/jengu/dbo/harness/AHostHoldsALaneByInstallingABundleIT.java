@@ -12,7 +12,6 @@ import cloud.jengu.dbo.runner.http.HttpLane;
 import cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner;
 import cloud.jengu.dbo.tenant.TenantRuntimeManager;
 import cloud.jengu.dbo.work.Executor;
-import cloud.jengu.dbo.work.Holder;
 import cloud.jengu.dbo.work.Run;
 import cloud.jengu.dbo.work.RunKind;
 import cloud.jengu.dbo.work.Runs;
@@ -255,7 +254,7 @@ class AHostHoldsALaneByInstallingABundleIT {
                 break;
             }
         }
-        assertEquals(Holder.NOBODY, closed.holder(), "still held: " + closed);
+        assertEquals(cloud.jengu.dbo.work.Status.COMPLETED, closed.status(), "still held: " + closed);
         assertEquals(Map.of("reported", 1L), closed.tally(),
                 "the outcome the driver reported came home over the same channel: " + closed);
     }

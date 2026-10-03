@@ -37,7 +37,7 @@ class ATaskSaysItsStatusOwnerAndWhoMayTakeItTest {
     void aReleasedRunIsReady() {
         String run = """
                 {"key":"lab.result.verify/one","process":"lab.result","step":"verify",
-                 "kind":"pipeline","holder":"person","status":"ready",
+                 "kind":"pipeline","status":"ready",
                  "performerType":["person"],"statusReason":"the analyser answered nonsense",
                  "note":"the work failed"}""";
         Map<?, ?> r4 = rendered("r4", run);
@@ -61,7 +61,7 @@ class ATaskSaysItsStatusOwnerAndWhoMayTakeItTest {
     void aPersonsRunIsOwnedByTheirRole() {
         Map<?, ?> task = rendered("r5", """
                 {"key":"lab.result.verify/two","process":"lab.result","step":"verify",
-                 "kind":"pipeline","holder":"person","status":"in-progress",
+                 "kind":"pipeline","status":"in-progress",
                  "performerType":["person"],"role":"PractitionerRole/nurse-1",
                  "claimant":"person-1","until":"2026-10-03T12:00:00Z"}""");
 
@@ -76,7 +76,7 @@ class ATaskSaysItsStatusOwnerAndWhoMayTakeItTest {
     void aHeldBackRunSaysWhenItMayBeTaken() {
         String run = """
                 {"key":"lab.result.verify/three","process":"lab.result","step":"verify",
-                 "kind":"pipeline","holder":"retry","status":"on-hold",
+                 "kind":"pipeline","status":"on-hold",
                  "performerType":["automation","person"],"notBefore":"2026-10-03T12:01:00Z",
                  "attempts":1}""";
         Map<?, ?> r4 = rendered("r4", run);

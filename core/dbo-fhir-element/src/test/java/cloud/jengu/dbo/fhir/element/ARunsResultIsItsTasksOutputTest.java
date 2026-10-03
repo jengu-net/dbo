@@ -34,13 +34,13 @@ class ARunsResultIsItsTasksOutputTest {
     void aClosedRunsResultIsItsOutput() {
         Map<?, ?> task = rendered("""
                 {"key":"hogwarts.admission.admit/one","process":"hogwarts.admission",
-                 "step":"admit","kind":"pipeline","holder":"nobody",
+                 "step":"admit","kind":"pipeline","status":"completed",
                  "tally":{"admitted":1},
                  "milestone":{"name":"identified","position":1,"total":2},
                  "produced":{"counted":2,"versions":["Encounter/e1/1","Patient/p1/3"]},
                  "inputs":{"patient":"Patient/p1"},"requester":"the-asker"}""");
 
-        assertEquals("completed", task.get("status"), "a run nobody holds is not completed");
+        assertEquals("completed", task.get("status"), "a run that is over is not completed");
         assertEquals(List.of(Map.of("system", "urn:dbo:run",
                         "value", "hogwarts.admission.admit/one")), task.get("identifier"),
                 "the run's key is not its identifier");
@@ -63,11 +63,11 @@ class ARunsResultIsItsTasksOutputTest {
     void aCappedManifestSaysItsCount() {
         Map<?, ?> task = rendered("""
                 {"key":"k/big","process":"m.p","step":"s","kind":"pipeline",
-                 "holder":"automation",
+                 "status":"in-progress",
                  "produced":{"counted":201,"versions":["Patient/p1/1"],
                              "watermark":{"Patient":201}}}""");
 
-        assertEquals("in-progress", task.get("status"), "a run automation holds is under way");
+        assertEquals("in-progress", task.get("status"), "a run somebody holds is not under way");
         List<String> outputs = outputs(task);
         assertTrue(outputs.contains("urn:dbo:run:output|produced-count=201"),
                 "a manifest that stopped naming versions did not say how many there were: "
@@ -81,7 +81,7 @@ class ARunsResultIsItsTasksOutputTest {
     void aRefusedResultIsAFailedTask() {
         Map<?, ?> task = rendered("""
                 {"key":"hogwarts.admission.register/one","process":"hogwarts.admission",
-                 "step":"register","kind":"pipeline","holder":"nobody",
+                 "step":"register","kind":"pipeline","status":"failed",
                  "tally":{"registered":1},
                  "refused":"hogwarts: the identifier urn:rl:nid|39001 is already held",
                  "requester":"the-asker"}""");

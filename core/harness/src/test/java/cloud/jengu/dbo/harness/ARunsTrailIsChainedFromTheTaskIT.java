@@ -19,7 +19,6 @@ import cloud.jengu.dbo.runner.Lane;
 import cloud.jengu.dbo.runner.http.HttpLane;
 import cloud.jengu.dbo.work.Declarations;
 import cloud.jengu.dbo.work.Executor;
-import cloud.jengu.dbo.work.Holder;
 import cloud.jengu.dbo.work.Run;
 import cloud.jengu.dbo.work.RunChain;
 import cloud.jengu.dbo.work.RunKind;
@@ -145,7 +144,7 @@ class ARunsTrailIsChainedFromTheTaskIT {
                 "unchained rather than broken: " + verdict);
         final String committed = head;
         lane.closed(held, committed);
-        assertEquals(Holder.NOBODY, local.byKey(held.key()).orElseThrow().holder(),
+        assertEquals(cloud.jengu.dbo.work.Status.COMPLETED, local.byKey(held.key()).orElseThrow().status(),
                 "the run closed on what the trail still holds");
 
         // A hole in the middle is a different shape: the link after it

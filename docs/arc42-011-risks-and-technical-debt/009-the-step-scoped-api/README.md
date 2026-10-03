@@ -55,9 +55,9 @@ context is read-only, and the general surface is untouched.
 A run started at the step door records the client that asked for it, and
 `GET /t/<tenant>/run/<id>` — the run's own address, beside its context and its
 `done` verb — answers that client with the run as a `Task`: its key as the
-`urn:dbo:run` identifier, a status derived from who holds it, the slots as they
-were filled, and the step's result as outputs — the tally, each version it
-produced, and the milestone it reached. The rendering is the records surface's
+`urn:dbo:run` identifier, its status, who holds it and who may take it, the
+slots as they were filled, and the step's result as outputs — the tally, each
+version it produced, and the milestone it reached. The rendering is the records surface's
 own, so a run has one shape whichever door shows it.
 
 It answers after the run has ended, unlike the context, because the end is what

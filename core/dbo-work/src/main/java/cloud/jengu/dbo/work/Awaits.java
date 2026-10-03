@@ -12,8 +12,8 @@ import java.util.List;
  * <p>A claimed run waits for its owner. An unclaimed run open to automation
  * waits for a machine, and is nobody's card. An unclaimed run open to people
  * alone waits for a person — the list an operator opens. A run that is over
- * owes nothing. Stored as a field of its own, this was the holder, and it
- * disagreed with the facts it was made of the moment one of them moved.
+ * owes nothing. Stored as a field of its own, it would disagree with the facts
+ * it is made of the moment one of them moved.
  */
 public enum Awaits {
 

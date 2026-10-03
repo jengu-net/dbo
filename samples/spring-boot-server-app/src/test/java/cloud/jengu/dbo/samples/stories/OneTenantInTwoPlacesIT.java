@@ -437,7 +437,8 @@ class OneTenantInTwoPlacesIT {
                         java.time.Instant.parse("2026-08-30T08:00:00Z"),
                         ("{\"key\":\"" + key + "\",\"process\":\"" + process()
                                 + "\",\"step\":\"validate\",\"kind\":\"pipeline\","
-                                + "\"holder\":\"automation\",\"domains\":[\"work\"]}")
+                                + "\"status\":\"ready\",\"performerType\":[\"automation\","
+                                + "\"person\"],\"domains\":[\"work\"]}")
                                 .getBytes(StandardCharsets.UTF_8))));
 
         var applied = replication.apply(bench, fromTheBench);

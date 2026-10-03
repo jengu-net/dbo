@@ -9,6 +9,7 @@ import java.time.Duration;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * A person who takes work holds it as a person.
@@ -26,7 +27,7 @@ class APersonTakesWorkAsAPersonTest {
     @Test
     @DisplayName("a person opening a run at a workplace holds it as a person, and no device is "
             + "named as what holds it")
-    @Proving(DboPromises.PROC_RUN_SAYS_WHO_HOLDS_IT)
+    @Proving(DboPromises.PROC_A_RUN_KEEPS_STATUS_CLAIMANT_AND_ELIGIBILITY_APART)
     void aPersonOpeningARunHoldsItAsAPerson() {
         Run run = runs.pipeline("ward.round", "check");
         Runner runner = new Runner(runs, held.feed(),
@@ -37,7 +38,9 @@ class APersonTakesWorkAsAPersonTest {
 
         Run taken = runner.open(run.key(), "PractitionerRole/nurse").orElseThrow();
 
-        assertEquals(Holder.PERSON, taken.holder(), "a person's claim made the run automation's");
+        assertEquals(Awaits.OWNER, taken.awaits(java.time.Instant.now()),
+                "a person's claim left the run waiting for somebody else");
+        assertTrue(taken.heldByAPerson(), "a person's claim made the run automation's");
         assertNull(taken.assignment().executor(), "a device was named as holding a person's run");
         assertEquals("PractitionerRole/nurse", taken.assignment().role());
         assertEquals(Status.IN_PROGRESS, taken.status());

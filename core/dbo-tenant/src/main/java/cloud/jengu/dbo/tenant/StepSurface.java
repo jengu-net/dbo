@@ -833,7 +833,7 @@ final class StepSurface implements HttpHandler {
             return;
         }
         respond(exchange, 200, "{\"run\":" + quote(ended.id()) + ",\"key\":"
-                + quote(ended.key()) + ",\"holder\":" + quote(ended.holder().wire()) + "}");
+                + quote(ended.key()) + ",\"status\":" + quote(ended.status().wire()) + "}");
     }
 
     /**

@@ -126,7 +126,7 @@ class StepRunnerIT {
         }
 
         Run after = runs.byId(work.id()).orElseThrow();
-        assertTrue(!after.open(), "the run is closed, not parked: " + after.holder());
+        assertTrue(!after.open(), "the run is closed, not parked: " + after.status());
         assertEquals(1L, after.tally().get("validated"),
                 "the tally landed on the record: " + after.tally());
         // Work.inputs is the seam the step's declared API fills via

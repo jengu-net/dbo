@@ -67,14 +67,6 @@ public enum Failure {
         return UNKNOWN;
     }
 
-    /**
-     * Who an item of this class waits for: a sweep's outcome that may pass is
-     * held for the next pass, and every other is a person's card.
-     */
-    public Holder holder() {
-        return this == UNREACHABLE ? Holder.RETRY : Holder.PERSON;
-    }
-
     /** The word, as an item records it and as a step's retry names a fault. */
     public String wire() {
         return name().toLowerCase(java.util.Locale.ROOT);

@@ -250,8 +250,8 @@ public enum DboPromises implements Promise {
             + "exactly as today."),
 
     PROC_TASK_SAYS_WHERE_THE_WORK_IS("The rendered Task's businessStatus says where the "
-            + "work is — the holder, and when a milestone is recorded the step's own word "
-            + "for it with its derived position — in every version the face serves."),
+            + "work is when a milestone is recorded — the step's own word for it, with its "
+            + "derived position — in every version the face serves."),
 
     PROC_STEPS_ARRIVE_BY_INTRODUCTION("A participant on a lane introduces the step "
             + "declarations it brings beside its own candidacy; the catalogue records "
@@ -419,10 +419,13 @@ public enum DboPromises implements Promise {
             + "backup and dropped with the tenant. A run in a private table has none of "
             + "those, and cannot be seen or acted on."),
 
-    PROC_RUN_SAYS_WHO_HOLDS_IT("A run's load-bearing field is who holds it now: "
-            + "automation running, automation with a retry scheduled, a person, or "
-            + "nobody. Every other field answers a question somebody asks after that "
-            + "one."),
+    PROC_A_RUN_KEEPS_STATUS_CLAIMANT_AND_ELIGIBILITY_APART("A run keeps three facts "
+            + "apart, each where a FHIR Task keeps it: where it stands — ready, in progress, on "
+            + "hold, completed, failed or cancelled — who holds it — an executor as a Device, a "
+            + "person as a PractitionerRole — and who may take it next — automation as well as "
+            + "people, or people alone, and not before when. One word for all three could not "
+            + "say that released work is waiting, that a person holds it, or that it was ended "
+            + "rather than done."),
 
     PROC_RUN_TALLY_AND_ITEM_OUTCOMES("A run over N items where K fail records one run "
             + "with a tally and K item outcomes, and does not abandon the remaining "
@@ -487,8 +490,9 @@ public enum DboPromises implements Promise {
             + "one process and performed in another is one chain. It is carried and never "
             + "minted, and never a metric dimension."),
 
-    PROC_RUN_ENVELOPE_DISCLOSES_STATE_NOT_SUBJECT("A run's envelope carries holder, "
-            + "step, state and counts — never item references or messages. The "
+    PROC_RUN_ENVELOPE_DISCLOSES_STATE_NOT_SUBJECT("A run's envelope carries its "
+            + "status, who may take it, its step and its counts — never item references or "
+            + "messages. The "
             + "envelope is a disclosure surface, and progress must not name what was "
             + "being processed."),
 

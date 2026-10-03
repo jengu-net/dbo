@@ -45,7 +45,7 @@ the sentence every operator has heard: *my configuration had no effect*. A set
 you intend to promote cannot be believed that way.
 
 So applying a declared set is **a sweep** — a run, in the same list as the
-domain work, with the same counts and the same holders as anything else the
+domain work, with the same counts and the same statuses as anything else the
 store is doing, and found rather than started if one is already open.
 
 --8<-- "assets/diagrams/a-pass-says-what-it-did.svg"

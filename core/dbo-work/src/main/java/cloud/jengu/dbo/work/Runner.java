@@ -167,7 +167,9 @@ public final class Runner {
         }
         boolean anybodyWaiting = runs.items(latest).stream()
                 .anyMatch(item -> item.open() && item.needsAPerson());
-        return anybodyWaiting ? runs.held(latest, Holder.PERSON) : runs.closed(latest);
+        return anybodyWaiting
+                ? runs.forPeople(latest, "an outcome of this work needs somebody")
+                : runs.closed(latest);
     }
 
     /** Hands work back deliberately, rather than by dying and being noticed. */

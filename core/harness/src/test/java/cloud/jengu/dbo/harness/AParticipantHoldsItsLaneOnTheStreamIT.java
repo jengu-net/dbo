@@ -19,7 +19,6 @@ import cloud.jengu.dbo.stream.StreamLane;
 import cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner;
 import cloud.jengu.dbo.tenant.TenantRuntimeManager;
 import cloud.jengu.dbo.work.Executor;
-import cloud.jengu.dbo.work.Holder;
 import cloud.jengu.dbo.work.Run;
 import cloud.jengu.dbo.work.RunKind;
 import cloud.jengu.dbo.work.RunSlot;
@@ -517,8 +516,8 @@ class AParticipantHoldsItsLaneOnTheStreamIT {
 
         Run http = runs.byKey(overHttp.key()).orElseThrow();
         Run stream = runs.byKey(overStream.key()).orElseThrow();
-        assertEquals(Holder.NOBODY, http.holder(), "over HTTP: " + http);
-        assertEquals(Holder.NOBODY, stream.holder(), "over the stream: " + stream);
+        assertEquals(cloud.jengu.dbo.work.Status.COMPLETED, http.status(), "over HTTP: " + http);
+        assertEquals(cloud.jengu.dbo.work.Status.COMPLETED, stream.status(), "over the stream: " + stream);
         assertEquals(http.tally(), stream.tally(), "the same outcome");
         assertEquals(seen.get(overHttp.key()), seen.get(overStream.key()),
                 "the same work arrived whole, whichever carried it: " + seen);
@@ -541,7 +540,7 @@ class AParticipantHoldsItsLaneOnTheStreamIT {
             lane.closed(held);
         }
         Run closed = runs.byKey(run.key()).orElseThrow();
-        assertEquals(Holder.NOBODY, closed.holder(), "closed on the head the opening left");
+        assertEquals(cloud.jengu.dbo.work.Status.COMPLETED, closed.status(), "closed on the head the opening left");
         List<String> chain = entries(WorkModel.TYPE, closed.id());
         String specimen = run.inputs().get("specimen").one().substring("Basic/".length());
         assertTrue(chain.stream().anyMatch(e -> e.contains("\"code\":\"travel\"")), chain.toString());
@@ -583,7 +582,7 @@ class AParticipantHoldsItsLaneOnTheStreamIT {
                     .contains(PLAINTEXT_MARKER), "the analyser read the document, on its side");
             lane.closed(held);
         }
-        assertEquals(Holder.NOBODY, runs.byKey(run.key()).orElseThrow().holder());
+        assertEquals(cloud.jengu.dbo.work.Status.COMPLETED, runs.byKey(run.key()).orElseThrow().status());
 
         // Now look. Every row of every table in the substrate, as text.
         List<String> rows = everyRowOfTheSubstrate();
@@ -663,7 +662,7 @@ class AParticipantHoldsItsLaneOnTheStreamIT {
                     "sealed to the enrolment's key and opened with its private half");
             lane.closed(held);
         }
-        assertEquals(Holder.NOBODY, runs.byKey(run.key()).orElseThrow().holder(),
+        assertEquals(cloud.jengu.dbo.work.Status.COMPLETED, runs.byKey(run.key()).orElseThrow().status(),
                 "closed on the head an opening signed by the enrolment's key left");
     }
 
@@ -693,7 +692,7 @@ class AParticipantHoldsItsLaneOnTheStreamIT {
                     "the given object opened here, with the key held here");
             lane.closed(held);
         }
-        assertEquals(Holder.NOBODY, runs.byKey(run.key()).orElseThrow().holder(),
+        assertEquals(cloud.jengu.dbo.work.Status.COMPLETED, runs.byKey(run.key()).orElseThrow().status(),
                 "closed on the head the opening left");
         assertTrue(entries(WorkModel.TYPE, run.id()).stream()
                         .anyMatch(e -> e.contains("\"code\":\"access\"")

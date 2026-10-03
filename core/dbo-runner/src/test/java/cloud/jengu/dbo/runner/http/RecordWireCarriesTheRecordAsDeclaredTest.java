@@ -6,7 +6,6 @@ import cloud.jengu.dbo.core.process.StepDeclaration;
 import cloud.jengu.dbo.work.Declarations;
 import cloud.jengu.dbo.work.Executor;
 import cloud.jengu.dbo.work.Failure;
-import cloud.jengu.dbo.work.Holder;
 import cloud.jengu.dbo.work.Run;
 import cloud.jengu.dbo.work.RunKind;
 import cloud.jengu.dbo.work.Scope;
@@ -40,13 +39,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class RecordWireCarriesTheRecordAsDeclaredTest {
 
     private static final Run FULL = new Run("run-1", 7L, "dbo.lab/validate/1", "dbo.lab",
-            "validate", RunKind.PIPELINE, Holder.AUTOMATION, "parent-1", "correlation-1",
+            "validate", RunKind.PIPELINE, "parent-1", "correlation-1",
             "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01",
             Map.of("read", 4L), new Run.Item("Observation/o1", Failure.RECORD, "no such code"),
             List.of("r4"),
             new Run.Assignment(Scope.zone("ee"),
                     new Executor("bench-7", "1.2", "cloud.jengu.test", Scope.BASELINE),
-                    "the step's own", Instant.parse("2026-08-29T10:15:30Z")),
+                    "the step's own", Instant.parse("2026-08-29T10:15:30Z"), "client-7",
+                    "PractitionerRole/nurse-1"),
             new Run.Produced(List.of("Observation/o1/2"), Map.of("Observation", 2L), 1L),
             // ALL THREE SHAPES, because the wire is where a repeat or a given
             // object would be quietly flattened: a map of one value per slot
@@ -60,7 +60,10 @@ class RecordWireCarriesTheRecordAsDeclaredTest {
                             "{\"resourceType\":\"Basic\",\"id\":\"a\"}",
                             "{\"resourceType\":\"Basic\",\"id\":\"b\"}"))),
             new Run.Milestone("validated", 2, 3), "the-asking-application",
-            "Patient: the identifier is already held");
+            "Patient: the identifier is already held", cloud.jengu.dbo.work.Status.FAILED, false,
+            Instant.parse("2026-08-29T10:16:30Z"), "the identifier is already held", 2,
+            new cloud.jengu.dbo.core.process.RetryPolicy(List.of("unreachable", "lapsed"),
+                    "PT1M", 5));
 
     @Test
     @DisplayName("every component a run declares survives the wire, and a new one fails here")

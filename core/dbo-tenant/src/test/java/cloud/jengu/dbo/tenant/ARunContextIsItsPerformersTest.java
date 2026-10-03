@@ -13,7 +13,6 @@ import cloud.jengu.dbo.fhir.common.FhirStoreFacade;
 import cloud.jengu.dbo.promises.DboPromises;
 import cloud.jengu.dbo.promises.Proving;
 import cloud.jengu.dbo.work.Executor;
-import cloud.jengu.dbo.work.Holder;
 import cloud.jengu.dbo.work.Run;
 import cloud.jengu.dbo.work.RunKind;
 import cloud.jengu.dbo.work.RunSlot;
@@ -93,7 +92,7 @@ class ARunContextIsItsPerformersTest {
         assertEquals(200, get(run, "/fhir/metadata", PORTER).statusCode());
         assertEquals(200, get(run, "/fhir/" + PATIENT, PORTER).statusCode());
         assertEquals(200, done(run, PORTER).statusCode());
-        assertEquals(Holder.NOBODY, runs.byId(run.id()).orElseThrow().holder());
+        assertEquals(cloud.jengu.dbo.work.Status.COMPLETED, runs.byId(run.id()).orElseThrow().status());
     }
 
     @Test
@@ -118,7 +117,8 @@ class ARunContextIsItsPerformersTest {
                 "ending somebody else's run answered differently from ending none");
 
         // Nothing it asked changed anything, and the performer is untouched.
-        assertEquals(Holder.AUTOMATION, runs.byId(run.id()).orElseThrow().holder(),
+        assertEquals(cloud.jengu.dbo.work.Status.READY,
+                runs.byId(run.id()).orElseThrow().status(),
                 "another client ended a run it does not hold");
         assertEquals(200, get(run, "/fhir/" + PATIENT, PORTER).statusCode());
     }
@@ -145,7 +145,7 @@ class ARunContextIsItsPerformersTest {
     void aRunNoClientHoldsAnswersNobody() throws Exception {
         Run run = started(null);
 
-        assertEquals(Holder.AUTOMATION, run.holder());
+        assertEquals(cloud.jengu.dbo.work.Status.READY, run.status());
         assertEquals(404, get(run, "/fhir/metadata", PORTER).statusCode());
         assertEquals(404, get(run, "/fhir/" + PATIENT, PORTER).statusCode());
         assertEquals(404, done(run, PORTER).statusCode());

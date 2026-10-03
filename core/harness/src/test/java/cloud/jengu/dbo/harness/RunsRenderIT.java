@@ -66,7 +66,7 @@ class RunsRenderIT {
                     "dbo.terminology.ingest/import/" + code, List.of(code));
             runs.item(ingest, "CodeSystem/colours", Failure.RECORD, "concept without a code");
             Run tallied = runs.tally(ingest, Map.of("read", 46L, "applied", 45L));
-            Run held = runs.held(tallied, cloud.jengu.dbo.work.Holder.PERSON);
+            Run held = runs.forPeople(tallied, "it needs somebody");
 
             DomainFace face = faceOf(code);
             String document = face.require(RecordProjection.class)
@@ -75,7 +75,7 @@ class RunsRenderIT {
 
             assertTrue(document.contains("\"resourceType\":\"Task\""), code + ": " + document);
             assertTrue(document.contains("\"code\":\"person\""),
-                    code + ": the holder is the field an operator reads first — " + document);
+                    code + ": who may take it is what an operator reads first — " + document);
             assertTrue(document.contains("\"resourceType\":\"OperationOutcome\""),
                     code + ": the item's failure is an outcome — " + document);
             assertTrue(document.contains("\"valueInteger\":46"),

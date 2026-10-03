@@ -84,10 +84,10 @@ class ARunSurvivesLosingItsOwnRecordIT {
         Run sweep = runs.sweep("race.test", "apply", "once");
 
         store.interfere(1);
-        Run advanced = runs.held(sweep, cloud.jengu.dbo.work.Holder.PERSON);
+        Run advanced = runs.forPeople(sweep, "it needs somebody");
 
         assertEquals(0, store.remaining(), "the test did not actually contend the record");
-        assertEquals(cloud.jengu.dbo.work.Holder.PERSON, advanced.holder(),
+        assertTrue(advanced.needsAPerson(),
                 "the advance was lost rather than re-applied");
     }
 
@@ -130,7 +130,7 @@ class ARunSurvivesLosingItsOwnRecordIT {
 
         store.interfere(50);
         Runs.Contended behind = assertThrows(Runs.Contended.class,
-                () -> runs.held(sweep, cloud.jengu.dbo.work.Holder.PERSON));
+                () -> runs.forPeople(sweep, "it needs somebody"));
         store.interfere(0);
 
         assertTrue(behind.getMessage().contains("race.test/apply/never"),

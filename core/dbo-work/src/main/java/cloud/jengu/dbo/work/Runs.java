@@ -390,7 +390,7 @@ public final class Runs {
                 // failed and its retry are one causal thread. A child minting
                 // or dropping either would break the join at exactly the
                 // moment somebody is reading the trace to find out why.
-                Standing.OPEN.held(failure.holder()), parent.key(), parent.correlation(),
+                Standing.forItem(failure), parent.key(), parent.correlation(),
                 parent.trace(), Map.of(),
                 new Run.Item(reference, failure, message), parent.domains(),
                 parent.assignment(), Run.Produced.NOTHING, parent.stepVersion()));
@@ -423,8 +423,8 @@ public final class Runs {
     }
 
     /**
-     * Nothing automated took it, so a person holds it — and the reason is part
-     * of the record.
+     * Nothing automated took it, so it waits for a person — and the reason is
+     * part of the record.
      *
      * <p>"Nobody automated this step yet", "this zone switched it off" and "a
      * narrower scope tried to override a step that is not overridable" are
@@ -436,7 +436,7 @@ public final class Runs {
         Run recorded = update(run, snapshot -> snapshot.withAssignment(
                 new Run.Assignment(at, null, reason, null, claimantOf(snapshot),
                         roleOf(snapshot))));
-        return held(recorded, Holder.PERSON);
+        return forPeople(recorded, reason);
     }
 
     /**
@@ -454,13 +454,12 @@ public final class Runs {
      * participant's own bookkeeping must not be the thing that saves it.
      *
      * <p><b>And this is where automation being switched off takes effect.</b>
-     * Every claim taken here becomes {@link Holder#AUTOMATION}, so this is the
-     * one place that can stop new automatic claims without stopping anything
-     * else. A switch is read rather than a code path consulted: it is declared
+     * Every claim taken here is automation's, so this is the one place that
+     * can stop new automatic claims without stopping anything else. A switch is read rather than a code path consulted: it is declared
      * configuration, and where it is read decides what it can promise.
      *
      * <p>What it cannot do from here is strand somebody. A run already held
-     * carries its holder, its executor and its deadline on the run itself, and
+     * carries its status, its executor and its deadline on the run itself, and
      * nothing re-resolves a claim once taken — so a switch thrown while a
      * participant is working changes nothing about the work in its hands.
      * That is a property of where the check sits rather than a rule anybody
@@ -794,7 +793,13 @@ public final class Runs {
      */
     public Run closed(Run run) {
         requireAction(run, "close");
-        return held(run, Holder.NOBODY);
+        return completed(run);
+    }
+
+    /** Done, said by the store itself — a sweep converging, an item not found again. */
+    private Run completed(Run run) {
+        return update(run, snapshot -> snapshot.withStanding(
+                snapshot.standing().as(Status.COMPLETED)));
     }
 
     /**
@@ -895,19 +900,22 @@ public final class Runs {
     }
 
     /**
-     * Moves a run to what a holder word stood for. Given to people, it is
-     * also let go: a run still under somebody's lease could be taken by
-     * nobody until the lease ran out, and a list of what waits for a person
-     * would not show it meanwhile.
+     * Given to people: ready, open to people alone, with why — and let go of
+     * any claim it was under, or a run still under somebody's lease could be
+     * taken by nobody until the lease ran out, and a list of what waits for a
+     * person would not show it meanwhile.
+     *
+     * <p>What a step's outcome comes to when it needs somebody, what nothing
+     * automated took, and what a sweep found wrong.
      */
-    public Run held(Run run, Holder holder) {
+    public Run forPeople(Run run, String because) {
         return update(run, snapshot -> {
-            State held = snapshot.withStanding(snapshot.standing().held(holder));
-            if (holder == Holder.PERSON && snapshot.assignment() != null) {
-                held = held.withAssignment(new Run.Assignment(snapshot.assignment().at(),
-                        snapshot.assignment().executor(), snapshot.assignment().note(), null));
-            }
-            return held;
+            State given = snapshot.withStanding(snapshot.standing().as(Status.READY)
+                    .openTo(false).notBefore(null).because(because));
+            return snapshot.assignment() == null ? given
+                    : given.withAssignment(new Run.Assignment(snapshot.assignment().at(),
+                            snapshot.assignment().executor(), snapshot.assignment().note(),
+                            null));
         });
     }
 
@@ -1053,8 +1061,13 @@ public final class Runs {
             Run existing = before.get(reference);
             if (existing == null) {
                 Runs.this.item(sweep, reference, failure, message);
-            } else if (existing.holder() != failure.holder()) {
-                held(existing, failure.holder());
+            } else {
+                Standing now = Standing.forItem(failure);
+                if (existing.status() != now.status()
+                        || existing.automation() != now.automation()) {
+                    update(existing, snapshot -> snapshot.withStanding(snapshot.standing()
+                            .as(now.status()).openTo(now.automation())));
+                }
             }
             return this;
         }
@@ -1066,13 +1079,13 @@ public final class Runs {
         }
 
         /**
-         * Ends the pass: anything not seen again is closed, and the sweep is
-         * held by whoever the remaining items say holds it.
+         * Ends the pass: anything not seen again is closed, and the sweep waits
+         * for a person while any of its items does.
          */
         public Run done() {
             before.forEach((reference, item) -> {
                 if (!seen.contains(reference)) {
-                    closed(item);
+                    completed(item);
                 }
             });
             Run current = byKey(sweep.key()).orElse(sweep);
@@ -1083,7 +1096,9 @@ public final class Runs {
                     .anyMatch(item -> item.open() && item.needsAPerson());
             // Converged when nothing is left for a person. A sweep is never
             // "finished" — it is either agreeing with the world or not.
-            return held(current, anybodyWaiting ? Holder.PERSON : Holder.NOBODY);
+            return anybodyWaiting
+                    ? forPeople(current, "an outcome of this pass needs somebody")
+                    : completed(current);
         }
     }
 
@@ -1116,7 +1131,7 @@ public final class Runs {
     /**
      * Who holds the run as it stands, carried through an advance that is not
      * a change of hands. Progress and resolution move the deadline and the
-     * account; only a claim, a release and a reopening move the holder.
+     * account; only a claim, a release and a reopening change hands.
      */
     private static String claimantOf(State snapshot) {
         return snapshot.assignment() == null ? null : snapshot.assignment().claimant();
@@ -1181,7 +1196,7 @@ public final class Runs {
         if (claimable == Claimable.NOBODY) {
             return run;
         }
-        if (run.holder() != Holder.AUTOMATION || run.claimed(java.time.Instant.now())) {
+        if (!run.forAutomation(java.time.Instant.now())) {
             return run;
         }
         try {
@@ -1293,8 +1308,8 @@ public final class Runs {
 
 
     /**
-     * Where a run stands and who may take it next — the facts its holder
-     * used to answer in one word, kept apart.
+     * Where a run stands and who may take it next, kept apart: three facts,
+     * and one word for all of them could not say any of them alone.
      *
      * @param status       where it is in its life
      * @param automation   whether automation may take it as well as a person.
@@ -1343,17 +1358,13 @@ public final class Runs {
         }
 
         /**
-         * What a holder word asks for, said in the facts it stood for: over,
-         * open to people alone, held back for automation, or automation's.
+         * A sweep's outcome, by what failed: one that may pass is held for the
+         * next pass and is nobody's card, and every other waits for a person.
          */
-        Standing held(Holder holder) {
-            return switch (holder) {
-                case NOBODY -> as(Status.COMPLETED);
-                case PERSON -> as(Status.READY).openTo(false).notBefore(null);
-                case RETRY -> as(Status.ON_HOLD).openTo(true);
-                case AUTOMATION -> as(status.over() || status == Status.ON_HOLD
-                        ? Status.READY : status).openTo(true).notBefore(null);
-            };
+        static Standing forItem(Failure failure) {
+            return failure == Failure.UNREACHABLE
+                    ? OPEN.as(Status.ON_HOLD)
+                    : OPEN.openTo(false);
         }
     }
 
@@ -1434,9 +1445,6 @@ public final class Runs {
                     .append(",\"process\":").append(Json.quoted(process))
                     .append(",\"step\":").append(Json.quoted(step))
                     .append(",\"kind\":").append(Json.quoted(kind.wire()))
-                    .append(",\"holder\":").append(Json.quoted(Holder.derived(standing.status(),
-                            standing.automation(), standing.status() == Status.IN_PROGRESS
-                                    && assignment != null && assignment.role() != null).wire()))
                     .append(",\"status\":").append(Json.quoted(standing.status().wire()))
                     .append(",\"performerType\":").append(standing.automation()
                             ? "[\"automation\",\"person\"]" : "[\"person\"]");

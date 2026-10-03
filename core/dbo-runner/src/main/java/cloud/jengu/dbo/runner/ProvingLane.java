@@ -3,7 +3,6 @@ package cloud.jengu.dbo.runner;
 import cloud.jengu.dbo.core.api.StoredObject;
 import cloud.jengu.dbo.work.Declarations;
 import cloud.jengu.dbo.work.Executor;
-import cloud.jengu.dbo.work.Holder;
 import cloud.jengu.dbo.work.Run;
 import cloud.jengu.dbo.work.RunKind;
 import cloud.jengu.dbo.work.Scope;
@@ -449,18 +448,20 @@ public final class ProvingLane implements Lane {
         }
         return new Run(java.util.UUID.randomUUID().toString(), 1,
                 stepId + "/proving", stepId.substring(0, dot), stepId.substring(dot + 1),
-                RunKind.PIPELINE, Holder.NOBODY, null, null, null,
-                Map.of(), null, List.of(), null, Run.Produced.NOTHING, null, Map.of(), null, null, null);
+                RunKind.PIPELINE, null, null, null,
+                Map.of(), null, List.of(), null, Run.Produced.NOTHING, null, Map.of(), null, null,
+                null, cloud.jengu.dbo.work.Status.READY, true, null, null, 0, null);
     }
 
-    /** The run as a claim leaves it: held by automation, assigned to whoever took it. */
+    /** The run as a claim leaves it: in progress, assigned to whoever took it. */
     private static Run held(Run run, Executor by) {
         return new Run(run.id(), run.versionId(), run.key(), run.process(), run.step(),
-                run.kind(), Holder.AUTOMATION, run.parent(), run.correlation(), run.trace(),
+                run.kind(), run.parent(), run.correlation(), run.trace(),
                 run.tally(), run.item(), run.domains(),
                 new Run.Assignment(Scope.BASELINE, by, null,
                         Instant.now().plus(Duration.ofMinutes(5))),
                 run.produced(), run.stepVersion(), run.inputs(), run.milestone(),
-                run.requester(), run.refused());
+                run.requester(), run.refused(), cloud.jengu.dbo.work.Status.IN_PROGRESS,
+                run.automation(), null, null, run.attempts(), run.retry());
     }
 }

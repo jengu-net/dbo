@@ -4,7 +4,6 @@ import cloud.jengu.dbo.postgres.PgChangeFeed;
 import cloud.jengu.dbo.postgres.PgObjectStore;
 import cloud.jengu.dbo.work.Declarations;
 import cloud.jengu.dbo.work.Failure;
-import cloud.jengu.dbo.work.Holder;
 import cloud.jengu.dbo.work.Participation;
 import cloud.jengu.dbo.work.Run;
 import cloud.jengu.dbo.work.Runner;
@@ -105,7 +104,7 @@ class AReferenceRunnerCarriesWorkIT {
         Run after = runs.byKey(PROCESS + "/" + step + "/carried").orElseThrow();
         assertEquals(1L, after.tally().get("validated"), "and the account came back");
         assertFalse(after.open(), "nothing is owed, and nobody holds it");
-        assertEquals(Holder.NOBODY, after.holder());
+        assertEquals(cloud.jengu.dbo.work.Status.COMPLETED, after.status());
     }
 
     @Test
@@ -163,7 +162,7 @@ class AReferenceRunnerCarriesWorkIT {
         // ... and finishes it, through the same report a service uses
         Run done = workplace.report(opened, Runner.Outcome.done(Map.of("checked", 1L)));
 
-        assertEquals(Holder.NOBODY, runs.byKey(done.key()).orElseThrow().holder());
+        assertEquals(cloud.jengu.dbo.work.Status.COMPLETED, runs.byKey(done.key()).orElseThrow().status());
         assertEquals(1L, runs.byKey(done.key()).orElseThrow().tally().get("checked"));
     }
 

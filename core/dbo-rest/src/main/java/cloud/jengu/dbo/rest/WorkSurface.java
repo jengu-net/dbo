@@ -25,7 +25,7 @@ public interface WorkSurface {
      * is not searchable, and leaving it out of this set is how that is said.
      */
     default java.util.Set<String> searchParameters() {
-        return java.util.Set.of("owner", "status", "performer-type", "code", "identifier");
+        return java.util.Set.of("status", "performer-type", "code", "identifier");
     }
 
     /**

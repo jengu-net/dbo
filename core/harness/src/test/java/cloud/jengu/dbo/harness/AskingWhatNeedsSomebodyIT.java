@@ -9,7 +9,6 @@ import cloud.jengu.dbo.promises.Proving;
 import cloud.jengu.dbo.asking.Asking;
 import cloud.jengu.dbo.asking.Ongoing;
 import cloud.jengu.dbo.work.Executor;
-import cloud.jengu.dbo.work.Holder;
 import cloud.jengu.dbo.work.Run;
 import cloud.jengu.dbo.work.Runs;
 import cloud.jengu.dbo.work.Scope;
@@ -68,7 +67,7 @@ class AskingWhatNeedsSomebodyIT {
         // automation is holding, and one finished with.
         Run needsSomebody = runs.correlated(
                 runs.pipeline(PROCESS, STEP, CASE + "/a", List.of(WorkModel.DOMAIN)), CASE);
-        runs.held(needsSomebody, Holder.PERSON);
+        runs.forPeople(needsSomebody, "it needs somebody");
 
         Run running = runs.correlated(
                 runs.pipeline(PROCESS, STEP, CASE + "/b", List.of(WorkModel.DOMAIN)), CASE);

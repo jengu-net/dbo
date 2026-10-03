@@ -9,8 +9,8 @@ What work *is* and how it reaches whoever does it is
 Three different questions, deliberately answered by three different things.
 
 **"What is true right now?"** — the store. Runs are records, so what is claimable,
-what is stuck and who holds it are ordinary queries against the tenant's own
-data. Anything that acts on work reads this and nothing else. Across a
+what is stuck, who holds it and what waits for a person are ordinary queries
+against the tenant's own data. Anything that acts on work reads this and nothing else. Across a
 deployment the same question is asked by one process outside every container,
 over the doors each node and tenant already serves: a node is asked what it is
 serving and what it has installed under the deployment's own token, because
@@ -120,5 +120,5 @@ Notification delivery, retention, configuration application, tenant serving,
 upstream sync — each is a declared process with runs like any other. That is a
 visibility decision more than an implementation one: an operator asking what is
 running sees the machinery in the same list as the domain work, with the same
-counts and the same holders, and a retention pass that fails is a card somebody
+counts and the same statuses, and a retention pass that fails is a card somebody
 can pick up rather than a line in a log.

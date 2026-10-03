@@ -91,7 +91,7 @@ class ARunIsOfferedWhicheverDoorDeclaredItsStepIT {
         // disagree the fault is in minting rather than in polling.
         assertTrue(declared.open() && brought.open(),
                 "a freshly minted run is open, and one of these is not: declared="
-                        + declared.holder() + " brought=" + brought.holder());
+                        + declared.status() + " brought=" + brought.status());
         assertTrue(!declared.claimed(java.time.Instant.now())
                         && !brought.claimed(java.time.Instant.now()),
                 "a freshly minted run is unclaimed, and one of these is not");

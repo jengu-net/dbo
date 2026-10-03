@@ -9,7 +9,6 @@ import cloud.jengu.dbo.work.Automations;
 import cloud.jengu.dbo.work.Executor;
 import cloud.jengu.dbo.work.ExecutorCandidate;
 import cloud.jengu.dbo.work.ExecutorResolution;
-import cloud.jengu.dbo.work.Holder;
 import cloud.jengu.dbo.work.Resolution;
 import cloud.jengu.dbo.work.Run;
 import cloud.jengu.dbo.work.Runs;
@@ -54,7 +53,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * answer.
  *
  * <p>And nothing already in somebody's hands is disturbed, structurally
- * rather than by a rule: a held run carries its holder and its deadline on
+ * rather than by a rule: a held run carries its status and its deadline on
  * itself, and no path re-resolves a claim once taken.
  */
 @Tag("integration")
@@ -117,12 +116,12 @@ class ASwitchSaysWhetherAStepIsAutomatedHereIT {
         // On, claimed, and only then switched off — the order that matters.
         automations.declare(Automation.on(PROCESS, STEP, Scope.BASELINE));
         Run held = claim("already-held").orElseThrow();
-        assertEquals(Holder.AUTOMATION, held.holder());
+        assertEquals(cloud.jengu.dbo.work.Status.IN_PROGRESS, held.status());
 
         automations.declare(Automation.off(PROCESS, STEP, Scope.BASELINE));
 
         Run after = runs.byKey(held.key()).orElseThrow();
-        assertEquals(Holder.AUTOMATION, after.holder(),
+        assertEquals(cloud.jengu.dbo.work.Status.IN_PROGRESS, after.status(),
                 "the switch reached into work somebody was already holding: " + after);
         assertEquals(ANALYSER, after.assignment().executor(),
                 "and took the executor off a claim that had already been made");

@@ -4,7 +4,6 @@ import cloud.jengu.dbo.core.face.RecordProjection;
 import cloud.jengu.dbo.fhir.r4.R4FhirVersion;
 import cloud.jengu.dbo.postgres.PgObjectStore;
 import cloud.jengu.dbo.work.Failure;
-import cloud.jengu.dbo.work.Holder;
 import cloud.jengu.dbo.work.Run;
 import cloud.jengu.dbo.work.Runs;
 import cloud.jengu.dbo.work.WorkModel;
@@ -52,7 +51,7 @@ class UnprojectedWorkIsVisibleIT {
         Run rotation = runs.sweep("dbo.identity.rotation", "rotate", "keys", List.of("identity"));
         runs.item(rotation, "credential:hub-signing", Failure.RECORD,
                 "the signing key is past its rotation date and nothing can rotate it here");
-        Run held = runs.held(rotation, Holder.PERSON);
+        Run held = runs.forPeople(rotation, "it needs somebody");
 
         assertFalse(R4FhirVersion.INSTANCE.face().require(RecordProjection.class)
                         .project(runs.asRecord(held)).isPresent(),
@@ -66,8 +65,8 @@ class UnprojectedWorkIsVisibleIT {
     @Test
     @DisplayName("the filters narrow, and what they narrow to is what somebody asked for")
     void filtersNarrow() {
-        runs.held(runs.pipeline("dbo.terminology.ingest", "import",
-                "dbo.terminology.ingest/import/console"), Holder.PERSON);
+        runs.forPeople(runs.pipeline("dbo.terminology.ingest", "import",
+                "dbo.terminology.ingest/import/console"), "it needs somebody");
         runs.pipeline("dbo.terminology.ingest", "publish",
                 "dbo.terminology.ingest/publish/console");
 

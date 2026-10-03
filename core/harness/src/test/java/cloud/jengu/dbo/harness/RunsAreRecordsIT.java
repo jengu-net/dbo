@@ -3,7 +3,6 @@ package cloud.jengu.dbo.harness;
 import cloud.jengu.dbo.core.api.Envelope;
 import cloud.jengu.dbo.postgres.PgObjectStore;
 import cloud.jengu.dbo.work.Failure;
-import cloud.jengu.dbo.work.Holder;
 import cloud.jengu.dbo.work.Run;
 import cloud.jengu.dbo.work.RunKind;
 import cloud.jengu.dbo.work.Runs;
@@ -68,15 +67,16 @@ class RunsAreRecordsIT {
 
     @Test
     @DisplayName("a record that is wrong reaches a person; a store that is away is a retry")
-    @Proving({DboPromises.PROC_ESCALATION_BY_FAILURE_CLASS, DboPromises.PROC_RUN_SAYS_WHO_HOLDS_IT})
+    @Proving({DboPromises.PROC_ESCALATION_BY_FAILURE_CLASS,
+            DboPromises.PROC_A_RUN_KEEPS_STATUS_CLAIMANT_AND_ELIGIBILITY_APART})
     void escalationFollowsTheFailureClass() {
         Run delivery = runs.pipeline("dbo.subscriptions.delivery", "post");
         Run wrong = runs.item(delivery, "Subscription/one", Failure.RECORD, "endpoint rejected it");
         Run away = runs.item(delivery, "Subscription/two",
                 Failure.of(new java.net.SocketTimeoutException("read timed out")), "no answer");
 
-        assertEquals(Holder.PERSON, wrong.holder(), "a record that is wrong is somebody's job");
-        assertEquals(Holder.RETRY, away.holder(),
+        assertTrue(wrong.needsAPerson(), "a record that is wrong is somebody's job");
+        assertTrue(away.status() == cloud.jengu.dbo.work.Status.ON_HOLD && away.automation(),
                 "a transient fault on somebody's card is how a queue becomes a graveyard");
         assertTrue(runs.awaiting(cloud.jengu.dbo.work.Awaits.PERSON).stream()
                         .anyMatch(run -> run.id().equals(wrong.id())),
@@ -85,7 +85,8 @@ class RunsAreRecordsIT {
 
     @Test
     @DisplayName("a sweep closes what stops failing, without anybody clicking resolved")
-    @Proving({DboPromises.PROC_CLOSE_BY_RE_EVALUATION, DboPromises.PROC_RUN_SAYS_WHO_HOLDS_IT})
+    @Proving({DboPromises.PROC_CLOSE_BY_RE_EVALUATION,
+            DboPromises.PROC_A_RUN_KEEPS_STATUS_CLAIMANT_AND_ELIGIBILITY_APART})
     void aSweepClosesByReEvaluation() {
         Run sweep = runs.sweep("dbo.config.applied", "apply", "hogwarts");
 
@@ -93,7 +94,7 @@ class RunsAreRecordsIT {
                 .item("CodeSystem/one", Failure.RECORD, "malformed")
                 .item("CodeSystem/two", Failure.RECORD, "malformed")
                 .done();
-        assertEquals(Holder.PERSON, runs.byKey(sweep.key()).orElseThrow().holder());
+        assertTrue(runs.byKey(sweep.key()).orElseThrow().needsAPerson());
         assertEquals(2, openItems(sweep));
 
         // somebody fixes one of them in the configuration repository
@@ -101,12 +102,12 @@ class RunsAreRecordsIT {
                 .item("CodeSystem/two", Failure.RECORD, "malformed")
                 .done();
         assertEquals(1, openItems(sweep), "what stopped failing closed itself");
-        assertEquals(Holder.PERSON, runs.byKey(sweep.key()).orElseThrow().holder());
+        assertTrue(runs.byKey(sweep.key()).orElseThrow().needsAPerson());
 
         // and then the other
         Run converged = runs.pass(sweep).counted("read", 46).counted("applied", 46).done();
         assertEquals(0, openItems(sweep));
-        assertEquals(Holder.NOBODY, converged.holder(),
+        assertEquals(cloud.jengu.dbo.work.Status.COMPLETED, converged.status(),
                 "a sweep converges rather than finishing, and nobody closed it by hand");
         assertEquals(Map.of("read", 46L, "applied", 46L), converged.tally());
     }
@@ -155,7 +156,7 @@ class RunsAreRecordsIT {
                 .extract(WorkModel.TYPE, store.get(WorkModel.TYPE, item.id())
                         .orElseThrow().payload());
 
-        assertTrue(envelope.paths().containsKey("holder")
+        assertTrue(envelope.paths().containsKey("status")
                 && envelope.paths().containsKey("step")
                 && envelope.paths().containsKey("parent"),
                 "state has to be queryable, or the list an operator opens cannot exist: "

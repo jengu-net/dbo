@@ -63,8 +63,8 @@ must not have.
   it touched, retained under the same declared rules.
 - **A security officer** secures one surface. There is no separate operations
   console with its own login and its own idea of who may look.
-- **An administrator** answers "what is running, and who holds it" with an
-  ordinary query, and loses nothing to a restart.
+- **An administrator** answers "what is running, who holds it, and what waits
+  for a person" with an ordinary query, and loses nothing to a restart.
 - **The business** can hand a partner a view of their own work without
   exposing a scheduler, because the work is records and records already have
   owners.

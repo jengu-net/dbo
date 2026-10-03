@@ -5,7 +5,6 @@ import cloud.jengu.dbo.promises.DboPromises;
 import cloud.jengu.dbo.promises.Proving;
 import cloud.jengu.dbo.runner.Lane;
 import cloud.jengu.dbo.runner.Outcome;
-import cloud.jengu.dbo.work.Holder;
 import cloud.jengu.dbo.work.Run;
 import cloud.jengu.dbo.work.RunKind;
 import org.junit.jupiter.api.DisplayName;
@@ -133,8 +132,8 @@ class AResultWritesOnlyWhatItsStepDeclaresTest {
 
     private static Run run() {
         return new Run("run-1", 1, "hogwarts.admission.register/one", "hogwarts.admission",
-                "register", RunKind.PIPELINE, Holder.AUTOMATION, null, null, null, Map.of(),
+                "register", RunKind.PIPELINE, null, null, null, Map.of(),
                 null, List.of(), null, Run.Produced.NOTHING, "1", Map.of(), null, "the-asker",
-                null);
+                null, cloud.jengu.dbo.work.Status.IN_PROGRESS, true, null, null, 0, null);
     }
 }

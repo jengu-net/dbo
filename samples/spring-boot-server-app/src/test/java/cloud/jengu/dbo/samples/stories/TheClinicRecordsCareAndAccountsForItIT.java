@@ -1100,9 +1100,9 @@ class TheClinicRecordsCareAndAccountsForItIT {
                         .of(step, "1", cloud.jengu.dbo.work.WorkModel.DOMAIN)));
         var weigher = new cloud.jengu.dbo.work.Executor("weigher", "1", "example",
                 cloud.jengu.dbo.work.Scope.BASELINE);
-        runs.held(runs.correlated(runs.pipeline(process, "scale", kase + "/a",
+        runs.forPeople(runs.correlated(runs.pipeline(process, "scale", kase + "/a",
                 List.of(cloud.jengu.dbo.work.WorkModel.DOMAIN)), kase),
-                cloud.jengu.dbo.work.Holder.PERSON);
+                "the scale reads something nobody trusts, and somebody has to weigh again");
         runs.claim(runs.correlated(runs.pipeline(process, "scale", kase + "/b",
                         List.of(cloud.jengu.dbo.work.WorkModel.DOMAIN)), kase), weigher,
                 java.time.Instant.now().plusSeconds(600));

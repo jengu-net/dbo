@@ -38,8 +38,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * <p>Milestones ride the checkpoint the way events ride a tracing span: the
  * executor asserts only the name, the store derives the position over the
  * step's own declared order, the record keeps it replaced-never-accumulated
- * across release and retake, and the face says it in {@code businessStatus}
- * beside the holder. A service that reports nothing behaves exactly as today.
+ * across release and retake, and the face says it in {@code businessStatus}.
+ * A service that reports nothing behaves exactly as today.
  */
 @Tag("integration")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -117,8 +117,8 @@ class MilestonesOnTheCheckpointIT {
     }
 
     @Test
-    @DisplayName("businessStatus says where the work is — holder and milestone, with the "
-            + "derived position as its text — valid in every version served")
+    @DisplayName("businessStatus says where the work is — the milestone, with the derived "
+            + "position as its text — valid in every version served")
     @Proving(DboPromises.PROC_TASK_SAYS_WHERE_THE_WORK_IS)
     void theTaskSaysWhereTheWorkIs() {
         for (String code : List.of("r4", "r5", "r6")) {
@@ -138,8 +138,8 @@ class MilestonesOnTheCheckpointIT {
             assertTrue(document.contains("urn:dbo:run:milestone")
                             && document.contains("\"code\":\"validated\"")
                             && document.contains("\"text\":\"validated, 2 of 3\""),
-                    code + ": one concept, two codings, and the derived position for the "
-                            + "human reader — " + document);
+                    code + ": the milestone, and the derived position for the human reader — "
+                            + document);
 
             Payloads payloads = face.require(Payloads.class);
             Object parsed = payloads.read("Bundle", document.getBytes(StandardCharsets.UTF_8));

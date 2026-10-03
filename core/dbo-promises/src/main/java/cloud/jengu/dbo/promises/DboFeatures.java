@@ -102,7 +102,7 @@ public enum DboFeatures implements Feature {
             + "happened: who holds it, what it produced, why it escalated, how it "
             + "closes, and what it is one of.",
             List.of(DboPromises.PROC_RUN_HAS_A_RECORD,
-                    DboPromises.PROC_RUN_SAYS_WHO_HOLDS_IT,
+                    DboPromises.PROC_A_RUN_KEEPS_STATUS_CLAIMANT_AND_ELIGIBILITY_APART,
                     DboPromises.PROC_RUN_TALLY_AND_ITEM_OUTCOMES,
                     DboPromises.PROC_ESCALATION_BY_FAILURE_CLASS,
                     DboPromises.PROC_CLOSE_BY_RE_EVALUATION,

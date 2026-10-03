@@ -4,7 +4,6 @@ import cloud.jengu.dbo.auth.Scopes;
 import cloud.jengu.dbo.auth.TenantAuthority.AuthContext;
 import cloud.jengu.dbo.promises.DboPromises;
 import cloud.jengu.dbo.promises.Proving;
-import cloud.jengu.dbo.work.Holder;
 import cloud.jengu.dbo.work.Run;
 import cloud.jengu.dbo.work.RunKind;
 import org.junit.jupiter.api.DisplayName;
@@ -81,7 +80,8 @@ class ARunAnswersOnlyItsInitiatorTest {
 
     private static Run run(String requester) {
         return new Run("run-1", 1, "hogwarts.admission.admit/one", "hogwarts.admission",
-                "admit", RunKind.PIPELINE, Holder.NOBODY, null, null, null, Map.of(), null,
-                List.of(), null, Run.Produced.NOTHING, "1", Map.of(), null, requester, null);
+                "admit", RunKind.PIPELINE, null, null, null, Map.of(), null,
+                List.of(), null, Run.Produced.NOTHING, "1", Map.of(), null, requester, null,
+                cloud.jengu.dbo.work.Status.COMPLETED, true, null, null, 0, null);
     }
 }

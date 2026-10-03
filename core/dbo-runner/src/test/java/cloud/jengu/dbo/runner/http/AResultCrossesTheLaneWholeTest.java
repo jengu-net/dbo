@@ -8,7 +8,6 @@ import cloud.jengu.dbo.runner.ProvingLane;
 import cloud.jengu.dbo.runner.StepRunner;
 import cloud.jengu.dbo.runner.StepService;
 import cloud.jengu.dbo.work.Executor;
-import cloud.jengu.dbo.work.Holder;
 import cloud.jengu.dbo.work.Run;
 import cloud.jengu.dbo.work.RunKind;
 import cloud.jengu.dbo.work.RunSlot;
@@ -141,11 +140,12 @@ class AResultCrossesTheLaneWholeTest {
      */
     private static Lane farSide(List<String> verbs, Function<List<Outcome.Write>, String> answer) {
         Run offered = new Run("run-1", 1, STEP + "/one", "hogwarts.admission", "register",
-                RunKind.PIPELINE, Holder.AUTOMATION, null, null, null, Map.of(), null,
+                RunKind.PIPELINE, null, null, null, Map.of(), null,
                 List.of(), new Run.Assignment(Scope.BASELINE, identity(), null,
                         Instant.now().plusSeconds(60)),
                 Run.Produced.NOTHING, "1", Map.of("patient", RunSlot.given(PATIENT)), null,
-                "the-asker", null);
+                "the-asker", null, cloud.jengu.dbo.work.Status.IN_PROGRESS, true, null, null, 0,
+                null);
         return (Lane) Proxy.newProxyInstance(Lane.class.getClassLoader(),
                 new Class<?>[] {Lane.class}, (proxy, method, arguments) -> {
                     verbs.add(method.getName());
@@ -161,12 +161,15 @@ class AResultCrossesTheLaneWholeTest {
                             @SuppressWarnings("unchecked")
                             String refused = answer.apply((List<Outcome.Write>) arguments[2]);
                             yield new Run(offered.id(), 2, offered.key(), offered.process(),
-                                    offered.step(), offered.kind(), Holder.NOBODY, null, null,
+                                    offered.step(), offered.kind(), null, null,
                                     null, Map.of("registered", 1L), null, List.of(),
                                     offered.assignment(), refused == null
                                             ? new Run.Produced(List.of("Patient/p1/1"), Map.of(), 1)
                                             : Run.Produced.NOTHING,
-                                    "1", offered.inputs(), null, "the-asker", refused);
+                                    "1", offered.inputs(), null, "the-asker", refused,
+                                    refused == null ? cloud.jengu.dbo.work.Status.COMPLETED
+                                            : cloud.jengu.dbo.work.Status.FAILED,
+                                    true, null, refused, 0, null);
                         }
                         default -> null;
                     };

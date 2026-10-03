@@ -147,7 +147,9 @@ The store holds work as first-class records. Through this face:
 | `Task` | one run — one attempt at one step |
 | child `Task`s under it | the items of a batch run |
 | `Task.instantiatesCanonical` | which definition this run is of |
-| `Task.owner` | who holds it now — a person, or something that claimed it |
+| `Task.status` | where it stands — ready, in progress, on hold, or how it ended |
+| `Task.owner` | who holds it now — a person as their `PractitionerRole`, or an executor as a `Device` |
+| `Task.performerType` / `requestedPerformer` | who may take it — automation and people, or people alone |
 | `Task.businessStatus` | the declared milestone reached: *"validated, 2 of 3"* |
 | `Task.focus` | the thing the step acts on |
 | `Task.input` | the documents the work is over, in declared order |

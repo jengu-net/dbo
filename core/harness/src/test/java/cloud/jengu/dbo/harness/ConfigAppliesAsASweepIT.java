@@ -8,7 +8,6 @@ import cloud.jengu.dbo.fhir.common.FhirTypeConfig;
 import cloud.jengu.dbo.postgres.PgObjectStore;
 import cloud.jengu.dbo.sync.ConfigApplication;
 import cloud.jengu.dbo.sync.ConfigSource;
-import cloud.jengu.dbo.work.Holder;
 import cloud.jengu.dbo.work.Run;
 import cloud.jengu.dbo.work.RunKind;
 import cloud.jengu.dbo.work.Runs;
@@ -146,7 +145,7 @@ class ConfigAppliesAsASweepIT {
         assertFalse(after.needsAPerson(),
                 "the world agrees now, so the sweep does — a card closed by click reads "
                         + "resolved while the fault is live");
-        assertTrue(runs.items(after).stream().noneMatch(item -> item.holder() == Holder.PERSON));
+        assertTrue(runs.items(after).stream().noneMatch(cloud.jengu.dbo.work.Run::needsAPerson));
     }
 
     /** A source that reads the same twice is read twice and applied once. */

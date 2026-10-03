@@ -347,7 +347,8 @@ class SyncStreamsIT {
         assertFalse(sweep.needsAPerson(), "nobody can do anything about an upstream being down");
         cloud.jengu.dbo.work.Runs runs = new cloud.jengu.dbo.work.Runs(leafEngine);
         assertTrue(runs.items(sweep).stream().anyMatch(item ->
-                        item.holder() == cloud.jengu.dbo.work.Holder.RETRY),
+                        item.status() == cloud.jengu.dbo.work.Status.ON_HOLD
+                                && item.automation()),
                 "and it is a retry, so the next round tries again: " + runs.items(sweep));
     }
 

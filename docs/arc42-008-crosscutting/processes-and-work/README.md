@@ -123,7 +123,7 @@ and interpreted at runtime. A step declaration is the contract, and it says:
   data is divided into, so what a step could touch is readable from its
   declaration rather than from its code, and checkable before it runs;
 - **the actions it contains** — open, close, reopen — which is what roles narrow
-  and what "held by a person" concretely means;
+  and what a person holding the work concretely may do;
 - **its milestones, in order**, if it has any;
 - **who, if anyone, may override it** — by default nobody.
 
