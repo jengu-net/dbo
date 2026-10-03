@@ -196,7 +196,7 @@ public enum DboPromises implements Promise {
     PROC_A_RUN_CONTEXT_ENDS_WITH_ITS_RUN(
             "A run context answers its owner while the task is claimed, whoever that is — the "
             + "client that started it, an executor, or a person as their role. A run that is "
-            + "over answers exactly as a run that never existed — the "
+            + "over answers its performer exactly as a run that never existed — the "
             + "same answer either way, because saying that a run is over confirms that it "
             + "was real. So performing a step leaves no standing way in behind it, which "
             + "is the difference between access granted to a step and access granted once "
@@ -209,7 +209,8 @@ public enum DboPromises implements Promise {
             + "lane — and from then on the context is the claimant's. Another credential "
             + "that may act in work at the same tenant, holding the run's id, reads none "
             + "of it and cannot end it, and is answered exactly as for a run that never "
-            + "existed; so is everybody while nobody holds the run. A run's id is a thing "
+            + "existed; so is everybody while nobody holds the run, save its asker inside "
+            + "the window a step that declares an answer gives it. A run's id is a thing "
             + "that gets logged and passed around, and it is not a key to the documents "
             + "the run was given."),
 
@@ -227,6 +228,13 @@ public enum DboPromises implements Promise {
             + "existed, byte for byte. The window shuts by the clock, with no transition of "
             + "the run and no sweep, and the run's answer still names the versions it "
             + "produced."),
+
+    PROC_THE_ASKER_READS_NOTHING_WHILE_THE_WORK_IS_DONE(
+            "While a participant performs a run, the application that asked for it reads "
+            + "nothing through the run's context and is answered as for a run that never "
+            + "existed. The context is the performer's while the work is done and the "
+            + "asker's only once it is over, so the two never read through one run at "
+            + "once."),
 
     PROC_A_WAKE_UP_IS_NOT_HOW_WORK_ARRIVES("A lane may say that it has work, and a runner "
             + "waiting on one looks again instead of waiting out its tick. What arrives is "
@@ -1607,6 +1615,14 @@ public enum DboPromises implements Promise {
             + "recipient can open a payload and never say so, and that limit is accepted. "
             + "The link lives on the entry, so the chain outlives nothing the trail does "
             + "not, and a pruned predecessor reads unchained rather than broken."),
+    POL_COLLECTING_IS_A_READING(
+            "Each collection an asker makes through its run's window is an access entry "
+            + "about the document, landing beside every other reading of it, naming the "
+            + "asker's client as actor, the run as occasion and the step's purpose — never "
+            + "travel, and whatever the tenant's audit level. A version may be collected any "
+            + "number of times within the window, each a reading of its own. Reading the "
+            + "run's answer stays no entry, because it carries references only."),
+
     POL_AUDIT_UNCONDITIONALLY_APPEND_ONLY(
             "Audit entries are exempt from the tenant's write discipline: no update, no "
             + "tombstone under any policy; retention's sweep is the only removal."),

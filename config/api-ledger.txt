@@ -2894,6 +2894,7 @@ cloud.jengu.dbo.promises.DboPromises                                   POL_APPEN
 cloud.jengu.dbo.promises.DboPromises                                   POL_AUDIT_AS_RECORDS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   POL_AUDIT_UNCONDITIONALLY_APPEND_ONLY:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   POL_A_RUNS_TRAIL_IS_CHAINED_FROM_THE_TASK:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   POL_COLLECTING_IS_A_READING:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   POL_CUSTOM_AUDIT_EVENTS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   POL_DECLARATIVE_RETENTION:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   POL_DECLARED_AT_CONFIGURATION:cloud.jengu.dbo.promises.DboPromises
@@ -3009,6 +3010,7 @@ cloud.jengu.dbo.promises.DboPromises                                   PROC_STEP
 cloud.jengu.dbo.promises.DboPromises                                   PROC_SUPERVISION_IS_ITS_OWN_ENTITLEMENT:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_TASK_CARRIES_THE_INPUTS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_TASK_SAYS_WHERE_THE_WORK_IS:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   PROC_THE_ASKER_READS_NOTHING_WHILE_THE_WORK_IS_DONE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_THE_JOINER_OFFERS_EVERY_TENANTS_WORK:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_THE_LANE_HAS_TWO_BOUNDS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_THE_REGISTER_IS_READ_AT_A_DOOR:cloud.jengu.dbo.promises.DboPromises

@@ -61,6 +61,20 @@ import java.util.Optional;
  * ending the run, at the run's own address rather than inside its context,
  * because it is a statement about the work and not about a document.
  *
+ * <p><b>And then, for a while, the asker's.</b> A step that declares an answer
+ * gives the client that asked for its run a window once the result is
+ * written: until then plus the step's {@code collect}, the context answers
+ * that client for what the run was given and for each version the run
+ * produced, read as that version — as the audience the step names, which
+ * fixes the types it may collect and what a collection of a person reveals.
+ * The run is over meanwhile and nobody holds it; the window is a time beside
+ * it, compared with the clock on every read, so it shuts with no transition
+ * and no sweep. Past it the context answers as a run that never existed.
+ * {@code done} from the asker shuts it now.
+ *
+ * <p>The reach rule is therefore two lines: the performer while it holds the
+ * run, the requester while its window is open, and nobody else.
+ *
  * <p><b>The run answers its initiator.</b> {@code GET /run/<id>} gives the
  * client that asked for the run at this door the run as a {@code Task}: how
  * it stands, what it was over, and what the step produced. To that client
@@ -114,6 +128,25 @@ final class StepSurface implements HttpHandler {
      * takes a run as.
      */
     private final java.util.function.Function<String, List<String>> roles;
+
+    /**
+     * What "now" is, for every question this door asks of a run's time —
+     * who holds it, and whether its asker's window is open. A field so a
+     * test can stand at the instant a window shuts rather than wait for it.
+     */
+    private java.time.Clock clock = java.time.Clock.systemUTC();
+
+    /** The same door, asking the clock given. */
+    StepSurface at(java.time.Clock clock) {
+        this.clock = clock;
+        return this;
+    }
+
+    /**
+     * The header a collecting request states its purpose in: the second key,
+     * said at the moment of reading, beside the one the step declared.
+     */
+    static final String PURPOSE_OF_USE = "Purpose-Of-Use";
 
     /** How long a person's claim holds before it lapses, unless they checkpoint. */
     static final java.time.Duration A_PERSONS_LEASE = java.time.Duration.ofMinutes(30);
@@ -645,6 +678,11 @@ final class StepSurface implements HttpHandler {
             return;
         }
         Optional<Run> found = runs.byId(segments[0]);
+        if (!held(found, asking) && found.isPresent()
+                && found.get().collectableBy(asking, clock.instant())) {
+            collect(exchange, segments, found.get());
+            return;
+        }
         // A run that has ended answers exactly as one that never existed. The
         // context is the work, so it lasts as long as the work does: a run
         // closed an hour ago whose base url still served would be a standing
@@ -817,6 +855,16 @@ final class StepSurface implements HttpHandler {
             return;
         }
         Optional<Run> found = runs.byId(id);
+        if (!held(found, asking) && found.isPresent()
+                && found.get().collectableBy(asking, clock.instant())) {
+            // The asker is done collecting: its window shuts now, and the run
+            // — over already — is otherwise untouched.
+            Run collected = runs.collected(found.get(), clock.instant());
+            respond(exchange, 200, "{\"run\":" + quote(collected.id()) + ",\"key\":"
+                    + quote(collected.key()) + ",\"status\":"
+                    + quote(collected.status().wire()) + "}");
+            return;
+        }
         // Ended only by whoever holds it. Somebody else ending a run would
         // close a context out from under the performer, and record a run as
         // done that its performer never said was.
@@ -945,9 +993,105 @@ final class StepSurface implements HttpHandler {
         return null;
     }
 
-    /** Whether the client asking holds this run now, which is all that opens it. */
-    private static boolean held(Optional<Run> run, String asking) {
-        return run.isPresent() && run.get().heldBy(asking, java.time.Instant.now());
+    /** Whether the client asking holds this run now, which opens it to its performer. */
+    private boolean held(Optional<Run> run, String asking) {
+        return run.isPresent() && run.get().heldBy(asking, clock.instant());
+    }
+
+    /**
+     * A read by the run's requester, inside its window: what the run was
+     * given, and each version it produced, as the audience its step names.
+     *
+     * <p><b>Reach is what the run names, and a produced record is read as the
+     * version it produced</b> — {@code Type/id/_history/n}, not whatever the
+     * record says now. What the asker is owed is what its run did, and a later
+     * write by somebody else is not that.
+     *
+     * <p><b>What it sees is the audience's.</b> A type the audience is not
+     * answered about is as absent as a document the run never named, in the
+     * same words. A person is revealed as the audience's mode says, and whole
+     * only when the request's {@code Purpose-Of-Use} is the code the step
+     * declared: either key alone is the strict mode, never a refusal, because
+     * a collection that answered differently for a wrong purpose would say
+     * the record held somebody worth refusing.
+     *
+     * <p><b>Each read is a reading on the trail</b>: occasioned by the run,
+     * acted by the asker's client, under the step's purpose — an access entry
+     * on the document, never travel. As many as the asker makes: a retry is
+     * the ordinary case, and each one is somebody reading.
+     */
+    private void collect(HttpExchange exchange, String[] segments, Run run) throws IOException {
+        TenantSpec.Step step = declared.get(run.process() + "." + run.step());
+        TenantSpec.Answer answer = step == null ? null : step.answer();
+        if (answer == null) {
+            // The step was re-declared without an answer since the run was
+            // asked for: the window it recorded has nothing left to show.
+            fail(exchange, 404, "not_found", "no such run");
+            return;
+        }
+        if ("metadata".equals(segments[2])) {
+            java.util.Set<String> types = new java.util.LinkedHashSet<>();
+            step.slots().values().forEach(declared ->
+                    types.add(cloud.jengu.dbo.core.process.SlotShape.of(declared).type()));
+            types.addAll(step.writes());
+            types.retainAll(answer.types());
+            Map<String, String> collectable = new LinkedHashMap<>();
+            types.forEach(type -> collectable.put(type, type));
+            respond(exchange, 200, metadata(collectable));
+            return;
+        }
+        boolean versioned = segments.length == 6 && "_history".equals(segments[4]);
+        if (segments.length != 4 && !versioned) {
+            fail(exchange, 404, "not_found", "a document is read as <Type>/<id>, and a "
+                    + "version the run produced as <Type>/<id>/_history/<n>");
+            return;
+        }
+        String reference = segments[2] + "/" + segments[3];
+        boolean named = versioned
+                ? run.produced().versions().contains(reference + "/" + segments[5])
+                : run.inputs().values().stream().anyMatch(filled -> filled.referred()
+                        && filled.values().contains(reference));
+        if (!named || !answer.types().contains(segments[2])) {
+            fail(exchange, 404, "not_found", "this run was not given " + reference);
+            return;
+        }
+        String stated = exchange.getRequestHeaders().getFirst(PURPOSE_OF_USE);
+        cloud.jengu.dbo.core.api.Disclosure.set(answer.revealing(stated == null ? null
+                : stated.trim()), answer.purpose());
+        cloud.jengu.dbo.core.api.Caller.setRun(run.key());
+        try {
+            if (versioned) {
+                long version;
+                try {
+                    version = Long.parseLong(segments[5]);
+                } catch (NumberFormatException notAVersion) {
+                    fail(exchange, 404, "not_found", "this run was not given " + reference);
+                    return;
+                }
+                FhirStoreFacade.VersionRead read =
+                        store.versionForServing(segments[2], segments[3], version);
+                if (read == null) {
+                    fail(exchange, 404, "not_found", reference + " is named by the run and "
+                            + "not held");
+                } else if (read.deleted()) {
+                    // The version that removed it: answered as gone, which
+                    // discloses nothing and is not the same as never having been.
+                    fail(exchange, 410, "gone", reference + "/_history/" + version
+                            + " is the version that removed it");
+                } else {
+                    respond(exchange, 200, read.resourceJson());
+                }
+                return;
+            }
+            FhirStoreFacade.ReadResult result = store.readForServing(segments[2], segments[3]);
+            if (result == null) {
+                fail(exchange, 404, "not_found", reference + " is named by the run and not held");
+                return;
+            }
+            respond(exchange, 200, result.resourceJson());
+        } finally {
+            cloud.jengu.dbo.core.api.Caller.clearRun();
+        }
     }
 
     /** What this context answers for: the step's types, and no others. */
