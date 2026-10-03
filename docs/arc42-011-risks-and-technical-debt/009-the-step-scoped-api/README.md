@@ -3,8 +3,8 @@ plain read still bypasses it. The slice that exists is built and proven; what
 is left is traversal, a write refusal that needs it, and demoting the general
 surface. The traversal half is not this item's to design — item 021 defers the
 same question from the other side and has it written out, and one answer has to
-serve both doors. How an application reads what its run produced is proposed
-below and awaits review.**
+serve both doors. How an application reads what its run produced is designed
+below, its questions answered, and none of it is built.**
 
 # The step-scoped API
 
@@ -132,8 +132,9 @@ surface, which is the door this item exists to demote.
 
 ### The decision
 
-**A step may declare an answer, and its run is then held by the asker until
-the asker has collected it.** The step names the audience the asker is:
+**A step may declare an answer, and the asker may then collect it for a
+window after the run's work is over.** The step names the audience the asker
+is:
 
 ```json
 { "code": "hogwarts.admission.register", "slots": { "patient": "Patient" },
@@ -141,18 +142,26 @@ the asker has collected it.** The step names the audience the asker is:
 ```
 
 `desk` is an ordinary entry in the tenant's `disclosure.perAudience`. When the
-result is written, the run does not close: it passes to a new holder, the
-asker, with `collect` as its `until`. While the asker holds it, the run's
-existing context at `/run/<id>/fhir/…` answers **the client recorded as its
-requester and nobody else**, for exactly what the run was given and the
-versions it produced, read as those versions (`Type/id/_history/n`) rather than
-as whatever is current. The asker ends it with `POST /run/<id>/done`, or the
-`until` lapses; either way the run is over and its context answers as a run
-that never existed. A step that declares no answer closes as it does today.
+result is written the run's work is over, and nobody holds it, as today. What
+the run gains is a separate fact: **its requester may collect until T**, where
+T is the time the result was written plus `collect`. Until T, the run's
+existing context at `/run/<id>/fhir/…` answers the client recorded as its
+requester and nobody else, for exactly what the run was given and the versions
+it produced, read as those versions (`Type/id/_history/n`) rather than as
+whatever is current. A collection read compares the clock with T, so the window
+closing needs no transition and no sweep. The asker ends it early with
+`POST /run/<id>/done`, which moves T to now. Past T the context answers as a
+run that never existed. A step that declares no answer has no window.
 
-So a run's reach still ends with the run; the work is simply not over until
-its result has reached whoever asked, and a run an asker never collects is
-visible as state, not folded out of the trail.
+**Why a window and not a holder.** The holder answers who owes the next act,
+and the asker owes nothing: collecting is optional, and a result nobody
+collects is not work left undone. A holder value would also make every reader
+of that field treat a finished run as open — the `Task` status in the answer,
+`awaiting` and `settled`, the operator's lists, escalation, and the eleven
+places that ask whether nobody holds a run. Obligation and access are two
+questions, and they coincided only while the performer was a run's only
+reader. So the reach rule reads: **the performer while it holds the run; the
+requester while its window is open.**
 
 ### Why not the others
 
@@ -187,7 +196,7 @@ visible as state, not folded out of the trail.
   the request's said at the moment of reading. A header naming another code, or
   none, gets the audience's default and never more. The start door still states
   and accepts none, so a slot search on an identifying element stays refused.
-- **Collecting is a reading.** Each read in the asker's phase is an access
+- **Collecting is a reading.** Each read within the window is an access
   entry about the document, landing beside every other reading of it, with the
   asker's client as actor, the run as occasion and the step's purpose. It is
   never travel. Reading the answer itself stays no entry, because it carries
@@ -220,12 +229,15 @@ doors.
 ### Promises it would add
 
 - `PROC_A_RUN_IS_COLLECTED_BY_ITS_ASKER` — a step that declares an answer
-  leaves its run held by the asker, who alone reads what it was given and the
-  versions it produced, and ends it.
+  gives its run's requester a window, from the result's write until `collect`
+  later, in which it alone reads what the run was given and the versions it
+  produced; the run is over and nobody holds it, and the asker may close the
+  window early.
 - `PROC_AN_UNCOLLECTED_ANSWER_LAPSES` — past the window the context answers
-  as a run that never existed; the answer still names the versions.
-- `PROC_THE_ASKER_READS_NOTHING_WHILE_THE_WORK_IS_DONE` — while automation
-  holds the run, its context does not answer the asker.
+  as a run that never existed, with no transition and no sweep; the answer
+  still names the versions.
+- `PROC_THE_ASKER_READS_NOTHING_WHILE_THE_WORK_IS_DONE` — while the run's work
+  is open, its context does not answer the asker.
 - `IDN_THE_ASKER_IS_A_DECLARED_AUDIENCE` — what the asker sees is the audience
   the step names, and none named is references only.
 - `IDN_A_STEP_STATES_ITS_PURPOSE` — an identifying collection needs the
@@ -247,17 +259,18 @@ number stays at the identifying door.
 
 ### Build order
 
-1. The context checks whom it serves: the performer while automation holds the
-   run, nobody else. Today any `work` credential enters any held context.
+1. The context checks whom it serves: the performer while it holds the run,
+   nobody else. Today any `work` credential enters any held context.
 2. `answers`, `collect` and `purpose` in the tenant's spec, with the
    declaration-time refusals.
-3. The asker as a holder; `committed` passes an answering run to it; the `Task`
-   status reads `completed` with the holder on it.
-4. The asker's reach: inputs and produced versions, by version, under the
-   audience's mode and the step's purpose, with the access entry.
-5. The lapse, on the sweep that already finds lapsed claims.
-6. `DboInitiator.collect` and `collected`, in the sample worker application.
-7. The two legs move and the guide's gaps are rewritten. Each promise lands
+3. The window: `committed` on an answering run records T beside the close, and
+   `done` from the requester moves it to now. The `Task` reads `completed`,
+   with T on it as an extension.
+4. The requester's reach: inputs and produced versions, by version, under the
+   audience's mode and the step's purpose, with the access entry. Past T the
+   context answers as a run that never existed, which is the whole lapse.
+5. `DboInitiator.collect` and `collected`, in the sample worker application.
+6. The two legs move and the guide's gaps are rewritten. Each promise lands
    with the commit that proves it.
 
 ### Decided
@@ -273,12 +286,9 @@ number stays at the identifying door.
   collection a reading of its own on the trail. A retry or a reload is the
   ordinary case, and one collection per version would lose the answer to a
   dropped connection.
-
-### Open question
-
-**A new holder, or a window outside the hold?** `Holder` is load-bearing; an
-asker holding a finished run is honest about who owes the next act, and adds a
-fifth value every run list must show.
+- **A window, not a holder.** The run is over when its result is written, and
+  the requester's access is a time beside it rather than a state of it, for
+  the reasons under the decision.
 
 ## Sequence
 
