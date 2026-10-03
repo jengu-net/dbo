@@ -76,7 +76,8 @@ public final class CheckingTheDirectory implements StepService {
         if (!isA("Organization", held) || !isA("Organization", proposed)
                 || notes.stream().anyMatch(note -> !isA("Basic", note.payload()))) {
             // Returning a refusal and throwing are the same thing: the run is
-            // released with the reason and a later cycle may take it again.
+            // released with the reason, and a person sees it — trying again
+            // would not make a slot carry something else.
             return Outcome.failed("a slot did not carry what the step declares");
         }
 

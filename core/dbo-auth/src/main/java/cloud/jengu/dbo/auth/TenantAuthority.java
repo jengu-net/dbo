@@ -1121,6 +1121,25 @@ public final class TenantAuthority {
         return targets;
     }
 
+    /**
+     * The roles a practitioner holds here now, as {@code PractitionerRole}
+     * ids — whatever their period has not ended, named either way.
+     *
+     * <p>What a person takes work as. A token names the practitioner; which
+     * role they act in is the tenant's record, read when they act, so a role
+     * whose period has ended takes nothing even on a token issued before it
+     * did.
+     */
+    public List<String> activeRoles(String practitionerId) {
+        List<String> active = new java.util.ArrayList<>();
+        for (StoredObject role : rolesHeldBy(practitionerId)) {
+            if (periodActive(Json.parse(new String(role.payload(), StandardCharsets.UTF_8)))) {
+                active.add(role.id());
+            }
+        }
+        return List.copyOf(active);
+    }
+
     private void grantsFromPractitioner(String practitionerId,
             java.util.Set<String> scopes, java.util.Set<String> roles,
             java.util.Set<String> organisations, boolean[] tenantWide) {

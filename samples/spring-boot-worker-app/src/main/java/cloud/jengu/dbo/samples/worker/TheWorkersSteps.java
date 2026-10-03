@@ -29,7 +29,7 @@ import org.springframework.context.annotation.Import;
 @ConditionalOnMissingBean(WorkerApplication.class)
 @Import({AdmittingAPatient.class, RegisteringAPatient.class, MeasuringASpecimen.class,
         RecordingAPatient.class, IdentifyingAPerson.class, RecordingAVisit.class,
-        CorrectingARecord.class,
+        CorrectingARecord.class, ReviewingAResult.class,
         AskingForADirectoryCheck.class, AskingForAnAdmission.class, HearingBack.class})
 public class TheWorkersSteps {
 }

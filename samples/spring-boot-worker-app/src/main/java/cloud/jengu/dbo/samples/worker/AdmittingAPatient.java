@@ -44,7 +44,8 @@ public final class AdmittingAPatient implements StepService {
 
         if (admitted.isBlank()) {
             // Returning failed and throwing are the same thing: the run is
-            // released with the reason, and a later cycle may take it again.
+            // released with the reason — to a person, unless the step
+            // declared that what went wrong will pass.
             return Outcome.failed("the patient arrived empty");
         }
         return Outcome.done(Map.of("admitted", 1L));

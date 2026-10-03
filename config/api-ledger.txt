@@ -204,6 +204,7 @@ cloud.jengu.dbo.auth.SecretHashProbe                                   verifies(
 cloud.jengu.dbo.auth.TenantAuthority                                   PARTNER_SCOPES:List
 cloud.jengu.dbo.auth.TenantAuthority                                   TOKEN_TTL_SECONDS:long
 cloud.jengu.dbo.auth.TenantAuthority                                   activeRoleCodes():List
+cloud.jengu.dbo.auth.TenantAuthority                                   activeRoles(String):List
 cloud.jengu.dbo.auth.TenantAuthority                                   attachSubjects(cloud.jengu.dbo.core.api.ObjectStore):void
 cloud.jengu.dbo.auth.TenantAuthority                                   beginAuthorization(String,String,String):cloud.jengu.dbo.auth.TenantAuthority.AuthorizeResult
 cloud.jengu.dbo.auth.TenantAuthority                                   beginFederated(String,String,String,String,String):String
@@ -1334,7 +1335,9 @@ cloud.jengu.dbo.core.process.AutomationCriterion                       ALWAYS:cl
 cloud.jengu.dbo.core.process.AutomationCriterion                       admits(Function):boolean
 cloud.jengu.dbo.core.process.AutomationCriterion                       class
 cloud.jengu.dbo.core.process.AutomationCriterion                       compile(String,Map,BiPredicate):cloud.jengu.dbo.core.process.AutomationCriterion
+cloud.jengu.dbo.core.process.AutomationCriterion                       equals(Object):boolean
 cloud.jengu.dbo.core.process.AutomationCriterion                       expression():String
+cloud.jengu.dbo.core.process.AutomationCriterion                       hashCode():int
 cloud.jengu.dbo.core.process.AutomationCriterion                       reads():Set
 cloud.jengu.dbo.core.process.AutomationCriterion                       toString():String
 cloud.jengu.dbo.core.process.RetryPolicy                               FAULTS:List
@@ -2897,6 +2900,7 @@ cloud.jengu.dbo.promises.DboPromises                                   PROC_A_LA
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_NODE_ANSWERS_ITS_CATALOGUE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_PARTICIPANT_ASKS_FOR_WORK_IT_NEED_NOT_PERFORM:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_PARTICIPANT_OFFERS_ITS_KEY_AT_ENROLMENT:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   PROC_A_PERSON_CLAIMS_AS_A_PRACTITIONER_ROLE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_PROCESSOR_IS_ENROLLED_PER_TENANT:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_REFERENCE_MAY_BE_A_SEARCH:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_REFUSED_RESULT_ENDS_THE_RUN:cloud.jengu.dbo.promises.DboPromises

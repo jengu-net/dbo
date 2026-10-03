@@ -110,6 +110,23 @@ public final class AutomationCriterion {
         return slots;
     }
 
+    /**
+     * Two conditions are one when they say the same thing. A tenant's spec is
+     * read again on every sweep and compared with what is serving, and a
+     * condition that was only ever equal to itself made every reading a
+     * change — the tenant was rebuilt in place, round after round.
+     */
+    @Override
+    public boolean equals(Object other) {
+        return other instanceof AutomationCriterion criterion
+                && criterion.expression.equals(expression);
+    }
+
+    @Override
+    public int hashCode() {
+        return expression.hashCode();
+    }
+
     @Override
     public String toString() {
         return expression;

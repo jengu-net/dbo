@@ -63,7 +63,11 @@ public enum DboStories implements Story {
                     DboPromises.PROC_EXECUTOR_RESOLUTION_IS_DETERMINISTIC,
                     DboPromises.PROC_A_STEP_GRANTS_THE_RIGHT_TO_OVERRIDE,
                     DboPromises.PROC_AUTOMATION_IS_DECLARED,
+                    DboPromises.PROC_AUTOMATION_TAKES_ONLY_WHAT_ITS_STEP_ADMITS,
                     DboPromises.PROC_FALL_THROUGH_IS_COUNTABLE,
+                    // And what automation may not take, a person takes as the
+                    // role they hold.
+                    DboPromises.PROC_A_PERSON_CLAIMS_AS_A_PRACTITIONER_ROLE,
                     DboPromises.PROC_MANDATORY_STEPS_CLASSIFY_INCIDENTS,
                     // Performing it, and saying so honestly.
                     DboPromises.PROC_INPUTS_ARRIVE_WITH_THE_WORK,

@@ -109,6 +109,16 @@ final class StepSurface implements HttpHandler {
     private final java.util.function.Function<String, Optional<String>> rendered;
 
     /**
+     * The roles a practitioner holds here now, as {@code PractitionerRole}
+     * ids: what a person who signed in through the tenant's identity provider
+     * takes a run as.
+     */
+    private final java.util.function.Function<String, List<String>> roles;
+
+    /** How long a person's claim holds before it lapses, unless they checkpoint. */
+    static final java.time.Duration A_PERSONS_LEASE = java.time.Duration.ofMinutes(30);
+
+    /**
      * What the DEPLOYMENT declares, for this tenant, right now.
      *
      * <p>Asked per request and not captured when the door was built, because
@@ -136,8 +146,19 @@ final class StepSurface implements HttpHandler {
             List<TenantSpec.Step> steps, String runPath, boolean starting,
             String tenant, Fleet fleet,
             java.util.function.Function<String, Optional<String>> rendered) {
-        this(authority::validate, runs, store, engine, steps, runPath, starting, tenant, fleet,
-                rendered);
+        this(authority::validate, authority::activeRoles, runs, store, engine, steps, runPath,
+                starting, tenant, fleet, rendered);
+    }
+
+    /** The same, with nobody able to take a run as a person here. */
+    StepSurface(java.util.function.Function<String, Optional<TenantAuthority.AuthContext>> validated,
+            Runs runs, FhirStoreFacade store,
+            cloud.jengu.dbo.core.api.ObjectStore engine,
+            List<TenantSpec.Step> steps, String runPath, boolean starting,
+            String tenant, Fleet fleet,
+            java.util.function.Function<String, Optional<String>> rendered) {
+        this(validated, practitioner -> List.of(), runs, store, engine, steps, runPath, starting,
+                tenant, fleet, rendered);
     }
 
     /**
@@ -146,11 +167,13 @@ final class StepSurface implements HttpHandler {
      * all a run's address needs to know.
      */
     StepSurface(java.util.function.Function<String, Optional<TenantAuthority.AuthContext>> validated,
+            java.util.function.Function<String, List<String>> roles,
             Runs runs, FhirStoreFacade store,
             cloud.jengu.dbo.core.api.ObjectStore engine,
             List<TenantSpec.Step> steps, String runPath, boolean starting,
             String tenant, Fleet fleet,
             java.util.function.Function<String, Optional<String>> rendered) {
+        this.roles = roles;
         this.rendered = rendered;
         this.validated = validated;
         this.runs = runs;
@@ -183,7 +206,11 @@ final class StepSurface implements HttpHandler {
             // Who is asking, before anything is read. The trail's actor comes
             // from the authority and never from the request, exactly as it
             // does on the records surface.
-            cloud.jengu.dbo.core.api.Caller.set(admitted.clientId());
+            // A person is named as the practitioner their token says they
+            // are, as the records surface names them; anything else as the
+            // client.
+            cloud.jengu.dbo.core.api.Caller.set(admitted.fhirUser() != null
+                    ? admitted.fhirUser() : admitted.clientId());
             if (starting) {
                 // NO PURPOSE IS STATED HERE, and none is accepted. A slot may
                 // be filled by a search, and a stated purpose is what opens an
@@ -196,9 +223,9 @@ final class StepSurface implements HttpHandler {
                 // records surface too, and a purpose another request set and
                 // did not clear would be in force over this search.
                 cloud.jengu.dbo.core.api.Disclosure.clear();
-                start(exchange, relative, admitted.clientId());
+                start(exchange, relative, admitted);
             } else {
-                read(exchange, relative, admitted.clientId());
+                read(exchange, relative, admitted);
             }
         } catch (IllegalArgumentException refused) {
             fail(exchange, 400, "invalid_request", String.valueOf(refused.getMessage()));
@@ -227,7 +254,8 @@ final class StepSurface implements HttpHandler {
      */
     private TenantAuthority.AuthContext admitted(HttpExchange exchange) throws IOException {
         Optional<TenantAuthority.AuthContext> context = asking(exchange);
-        if (context.isEmpty() || !context.get().scopes().contains(cloud.jengu.dbo.auth.Scopes.WORK)) {
+        if (context.isEmpty()
+                || !cloud.jengu.dbo.auth.Scopes.admitsWork(context.get().scopes())) {
             exchange.getResponseHeaders().set("WWW-Authenticate", "Bearer");
             fail(exchange, context.isEmpty() ? 401 : 403, "access_denied",
                     "this surface admits a credential that may act in work");
@@ -250,10 +278,20 @@ final class StepSurface implements HttpHandler {
      * @param requester the client id the authority read off the credential,
      *                  recorded on the run as the one it answers
      */
-    private void start(HttpExchange exchange, String stepCode, String requester)
-            throws IOException {
+    private void start(HttpExchange exchange, String stepCode,
+            TenantAuthority.AuthContext asking) throws IOException {
+        String requester = asking.clientId();
         if (!"POST".equals(exchange.getRequestMethod())) {
             fail(exchange, 405, "invalid_request", "a run is started by POSTing to the step");
+            return;
+        }
+        if (!covers(asking, stepCode)) {
+            // Bounded to its steps, as a lane credential bounded the same way
+            // is: a credential that may take one step's work has not been
+            // given another's.
+            fail(exchange, 403, "access_denied", "this credential may act in work for "
+                    + cloud.jengu.dbo.auth.Scopes.workSteps(asking.scopes()) + ", not "
+                    + stepCode);
             return;
         }
         TenantSpec.Step step = declared.get(stepCode);
@@ -579,10 +617,20 @@ final class StepSurface implements HttpHandler {
      * @param asking the client the authority read off the credential, which
      *               must be the one holding the run
      */
-    private void read(HttpExchange exchange, String relative, String asking) throws IOException {
+    private void read(HttpExchange exchange, String relative,
+            TenantAuthority.AuthContext admitted) throws IOException {
+        String asking = admitted.clientId();
         String[] segments = relative.split("/");
         if (segments.length == 2 && "done".equals(segments[1])) {
             done(exchange, segments[0], asking);
+            return;
+        }
+        if (segments.length == 2 && "claim".equals(segments[1])) {
+            claim(exchange, segments[0], admitted);
+            return;
+        }
+        if (segments.length == 2 && "checkpoint".equals(segments[1])) {
+            checkpoint(exchange, segments[0], asking);
             return;
         }
         if (!"GET".equals(exchange.getRequestMethod())) {
@@ -786,6 +834,112 @@ final class StepSurface implements HttpHandler {
         }
         respond(exchange, 200, "{\"run\":" + quote(ended.id()) + ",\"key\":"
                 + quote(ended.key()) + ",\"holder\":" + quote(ended.holder().wire()) + "}");
+    }
+
+    /**
+     * POST /run/&lt;id&gt;/claim — a person takes the run, as the role they
+     * hold here (REQ-DBO-PROC-A-PERSON-CLAIMS-AS-A-PRACTITIONER-ROLE).
+     *
+     * <p><b>On the person's own token.</b> The tenant's identity provider
+     * issued it and it names the practitioner; the role is the tenant's
+     * record, read now, and the run names it as what holds it. A trail entry
+     * the person signed is stronger than one recording what an application
+     * said about them, which is why no application can take a run for a
+     * person here.
+     *
+     * <p>Then the run is theirs as it would be an executor's: its context
+     * answers them and nobody else, on a lease their checkpoints extend, and
+     * they end it at {@code /done}. A run somebody holds, or one that is
+     * over, is not taken — said as a conflict, because the person asking was
+     * offered it and is owed the reason it was not theirs. A credential with
+     * no role here, or one whose work does not reach the run's step, is
+     * answered as for a run that never existed.
+     */
+    private void claim(HttpExchange exchange, String id, TenantAuthority.AuthContext asking)
+            throws IOException {
+        if (!"POST".equals(exchange.getRequestMethod())) {
+            fail(exchange, 405, "invalid_request", "a run is taken by POSTing to it");
+            return;
+        }
+        Optional<Run> found = runs.byId(id);
+        String practitioner = asking.fhirUser() != null
+                && asking.fhirUser().startsWith("Practitioner/")
+                ? asking.fhirUser().substring("Practitioner/".length()) : null;
+        List<String> held = practitioner == null ? List.of() : roles.apply(practitioner);
+        if (found.isEmpty() || held.isEmpty()
+                || !covers(asking, found.get().process() + "." + found.get().step())) {
+            fail(exchange, 404, "not_found", "no such run");
+            return;
+        }
+        String asked = query(exchange, "role");
+        String role = asked == null ? held.get(0)
+                : asked.startsWith("PractitionerRole/")
+                        ? asked.substring("PractitionerRole/".length()) : asked;
+        if (!held.contains(role)) {
+            fail(exchange, 403, "access_denied", "the practitioner does not hold "
+                    + "PractitionerRole/" + role + " here now");
+            return;
+        }
+        Optional<Run> taken = runs.claimAsPerson(found.get(), "PractitionerRole/" + role,
+                java.time.Instant.now().plus(A_PERSONS_LEASE), asking.clientId());
+        if (taken.isEmpty()) {
+            fail(exchange, 409, "conflict", "somebody holds this run, or it is over");
+            return;
+        }
+        respond(exchange, 200, "{\"run\":" + quote(taken.get().id()) + ",\"key\":"
+                + quote(taken.get().key()) + ",\"status\":"
+                + quote(taken.get().status().wire()) + ",\"owner\":"
+                + quote(taken.get().assignment().role()) + ",\"until\":"
+                + quote(String.valueOf(taken.get().assignment().until())) + "}");
+    }
+
+    /**
+     * POST /run/&lt;id&gt;/checkpoint — the holder is still at it, which
+     * extends the lease as an executor's checkpoint does. Answered as a read
+     * is for anybody who does not hold the run.
+     */
+    private void checkpoint(HttpExchange exchange, String id, String asking) throws IOException {
+        if (!"POST".equals(exchange.getRequestMethod())) {
+            fail(exchange, 405, "invalid_request", "a checkpoint is POSTed to the run");
+            return;
+        }
+        Optional<Run> found = runs.byId(id);
+        if (!held(found, asking)) {
+            fail(exchange, 404, "not_found", "no such run");
+            return;
+        }
+        Run extended = runs.checkpoint(found.get(), Map.of(),
+                java.time.Instant.now().plus(A_PERSONS_LEASE));
+        respond(exchange, 200, "{\"run\":" + quote(extended.id()) + ",\"until\":"
+                + quote(String.valueOf(extended.assignment().until())) + "}");
+    }
+
+    /**
+     * Whether a credential's work reaches a step: the bare scope reaches
+     * every step, and one bounded to steps reaches those it names, by the
+     * catalogue's id or the step's own.
+     */
+    private static boolean covers(TenantAuthority.AuthContext asking, String stepCode) {
+        if (cloud.jengu.dbo.auth.Scopes.worksAsTheTenant(asking.scopes())) {
+            return true;
+        }
+        return cloud.jengu.dbo.auth.Scopes.workSteps(asking.scopes()).contains(stepCode);
+    }
+
+    /** One query parameter, decoded, or null. */
+    private static String query(HttpExchange exchange, String name) {
+        String raw = exchange.getRequestURI().getRawQuery();
+        if (raw == null) {
+            return null;
+        }
+        for (String pair : raw.split("&")) {
+            int equals = pair.indexOf('=');
+            if (equals > 0 && pair.substring(0, equals).equals(name)) {
+                return java.net.URLDecoder.decode(pair.substring(equals + 1),
+                        StandardCharsets.UTF_8);
+            }
+        }
+        return null;
     }
 
     /** Whether the client asking holds this run now, which is all that opens it. */

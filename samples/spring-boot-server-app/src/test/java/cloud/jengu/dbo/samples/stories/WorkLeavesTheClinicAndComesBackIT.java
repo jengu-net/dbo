@@ -163,6 +163,18 @@ class WorkLeavesTheClinicAndComesBackIT {
     @Autowired
     cloud.jengu.dbo.samples.server.WatchingTheWork watching;
 
+    /** The clinic asking for a result to be reviewed. */
+    @Autowired
+    cloud.jengu.dbo.samples.server.AskingForAReview reviewing;
+
+    /** A nurse at a ward screen, taking what waits for a person. */
+    @Autowired
+    cloud.jengu.dbo.samples.server.TakingATask taking;
+
+    /** The clinic's application, asking how a run it started stands. */
+    @Autowired
+    cloud.jengu.dbo.spring.worker.DboInitiator initiator;
+
     private ATenantsDoor hospital;
     private ObjectStore engine;
     private Runs runs;
@@ -1577,6 +1589,165 @@ class WorkLeavesTheClinicAndComesBackIT {
                         && dbo.asking(CLINIC).work().by(worker).stream()
                                 .anyMatch(run -> run.id().equals(overTheSubstrate.run())),
                 "the two runs are not both recorded as performed by " + worker);
+    }
+
+    // ── and what automation may not take, a person does ──
+
+    /** Where a ward screen sends a nurse back to after they sign in. */
+    private static final String SCREEN = "http://127.0.0.1/ward-screen";
+
+    @Test
+    @Order(35)
+    @DisplayName("a result automation may not review waits for a person: a nurse signs in "
+            + "through the hospital's own identity provider, takes it from the people's list "
+            + "as the role she holds, reads the result through the task, and finishes it")
+    @Proving({DboPromises.PROC_A_PERSON_CLAIMS_AS_A_PRACTITIONER_ROLE,
+            DboPromises.PROC_AUTOMATION_TAKES_ONLY_WHAT_ITS_STEP_ADMITS})
+    void aNurseTakesWhatAutomationMayNot() throws Exception {
+        String step = cloud.jengu.dbo.samples.server.AskingForAReview.STEP;
+        String normal = result("N");
+        String high = result("H");
+        var routine = reviewing.review(HOSPITAL, "Observation/" + normal);
+        var alarming = reviewing.review(HOSPITAL, "Observation/" + high);
+        assertTrue(routine.accepted() && alarming.accepted(),
+                routine.body() + " / " + alarming.body());
+
+        // The routine one is automation's, and the clinic's own worker does it.
+        Proves.that(DboPromises.PROC_AUTOMATION_TAKES_ONLY_WHAT_ITS_STEP_ADMITS,
+                "completed".equals(hearing.settled(HOSPITAL, routine, Duration.ofMinutes(3))
+                        .state()),
+                "a normal result the step lets automation review was never reviewed");
+        Run waiting = runs.byId(alarming.run()).orElseThrow();
+        Proves.that(DboPromises.PROC_AUTOMATION_TAKES_ONLY_WHAT_ITS_STEP_ADMITS,
+                waiting.open() && !waiting.automation() && !waiting.claimed(
+                        java.time.Instant.now()),
+                "an abnormal result was not left waiting for a person: " + waiting);
+
+        // Poppy signs in at the ward screen, through Hogwarts's own provider.
+        String practitioner = nurse("poppy");
+        String token = signedIn("poppy");
+        var list = taking.waiting(HOSPITAL, token, step);
+        assertTrue(list.stream().anyMatch(task -> task.id().equals(alarming.run()))
+                        && list.stream().noneMatch(task -> task.id().equals(routine.run())),
+                "the people's list does not hold the abnormal result alone: " + list);
+
+        HttpResponse<String> taken = taking.take(HOSPITAL, token, alarming.run());
+        assertEquals(200, taken.statusCode(), taken.body());
+        Run holding = runs.byId(alarming.run()).orElseThrow();
+        Proves.that(DboPromises.PROC_A_PERSON_CLAIMS_AS_A_PRACTITIONER_ROLE,
+                holding.heldByAPerson()
+                        && String.valueOf(holding.assignment().role()).startsWith(
+                                "PractitionerRole/")
+                        && holding.assignment().executor() == null,
+                "the nurse does not hold the task as her role: " + holding.assignment());
+        HttpResponse<String> read = taking.read(HOSPITAL, token, alarming.run(),
+                "Observation/" + high);
+        assertEquals(200, read.statusCode(), read.body());
+        Proves.that(DboPromises.PROC_A_PERSON_CLAIMS_AS_A_PRACTITIONER_ROLE,
+                hospital.get("/AuditEvent?run=" + java.net.URLEncoder.encode(holding.key(),
+                        java.nio.charset.StandardCharsets.UTF_8)).body()
+                        .contains("Practitioner/" + practitioner),
+                "the reading the nurse made through the task does not name her");
+        nurse("hagrid");
+        Proves.that(DboPromises.PROC_A_PERSON_CLAIMS_AS_A_PRACTITIONER_ROLE,
+                taking.read(HOSPITAL, signedIn("hagrid"), alarming.run(),
+                        "Observation/" + high).statusCode() == 404,
+                "another nurse, who does not hold the task, read through it");
+
+        assertEquals(200, taking.finish(HOSPITAL, token, alarming.run()).statusCode());
+        assertEquals("completed", initiator.answer(HOSPITAL, alarming.run()).state(),
+                "the clinic was not told the review is done");
+    }
+
+    /** A potassium result, interpreted as given. */
+    private String result(String interpretation) {
+        var written = dbo.write(HOSPITAL, "Observation", """
+                {"resourceType":"Observation","status":"final","code":{"text":"potassium"},
+                 "interpretation":[{"coding":[{"code":"%s"}]}],
+                 "subject":{"display":"%s"}}""".formatted(interpretation,
+                NAMES.value("reviewed")));
+        assertTrue(written.accepted(), written.body());
+        return written.idOrFail();
+    }
+
+    /**
+     * A nurse at Hogwarts: a practitioner, the person who is one, a nurse's
+     * role, and a password. Returns the practitioner's id.
+     */
+    private String nurse(String login) {
+        TenantAuthority authority = tenants.authority(HOSPITAL).orElseThrow();
+        authority.ensureRoleGrant("nurse", List.of("user/Task.read",
+                "work/" + cloud.jengu.dbo.samples.server.AskingForAReview.STEP));
+        authority.ensureClient(wardScreen(), null, List.of("user/Task.read",
+                        "work/" + cloud.jengu.dbo.samples.server.AskingForAReview.STEP),
+                "public-pkce", List.of(SCREEN));
+        var practitioner = dbo.write(HOSPITAL, "Practitioner", """
+                {"resourceType":"Practitioner",
+                 "identifier":[{"system":"urn:rl:nid","value":"%s"}]}"""
+                .formatted(NAMES.value(login)));
+        assertTrue(practitioner.accepted(), practitioner.body());
+        var person = dbo.write(HOSPITAL, "Person", """
+                {"resourceType":"Person",
+                 "identifier":[{"system":"urn:rl:nid","value":"%s"}],
+                 "link":[{"target":{"reference":"Practitioner/%s"},"assurance":"level3"}]}"""
+                .formatted(NAMES.value(login), practitioner.idOrFail()));
+        assertTrue(person.accepted(), person.body());
+        assertEquals(201, hospital.post("/PractitionerRole", """
+                {"resourceType":"PractitionerRole",
+                 "practitioner":{"reference":"Practitioner/%s"},
+                 "code":[{"coding":[{"system":"urn:rl:role","code":"nurse"}]}]}"""
+                .formatted(practitioner.idOrFail())).statusCode());
+        authority.ensureLocalCredential(NAMES.value(login), "a-secret-for-" + login,
+                person.idOrFail());
+        return practitioner.idOrFail();
+    }
+
+    /** The ward screen, as a client of the hospital: public, proving its code. */
+    private static String wardScreen() {
+        return NAMES.value("ward-screen");
+    }
+
+    /**
+     * Signs a nurse in at the ward screen the way a browser does: the
+     * provider's own login form, a code, and the code exchanged with the
+     * proof the screen kept. Returns the access token.
+     */
+    private String signedIn(String login) throws Exception {
+        String oidc = dbo.at(HOSPITAL) + "/oidc";
+        byte[] random = new byte[32];
+        new java.security.SecureRandom().nextBytes(random);
+        String verifier = java.util.Base64.getUrlEncoder().withoutPadding()
+                .encodeToString(random);
+        String challenge = java.util.Base64.getUrlEncoder().withoutPadding().encodeToString(
+                java.security.MessageDigest.getInstance("SHA-256").digest(
+                        verifier.getBytes(java.nio.charset.StandardCharsets.US_ASCII)));
+        HttpResponse<String> signIn = form(oidc + "/authorize/login", "client_id="
+                + wardScreen() + "&redirect_uri=" + encoded(SCREEN) + "&state=ward"
+                + "&code_challenge=" + challenge + "&login=" + encoded(NAMES.value(login))
+                + "&password=" + encoded("a-secret-for-" + login));
+        assertEquals(302, signIn.statusCode(), signIn.body());
+        String location = signIn.headers().firstValue("Location").orElseThrow();
+        String code = java.util.Arrays.stream(URI.create(location).getRawQuery().split("&"))
+                .filter(pair -> pair.startsWith("code="))
+                .map(pair -> java.net.URLDecoder.decode(pair.substring(5),
+                        java.nio.charset.StandardCharsets.UTF_8))
+                .findFirst().orElseThrow(() -> new AssertionError("no code: " + location));
+        HttpResponse<String> tokens = form(oidc + "/token",
+                "grant_type=authorization_code&client_id=" + wardScreen() + "&code="
+                        + encoded(code) + "&redirect_uri=" + encoded(SCREEN)
+                        + "&code_verifier=" + verifier);
+        assertEquals(200, tokens.statusCode(), tokens.body());
+        return dbo.says(tokens).one("access_token").orElseThrow();
+    }
+
+    private HttpResponse<String> form(String url, String body) {
+        return dbo.send(HttpRequest.newBuilder(URI.create(url))
+                .header("Content-Type", "application/x-www-form-urlencoded")
+                .POST(HttpRequest.BodyPublishers.ofString(body)), null);
+    }
+
+    private static String encoded(String value) {
+        return java.net.URLEncoder.encode(value, java.nio.charset.StandardCharsets.UTF_8);
     }
 
     /** The server root, which a context's path is resolved against. */

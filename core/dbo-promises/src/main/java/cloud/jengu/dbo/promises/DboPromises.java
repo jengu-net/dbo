@@ -185,9 +185,18 @@ public enum DboPromises implements Promise {
             + "never existed, so a credential that may act in a step cannot use it to read "
             + "past what the step was handed."),
 
+    PROC_A_PERSON_CLAIMS_AS_A_PRACTITIONER_ROLE(
+            "A person takes a task with their own token, issued by the tenant's identity "
+            + "provider, and holds it as a PractitionerRole the tenant holds — named as what "
+            + "holds the task, never as a device — on a lease their checkpoints extend, as an "
+            + "executor's are. While they hold it the run's context answers them and nobody "
+            + "else, and each reading names them. Somebody with no role here, or whose work "
+            + "does not reach the step, is answered as for a run that never existed."),
+
     PROC_A_RUN_CONTEXT_ENDS_WITH_ITS_RUN(
-            "A run context answers only while its run is held. A run nobody holds is over, "
-            + "and its base url then answers exactly as a run that never existed — the "
+            "A run context answers its owner while the task is claimed, whoever that is — the "
+            + "client that started it, an executor, or a person as their role. A run that is "
+            + "over answers exactly as a run that never existed — the "
             + "same answer either way, because saying that a run is over confirms that it "
             + "was real. So performing a step leaves no standing way in behind it, which "
             + "is the difference between access granted to a step and access granted once "

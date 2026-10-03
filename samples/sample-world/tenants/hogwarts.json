@@ -22,7 +22,9 @@
       "writes": ["Person"] },
     { "code": "care.records.correct",
       "slots": { "record": "Reference(Patient)", "corrected": "Patient" },
-      "writes": ["Patient"] }
+      "writes": ["Patient"] },
+    { "code": "care.results.review", "slots": { "result": "Reference(Observation)" },
+      "automate": { "when": "result.interpretation.coding.code = 'N'" } }
   ],
   "types": [
     { "name": "StructureDefinition", "identity": "canonical", "handling": "replicated" },
