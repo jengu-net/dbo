@@ -182,9 +182,11 @@ visible as state, not folded out of the trail.
   erasure after the run still reaches everything the asker could collect.
 - **The purpose is the step's.** An audience that reveals `include` is
   refused at declaration unless the step states `"purpose": "TREAT"` (any
-  statable code). Each collection carries it; a `Purpose-Of-Use` header on the
-  request changes nothing. The start door still states and accepts none, so a
-  slot search on an identifying element stays refused.
+  statable code). An identifying collection also states the same code in its
+  `Purpose-Of-Use` header: two keys, the step's said when it was declared and
+  the request's said at the moment of reading. A header naming another code, or
+  none, gets the audience's default and never more. The start door still states
+  and accepts none, so a slot search on an identifying element stays refused.
 - **Collecting is a reading.** Each read in the asker's phase is an access
   entry about the document, landing beside every other reading of it, with the
   asker's client as actor, the run as occasion and the step's purpose. It is
@@ -226,8 +228,9 @@ doors.
   holds the run, its context does not answer the asker.
 - `IDN_THE_ASKER_IS_A_DECLARED_AUDIENCE` — what the asker sees is the audience
   the step names, and none named is references only.
-- `IDN_A_STEP_STATES_ITS_PURPOSE` — an identifying collection carries the
-  step's declared purpose, and a request's cannot replace it.
+- `IDN_A_STEP_STATES_ITS_PURPOSE` — an identifying collection needs the
+  step's declared purpose and the same code stated by the request; neither
+  alone reveals more than the audience's default.
 - `POL_COLLECTING_IS_A_READING` — each collection is an access entry naming
   the asker, the run and the purpose.
 
@@ -257,18 +260,25 @@ number stays at the identifying door.
 7. The two legs move and the guide's gaps are rewritten. Each promise lands
    with the commit that proves it.
 
-### Open questions
+### Decided
 
-1. **A new holder, or a window outside the hold?** `Holder` is load-bearing;
-   an asker holding a finished run is honest about who owes the next act, and
-   adds a fifth value every run list must show.
-2. **Is the step's declared purpose enough for `include`,** or must the asking
-   request assert the same code as well, two keys rather than one?
-3. **Does "who is this person, by her number" ever become a step?** This
-   design keeps it at the identifying door and has the application start a run
-   over the id it gets there.
-4. **May the asker collect the same version more than once in its window,**
-   each a reading, or is one collection per version the whole of it?
+- **Two keys for `include`.** The step declares the purpose, and the
+  collecting request states the same code. Either alone reveals nothing more
+  than the audience's default, which is how an identifying lookup already
+  works: the reason is said at the moment of reading, not only at design time.
+- **Finding somebody by her number stays at the identifying door.** It never
+  becomes a step. The application asks there, with a purpose, and starts a run
+  over the id it is given.
+- **A version may be collected any number of times within the window,** each
+  collection a reading of its own on the trail. A retry or a reload is the
+  ordinary case, and one collection per version would lose the answer to a
+  dropped connection.
+
+### Open question
+
+**A new holder, or a window outside the hold?** `Holder` is load-bearing; an
+asker holding a finished run is honest about who owes the next act, and adds a
+fifth value every run list must show.
 
 ## Sequence
 
