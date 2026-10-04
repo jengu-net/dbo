@@ -208,7 +208,7 @@ public enum DboFeatures implements Feature {
                     DboPromises.PROC_THE_ROUTER_HOLDS_THE_CLAIM,
                     DboPromises.PROC_DONE_MEANS_DONE,
                     DboPromises.PROC_A_LANE_OVER_THE_STREAM,
-                    DboPromises.PROC_A_DEPARTED_ROUTEE_IS_A_STATEMENT,
+                    DboPromises.PROC_A_DROPPED_ROUTEE_IS_NOT_SEALED_TO,
                     DboPromises.POL_TRAVEL_AND_ACCESS_ARE_DIFFERENT_ENTRIES,
                     DboPromises.POL_A_RUNS_TRAIL_IS_CHAINED_FROM_THE_TASK,
                     DboPromises.TEN_A_PARTNER_MANAGES_TENANTS,

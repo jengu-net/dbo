@@ -14,37 +14,45 @@ ranked by how local they are rather than by which machine they run on.
 
 **Presence is worked out, not claimed.** A participant keeping up with what it
 asked for is present; one that is behind and not moving is not — and that is a
-different sentence from "nothing is declared". Nobody sends a heartbeat, so a
-component that has frozen cannot report that it is fine. The subtlety worth
-knowing: a participant with *nothing to do* also stops moving, so silence is only
-absence when there is work waiting.
+different sentence from "nothing is declared". Resolution reads presence and
+nothing a participant says about itself, so a component that has frozen cannot
+report that it is fine. The subtlety worth knowing: a participant with *nothing
+to do* also stops moving, so silence is only absence when there is work waiting.
 
-**Some things cannot speak for themselves.** An instrument on a serial cable has
-no cursor and no credential; neither does a meter in a substation or a sensor in
-a container. Each is reached by something that does, and that thing reports what
-it can see behind it, however many hops away. The store keeps one row per thing
-whose state is worth knowing, at any depth, so the rule about what a state is
-exists once rather than once per reporter. What it will not do is decide whether
-a report is stale — it has no path of its own to check, and one freshness
-threshold across a serial line and a network socket would be wrong for both.
-Where something has a cursor, presence is derived from it; where it does not, the
-record carries who last saw it and when, because "where it sits" and "who to ask
-about it" are different questions.
+**Contact is the application's.** Whether a node has heard a worker for a step
+within some silence decides nothing in the store, and the store keeps none of
+it. An application that cares registers a listener for the step, naming how
+long a worker may say nothing — there is no default — and is told when this
+node hears a worker appear, each heartbeat's statistics while it is heard, and
+when it has been silent past that threshold; a node that starts tells every
+listener that everything about its step is unknown there. Anything a worker
+asks for that step is activity, and a **heartbeat** — a verb of the lane that
+writes nothing and extends no claim — is how a worker that is woken rather
+than polling, or one holding a long claim, stays heard. Its statistics are one
+document, nested and namespaced by whoever contributed them, with `dbo.`
+reserved for the runner's own counts; a node refuses one over its limit, and
+nothing about a person goes in one, because a heartbeat travels outside sealed
+work. What contact the application wants kept, it asks for as work, under a key
+of its own, and the step writes the record.
+
+**Some workers are reached through another.** A worker with no lane of its own
+— one behind a serial line, or inside a network nobody reaches — is reached by
+a participant that has one, which reports whom it routes, however many hops
+away. The store keeps one fact about each routee: the participant it sits
+behind. What a routee is and how it is doing are the router's to say in its
+heartbeat statistics.
 
 **The thing that can reach the store is the participant, and it holds the
-claim.** An instrument behind a router is routed *because* it cannot reach the
-lane, so the router claims the run, forwards it, waits, and reports — holding a
-claim on work it cannot read, which sounds strange and is exactly the point. The
-instrument holds the key and does the work. Participant versus routee is a fact
-about the attachment, not the device: a bench with its own lane is a participant,
-and the same bench behind a router is a routee.
+claim.** A routee is routed *because* it cannot reach the lane, so the router
+claims the run, forwards it, waits, and reports — holding a claim on work it
+cannot read, which sounds strange and is exactly the point. The routee holds
+the key and does the work. Participant versus routee is a fact about the
+attachment, not about what the worker is: a worker with its own lane is a
+participant, and the same worker behind a router is a routee.
 
-A routee that stops being reported is a statement, not a gap. A router reports
-the full set behind it, so an absence from that report is something the router
-said — distinguishable from a quiet router, whose cursor did not move. The store
-keeps a departed routee with its last attestation and marks it no longer
-reported, so "gone" reads as *last seen by X at T, absent from X's report at
-T+1*: absence with a timestamp, which is a fact.
+A router reports the whole set behind it each time, so a routee left out of
+its latest report is no longer behind it, and nothing is sealed to it until a
+report names it again.
 
 
 ## What a participant may see and do

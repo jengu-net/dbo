@@ -100,10 +100,11 @@ the front each names.
 - **MHDS and the XDS family.** A document-sharing infrastructure is a
   product; the neutral-exchange study is where it would be evaluated, as a
   domain rather than a feature.
-- **Devices domain (DEC, ACM, PIV, SDPi, MEM, PCIM).** The store's
-  contribution is a `Device` projection of trackables and the search a
-  consumer needs; the actors belong to the platform's device framework.
-  ACM and SDPi are real-time and do not fit a store that is late by design.
+- **Devices domain (DEC, ACM, PIV, SDPi, MEM, PCIM).** The store projects
+  nothing onto `Device`: it knows workers, not what they are. A consumer keeps
+  its own `Device` records and writes them through work, and the actors are
+  the consumer's. ACM and SDPi are real-time and do not fit a store that is
+  late by design.
 - **mACM, NPFSm, sIPS, PMIR.** No actor the store plays.
 
 ## Verifying

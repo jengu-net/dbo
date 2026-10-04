@@ -70,9 +70,9 @@ public enum LaneVerbs {
     public static final String DECLARED = "declared";
     public static final String STEP = "step";
     /**
-     * The trackables a participant reports behind it. No observer
-     * travels with them: the handler's lane stamps its own participant, so
-     * an attestation cannot be forged by the side making the claim.
+     * The routees a participant reports behind it. No reporter travels with
+     * them: the handler's lane stamps its own participant, so a router cannot
+     * report routees for somebody else.
      */
     public static final String BEHIND = "behind";
     /** What a heartbeat carries: one JSON object, nested, namespaced by contributor. */

@@ -593,23 +593,23 @@ public enum DboPromises implements Promise {
             + "container. A candidate that can only come from a local bundle makes a "
             + "tenant a single machine."),
 
-    PROC_A_TRACKABLE_MAY_ROUTE_OTHERS("Something whose state is worth knowing is one "
-            + "record at any depth, and a connected worker may route others: it reports the "
-            + "state of what sits behind it, to arbitrary depth, normalised per trackable so "
-            + "the rule exists once rather than once per router. Presence stays derived where "
-            + "there is a cursor and is attested where there is not, the attestation naming "
-            + "the worker that saw it rather than the parent it sits behind. The store "
-            + "imposes no freshness rule on what a router reports: it has no path of its own "
-            + "to ask, and one threshold across a serial line and a socket would be wrong for "
-            + "both."),
+    PROC_A_TRACKABLE_MAY_ROUTE_OTHERS("A participant may route others, and the store keeps "
+            + "one fact about each routee: the participant it sits behind, at any depth. That "
+            + "edge is what lets a router seal work past itself to a routee; what a routee is "
+            + "and how it is doing are the router's to say in its heartbeat, and the store "
+            + "imposes no freshness rule on them."),
 
-    PROC_A_ROUTED_TREE_TRAVELS_AS_A_LANE_VERB("A participant reports what it can reach "
-            + "the way it reports what it can do: a verb of the participation lane, beside "
-            + "declare. The observer is stamped from the lane's own participant rather than "
-            + "carried on the wire, so a router cannot attest as somebody else. Vitals do "
-            + "not carry it, because vitals ride a declaration and a declaration is keyed "
-            + "per step — a router declaring two steps would carry one fleet twice, and "
-            + "withdrawing either would drop half of it."),
+    PROC_A_ROUTED_TREE_TRAVELS_AS_A_LANE_VERB("A router reports whom it routes the way it "
+            + "reports what it can do: a verb of the participation lane, beside declare, "
+            + "carrying the whole set each time. The reporter is the lane's own participant "
+            + "rather than anything on the wire, so a routee named with nobody in front of it "
+            + "sits behind that participant and a router cannot report routees for somebody "
+            + "else."),
+
+    PROC_A_DROPPED_ROUTEE_IS_NOT_SEALED_TO("A routee missing from its router's latest report "
+            + "is no longer behind it: the edge goes with the report that left it out, and the "
+            + "router may not seal work to it or carry home an opening in its name until a "
+            + "report names it again."),
 
     PROC_PRESENCE_IS_DERIVED("A participant is present while its named feed cursor "
             + "moves; a declaration whose consumer is behind and unmoving is "
@@ -1011,13 +1011,6 @@ public enum DboPromises implements Promise {
             + "its asks is enrolled on it, at bring-up or at any time after, and not before: a "
             + "tenant nobody can reach that way holds no door on the substrate, and one enrolled "
             + "later is served through a door opened for it."),
-    PROC_A_DEPARTED_ROUTEE_IS_A_STATEMENT(
-            "A routee missing from a router's report is something the router said, not a "
-            + "gap — distinguishable from a quiet router because the cursor moved. A "
-            + "departed routee is kept with its last attestation and marked no longer "
-            + "reported, so gone reads as last seen by X at T, absent from X's report at "
-            + "T+1. No freshness rule comes with it."),
-
     PROC_THE_LANE_HAS_TWO_BOUNDS(
             "What moves between two appliances of one tenant has two bounds, deliberately "
             + "different: declarations by type — the tenant's own definitions, none of it "

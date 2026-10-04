@@ -3746,10 +3746,10 @@ public final class TenantRuntimeManager implements AutoCloseable {
                             DECLARATION_PATIENCE);
             cloud.jengu.dbo.work.Introductions laneIntroductions =
                     new cloud.jengu.dbo.work.Introductions(runtime.engine(), steps);
-            // What participants report behind them. Built once beside
-            // the declarations, over the same engine: a trackable is one of
-            // this tenant's records, and a second Trackables would be a
-            // second view of one fleet.
+            // Which participants sit behind which, for sealing past a router.
+            // Built once beside the declarations, over the same engine: an
+            // edge is one of this tenant's records, and a second Trackables
+            // would be a second view of the same edges.
             cloud.jengu.dbo.work.Trackables laneTrackables =
                     new cloud.jengu.dbo.work.Trackables(runtime.engine());
             // The lane built per asker, the same behind every door: the
@@ -3923,13 +3923,13 @@ public final class TenantRuntimeManager implements AutoCloseable {
             workContexts.put(spec.code(), workPath);
             // The step door stood here too, behind `!spec.steps().isEmpty()`.
             // Same conversion, same place below.
-            // What this tenant knows about the things behind its
-            // participants. Beside replication rather than as a verb on the
-            // lane: a lane is what one participant may do, and an operator
-            // asking what state a fleet is in is not a participant act.
+            // What a deployment reading its fleet asks about this tenant's
+            // work. Beside replication rather than as a verb on the lane: a
+            // lane is what one participant may do, and an operator asking
+            // what state the work is in is not a participant act.
             String fleetPath = "/t/" + spec.code() + "/fleet";
             sharedServer.createContext(fleetPath,
-                    new FleetHandler(authority, laneTrackables,
+                    new FleetHandler(authority,
                             new cloud.jengu.dbo.work.Runs(runtime.engine()), fleetPath));
             fleetContexts.put(spec.code(), fleetPath);
             // The replication surface: the same asymmetry one layer up.

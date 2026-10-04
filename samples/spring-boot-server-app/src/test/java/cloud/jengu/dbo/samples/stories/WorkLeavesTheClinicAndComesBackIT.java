@@ -219,10 +219,8 @@ class WorkLeavesTheClinicAndComesBackIT {
                 () -> participantToken(GATEWAY), HOSPITAL, GATEWAY, executor(GATEWAY));
         gateway.introduce(ROUTED_STEP);
         gateway.routes(List.of(
-                cloud.jengu.dbo.work.Trackable.routed(KEYED_BENCH, "analyser", GATEWAY,
-                        Map.of("power", "on")),
-                cloud.jengu.dbo.work.Trackable.routed(KEYLESS_BENCH, "analyser", GATEWAY,
-                        Map.of("power", "on"))));
+                cloud.jengu.dbo.work.Trackable.routed(KEYED_BENCH, GATEWAY),
+                cloud.jengu.dbo.work.Trackable.routed(KEYLESS_BENCH, GATEWAY)));
 
         var written = dbo.write(HOSPITAL, "Observation", """
                 {"resourceType":"Observation","status":"registered",
@@ -1958,6 +1956,37 @@ class WorkLeavesTheClinicAndComesBackIT {
         } finally {
             beside.ungetService(reference);
         }
+    }
+
+    @Test
+    @Order(43)
+    @DisplayName("a router that stops reporting a routee may no longer seal work to it, and "
+            + "may again once a report names it")
+    @Proving(DboPromises.PROC_A_DROPPED_ROUTEE_IS_NOT_SEALED_TO)
+    void aDroppedRouteeIsNotSealedTo() {
+        gateway.routes(List.of(cloud.jengu.dbo.work.Trackable.routed(KEYLESS_BENCH, GATEWAY)));
+        Run held = gateway.claim(routedRun("dropped", NAMES.value("dropped")),
+                Duration.ofMinutes(5)).orElseThrow();
+        try {
+            IllegalStateException dropped = assertThrows(IllegalStateException.class,
+                    () -> gateway.sealed(held, List.of(KEYED_BENCH)),
+                    "the router sealed to a routee its latest report left out");
+            Proves.that(DboPromises.PROC_A_DROPPED_ROUTEE_IS_NOT_SEALED_TO,
+                    dropped.getMessage().contains("has not declared '" + KEYED_BENCH
+                            + "' behind it"),
+                    "the refusal does not say the routee is not behind the router: "
+                            + dropped.getMessage());
+            assertTrue(chainOf(held).stream().noneMatch(e -> KEYED_BENCH.equals(e.get("to"))),
+                    "a refused seal handed the work on");
+        } finally {
+            gateway.routes(List.of(
+                    cloud.jengu.dbo.work.Trackable.routed(KEYED_BENCH, GATEWAY),
+                    cloud.jengu.dbo.work.Trackable.routed(KEYLESS_BENCH, GATEWAY)));
+        }
+        Proves.that(DboPromises.PROC_A_DROPPED_ROUTEE_IS_NOT_SEALED_TO,
+                gateway.sealed(held, List.of(KEYED_BENCH)).manifest().recipients()
+                        .equals(List.of(KEYED_BENCH)),
+                "a routee reported again could not be sealed to");
     }
 
     /** The registrar's lane, on a credential bounded to the step it performs. */

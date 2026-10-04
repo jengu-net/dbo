@@ -36,15 +36,12 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
-import java.time.Instant;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -222,60 +219,54 @@ class AnOperatorReadsAndSteersTheFleetIT {
 
     @Test
     @Order(5)
-    @DisplayName("a connector reports what sits behind it to arbitrary depth, and a routee "
-            + "it stops reporting is kept as the statement it is")
+    @DisplayName("a connector reports whom it routes to any depth, the whole set each time, and "
+            + "a routee it stops reporting is no longer behind it")
     @Proving({DboPromises.PROC_A_TRACKABLE_MAY_ROUTE_OTHERS,
             DboPromises.PROC_A_ROUTED_TREE_TRAVELS_AS_A_LANE_VERB,
-            DboPromises.PROC_A_DEPARTED_ROUTEE_IS_A_STATEMENT})
-    void whatSitsBehindTheBench() {
+            DboPromises.PROC_A_DROPPED_ROUTEE_IS_NOT_SEALED_TO})
+    void whatSitsBehindTheConnector() {
         String connector = NAMES.value("connector-1");
         String seventh = NAMES.value("bench-7");
         String eighth = NAMES.value("bench-8");
+        String deeper = NAMES.value("bench-8-line");
         TenantAuthority authority = tenants.authority(HOSPITAL).orElseThrow();
         authority.ensureClient(connector, "conn-secret", List.of("work/" + ASSAY));
         HttpLane lane = HttpLane.to(URI.create(dbo.at(HOSPITAL) + "/work"),
                 () -> token(connector, "conn-secret"), HOSPITAL, connector,
                 new Executor(connector, "1.0", "example.meristem", Scope.BASELINE));
 
-        lane.routes(List.of(
-                Trackable.routed(seventh, "appliance", connector, Map.of("status", "serving")),
-                Trackable.routed(eighth, "appliance", connector, Map.of("status", "serving"))));
+        // Named with nobody in front of them, two sit directly behind the
+        // connector that reported them; the third sits behind the eighth.
+        lane.routes(List.of(new Trackable(seventh, null), new Trackable(eighth, null),
+                Trackable.routed(deeper, eighth)));
 
         var trackables = new Trackables(tenants.store(HOSPITAL).orElseThrow());
-        Proves.that(DboPromises.PROC_A_TRACKABLE_MAY_ROUTE_OTHERS,
-                trackables.behind(connector).size() == 2,
-                "both benches are not behind the connector that reported them: "
-                        + trackables.behind(connector));
-        Instant lastSeen = trackables.byId(eighth).orElseThrow().attested().at();
-
-        // The connector stops reporting one of them. That is something it
-        // said, not a gap in what it sent.
-        lane.routes(List.of(
-                Trackable.routed(seventh, "appliance", connector, Map.of("status", "serving"))));
-
-        var departed = trackables.byId(eighth).orElseThrow(
-                () -> new AssertionError("the departed routee was discarded, so gone reads "
-                        + "exactly like a connector that stopped talking"));
-        Proves.that(DboPromises.PROC_A_DEPARTED_ROUTEE_IS_A_STATEMENT, !departed.reported(),
-                "the report left it out, and the record does not say so");
-        assertNotNull(departed.unreported(), "with the moment the silence began");
-        assertEquals(connector, departed.attested().observedBy(), "and who last saw it");
-        assertEquals(lastSeen, departed.attested().at(),
-                "the last attestation is kept rather than refreshed: the point is when it "
-                        + "was last seen, not when somebody noticed it was not");
         Proves.that(DboPromises.PROC_A_ROUTED_TREE_TRAVELS_AS_A_LANE_VERB,
-                trackables.subtree(connector).stream()
-                        .anyMatch(t -> eighth.equals(t.id()) && !t.reported()),
-                "the tree does not answer with the departed routee: "
-                        + trackables.subtree(connector));
+                trackables.behind(connector).stream().map(Trackable::id).sorted().toList()
+                        .equals(java.util.stream.Stream.of(seventh, eighth).sorted().toList()),
+                "the routees reported with nobody in front of them are not behind the "
+                        + "connector whose lane carried the report: "
+                        + trackables.behind(connector));
+        Proves.that(DboPromises.PROC_A_TRACKABLE_MAY_ROUTE_OTHERS,
+                trackables.behind(eighth).equals(List.of(Trackable.routed(deeper, eighth))),
+                "a routee two deep is not behind the routee it was reported behind: "
+                        + trackables.behind(eighth));
 
-        // And it comes back clean rather than carrying its absence forward.
-        lane.routes(List.of(
-                Trackable.routed(seventh, "appliance", connector, Map.of("status", "serving")),
-                Trackable.routed(eighth, "appliance", connector, Map.of("status", "serving"))));
-        var returned = trackables.byId(eighth).orElseThrow();
-        assertTrue(returned.reported(), "a routee that came back is reported again");
-        assertNull(returned.unreported(), "and carries no trace of having been away");
+        // The connector stops routing the eighth, and with it what was behind
+        // the eighth: a report is the whole set.
+        lane.routes(List.of(new Trackable(seventh, null)));
+
+        Proves.that(DboPromises.PROC_A_DROPPED_ROUTEE_IS_NOT_SEALED_TO,
+                trackables.byId(eighth).isEmpty() && trackables.byId(deeper).isEmpty(),
+                "a routee the report left out, or one behind it, is still behind somebody: "
+                        + trackables.byId(eighth) + " " + trackables.byId(deeper));
+        assertEquals(List.of(Trackable.routed(seventh, connector)), trackables.behind(connector),
+                "the routee still reported is not behind the connector");
+
+        // And it comes back when a report names it again.
+        lane.routes(List.of(new Trackable(seventh, null), new Trackable(eighth, null)));
+        assertEquals(java.util.Optional.of(Trackable.routed(eighth, connector)),
+                trackables.byId(eighth), "a routee reported again is not behind the connector");
     }
 
     // ── trends, which are a different question ──

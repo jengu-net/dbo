@@ -1,101 +1,32 @@
 package cloud.jengu.dbo.work;
 
-import java.time.Instant;
-import java.util.Map;
-
 /**
- * One thing whose state is worth knowing.
+ * One participant a router has said sits behind it.
  *
- * <p>One shape at every depth: the connector a store talks to, the appliance
- * behind it, and the instrument behind that are all this record. What differs
- * is only how presence is known — derived from a cursor for something that
- * reports for itself, attested by whoever last saw it for something that
- * cannot.
+ * <p>The store keeps this one fact because sealing needs it: a router holds
+ * the claim on work it cannot read and names a routee as the recipient, and
+ * the store seals past the router only to what the router said is behind it.
+ * The routee's key is not here — it is the key the routee enrolled with.
  *
- * <p><b>The fields are chosen so a face can project this mechanically.</b> A
- * version that spells connected things as a resource of its own will find an
- * identifier, a type, a parent and a state here, because those are the facts
- * such a resource is made of — and {@code routedBy} is a parent edge for
- * exactly the reason such resources have one. The engine still says none of
- * those words: it knows a trackable may route other trackables, and a face
- * knows what that renders as, the same line the run record holds against
- * the word for a task.
+ * <p>Nothing else about a routee is the store's. What it is and how it is
+ * doing are the router's to say, in its heartbeat statistics, to whoever
+ * listens for it.
  *
- * @param id         as the router that reports it names it — opaque here,
- *                   because what makes an instrument identifiable is the
- *                   router's business and a store that invented the scheme
- *                   would be deciding what a trackable is
- * @param kind       the reporter's word for what this is, equally opaque. A
- *                   face maps it; the engine compares it and nothing else
- * @param routedBy   the trackable this one sits behind, or null for one that
- *                   reports for itself. The tree, one edge at a time
- * @param state      extensible key/value, opaque to the engine, replaced on
- *                   each report rather than accumulated — the same contract
- *                   vitals have, for the same reason: a state record must not
- *                   become a metrics history
- * @param attested   who last saw it and when, for something with no cursor of
- *                   its own; null where presence is derived instead. Not
- *                   second-class trust — knowing which hop last saw something
- *                   is what tells an operator where to look
- * @param unreported the moment a report from whoever last saw it no longer
- *                   included it, or null while it is reported. A departed
- *                   routee is a statement, not a gap: the router spoke and
- *                   left it out, which is distinguishable from a router that
- *                   went quiet. Kept with its last attestation, so gone reads
- *                   as <i>last seen by X at T, absent from X's report at T+1</i>.
- *                   No freshness rule comes with it
+ * @param id       the routee, as it enrolled — the name a seal is addressed to
+ * @param routedBy the participant it sits behind; one a router reports with
+ *                 none sits directly behind that router
  */
-public record Trackable(String id, String kind, String routedBy, Map<String, String> state,
-        Attested attested, java.time.Instant unreported) {
-
-    /** A trackable as reported: not departed. */
-    public Trackable(String id, String kind, String routedBy, Map<String, String> state,
-            Attested attested) {
-        this(id, kind, routedBy, state, attested, null);
-    }
+public record Trackable(String id, String routedBy) {
 
     public Trackable {
         if (id == null || id.isBlank()) {
-            throw new IllegalArgumentException("a trackable is identified, or it is not "
-                    + "something whose state can be known");
+            throw new IllegalArgumentException("a routee is named, or nothing can be sealed "
+                    + "to it");
         }
-        state = state == null ? Map.of() : Map.copyOf(state);
     }
 
-    /** Something that reports for itself: presence is derived from its cursor. */
-    public static Trackable reporting(String id, String kind, Map<String, String> state) {
-        return new Trackable(id, kind, null, state, null);
-    }
-
-    /** Something behind a router: presence is what the router says it saw. */
-    public static Trackable routed(String id, String kind, String routedBy,
-            Map<String, String> state) {
-        return new Trackable(id, kind, routedBy, state, null);
-    }
-
-    /**
-     * Who last saw a trackable, and when.
-     *
-     * <p>The observer is the <b>connected worker that reported</b>, which is
-     * not always the parent: a connector reporting an instrument two hops away
-     * is the observer, while the appliance between them is the parent. An
-     * operator chasing something that has gone quiet needs both — where it
-     * sits, and who to ask about it.
-     */
-    public record Attested(String observedBy, Instant at) {}
-
-    /** Whether this one speaks for itself, which is what decides how presence is read. */
-    public boolean reportsForItself() {
-        return routedBy == null;
-    }
-
-    /** Whether the last report from whoever sees it still included it. */
-    public boolean reported() {
-        return unreported == null;
-    }
-
-    /** The same trackable, absent from its observer's report as of the moment given. */
-    public Trackable departed(java.time.Instant at) {
-        return new Trackable(id, kind, routedBy, state, attested, at);
+    /** A routee, and the participant it sits behind. */
+    public static Trackable routed(String id, String routedBy) {
+        return new Trackable(id, routedBy);
     }
 }

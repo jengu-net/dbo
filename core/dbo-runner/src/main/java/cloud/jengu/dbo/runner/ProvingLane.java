@@ -418,7 +418,7 @@ public final class ProvingLane implements Lane {
 
     @Override
     public void routes(List<Trackable> behind) {
-        throw new UnsupportedOperationException(notHere("routing for an edge"));
+        throw new UnsupportedOperationException(notHere("routing for others"));
     }
 
     /**

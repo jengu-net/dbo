@@ -1,63 +1,70 @@
-# US-DBO-FLEET-HEALTH — the store holds the shape of the fleet, so nobody builds a second copy of it
+# US-DBO-FLEET-HEALTH — the store tells the application who it hears, and the application decides what that means
 
-> Ines can see, right now, that the analyser in one practice has been
-> quiet for nine minutes and that the bench it sits behind is fine. She
-> did not build a monitoring system to learn that.
+> Ines can see, right now, that one of the workers behind a practice's
+> synchronisation service has been quiet for nine minutes and that the
+> service itself is fine. She did not build a monitoring system to learn
+> that, and the store did not decide for her what nine minutes means.
 >
-> Her synchronisation service reports what is behind it. The benches
-> report what is behind them. Each layer reports one hop, and the store
-> assembles the tree — so an operator asks the store what is under a
-> connector and gets the whole depth of it, one shape at every level.
+> Her synchronisation service is a participant: it holds a lane, declares
+> what it performs and says, in each heartbeat, how it and everything it
+> routes are doing. The store hears it and tells her application. What is
+> kept, and for how long, is her application's to say.
 
 ## The scene
 
-The fleet is three deep and the depths are not alike:
+The fleet is several deep and the depths are not alike:
 
-- the **synchronisation service**, which reports for itself because its own
-  cursor moves;
-- a **bench** in each practice, which cannot report for itself and is
-  attested by the service that last saw it;
-- an **analyser** behind the bench, attested the same way one hop further
-  down.
+- the **synchronisation service**, a participant with a lane of its own;
+- the **workers it routes**, which hold no lane and are reached through it;
+- a **worker behind one of those**, one hop further down.
 
-A routee can be a router. That is not an edge case here — it is the ordinary
-shape, and it is why the tree is a tree rather than a list.
+A routee can be a router. That is the ordinary shape, and it is why the store
+keeps one edge per routee: the participant it sits behind, which is what lets
+the service hold the claim on work it cannot read and seal it past itself to
+the routee that can.
 
 ## Reporting is one hop, always
 
-Nothing reports about a thing it did not see. The service says what is behind
-*it*; the bench says what is behind *it*. Neither claims to know the state of
-something two hops away, because the only honest attestation is from whoever
-last spoke to the thing.
+Nothing reports about something it did not reach. The service says whom it
+routes; a routee that routes says whom it routes. The store takes the reporter
+from the lane the report came on rather than from the report, so a router
+cannot report routees for somebody else, and a report is the whole set: a
+routee left out is no longer behind the router, and nothing is sealed to it
+until a report names it again.
 
-The store stamps the observer from the reporting participant rather than
-taking its word for who it is, so a router cannot attest as somebody else.
+How each routee is doing is not an edge. It travels in the router's heartbeat
+statistics — one document, nested as deep as the router likes, under a
+namespace of its own — and the store reads none of it.
 
-## Presence is derived, not declared
+## Presence and contact are two words
 
-A participant that reports for itself is present while its cursor moves. That
-is deliberate and it is the part builders find surprising: **a component
-saying it is healthy is exactly what a stuck component keeps saying.** Vitals
-annotate presence; they never supply it.
+A participant is **present** while its cursor moves, and presence is what the
+store reads when it decides whether a declaration is offered work. A component
+saying it is healthy is exactly what a stuck component keeps saying, so nothing
+a participant says about itself supplies presence.
 
-For something that cannot report for itself, presence is what the last hop
-attested — who saw it, and when. The store does not decide what that means.
+**Contact** is the application's: whether a node has heard a worker for a step
+within a silence the application chose. Ines's application listens for the
+step her service performs, is told when the service appears, what each
+heartbeat says while it is heard, and when it has been quiet past her
+threshold. A node that starts tells her everything about the step is unknown
+there. What she keeps of it she asks for as work, which is what makes it a
+record of her tenant's like any other.
 
 ## Nothing is filtered for being stale
 
-Ines's operator page shows the nine-minute silence and lets her judge it. The
-store never drops a row for being old, because how long is too long depends on
-the cadence of the hop that reports it — a bench polled every five minutes and
-an analyser polled every thirty are not the same silence, and only Ines knows
-which is which.
+The store never decides that a silence is too long, because how long is too
+long depends on the cadence of the hop — a service polled every five minutes
+and a worker beside a serial line are not the same silence, and only Ines
+knows which is which. Her listener names its threshold, and there is no
+default.
 
 ## Asking
 
-An operator credential reads the tree from outside the container: what is
-behind this connector, what did this reporter attest, what is the whole
-subtree. A participation credential cannot — what a bench may *do* and what a
-deployment may *ask about every bench* are different questions, and a bench
-that could ask would be reading about benches beside it.
+An operator credential reads the tenants' work from outside every container.
+A participation credential cannot — what a participant may *do* and what a
+deployment may *ask about every participant* are different questions, and a
+participant that could ask would be reading about the ones beside it.
 
 ## Joins
 
@@ -76,9 +83,12 @@ citations say it is.
 | `REQ-DBO-OPS-FLEET-IS-ACTED-ON-THROUGH-THE-LANE` | The process that reads a deployment can also act on it, and only through the doors a participant uses: it holds a supervisory credential per tenant, granted separately from the one it reads with and usually not granted at all, and posts the tenant's own lane verb — so every rule about the act is the tenant's and is met on the way in. Looking must not carry the authority to overturn work, so a reader given no supervisory credential is read-only by construction, and where the reader is a service its act surface is not mounted at all unless the deployment named a second token for it. An act says which node carried it, and one that did not happen says why rather than passing quietly. | PROVEN |
 | `REQ-DBO-PROC-THE-RUNNER-REPORTS-ITS-COUNTS-IN-ITS-HEARTBEAT` | The runner reports its counts per step — performed, failed, mean duration and the last failure's reason — in each heartbeat under dbo.runner, beside what the worker's own contributors add under namespaces of their own; a contributor claiming dbo. is refused. A declaration carries no counts and is said when it changes or did not land, never as a sign of life; presence stays derived from the cursor. | PROVEN |
 | `REQ-DBO-PROC-PRESENCE-IS-DERIVED` | A participant is present while its named feed cursor moves; a declaration whose consumer is behind and unmoving is declared-but-not-present, skipped by resolution and shown as such. No heartbeat and no lease — and a caught-up participant's cursor does not move either, so silence with nothing waiting is not absence. | PROVEN |
-| `REQ-DBO-PROC-A-TRACKABLE-MAY-ROUTE-OTHERS` | Something whose state is worth knowing is one record at any depth, and a connected worker may route others: it reports the state of what sits behind it, to arbitrary depth, normalised per trackable so the rule exists once rather than once per router. Presence stays derived where there is a cursor and is attested where there is not, the attestation naming the worker that saw it rather than the parent it sits behind. The store imposes no freshness rule on what a router reports: it has no path of its own to ask, and one threshold across a serial line and a socket would be wrong for both. | PROVEN |
-| `REQ-DBO-PROC-A-ROUTED-TREE-TRAVELS-AS-A-LANE-VERB` | A participant reports what it can reach the way it reports what it can do: a verb of the participation lane, beside declare. The observer is stamped from the lane's own participant rather than carried on the wire, so a router cannot attest as somebody else. Vitals do not carry it, because vitals ride a declaration and a declaration is keyed per step — a router declaring two steps would carry one fleet twice, and withdrawing either would drop half of it. | PROVEN |
-| `REQ-DBO-PROC-A-DEPARTED-ROUTEE-IS-A-STATEMENT` | A routee missing from a router's report is something the router said, not a gap — distinguishable from a quiet router because the cursor moved. A departed routee is kept with its last attestation and marked no longer reported, so gone reads as last seen by X at T, absent from X's report at T+1. No freshness rule comes with it. | PROVEN |
+| `REQ-DBO-PROC-A-TRACKABLE-MAY-ROUTE-OTHERS` | A participant may route others, and the store keeps one fact about each routee: the participant it sits behind, at any depth. That edge is what lets a router seal work past itself to a routee; what a routee is and how it is doing are the router's to say in its heartbeat, and the store imposes no freshness rule on them. | PROVEN |
+| `REQ-DBO-PROC-A-ROUTED-TREE-TRAVELS-AS-A-LANE-VERB` | A router reports whom it routes the way it reports what it can do: a verb of the participation lane, beside declare, carrying the whole set each time. The reporter is the lane's own participant rather than anything on the wire, so a routee named with nobody in front of it sits behind that participant and a router cannot report routees for somebody else. | PROVEN |
+| `REQ-DBO-PROC-A-DROPPED-ROUTEE-IS-NOT-SEALED-TO` | A routee missing from its router's latest report is no longer behind it: the edge goes with the report that left it out, and the router may not seal work to it or carry home an opening in its name until a report names it again. | PROVEN |
+| `REQ-DBO-PROC-A-HEARTBEAT-IS-A-LANE-VERB` | A worker says it is still there with a heartbeat, a verb of the participation lane on every transport, carrying one JSON object of statistics. It counts as activity for every step the worker declared on that lane, so a worker that is woken rather than polling, or one holding a long claim, stays in contact; it writes nothing to the tenant's records and never extends a claim. | PROVEN |
+| `REQ-DBO-PROC-A-CONTACT-LISTENER-IS-OPTIONAL-PER-STEP` | An application may register, per step, a listener told when a node comes into contact with a worker of that step and when it loses it; with none registered the node tracks nothing for the step. Activity is any request from that worker for that step — a poll naming it, a claim, checkpoint, release or close of one of its runs, and a heartbeat for every step the worker declared — and a worker is its client, its executor's name and its version. Contact is held in memory on the node that heard the worker, decides nothing in the store, and every event names its node. | PROVEN |
+| `REQ-DBO-PROC-A-CONTACT-LISTENER-DECLARES-ITS-SILENCE` | A contact listener declares how long a worker may say nothing before it is unknown, and there is no default: a listener declaring none is refused at startup, by name. A worker heard after it was unknown appears, each heartbeat while it is in contact delivers its statistics, and silence past the listener's own threshold makes it unknown — never gone. Two listeners on one step may declare different silences. | PROVEN |
 | `REQ-DBO-PROC-NUMBERS-LEAVE-AS-LABELS-NEVER-AS-TEXT` | What a node reports about work leaves it as measurements labelled from a closed set — whose work, which process and step, what ran it, and how it ended as one word from a fixed vocabulary. A failure's own words stay on the run, in the store of the tenant whose work it was: an open field in a stream declared anonymous is how the declaration stops being true without anybody editing it. Identifiers a caller chose are not labels either, being unbounded, and neither is a correlation echoed from another system, because nobody here knows what is in it. | PROVEN |
 | `REQ-DBO-PROC-REPORTING-RUNS-WHERE-NOTHING-COLLECTS` | A node emits whether or not anything is collecting: the discarding destination is the default rather than a fallback, and an exporter that cannot be loaded leaves the node serving and quiet. Emission that switched itself off without a collector would be a path exercised nowhere but in production, and a store that refused to run without a monitoring stack would have made observability a dependency of serving. | PROVEN |
 | `REQ-DBO-OPS-NUMBERS-LEAVE-THE-NODE` | A deployment points the telemetry seam at its collector by configuration, never by code, and the node's numbers arrive there in the published protocol — counts as sums, levels as gauges, durations as histograms, labelled from the seam's own closed vocabulary. Reporting is not a dependency of serving: a collector that is absent, slow or refusing costs the caller nothing and is said once, and a node with no endpoint counts and sends nowhere. | PROVEN |
@@ -108,25 +118,23 @@ citations say it is.
 | `REQ-DBO-SCAL-NO-SHARED-STATE-BROKER` | Planned — The architecture requires no Redis-class shared-state service. | PLANNED |
 | `REQ-DBO-OPS-MIGRATION-AS-DEPLOYMENT` | Planned — Schema and engine upgrades ride rolling deployment: the highest-version node leads, migrates, and older nodes passivate. (D5) | PLANNED |
 
-Coverage: {PROVEN=31, PLANNED=7} — a leg marked PLANNED cites a promise that exists and is not yet cited by any test.
+Coverage: {PROVEN=34, PLANNED=7} — a leg marked PLANNED cites a promise that exists and is not yet cited by any test.
 <!-- story:end -->
 
 ## What the store cannot do yet
 
-- **No push.** The tree is polled; a change does not notify anybody. For a
-  page that refreshes this is enough, and for an alert it is not.
-- **No history.** State is replaced on each report rather than accumulated —
-  deliberately, so a state record does not become a metrics history — so
-  "when did this last change" is not a question the store answers.
-- **Metrics are the participant's own.** The store carries a small opaque
-  state map, not a measurement series. Anything that wants trends needs a
+- **Contact is per node.** Each node hears its own workers and says so; what
+  contact means across several nodes — heard by any of them recently, say —
+  is the application's to decide, and its run keys collapse the duplicates.
+- **No history.** The store keeps no account of contact or of statistics; what
+  an application wants kept, it writes through work.
+- **Metrics are the participant's own.** Statistics are a document per
+  heartbeat, not a measurement series. Anything that wants trends needs a
   collector beside the store rather than inside it.
 
 ## Decided in review
 
-- **A routee that has gone is a statement.** A router reports the full set
-  behind it, so a routee missing from that report is something the router
-  said, distinguishable from a quiet router because the cursor moved. The
-  one change: a departed routee is kept with its last attestation and marked
-  no longer reported, rather than deleted — so "gone" reads as *last seen by
-  X at T, absent from X's report at T+1*, which is a fact with a timestamp.
+- **The store knows workers, not what they are.** A routee is a participant
+  some router reaches, and the store keeps only the edge sealing needs. What a
+  routee is, and its state, travel in the router's statistics; an application
+  that wants them as records writes them through work.

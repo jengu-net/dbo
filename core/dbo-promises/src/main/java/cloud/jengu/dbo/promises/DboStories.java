@@ -65,6 +65,8 @@ public enum DboStories implements Story {
                     DboPromises.PROC_A_CONTACT_LISTENER_DECLARES_ITS_SILENCE,
                     DboPromises.PROC_A_NODE_START_RESETS_CONTACT,
                     DboPromises.PROC_CONTACT_IS_RECORDED_ONLY_THROUGH_WORK,
+                    // A router seals past itself only to what it still routes.
+                    DboPromises.PROC_A_DROPPED_ROUTEE_IS_NOT_SEALED_TO,
                     DboPromises.WF_POSTGRES_SUBSTRATE,
                     DboPromises.WF_TWO_PLANES,
                     DboPromises.WF_CONTENT_FREE_PLATFORM_PLANE,
@@ -152,8 +154,9 @@ public enum DboStories implements Story {
                     DboPromises.PRM_COVERAGE_ON_THE_RESULTS_PAGE)),
 
     FLEET_HEALTH("An operator reads a whole deployment from outside every container — what "
-            + "each node serves and knows how to do, who is present, what sits behind them — "
-            + "and steers it through the same door a participant would use.",
+            + "each node serves and knows how to do, who is present, whom each participant "
+            + "routes — the application hears who is in contact, and the operator steers it "
+            + "through the same door a participant would use.",
             List.of(
                     // What a node will say about itself, under the
                     // deployment's own token rather than a tenant's.
@@ -168,7 +171,11 @@ public enum DboStories implements Story {
                     DboPromises.PROC_PRESENCE_IS_DERIVED,
                     DboPromises.PROC_A_TRACKABLE_MAY_ROUTE_OTHERS,
                     DboPromises.PROC_A_ROUTED_TREE_TRAVELS_AS_A_LANE_VERB,
-                    DboPromises.PROC_A_DEPARTED_ROUTEE_IS_A_STATEMENT,
+                    DboPromises.PROC_A_DROPPED_ROUTEE_IS_NOT_SEALED_TO,
+                    // Who the application hears, which is its own question.
+                    DboPromises.PROC_A_HEARTBEAT_IS_A_LANE_VERB,
+                    DboPromises.PROC_A_CONTACT_LISTENER_IS_OPTIONAL_PER_STEP,
+                    DboPromises.PROC_A_CONTACT_LISTENER_DECLARES_ITS_SILENCE,
                     // Trends, which are a different question from state.
                     DboPromises.PROC_NUMBERS_LEAVE_AS_LABELS_NEVER_AS_TEXT,
                     DboPromises.PROC_REPORTING_RUNS_WHERE_NOTHING_COLLECTS,

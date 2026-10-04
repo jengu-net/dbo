@@ -151,6 +151,7 @@ citations say it is.
 | `REQ-DBO-PROC-A-CONTACT-LISTENER-DECLARES-ITS-SILENCE` | A contact listener declares how long a worker may say nothing before it is unknown, and there is no default: a listener declaring none is refused at startup, by name. A worker heard after it was unknown appears, each heartbeat while it is in contact delivers its statistics, and silence past the listener's own threshold makes it unknown — never gone. Two listeners on one step may declare different silences. | PROVEN |
 | `REQ-DBO-PROC-A-NODE-START-RESETS-CONTACT` | When a node starts, every contact listener is told that everything for its step is unknown on that node, and a worker heard there again appears again: contact is not carried across a restart. | PROVEN |
 | `REQ-DBO-PROC-CONTACT-IS-RECORDED-ONLY-THROUGH-WORK` | Nothing about contact reaches a tenant's records unless a listener asks for it as work: the listener starts a run through the ordinary way of asking for one, under a key of its own so the same decision made twice — on two nodes, or after a retry — is one run, and the run's step writes the record through its result, validated by the tenant and carrying the run. A listener in the container starts it through the initiator the container registers; an application over HTTP through the same contract bound to the tenant's door. | PROVEN |
+| `REQ-DBO-PROC-A-DROPPED-ROUTEE-IS-NOT-SEALED-TO` | A routee missing from its router's latest report is no longer behind it: the edge goes with the report that left it out, and the router may not seal work to it or carry home an opening in its name until a report names it again. | PROVEN |
 | `REQ-DBO-WF-POSTGRES-SUBSTRATE` | Durable tasks, streams and inter-instance communication run on the DBOS/Postgres substrate; no external broker. (R4) | PROVEN |
 | `REQ-DBO-WF-TWO-PLANES` | Records live in the tenant plane, structurally isolated. The shared platform plane carries coordination and the copies work needs in flight — manifests readable, because routing is what they are for, and payloads sealed to the participant meant to open them. Isolation of a record is structural; of a copy in flight, cryptographic. | PROVEN |
 | `REQ-DBO-WF-CONTENT-FREE-PLATFORM-PLANE` | The platform plane never holds tenant credentials, and never holds resource content in a form readable in that plane. A sealed payload satisfies this; the plaintext form would not, however briefly. | PROVEN |
@@ -203,7 +204,7 @@ citations say it is.
 | `REQ-DBO-PROC-AUTOMATION-IS-A-DECLARED-SWITCH` | Whether a step is automated here is declared configuration on the scope chain, most local winning, and it is read where a claim is taken — so switching it off stops the next automatic claim, leaves work already held alone, and says the same thing to an operator asking who would run the step as it does to the runner asking to take it. | PROVEN |
 | `REQ-DBO-WF-PLATFORM-COORDINATED-HOPS` | Planned — Every cross-plane or cross-tenant hop is coordinated by the platform; no direct tenant-to-tenant connection exists. | PLANNED |
 
-Coverage: {PROVEN=73, PLANNED=4} — a leg marked PLANNED cites a promise that exists and is not yet cited by any test.
+Coverage: {PROVEN=74, PLANNED=4} — a leg marked PLANNED cites a promise that exists and is not yet cited by any test.
 <!-- story:end -->
 
 ## What the store cannot do yet
