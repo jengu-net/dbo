@@ -144,6 +144,15 @@ public final class LaneVerbService {
                 lane.declare(declared(body));
                 yield null;
             }
+            case HEARTBEAT -> {
+                Object statistics = field(body, LaneVerbs.STATISTICS);
+                if (statistics != null && !(statistics instanceof Map<?, ?>)) {
+                    throw new IllegalArgumentException("a heartbeat's statistics are one JSON "
+                            + "object, keyed by whoever contributed them");
+                }
+                lane.heartbeat(statistics == null ? Map.of() : statisticsOf(statistics));
+                yield null;
+            }
             case WITHDRAW -> {
                 lane.withdraw(declared(body));
                 yield null;
@@ -224,6 +233,11 @@ public final class LaneVerbService {
                     + "and none was carried");
         }
         return declared;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Map<String, Object> statisticsOf(Object tree) {
+        return (Map<String, Object>) tree;
     }
 
     private static Duration holdFor(Object body) {

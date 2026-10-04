@@ -508,6 +508,17 @@ public final class TenantRuntimeManager implements AutoCloseable {
         return contacts;
     }
 
+    private volatile int heartbeatLimit = ContactLane.DEFAULT_HEARTBEAT_LIMIT;
+
+    /** How large a heartbeat's statistics may be on this node, in bytes. */
+    public void heartbeatLimit(int bytes) {
+        if (bytes < 1) {
+            throw new IllegalArgumentException("a heartbeat limit is a number of bytes, and "
+                    + bytes + " is not one");
+        }
+        this.heartbeatLimit = bytes;
+    }
+
     /** The host and process, which is a name until a deployment gives the node one. */
     static String defaultNodeName() {
         String host;
@@ -3791,7 +3802,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
                                     // participant over this door polls.
                                     null,
                                     runResults),
-                                contacts, laneRuns, asker);
+                                contacts, laneRuns, laneDeclarations, heartbeatLimit, asker);
                     };
             // The same lane on the store's own stream, for a participant that
             // connects to the substrate and to nothing else: a door per tenant

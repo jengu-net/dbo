@@ -2933,6 +2933,7 @@ cloud.jengu.dbo.promises.DboPromises                                   PROC_A_DE
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_DISAGREEMENT_IS_AN_INCIDENT_NOT_A_REFUSAL:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_FAULT_THE_CALLER_IS_NOT_TOLD_IS_STILL_RECORDED:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_FLEET_PERFORMER_IS_HANDED_ITS_OBJECTS:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   PROC_A_HEARTBEAT_IS_A_LANE_VERB:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_HOLD_RUNS_FROM_WHEN_THE_CLAIM_LANDS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_HOST_HOLDS_A_LANE_WHEREVER_IT_IS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_LANE_OVER_THE_STREAM:cloud.jengu.dbo.promises.DboPromises
@@ -2981,6 +2982,7 @@ cloud.jengu.dbo.promises.DboPromises                                   PROC_EXEC
 cloud.jengu.dbo.promises.DboPromises                                   PROC_EXECUTOR_RESOLUTION_IS_DETERMINISTIC:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_FAILURE_IS_RELEASED:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_FALL_THROUGH_IS_COUNTABLE:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   PROC_HEARTBEAT_STATISTICS_ARE_OPAQUE_AND_BOUNDED:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_IDENTITY_IS_REASSEMBLED_AT_THE_TENANT:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_INPUTS_ARRIVE_WITH_THE_WORK:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_INTRODUCTION_GRANTS_NOTHING:cloud.jengu.dbo.promises.DboPromises
@@ -3291,6 +3293,7 @@ cloud.jengu.dbo.runner.Lane                                            closed(cl
 cloud.jengu.dbo.runner.Lane                                            closed(cloud.jengu.dbo.work.Run,String):void
 cloud.jengu.dbo.runner.Lane                                            committed(cloud.jengu.dbo.work.Run,String,List):cloud.jengu.dbo.work.Run
 cloud.jengu.dbo.runner.Lane                                            declare(cloud.jengu.dbo.work.Declarations.Declared):void
+cloud.jengu.dbo.runner.Lane                                            heartbeat(Map):void
 cloud.jengu.dbo.runner.Lane                                            identified(cloud.jengu.dbo.work.Run,String,String):cloud.jengu.dbo.work.SealedPayload
 cloud.jengu.dbo.runner.Lane                                            identity():cloud.jengu.dbo.work.Executor
 cloud.jengu.dbo.runner.Lane                                            inProcess(String,cloud.jengu.dbo.work.Runs,cloud.jengu.dbo.core.api.feed.ChangeFeed,cloud.jengu.dbo.work.Declarations,String,cloud.jengu.dbo.work.Executor):cloud.jengu.dbo.runner.Lane
@@ -3395,6 +3398,8 @@ cloud.jengu.dbo.runner.ProvingLane                                     committed
 cloud.jengu.dbo.runner.ProvingLane                                     declare(cloud.jengu.dbo.work.Declarations.Declared):void
 cloud.jengu.dbo.runner.ProvingLane                                     ended():cloud.jengu.dbo.runner.ProvingLane.Ended
 cloud.jengu.dbo.runner.ProvingLane                                     endings():List
+cloud.jengu.dbo.runner.ProvingLane                                     heartbeat(Map):void
+cloud.jengu.dbo.runner.ProvingLane                                     heartbeats():List
 cloud.jengu.dbo.runner.ProvingLane                                     identified(cloud.jengu.dbo.work.Run,String,String):cloud.jengu.dbo.work.SealedPayload
 cloud.jengu.dbo.runner.ProvingLane                                     identity():cloud.jengu.dbo.work.Executor
 cloud.jengu.dbo.runner.ProvingLane                                     inputs(cloud.jengu.dbo.work.Run):Map
@@ -3536,6 +3541,7 @@ cloud.jengu.dbo.runner.http.LaneVerbs                                  DECLARED:
 cloud.jengu.dbo.runner.http.LaneVerbs                                  ENTITLED_STEPS:String
 cloud.jengu.dbo.runner.http.LaneVerbs                                  FAILURE:String
 cloud.jengu.dbo.runner.http.LaneVerbs                                  HEAD:String
+cloud.jengu.dbo.runner.http.LaneVerbs                                  HEARTBEAT:cloud.jengu.dbo.runner.http.LaneVerbs
 cloud.jengu.dbo.runner.http.LaneVerbs                                  HOLD_FOR_MILLIS:String
 cloud.jengu.dbo.runner.http.LaneVerbs                                  IDENTIFIED:cloud.jengu.dbo.runner.http.LaneVerbs
 cloud.jengu.dbo.runner.http.LaneVerbs                                  IDENTITY:String
@@ -3563,6 +3569,7 @@ cloud.jengu.dbo.runner.http.LaneVerbs                                  ROUTES:cl
 cloud.jengu.dbo.runner.http.LaneVerbs                                  RUN:String
 cloud.jengu.dbo.runner.http.LaneVerbs                                  SEALED:cloud.jengu.dbo.runner.http.LaneVerbs
 cloud.jengu.dbo.runner.http.LaneVerbs                                  SIGNATURE:String
+cloud.jengu.dbo.runner.http.LaneVerbs                                  STATISTICS:String
 cloud.jengu.dbo.runner.http.LaneVerbs                                  STEP:String
 cloud.jengu.dbo.runner.http.LaneVerbs                                  STEPS:String
 cloud.jengu.dbo.runner.http.LaneVerbs                                  WITHDRAW:cloud.jengu.dbo.runner.http.LaneVerbs
@@ -3579,6 +3586,7 @@ cloud.jengu.dbo.runner.http.WireLane                                   closed(cl
 cloud.jengu.dbo.runner.http.WireLane                                   closed(cloud.jengu.dbo.work.Run,String):void
 cloud.jengu.dbo.runner.http.WireLane                                   committed(cloud.jengu.dbo.work.Run,String,List):cloud.jengu.dbo.work.Run
 cloud.jengu.dbo.runner.http.WireLane                                   declare(cloud.jengu.dbo.work.Declarations.Declared):void
+cloud.jengu.dbo.runner.http.WireLane                                   heartbeat(Map):void
 cloud.jengu.dbo.runner.http.WireLane                                   identified(cloud.jengu.dbo.work.Run,String,String):cloud.jengu.dbo.work.SealedPayload
 cloud.jengu.dbo.runner.http.WireLane                                   identity():cloud.jengu.dbo.work.Executor
 cloud.jengu.dbo.runner.http.WireLane                                   inputs(cloud.jengu.dbo.work.Run):Map
@@ -4231,6 +4239,7 @@ cloud.jengu.dbo.tenant.TenantRuntimeManager                            fleetDisa
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            fleetLane(String,String,cloud.jengu.dbo.work.Executor):Optional
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            fleetRegister(String):List
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            fleetRegisterChanged(String):Optional
+cloud.jengu.dbo.tenant.TenantRuntimeManager                            heartbeatLimit(int):void
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            manages(Path):String
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            new(Path,cloud.jengu.dbo.tenant.TenantDatabaseProvisioner,String,int,cloud.jengu.dbo.tenant.TenantRuntimeManager.Listener)
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            new(Path,cloud.jengu.dbo.tenant.TenantDatabaseProvisioner,String,int,cloud.jengu.dbo.tenant.TenantRuntimeManager.Listener,cloud.jengu.dbo.tenant.TenantRuntimeManager.AuthorityConfig)

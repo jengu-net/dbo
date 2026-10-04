@@ -29,6 +29,8 @@ public enum LaneVerbs {
     /** The supervisory verb: a closed run made claimable again, with its reason. */
     REOPEN("reopen"),
     DECLARE("declare"),
+    /** Still here, with what the worker says about itself: written nowhere, extending nothing. */
+    HEARTBEAT("heartbeat"),
     INTRODUCE("introduce"),
     WITHDRAW("withdraw"),
     ROUTES("routes"),
@@ -73,6 +75,8 @@ public enum LaneVerbs {
      * an attestation cannot be forged by the side making the claim.
      */
     public static final String BEHIND = "behind";
+    /** What a heartbeat carries: one JSON object, nested, namespaced by contributor. */
+    public static final String STATISTICS = "statistics";
     /** Every answer's one field, so an empty answer is still a shape. */
     public static final String REFERENCE = "reference";
     public static final String RECIPIENTS = "recipients";

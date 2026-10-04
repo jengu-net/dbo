@@ -41,6 +41,16 @@ public class DboServerProperties {
 
     private Admin admin = new Admin();
 
+    /**
+     * What this node is called in every contact event it sends. Its host and
+     * process when unset, which is a name nobody chose; a deployment of
+     * several nodes names each.
+     */
+    private String nodeName;
+
+    /** How large a heartbeat's statistics may be on this node, in bytes; 64 KB when unset. */
+    private Integer heartbeatLimit;
+
     /** Anything the runtime reads that this class has not grown a name for. */
     private Map<String, String> framework = new LinkedHashMap<>();
 
@@ -67,6 +77,9 @@ public class DboServerProperties {
         put(said, "dbo.substrate.url", substrate.getUrl());
         put(said, "dbo.substrate.user", substrate.getUser());
         put(said, "dbo.substrate.password", substrate.getPassword());
+        put(said, "dbo.node.name", nodeName);
+        put(said, "dbo.heartbeat.limit", heartbeatLimit == null
+                ? null : String.valueOf(heartbeatLimit));
         if (mount == Mount.SERVLET) {
             // What makes the tenant activator wait for a server rather than
             // bind a port of its own. Said by the deployment rather than
@@ -99,6 +112,22 @@ public class DboServerProperties {
          * distribution does. For an application with no web tier.
          */
         OWN_PORT
+    }
+
+    public String getNodeName() {
+        return nodeName;
+    }
+
+    public void setNodeName(String nodeName) {
+        this.nodeName = nodeName;
+    }
+
+    public Integer getHeartbeatLimit() {
+        return heartbeatLimit;
+    }
+
+    public void setHeartbeatLimit(Integer heartbeatLimit) {
+        this.heartbeatLimit = heartbeatLimit;
     }
 
     public Mount getMount() {

@@ -634,6 +634,21 @@ public enum DboPromises implements Promise {
             + "everything for its step is unknown on that node, and a worker heard there again "
             + "appears again: contact is not carried across a restart."),
 
+    PROC_A_HEARTBEAT_IS_A_LANE_VERB("A worker says it is still there with a heartbeat, a verb "
+            + "of the participation lane on every transport, carrying one JSON object of "
+            + "statistics. It counts as activity for every step the worker declared on that "
+            + "lane, so a worker that is woken rather than polling, or one holding a long claim, "
+            + "stays in contact; it writes nothing to the tenant's records and never extends a "
+            + "claim."),
+
+    PROC_HEARTBEAT_STATISTICS_ARE_OPAQUE_AND_BOUNDED("Heartbeat statistics are an open, "
+            + "nested document whose top-level keys are namespaced by whoever contributed them, "
+            + "with dbo. reserved for the store's own runner. The store neither interprets, "
+            + "validates nor stores them, and a node refuses a heartbeat whose statistics exceed "
+            + "its limit — 64 KB unless the deployment says otherwise — naming the limit. They "
+            + "travel authenticated and outside any sealed work, so a sender puts nothing about "
+            + "a person in them."),
+
     PROC_LANE_APPLY_IS_REPLAY_AND_REORDER_SAFE("What a peer sends applies once however "
             + "often it is sent, and a batch arriving behind a newer one does not put "
             + "the older version back. The comparison is the source version, so neither "

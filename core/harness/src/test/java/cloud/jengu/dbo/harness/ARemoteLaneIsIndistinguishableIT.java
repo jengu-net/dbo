@@ -242,6 +242,14 @@ class ARemoteLaneIsIndistinguishableIT {
         }
 
         @Override
+        public void heartbeat(Map<String, Object> statistics) {
+            across("heartbeat", () -> {
+                farSide.heartbeat(statistics);
+                return null;
+            });
+        }
+
+        @Override
         public void routes(java.util.List<cloud.jengu.dbo.work.Trackable> behind) {
             across("routes", () -> {
                 farSide.routes(behind);

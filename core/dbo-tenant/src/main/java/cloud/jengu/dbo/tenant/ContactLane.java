@@ -40,12 +40,21 @@ final class ContactLane implements Lane {
     private final Lane lane;
     private final Contacts contacts;
     private final Runs runs;
+    private final Declarations declarations;
+    private final int limit;
     private final ContactListener.Worker worker;
 
-    ContactLane(Lane lane, Contacts contacts, Runs runs, String client) {
+    /**
+     * @param limit how large a heartbeat's statistics may be, in bytes of
+     *              their JSON
+     */
+    ContactLane(Lane lane, Contacts contacts, Runs runs, Declarations declarations,
+            int limit, String client) {
         this.lane = lane;
         this.contacts = contacts;
         this.runs = runs;
+        this.declarations = declarations;
+        this.limit = limit;
         this.worker = new ContactListener.Worker(client, lane.identity().name(),
                 lane.identity().version());
     }
@@ -150,6 +159,46 @@ final class ContactLane implements Lane {
     public void declare(Declarations.Declared declared) {
         lane.declare(declared);
     }
+
+    /**
+     * Measured before anything else, so a heartbeat over the limit is refused
+     * whether or not anybody listens; heard for every listened step this
+     * worker declared on this tenant.
+     */
+    @Override
+    public void heartbeat(Map<String, Object> statistics) {
+        Map<String, Object> said = statistics == null ? Map.of() : statistics;
+        int size = cloud.jengu.dbo.core.wire.RecordWire.write(said)
+                .getBytes(java.nio.charset.StandardCharsets.UTF_8).length;
+        if (size > limit) {
+            throw new IllegalStateException(lane.tenant() + ": a heartbeat's statistics are "
+                    + size + " bytes, over this node's limit of " + limit + " bytes ("
+                    + HEARTBEAT_LIMIT + ")");
+        }
+        lane.heartbeat(said);
+        if (!contacts.listening()) {
+            return;
+        }
+        Set<String> declared = new java.util.LinkedHashSet<>();
+        for (String step : contacts.listened()) {
+            int dot = step.lastIndexOf('.');
+            if (dot <= 0) {
+                continue;
+            }
+            boolean mine = declarations.forStep(step.substring(0, dot), step.substring(dot + 1))
+                    .stream().anyMatch(one -> one.name().equals(worker.name()));
+            if (mine) {
+                declared.add(step);
+            }
+        }
+        contacts.heard(lane.tenant(), declared, worker, said);
+    }
+
+    /** The framework property a node's heartbeat limit is read from, in bytes. */
+    static final String HEARTBEAT_LIMIT = "dbo.heartbeat.limit";
+
+    /** What a node accepts when nobody said: enough for a worker and what it routes. */
+    static final int DEFAULT_HEARTBEAT_LIMIT = 64 * 1024;
 
     @Override
     public void introduce(StepDeclaration step) {

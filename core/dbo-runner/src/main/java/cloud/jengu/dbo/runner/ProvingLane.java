@@ -82,6 +82,8 @@ public final class ProvingLane implements Lane {
     private final List<Map<String, Long>> checkpoints = new ArrayList<>();
     private final List<Ended> endings = new ArrayList<>();
     private final List<Outcome.Write> written = new ArrayList<>();
+    private final List<Map<String, Object>> heartbeats =
+            new java.util.concurrent.CopyOnWriteArrayList<>();
 
     /**
      * How many times the runner has looked. Concurrent for the reason
@@ -384,6 +386,21 @@ public final class ProvingLane implements Lane {
     @Override
     public void declare(Declarations.Declared declared) {
         throw new UnsupportedOperationException(notHere("declaring a participant"));
+    }
+
+    /**
+     * Kept, in order, so a test can read what the runner said about itself.
+     * Concurrent for the reason {@link #woken} is: a started runner beats
+     * from its own thread while the test reads from another.
+     */
+    @Override
+    public void heartbeat(Map<String, Object> statistics) {
+        heartbeats.add(statistics == null ? Map.of() : statistics);
+    }
+
+    /** Every heartbeat the runner sent, oldest first. */
+    public List<Map<String, Object>> heartbeats() {
+        return List.copyOf(heartbeats);
     }
 
     @Override

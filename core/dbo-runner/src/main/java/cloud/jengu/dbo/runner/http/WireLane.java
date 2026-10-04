@@ -231,6 +231,18 @@ public class WireLane implements Lane {
         tell(LaneVerbs.DECLARE, body);
     }
 
+    /**
+     * Asked, not told: a node refuses statistics over its limit, and a worker
+     * that never heard so would go on sending what nobody reads.
+     */
+    @Override
+    public void heartbeat(Map<String, Object> statistics) {
+        Map<String, Object> body = verb();
+        body.put(LaneVerbs.STATISTICS, RecordWire.encode(
+                statistics == null ? Map.of() : statistics));
+        post(LaneVerbs.HEARTBEAT, body);
+    }
+
     @Override
     public void routes(java.util.List<cloud.jengu.dbo.work.Trackable> behind) {
         Map<String, Object> body = verb();

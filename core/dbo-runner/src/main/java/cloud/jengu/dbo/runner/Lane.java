@@ -311,8 +311,36 @@ public interface Lane {
     /** The tenant's housekeeping: lapsed claims handed back. Anybody may. */
     int releaseLapsed();
 
-    /** Announces or re-announces a candidate — idempotent by key, vitals riding it. */
+    /** Announces or re-announces a candidate — idempotent by key. */
     void declare(Declarations.Declared declared);
+
+    /**
+     * Still here, and how it is going.
+     *
+     * <p>A worker on a carrier that wakes it rather than being polled, or one
+     * holding a long claim, may otherwise say nothing for a long time — and
+     * a node reading contact from ordinary requests alone would lose exactly
+     * those workers. So a heartbeat counts as activity for every step this
+     * worker has declared on this lane.
+     *
+     * <p><b>It writes nothing and extends nothing.</b> The tenant's records do
+     * not change, and a claim is extended only by progress on the run: a
+     * heartbeat is evidence the worker is there, never that its work is.
+     *
+     * <p><b>The statistics are opaque, nested, and bounded.</b> One JSON
+     * object per heartbeat, keys namespaced by whoever contributed them; the
+     * store reserves {@code dbo.} and reads none of it. A node refuses one
+     * over its limit, naming the limit. They travel authenticated and outside
+     * any sealed work, so they carry nothing about a person — a rule for the
+     * sender, because the store cannot check it.
+     *
+     * <p>Abstract, not defaulted: a lane that dropped a heartbeat would leave
+     * its worker unknown to every node while it was working.
+     *
+     * @param statistics what the worker says about itself and what it routes,
+     *                   or empty
+     */
+    void heartbeat(Map<String, Object> statistics);
 
     /**
      * Brings the step this participant performs into the catalogue —
@@ -886,6 +914,15 @@ public interface Lane {
             @Override
             public void declare(Declarations.Declared declared) {
                 declarations.declare(declared);
+            }
+
+            /**
+             * Nothing to write and nobody to tell: contact is the host's, and
+             * a host that notices it hears this lane rather than this lane
+             * hearing anybody.
+             */
+            @Override
+            public void heartbeat(Map<String, Object> statistics) {
             }
 
             @Override

@@ -777,6 +777,18 @@ public final class Activator implements BundleActivator {
                 node == null || node.isBlank() ? TenantRuntimeManager.defaultNodeName() : node,
                 java.time.Clock.systemUTC(), contactTimers,
                 (listener, threw) -> LOG.warn("a contact listener threw: {}", listener, threw)));
+        String limit = ctx.getProperty(ContactLane.HEARTBEAT_LIMIT);
+        if (limit != null && !limit.isBlank()) {
+            // A mistyped number keeps the default and says so, as every other
+            // dial here does: refusing to serve over it would take tenants
+            // down for a setting about what workers may say.
+            try {
+                manager.heartbeatLimit(Integer.parseInt(limit.trim()));
+            } catch (IllegalArgumentException notABound) {
+                LOG.warn("{}={} is not a number of bytes; keeping {}", ContactLane.HEARTBEAT_LIMIT,
+                        limit, ContactLane.DEFAULT_HEARTBEAT_LIMIT);
+            }
+        }
         watchExtensions(ctx);
         // The durable substrate, when this deployment has one: each tenant's
         // lane then has a door on the stream beside its HTTP door, for a

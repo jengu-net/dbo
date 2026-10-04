@@ -145,7 +145,14 @@ class ALaneStaysTransportShapedTest {
         // the verb hands over data both ways; it is abstract because a lane
         // that inherited it would drop a step's records and still close its
         // run as done.
-        assertEquals(22, verbs.size(),
+        // 23 since a worker says it is still there. Contact read only from
+        // ordinary requests would lose a worker that is woken rather than
+        // polling, and one holding a long claim; so a heartbeat counts for
+        // every step the worker declared. What goes out is a JSON object of
+        // statistics and nothing comes back, so it is data both ways; it is
+        // abstract because a lane that inherited it would leave its worker
+        // unknown to every node while it worked.
+        assertEquals(23, verbs.size(),
                 "the verb count changed; a new verb is exactly what these rules are for");
         return verbs;
     }
