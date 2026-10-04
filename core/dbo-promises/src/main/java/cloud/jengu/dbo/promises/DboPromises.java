@@ -614,6 +614,26 @@ public enum DboPromises implements Promise {
             + "heartbeat and no lease — and a caught-up participant's cursor does not "
             + "move either, so silence with nothing waiting is not absence."),
 
+    PROC_A_CONTACT_LISTENER_IS_OPTIONAL_PER_STEP("An application may register, per step, a "
+            + "listener told when a node comes into contact with a worker of that step and when "
+            + "it loses it; with none registered the node tracks nothing for the step. Activity "
+            + "is any request from that worker for that step — a poll naming it, a claim, "
+            + "checkpoint, release or close of one of its runs, and a heartbeat for every step "
+            + "the worker declared — and a worker is its client, its executor's name and its "
+            + "version. Contact is held in memory on the node that heard the worker, decides "
+            + "nothing in the store, and every event names its node."),
+
+    PROC_A_CONTACT_LISTENER_DECLARES_ITS_SILENCE("A contact listener declares how long a "
+            + "worker may say nothing before it is unknown, and there is no default: a listener "
+            + "declaring none is refused at startup, by name. A worker heard after it was "
+            + "unknown appears, each heartbeat while it is in contact delivers its statistics, "
+            + "and silence past the listener's own threshold makes it unknown — never gone. Two "
+            + "listeners on one step may declare different silences."),
+
+    PROC_A_NODE_START_RESETS_CONTACT("When a node starts, every contact listener is told that "
+            + "everything for its step is unknown on that node, and a worker heard there again "
+            + "appears again: contact is not carried across a restart."),
+
     PROC_LANE_APPLY_IS_REPLAY_AND_REORDER_SAFE("What a peer sends applies once however "
             + "often it is sent, and a batch arriving behind a newer one does not put "
             + "the older version back. The comparison is the source version, so neither "

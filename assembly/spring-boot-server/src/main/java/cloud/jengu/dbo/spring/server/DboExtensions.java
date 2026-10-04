@@ -21,7 +21,9 @@ import java.util.Map;
  *
  * <p>A bean implementing {@code TenantLifecycleListener} is told when a
  * tenant reaches a point; one implementing {@code TenantObserver} reads a
- * tenant's stream as a named durable consumer. Both are selected on
+ * tenant's stream as a named durable consumer; one implementing
+ * {@code ContactListener} is told when this node hears a worker of its step
+ * and when it stops hearing it. The first two are selected on
  * properties, and the runtime refuses a registration missing what it needs —
  * by name, into a log nobody is reading at four in the morning.
  *
@@ -42,8 +44,21 @@ public final class DboExtensions implements AutoCloseable {
 
     DboExtensions(EmbeddedRuntime runtime, List<TenantLifecycleListener> listeners,
             List<TenantObserver> observers,
-            List<cloud.jengu.dbo.runner.StepService> performers) {
+            List<cloud.jengu.dbo.runner.StepService> performers,
+            List<cloud.jengu.dbo.work.ContactListener> contact) {
         List<String> wrong = new ArrayList<>();
+        // A contact listener says how long a worker may be silent, and there
+        // is no default: refused here, by name, rather than by the runtime
+        // into its log once the application is already serving.
+        List<cloud.jengu.dbo.work.ContactListener> heard = new ArrayList<>();
+        for (cloud.jengu.dbo.work.ContactListener listener : contact) {
+            try {
+                cloud.jengu.dbo.work.Contacts.refuseWithoutASilence(listener);
+                heard.add(listener);
+            } catch (IllegalArgumentException refused) {
+                wrong.add(refused.getMessage());
+            }
+        }
         Map<TenantLifecycleListener, Map<String, String>> listening = new LinkedHashMap<>();
         for (TenantLifecycleListener listener : listeners) {
             DboTenantListener said = AnnotationUtils.findAnnotation(listener.getClass(),
@@ -135,9 +150,11 @@ public final class DboExtensions implements AutoCloseable {
                 TenantObserver.class, observer, on)));
         performing.forEach((performer, on) -> registered.add(registrar.register(
                 cloud.jengu.dbo.runner.StepService.class, performer, on)));
+        heard.forEach(listener -> registered.add(registrar.register(
+                cloud.jengu.dbo.work.ContactListener.class, listener, Map.of())));
         if (!registered.isEmpty()) {
-            LOG.info("extension points: listeners={} observers={} fleet-steps={}",
-                    listening.size(), watching.size(), performing.size());
+            LOG.info("extension points: listeners={} observers={} fleet-steps={} contact={}",
+                    listening.size(), watching.size(), performing.size(), heard.size());
         }
     }
 

@@ -96,9 +96,12 @@ public class DboServerAutoConfiguration {
             org.springframework.beans.factory.ObjectProvider<
                     cloud.jengu.dbo.tenant.api.TenantObserver> observers,
             org.springframework.beans.factory.ObjectProvider<
-                    cloud.jengu.dbo.runner.StepService> performers) {
+                    cloud.jengu.dbo.runner.StepService> performers,
+            org.springframework.beans.factory.ObjectProvider<
+                    cloud.jengu.dbo.work.ContactListener> contact) {
         return new DboExtensions(runtime, listeners.orderedStream().toList(),
-                observers.orderedStream().toList(), performers.orderedStream().toList());
+                observers.orderedStream().toList(), performers.orderedStream().toList(),
+                contact.orderedStream().toList());
     }
 
     /** The vocabulary an application reads this deployment through. */
