@@ -37,8 +37,9 @@ import java.util.Set;
  * reaches the tenant on.
  *
  * <p><b>The lane, not the store.</b> What is offered here is deliberately no
- * wider than {@link Lane}. Nothing on this surface takes a reference, hands
- * out a store handle or reads an object the work does not name, because a
+ * wider than {@link cloud.jengu.dbo.runner.Lane}. Nothing on this surface takes
+ * a reference, hands out a store handle or reads an object the work does not
+ * name, because a
  * widened primitive is available to every caller with the scope, forever. A
  * host that reaches the store over HTTP gets exactly what a host that holds
  * it in-process gets — and run semantics stay in one place, since every verb
