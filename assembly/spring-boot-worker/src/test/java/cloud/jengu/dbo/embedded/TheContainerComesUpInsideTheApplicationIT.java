@@ -38,7 +38,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * the set this assembly installs.
  *
  * <p>No store, no face, no database, and that absence is part of the claim.
- * A driver contributes a step with five bundles installed, and the container
+ * A step bundle contributes a step with five bundles installed, and the container
  * proves the same set from the other side.
  */
 class TheContainerComesUpInsideTheApplicationIT {

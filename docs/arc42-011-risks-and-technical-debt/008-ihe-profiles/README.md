@@ -29,7 +29,7 @@ API" goal exists to close.
 
 The filter for this document is narrow: **a profile belongs here only if the
 store itself is the actor.** A profile whose actor is an application above
-the store — an MPI, a consent engine, a device gateway — is named under *Not
+the store — an MPI, a consent engine, an integration engine — is named under *Not
 doing* with the reason, so it is not proposed twice.
 
 ## Where it stands

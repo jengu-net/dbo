@@ -36,7 +36,7 @@ public record Handling(Authority authority, Mutability mutability,
          * and reading the runs in order reads the changes in order.
          *
          * <p>The rule is what turns work into the <b>manifest</b>: what must
-         * travel to another appliance becomes derivable from runs rather than
+         * travel to another site becomes derivable from runs rather than
          * computed by a second mechanism that has to agree with the first.
          */
         UNDER_A_RUN
@@ -75,7 +75,7 @@ public record Handling(Authority authority, Mutability mutability,
         PLATFORM_RUNTIME,
         /** The tenant's own people and the modules acting for them. */
         TENANT_USERS,
-        /** Nobody authors it; it is observed. A device is present or it is not. */
+        /** Nobody authors it; it is observed. A worker is present or it is not. */
         OBSERVED
     }
 
@@ -127,7 +127,7 @@ public record Handling(Authority authority, Mutability mutability,
         if (durability == Durability.EPHEMERAL && travel != Travel.NEVER) {
             throw new IllegalArgumentException(
                     "ephemeral data may not travel: restoring a momentary fact asserts it is "
-                            + "still true — a device reported present a week after it was unplugged");
+                            + "still true — a worker reported present a week after it went away");
         }
         if (mutability == Mutability.APPEND_ONLY && durability == Durability.EPHEMERAL) {
             throw new IllegalArgumentException(
@@ -188,7 +188,7 @@ public record Handling(Authority authority, Mutability mutability,
      * <p><b>Read-only to everybody else, which is the point of projecting it.</b>
      * A configured change goes to one place — the declaration — and comes back
      * through the lane. Left writable, the store was where that promise broke:
-     * a tenant user could edit a projected Device in place, the store took it,
+     * a tenant user could edit a projected record in place, the store took it,
      * and the next pass of the lane overwrote the edit without a word, because
      * the lane is keyed on the same identity. Neither half is acceptable. An
      * edit that survives makes the declaration a lie; an edit that vanishes

@@ -283,7 +283,7 @@ spec:
                   minItems: 1
                   items:
                     type: object
-                    # handling is required at the outermost edge: an
+                    # handling is required at the outermost boundary: an
                     # unclassified type is refused by the API server, so it
                     # never becomes a registration somebody has to debug at
                     # tenant bring-up

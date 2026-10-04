@@ -15,8 +15,8 @@ import java.time.Duration;
  * contributes a step, and the host registers one {@link Lane} per tenant it
  * offers work from. When either side appears the runner wires it; when it
  * goes, the runner lets it go. Nothing here is configured — the services ARE
- * the configuration, which is what lets this drop into the platform's cloud
- * process, its edge process, or a dev embedding without any of them changing.
+ * the configuration, which is what lets this drop into a server
+ * process, a worker process, or a dev embedding without any of them changing.
  *
  * <p>Outside OSGi this class is simply never called: an embedder constructs
  * {@link StepRunner} and hands it lanes directly.

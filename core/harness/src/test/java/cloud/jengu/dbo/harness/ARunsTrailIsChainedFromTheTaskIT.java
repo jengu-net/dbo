@@ -58,7 +58,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * A trail whose oldest links were pruned reads unchained, not broken.
  *
- * <p>The chain from a task through every hop and opening is walked in the edge
+ * <p>The chain from a task through every hop and opening is walked in the
  * roundtrip story, on the sample world. What it cannot show there is a trail
  * that lost its predecessors to retention: that needs a store whose trail this
  * test holds in its hand, so it can remove the first link and ask what the
@@ -98,7 +98,7 @@ class ARunsTrailIsChainedFromTheTaskIT {
         Lane lane = Lane.inProcess("t-pruned", local, new PgChangeFeed(ds, WorkModel.DOMAIN),
                 new Declarations(store, new PgChangeFeed(ds, WorkModel.DOMAIN),
                         Duration.ofSeconds(30)),
-                "analyser", identity, store, null, Lane.Entitlement.everything(), null,
+                "assayer", identity, store, null, Lane.Entitlement.everything(), null,
                 new Lane.Trail() {
                     @Override
                     public void handedTo(Run r, String to, RunChain.Link link) {
@@ -159,13 +159,13 @@ class ARunsTrailIsChainedFromTheTaskIT {
     // ------------------------------------------------------------ fixtures
 
     private static String open(Lane lane, Run run, String reference, String previous) {
-        String link = RunChain.accessLink(previous, run.key(), reference, "analyser");
+        String link = RunChain.accessLink(previous, run.key(), reference, "assayer");
         return lane.opened(run, reference,
-                new RunChain.Link("access", previous, link, "analyser", reference, sign(link)));
+                new RunChain.Link("access", previous, link, "assayer", reference, sign(link)));
     }
 
     private static Executor executor() {
-        return new Executor("analyser", "1.0", "cloud.jengu.test", Scope.BASELINE);
+        return new Executor("assayer", "1.0", "cloud.jengu.test", Scope.BASELINE);
     }
 
     private static String sign(String link) {

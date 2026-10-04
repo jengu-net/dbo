@@ -17,7 +17,7 @@ import java.util.Set;
  * What a participant says it can run.
  *
  * <p>A tenant is not a process that runs somewhere. It is a store plus the
- * participants that hold its steps — an edge, a hospital's own system, a second
+ * participants that hold its steps — a worker on site, a hospital's own system, a second
  * server for capacity, a person at a screen — and each of them has to be able
  * to say <b>I am an executor for this step</b>, or resolution cannot see them.
  * A candidate that could only come from a bundle installed in this container

@@ -15,7 +15,7 @@ whoever asks, without them needing to know that work exists.**
 ## You are
 
 Moving a sealed payload across organisations. It passes through a router, a
-carrier, perhaps an appliance in a building nobody at your end has seen. At
+carrier, perhaps a worker in a building nobody at your end has seen. At
 the far end somebody opens it — or nobody does, and it comes back unopened.
 
 If every hop records a disclosure, the trail says a dozen parties read the

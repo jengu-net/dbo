@@ -170,8 +170,8 @@ shape rather than a special case.
 
 **A worker belonging to somebody else is the third case**, and the only one
 HTTP is for: another organisation's application performing a step for a tenant
-it does not run — a laboratory, a tenant's own edge device. It reaches the
-deployment over the lane and nothing else, with a credential that tenant
+it does not run — a laboratory, a service on a tenant's own site. It reaches
+the deployment over the lane and nothing else, with a credential that tenant
 issued, and has no business near the deployment's database.
 
 So the carrier follows the organisation rather than the process boundary:
@@ -207,7 +207,7 @@ values, because there is no correct answer available to it.
 
 ## Bundles of the application's own
 
-An application with OSGi bundles of its own — a device driver that performs a
+An application with OSGi bundles of its own — a bundle that performs a
 step is the standing case — puts them in the store's one framework by owning
 that framework. **If the context has a bean of type
 `org.osgi.framework.launch.Framework`, the store installs into it; if not, the
@@ -221,7 +221,7 @@ Framework clinicFramework(DboFramework dbo) throws Exception {
     Framework framework = ServiceLoader.load(FrameworkFactory.class).findFirst()
             .orElseThrow().newFramework(properties);
     framework.start();
-    framework.getBundleContext().installBundle(location, driverJar).start();
+    framework.getBundleContext().installBundle(location, bundleJar).start();
     return framework;
 }
 ```

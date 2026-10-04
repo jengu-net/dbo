@@ -4,7 +4,7 @@ eyebrow: Pattern
 standfirst: >-
   Value sets, profiles, search parameters, which tenants a deployment serves,
   whether a step is automated. One declared set, read from a repository and
-  applied to a tenant, then the next, then the appliance.
+  applied to a tenant, then the next, then its second site.
 pattern: 23
 template: essay.html
 ---
@@ -16,21 +16,21 @@ a thing you perform per environment.**
 
 Running the same software for several tenants, in several places, at several
 ages. A new tenant is being brought up this week. One has been serving for two
-years. There is an appliance in a building somewhere that syncs when it can.
+years. There is a second site in a building somewhere that syncs when it can.
 
 All of them need the same definitions. All of them got them by somebody doing
 it, in a slightly different order, on a different day.
 
 ## The question
 
-How does the same intended configuration reach a new tenant, an old one and an
-appliance without being rewritten for each?
+How does the same intended configuration reach a new tenant, an old one and a
+second site without being rewritten for each?
 
 ## The forces
 
 - Applying by hand produces environments that differ in ways nobody can
   enumerate.
-- A migration script assumes a starting state, and the appliance's starting
+- A migration script assumes a starting state, and the second site's starting
   state is whatever it was when it last had a network.
 - Applying has to be safe to repeat, because it will be repeated — by a
   retry, by a schedule, and by somebody who is not sure it worked.
@@ -48,7 +48,7 @@ other run.</p>
 
 Because applying is a sweep rather than a script, the starting state does not
 have to be known — which is what makes the two-year-old tenant and the
-appliance the same case as the new one. Because it is a run, there is a
+second site the same case as the new one. Because it is a run, there is a
 receipt: a pass says what it did, and a redeclaration is noticed rather than
 silently re-applied.
 

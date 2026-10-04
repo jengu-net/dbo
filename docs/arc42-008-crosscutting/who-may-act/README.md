@@ -7,7 +7,7 @@ decided — what may be read, what may be written, whose work it is — one ques
 has to have an answer that survives a shared deployment: **on whose authority?**
 
 There are two kinds of actor and they arrive by different doors. A **system**
-acts on its own behalf: a service, an appliance, another organisation's
+acts on its own behalf: a service, a worker, another organisation's
 integration. A **person** acts as themselves, or something acts on their behalf.
 They share one trust root, and this document is about that root and the two
 doors into it.

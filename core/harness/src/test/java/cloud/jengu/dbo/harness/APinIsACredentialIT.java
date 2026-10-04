@@ -28,7 +28,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * A clinician's edge PIN is a credential, not a field on a
+ * A clinician's offline sign-in PIN is a credential, not a field on a
  * configured record.
  *
  * <p>It used to live as an extension on a {@code Practitioner} projected from
@@ -42,21 +42,21 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * where no FHIR shape was ever going to exist.
  */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class EdgePinIsACredentialIT {
+class APinIsACredentialIT {
 
     static TenantAuthority authority;
     static PgObjectStore store;
 
     @BeforeAll
     void up() throws Exception {
-        String jdbcUrl = SharedPostgres.urlFor("EdgePinIsACredentialIT");
+        String jdbcUrl = SharedPostgres.urlFor("APinIsACredentialIT");
         try (Connection c = DriverManager.getConnection(jdbcUrl,
                 SharedPostgres.get().getUsername(), SharedPostgres.get().getPassword());
              var st = c.createStatement()) {
-            st.execute("CREATE DATABASE edge_pin");
+            st.execute("CREATE DATABASE pin_factor");
         }
         PGSimpleDataSource ds = new PGSimpleDataSource();
-        ds.setUrl(jdbcUrl.substring(0, jdbcUrl.lastIndexOf('/') + 1) + "edge_pin");
+        ds.setUrl(jdbcUrl.substring(0, jdbcUrl.lastIndexOf('/') + 1) + "pin_factor");
         ds.setUser(SharedPostgres.get().getUsername());
         ds.setPassword(SharedPostgres.get().getPassword());
 
@@ -69,7 +69,8 @@ class EdgePinIsACredentialIT {
 
     @Test
     @Timeout(300)
-    @DisplayName("a PIN set at the bench is verified there, and is not on any clinical record")
+    @DisplayName("a PIN set for a login is verified where it was set, and is not on any "
+            + "clinical record")
     @Proving(DboPromises.AUTH_CREDENTIAL_FACTORS_BY_KIND)
     void aPinIsACredential() {
         authority.setFactor("albus@hogwarts.scot", "pin", "4815");
@@ -136,7 +137,7 @@ class EdgePinIsACredentialIT {
 
     @Test
     @Timeout(300)
-    @DisplayName("a bench gets verifiers for offline sign-in, and only hashes")
+    @DisplayName("a second site gets verifiers for offline sign-in, and only hashes")
     void offlineVerifiersAreDistributedAsHashesOnly() {
         authority.setFactor("albus@hogwarts.scot", "pin", "4815");
 
@@ -145,7 +146,7 @@ class EdgePinIsACredentialIT {
         assertEquals(1, distributed.size());
         assertEquals("albus@hogwarts.scot", distributed.get(0).getKey());
         assertFalse(distributed.get(0).getValue().contains("4815"),
-                "what reaches a bench must verify a PIN and be unable to produce one");
+                "what reaches a second site must verify a PIN and be unable to produce one");
         assertTrue(cloud.jengu.dbo.auth.SecretHashProbe.verifies("4815",
                         distributed.get(0).getValue()),
                 "and it must actually verify, or an offline sign-in fails at the bedside");
@@ -159,7 +160,7 @@ class EdgePinIsACredentialIT {
 
         assertTrue(authority.factorsFor("pin").stream()
                         .noneMatch(e -> e.getKey().equals("nopin@hogwarts.scot")),
-                "a bench holds verifiers for people who can sign in there, and nobody else");
+                "a second site holds verifiers for people who can sign in there, and nobody else");
     }
 
     @Test

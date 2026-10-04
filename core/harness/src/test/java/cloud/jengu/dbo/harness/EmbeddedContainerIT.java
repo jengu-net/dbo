@@ -232,7 +232,7 @@ class EmbeddedContainerIT {
      * One exporter of the engine, and the classes it hands out are the same
      * classes on both sides of a bundle boundary. Private embedding gave each
      * personality its own {@code org.hl7.fhir.r4.model.Patient}; a resource
-     * passed to a driver was an alien object of a same-named class.
+     * passed to another bundle was an alien object of a same-named class.
      */
     @Test
     void oneBundleOwnsTheEngineAndItsClassesCrossBoundaries() throws Exception {

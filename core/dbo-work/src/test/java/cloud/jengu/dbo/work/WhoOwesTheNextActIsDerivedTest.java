@@ -21,7 +21,7 @@ class WhoOwesTheNextActIsDerivedTest {
 
     private final WorkInMemory held = new WorkInMemory();
     private final Runs runs = new Runs(held.store());
-    private final Executor bench = new Executor("bench", "1", "example.bench", Scope.BASELINE);
+    private final Executor worker = new Executor("worker", "1", "example.worker", Scope.BASELINE);
 
     @Test
     @DisplayName("a claimed run waits for its owner, an unclaimed one for a machine or a "
@@ -31,7 +31,7 @@ class WhoOwesTheNextActIsDerivedTest {
     void whoIsAwaitedIsDerived() {
         Instant now = Instant.now();
         Run machine = runs.pipeline("ward.round", "check", "for-a-machine", List.of());
-        Run owner = runs.claim(runs.pipeline("ward.round", "check", "taken", List.of()), bench,
+        Run owner = runs.claim(runs.pipeline("ward.round", "check", "taken", List.of()), worker,
                 now.plusSeconds(600)).orElseThrow();
         Run person = runs.released(runs.pipeline("ward.round", "check", "for-a-person",
                 List.of()), "nobody said this would pass", Failure.UNKNOWN);

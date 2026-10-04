@@ -55,8 +55,8 @@ dbo:
 clinic:
   # The clinic owns the framework and the store installs into it, so every
   # story runs over the shape an application with bundles of its own has —
-  # the ward thermometer's driver among them. It costs the stories nothing:
-  # the bundles, the class space and the one framework are the same.
+  # the bundle behind the clinic's own step among them. It costs the stories
+  # nothing: the bundles, the class space and the one framework are the same.
   framework:
     owned: true
   # A worker that goes quiet is heard as quiet after this long: shorter than

@@ -196,24 +196,24 @@ class AnOperatorReadsAndSteersTheFleetIT {
 
     @Test
     @Order(4)
-    @DisplayName("a bench announces what it can do, and whether it is present is derived from "
+    @DisplayName("a worker announces what it can do, and whether it is present is derived from "
             + "its cursor rather than declared")
     @Proving(DboPromises.PROC_PRESENCE_IS_DERIVED)
-    void aBenchAnnouncesItselfAndPresenceIsDerived() {
-        String bench = NAMES.value("meristem-1");
+    void aWorkerAnnouncesItselfAndPresenceIsDerived() {
+        String worker = NAMES.value("meristem-1");
         var declarations = new Declarations(tenants.store(HOSPITAL).orElseThrow(),
                 tenants.changes(HOSPITAL).orElseThrow(), Duration.ofMinutes(2));
-        declarations.declare(new Declarations.Declared(PROCESS, "assay", bench, "2.1",
-                "example.meristem", Scope.BASELINE, bench));
+        declarations.declare(new Declarations.Declared(PROCESS, "assay", worker, "2.1",
+                "example.meristem", Scope.BASELINE, worker));
 
         var mine = declarations.known().stream()
-                .filter(d -> bench.equals(d.declared().name())).toList();
-        assertFalse(mine.isEmpty(), "the bench announced itself and is not known");
+                .filter(d -> worker.equals(d.declared().name())).toList();
+        assertFalse(mine.isEmpty(), "the worker announced itself and is not known");
         // Present, which is the half of this rule that is easy to get wrong.
-        // A caught-up bench's cursor does not move either, so silence with
+        // A caught-up worker's cursor does not move either, so silence with
         // nothing waiting is not absence.
         Proves.that(DboPromises.PROC_PRESENCE_IS_DERIVED, mine.get(0).present(),
-                "a bench with nothing waiting for it was read as absent, which is what a "
+                "a worker with nothing waiting for it was read as absent, which is what a "
                         + "liveness check gets wrong and a derived one does not: " + mine);
     }
 
@@ -226,9 +226,9 @@ class AnOperatorReadsAndSteersTheFleetIT {
             DboPromises.PROC_A_DROPPED_ROUTEE_IS_NOT_SEALED_TO})
     void whatSitsBehindTheConnector() {
         String connector = NAMES.value("connector-1");
-        String seventh = NAMES.value("bench-7");
-        String eighth = NAMES.value("bench-8");
-        String deeper = NAMES.value("bench-8-line");
+        String seventh = NAMES.value("routee-7");
+        String eighth = NAMES.value("routee-8");
+        String deeper = NAMES.value("routee-8-behind");
         TenantAuthority authority = tenants.authority(HOSPITAL).orElseThrow();
         authority.ensureClient(connector, "conn-secret", List.of("work/" + ASSAY));
         HttpLane lane = HttpLane.to(URI.create(dbo.at(HOSPITAL) + "/work"),
@@ -592,7 +592,7 @@ class AnOperatorReadsAndSteersTheFleetIT {
 
     // ── configuration is handed to a tenant through its own door ──
 
-    private static final String BENCHES = "urn:benches";
+    private static final String LISTED = "urn:listed";
     private static final String ORGS = "urn:orgs";
     private String configured;
     private String loader;
@@ -616,7 +616,7 @@ class AnOperatorReadsAndSteersTheFleetIT {
                   {"name":"ParticipantDeclaration","identity":"identifier",
                    "systems":["urn:participants"],"handling":"operational","definition":"none"},
                   {"name":"Organization","identity":"identifier","systems":["%s"],
-                   "handling":"operational"}]}""".formatted(configured, BENCHES, ORGS));
+                   "handling":"operational"}]}""".formatted(configured, LISTED, ORGS));
         assertTrue(dbo.until(configured, true, Duration.ofMinutes(10)), "not configured");
         loader = NAMES.value("loader");
         tenants.authority(configured).orElseThrow().ensureClient(loader, "loader-secret",
@@ -672,11 +672,11 @@ class AnOperatorReadsAndSteersTheFleetIT {
                 hand("{\"marker\":\"commit:settled\",\"declarations\":[" + valueSet("active")
                         + "]}").contains("\"read\":0"),
                 "a read the scope already agreed with was applied again");
-        assertTrue(hand("{\"marker\":\"commit:has-bench\",\"complete\":true,"
-                + "\"declarations\":[" + bench("bench-7") + "]}").contains("\"applied\":1"));
+        assertTrue(hand("{\"marker\":\"commit:has-item\",\"complete\":true,"
+                + "\"declarations\":[" + listed("item-7") + "]}").contains("\"applied\":1"));
         Proves.that(DboPromises.PROC_CONFIG_WITHDRAWAL_IS_DECLARED,
-                hand("{\"marker\":\"commit:bench-gone\",\"complete\":true,"
-                        + "\"declarations\":[" + bench("bench-8") + "]}")
+                hand("{\"marker\":\"commit:item-gone\",\"complete\":true,"
+                        + "\"declarations\":[" + listed("item-8") + "]}")
                         .contains("\"withdrawn\":1"),
                 "a complete read did not withdraw what it no longer names");
         HttpResponse<String> unmarked = handResponse("{\"complete\":true,\"declarations\":["
@@ -999,10 +999,10 @@ class AnOperatorReadsAndSteersTheFleetIT {
                 .formatted(vocabulary, status, vocabulary);
     }
 
-    private static String bench(String code) {
-        return ("{\"type\":\"Device\",\"name\":\"devices/%s.json\",\"payload\":"
+    private static String listed(String code) {
+        return ("{\"type\":\"Device\",\"name\":\"listed/%s.json\",\"payload\":"
                 + "{\"resourceType\":\"Device\",\"status\":\"active\",\"identifier\":"
-                + "[{\"system\":\"%s\",\"value\":\"%s\"}]}}").formatted(code, BENCHES, code);
+                + "[{\"system\":\"%s\",\"value\":\"%s\"}]}}").formatted(code, LISTED, code);
     }
 
     private static String org(String code, String parent) {

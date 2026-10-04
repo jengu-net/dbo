@@ -14,12 +14,12 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Why a record is on this appliance: it came with a piece of work.
+ * Why a record is on this site: it came with a piece of work.
  *
  * <p>Work-driven arrival implies work-driven expiry. Without a note of what
- * brought a record here, an appliance cannot tell a copy that arrived for a
+ * brought a record here, a site cannot tell a copy that arrived for a
  * task from something of its own, and the only safe answer is to keep
- * everything — which is a bench accumulating a register one task at a time,
+ * everything — which is a site accumulating a register one task at a time,
  * the outcome the whole rule exists to prevent.
  *
  * <p><b>The reference is in the record and never in the envelope.</b> What is

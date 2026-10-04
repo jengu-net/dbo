@@ -7,7 +7,7 @@ A store has to answer several questions that look unrelated:
 - give me the next page of these results;
 - tell me when something I care about changes;
 - keep this tenant's copy of shared reference data in step with its source;
-- keep an on-site appliance and a cloud converged after a day offline.
+- keep a tenant's second site and its cloud converged after a day offline.
 
 Most systems grow four mechanisms for those, each with its own state, its own
 failure modes and its own way of being observed. This one defines **a single
@@ -18,8 +18,8 @@ primitive** and picks a source and a transport for each case:
 
 The payoff is not elegance. It is that **every durable consumer is the same kind
 of thing** — a name and a position — so progress, lag and replay are observable
-the same way for a paging client, a subscriber, a dependent tenant and an
-appliance that has been off since Friday. One mechanism means one place to look
+the same way for a paging client, a subscriber, a dependent tenant and a
+second site that has been off since Friday. One mechanism means one place to look
 when something is behind.
 
 ## A change starts as a row committed with the write
@@ -43,7 +43,7 @@ What differs between feeds is only what they are ordered by:
 |---|---|---|
 | A search result set | the sort keys, with the record id as tiebreak | paging through results |
 | History | version sequence | reading how a record changed |
-| The outbox | commit sequence | subscriptions, dependent copies, appliance sync |
+| The outbox | commit sequence | subscriptions, dependent copies, replica sync |
 
 **Cursors are keyset positions, never offsets.** They are opaque to the consumer
 and stable under concurrent writes. This is worth being blunt about, because
@@ -105,7 +105,7 @@ a tidier diagram.
 
 ## Every consumer is named, and its position is in the store
 
-An appliance, a dependent tenant, a subscription, a migration sweep: each holds
+A second site, a dependent tenant, a subscription, a migration sweep: each holds
 a **named cursor**. So "how far behind is it?" is a query rather than an
 investigation, and the same answer serves an operator, a resolution decision and
 a monitoring view.

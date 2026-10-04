@@ -4,16 +4,16 @@ eyebrow: Guide
 standfirst: >-
   Definitions a tenant declares arrive from its zone by type, because none of
   them is about anybody. Patient data travels only with the work that names
-  it, which is why an appliance never slowly becomes a copy of the clinic.
+  it, which is why a second place never slowly becomes a copy of the clinic.
 template: essay.html
 ---
 
 The clinic takes its canonical content from a national zone it does not run,
-and it puts an appliance in the building so that a lost connection is an
-inconvenience rather than a closed practice. Both halves are content that
-belongs somewhere else, arriving because somebody declared that it should and
-staying legible about where it came from. What differs is the bound. The scene
-is [US-DBO-TWO-PLACES](../arc42-003-context/user-stories/us-dbo-two-places.md),
+and it keeps a replica of itself in the building so that a lost connection
+is an inconvenience rather than a closed practice. Both halves are content
+that belongs somewhere else, arriving because somebody declared that it
+should and staying legible about where it came from. What differs is the
+bound. The scene is [US-DBO-TWO-PLACES](../arc42-003-context/user-stories/us-dbo-two-places.md),
 walked by
 [`OneTenantInTwoPlacesIT`](https://github.com/jengu-net/dbo/blob/main/samples/spring-boot-server-app/src/test/java/cloud/jengu/dbo/samples/stories/OneTenantInTwoPlacesIT.java).
 
@@ -52,9 +52,9 @@ that use it.
   declaring the dependency keeps what it holds and receives nothing further;
   declaring it again catches up on what it missed. An upstream that is not up
   is a wait, never a teardown.
-- **An appliance is the same tenant in a second place.** What a run produced
-  there lands on the cloud filed under the appliance that made it, a batch
-  sent twice applies once, and a peer resuming a cursor another lane issued is
+- **A replica is the same tenant in a second place.** What a run produced
+  there lands on the cloud filed under the place that made it, a batch sent
+  twice applies once, and a peer resuming a cursor another lane issued is
   refused rather than replayed. A lane admits every declared type except the
   ones about a person, which travel by work or not at all.
 
@@ -67,7 +67,7 @@ names the test behind each.
   back; something outside carries the bytes, authenticates and reconnects. The
   sample applications carry none, so the story drives the hospital's lane
   itself.
-- **Moving work between appliances is a person's act.** An appliance that dies
+- **Moving work between places is a person's act.** A replica that dies
   holding work it authored keeps that work until it returns.
 - **A dependency on a type the upstream does not publish receives nothing**,
   which is indistinguishable from an upstream that has not published yet.

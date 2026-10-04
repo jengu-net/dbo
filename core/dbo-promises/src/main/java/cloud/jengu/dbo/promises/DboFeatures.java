@@ -127,19 +127,19 @@ public enum DboFeatures implements Feature {
                     DboPromises.PROC_EXECUTOR_DECLARES_ITSELF,
                     DboPromises.PROC_PRESENCE_IS_DERIVED)),
 
-    A_PEER_CONVERGES_SAFELY("Two appliances of one tenant reconcile without a lease: "
+    A_PEER_CONVERGES_SAFELY("Two replicas of one tenant reconcile without a lease: "
             + "applies are replay- and reorder-safe, a stale cursor is refused by its "
-            + "epoch, and what arrives is filed under its own appliance, driven by the "
+            + "epoch, and what arrives is filed under its own replica, driven by the "
             + "work that named it and withdrawn when that work closes.",
             List.of(DboPromises.PROC_LANE_APPLY_IS_REPLAY_AND_REORDER_SAFE,
                     DboPromises.PROC_LANE_EPOCH,
                     DboPromises.PROC_THE_LANE_HAS_TWO_BOUNDS,
                     DboPromises.PROC_WORK_DRIVEN_ARRIVAL_AND_EXPIRY,
-                    DboPromises.PROC_MIRRORED_RUNS_ARE_FILED_BY_APPLIANCE)),
+                    DboPromises.PROC_MIRRORED_RUNS_ARE_FILED_BY_SOURCE)),
 
     CONTENT_ONLY_CHANGES_UNDER_A_RUN("A declared type's content changes only inside a "
             + "run, which is what turns the run into the manifest: every version it "
-            + "produced is on the record, so another appliance asks for what it is "
+            + "produced is on the record, so another replica asks for what it is "
             + "missing instead of comparing stores.",
             List.of(DboPromises.PROC_CONTENT_CHANGES_INSIDE_WORK,
                     DboPromises.PROC_A_RUN_NAMES_WHAT_IT_PRODUCED)),

@@ -74,12 +74,12 @@ dependencies {
 // its classes belong to that framework's class space, not to the application's.
 val ownBundles: Configuration = configurations.create("ownBundles")
 dependencies {
-    ownBundles(project(":samples:ward-thermometer")) { isTransitive = false }
+    ownBundles(project(":samples:ward-bundle")) { isTransitive = false }
 }
 tasks.named<ProcessResources>("processResources") {
     from(ownBundles) {
         into("bundles")
-        rename { "ward-thermometer.jar" }
+        rename { "ward-bundle.jar" }
     }
 }
 

@@ -47,7 +47,7 @@ Story class: `ATenantOpensAndItsPeopleGetInIT` — exists; today own (lifecycle)
 | `AUTH_ORG_MODEL_IS_THE_AUTH_MODEL` | — | W | `8` `whatAClinicianMayDoIsDeclaredAndWhoTheyAreIsARecord` |
 | `AUTH_A_ZONE_IS_ITS_OWN_BROKER` | `TheGuideRunsIT` | W | `35` `aZoneIsItsOwnBroker` |
 | `AUTH_BOOTSTRAP_SECRET_IS_CUSTODY` | `ADeploymentPresentsItsOwnCredentialIT` | W | to fit |
-| `AUTH_CREDENTIAL_FACTORS_BY_KIND` | without a world: EdgePinIsACredentialIT |  | assert where the story passes it |
+| `AUTH_CREDENTIAL_FACTORS_BY_KIND` | without a world: APinIsACredentialIT |  | assert where the story passes it |
 | `AUTH_DEACTIVATION_RETIRES_CREDENTIALS` | — | W | `19` `aClinicianChangesTheirOwnSecret`, `20` `aFirstSecretIsSetFromAOneTimeGrant` |
 | `AUTH_FEDERATED_HUMANS` | `FederatedAuthIT` | W | `10` `anIdentifierFromOutsideNamesThePerson` |
 | `AUTH_FIRST_SECRET_BY_ONE_TIME_GRANT` | — | W | `20` `aFirstSecretIsSetFromAOneTimeGrant`, `21` `aGrantIsNotACredential` |
@@ -220,7 +220,7 @@ Story class: `OneTenantInTwoPlacesIT` — exists; today shared.
 | `SpecDeclaredSyncIT` | own (sweep) | 6 | 5 | deleted |
 | `ZoneIT` | own (deployment) | 5 | 5 | deleted — folded into `ADeploymentIsEquippedBeforeItStartsIT` |
 | `AZoneReachesAnotherFaceThroughOneProjectionIT` | own (sweep) | 4 | 3 | deleted — folded into `ADeploymentIsEquippedBeforeItStartsIT` |
-| `OneTenantInTwoPlacesIT` (story class) | shared | 9 | 2 | zone half moved; appliance half is AnApplianceCarriesPatientDataByWorkIT, no runtime |
+| `OneTenantInTwoPlacesIT` (story class) | shared | 9 | 2 | zone half moved; second-site half is ASecondPlaceCarriesPatientDataByWorkIT, no runtime |
 | `EachTypeStreamsAtItsOwnGrainIT` | shared | 1 | 1 | deleted |
 | `ReplicationDrivenOverHttpIT` | shared | 4 | 1 | deleted |
 | `MetaSaysTheEnginesFactsIT` | shared | 1 | 0 | deleted |
@@ -231,8 +231,8 @@ Story class: `OneTenantInTwoPlacesIT` — exists; today shared.
 | `SYNC_SPEC_DECLARED` | — | W | `1` `theClinicDeclaresWhatItTakes` |
 | `ZONE_DECLARATIONS_AS_RECORDS` | — | W | `1` `theClinicDeclaresWhatItTakes` |
 | `SYNC_DIRECT_UPSTREAM_ONLY` | — |  | `2` `nothingUndeclaredArrives` |
-| `PROC_MIRRORED_RUNS_ARE_FILED_BY_APPLIANCE` | — |  | `4` `whatTheApplianceProducedTravelsWithItsRun` |
-| `PROC_THE_LANE_HAS_TWO_BOUNDS` | — |  | `4` `whatTheApplianceProducedTravelsWithItsRun` |
+| `PROC_MIRRORED_RUNS_ARE_FILED_BY_SOURCE` | — |  | `4` `whatTheSecondPlaceProducedTravelsWithItsRun` |
+| `PROC_THE_LANE_HAS_TWO_BOUNDS` | — |  | `4` `whatTheSecondPlaceProducedTravelsWithItsRun` |
 | `FEED_IDEMPOTENT_DELIVERY` | — |  | `5` `aReSentBatchAppliesOnce` |
 | `PROC_LANE_APPLY_IS_REPLAY_AND_REORDER_SAFE` | — |  | `5` `aReSentBatchAppliesOnce` |
 | `PROC_LANE_EPOCH` | — |  | `6` `aCursorFromAnotherLaneIsRefused` |
@@ -356,7 +356,7 @@ Story class: `TheClinicChangesVendorIT` — exists; today databases opened direc
 | `MNT_IMPORT_REFUSES_UNATTESTED` | without a world: ArchiveAttestationIT, ArchiveKindIT … |  | assert where the story passes it |
 | `POL_POLICY_REPLAY_ON_RESTORE` | without a world: PolicyIT |  | assert where the story passes it |
 
-## US-DBO-EDGE-ROUNDTRIP
+## US-DBO-WORK-ROUNDTRIP
 
 Story class: `WorkLeavesTheClinicAndComesBackIT` — exists; today shared.
 
@@ -464,8 +464,8 @@ Story class: `AnOperatorReadsAndSteersTheFleetIT`, on the world.
 | `PROC_A_NODE_ANSWERS_ITS_CATALOGUE` | — |  | `2` `aNodeSaysWhatItKnowsHowToDo` |
 | `OPS_FLEET_IS_READ_FROM_OUTSIDE` | — | W | `3` `oneProcessReadsTheWholeDeployment` |
 | `PROC_NETWORK_MAP` | — | W | `4` `theMapIsOneAnswerAcrossNodes` |
-| `PROC_PRESENCE_IS_DERIVED` | — | W | `5` `aBenchAnnouncesItselfAndPresenceIsDerived` |
-| `PROC_RUNNER_DECLARES_ITS_VITALS` | — |  | `5` `aBenchAnnouncesItselfAndPresenceIsDerived` |
+| `PROC_PRESENCE_IS_DERIVED` | — | W | `5` `aWorkerAnnouncesItselfAndPresenceIsDerived` |
+| `PROC_RUNNER_DECLARES_ITS_VITALS` | — |  | `5` `aWorkerAnnouncesItselfAndPresenceIsDerived` |
 | `PROC_A_DEPARTED_ROUTEE_IS_A_STATEMENT` | — | W | `6` `whatSitsBehindTheBench` |
 | `PROC_A_ROUTED_TREE_TRAVELS_AS_A_LANE_VERB` | — | W | `6` `whatSitsBehindTheBench` |
 | `PROC_A_TRACKABLE_MAY_ROUTE_OTHERS` | — | W | `6` `whatSitsBehindTheBench` |
@@ -569,7 +569,7 @@ Left to the end, after every story has moved (step 7). What still does not fit t
 | Class | Boots | Promises | W | Status |
 |---|---|---|---|---|
 | `ADeploymentReadsItsDeclarationsFromWhereItWasToldTest` | own — unit test over stub provisioners | 0 | 0 | later |
-| `ADriverBundleContributesAStepIT` | osgi — a bundle installed into Felix | 1 | 0 | later |
+| `ABundleContributesAStepIT` | osgi — a bundle installed into Felix | 1 | 0 | later |
 | `AHostHoldsTheWebTierAndTheRuntimeMountsOnItTest` | own — unit test over stub provisioners | 0 | 0 | later |
 | `EmbeddedContainerIT` | osgi — OSGi ratchet | 2 | 1 | later |
 | `FelixPackagingIT` | osgi — Felix packaging, no tenant | 0 | 0 | later |
@@ -652,7 +652,7 @@ when a participant that signs its asks is enrolled on the tenant, at bring-up
 or later, and Rowling Land has a substrate: St Jerome's lane is carried by it
 and Hogwarts' by HTTP, one worker holding both. The story suite took about
 ten minutes with it, as without. So `TheWorkArrivesOverTheSubstrateIT` is
-deleted: its promise is leg `33` of the edge-roundtrip story, the same bean and
+deleted: its promise is leg `33` of the round-trip story, the same bean and
 outcome over each carrier. With the world loaded, the wake-up leg also slept
 through a released run — the door coalesces nudges inside 200 ms and sends
 none after the window, so on a busy tenant the last run of a burst may go
@@ -666,7 +666,7 @@ walked on the world by `AClinicIsErasedIT`, on a clinic the story declares,
 retracts and erases, and `ATenantIsErasedIT` is deleted.
 
 **Libraries proven without a runtime.** `ARunsTrailIsChainedFromTheTaskIT`
-(the pruned trail), `AnApplianceCarriesPatientDataByWorkIT` (the appliance
+(the pruned trail), `ASecondPlaceCarriesPatientDataByWorkIT` (the second-site
 half of two places).
 
 **A second container.** `AHostHoldsALaneByInstallingABundleIT` installs the

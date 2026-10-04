@@ -868,7 +868,7 @@ class BringUpUnderStrainIT {
     @DisplayName("closing a node that is syncing says nothing about the pools it closed")
     void nothingIsSaidAboutPoolsClosedOnPurpose() throws Exception {
         String zone = "vaikne-zone";
-        String edge = "vaikne-edge";
+        String dependent = "vaikne-dependent";
         Path quietDir = Files.createTempDirectory("dbo-quiet");
         byte[] kek = new byte[32];
         new java.security.SecureRandom().nextBytes(kek);
@@ -883,16 +883,16 @@ class BringUpUnderStrainIT {
                       {"name":"CodeSystem","identity":"canonical","handling":"operational"},
                       {"name":"Observation","identity":"internal","handling":"operational"}]}"""
                     .formatted(zone));
-            Files.writeString(quietDir.resolve(edge + ".json"), """
+            Files.writeString(quietDir.resolve(dependent + ".json"), """
                     {"code":"%s","face":"r4","audit":{"level":"none"},
                      "dependencies":[{"name":"%s","types":["CodeSystem"]}],
                      "types":[
                       {"name":"CodeSystem","identity":"canonical","handling":"replicated"},
                       {"name":"Observation","identity":"internal","handling":"operational"}]}"""
-                    .formatted(edge, zone));
-            UntilServed.scan(quiet, zone, edge);
+                    .formatted(dependent, zone));
+            UntilServed.scan(quiet, zone, dependent);
 
-            // Enough for the edge to still be carrying when the close arrives:
+            // Enough for the dependent to still be carrying when the close arrives:
             // a round over an empty feed is over before anything can interrupt
             // it, and a test whose window does not exist proves nothing.
             String token = tokenFor(quiet, zone);
@@ -936,7 +936,7 @@ class BringUpUnderStrainIT {
             // which is a test that cries wolf about the very thing it exists
             // to keep quiet.
             String shutdown = said.toString(StandardCharsets.UTF_8).lines()
-                    .filter(line -> line.contains(zone) || line.contains(edge))
+                    .filter(line -> line.contains(zone) || line.contains(dependent))
                     .collect(Collectors.joining("\n"));
 
             assertFalse(shutdown.contains("has been closed"),

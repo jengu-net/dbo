@@ -65,7 +65,7 @@ class AStepServiceIsProvedWithoutAStoreTest {
     void failureIsReleasedWithItsReason() {
         ProvingLane lane = ProvingLane.offering(STEP).lane();
 
-        run(lane, work -> Outcome.failed("the analyser did not answer"));
+        run(lane, work -> Outcome.failed("the assayer did not answer"));
 
         assertEquals(ProvingLane.Ended.RELEASED, lane.ended());
         assertNotEquals(ProvingLane.Ended.CLOSED, lane.ended(),
@@ -83,7 +83,7 @@ class AStepServiceIsProvedWithoutAStoreTest {
         ProvingLane lane = ProvingLane.offering(STEP).lane();
 
         run(lane, work -> {
-            throw new IllegalStateException("the bench is unplugged");
+            throw new IllegalStateException("the service is unplugged");
         });
 
         assertEquals(ProvingLane.Ended.RELEASED, lane.ended());

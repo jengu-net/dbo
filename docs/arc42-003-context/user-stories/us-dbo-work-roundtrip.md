@@ -1,42 +1,42 @@
-# US-DBO-EDGE-ROUNDTRIP — one synchronisation service serves every tenant's devices, and reads a payload only when it has to
+# US-DBO-WORK-ROUNDTRIP — one synchronisation service serves every tenant's workers, and reads a payload only when it has to
 
-> Meristem builds laboratory software. Their analysers sit in practices
+> Meristem builds laboratory software. Their workers sit in practices
 > all over the country, and each practice is a tenant of their own
 > deployment of this store.
 >
 > They run **one** synchronisation service. It is not per tenant, and it
 > was never going to be — a service per practice is a fleet to operate
-> before it is a feature. It enrols each analyser, carries work out to it,
+> before it is a feature. It enrols each worker, carries work out to it,
 > and carries results back.
 >
 > Most of what it carries, it cannot read. A worklist arrives as an
-> manifest it routes on and a payload it never opens. When the analyser
+> manifest it routes on and a payload it never opens. When the worker
 > genuinely needs the specimen document, the store's own callback opens it
-> *there*, on the analyser, and says so back down the channel. That saying
+> *there*, at the worker, and says so back down the channel. That saying
 > is what the practice sees in its audit trail as a reading. The twenty
 > hops that carried it unopened are in the trail too — as travel, which is
 > a different thing and is what makes the reading legible.
 
 ## The scene
 
-Meristem's builder, Ines, is integrating a device fleet. She has:
+Meristem's builder, Ines, is integrating a fleet of workers. She has:
 
 - one **synchronisation service**, shared across every tenant, in its own JVM;
-- an **analyser** in each practice, bound to exactly one tenant;
+- a **worker** in each practice, bound to exactly one tenant;
 - a store that already separates tenants by giving each its own database.
 
 What she is not willing to build is a copy of the store's work model on her
 side of the wire, and what she is not allowed to build is a service that can
 read every practice's specimens because it happens to carry them.
 
-## Enrolling an analyser
+## Enrolling a worker
 
-The analyser generates its own keypair before it is ever enrolled and offers
+The worker generates its own keypair before it is ever enrolled and offers
 the public half as part of enrolling. The private half never crosses, so a
 copy of the enrolment records opens nothing.
 
-From then on the store seals payloads it sends to that analyser, and the
-analyser seals what it sends back. Ines writes none of this: the store's
+From then on the store seals payloads it sends to that worker, and the
+worker seals what it sends back. Ines writes none of this: the store's
 enrolment toolset is what exchanges the keys, and her service is the thing
 that carries the sealed bytes.
 
@@ -48,7 +48,7 @@ A run is claimed for a tenant, and what travels is two parts:
   the documents the work names. Readable, because routing is what it is for.
 - the **payload** — the documents themselves. Sealed.
 
-Ines's service reads the manifest, decides which analyser the work belongs
+Ines's service reads the manifest, decides which worker the work belongs
 to, and forwards it. **It never holds a key.** The one thing it must not be
 able to do is the one thing it structurally cannot.
 
@@ -58,16 +58,16 @@ Ines's step code holds no handle to any tenant's store, and there is nothing
 for it to hold: work arrives on the stream and results leave on it. That is
 not a restriction she has to remember — it is the only door there is.
 
-## The analyser opens what it needs
+## The worker opens what it needs
 
-The analyser's step wants the specimen document, so it asks the callback the
+The worker's step wants the specimen document, so it asks the callback the
 store put on its side of the wire. The plaintext never crosses the network:
 **the payload is opened where it was going anyway**, and what travels back is
 the fact that it happened.
 
 Two things happen together and neither is optional:
 
-1. the payload comes back readable, on the analyser;
+1. the payload comes back readable, at the worker;
 2. an access event goes home on the return channel, and is recorded against
    this participant, this run and this document.
 
@@ -110,7 +110,7 @@ already surfaces.
 
 ## And back
 
-The analyser writes its result, the payload is sealed again, and the same
+The worker writes its result, the payload is sealed again, and the same
 service carries it home. Ines watches the run close with its tally in the
 tenant's own store. Nothing about the result travelled through a database she
 operates and can read.
@@ -164,28 +164,28 @@ citations say it is.
 | `REQ-DBO-PROC-AUTOMATION-IS-DECLARED` | Whether a step is automated here is declared configuration on the same chain, as visible and as auditable as a terminology overlay — never a code path that happens to be unreachable. | PROVEN |
 | `REQ-DBO-PROC-AUTOMATION-TAKES-ONLY-WHAT-ITS-STEP-ADMITS` | A step may say when automation may take its task, as a condition over the task's inputs, and the store decides it once, when the task is authored: a task the condition does not admit is open to people alone. A condition the store cannot evaluate, or one that reads an element identifying a person — which deciding would mean unsealing — is refused when the step is declared, naming what stopped it. A step that says nothing is open to automation. | PROVEN |
 | `REQ-DBO-PROC-FALL-THROUGH-IS-COUNTABLE` | Work no executor took is open only to people and counted per step and per zone. That number is the automation backlog stated as a fact rather than an opinion. | PROVEN |
-| `REQ-DBO-PROC-A-PERSON-CLAIMS-AS-A-PRACTITIONER-ROLE` | A person takes a task with their own token, issued by the tenant's identity provider, and holds it as a PractitionerRole the tenant holds — named as what holds the task, never as a device — on a lease their checkpoints extend, as an executor's are. While they hold it the run's context answers them and nobody else, and each reading names them. Somebody with no role here, or whose work does not reach the step, is answered as for a run that never existed. | PROVEN |
+| `REQ-DBO-PROC-A-PERSON-CLAIMS-AS-A-PRACTITIONER-ROLE` | A person takes a task with their own token, issued by the tenant's identity provider, and holds it as a PractitionerRole the tenant holds — named as what holds the task, as a person and not as automation — on a lease their checkpoints extend, as an executor's are. While they hold it the run's context answers them and nobody else, and each reading names them. Somebody with no role here, or whose work does not reach the step, is answered as for a run that never existed. | PROVEN |
 | `REQ-DBO-PROC-WHO-OWES-THE-NEXT-ACT-IS-DERIVED` | Who owes a run's next act is derived from its status, its claimant and who may take it, never stored beside them: a claimed run waits for its owner, an unclaimed one open to automation for a machine and is nobody's card, one open to people alone for a person, and one that is over for nothing. Waiting for a person is one question, ready and for a person alone, asked the same of the store, across the wire and at the console. | PROVEN |
 | `REQ-DBO-PROC-MANDATORY-STEPS-CLASSIFY-INCIDENTS` | A tenant's spec declares the steps its work cannot do without. The tenant serves and its runs queue regardless — the system is asynchronous by design — and what the list decides is classification: a mandatory step nothing has contributed is an incident, named and cleared as contributions come and go, while every undeclared step's absence is no incident at all. | PROVEN |
 | `REQ-DBO-PROC-INPUTS-ARRIVE-WITH-THE-WORK` | A claimed run's inputs arrive with the work, resolved by the party that holds the objects; the runner's only read takes the run, a run the asking identity has not claimed is refused, and a run without slots delivers exactly nothing. | PROVEN |
 | `REQ-DBO-PROC-PROGRESS-NAMES-THE-MILESTONE` | A checkpoint can carry the milestone reached; the run records it replaced-never-accumulated, with its position over the declared order derived by the store rather than asserted by the executor, and it survives release and retake. A service that reports nothing behaves exactly as today. | PROVEN |
-| `REQ-DBO-PROC-A-RUN-KEEPS-STATUS-CLAIMANT-AND-ELIGIBILITY-APART` | A run keeps three facts apart, each where a FHIR Task keeps it: where it stands — ready, in progress, on hold, completed, failed or cancelled — who holds it — an executor as a Device, a person as a PractitionerRole — and who may take it next — automation as well as people, or people alone, and not before when. One word for all three could not say that released work is waiting, that a person holds it, or that it was ended rather than done. | PROVEN |
+| `REQ-DBO-PROC-A-RUN-KEEPS-STATUS-CLAIMANT-AND-ELIGIBILITY-APART` | A run keeps three facts apart, each where a FHIR Task keeps it: where it stands — ready, in progress, on hold, completed, failed or cancelled — who holds it — an executor as a FHIR Device, a person as a PractitionerRole — and who may take it next — automation as well as people, or people alone, and not before when. One word for all three could not say that released work is waiting, that a person holds it, or that it was ended rather than done. | PROVEN |
 | `REQ-DBO-PROC-RUN-NAMES-WHAT-RAN-IT` | A run records the executor, its version, its provider and the scope it was chosen at. A provider can be withdrawn and a scope re-declared, so a resolution nobody wrote down is a decision nobody can reproduce. | PROVEN |
 | `REQ-DBO-PROC-RUN-NAMES-THE-STEP-VERSION` | A run records the version of the step declaration it ran under, beside the executor's version and provider: reproducing a decision needs the definition as well as the runner. | PROVEN |
 | `REQ-DBO-PROC-RUN-TALLY-AND-ITEM-OUTCOMES` | A run over N items where K fail records one run with a tally and K item outcomes, and does not abandon the remaining N minus K. | PROVEN |
 | `REQ-DBO-PROC-REPORT-THROUGH-DECLARED-ACTIONS` | A report lands through the actions the step declares: closing needs close, reopening needs reopen, and a verb the step does not declare is refused naming both sides. A step that has not declared actions is not narrowed, and releasing is never narrowed — failure honesty must not be refusable. | PROVEN |
 | `REQ-DBO-PROC-FAILURE-IS-RELEASED` | A failing or throwing step service releases the run with the reason — never closed, never lost — back to the list: open to automation again only for a fault its step declared will pass, and to people otherwise. | PROVEN |
-| `REQ-DBO-PROC-DONE-MEANS-DONE` | A participant does not report done before the work is done. A run closes on what is reported and the store has no view below that seam, so an early report is a true-looking record of something that has not happened. A participant with durable execution underneath waits for it; a router waits for its edge; a wedged one lets the claim lapse and the run reads released. | PROVEN |
+| `REQ-DBO-PROC-DONE-MEANS-DONE` | A participant does not report done before the work is done. A run closes on what is reported and the store has no view below that seam, so an early report is a true-looking record of something that has not happened. A participant with durable execution underneath waits for it; a router waits for its routee; a wedged one lets the claim lapse and the run reads released. | PROVEN |
 | `REQ-DBO-PROC-REFUSED-IS-NOT-UNANSWERED` | A lane verb that was refused and one the store never answered are told apart on the exception, because the two want opposite recoveries: a refusal is settled and asking again is wrong, an unanswered call is transient and asking again is the only way through. A participant that confused them would back off from work it is entitled to and lose the claim it was holding when the deadline passed. | PROVEN |
 | `REQ-DBO-PROC-ESCALATION-BY-FAILURE-CLASS` | A failure goes where its step declared. A fault the step declares will pass returns the task held back, open to automation again after a delay, and counted, and past the declared attempts it goes to a person; a record fault ends the task as failed, because trying again would be refused in the same words; and any other failure returns it to the list open only to people, with the failure as its reason. A lapsed claim passes only where the step says so. So a fault nobody said would pass is seen rather than retried without end. | PROVEN |
 | `REQ-DBO-PROC-CLOSE-BY-RE-EVALUATION` | Where a condition is machine-checkable, fixing the cause closes the run on the next pass; closing by hand exists only for conditions nothing can re-check. Closing by click is how a card reads resolved while the fault is live. | PROVEN |
-| `REQ-DBO-PROC-A-RUN-NAMES-WHAT-IT-PRODUCED` | A run records the versions it produced, individually up to a cap and as a per-type high-water mark past it, and says which of the two it is. Reading runs in order then reads the content changes in order, so another appliance asks for what it is missing rather than comparing two stores. | PROVEN |
+| `REQ-DBO-PROC-A-RUN-NAMES-WHAT-IT-PRODUCED` | A run records the versions it produced, individually up to a cap and as a per-type high-water mark past it, and says which of the two it is. Reading runs in order then reads the content changes in order, so another replica asks for what it is missing rather than comparing two stores. | PROVEN |
 | `REQ-DBO-PROC-A-RUN-ANSWERS-ITS-INITIATOR` | A run answers the application that asked for it. At the run's own address, on the credential it asked with, that application reads the run as a Task: how it stands, what it was over, and what the step produced — the counts it kept and the versions it wrote. So an application that asks for work learns how the work ended without being handed a door onto the tenant's records, which the credential that asks for work deliberately does not hold. Nobody else can read that answer: another client, a credential that may not act in work, and a run that does not exist are all answered alike, as not found, because a refusal that differed from absence would tell whoever asked which runs exist. | PROVEN |
 | `REQ-DBO-PROC-A-RESULT-IS-WRITTEN-BY-THE-TENANT` | A step's result may carry records, and the tenant writes them: the participant that performed the step holds no records credential and is given none. They are written under the run, through the same path a transaction posted to the tenant takes — so the profile validates them, the identity rules hold for them and what identifies a person is sealed as for any other write — and all of one result lands or none of it does. Only the types the step's declaration says it writes are accepted. The run then names each version it produced, which is how the application that asked for the work learns which record it made. | PROVEN |
 | `REQ-DBO-PROC-A-REFUSED-RESULT-ENDS-THE-RUN` | A result the tenant refuses for what it says — a record its profile rejects, an identity it already holds, a type the step does not write — ends the run with the tenant's reason, and the application that asked reads the run as failed, with that reason. It is not handed back for another attempt, because the same result would be refused in the same words; a step that crashed or ran out of time is, because another attempt may succeed. So the asker can tell work that was done, work that was refused, and work still owed apart. | PROVEN |
 | `REQ-DBO-PROC-WORK-TRAVELS-SEALED` | Work travels in two parts. The manifest — tenant, step, the task, and references to the documents named — is readable, because routing on it is its job. The payload — the documents themselves — is sealed in the carrier form under a data key of its own, wrapped once per participant meant to open it and to nobody who merely carries it. A sealed payload is a copy in flight and not the record: the store keeps the original, and the copy is bounded by the work that caused it. | PROVEN |
 | `REQ-DBO-PROC-A-PARTICIPANT-OFFERS-ITS-KEY-AT-ENROLMENT` | A participant generates its keypair before it is enrolled and offers the public half as part of enrolling; the private half never crosses. Payload data keys are wrapped to that key, so what a participant may open is decided by what it holds rather than by what it is told. | PROVEN |
-| `REQ-DBO-PROC-THE-ROUTER-HOLDS-THE-CLAIM` | The thing that can reach the store is the participant, and it holds the claim. An instrument behind a router is routed because it cannot reach the lane, so the router claims, forwards, waits and reports — holding a claim on work it cannot read — while the instrument holds the key and does the work. Participant versus routee is a fact about the attachment, not the device. | PROVEN |
+| `REQ-DBO-PROC-THE-ROUTER-HOLDS-THE-CLAIM` | The thing that can reach the store is the participant, and it holds the claim. A routee behind a router is routed because it cannot reach the lane, so the router claims, forwards, waits and reports — holding a claim on work it cannot read — while the routee holds the key and does the work. Participant versus routee is a fact about the attachment, not about what it is. | PROVEN |
 | `REQ-DBO-PROC-RUN-ENVELOPE-DISCLOSES-STATE-NOT-SUBJECT` | A run's envelope carries its status, who may take it, its step and its counts — never item references or messages. The envelope is a disclosure surface, and progress must not name what was being processed. | PROVEN |
 | `REQ-DBO-PROC-CORRELATION-TRAVELS-OPAQUE` | A correlation carried from another system is echoed and never interpreted, so a cross-system join is queryable from either side without that system's vocabulary entering the engine. | PROVEN |
 | `REQ-DBO-PROC-TRACE-RIDES-THE-LANE` | A run carries the trace context it was given, across the participation lane and down to the runs it causes, so work claimed in one process and performed in another is one chain. It is carried and never minted, and never a metric dimension. | PROVEN |
@@ -229,5 +229,5 @@ whole so the next gap has somewhere to be visible.
   enrolled with. That buys non-forgery and non-repudiation. It does not stop
   an intended recipient from opening a payload and never saying so, and the
   story does not pretend otherwise: the data was legitimately theirs, and
-  the gap is an audit entry for an authorised read on a device the tenant
-  answers for.
+  the gap is an audit entry for an authorised read by a participant the
+  tenant answers for.

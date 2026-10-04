@@ -28,13 +28,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 class AVerbIsDispatchedTheSameWhateverCarriesItTest {
 
-    private static final String SIGNED_BY = "signed-by-the-bench";
+    private static final String SIGNED_BY = "signed-by-the-worker";
 
     private final List<String> built = new ArrayList<>();
 
     private final LaneVerbService verbs = new LaneVerbService(
             authorization -> "Bearer good".equals(authorization)
-                    ? new Access.Grant("bench", Lane.Entitlement.ofSteps("lab.result.verify"),
+                    ? new Access.Grant("worker", Lane.Entitlement.ofSteps("lab.result.verify"),
                             false)
                     : new Access.Denied(401, "Bearer", "invalid token"),
             (participant, signed, signature) -> SIGNED_BY.equals(signature)
@@ -48,15 +48,15 @@ class AVerbIsDispatchedTheSameWhateverCarriesItTest {
             + "bounded by the same credential")
     @Proving(DboPromises.PROC_A_HOST_HOLDS_A_LANE_WHEREVER_IT_IS)
     void bothWaysOfBeingKnownReachTheSameLane() {
-        LaneVerbService.Answer byToken = verbs.serve("Bearer good", LaneVerbs.POLL, poll("bench"));
-        LaneVerbService.Answer bySignature = verbs.serveSigned("bench",
+        LaneVerbService.Answer byToken = verbs.serve("Bearer good", LaneVerbs.POLL, poll("worker"));
+        LaneVerbService.Answer bySignature = verbs.serveSigned("worker",
                 "the ask's bytes".getBytes(StandardCharsets.UTF_8), SIGNED_BY,
-                LaneVerbs.POLL, poll("bench"));
+                LaneVerbs.POLL, poll("worker"));
 
         assertTrue(byToken instanceof LaneVerbService.Answer.Ok, "by token: " + byToken);
         assertTrue(bySignature instanceof LaneVerbService.Answer.Ok,
                 "by signature: " + bySignature);
-        assertEquals(List.of("bench work=[lab.result.verify]", "bench work=[lab.result.verify]"),
+        assertEquals(List.of("worker work=[lab.result.verify]", "worker work=[lab.result.verify]"),
                 built, "the two callers were not given the same lane");
     }
 
@@ -65,12 +65,12 @@ class AVerbIsDispatchedTheSameWhateverCarriesItTest {
             + "bounded caller asking to work as somebody else is refused")
     @Proving(DboPromises.PROC_A_HOST_HOLDS_A_LANE_WHEREVER_IT_IS)
     void theStoreDecidesWhoIsAsking() {
-        LaneVerbService.Answer forged = verbs.serveSigned("bench",
+        LaneVerbService.Answer forged = verbs.serveSigned("worker",
                 "the ask's bytes".getBytes(StandardCharsets.UTF_8), "somebody else's",
-                LaneVerbs.POLL, poll("bench"));
-        LaneVerbService.Answer unknown = verbs.serve("Bearer bad", LaneVerbs.POLL, poll("bench"));
+                LaneVerbs.POLL, poll("worker"));
+        LaneVerbService.Answer unknown = verbs.serve("Bearer bad", LaneVerbs.POLL, poll("worker"));
         LaneVerbService.Answer asAnother = verbs.serve("Bearer good", LaneVerbs.POLL,
-                poll("another-bench"));
+                poll("another-worker"));
 
         assertEquals(401, ((LaneVerbService.Answer.Denied) forged).status());
         assertEquals(401, ((LaneVerbService.Answer.Denied) unknown).status());
@@ -82,7 +82,7 @@ class AVerbIsDispatchedTheSameWhateverCarriesItTest {
         Map<String, Object> body = new LinkedHashMap<>();
         body.put(LaneVerbs.PARTICIPANT, executor);
         body.put(LaneVerbs.IDENTITY, RecordWire.encode(
-                new Executor(executor, "1", "example.bench", Scope.BASELINE)));
+                new Executor(executor, "1", "example.worker", Scope.BASELINE)));
         body.put(LaneVerbs.STEPS, List.of("verify"));
         body.put(LaneVerbs.LIMIT, 10);
         return body;

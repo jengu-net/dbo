@@ -224,7 +224,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
      *
      * <p>On the first tenant that asks for it rather than on every root that
      * comes up. A deployment serving one face has no use for images of the
-     * others, and an edge node may never want one at all — so the cost is
+     * others, and a worker node may never want one at all — so the cost is
      * paid where the benefit is, by the tenant that is about to save fifty
      * seconds by not reading the same face through a chain.
      *
@@ -335,7 +335,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
      *
      * <p>Held here as well as handed to the tenant's runs, so an in-JVM host
      * embedding this store can subscribe to the same seam its own lanes are
-     * driven by — the appliance shape, where the store and the runner share a
+     * driven by — the embedded shape, where the store and the runner share a
      * process and there is no substrate between them.
      */
     private final Map<String, cloud.jengu.dbo.runner.InProcessWakeups> wakeups =
@@ -1188,7 +1188,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
      * How to be told that one of a tenant's runs became claimable.
      *
      * <p>For a host that embeds this store in its own JVM and builds its own
-     * lanes — the appliance shape, where there is no substrate between the
+     * lanes — the embedded shape, where there is no substrate between the
      * store and the runner and so nothing to carry a wake-up. It hands what
      * comes back to {@code Lane.inProcess}, and its runner stops waiting out
      * its tick.
@@ -3512,8 +3512,8 @@ public final class TenantRuntimeManager implements AutoCloseable {
                                 // the participants may ask what is behind
                                 // them. Named here like the rest rather than
                                 // implied by the participation scope, which
-                                // covers what a bench does and not what
-                                // anybody may ask about every bench.
+                                // covers what a worker does and not what
+                                // anybody may ask about every worker.
                                 cloud.jengu.dbo.auth.Scopes.FLEET));
             }
             if (db.rpClientSecret() != null) {
@@ -3792,7 +3792,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
             // activities now, with those same conditions said out loud as
             // selectors, and they run at the surfaces point below.
             // The participation surface: where a host that is NOT the
-            // container obtains a lane. An appliance running dbo in-JVM builds
+            // container obtains a lane. A worker running dbo in-JVM builds
             // its own over its own store and never comes here; a cloud, whose
             // dbo is a separate deployment precisely so the application holds
             // no CREATE DATABASE, has no Runs to build one from and is at the
@@ -4012,7 +4012,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
                             new cloud.jengu.dbo.work.Runs(runtime.engine()), fleetPath));
             fleetContexts.put(spec.code(), fleetPath);
             // The replication surface: the same asymmetry one layer up.
-            // Declarations flow cloud → appliance, so the cloud is the side
+            // Declarations flow cloud → replica, so the cloud is the side
             // that must PRODUCE outbound batches, and it is the side that
             // cannot hold a Lanes — pull-not-push does not move that, because
             // whoever pulls, the cloud still builds the batch.

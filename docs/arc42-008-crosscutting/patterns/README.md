@@ -124,8 +124,8 @@ before it can be.</p>
   facts are declared once for everyone inside it, and a tenant may narrow but
   never widen.
 - [**One Declared Set, Applied**](pattern-one-declared-set-applied.md) — one
-  declared configuration, applied as a run to a new tenant, an old one and an
-  appliance alike.
+  declared configuration, applied as a run to a new tenant, an old one and a
+  second site alike.
 - [**Status Is a Lifecycle, Not a List**](pattern-status-is-a-lifecycle-not-a-list.md)
   — the tenant worth knowing about is the one missing from the list of served
   tenants, so the whole lifecycle is modelled.

@@ -43,7 +43,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class AnApplicationMayOwnTheContainerTest {
 
     /** The application's own bundle, which the store must leave where it found it. */
-    private static final String THE_APPLICATIONS = "example.application.driver";
+    private static final String THE_APPLICATIONS = "example.application.worker";
 
     private Framework framework;
     private EmbeddedRuntime runtime;

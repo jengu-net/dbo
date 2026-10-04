@@ -605,8 +605,8 @@ public final class Runs {
      * <p>The same conditional write an executor's claim is, on the same
      * lease, so two people opening one task produce one holder — and a person
      * is no more entitled to hold it twice than a process is. What differs is
-     * what the run then says holds it: a role the tenant holds, never a
-     * device, because a person is not one.
+     * what the run then says holds it: a role the tenant holds, never an
+     * executor, because a person is not one.
      *
      * <p>A person may take any open run. Whether automation may also take it
      * is a question about automation, and the switch that stops new automatic
@@ -1049,7 +1049,7 @@ public final class Runs {
                 .filter(run -> run.assignment() != null && run.assignment().until() != null
                         && !run.assignment().until().isAfter(now))
                 // A deadline is judged where the run lives. A mirror's
-                // deadline is the other appliance's to notice, and this side's
+                // deadline is the other replica's to notice, and this side's
                 // clock reading it would release work whose checkpoint is
                 // merely still in flight.
                 .filter(run -> !WorkModel.authoredElsewhere(run.key()))
@@ -1305,7 +1305,7 @@ public final class Runs {
      * The trace context this work travels under, carried and never read
      * (REQ-DBO-PROC-TRACE-RIDES-THE-LANE).
      *
-     * <p>A run claimed here and performed on an appliance is one causal chain
+     * <p>A run claimed here and performed by a worker elsewhere is one causal chain
      * living in two processes, and nothing else can join it: the far end is a
      * process this store does not run, so no workflow engine can supply the
      * link and no counter can show it.
@@ -1517,7 +1517,7 @@ public final class Runs {
     }
 
     /**
-     * A run this appliance is advancing must be this appliance's own.
+     * A run this replica is advancing must be this replica's own.
      *
      * <p>A mirror is a read-only account of somebody else's
      * work. Across two stores with a lagging lane, "the deadline passed" and
@@ -1526,7 +1526,7 @@ public final class Runs {
      * is the only side that advances it, and a deadline is judged only where
      * the run lives.
      *
-     * <p>The consequence is accepted rather than hidden: an appliance that
+     * <p>The consequence is accepted rather than hidden: a replica that
      * dies holding work it authored keeps that work until it returns. Moving
      * it is an operator's deliberate act, not something a clock infers from a
      * lane that is merely behind.
@@ -1537,10 +1537,10 @@ public final class Runs {
         }
     }
 
-    /** A run belonging to another appliance, and the act that was refused. */
+    /** A run belonging to another replica, and the act that was refused. */
     public static final class NotOurs extends IllegalStateException {
         public NotOurs(String key, String what) {
-            super("run '" + key + "' was authored by another appliance — it may be read "
+            super("run '" + key + "' was authored by another replica — it may be read "
                     + "here and not " + what + "; the side that authored it is the side "
                     + "that advances it");
         }
@@ -1593,7 +1593,7 @@ public final class Runs {
             // nowhere and would collide with a real mirror on arrival. Refused
             // where it is cheap, rather than discovered on a lane.
             throw new IllegalArgumentException("'" + WorkModel.AUTHOR_SEPARATOR
-                    + "' separates an appliance from a run's key and cannot appear in one: "
+                    + "' separates a replica from a run's key and cannot appear in one: "
                     + state.key());
         }
         PutResult result = store.putIfAbsent(IdentityRef.identifier(WorkModel.KEY_SYSTEM,
@@ -1606,8 +1606,8 @@ public final class Runs {
      * How many times an advance re-reads and tries again before it gives up.
      *
      * <p>Small on purpose. A conflict here is two writers meeting, not a queue:
-     * the appliance that authored a run is the only one that advances it, so
-     * the other writer is a sweep of this appliance's own or a lane delivering
+     * the replica that authored a run is the only one that advances it, so
+     * the other writer is a sweep of this replica's own or a lane delivering
      * a mirrored version, and either resolves in the next read. A number large
      * enough to outlast real contention would be large enough to hold a
      * request open while something else is wrong.

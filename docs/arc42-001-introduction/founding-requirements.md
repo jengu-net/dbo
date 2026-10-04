@@ -30,7 +30,7 @@ implementation), because:
 - **Embeddability**: in development and test, the FHIR container boots *inside the
   same JVM* as the host application with no significant dependency conflicts —
   the only surface visible to the host is Felix + the OSGi API. This mirrors a
-  pattern already proven in production device runtimes: in-JVM Felix containers
+  pattern already proven in production OSGi runtimes: in-JVM Felix containers
   in tests.
 - The core stays framework-free as plain Java APIs; OSGi bundles are the packaging
   and wiring layer, thin adapters may exist for host frameworks.

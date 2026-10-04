@@ -91,7 +91,7 @@ class AStepSaysWhenAutomationMayTakeItTest {
 
     private Run started(String interpretation) throws Exception {
         HttpResponse<String> answered = client.send(HttpRequest.newBuilder(URI.create(base + STEP))
-                        .header("Authorization", "Bearer bench")
+                        .header("Authorization", "Bearer worker")
                         .POST(HttpRequest.BodyPublishers.ofString("""
                                 {"inputs":{"result":{"resourceType":"Observation",
                                  "status":"final","code":{"text":"potassium"},

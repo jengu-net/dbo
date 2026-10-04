@@ -8,13 +8,13 @@ package cloud.jengu.dbo.core.api;
  * run, this step was not granted, this action the step never declared — and
  * the right response is to stop asking. A store that did not answer is
  * transient, and the right response is to ask again. Treating the second as
- * the first is the failure worth naming: a bench quietly stops taking work it
+ * the first is the failure worth naming: a worker quietly stops taking work it
  * is entitled to, and nobody notices until a queue is not moving.
  *
- * <p>The cost is worse than a stalled bench. A participant that backs off
+ * <p>The cost is worse than a stalled worker. A participant that backs off
  * while holding a claim keeps holding it only until the deadline, and then
  * the tenant's own housekeeping releases the run and somebody else takes it —
- * so a brief outage misread as a refusal does not merely pause one bench, it
+ * so a brief outage misread as a refusal does not merely pause one worker, it
  * moves work that was never in trouble.
  *
  * <p><b>Retry is safe, by construction rather than by luck.</b> A caller

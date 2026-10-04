@@ -56,7 +56,7 @@ primary identity class**:
 | Class | Identity is | Typical of |
 |---|---|---|
 | **Canonical** | a canonical url | definitions: code systems, value sets, shape and process definitions |
-| **Identifier** | designated `{system, value}` identifiers, in trust order | things with real-world identity: a person, an organisation, a device, an order |
+| **Identifier** | designated `{system, value}` identifiers, in trust order | things with real-world identity: a person, an organisation, a location, an order |
 | **Internal** | the store-assigned id, and nothing else | records with no business identity: observations of something, provenance, by-products |
 
 Where a type is logically identified but the standard gives it no field, a

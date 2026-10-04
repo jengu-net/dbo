@@ -86,7 +86,7 @@ final class R5Version {
      *
      * <p>Stripped after the parse rather than before it, which lowers what is
      * HELD and not what is touched: the 515MB is still reached while the
-     * package is being read. That peak is the one an appliance-sized heap
+     * package is being read. That peak is the one a small node's heap
      * notices, and removing it means never parsing the div at all — the
      * byte-level treatment the element face already gives its carried packages.
      */

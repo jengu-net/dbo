@@ -287,7 +287,7 @@ public final class AuditProjection implements AuditSurface {
         // shape. What the domain said travels whole, in the face's words,
         // opaque to everything between here and the face that renders it.
         // The dedup key rides with the rest: WHICH event this is, in the face's
-        // reading of the document. An appliance forwards at-least-once, and
+        // reading of the document. A site forwards at-least-once, and
         // this is where that becomes effectively-once.
         Recorder.Entry entry = recorder.recordForwarded(posted.code(), posted.targetType(),
                 posted.targetId(), Map.of(), posted.contributed(), posted.dedupKey());

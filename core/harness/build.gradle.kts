@@ -462,7 +462,7 @@ tasks.withType<Test>().configureEach {
             project(":core:$module").tasks.named<Jar>("jar").get().archiveFile.get().asFile.absolutePath,
         )
     }
-    // The driver bundle for the whiteboard proof. Staged like any other
+    // The step bundle for the whiteboard proof. Staged like any other
     // bundle the container tests install, and deliberately NOT in the runtime
     // module set: nothing in the distribution imports it, and a probe that
     // shipped would be a step service registered on every deployment.

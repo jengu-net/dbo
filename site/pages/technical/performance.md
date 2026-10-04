@@ -16,7 +16,7 @@ store's numbers are the other kind.
 ## Measured on the hardware it is meant to run on
 
 A Raspberry Pi 5 with NVMe, booted from a USB stick into Alpine, running plain
-PostgreSQL and a plain JVM. No container runtime, because the edge does not
+PostgreSQL and a plain JVM. No container runtime, because a single-site deployment does not
 have one and a container layer is one more thing between the measurement and
 the truth.
 

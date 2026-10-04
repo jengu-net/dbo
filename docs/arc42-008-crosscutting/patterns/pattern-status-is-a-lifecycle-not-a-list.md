@@ -17,7 +17,7 @@ one that is not in the list.**
 Operating a system that serves many tenants, and watching it through the thing
 it naturally tells you: which tenants it is currently serving.
 
-That list is correct and it is the wrong instrument. A tenant that was
+That list is correct and it is the wrong thing to watch. A tenant that was
 declared and never came up is not in it. A tenant that stopped is not in it.
 The list is a list of things that are fine.
 

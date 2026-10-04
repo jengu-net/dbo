@@ -243,9 +243,9 @@ Absent rather than hidden, and each for a reason:
   decision as content.
 - **Presence** — whether a participant is answering is derived from how far it
   has read. A `Task` never claims its owner is alive.
-- **What sits behind a connector** — instruments and appliances reported by
-  whatever can reach them. The engine records them; a version that spells
-  connected things as a resource may project them, and this face does not yet.
+- **What sits behind a router** — the routees reported by whatever can reach
+  them. The engine records them as participants and nothing more; what they
+  are is the consumer's to record, through work.
 - **Cursors, planes and pod assignment** — operational machinery with no
   clinical meaning.
 

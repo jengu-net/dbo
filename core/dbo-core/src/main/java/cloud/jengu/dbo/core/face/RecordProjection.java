@@ -139,9 +139,9 @@ public interface RecordProjection {
          * The stable id the poster gave this record, or null if it gave none
          *.
          *
-         * <p>An appliance forwards its audit at-least-once, and the receiving
+         * <p>A site forwards its audit at-least-once, and the receiving
          * side makes that effectively-once by writing each event under the id
-         * the appliance generated. Which element of a posted document carries
+         * the site generated. Which element of a posted document carries
          * that id is the face's knowledge and nobody else's — R4 gives
          * {@code AuditEvent} no {@code identifier} element, so the id travels
          * in {@code meta.tag}, and an engine that knew that would have learned

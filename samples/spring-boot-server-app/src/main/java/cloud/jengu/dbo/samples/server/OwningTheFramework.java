@@ -18,7 +18,7 @@ import java.util.ServiceLoader;
 /**
  * The clinic's own OSGi framework, which the store installs into.
  *
- * <p>The clinic ships a driver for its ward thermometers as a bundle, and a
+ * <p>The clinic ships its ward-observation step as a bundle, and a
  * bundle performing a step belongs in the same class space as the runner that
  * offers it work. So when {@code clinic.framework.owned} is set, the
  * application creates the one framework itself, with the properties the store
@@ -47,8 +47,8 @@ public class OwningTheFramework {
                 .orElseThrow().newFramework(properties);
         framework.start();
 
-        try (InputStream driver = getClass().getResourceAsStream("/bundles/ward-thermometer.jar")) {
-            framework.getBundleContext().installBundle("clinic:ward-thermometer", driver).start();
+        try (InputStream bundle = getClass().getResourceAsStream("/bundles/ward-bundle.jar")) {
+            framework.getBundleContext().installBundle("clinic:ward-bundle", bundle).start();
         }
         return framework;
     }

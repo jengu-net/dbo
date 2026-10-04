@@ -11,7 +11,7 @@ package cloud.jengu.dbo.runner;
  *
  * <p><b>No orchestrator is named here</b>, per the contract line the
  * catalogue draws: durability of {@code perform}'s own half-finished work is
- * the implementor's choice — a DBOS workflow on a server, nothing on an edge,
+ * the implementor's choice — a DBOS workflow on a server, nothing on a worker,
  * a person at a screen behind a UI. The runner owns the global truth either
  * way: what is owed, by whom, and what happened.
  */
@@ -69,8 +69,8 @@ public interface StepService {
      * nobody looks for work the store says is finished. A service with
      * durable execution underneath waits for its workflow rather than
      * returning its handle; a service that forwards the work — a router,
-     * holding the claim on behalf of an edge that cannot reach the lane —
-     * waits for what it forwarded to. A wedged workflow or a silent edge
+     * holding the claim on behalf of a routee that cannot reach the lane —
+     * waits for what it forwarded to. A wedged workflow or a silent routee
      * then blocks here, the claim lapses, and the run reads <i>released</i>:
      * visibly still owed, which is the outcome the design wants
      * (REQ-DBO-PROC-DONE-MEANS-DONE, REQ-DBO-PROC-THE-ROUTER-HOLDS-THE-CLAIM).

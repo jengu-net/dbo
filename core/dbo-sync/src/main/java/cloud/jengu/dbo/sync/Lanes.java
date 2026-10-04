@@ -24,7 +24,7 @@ import java.util.Optional;
 import java.util.Set;
 
 /**
- * Moving work and the data it names between two appliances of one tenant
+ * Moving work and the data it names between two sites of one tenant
  *.
  *
  * <p><b>There is no channel here, and that is the design.</b> This hands a
@@ -33,7 +33,7 @@ import java.util.Set;
  * outwards, and the first channel-aware method here would be the one that ends
  * with a transport inside the engine.
  *
- * <p><b>Two appliances, one tenant.</b> Same code, same declarations, so a lane
+ * <p><b>Two sites, one tenant.</b> Same code, same declarations, so a lane
  * is same-version replication: no converter chain, and the stored bytes travel
  * as they are.
  *
@@ -59,7 +59,7 @@ import java.util.Set;
 public final class Lanes {
 
     /**
-     * Where the far side's copy of a run is kept: under the appliance that
+     * Where the far side's copy of a run is kept: under the site that
      * authored it. The convention itself is the run's ({@link
      * WorkModel#AUTHOR_SEPARATOR}), because the rules built on it are.
      */
@@ -76,16 +76,16 @@ public final class Lanes {
     private final ChangeFeed contentFeed;
     private final Set<String> admitted;
     private final Runs runs;
-    private final String appliance;
+    private final String site;
     private final cloud.jengu.dbo.core.api.AuditReplay auditReplay;
 
     /**
-     * @param appliance this appliance's own name. It is not the tenant's — the
-     *                  tenant is the same on both sides — and it is what a
-     *                  mirrored record is filed under.
+     * @param site this site's own name. It is not the tenant's — the
+     *             tenant is the same on both sides — and it is what a
+     *             mirrored record is filed under.
      */
-    public Lanes(ObjectStore store, ChangeFeed workFeed, Runs runs, String appliance) {
-        this(store, workFeed, runs, appliance, null);
+    public Lanes(ObjectStore store, ChangeFeed workFeed, Runs runs, String site) {
+        this(store, workFeed, runs, site, null);
     }
 
     /**
@@ -108,16 +108,16 @@ public final class Lanes {
      * @param auditReplay the admitted path, or null on a lane that carries no
      *                    trail
      */
-    public Lanes(ObjectStore store, ChangeFeed workFeed, Runs runs, String appliance,
+    public Lanes(ObjectStore store, ChangeFeed workFeed, Runs runs, String site,
             cloud.jengu.dbo.core.api.AuditReplay auditReplay) {
-        this(store, workFeed, runs, appliance, auditReplay, null, Set.of());
+        this(store, workFeed, runs, site, auditReplay, null, Set.of());
     }
 
     /**
      * The same, with the lane's second bound: a content feed to carry
      * declarations from by type, and the types this lane admits by type at
      * all. What is not admitted does not travel and is refused by name when
-     * asked for — a consumer's own promise that a bench holds no register of
+     * asked for — a consumer's own promise that a site holds no register of
      * people rests on that refusal.
      */
     /**
@@ -128,14 +128,14 @@ public final class Lanes {
      * set on one feed and an observation on the other. The bound is over what
      * was declared, so it has to be over both.
      */
-    public Lanes(ObjectStore store, ChangeFeed workFeed, Runs runs, String appliance,
+    public Lanes(ObjectStore store, ChangeFeed workFeed, Runs runs, String site,
             cloud.jengu.dbo.core.api.AuditReplay auditReplay, ChangeFeed recordFeed,
             ChangeFeed definitionsFeed, Set<String> admitted) {
-        this(store, workFeed, runs, appliance, auditReplay,
+        this(store, workFeed, runs, site, auditReplay,
                 new BothFeeds(recordFeed, definitionsFeed), admitted);
     }
 
-    public Lanes(ObjectStore store, ChangeFeed workFeed, Runs runs, String appliance,
+    public Lanes(ObjectStore store, ChangeFeed workFeed, Runs runs, String site,
             cloud.jengu.dbo.core.api.AuditReplay auditReplay, ChangeFeed contentFeed,
             Set<String> admitted) {
         this.store = store;
@@ -143,7 +143,7 @@ public final class Lanes {
         this.contentFeed = contentFeed;
         this.admitted = Set.copyOf(admitted);
         this.runs = runs;
-        this.appliance = appliance;
+        this.site = site;
         this.auditReplay = auditReplay;
     }
 
@@ -163,8 +163,8 @@ public final class Lanes {
      * @param recordedAt when the <b>source</b> recorded this version, carried
      *                   so the far side can replay it rather than restamp it.
      *                   A version's timestamp is evidence about when somebody
-     *                   knew something, and an appliance that wrote the
-     *                   arrival time would be saying the edge learned it when
+     *                   knew something, and a site that wrote the
+     *                   arrival time would be saying it learned it when
      *                   the cloud heard about it — which is false for ordinary
      *                   content and, for an audit entry, is the whole of what
      *                   the entry was for.
@@ -229,8 +229,8 @@ public final class Lanes {
     /**
      * The lane with this peer, minting an epoch if this is the first time.
      *
-     * <p>A cursor is meaningless outside the lane instance that issued it: an
-     * appliance restored from a backup resumes a position that no longer means
+     * <p>A cursor is meaningless outside the lane instance that issued it: a
+     * site restored from a backup resumes a position that no longer means
      * anything, and it looks perfectly healthy doing it. The epoch is what makes
      * that detectable — the same reason a tenant archive refuses to carry
      * delivery cursors at all.
@@ -239,7 +239,7 @@ public final class Lanes {
         return read(peer).orElseGet(() -> write(new Lane(peer, peer, UuidV7.newId(), null, null)));
     }
 
-    /** What this appliance has told the far side, and what it heard back. */
+    /** What this site has told the far side, and what it heard back. */
     public Optional<Lane> lane(String peer) {
         return read(peer);
     }
@@ -265,7 +265,7 @@ public final class Lanes {
      * <p><b>Data before work</b>, so the far side never applies a run pointing
      * at something it has not got. <b>Bounded by what an item names</b> and
      * never by following references as far as they go — Patient → Encounter →
-     * Observation → everything is how a bench ends up holding a register.
+     * Observation → everything is how a site ends up holding a register.
      */
     public Batch outbound(String peer, int limit, Set<String> processes) {
         return outbound(peer, limit, processes, Set.of());
@@ -284,12 +284,12 @@ public final class Lanes {
     public Batch outbound(String peer, int limit, Set<String> processes, Set<String> types) {
         for (String type : types) {
             if (!admitted.contains(type)) {
-                throw new IllegalStateException(appliance + ": this lane does not carry '" + type
+                throw new IllegalStateException(site + ": this lane does not carry '" + type
                         + "' by type; it admits " + new java.util.TreeSet<>(admitted));
             }
         }
         if (!types.isEmpty() && contentFeed == null) {
-            throw new IllegalStateException(appliance
+            throw new IllegalStateException(site
                     + ": this lane has no content feed to carry declarations from");
         }
         Lane lane = open(peer);
@@ -303,16 +303,16 @@ public final class Lanes {
             }
             Optional<Run> run = runs.byId(event.objectId());
             if (run.isEmpty() || !processes.contains(run.get().process())) {
-                // The lane declares which processes travel. An appliance's own
+                // The lane declares which processes travel. A site's own
                 // housekeeping is not the other side's business, and mirroring
-                // it would put an edge's account of its own bring-up into the
+                // it would put one site's account of its own bring-up into the
                 // cloud's.
                 continue;
             }
             if (WorkModel.authoredElsewhere(run.get().key())) {
-                // An appliance offers only what it authored. A mirror
+                // A site offers only what it authored. A mirror
                 // sent back is a NEW record at the far side — filed under this
-                // appliance, prefixed again — so a pair that echoed would
+                // site, prefixed again — so a pair that echoed would
                 // deepen a key and add a run every round, for ever. The same
                 // rule the trail already obeys: what arrived from elsewhere
                 // does not go back out.
@@ -357,7 +357,7 @@ public final class Lanes {
         // the run it was part of, and a trail arriving before the run it joins
         // to would be readable only in hindsight.
         items.addAll(trail(travelling));
-        return new Batch(lane.epoch(), appliance, chunk.nextCursor(), List.copyOf(items),
+        return new Batch(lane.epoch(), site, chunk.nextCursor(), List.copyOf(items),
                 contentCursor);
     }
 
@@ -401,12 +401,12 @@ public final class Lanes {
      * <p><b>Bounded by the work, like everything else on this lane.</b> An
      * entry joins to the run it was part of, so "the trail of what travelled"
      * is a query rather than a second mechanism — and the cloud gets the
-     * edge's account of the work it is being told about, not the edge's whole
+     * site's account of the work it is being told about, not the site's whole
      * history.
      *
      * <p>Entries that arrived here from somewhere else do not go back out.
-     * They carry the appliance that recorded them, and without that exclusion
-     * two appliances would hand each other the same entry forever, each
+     * They carry the site that recorded them, and without that exclusion
+     * two sites would hand each other the same entry forever, each
      * finding it new-to-the-other by a claim it had never made.
      */
     private List<Item> trail(List<String> travelling) {
@@ -467,8 +467,8 @@ public final class Lanes {
      * not put the older version back. The comparison is the source version, so
      * neither property depends on the connector being careful.
      *
-     * <p><b>Runs land under the appliance that authored them.</b> Two
-     * appliances running the same task write the same run key, and without the
+     * <p><b>Runs land under the site that authored them.</b> Two
+     * sites running the same task write the same run key, and without the
      * namespace the second arrival silently replaces the first — which is
      * exactly the comparison this exists to make possible.
      */
@@ -492,7 +492,7 @@ public final class Lanes {
                     // The trail goes through the one admitted path, and
                     // is never placed: what arrived for a piece of work leaves
                     // when that work closes, and an account of what happened
-                    // is the one thing that must not. A bench's history is not
+                    // is the one thing that must not. A site's history is not
                     // a working copy.
                     written = admit(batch.from(), item);
                 } else {
@@ -501,7 +501,7 @@ public final class Lanes {
                 }
                 if (!item.work() && !item.copy() && !AUDIT.equals(item.typeName())) {
                     // Note what brought it, so what arrives with work can leave
-                    // with it. Without this the appliance cannot tell a copy
+                    // with it. Without this the site cannot tell a copy
                     // from something of its own, and keeps everything.
                     place(batch, item);
                 }
@@ -523,7 +523,7 @@ public final class Lanes {
     }
 
     /**
-     * An entry another appliance recorded, through the refusal's one admission.
+     * An entry another site recorded, through the refusal's one admission.
      *
      * <p>Loud when the port is absent rather than dropped: a lane wired
      * without it would converge on everything except the account of what
@@ -541,9 +541,9 @@ public final class Lanes {
 
     /**
      * A copy from the far side: written under its source's authority, byte
-     * for byte, and noted as a copy from that appliance so nothing revokes
-     * it and the note answers why this appliance holds it. A record this
-     * appliance authored itself stands in front of it — the local override
+     * for byte, and noted as a copy from that site so nothing revokes
+     * it and the note answers why this site holds it. A record this
+     * site authored itself stands in front of it — the local override
      * wins, as it does for a streamed copy — and the copy is skipped.
      */
     private boolean copy(String from, Item item) {
@@ -573,7 +573,7 @@ public final class Lanes {
         return true;
     }
 
-    /** Whether this appliance holds the record as a copy from another, and from which. */
+    /** Whether this site holds the record as a copy from another, and from which. */
     public Optional<String> copiedFrom(String typeName, String id) {
         String reference = typeName + "/" + id;
         for (StoredObject stored : store.select(Criteria.of(PlacementModel.TYPE))) {
@@ -597,7 +597,7 @@ public final class Lanes {
         return true;
     }
 
-    /** A run from the other appliance, filed under it. */
+    /** A run from the other site, filed under it. */
     private boolean mirror(String from, Item item) {
         Object json = Json.parse(new String(item.payload(), StandardCharsets.UTF_8));
         String key = Json.str(json, "key");
@@ -627,13 +627,13 @@ public final class Lanes {
      * Removes what arrived for work that is over.
      *
      * <p>A record stays while any work that brought it is still open, and goes
-     * when the last of them closes — so a bench holds the people it is treating
+     * when the last of them closes — so a site holds the people it is treating
      * and stops holding them afterwards, which is a sentence that can be said
      * to a regulator.
      *
      * <p>Revocation is local. The far side does not send withdrawals: this
-     * appliance holds the runs and can see for itself which are closed, and a
-     * withdrawal that had to arrive would leave a bench holding a register
+     * site holds the runs and can see for itself which are closed, and a
+     * withdrawal that had to arrive would leave a site holding a register
      * every time the link was down.
      */
     public Revoked revoke() {

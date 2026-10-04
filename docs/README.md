@@ -49,7 +49,7 @@ Structured per [arc42](https://arc42.org/).
   terminology — an honest answer or a refusal, never an approximation),
   [change, and who is listening](arc42-008-crosscutting/change-and-who-is-listening/README.md)
   (§6, §10 — one feed primitive behind paging, subscriptions, dependent copies
-  and appliance sync),
+  and replica sync),
   [processes and work](arc42-008-crosscutting/processes-and-work/README.md) (§8),
   including [the durable layer](arc42-008-crosscutting/processes-and-work/the-durable-layer.md)
   (what the store asks of the one block it did not write, and what it

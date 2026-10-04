@@ -14,7 +14,7 @@ import java.util.Set;
 /**
  * How work reaches whoever does it, and how they say what happened.
  *
- * <p>A run says who may take it; this is how a taker — a service, an edge, a
+ * <p>A run says who may take it; this is how a taker — a service, a worker, a
  * hospital's own system, a person at a screen — <b>gets</b> it. Without it
  * every place that does work needs a bespoke integration, and a tenant is a
  * store with no hands.
@@ -27,7 +27,7 @@ import java.util.Set;
  * <p><b>Pull, never push.</b> The store never opens a connection outwards —
  * work crosses a boundary as a declaration something else comes and takes,
  * never as a call the store makes — and participants are precisely the things
- * behind NAT, on edges, and offline for a weekend. Pulling makes an
+ * behind NAT, on remote sites, and offline for a weekend. Pulling makes an
  * offline participant a lagging cursor rather than an outage.
  *
  * <p><b>You scale by adding claimants, never by relaxing the claim.</b> Two

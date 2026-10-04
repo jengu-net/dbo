@@ -8,7 +8,7 @@ brought up again: it names its driver by string, Hikari finds no registered
 driver of that name from the thread it is rebuilt on and instantiates one
 directly, and the subscription engine on that pool can no longer unwrap. The
 warning is still there, from those listeners only. The class whose run showed
-it, `TheWorkArrivesOverTheSubstrateIT`, is folded into the edge round-trip
+it, `TheWorkArrivesOverTheSubstrateIT`, is folded into the round-trip
 story, so the crossing is next measured on whichever run brings a tenant up a
 second time.**
 
@@ -32,7 +32,7 @@ runs — hundreds of times in one run of one test.
 A probe at the two places DBOS is handed a DataSource, printing the class it
 asks for, the class the connection actually is, and the loader of each. In one
 run of `TheWorkArrivesOverTheSubstrateIT`, an application test since folded
-into the edge round-trip story:
+into the round-trip story:
 
 | | the class `StreamDoor`/`StreamLane` is | the `PGConnection` it asks for | the connection it gets |
 |---|---|---|---|

@@ -37,7 +37,7 @@ public class DboWorkerAutoConfiguration {
      *
      * <p>The two durations are framework properties rather than constructor
      * arguments because the runner reads them through the container, which is
-     * where a driver bundle would set them too. An embedding is not a special
+     * where a step bundle would set them too. An embedding is not a special
      * mode.
      *
      * <p><b>Booted as the bean is created, not on a lifecycle.</b> Anything

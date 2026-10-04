@@ -33,7 +33,7 @@ class AHeartbeatIsAVerbOfTheLaneTest {
 
     private static final Map<String, Object> STATISTICS = Map.of(
             "dbo.runner", Map.of("lab.result.verify", Map.of("performed", 12L, "failed", 1L)),
-            "example.bench", Map.of("behind", List.of(
+            "example.worker", Map.of("behind", List.of(
                     Map.of("id", "line-1", "queued", 3L),
                     Map.of("id", "line-2", "queued", 0L))));
 
@@ -68,13 +68,13 @@ class AHeartbeatIsAVerbOfTheLaneTest {
         com.sun.net.httpserver.HttpServer server =
                 com.sun.net.httpserver.HttpServer.create(new InetSocketAddress(0), 0);
         server.createContext("/work", new LaneHandler("/work",
-                authorization -> new Access.Grant("bench",
+                authorization -> new Access.Grant("worker",
                         Lane.Entitlement.everything(), true),
                 (participant, identity, entitlement) -> farSide));
         server.start();
         Runtime.getRuntime().addShutdownHook(new Thread(() -> server.stop(0)));
         return HttpLane.to(URI.create("http://localhost:" + server.getAddress().getPort()
-                + "/work"), () -> "anything", "hospital", "bench", identity());
+                + "/work"), () -> "anything", "hospital", "worker", identity());
     }
 
     /** A lane that keeps each heartbeat's statistics, or refuses with the reason given. */
@@ -96,6 +96,6 @@ class AHeartbeatIsAVerbOfTheLaneTest {
     }
 
     private static Executor identity() {
-        return new Executor("bench", "1", "example.bench", Scope.BASELINE);
+        return new Executor("worker", "1", "example.worker", Scope.BASELINE);
     }
 }

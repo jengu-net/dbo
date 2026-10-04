@@ -431,7 +431,7 @@ public final class PolicyObjectStore implements ObjectStore,
      * The same, effectively-once when the caller says which event this is
      *.
      *
-     * <p>An appliance forwards its audit at-least-once, because a transport
+     * <p>A site forwards its audit at-least-once, because a transport
      * that guarantees less loses events and one that guarantees more does not
      * exist. The receiving side is what makes the delivery effectively-once,
      * and it does it by writing under the id the forwarder generated: the
@@ -469,7 +469,7 @@ public final class PolicyObjectStore implements ObjectStore,
     }
 
     /**
-     * Replays an entry another appliance recorded, and audits nothing
+     * Replays an entry another site recorded, and audits nothing
      * for having done so.
      *
      * <p>The admitted path the refusal names. It goes to {@code inner} the
@@ -480,9 +480,9 @@ public final class PolicyObjectStore implements ObjectStore,
      * argument for a version to overwrite.
      */
     @Override
-    public boolean replayAuditEntry(String sourceAppliance, String sourceEntryId,
+    public boolean replayAuditEntry(String source, String sourceEntryId,
             long sourceVersion, byte[] payload, java.time.Instant recordedAt) {
-        String claim = sourceAppliance + "/" + sourceEntryId;
+        String claim = source + "/" + sourceEntryId;
         // putIfAbsent, not put: a lane delivers at least once and the claim is
         // what makes the second delivery find the first. A replayed
         // entry is also never updated — appending is the only thing that
@@ -494,7 +494,7 @@ public final class PolicyObjectStore implements ObjectStore,
                 // version it is replaying, and one without the other would
                 // quietly become the arrival time again.
                 new PutRequest("AuditEntry", null, null,
-                        AuditModel.recordedElsewhere(payload, sourceAppliance, claim),
+                        AuditModel.recordedElsewhere(payload, source, claim),
                         sourceVersion, recordedAt, true));
         return result.created();
     }
@@ -507,7 +507,7 @@ public final class PolicyObjectStore implements ObjectStore,
             // reinvents beside it.
             throw new PolicyViolationException(
                     "the audit trail is written by the machinery — contribute via the audit "
-                            + "recorder, or replay another appliance's entry through "
+                            + "recorder, or replay another site's entry through "
                             + "AuditReplay.replayAuditEntry");
         }
     }

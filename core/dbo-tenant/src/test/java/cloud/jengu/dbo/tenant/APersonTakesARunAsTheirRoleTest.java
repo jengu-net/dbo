@@ -100,7 +100,7 @@ class APersonTakesARunAsTheirRoleTest {
 
     @Test
     @DisplayName("a nurse takes a waiting run as the role they hold, reads what it was given, "
-            + "and ends it; the run names the role and no device")
+            + "and ends it; the run names the role and no executor")
     @Proving(DboPromises.PROC_A_PERSON_CLAIMS_AS_A_PRACTITIONER_ROLE)
     void aNurseTakesReadsAndEndsARun() throws Exception {
         Run run = started(null);
@@ -110,7 +110,7 @@ class APersonTakesARunAsTheirRoleTest {
         Run holding = runs.byId(run.id()).orElseThrow();
         assertEquals(Status.IN_PROGRESS, holding.status());
         assertEquals("PractitionerRole/nurse-1", holding.assignment().role());
-        assertNull(holding.assignment().executor(), "a device was named on a person's run");
+        assertNull(holding.assignment().executor(), "an executor was named on a person's run");
         assertEquals(200, get(run, "/fhir/" + PATIENT, "hermione").statusCode());
         assertEquals(200, send(base + run.id() + "/checkpoint", "POST", "hermione").statusCode());
         assertEquals(200, send(base + run.id() + "/done", "POST", "hermione").statusCode());

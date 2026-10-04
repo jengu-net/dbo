@@ -401,7 +401,7 @@ final class ElementPayloads implements Payloads<Element> {
      * and dropped -- the old behaviour, which is the right thing to degrade to.
      *
      * <p><b>Softly held, because the cap is per tenant and the JVM is not.</b>
-     * One appliance serving one tenant pays for a handful of validators; a
+     * One small node serving one tenant pays for a handful of validators; a
      * process holding fifty tenants pays fifty times that, and the pool would
      * be choosing to keep a cache while the work that needs the memory fails.
      * A soft reference inverts it -- the collector takes them back before it

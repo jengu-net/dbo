@@ -67,7 +67,7 @@ class TheAskerCollectsWhatItsRunProducedTest {
     private static final String GIVEN = "Patient/0190a000-0000-7000-8000-00000000a001";
     private static final String WRITTEN = "Patient/0190a000-0000-7000-8000-00000000a002";
     private static final String ASKER = "the-clinic";
-    private static final String BENCH = "bench";
+    private static final String WORKER = "worker";
     private static final String STRANGER = "another-clinic";
     private static final Duration COLLECT = Duration.ofMinutes(15);
 
@@ -189,11 +189,11 @@ class TheAskerCollectsWhatItsRunProducedTest {
         assertEquals(404, during.statusCode());
         assertEquals(never(GIVEN, ASKER).body(), during.body(),
                 "the asker was told, while the work was being done, that its run exists");
-        assertEquals(200, get(run, "/fhir/" + GIVEN, BENCH).statusCode(),
+        assertEquals(200, get(run, "/fhir/" + GIVEN, WORKER).statusCode(),
                 "the performer lost its context");
 
         Run answered = runs.closed(run, List.of(WRITTEN + "/1"));
-        assertEquals(404, get(answered, "/fhir/" + GIVEN, BENCH).statusCode(),
+        assertEquals(404, get(answered, "/fhir/" + GIVEN, WORKER).statusCode(),
                 "the performer kept a context after its work was over");
         assertEquals(200, get(answered, "/fhir/" + GIVEN, ASKER).statusCode());
     }
@@ -208,7 +208,7 @@ class TheAskerCollectsWhatItsRunProducedTest {
         HttpResponse<String> stranger = get(run, "/fhir/" + WRITTEN + "/_history/1", STRANGER);
         assertEquals(404, stranger.statusCode());
         assertEquals(never(WRITTEN + "/_history/1", STRANGER).body(), stranger.body());
-        assertEquals(404, get(run, "/fhir/" + GIVEN, BENCH).statusCode(),
+        assertEquals(404, get(run, "/fhir/" + GIVEN, WORKER).statusCode(),
                 "the performer reads on after the work is over");
         assertEquals(never(GIVEN, STRANGER).body(), done(run, STRANGER).body());
         assertEquals(200, get(run, "/fhir/" + GIVEN, ASKER).statusCode(),
@@ -295,8 +295,8 @@ class TheAskerCollectsWhatItsRunProducedTest {
     }
 
     private Run claimed(Run run) {
-        return runs.claim(run, new Executor(BENCH, "1", "example.bench", Scope.BASELINE),
-                Instant.now().plus(Duration.ofMinutes(5)), BENCH).orElseThrow();
+        return runs.claim(run, new Executor(WORKER, "1", "example.worker", Scope.BASELINE),
+                Instant.now().plus(Duration.ofMinutes(5)), WORKER).orElseThrow();
     }
 
     private Run answered(TenantSpec.Step step) {

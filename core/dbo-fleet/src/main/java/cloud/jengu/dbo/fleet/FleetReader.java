@@ -138,7 +138,7 @@ public final class FleetReader {
      * identity and an entitlement and posts the same verb a participant
      * posts; every rule about the act — that the credential covers the step,
      * that the step declares the action, that the run belongs to this
-     * appliance — is the store's and is met on the way in. What comes back is
+     * site — is the store's and is met on the way in. What comes back is
      * the tenant's own refusal or its assent.
      *
      * <p>Only the run's key travels. The reader holds envelopes, not runs,
@@ -181,7 +181,7 @@ public final class FleetReader {
             } catch (RuntimeException refused) {
                 // The tenant's own words. A refusal here is settled — the
                 // credential does not cover the step, the step declares no
-                // reopening, the run is another appliance's — and telling an
+                // reopening, the run is another site's — and telling an
                 // operator which is the whole value of asking.
                 return new Acted(node.name(), Reading.Outcome.REFUSED,
                         String.valueOf(refused.getMessage()));

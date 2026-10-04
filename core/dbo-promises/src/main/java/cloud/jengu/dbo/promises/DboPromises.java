@@ -188,7 +188,8 @@ public enum DboPromises implements Promise {
     PROC_A_PERSON_CLAIMS_AS_A_PRACTITIONER_ROLE(
             "A person takes a task with their own token, issued by the tenant's identity "
             + "provider, and holds it as a PractitionerRole the tenant holds — named as what "
-            + "holds the task, never as a device — on a lease their checkpoints extend, as an "
+            + "holds the task, as a person and not as automation — on a lease their checkpoints "
+            + "extend, as an "
             + "executor's are. While they hold it the run's context answers them and nobody "
             + "else, and each reading names them. Somebody with no role here, or whose work "
             + "does not reach the step, is answered as for a run that never existed."),
@@ -480,8 +481,9 @@ public enum DboPromises implements Promise {
 
     PROC_A_RUN_KEEPS_STATUS_CLAIMANT_AND_ELIGIBILITY_APART("A run keeps three facts "
             + "apart, each where a FHIR Task keeps it: where it stands — ready, in progress, on "
-            + "hold, completed, failed or cancelled — who holds it — an executor as a Device, a "
-            + "person as a PractitionerRole — and who may take it next — automation as well as "
+            + "hold, completed, failed or cancelled — who holds it — an executor as a FHIR "
+            + "Device, a person as a PractitionerRole — and who may take it next — automation "
+            + "as well as "
             + "people, or people alone, and not before when. One word for all three could not "
             + "say that released work is waiting, that a person holds it, or that it was ended "
             + "rather than done."),
@@ -667,7 +669,7 @@ public enum DboPromises implements Promise {
             + "property depends on the transport being careful."),
 
     PROC_LANE_EPOCH("A lane carries an epoch, and a peer resuming a cursor issued by "
-            + "another lane instance is refused rather than replayed — an appliance "
+            + "another lane instance is refused rather than replayed — a replica "
             + "restored from a copy looks healthy while resuming a position that no "
             + "longer means anything."),
 
@@ -707,16 +709,16 @@ public enum DboPromises implements Promise {
             + "decided by what it holds rather than by what it is told."),
     PROC_THE_ROUTER_HOLDS_THE_CLAIM(
             "The thing that can reach the store is the participant, and it holds the "
-            + "claim. An instrument behind a router is routed because it cannot reach the "
+            + "claim. A routee behind a router is routed because it cannot reach the "
             + "lane, so the router claims, forwards, waits and reports — holding a claim on "
-            + "work it cannot read — while the instrument holds the key and does the work. "
-            + "Participant versus routee is a fact about the attachment, not the device."),
+            + "work it cannot read — while the routee holds the key and does the work. "
+            + "Participant versus routee is a fact about the attachment, not about what it is."),
     PROC_DONE_MEANS_DONE(
             "A participant does not report done before the work is done. A run closes on "
             + "what is reported and the store has no view below that seam, so an early "
             + "report is a true-looking record of something that has not happened. A "
             + "participant with durable execution underneath waits for it; a router waits "
-            + "for its edge; a wedged one lets the claim lapse and the run reads released."),
+            + "for its routee; a wedged one lets the claim lapse and the run reads released."),
     /**
      * The type described a decision nobody could make: a record for it, a
      * resolution rule that honoured it, and nothing that could write one.
@@ -1019,7 +1021,7 @@ public enum DboPromises implements Promise {
             + "tenant nobody can reach that way holds no door on the substrate, and one enrolled "
             + "later is served through a door opened for it."),
     PROC_THE_LANE_HAS_TWO_BOUNDS(
-            "What moves between two appliances of one tenant has two bounds, deliberately "
+            "What moves between two replicas of one tenant has two bounds, deliberately "
             + "different: declarations by type — the tenant's own definitions, none of it "
             + "about anybody — which travel as every version of the types asked for since "
             + "the peer's position, filed under their source, read-only there, shadowed by a "
@@ -1027,20 +1029,20 @@ public enum DboPromises implements Promise {
             + "arrives with a task and leaves with it. What a run produced travels with the "
             + "run as a copy that outlives it. A type the lane does not admit is refused by "
             + "name, never quietly left out."),
-    PROC_WORK_DRIVEN_ARRIVAL_AND_EXPIRY("A record travels to an appliance because a "
+    PROC_WORK_DRIVEN_ARRIVAL_AND_EXPIRY("A record travels to a replica because a "
             + "piece of work names it, and is removed when no open run there still "
-            + "names it. Work-driven arrival without work-driven expiry is a bench "
+            + "names it. Work-driven arrival without work-driven expiry is a replica "
             + "accumulating a register one task at a time."),
 
-    PROC_AUDIT_REPLICATES_AS_RECORDED("An appliance's audit entries reach its peer as "
-            + "that appliance recorded them — original actor, original time, and the "
-            + "appliance named — and the arrival writes no second trail. Direct writes to "
+    PROC_AUDIT_REPLICATES_AS_RECORDED("A replica's audit entries reach its peer as "
+            + "that replica recorded them — original actor, original time, and the "
+            + "replica named — and the arrival writes no second trail. Direct writes to "
             + "the audit type stay refused for every caller; the replication lane is "
             + "admitted through one narrow port that can express no other write, and a "
             + "re-delivered entry lands exactly once under the source's own identity."),
 
-    PROC_MIRRORED_RUNS_ARE_FILED_BY_APPLIANCE("A run arriving from another appliance "
-            + "of the same tenant is stored under that appliance, beside the local run "
+    PROC_MIRRORED_RUNS_ARE_FILED_BY_SOURCE("A run arriving from another replica "
+            + "of the same tenant is stored under that replica, beside the local run "
             + "of the same key rather than on top of it."),
 
     PROC_CONTENT_CHANGES_INSIDE_WORK("A type may declare that every change to it "
@@ -1052,7 +1054,7 @@ public enum DboPromises implements Promise {
     PROC_A_RUN_NAMES_WHAT_IT_PRODUCED("A run records the versions it produced, "
             + "individually up to a cap and as a per-type high-water mark past it, and "
             + "says which of the two it is. Reading runs in order then reads the "
-            + "content changes in order, so another appliance asks for what it is "
+            + "content changes in order, so another replica asks for what it is "
             + "missing rather than comparing two stores."),
 
     PDI_ERASURE_IS_A_RUN("A person's erasure is asked for as work and answered by a run: the "
@@ -1520,7 +1522,7 @@ public enum DboPromises implements Promise {
             + "the tenant's own cached key set — no per-request dependency on any other "
             + "service."),
     AUTH_CREDENTIAL_FACTORS_BY_KIND(
-            "A local credential holds factors named by kind (RFC 8176 `amr`): a bench "
+            "A local credential holds factors named by kind (RFC 8176 `amr`): a "
             + "PIN, a password and a passkey are different kinds, setting one leaves the "
             + "others alone, and a kind is never a field named after the first case."),
     AUTH_PASSWORD_ONLY_WHERE_WE_ARE_THE_IDP(
@@ -1531,7 +1533,7 @@ public enum DboPromises implements Promise {
             + "refused at every door that could set one, naming where they sign in "
             + "instead rather than answering no, and a password they already held is "
             + "retired with a stamp saying when and why: one surviving federation would "
-            + "be a second way in that never reaches the identity provider. A bench PIN "
+            + "be a second way in that never reaches the identity provider. A PIN "
             + "is untouched, before and after — it serves the case federation cannot, "
             + "and taking it away would remove the fallback for the situation the rule "
             + "was written around."),
@@ -2225,7 +2227,7 @@ public enum DboPromises implements Promise {
     // ── FEED — migrated from hand-written prose (2026-08-27) ──
 
     FEED_ONE_PRIMITIVE(
-            "Pagination, subscription delivery, content streams and edge sync are all "
+            "Pagination, subscription delivery, content streams and replica sync are all "
             + "the same primitive: an ordered, replayable sequence with an opaque durable "
             + "cursor."),
     FEED_KEYSET_CURSORS(

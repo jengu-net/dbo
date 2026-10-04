@@ -434,15 +434,15 @@ public final class Asking implements Questions {
         }
 
         /**
-         * Which appliance it happened on.
+         * Which site it happened on.
          *
          * <p>Only a replicated entry carries one: an entry this store wrote
-         * happened here. An operator asking "on which bench" of a cloud
-         * holding four appliances' trails cannot answer it from the actor.
+         * happened here. An operator asking "on which site" of a cloud
+         * holding four sites' trails cannot answer it from the actor.
          */
-        public Trail at(String appliance) {
+        public Trail at(String site) {
             return also("at", criteria ->
-                    criteria.eq("appliance", EnvelopeValue.of(appliance)));
+                    criteria.eq("appliance", EnvelopeValue.of(site)));
         }
 
         /** Since when, which is half of every question asked of a trail. */

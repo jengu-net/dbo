@@ -23,7 +23,7 @@ knows about, can count, and can report on.
 HTTP, and it is what a participant outside the deployment holds. It is not
 managed at the manager level and does not appear on the unified stream. That is
 not a lesser form — it is how another organisation's system participates, how a
-tenant's own appliance does, and how a laboratory performs a step for a tenant
+tenant's own second site does, and how a laboratory performs a step for a tenant
 it does not run. The two levels answer different questions and both stay.
 
 So the two catalogues [the contract](README.md) already describes become two
@@ -126,7 +126,7 @@ queue is prepared for it anywhere.
 
 **That works because its consumers are already remote.** A participant
 performing a tenant-level step reaches the tenant over HTTP and asks for work;
-it is a party outside the deployment, or a tenant's own appliance, and it was
+it is a party outside the deployment, or a tenant's own second site, and it was
 polling a door anyway. The machinery the unified stream exists to remove — one
 subscription per tenant for a step defined once across all of them — is not a
 cost it ever paid, because the step is defined in one tenant and performed for
@@ -191,7 +191,7 @@ runs to tidy up its own configuration.
 **The substrate it leaves behind is removed by a person.** Not by the sweep
 that reconciles declarations, and not on a timer: it is rare, it is
 irreversible, and until it is drained it holds work. That is the same judgement
-this store makes about moving work away from an appliance that cannot be
+this store makes about moving work away from a site that cannot be
 reached — a deliberate act by somebody, rather than something a clock infers.
 
 **And it touches no tenant.** A step's substrate is the runtime's own; what it

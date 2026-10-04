@@ -14,7 +14,7 @@ whether it can reach the places that do the work.**
 
 ## You are
 
-Distributing work to places you do not control. An instrument in a laboratory.
+Distributing work to places you do not control. A service in a laboratory.
 A handheld at a border. A supplier's own system, run by a company that is a
 competitor of the next supplier along. Some sit behind a router with no public
 address. Some are switched off from Friday evening. Some belong to
@@ -43,8 +43,8 @@ How does work reach a participant you cannot call?
 <p class="diagram-caption">The three places differ in every way except the one
 that matters: none of them can be called, and none of them needs to be.</p>
 
-Being unreachable stops being a failure mode and becomes an ordinary state. An
-appliance that spent the weekend offline is not behind in a way anybody has to
+Being unreachable stops being a failure mode and becomes an ordinary state. A
+participant that spent the weekend offline is not behind in a way anybody has to
 handle; it asks on Monday and takes what is waiting. An organisation that
 never opens anything inbound participates on the same terms as one that does.
 

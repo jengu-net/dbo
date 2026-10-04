@@ -1,4 +1,4 @@
-# The ward thermometer's driver
+# The ward's bundle
 
 An OSGi bundle of the clinic's own: it registers a `StepService` for
 `hogwarts.ward.observe`, a step Hogwarts declares, and nothing else. It
@@ -13,5 +13,5 @@ which is where the store is installed too. The stories ask Hogwarts for the
 step and read back the bundle's own id in what the run counted.
 
 ```
-./gradlew :samples:ward-thermometer:jar
+./gradlew :samples:ward-bundle:jar
 ```

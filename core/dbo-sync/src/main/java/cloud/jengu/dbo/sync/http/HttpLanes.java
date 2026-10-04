@@ -25,7 +25,7 @@ import java.util.function.Supplier;
  * epochs, mirroring, ordering and idempotence are decided in one place and
  * this side stays a transport.
  *
- * <p><b>One client serves both shapes.</b> An appliance running dbo in its own
+ * <p><b>One client serves both shapes.</b> A site running dbo in its own
  * JVM could construct {@code Lanes} directly, and does not need to: it already
  * reaches its own store over this surface for everything else, and a connector
  * written once for both ends is worth more than one round trip saved on one of

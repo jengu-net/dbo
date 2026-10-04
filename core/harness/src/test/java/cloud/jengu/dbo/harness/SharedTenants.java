@@ -161,7 +161,7 @@ public final class SharedTenants {
                 [{"name":"CodeSystem","identity":"canonical","handling":"operational"},
                  {"name":"ValueSet","identity":"canonical","handling":"operational"},
                  {"name":"Device","identity":"identifier","systems":["%s"],
-                  "handling":"projected-config"}]""".formatted(BENCHES), "r4", "", "none"),
+                  "handling":"projected-config"}]""".formatted(PROJECTED), "r4", "", "none"),
 
 
         /** r4 as a national zone publishing canonical content, for the clinic below. */
@@ -357,7 +357,7 @@ public final class SharedTenants {
     public static final String LOGINS = "https://shared.test/login";
 
     /** What the zone shape's projected type is keyed by. */
-    public static final String BENCHES = "https://shared.test/benches";
+    public static final String PROJECTED = "https://shared.test/projected";
 
     /** What an identity provider keys the people it provisions by. */
     public static final String STAFF_IDS = "urn:shared.test:idp:external-id";

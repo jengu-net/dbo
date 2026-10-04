@@ -31,8 +31,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  *
  * <p>A package exported without a version is exported at <b>0.0.0</b>, which is
  * in no stated range — and bnd computes a range for every consumer by default,
- * so most of them state one. Unversioned, this bundle cannot wire to a driver
- * SPI that names the HAPI it compiled against, and the arrangement where the
+ * so most of them state one. Unversioned, this bundle cannot wire to an SPI
+ * that names the HAPI it compiled against, and the arrangement where the
  * store owns the FHIR classes does not come up at all.
  *
  * <p>Both halves are asserted, because only one of them is a happy path: a
@@ -129,7 +129,7 @@ class TheStackSatisfiesAStatedRangeIT {
         onThisHapi.start();
 
         assertEquals(Bundle.ACTIVE, onThisHapi.getState(),
-                "the driver SPI that names the HAPI it compiled against is the case this "
+                "an SPI that names the HAPI it compiled against is the case this "
                         + "exists for");
     }
 

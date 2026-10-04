@@ -13,7 +13,7 @@ public enum LanesVerbs {
 
     /** The lane with a peer, minting an epoch the first time. */
     OPEN("open"),
-    /** What this appliance has told the peer, and what it heard back. */
+    /** What this site has told the peer, and what it heard back. */
     LANE("lane"),
     /** Records where the far side said it had reached. */
     MARK("mark"),

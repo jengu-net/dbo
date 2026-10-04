@@ -14,13 +14,13 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * A lane between two appliances of one tenant, as a record.
+ * A lane between two sites of one tenant, as a record.
  *
  * <p>What it holds is the pair of facts neither side can hold alone: the
  * <b>epoch</b> this lane is running under, and the <b>marker</b> the far side
  * last said it had reached. A record rather than a table because both are
  * things an operator asks about, and because a lane surviving a backup is how
- * a restored appliance is caught: its epoch will not match the live one.
+ * a restored site is caught: its epoch will not match the live one.
  */
 public final class LaneModel {
 

@@ -30,7 +30,7 @@ class AutomationTakesOnlyWhatItMayTest {
 
     private final WorkInMemory held = new WorkInMemory();
     private final Runs runs = new Runs(held.store());
-    private final Executor bench = new Executor("bench", "1", "example.bench", Scope.BASELINE);
+    private final Executor worker = new Executor("worker", "1", "example.worker", Scope.BASELINE);
 
     @Test
     @DisplayName("a run open to people alone is offered to no automation, and a claim on it "
@@ -40,14 +40,14 @@ class AutomationTakesOnlyWhatItMayTest {
         Run run = runs.pipeline(PROCESS, STEP);
         Run forPeople = runs.forPeople(run, "it needs somebody");
 
-        List<Run> offered = new Participation(runs, held.feed(), "bench", Set.of(STEP), bench)
+        List<Run> offered = new Participation(runs, held.feed(), "worker", Set.of(STEP), worker)
                 .poll(50);
 
         assertTrue(offered.stream().noneMatch(one -> one.key().equals(run.key())),
                 "automation was offered a run open to people alone: " + offered);
         boolean refused;
         try {
-            refused = runs.claim(forPeople, bench, Instant.now().plus(Duration.ofMinutes(5)))
+            refused = runs.claim(forPeople, worker, Instant.now().plus(Duration.ofMinutes(5)))
                     .isEmpty();
         } catch (IllegalStateException closed) {
             refused = true;
@@ -57,6 +57,6 @@ class AutomationTakesOnlyWhatItMayTest {
         assertEquals(Status.READY, after.status(), "the run is no longer waiting: " + after);
         assertFalse(after.automation());
         assertNull(after.assignment() == null ? null : after.assignment().executor(),
-                "a device was named on a run open to people alone");
+                "an executor was named on a run open to people alone");
     }
 }

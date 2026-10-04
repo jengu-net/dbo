@@ -122,8 +122,8 @@ public interface Questions {
         /** One kind of act. */
         Trail of(String interaction);
 
-        /** Which appliance it happened on. */
-        Trail at(String appliance);
+        /** Which site it happened on. */
+        Trail at(String site);
 
         /** Since when. */
         Trail since(Instant when);

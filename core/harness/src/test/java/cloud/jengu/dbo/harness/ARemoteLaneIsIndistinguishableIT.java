@@ -48,7 +48,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * beside it.
  *
  * <p>The participation doctrine's load-bearing claim is that the same runner
- * embeds in the cloud, on an edge, or in a pod — the lane being the only door
+ * embeds in a server, on a second site, or in a pod — the lane being the only door
  * either way. Everything proving it so far ran in one object graph, where a
  * verb could quietly depend on something a wire could not carry and nothing
  * would notice.
@@ -383,7 +383,7 @@ class ARemoteLaneIsIndistinguishableIT {
                 @Override
                 public Outcome perform(Work handed) {
                     handed.progress().milestone("parsed", Map.of("read", 9L));
-                    throw new IllegalStateException("the analyser stopped answering");
+                    throw new IllegalStateException("the assayer stopped answering");
                 }
             });
             runner.attach(relay);

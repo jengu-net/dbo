@@ -2993,7 +2993,7 @@ cloud.jengu.dbo.promises.DboPromises                                   PROC_LANE
 cloud.jengu.dbo.promises.DboPromises                                   PROC_LANE_IS_A_TENANT_SERVICE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_MANDATORY_STEPS_CLASSIFY_INCIDENTS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_MILESTONES_ARE_DECLARED:cloud.jengu.dbo.promises.DboPromises
-cloud.jengu.dbo.promises.DboPromises                                   PROC_MIRRORED_RUNS_ARE_FILED_BY_APPLIANCE:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   PROC_MIRRORED_RUNS_ARE_FILED_BY_SOURCE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_NETWORK_MAP:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_NUMBERS_LEAVE_AS_LABELS_NEVER_AS_TEXT:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_ONE_BEAN_PERFORMS_FOR_EVERY_TENANT:cloud.jengu.dbo.promises.DboPromises
@@ -3190,7 +3190,6 @@ cloud.jengu.dbo.promises.DboStories                                    A_TENANT_
 cloud.jengu.dbo.promises.DboStories                                    BRING_UP_UNDER_STRAIN:cloud.jengu.dbo.promises.DboStories
 cloud.jengu.dbo.promises.DboStories                                    BUILT_OR_PLANNED:cloud.jengu.dbo.promises.DboStories
 cloud.jengu.dbo.promises.DboStories                                    CLINICAL_RECORD:cloud.jengu.dbo.promises.DboStories
-cloud.jengu.dbo.promises.DboStories                                    EDGE_ROUNDTRIP:cloud.jengu.dbo.promises.DboStories
 cloud.jengu.dbo.promises.DboStories                                    FLEET_HEALTH:cloud.jengu.dbo.promises.DboStories
 cloud.jengu.dbo.promises.DboStories                                    FLEET_STEP:cloud.jengu.dbo.promises.DboStories
 cloud.jengu.dbo.promises.DboStories                                    ON_THE_STREAM:cloud.jengu.dbo.promises.DboStories
@@ -3200,6 +3199,7 @@ cloud.jengu.dbo.promises.DboStories                                    TENANT_OP
 cloud.jengu.dbo.promises.DboStories                                    TWO_PLACES:cloud.jengu.dbo.promises.DboStories
 cloud.jengu.dbo.promises.DboStories                                    VENDOR_CHANGE:cloud.jengu.dbo.promises.DboStories
 cloud.jengu.dbo.promises.DboStories                                    VERSION_MEASURED:cloud.jengu.dbo.promises.DboStories
+cloud.jengu.dbo.promises.DboStories                                    WORK_ROUNDTRIP:cloud.jengu.dbo.promises.DboStories
 cloud.jengu.dbo.promises.DboStories                                    enum
 cloud.jengu.dbo.promises.DboStories                                    promises():List
 cloud.jengu.dbo.promises.DboStories                                    title():String

@@ -57,7 +57,7 @@ class ARunContextIsItsPerformersTest {
     private static final String PATIENT = "Patient/0190a000-0000-7000-8000-00000000a001";
     private static final String PORTER = "porter";
     private static final String STRANGER = "another-porter";
-    private static final String BENCH = "bench";
+    private static final String WORKER = "worker";
 
     private final InMemory held = new InMemory();
     private final Runs runs = new Runs(held.store());
@@ -129,13 +129,13 @@ class ARunContextIsItsPerformersTest {
     @Proving(DboPromises.PROC_A_RUN_CONTEXT_IS_ITS_PERFORMERS)
     void aClaimMovesTheContextToTheClaimant() throws Exception {
         Run run = started(PORTER);
-        runs.claim(run, new Executor(BENCH, "1", "example.bench", Scope.BASELINE),
-                Instant.now().plus(Duration.ofMinutes(5)), BENCH).orElseThrow();
+        runs.claim(run, new Executor(WORKER, "1", "example.worker", Scope.BASELINE),
+                Instant.now().plus(Duration.ofMinutes(5)), WORKER).orElseThrow();
 
-        assertEquals(200, get(run, "/fhir/" + PATIENT, BENCH).statusCode());
+        assertEquals(200, get(run, "/fhir/" + PATIENT, WORKER).statusCode());
         assertEquals(404, get(run, "/fhir/" + PATIENT, PORTER).statusCode());
         assertEquals(404, done(run, PORTER).statusCode());
-        assertEquals(200, done(run, BENCH).statusCode());
+        assertEquals(200, done(run, WORKER).statusCode());
     }
 
     @Test

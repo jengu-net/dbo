@@ -25,7 +25,7 @@ class APersonTakesWorkAsAPersonTest {
             Scope.BASELINE);
 
     @Test
-    @DisplayName("a person opening a run at a workplace holds it as a person, and no device is "
+    @DisplayName("a person opening a run at a workplace holds it as a person, and no executor is "
             + "named as what holds it")
     @Proving(DboPromises.PROC_A_RUN_KEEPS_STATUS_CLAIMANT_AND_ELIGIBILITY_APART)
     void aPersonOpeningARunHoldsItAsAPerson() {
@@ -41,7 +41,8 @@ class APersonTakesWorkAsAPersonTest {
         assertEquals(Awaits.OWNER, taken.awaits(java.time.Instant.now()),
                 "a person's claim left the run waiting for somebody else");
         assertTrue(taken.heldByAPerson(), "a person's claim made the run automation's");
-        assertNull(taken.assignment().executor(), "a device was named as holding a person's run");
+        assertNull(taken.assignment().executor(),
+                "an executor was named as holding a person's run");
         assertEquals("PractitionerRole/nurse", taken.assignment().role());
         assertEquals(Status.IN_PROGRESS, taken.status());
     }

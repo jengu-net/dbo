@@ -105,7 +105,7 @@ draws.
 
 It changes the serving distribution's manifests, so the distribution is what
 says whether it was safe: `EmbeddedContainerIT`, `TenantOsgiIT`,
-`ADriverBundleContributesAStepIT`, `AHostHoldsALaneByInstallingABundleIT` and
+`ABundleContributesAStepIT`, `AHostHoldsALaneByInstallingABundleIT` and
 `ServerDistIT` all pass against it unchanged.
 
 ### The fourteenth: `dbo-tenant`, and why it is now two packages
@@ -159,8 +159,8 @@ Three things, and each was learnt from a failure rather than reasoned out:
 
 ## A framework the application owns
 
-An application whose own bundles belong in the store's class space — a device
-driver registering a `StepService` is the standing case — creates the one
+An application whose own bundles belong in the store's class space — a bundle
+registering a `StepService` is the standing case — creates the one
 framework itself and hands it over:
 `new EmbeddedRuntime(dboFramework, framework)`. It is the same rule plain DBO
 follows when it is installed into somebody's container, and it keeps one

@@ -28,11 +28,11 @@ import java.util.Set;
  *
  * <p><b>Why this exists.</b> {@code Lane.inProcess} needs {@code Runs} and a
  * {@code ChangeFeed} — the store's internals — which is right for a host that
- * <em>is</em> the container: an appliance running dbo in-JVM builds a real
+ * <em>is</em> the container: a worker running dbo in-JVM builds a real
  * lane over its own store. A cloud does not. There dbo is its own deployment,
  * precisely so the application never holds {@code CREATE DATABASE}, and the
  * consuming JVM has no {@code Runs} to build a lane from at all — while being
- * the side that <em>serves</em> work to the appliances. This is the door it
+ * the side that <em>serves</em> work to the workers. This is the door it
  * comes in by: the same verbs, over the private surface it already
  * reaches the tenant on.
  *
@@ -53,7 +53,7 @@ import java.util.Set;
  * against, so a bounded credential free to spell any name could read the
  * inputs of runs it was never entitled to. A credential that is the tenant
  * may name any executor, which is what lets a cloud serve a lane on behalf
- * of the appliance it has already authenticated.
+ * of the worker it has already authenticated.
  *
  * <p><b>A refusal is answered, never dropped.</b> A lane refuses — a run this
  * identity has not claimed, a step it was not granted, an introduction into a

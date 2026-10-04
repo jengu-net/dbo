@@ -29,7 +29,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * constructed the runner: a lane obtained three ways, one service, the same
  * outcome. That proves the <b>seam</b> — location-blind, tenant-stateless,
  * needing only a lane — and says nothing about the <b>wiring</b>, which is
- * the half a driver bundle actually rests on. The runner's own build file
+ * the half a contributing bundle actually rests on. The runner's own build file
  * records the gap without anything acting on it: its activator is <i>the
  * whiteboard the runtime's own bundles never fill: with no StepService and no
  * Lane registered it cycles over nothing.</i>
@@ -47,7 +47,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 @Tag("integration")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class ADriverBundleContributesAStepIT {
+class ABundleContributesAStepIT {
 
     private static final String PERFORMED = "dbo.probe.performed";
 
@@ -78,7 +78,7 @@ class ADriverBundleContributesAStepIT {
         ctx.installBundle("file:" + System.getProperty("dbo.logging.jar")).start();
         // Then the minimum a runner needs, and nothing else. What is absent
         // is part of the claim: no store bundle, no face, no transport, no
-        // substrate — a driver bundle contributes a step without any of them.
+        // substrate — a bundle contributes a step without any of them.
         for (String jar : List.of("dbo.core.jar", "dbo.work.jar",
                 "dbo.telemetry.jar", "dbo.runner.jar")) {
             ctx.installBundle("file:" + System.getProperty(jar)).start();
@@ -97,9 +97,9 @@ class ADriverBundleContributesAStepIT {
 
     @Test
     @DisplayName("a bundle that registers a step service and a lane has its work performed, "
-            + "with nothing wired by hand — which is what a driver bundle rests on")
+            + "with nothing wired by hand — which is what a contributing bundle rests on")
     @Proving(DboPromises.PROC_STEP_SERVICE_EMBEDDABLE)
-    void theWhiteboardWiresADriverBundle() {
+    void theWhiteboardWiresAStepBundle() {
         // Its own wait rather than the suite's: the shared one is patient for
         // four minutes and blames a database transaction when it gives up,
         // and there is no database within reach of this container. A failure
@@ -124,21 +124,21 @@ class ADriverBundleContributesAStepIT {
 
         assertNotNull(performed,
                 "the step never ran, so registering a StepService and a Lane in a container "
-                        + "wires nothing — and a driver bundle contributing a step is a "
+                        + "wires nothing — and a bundle contributing a step is a "
                         + "sentence with no mechanism behind it");
         assertTrue(performed.startsWith("probe.assay"),
                 "something ran, but not the work this bundle offered: " + performed);
     }
 
     @Test
-    @DisplayName("a driver bundle reaches the lane and nothing else, which is the clause the "
-            + "rest of the promise is built on and the one a driver author would feel first")
+    @DisplayName("a contributing bundle reaches the lane and nothing else, which is the clause "
+            + "the rest of the promise is built on and the one a step author would feel first")
     @Proving(DboPromises.PROC_STEP_SERVICE_EMBEDDABLE)
-    void aDriverNeedsOnlyTheLane() throws Exception {
+    void aStepBundleNeedsOnlyTheLane() throws Exception {
         // Computed by bnd from bytecode, so this is what the code actually
         // reaches rather than what anybody declared. If contributing a step
         // ever starts needing the store, a transport or an orchestrator, the
-        // manifest says so here before a driver author discovers it.
+        // manifest says so here before a step author discovers it.
         java.util.Set<String> reached = new java.util.TreeSet<>();
         try (var jar = new java.util.jar.JarFile(System.getProperty("dbo.step.probe.jar"))) {
             String imports = jar.getManifest().getMainAttributes().getValue("Import-Package");
@@ -150,12 +150,12 @@ class ADriverBundleContributesAStepIT {
         assertEquals(java.util.Set.of("cloud.jengu.dbo.runner", "cloud.jengu.dbo.work",
                         "java.lang", "java.util", "org.osgi.framework"),
                 reached,
-                "a bundle that contributes a step reaches something new, and what a driver "
-                        + "must depend on is the whole of this clause: " + reached);
+                "a bundle that contributes a step reaches something new, and what a step "
+                        + "author must depend on is the whole of this clause: " + reached);
     }
 
     @Test
-    @DisplayName("everything resolved and the runner and the driver are running, so a step "
+    @DisplayName("everything resolved and the runner and the step bundle are running, so a step "
             + "that did not run would be a wiring failure rather than a bundle that never "
             + "started")
     @Proving(DboPromises.PROC_STEP_SERVICE_EMBEDDABLE)

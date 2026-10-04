@@ -45,7 +45,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * An edge's trail reaches the cloud as the edge recorded it.
+ * A replica's trail reaches the other side as the replica recorded it.
  *
  * <p>The last of the replication toolset. Everything else on the lane is
  * content, and content is written the way anything is written; audit is not —
@@ -67,12 +67,12 @@ class AuditReplicatesAsRecordedIT {
     private static final Set<String> TRAVELS = Set.of(PROCESS);
 
     static PolicyObjectStore cloudStore;
-    static PolicyObjectStore edgeStore;
+    static PolicyObjectStore siteStore;
     static PgObjectStore cloudEngine;
-    static PgObjectStore edgeEngine;
-    static Runs edgeRuns;
+    static PgObjectStore siteEngine;
+    static Runs siteRuns;
     static Lanes cloud;
-    static Lanes edge;
+    static Lanes site;
 
     @BeforeAll
     void up() throws Exception {
@@ -81,11 +81,11 @@ class AuditReplicatesAsRecordedIT {
                 SharedPostgres.get().getUsername(), SharedPostgres.get().getPassword());
                 var st = c.createStatement()) {
             st.execute("CREATE DATABASE trail_cloud");
-            st.execute("CREATE DATABASE trail_edge");
+            st.execute("CREATE DATABASE trail_site");
         }
         String base = jdbcUrl.substring(0, jdbcUrl.lastIndexOf('/') + 1);
         PGSimpleDataSource cloudDs = ds(base + "trail_cloud");
-        PGSimpleDataSource edgeDs = ds(base + "trail_edge");
+        PGSimpleDataSource siteDs = ds(base + "trail_site");
 
         // The test personality, not a FHIR one: nothing here parses a
         // resource, and a face would only add a HAPI context and a version's
@@ -105,16 +105,16 @@ class AuditReplicatesAsRecordedIT {
                 "audit", Map.of("level", "writes")));
 
         cloudEngine = new PgObjectStore(cloudDs, declarations);
-        edgeEngine = new PgObjectStore(edgeDs, declarations);
+        siteEngine = new PgObjectStore(siteDs, declarations);
         cloudStore = new PolicyObjectStore(cloudEngine, policies);
-        edgeStore = new PolicyObjectStore(edgeEngine, policies);
-        edgeRuns = new Runs(edgeStore);
-        // The port is held by the side that RECEIVES: the cloud admits what
-        // the edge recorded, and the edge needs no admission to send it.
+        siteStore = new PolicyObjectStore(siteEngine, policies);
+        siteRuns = new Runs(siteStore);
+        // The port is held by the side that RECEIVES: the receiver admits what
+        // the source recorded, and the source needs no admission to send it.
         cloud = new Lanes(cloudStore, new PgChangeFeed(cloudDs, WorkModel.DOMAIN),
                 new Runs(cloudStore), "cloud", cloudStore);
-        edge = new Lanes(edgeStore, new PgChangeFeed(edgeDs, WorkModel.DOMAIN), edgeRuns,
-                "edge", edgeStore);
+        site = new Lanes(siteStore, new PgChangeFeed(siteDs, WorkModel.DOMAIN), siteRuns,
+                "site", siteStore);
     }
 
     @AfterAll
@@ -130,16 +130,16 @@ class AuditReplicatesAsRecordedIT {
         return ds;
     }
 
-    /** Work done on the edge, by somebody, under a run — and audited there. */
-    private Run workDoneOnTheEdge(String key, String actor) {
-        Run work = edgeRuns.pipeline(PROCESS, STEP, PROCESS + "/" + STEP + "/" + key,
+    /** Work done at the source, by somebody, under a run — and audited there. */
+    private Run workDoneAtTheSource(String key, String actor) {
+        Run work = siteRuns.pipeline(PROCESS, STEP, PROCESS + "/" + STEP + "/" + key,
                 List.of(WorkModel.DOMAIN));
         Caller.set(actor);
         Caller.setRun(work.key());
-        PutResult subject = edgeStore.put(PutRequest.create("Gadget",
+        PutResult subject = siteStore.put(PutRequest.create("Gadget",
                 ("{\"serial\":\"" + key + "\",\"vendor\":\"acme\",\"name\":\"" + key
                         + "\",\"weightGrams\":\"10\"}").getBytes(StandardCharsets.UTF_8)));
-        edgeRuns.item(work, "Gadget/" + subject.id(), Failure.RECORD, "needs a second read");
+        siteRuns.item(work, "Gadget/" + subject.id(), Failure.RECORD, "needs a second read");
         Caller.clear();
         return work;
     }
@@ -159,31 +159,31 @@ class AuditReplicatesAsRecordedIT {
     }
 
     @Test
-    @DisplayName("an edge's entries arrive with the actor, the time and the appliance that "
+    @DisplayName("a replica's entries arrive with the actor, the time and the replica that "
             + "recorded them, and the arrival writes no second trail")
     @Proving(DboPromises.PROC_AUDIT_REPLICATES_AS_RECORDED)
     void theTrailArrivesAsItWasRecorded() {
-        Run work = workDoneOnTheEdge("kask", "dr-kask");
-        List<StoredObject> recorded = trailOf(edgeStore, work.key());
-        assertFalse(recorded.isEmpty(), "the edge recorded what it did");
+        Run work = workDoneAtTheSource("kask", "dr-kask");
+        List<StoredObject> recorded = trailOf(siteStore, work.key());
+        assertFalse(recorded.isEmpty(), "the source recorded what it did");
         Instant recordedAt = recorded.get(0).lastUpdated();
 
-        Lanes.Batch batch = edge.outbound("cloud", 500, TRAVELS);
-        Lanes.Applied applied = cloud.apply("edge", batch);
-        edge.sent("cloud", batch);
+        Lanes.Batch batch = site.outbound("cloud", 500, TRAVELS);
+        Lanes.Applied applied = cloud.apply("site", batch);
+        site.sent("cloud", batch);
 
         assertTrue(applied.refused().isEmpty(), "nothing was refused: " + applied.refused());
         List<StoredObject> arrived = trailOf(cloudStore, work.key());
         assertEquals(recorded.size(), arrived.size(),
-                "every entry the edge recorded for that work is here");
+                "every entry the source recorded for that work is here");
         StoredObject entry = arrived.get(0);
         assertEquals("dr-kask", field(entry, "actor"),
                 "the actor is the one who did it, not the lane that carried it");
-        assertEquals("edge", field(entry, "appliance"),
-                "and the bench it happened on, which the actor alone cannot say");
+        assertEquals("site", field(entry, "appliance"),
+                "and the replica it happened on, which the actor alone cannot say");
         assertEquals(recordedAt, entry.lastUpdated(),
-                "the time is when the edge recorded it, never when the cloud heard — that is "
-                        + "the whole of what such an entry is evidence about");
+                "the time is when the source recorded it, never when the receiver heard — "
+                        + "that is the whole of what such an entry is evidence about");
 
         // The second trail this must not grow: an arrival is not an
         // interaction, and a store that audited its own replication would
@@ -197,13 +197,13 @@ class AuditReplicatesAsRecordedIT {
     @DisplayName("a lane delivers at least once, and the trail lands exactly once")
     @Proving(DboPromises.PROC_AUDIT_REPLICATES_AS_RECORDED)
     void aReDeliveredTrailLandsOnce() {
-        Run work = workDoneOnTheEdge("tamm", "dr-tamm");
-        Lanes.Batch batch = edge.outbound("cloud", 500, TRAVELS);
+        Run work = workDoneAtTheSource("tamm", "dr-tamm");
+        Lanes.Batch batch = site.outbound("cloud", 500, TRAVELS);
 
-        cloud.apply("edge", batch);
+        cloud.apply("site", batch);
         long afterFirst = cloudStore.count(Criteria.of("AuditEntry"));
-        Lanes.Applied again = cloud.apply("edge", batch);
-        edge.sent("cloud", batch);
+        Lanes.Applied again = cloud.apply("site", batch);
+        site.sent("cloud", batch);
 
         assertEquals(afterFirst, cloudStore.count(Criteria.of("AuditEntry")),
                 "the same batch applied twice leaves one copy of each entry");
@@ -227,11 +227,11 @@ class AuditReplicatesAsRecordedIT {
         // it takes is the source's, and it claims the source's identity — so a
         // second replay of the same entry finds the first rather than
         // appending a different story under it.
-        Run work = workDoneOnTheEdge("saar", "dr-saar");
-        StoredObject recorded = trailOf(edgeStore, work.key()).get(0);
-        assertTrue(cloudStore.replayAuditEntry("edge", recorded.id(), recorded.versionId(),
+        Run work = workDoneAtTheSource("saar", "dr-saar");
+        StoredObject recorded = trailOf(siteStore, work.key()).get(0);
+        assertTrue(cloudStore.replayAuditEntry("site", recorded.id(), recorded.versionId(),
                 recorded.payload(), recorded.lastUpdated()), "the first replay writes it");
-        assertFalse(cloudStore.replayAuditEntry("edge", recorded.id(), recorded.versionId(),
+        assertFalse(cloudStore.replayAuditEntry("site", recorded.id(), recorded.versionId(),
                         AuditModel.entry("somebody-else", "create", "Gadget", "g1", "ok", null),
                         Instant.now()),
                 "and a second one under the same source identity does not overwrite it");

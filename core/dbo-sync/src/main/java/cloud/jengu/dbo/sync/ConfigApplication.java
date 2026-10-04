@@ -629,8 +629,8 @@ public final class ConfigApplication {
      * second bookkeeping to disagree with the first.
      *
      * <p><b>Every projected type, not the types the read happened to name.</b>
-     * A source declaring a zone's devices, departments and locations that
-     * stops declaring the last device has to be able to withdraw it, and
+     * A source declaring a zone's services, departments and locations that
+     * stops declaring the last service has to be able to withdraw it, and
      * scoping to the types still present in the read would make the last of
      * anything unwithdrawable. So completeness is read as it is written — all
      * of them, for this scope — and a source whose claim is narrower than that
@@ -668,7 +668,7 @@ public final class ConfigApplication {
      *
      * <p><b>A delete, and these keep history.</b> What is withdrawn is a
      * deleted version rather than a vanished record, which is what leaves "who
-     * removed that device, and when" answerable afterwards — the question
+     * removed that service, and when" answerable afterwards — the question
      * somebody asks precisely when a thing has stopped being there.
      */
     private void withdrawProjected(cloud.jengu.dbo.core.api.Identifier identity) {

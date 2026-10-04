@@ -25,7 +25,7 @@ public final class AuditModel {
     /**
      * The system a forwarded entry's own id is claimed under.
      *
-     * <p>An appliance forwards its audit at-least-once and the receiving side
+     * <p>A site forwards its audit at-least-once and the receiving side
      * makes that effectively-once, which needs the forwarder's id to be an
      * EXCLUSIVE claim in this tenant: the second delivery of one event must
      * find the first rather than land beside it. An entry this store made
@@ -58,8 +58,8 @@ public final class AuditModel {
             // Where it happened. Only a replicated entry carries it — an
             // entry this store wrote happened here, and saying so on every
             // row would be a constant. Queryable because "who did this, and
-            // on which bench" is one question, and an operator asking it of a
-            // cloud holding four appliances' trails cannot answer it from the
+            // on which site" is one question, and an operator asking it of a
+            // cloud holding four sites' trails cannot answer it from the
             // actor alone.
             if (((java.util.Map<?, ?>) n).get("appliance") != null) {
                 e.value("appliance", EnvelopeValue.of(Json.str(n, "appliance")));
@@ -75,28 +75,28 @@ public final class AuditModel {
     }
 
     /**
-     * One appliance's entry, as it arrives at another.
+     * One site's entry, as it arrives at another.
      *
      * <p>Provenance is added and nothing else is touched: what the source
      * recorded travels as the source's bytes, and the two fields put on it
-     * here are the two facts the source could not know — which appliance it
+     * here are the two facts the source could not know — which site it
      * turned out to be, from the receiver's point of view, and the claim that
      * makes a second delivery idempotent.
      *
-     * <p>The same shape as a mirrored run, which is filed under the appliance
+     * <p>The same shape as a mirrored run, which is filed under the site
      * that authored it for the same reason: without the source on the record,
-     * two appliances' accounts of the same tenant become one indistinguishable
+     * two sites' accounts of the same tenant become one indistinguishable
      * pile, and "applied 46 here, 44 there" stops being a question anybody can
      * ask.
      */
-    public static byte[] recordedElsewhere(byte[] payload, String appliance, String claim) {
+    public static byte[] recordedElsewhere(byte[] payload, String site, String claim) {
         Object node = Json.parse(new String(payload, StandardCharsets.UTF_8));
         if (!(node instanceof java.util.Map<?, ?> fields)) {
             throw new IllegalArgumentException("an audit entry arrives as an object");
         }
         java.util.Map<String, Object> stamped = new java.util.LinkedHashMap<>();
         fields.forEach((key, value) -> stamped.put(String.valueOf(key), value));
-        stamped.put("appliance", appliance);
+        stamped.put("appliance", site);
         stamped.put("forwarded", claim);
         return Json.render(stamped).getBytes(StandardCharsets.UTF_8);
     }

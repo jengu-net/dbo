@@ -415,8 +415,8 @@ public final class FhirHttpServer implements AutoCloseable {
                     }
                 }
                 case "POST" -> {
-                    // 200 when this event had already been delivered: an
-                    // appliance forwards at-least-once, and the status is how
+                    // 200 when this event had already been delivered: a
+                    // site forwards at-least-once, and the status is how
                     // it learns its retry landed on the entry it already made
                     // rather than beside it.
                     AuditSurface.Recorded recorded = auditSurface.record(

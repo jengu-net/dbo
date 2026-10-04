@@ -46,7 +46,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  *
  * <p>The participation contract names no orchestrator, and this is what that
  * buys: a step service may put whatever it likes underneath itself, and dbo
- * neither knows nor cares. DBOS is the reference choice on a server — an edge
+ * neither knows nor cares. DBOS is the reference choice on a server — a worker
  * may have nothing and a workstation has a person — so it is exercised here as
  * an <em>example of the seam</em>, in the test sources, on the far side of
  * {@code StepService}. Nothing in {@code dbo-runner} compiles against it,

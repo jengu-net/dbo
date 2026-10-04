@@ -54,7 +54,7 @@ knock on none of them.
 ## Erasure destroys the key
 
 Erasing a person destroys their key. Every copy of their identifying data —
-the history, the archives, an appliance that replicated it last week — becomes
+the history, the archives, a second place that replicated it last week — becomes
 pseudonymous at once, with nobody chasing rows across systems that may not be
 reachable. History stays byte for byte; the person goes out of it. Being erased
 and being undisclosed are different states, and only the second is reversible

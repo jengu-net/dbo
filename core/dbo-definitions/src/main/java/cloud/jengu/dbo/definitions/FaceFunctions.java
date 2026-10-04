@@ -24,7 +24,7 @@ import java.util.List;
  * tenant's stream, and this store is not going to have one.
  *
  * <p><b>Plain SQL, no extension.</b> Faster things exist — PL/Rust, C — and
- * every one of them has to be installed on the server, which an appliance or
+ * every one of them has to be installed on the server, which a small site or
  * a managed Postgres may simply not permit. What is here runs wherever the
  * store runs.
  *

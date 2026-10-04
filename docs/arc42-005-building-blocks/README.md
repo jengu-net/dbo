@@ -124,7 +124,7 @@ and the map answers which module names which.
   substrate: the door a tenant mounts and the lane a participant's container
   holds, which it builds from what the container was told.
   **`dbo-sync`** — declared content dependencies and the replication lane
-  between two appliances of one tenant.
+  between two sites of one tenant.
 - **`dbo-subscriptions`** — durable subscription delivery over the change feed.
 - **`dbo-maintenance`** — sealed archives: backup, restore, export, import.
 - **`dbo-tenant`** — the composition root. It brings a tenant up, mounts every

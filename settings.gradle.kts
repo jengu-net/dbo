@@ -31,7 +31,7 @@ include("assembly:spring-boot-server", "assembly:spring-boot-worker",
 // assemblies prove the wrapper works, these prove an application can be built
 // on it. Their tests are the user stories, and the guide quotes them.
 include("samples:spring-boot-server-app", "samples:spring-boot-worker-app",
-        "samples:ward-thermometer")
+        "samples:ward-bundle")
 
 dependencyResolutionManagement {
     repositories {

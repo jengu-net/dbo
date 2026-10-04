@@ -14,7 +14,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  * <p>The door reads a run's inputs with this module's own reader and writes
  * each given object back out with the wire's writer, so whatever the reader
  * makes of a number is what the performer is handed. A FHIR decimal carries
- * its precision in how it is written: {@code 37.40} says the thermometer read
+ * its precision in how it is written: {@code 37.40} says the value was read
  * to a hundredth, and {@code 37.4} does not.
  */
 class AGivenObjectKeepsItsDecimalsTest {

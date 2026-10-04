@@ -40,9 +40,9 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * One tenant on two appliances, and the lane between them.
+ * One tenant in two places, and the lane between them.
  *
- * <p>Two real stores, because every claim here is about what one appliance does
+ * <p>Two real stores, because every claim here is about what one replica does
  * with what the other sent: applying twice, applying out of order, applying a
  * position from a lane that no longer exists. A single store would prove the
  * arithmetic and none of the properties.
@@ -53,35 +53,35 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 @Tag("integration")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class TwoAppliancesOneTenantIT {
+class TwoPlacesOneTenantIT {
 
     private static final String PROCESS = "dbo.lab.result";
     private static final String STEP = "validate";
     private static final Set<String> TRAVELS = Set.of(PROCESS);
 
     static PgObjectStore cloudStore;
-    static PgObjectStore edgeStore;
+    static PgObjectStore siteStore;
     static Runs cloudRuns;
-    static Runs edgeRuns;
+    static Runs siteRuns;
     static Lanes cloud;
-    static Lanes edge;
+    static Lanes site;
     static PGSimpleDataSource cloudDs;
-    static PGSimpleDataSource edgeDs;
+    static PGSimpleDataSource siteDs;
 
     @BeforeAll
     void up() throws Exception {
-        String jdbcUrl = SharedPostgres.urlFor("TwoAppliancesOneTenantIT");
+        String jdbcUrl = SharedPostgres.urlFor("TwoPlacesOneTenantIT");
         try (Connection c = DriverManager.getConnection(jdbcUrl,
                 SharedPostgres.get().getUsername(), SharedPostgres.get().getPassword());
                 var st = c.createStatement()) {
-            st.execute("CREATE DATABASE appliance_cloud");
-            st.execute("CREATE DATABASE appliance_edge");
+            st.execute("CREATE DATABASE replica_cloud");
+            st.execute("CREATE DATABASE replica_site");
         }
         String base = jdbcUrl.substring(0, jdbcUrl.lastIndexOf('/') + 1);
-        cloudDs = ds(base + "appliance_cloud");
-        edgeDs = ds(base + "appliance_edge");
+        cloudDs = ds(base + "replica_cloud");
+        siteDs = ds(base + "replica_site");
 
-        // The same tenant's declarations on both appliances: same types, same
+        // The same tenant's declarations on both replicas: same types, same
         // handling, same face. Only the local settings differ.
         List<cloud.jengu.dbo.core.api.TypeRegistration> declarations =
                 new ArrayList<>(new R4Personality(List.of(
@@ -91,12 +91,12 @@ class TwoAppliancesOneTenantIT {
         declarations.addAll(PlacementModel.registrations());
 
         cloudStore = new PgObjectStore(cloudDs, declarations);
-        edgeStore = new PgObjectStore(edgeDs, declarations);
+        siteStore = new PgObjectStore(siteDs, declarations);
         cloudRuns = new Runs(cloudStore);
-        edgeRuns = new Runs(edgeStore);
+        siteRuns = new Runs(siteStore);
         cloud = new Lanes(cloudStore, new PgChangeFeed(cloudDs, WorkModel.DOMAIN), cloudRuns,
                 "cloud");
-        edge = new Lanes(edgeStore, new PgChangeFeed(edgeDs, WorkModel.DOMAIN), edgeRuns, "edge");
+        site = new Lanes(siteStore, new PgChangeFeed(siteDs, WorkModel.DOMAIN), siteRuns, "site");
     }
 
     private static PGSimpleDataSource ds(String url) {
@@ -122,26 +122,26 @@ class TwoAppliancesOneTenantIT {
         Run work = cloudRuns.pipeline(PROCESS, STEP, PROCESS + "/" + STEP + "/one",
                 List.of(WorkModel.DOMAIN));
         cloudRuns.item(work, "Patient/" + subject.id(), Failure.RECORD, "needs a second read");
-        // and the appliance's own housekeeping, which is nobody else's business
+        // and the replica's own housekeeping, which is nobody else's business
         cloudRuns.sweep("dbo.tenant.serving", "serve", "deployment", List.of(WorkModel.DOMAIN));
 
-        Lanes.Batch batch = cloud.outbound("edge", 500, TRAVELS);
-        Lanes.Applied applied = edge.apply("cloud", batch);
-        cloud.sent("edge", batch);
+        Lanes.Batch batch = cloud.outbound("site", 500, TRAVELS);
+        Lanes.Applied applied = site.apply("cloud", batch);
+        cloud.sent("site", batch);
 
         assertTrue(applied.applied() > 0, applied.toString());
-        assertTrue(edgeStore.get("Patient", subject.id()).isPresent(),
+        assertTrue(siteStore.get("Patient", subject.id()).isPresent(),
                 "the patient the work is about travelled with it");
-        assertTrue(edgeStore.get("Patient", bystander.id()).isEmpty(),
-                "and the one it is not about did not — 'all Patients to every bench' is the "
+        assertTrue(siteStore.get("Patient", bystander.id()).isEmpty(),
+                "and the one it is not about did not — 'all Patients to every site' is the "
                         + "outcome this exists to prevent");
         assertTrue(batch.items().stream().filter(item -> !item.work()).findFirst().isPresent());
         assertFalse(batch.items().get(0).work(),
                 "data before work, so nothing arrives pointing at something absent");
-        assertTrue(edgeStore.select(Criteria.of(WorkModel.TYPE)).stream()
+        assertTrue(siteStore.select(Criteria.of(WorkModel.TYPE)).stream()
                         .map(stored -> new String(stored.payload(), StandardCharsets.UTF_8))
                         .noneMatch(payload -> payload.contains("dbo.tenant.serving")),
-                "an appliance's account of its own bring-up is not the other side's business");
+                "a replica's account of its own bring-up is not the other side's business");
     }
 
     @Test
@@ -154,12 +154,12 @@ class TwoAppliancesOneTenantIT {
         Run work = cloudRuns.pipeline(PROCESS, STEP, PROCESS + "/" + STEP + "/two",
                 List.of(WorkModel.DOMAIN));
         cloudRuns.item(work, "Patient/" + subject.id(), Failure.RECORD, "first");
-        Lanes.Batch first = cloud.outbound("edge", 500, TRAVELS);
-        edge.apply("cloud", first);
-        cloud.sent("edge", first);
+        Lanes.Batch first = cloud.outbound("site", 500, TRAVELS);
+        site.apply("cloud", first);
+        cloud.sent("site", first);
 
         // the same batch again, as a connector re-sends after a link drop
-        Lanes.Applied again = edge.apply("cloud", first);
+        Lanes.Applied again = site.apply("cloud", first);
         assertEquals(0, again.applied(), "a re-sent batch applies once: " + again);
 
         // a newer version, then the older one arriving late behind it
@@ -168,12 +168,12 @@ class TwoAppliancesOneTenantIT {
         Run second = cloudRuns.pipeline(PROCESS, STEP, PROCESS + "/" + STEP + "/three",
                 List.of(WorkModel.DOMAIN));
         cloudRuns.item(second, "Patient/" + subject.id(), Failure.RECORD, "second");
-        Lanes.Batch newer = cloud.outbound("edge", 500, TRAVELS);
-        edge.apply("cloud", newer);
+        Lanes.Batch newer = cloud.outbound("site", 500, TRAVELS);
+        site.apply("cloud", newer);
 
-        edge.apply("cloud", first); // the old one, arriving after the new one
+        site.apply("cloud", first); // the old one, arriving after the new one
 
-        assertTrue(new String(edgeStore.get("Patient", subject.id()).orElseThrow().payload(),
+        assertTrue(new String(siteStore.get("Patient", subject.id()).orElseThrow().payload(),
                         StandardCharsets.UTF_8).contains("Teine"),
                 "a batch arriving out of order must not regress a record");
     }
@@ -183,11 +183,11 @@ class TwoAppliancesOneTenantIT {
             + "names the epoch")
     @Proving(DboPromises.PROC_LANE_EPOCH)
     void aRestoredPeerIsRefused() {
-        Lanes.Batch batch = cloud.outbound("edge", 500, TRAVELS);
+        Lanes.Batch batch = cloud.outbound("site", 500, TRAVELS);
         Lanes.Batch fromAnotherLife = new Lanes.Batch("01a00000-0000-7000-8000-000000000000",
                 batch.from(), batch.cursor(), batch.items());
 
-        Lanes.Applied refused = edge.apply("cloud", fromAnotherLife);
+        Lanes.Applied refused = site.apply("cloud", fromAnotherLife);
 
         assertEquals(0, refused.applied());
         assertTrue(refused.refused().get(0).contains("epoch"), refused.toString());
@@ -196,23 +196,23 @@ class TwoAppliancesOneTenantIT {
     }
 
     @Test
-    @DisplayName("a mirrored run is filed under the appliance that authored it, beside the "
+    @DisplayName("a mirrored run is filed under the replica that authored it, beside the "
             + "local one of the same name")
-    @Proving(DboPromises.PROC_MIRRORED_RUNS_ARE_FILED_BY_APPLIANCE)
+    @Proving(DboPromises.PROC_MIRRORED_RUNS_ARE_FILED_BY_SOURCE)
     void aMirroredRunDoesNotReplaceTheLocalOne() {
-        // both appliances run the same task, which is the point of one tenant
+        // both replicas run the same task, which is the point of one tenant
         cloudRuns.sweep(PROCESS, "apply", "zone/ee", List.of(WorkModel.DOMAIN));
-        edgeRuns.sweep(PROCESS, "apply", "zone/ee", List.of(WorkModel.DOMAIN));
+        siteRuns.sweep(PROCESS, "apply", "zone/ee", List.of(WorkModel.DOMAIN));
 
-        Lanes.Batch batch = cloud.outbound("edge", 500, TRAVELS);
-        edge.apply("cloud", batch);
-        cloud.sent("edge", batch);
+        Lanes.Batch batch = cloud.outbound("site", 500, TRAVELS);
+        site.apply("cloud", batch);
+        cloud.sent("site", batch);
 
-        assertTrue(edgeRuns.byKey(PROCESS + "/apply/zone/ee").isPresent(),
-                "the edge's own run of the task is untouched");
-        assertTrue(edgeRuns.byKey("cloud" + Lanes.MIRROR_SEPARATOR + PROCESS + "/apply/zone/ee")
+        assertTrue(siteRuns.byKey(PROCESS + "/apply/zone/ee").isPresent(),
+                "the receiving side's own run of the task is untouched");
+        assertTrue(siteRuns.byKey("cloud" + Lanes.MIRROR_SEPARATOR + PROCESS + "/apply/zone/ee")
                         .isPresent(),
-                "and the cloud's arrives beside it, filed under the appliance that authored it");
+                "and the sender's arrives beside it, filed under the replica that authored it");
     }
 
     @Test
@@ -232,27 +232,27 @@ class TwoAppliancesOneTenantIT {
                 List.of(WorkModel.DOMAIN));
         cloudRuns.item(staying_, "Patient/" + staying.id(), Failure.RECORD, "still open");
 
-        Lanes.Batch batch = cloud.outbound("edge", 500, TRAVELS);
-        edge.apply("cloud", batch);
-        cloud.sent("edge", batch);
-        assertTrue(edgeStore.get("Patient", leaving.id()).isPresent());
+        Lanes.Batch batch = cloud.outbound("site", 500, TRAVELS);
+        site.apply("cloud", batch);
+        cloud.sent("site", batch);
+        assertTrue(siteStore.get("Patient", leaving.id()).isPresent());
 
         // the work is done — the cards too, because a card still open is
         // somebody still needing the record it names
         cloudRuns.items(cloudRuns.byKey(closing.key()).orElseThrow())
                 .forEach(card -> cloudRuns.closed(card));
         cloudRuns.closed(cloudRuns.byKey(closing.key()).orElseThrow());
-        Lanes.Batch closure = cloud.outbound("edge", 500, TRAVELS);
-        edge.apply("cloud", closure);
-        cloud.sent("edge", closure);
+        Lanes.Batch closure = cloud.outbound("site", 500, TRAVELS);
+        site.apply("cloud", closure);
+        cloud.sent("site", closure);
 
-        Lanes.Revoked revoked = edge.revoke();
+        Lanes.Revoked revoked = site.revoke();
 
         assertTrue(revoked.removed() >= 1, revoked.toString());
-        assertTrue(edgeStore.get("Patient", leaving.id()).isEmpty(),
-                "work-driven arrival implies work-driven expiry, or a bench accumulates a "
-                        + "register one task at a time");
-        assertTrue(edgeStore.get("Patient", staying.id()).isPresent(),
+        assertTrue(siteStore.get("Patient", leaving.id()).isEmpty(),
+                "work-driven arrival implies work-driven expiry, or a second site accumulates "
+                        + "a register one task at a time");
+        assertTrue(siteStore.get("Patient", staying.id()).isPresent(),
                 "and what another open run still names stays: " + revoked);
     }
 
@@ -261,7 +261,7 @@ class TwoAppliancesOneTenantIT {
      *
      * <p>Every other test here hands over one batch big enough to hold
      * everything, which proves what a batch contains and nothing about
-     * catching up. An appliance that was away comes back to a feed longer
+     * catching up. A replica that was away comes back to a feed longer
      * than any one batch, and most of what accumulated is the other side's
      * own housekeeping — so the interesting question is whether it converges
      * at all, and whether it does so without dragging over what it holds no
@@ -279,7 +279,7 @@ class TwoAppliancesOneTenantIT {
             + "over nothing it holds no work for")
     @Proving(DboPromises.PROC_WORK_DRIVEN_ARRIVAL_AND_EXPIRY)
     void anAbsentPeerConverges() {
-        // A long stretch of the cloud's own housekeeping — more of it in a row
+        // A long stretch of the sender's own housekeeping — more of it in a row
         // than one batch can hold — with real work scattered through it.
         List<String> subjects = new ArrayList<>();
         for (int weekend = 0; weekend < 6; weekend++) {
@@ -311,9 +311,9 @@ class TwoAppliancesOneTenantIT {
         // is what this does.
         int quiet = 0;
         for (; rounds < 60 && quiet < 3; rounds++) {
-            Lanes.Batch batch = cloud.outbound("edge", 5, TRAVELS);
-            long arrived = batch.isEmpty() ? 0 : edge.apply("cloud", batch).applied();
-            cloud.sent("edge", batch);
+            Lanes.Batch batch = cloud.outbound("site", 5, TRAVELS);
+            long arrived = batch.isEmpty() ? 0 : site.apply("cloud", batch).applied();
+            cloud.sent("site", batch);
             appliedTotal += arrived;
             quiet = arrived == 0 ? quiet + 1 : 0;
         }
@@ -322,17 +322,17 @@ class TwoAppliancesOneTenantIT {
                 + rounds + " rounds");
         assertTrue(appliedTotal > 0, "and something actually arrived: " + appliedTotal);
         for (String subject : subjects) {
-            assertTrue(edgeStore.get("Patient", subject).isPresent(),
+            assertTrue(siteStore.get("Patient", subject).isPresent(),
                     "every subject the accumulated work names arrived: " + subject);
         }
-        assertTrue(edgeStore.select(Criteria.of(WorkModel.TYPE)).stream()
+        assertTrue(siteStore.select(Criteria.of(WorkModel.TYPE)).stream()
                         .map(stored -> new String(stored.payload(), StandardCharsets.UTF_8))
                         .noneMatch(payload -> payload.contains("dbo.tenant.serving")),
                 "and a weekend of the other side's housekeeping stayed at home");
 
         // Converged means converged: nothing is dragged over a second time.
-        Lanes.Batch nothingLeft = cloud.outbound("edge", 500, TRAVELS);
-        assertEquals(0, edge.apply("cloud", nothingLeft).applied(),
+        Lanes.Batch nothingLeft = cloud.outbound("site", 500, TRAVELS);
+        assertEquals(0, site.apply("cloud", nothingLeft).applied(),
                 "a caught-up peer replays nothing, even asked for a batch big enough to carry "
                         + "the whole weekend again: " + nothingLeft.items().size() + " items");
     }
@@ -342,8 +342,8 @@ class TwoAppliancesOneTenantIT {
      *
      * <p>A version's timestamp is evidence: it says when somebody knew a thing
      * and could act on it. Replication used to stamp the arrival, which reads
-     * as the edge having learned something at the moment the cloud heard about
-     * it — wrong for ordinary content, and for an audit entry it destroys the
+     * as the receiving side having learned something at the moment the sender
+     * heard about it — wrong for ordinary content, and for an audit entry it destroys the
      * only fact the entry existed to carry. The replay path already had a
      * place to put the source's time; it was passing {@code Instant.now()}
      * into it.
@@ -363,14 +363,14 @@ class TwoAppliancesOneTenantIT {
         // a gap the arrival time would be visible in
         Thread.sleep(1100);
 
-        Lanes.Batch batch = cloud.outbound("edge", 500, TRAVELS);
-        edge.apply("cloud", batch);
-        cloud.sent("edge", batch);
+        Lanes.Batch batch = cloud.outbound("site", 500, TRAVELS);
+        site.apply("cloud", batch);
+        cloud.sent("site", batch);
 
-        Instant onArrival = edgeStore.get("Patient", subject.id()).orElseThrow().lastUpdated();
+        Instant onArrival = siteStore.get("Patient", subject.id()).orElseThrow().lastUpdated();
         assertEquals(atTheSource, onArrival,
-                "the copy must carry the source's own time — an appliance that restamped on "
-                        + "arrival would be claiming the edge learned this when the cloud did");
+                "the copy must carry the source's own time — a replica that restamped on "
+                        + "arrival would be claiming it learned this when the sender did");
         assertTrue(batch.items().stream()
                         .filter(item -> item.id().equals(subject.id()))
                         .allMatch(item -> atTheSource.equals(item.recordedAt())),
@@ -380,39 +380,39 @@ class TwoAppliancesOneTenantIT {
     @Test
     @DisplayName("both sides keep what the other said it had reached")
     void markersAreEchoed() {
-        Lanes.Batch batch = cloud.outbound("edge", 500, TRAVELS);
-        edge.apply("cloud", batch);
-        cloud.mark("edge", batch.cursor());
+        Lanes.Batch batch = cloud.outbound("site", 500, TRAVELS);
+        site.apply("cloud", batch);
+        cloud.mark("site", batch.cursor());
 
-        assertEquals(batch.cursor(), cloud.lane("edge").orElseThrow().theirMarker(),
+        assertEquals(batch.cursor(), cloud.lane("site").orElseThrow().theirMarker(),
                 "where the far side is has to be a store fact rather than the channel's "
                         + "opinion about its own delivery");
     }
 
     @Test
-    @DisplayName("an appliance offers only what it authored: a mirror does not travel back, "
+    @DisplayName("a replica offers only what it authored: a mirror does not travel back, "
             + "however many rounds the pair runs")
-    @Proving(DboPromises.PROC_MIRRORED_RUNS_ARE_FILED_BY_APPLIANCE)
+    @Proving(DboPromises.PROC_MIRRORED_RUNS_ARE_FILED_BY_SOURCE)
     void aMirrorDoesNotTravelBack() {
         cloudRuns.pipeline(PROCESS, STEP, PROCESS + "/" + STEP + "/roundtrip",
                 List.of(WorkModel.DOMAIN));
 
-        Lanes.Batch out = cloud.outbound("edge", 500, TRAVELS);
-        edge.apply("cloud", out);
-        cloud.sent("edge", out);
+        Lanes.Batch out = cloud.outbound("site", 500, TRAVELS);
+        site.apply("cloud", out);
+        cloud.sent("site", out);
 
-        // The edge now holds a mirror of the cloud's run. What it offers back
-        // is the question: a mirror returned is a NEW record at the far side,
+        // The receiving side now holds a mirror of the sender's run. What it offers
+        // back is the question: a mirror returned is a NEW record at the far side,
         // filed under the sender and prefixed again, so a pair that echoed
         // would deepen a key and add a run every round without bound. This
-        // failed before the rule existed, at the second hop, as edge@cloud@.
-        Lanes.Batch back = edge.outbound("cloud", 500, TRAVELS);
+        // failed before the rule existed, at the second hop, as site@cloud@.
+        Lanes.Batch back = site.outbound("cloud", 500, TRAVELS);
         assertTrue(mirrorsIn(back).isEmpty(),
                 "a mirror is the other side's record: " + mirrorsIn(back));
 
-        cloud.apply("edge", back);
-        edge.sent("cloud", back);
-        assertTrue(mirrorsIn(cloud.outbound("edge", 500, TRAVELS)).isEmpty(),
+        cloud.apply("site", back);
+        site.sent("cloud", back);
+        assertTrue(mirrorsIn(cloud.outbound("site", 500, TRAVELS)).isEmpty(),
                 "and still nothing on the round after that");
     }
 
@@ -433,15 +433,15 @@ class TwoAppliancesOneTenantIT {
     @Test
     @DisplayName("a mirror is read-only where it landed: the side that authored a run is the "
             + "side that advances it")
-    @Proving(DboPromises.PROC_MIRRORED_RUNS_ARE_FILED_BY_APPLIANCE)
+    @Proving(DboPromises.PROC_MIRRORED_RUNS_ARE_FILED_BY_SOURCE)
     void aMirrorCannotBeAdvancedWhereItLanded() {
         Run authored = cloudRuns.pipeline(PROCESS, STEP, PROCESS + "/" + STEP + "/theirs",
                 List.of(WorkModel.DOMAIN));
-        Lanes.Batch out = cloud.outbound("edge", 500, TRAVELS);
-        edge.apply("cloud", out);
-        cloud.sent("edge", out);
+        Lanes.Batch out = cloud.outbound("site", 500, TRAVELS);
+        site.apply("cloud", out);
+        cloud.sent("site", out);
 
-        Run mirror = edgeRuns.byKey("cloud" + WorkModel.AUTHOR_SEPARATOR + authored.key())
+        Run mirror = siteRuns.byKey("cloud" + WorkModel.AUTHOR_SEPARATOR + authored.key())
                 .orElseThrow(() -> new AssertionError("the mirror is here to be read"));
 
         // Read: yes. That is what a mirror is for.
@@ -450,15 +450,15 @@ class TwoAppliancesOneTenantIT {
         // Advanced: no. With a lagging lane the far side's checkpoint can be in
         // flight while its deadline looks passed, and both sides acting would
         // have the work done twice.
-        assertThrows(Runs.NotOurs.class, () -> edgeRuns.closed(mirror));
-        assertThrows(Runs.NotOurs.class, () -> edgeRuns.claim(mirror,
-                new Executor("bench", "1.0", "test", Scope.BASELINE),
+        assertThrows(Runs.NotOurs.class, () -> siteRuns.closed(mirror));
+        assertThrows(Runs.NotOurs.class, () -> siteRuns.claim(mirror,
+                new Executor("worker", "1.0", "test", Scope.BASELINE),
                 Instant.now().plusSeconds(60)));
 
         // And the housekeeping sweep leaves it alone rather than refusing: a
         // deadline is judged where the run lives, so a mirror is not this
         // side's to notice at all.
-        assertEquals(0, Participation.releaseLapsed(edgeRuns),
+        assertEquals(0, Participation.releaseLapsed(siteRuns),
                 "a mirror is not in this side's lapse sweep");
     }
 }

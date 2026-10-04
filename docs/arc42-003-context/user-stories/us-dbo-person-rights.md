@@ -7,7 +7,7 @@
 > The shape of the answer is the point. Her identifying data was
 > encrypted under a key of her own before it ever reached the engine, so
 > **erasure is not a delete**: destroying that key makes every copy of it
-> pseudonymous at once — the history, the archives, the appliance that
+> pseudonymous at once — the history, the archives, the second place that
 > replicated it last week — without anybody chasing rows across systems
 > that may not even be reachable. What is left is a record that says
 > something happened and cannot say to whom.

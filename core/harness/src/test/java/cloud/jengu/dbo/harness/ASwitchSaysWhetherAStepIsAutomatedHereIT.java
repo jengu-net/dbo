@@ -64,8 +64,8 @@ class ASwitchSaysWhetherAStepIsAutomatedHereIT {
     private static final String PROCESS = "dbo.lab.assay";
     private static final String STEP = "report";
     private static final Scope EE = Scope.zone("ee");
-    private static final Executor ANALYSER =
-            new Executor("analyser", "1.0", "cloud.jengu.lab", EE);
+    private static final Executor ASSAYER =
+            new Executor("assayer", "1.0", "cloud.jengu.lab", EE);
 
     static Runs runs;
     static Automations automations;
@@ -123,7 +123,7 @@ class ASwitchSaysWhetherAStepIsAutomatedHereIT {
         Run after = runs.byKey(held.key()).orElseThrow();
         assertEquals(cloud.jengu.dbo.work.Status.IN_PROGRESS, after.status(),
                 "the switch reached into work somebody was already holding: " + after);
-        assertEquals(ANALYSER, after.assignment().executor(),
+        assertEquals(ASSAYER, after.assignment().executor(),
                 "and took the executor off a claim that had already been made");
     }
 
@@ -156,7 +156,7 @@ class ASwitchSaysWhetherAStepIsAutomatedHereIT {
 
         // What the console asks: who would run this.
         Resolution resolution = new ExecutorResolution(() -> List.<ExecutorCandidate>of(
-                        new Willing(ANALYSER)))
+                        new Willing(ASSAYER)))
                 .resolve(StepGrant.of(PROCESS, STEP), List.of(Scope.BASELINE, EE),
                         automations.forStep(PROCESS, STEP), Work.of(PROCESS, STEP, null));
 
@@ -180,6 +180,6 @@ class ASwitchSaysWhetherAStepIsAutomatedHereIT {
 
     private static Optional<Run> claim(String which) {
         Run run = runs.pipeline(PROCESS, STEP, PROCESS + "/" + which);
-        return runs.claim(run, ANALYSER, Instant.now().plus(Duration.ofMinutes(5)));
+        return runs.claim(run, ASSAYER, Instant.now().plus(Duration.ofMinutes(5)));
     }
 }

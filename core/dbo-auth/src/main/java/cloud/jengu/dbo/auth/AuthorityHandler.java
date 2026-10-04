@@ -325,19 +325,19 @@ public final class AuthorityHandler implements HttpHandler {
     /**
      * Register a machine credential, or a relying party.
      *
-     * <p>An appliance authenticates with a credential of its own so that one
+     * <p>A worker authenticates with a credential of its own so that one
      * can be revoked without touching the others, and it has no human and no
      * interactive step — the enrolment is headless by design. That is a
      * different thing from {@code admin/secret-grants}, which exists so a
      * PERSON can set their own secret.
      *
      * <p><b>The caller's secret is authoritative</b>, and nothing is generated
-     * here. Whoever approves the appliance generates the secret, records it,
-     * and hands it to the appliance; a store that minted its own would be a
+     * here. Whoever approves the worker generates the secret, records it,
+     * and hands it to the worker; a store that minted its own would be a
      * second custody path for one credential, and the two would disagree the
      * first time an enrolment was retried.
      *
-     * <p>Idempotent for the same reason: re-approving an appliance after a
+     * <p>Idempotent for the same reason: re-approving a worker after a
      * failed enrolment is the ordinary case, not an error, and it must not need
      * a different call from the first attempt.
      */
@@ -589,9 +589,9 @@ public final class AuthorityHandler implements HttpHandler {
     }
 
     /**
-     * The PIN verifiers a bench needs to authenticate people offline.
+     * The PIN verifiers a site needs to authenticate people offline.
      *
-     * <p>A deliberate credential-distribution surface. An edge cannot ask
+     * <p>A deliberate credential-distribution surface. A site cannot ask
      * anybody at the moment somebody presents a PIN, so it holds verifiers in
      * advance — the cost of working in a basement. Naming the endpoint after
      * what it does is the point: this used to happen as a side effect of

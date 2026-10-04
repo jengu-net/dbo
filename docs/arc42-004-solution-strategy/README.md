@@ -22,7 +22,7 @@ and this page is rewritten whenever one of those changes.
    the platform and audited on both sides
    ([running it](../arc42-008-crosscutting/running-it/README.md)).
 5. **One feed primitive.** Keyset cursors serve paging, subscriptions,
-   dependent copies, appliance sync and incremental export
+   dependent copies, replica sync and incremental export
    ([change, and who is listening](../arc42-008-crosscutting/change-and-who-is-listening/README.md)).
 6. **Provisioning is credential-blind.** The management plane can never read
    a tenant's data or its credentials

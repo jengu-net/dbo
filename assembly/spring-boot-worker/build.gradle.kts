@@ -7,7 +7,7 @@ import java.util.jar.JarFile
 // store here and no way to get one: what this carries is the work vocabulary
 // and the lane, which is the whole of what a party outside the deployment
 // compiles against — the same line the sample worker application draws, and
-// the same one a driver bundle rests on in the container.
+// the same one a step bundle rests on in the container.
 //
 // The plan this module is being built to is README.md beside this file.
 
@@ -21,7 +21,7 @@ val springBootVersion = rootProject.extra["dboSpringBootVersion"] as String
 //
 // It is the set a container needs to perform work and nothing else. No store
 // bundle, no face, no tenant: their absence is part of the claim, and it is
-// the claim the container already proves from the other side, where a driver
+// the claim the container already proves from the other side, where a step
 // bundle contributes a step with exactly these installed.
 val workerModules = listOf(
     ":core:dbo-core", ":core:dbo-work",

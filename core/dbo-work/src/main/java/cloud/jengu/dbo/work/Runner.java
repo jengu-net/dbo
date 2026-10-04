@@ -18,7 +18,7 @@ import java.util.Set;
  * with dbo embeds this, not a FHIR client plus a webhook plus a queue.
  *
  * <p><b>It automates nothing.</b> Its job is to carry work to wherever the work
- * is actually done — another system, an edge with no orchestrator, a screen with
+ * is actually done — another system, a worker with no orchestrator, a screen with
  * a person at it — and to carry the result back. Automation is a {@link
  * Handler} somebody supplies; the runner ships with none and works, which is
  * "manual is the baseline; automation is an attachment" made literal.
@@ -139,7 +139,7 @@ public final class Runner {
      * opening one piece of work is the case a lease exists for, and a person is
      * no more entitled to hold it twice than a process is. What the run then
      * says holds it is the person, by their role: it was this participant's
-     * executor, so a person at a screen was recorded as a device running
+     * executor, so a person at a screen was recorded as an executor running
      * automation, and a list of what waits for people could not see that
      * somebody had it.
      *
@@ -210,7 +210,7 @@ public final class Runner {
 
     /**
      * Who the run's claim names: this participant's executor, or nobody for a
-     * person who opened it here — a person is not a device, and the claim
+     * person who opened it here — a person is not an executor, and the claim
      * they hold names their role.
      */
     private Executor holder(Run claimed) {

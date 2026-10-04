@@ -49,8 +49,8 @@ one run, and the record of the work is the record of the reason.
 
 ## The work is somewhere else
 
-Almost none of the work happens where the store is. A sample is analysed on an
-instrument in a laboratory. A consignment is inspected at a border. A
+Almost none of the work happens where the store is. A sample is analysed in a
+laboratory. A consignment is inspected at a border. A
 declaration is signed by a supplier's own system. A great deal of it is a
 person at a screen deciding something.
 

@@ -243,7 +243,7 @@ is down because somebody is running one.
 
 ## Binary content
 
-Documents, audio and device backups are **not rows**. A store that keeps them
+Documents, audio and images are **not rows**. A store that keeps them
 as rows charges for them in every backup it ever takes, which is the operational
 cost that decides this rather than any preference about storage engines. So the
 record and the bytes part company: what the store holds is the description and
@@ -273,7 +273,7 @@ roles hung off a membership resource, credentials in a settings array.
 3. **Flip tenant by tenant.** Configuration is recreated from its source of
    truth, clinical data that must survive moves as NDJSON, and everything
    derivable is re-derived.
-4. **Move the edge**, where an edge runtime hosting the bundles drops the
+4. **Move the second sites**, where a runtime hosting the bundles drops the
    incumbent and its cache tier together.
 5. **Decommission.**
 

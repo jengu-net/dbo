@@ -38,7 +38,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * <p><b>Nothing in this test constructs a runner, registers a step service or
  * attaches a lane.</b> A bean and some configuration go in; if the step is
  * performed, the only thing that can have wired it is the container's own
- * whiteboard — the same shape of proof the driver-bundle test makes from the
+ * whiteboard — the same shape of proof the step-bundle test makes from the
  * other side, and the reason that one exists rather than a tenth test that
  * builds a runner itself.
  *
@@ -164,7 +164,7 @@ class ABeanIsAStepThisApplicationPerformsIT {
         }
 
         /**
-         * The same standing lane the driver-bundle probe offers, for the same
+         * The same standing lane the step-bundle probe offers, for the same
          * reason: a runner that saw the service and had nowhere to poll would
          * sit quietly, and the test would read the same silence it reads when
          * the whiteboard is broken.

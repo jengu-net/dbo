@@ -89,11 +89,11 @@ of the tenant whose work it was. An open field in a stream declared anonymous is
 how such a declaration stops being true without anybody editing it, and it is the
 documented failure of every central logging system.
 
-**Two appliances of one tenant exchange whole records** — but this is not an
-exception, and reading it as one leads to the wrong instincts. A site appliance
+**Two sites of one tenant exchange whole records** — but this is not an
+exception, and reading it as one leads to the wrong instincts. An on-site replica
 and a cloud are one tenant in two places, so nothing crosses a tenant boundary
 at all. What is worth knowing is that the traffic is bounded by what the work
-names rather than by following references outward, so an appliance holds what it
+names rather than by following references outward, so a site holds what it
 is working on rather than a copy of the collection.
 
 **Work leaves a tenant sealed, and its manifest does not.** A runner fleet that
@@ -113,7 +113,7 @@ enrolment key rather than carrying a token, and the clear verb has no answer
 there at all.
 
 **An audit trail replicates as it was recorded** — original actor, original
-time, the appliance named — because an account of who did what is worthless if
+time, the site named — because an account of who did what is worthless if
 the act of moving it rewrites its provenance.
 
 **The rule behind all three:** a class of data that leaves a tenant is declared,

@@ -3,7 +3,7 @@ package cloud.jengu.dbo.core.api;
 import java.time.Instant;
 
 /**
- * The one admitted path for an audit entry recorded on another appliance.
+ * The one admitted path for an audit entry recorded on another site.
  *
  * <p>Direct writes to the audit type are refused, absolutely and for
  * everybody: the trail is written by the machinery, and a caller that could
@@ -13,13 +13,13 @@ import java.time.Instant;
  * or a store the lane holds beneath policy.
  *
  * <p><b>Narrow on purpose.</b> It admits one act — replaying an entry some
- * other appliance already recorded — and it cannot express any other. There
+ * other site already recorded — and it cannot express any other. There
  * is no update, no delete, and no way to write an entry that did not come
  * from somewhere else, because every argument here is the source's.
  *
  * <p><b>What arrives is what was recorded.</b> The actor, the interaction and
  * everything else the source wrote travel as the source's bytes; the time is
- * the source's; the appliance is named. The arrival itself writes <b>no
+ * the source's; the site is named. The arrival itself writes <b>no
  * second trail</b> — a copy of an event is not a new event, and a receiving
  * store that audited its own replication would grow one entry per entry
  * forever.
@@ -32,9 +32,9 @@ import java.time.Instant;
 public interface AuditReplay {
 
     /**
-     * Replays one entry another appliance recorded.
+     * Replays one entry another site recorded.
      *
-     * @param sourceAppliance which appliance recorded it — carried onto the
+     * @param source          which site recorded it — carried onto the
      *                        entry, because "who did this" is only answerable
      *                        with "and where"
      * @param sourceEntryId   its id there, which is what the claim is made on
@@ -51,6 +51,6 @@ public interface AuditReplay {
      *                        the whole of what such an entry is evidence about
      * @return whether this side did not already hold it
      */
-    boolean replayAuditEntry(String sourceAppliance, String sourceEntryId, long sourceVersion,
+    boolean replayAuditEntry(String source, String sourceEntryId, long sourceVersion,
             byte[] payload, Instant recordedAt);
 }

@@ -13,7 +13,7 @@ Three, and the engine behind them is the same build in all three.
   own JVM, sharing a small container runtime and its API. The engine carries no
   application framework, which is what makes this possible; cold start is
   measured in seconds so that consumers test against the store rather than
-  against a mock of it. This is also the appliance shape — one JVM, one
+  against a mock of it. This is also the single-site shape — one JVM, one
   Postgres, no container and no orchestrator — and it is the ordinary edition
   with one tenant, not a reduced one.
 - **One node, many tenants.** One process on one port, a database per tenant,

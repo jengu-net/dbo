@@ -37,7 +37,7 @@ public final class Disclosure {
          * Identifying elements as ciphertext, decrypted by nobody here.
          *
          * <p>What the store did unconditionally before this existed, now one
-         * mode among three. It is the carrier form: what an offline appliance
+         * mode among three. It is the carrier form: what an offline site
          * holds, and what crosses a boundary without being disclosed to
          * whatever carries it.
          */

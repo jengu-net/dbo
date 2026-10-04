@@ -58,7 +58,7 @@ So each type declares exactly one identity class:
 | Class | Identity is | Typical of |
 |---|---|---|
 | **Canonical** | a canonical url | definitions: code systems, value sets |
-| **Identifier** | designated `{system, value}` pairs, in trust order | things with real-world identity: a person, an organisation, a device |
+| **Identifier** | designated `{system, value}` pairs, in trust order | things with real-world identity: a person, an organisation, a location |
 | **Internal** | the store-assigned id, and nothing else | records with no business identity: an observation, a by-product |
 
 <div class="takeaway" markdown>
@@ -88,10 +88,10 @@ may write it — an edit made here would be silently overwritten by the next
 sync, or silently kept.* That sentence is the rule. It is worth reading twice,
 because it is only true of a type whose records all come from one place.
 
-Real things often have more than one writer. A bench analyser is written down
-in the configuration repository by an operator; a box dials in and is enrolled
-by the platform once a human approves it; a driver finds a third on the network
-and records that it is there. It is tempting to read that as one type with
+Real things often have more than one writer. A worker is written down in the
+configuration repository by an operator; another dials in and is enrolled once
+a human approves it; a router finds a third behind it and records that it is
+there. It is tempting to read that as one type with
 three writers and a rule too strict for two of them.
 
 It is not. Those are three different statements about the world, and they
@@ -107,7 +107,7 @@ So they are different types, and each says what it is. The declared one is the
 repository's and is read-only here; the observed one is observed, and whatever
 sees the world writes it. A declaration may seed an observed record, or be what
 approves one, or sit beside it unmatched — which is a state worth being able to
-represent, because a device that was declared and never appeared is exactly the
+represent, because a worker that was declared and never appeared is exactly the
 thing an operator wants to know about.
 
 Collapsing them costs more than it looks. Relaxing the rule to fit the widest

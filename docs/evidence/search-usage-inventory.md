@@ -12,7 +12,7 @@ and no batch search-entry usage.
 
 | Feature | ~Sites | Typical shape |
 |---|---|---|
-| Token `identifier=` (`sys\|val`, `sys\|` any-in-system) | 88 | the universal lookup idiom: tenant code, edge id, MRN, national ID, device id, canonical dedup key |
+| Token `identifier=` (`sys\|val`, `sys\|` any-in-system) | 88 | the universal lookup idiom: tenant code, worker id, MRN, national ID, asset id, canonical dedup key |
 | `_count` | ~70 | nearly every search explicitly bounded |
 | `_sort` | ~30 | overwhelmingly `-_lastUpdated`; also `-date`, `-authored`; ascending `_lastUpdated` for sync cursors |
 | Plain tokens (`status=`, `intent=`, `active=`, `type=`, `service-category=`) | ~20 | worklists, active-record filters |
@@ -25,9 +25,9 @@ and no batch search-entry usage.
 | `:missing` | 3 | `partof:missing=true/false` tenant-org queries |
 | `_summary=count` | 2 | existence/count probes |
 | `_offset` explicit | 2 | (otherwise next-link paging everywhere) |
-| `:not` (on `_tag`) | 2 | lab edge "not yet synced" scan |
+| `:not` (on `_tag`) | 2 | a laboratory worker's "not yet synced" scan |
 | `:identifier` (reference by identifier) | 2 | result intake by external order system |
-| Chained (one level) | 2 | `ServiceRequest?specimen.identifier=<barcode>` (lab edge) |
+| Chained (one level) | 2 | `ServiceRequest?specimen.identifier=<barcode>` (laboratory worker) |
 | `_include` (single, named) | 1 | `ServiceRequest … &_include=ServiceRequest:specimen` (deliberately *not* including Patient — pseudonymity) |
 | `_profile` | 1 + Subscription criteria | shape migration; LIS observation subscription |
 | `:exact` | 1 | `ClientApplication?name:exact=` |
@@ -40,7 +40,7 @@ parameters — and have no FHIR equivalent to reproduce.
 
 ## Zero production usage
 
-`_filter`; `_has` (only a javadoc contract sketch in the device framework — the
+`_filter`; `_has` (only a javadoc contract sketch in an integration framework — the
 real implementation degrades to `status=final`); `_revinclude` (one test
 fixture); `_text`/`_content`; `_security`; `_id=` as search param (reads are
 `GET Type/id`); composite params; modifiers `:above :below :in :not-in :of-type

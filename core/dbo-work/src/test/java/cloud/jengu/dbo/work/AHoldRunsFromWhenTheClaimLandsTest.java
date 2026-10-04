@@ -42,9 +42,9 @@ class AHoldRunsFromWhenTheClaimLandsTest {
     private final Runs runs = new Runs(slow(held.store()), Steps.of(StepDeclaration.of(
             PROCESS + "." + STEP, "1", WorkModel.DOMAIN)), Runs.Claimable.NOBODY, clock);
 
-    private final Executor first = new Executor("analyser-a", "1", "example.lab",
+    private final Executor first = new Executor("worker-a", "1", "example.lab",
             Scope.BASELINE);
-    private final Executor second = new Executor("analyser-b", "1", "example.lab",
+    private final Executor second = new Executor("worker-b", "1", "example.lab",
             Scope.BASELINE);
 
     @Test

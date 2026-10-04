@@ -120,7 +120,7 @@ Asking and reading the answer are the same commands as above. The check reads
 the application's log as well, to be sure the step was performed in the JVM it
 was meant for and not in the other one.
 
-### At the edge, over HTTP
+### Apart from the store, over HTTP
 
 `edge` is the worker's default profile. Its lane reaches one tenant through its
 door, with the client the tenant issued:

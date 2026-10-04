@@ -140,8 +140,8 @@ public record Run(String id, long versionId, String key, String process, String 
      *
      * <p>A run that names the versions it produced is a complete account of a
      * change, and reading runs in order reads the changes in order — which is
-     * what lets another appliance ask for exactly what it is missing instead of
-     * comparing two stores.
+     * what lets another replica of the tenant ask for exactly what it is
+     * missing instead of comparing two stores.
      *
      * <p><b>Bounded, because a manifest is an enumeration and children are
      * exceptions.</b> A run over forty thousand records cannot name forty
@@ -198,7 +198,7 @@ public record Run(String id, long versionId, String key, String process, String 
      * @param role     the {@code PractitionerRole} a person claimed the run as,
      *                 as {@code PractitionerRole/<id>}, or null when what holds
      *                 it is not a person. Beside the executor rather than
-     *                 instead of it, because a person is not a device and a
+     *                 instead of it, because a person is not an executor and a
      *                 run that named one as the other would say so wrongly
      * @param hold     which claim this is: minted by the store when the claim
      *                 lands, carried by every advance that leaves the claim
@@ -291,7 +291,7 @@ public record Run(String id, long versionId, String key, String process, String 
      * only one who can finish its work.
      *
      * @param executor what took it, or null for a claim a person took, which
-     *                 names a role and no device
+     *                 names a role and no executor
      * @param hold     the claim, as the run handed back by the claim carries
      *                 it ({@link #hold()})
      */

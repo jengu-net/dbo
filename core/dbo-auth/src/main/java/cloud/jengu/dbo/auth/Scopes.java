@@ -70,9 +70,9 @@ public final class Scopes {
      * through, and nothing else. Outside the SMART grammar like the others.
      *
      * <p>Separate from {@link #WORK} on purpose, and it is the distinction the
-     * surface exists for. Participation is what a bench may <em>do</em>; this
-     * is what a deployment may <em>ask about the fleet</em>, and a bench that
-     * could ask would be reading about benches it has no business knowing.
+     * surface exists for. Participation is what a worker may <em>do</em>; this
+     * is what a deployment may <em>ask about the fleet</em>, and a worker that
+     * could ask would be reading about workers it has no business knowing.
      * Neither implies the other: a runner needs no view of the tree, and
      * whoever watches the tree performs no work.
      */
@@ -95,7 +95,7 @@ public final class Scopes {
      * SMART grammar like the others.
      *
      * <p><b>Separate from {@link #WORK}, and the split is the point.</b> What
-     * a bench may <em>do</em> is take work and report on it; this is what a
+     * a worker may <em>do</em> is take work and report on it; this is what a
      * supervisor may <em>undo</em>, and neither implies the other. A runner
      * that validates lab results has no business reopening runs somebody
      * judged finished, and whoever decides a close was wrong performs no work.

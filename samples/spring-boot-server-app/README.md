@@ -52,8 +52,8 @@ that lane signs in with.
 
 ## The clinic's own framework
 
-The clinic also ships a bundle: the ward thermometer's driver in
-[`../ward-thermometer`](../ward-thermometer), which performs
+The clinic also ships a bundle: its ward-observation step, in
+[`../ward-bundle`](../ward-bundle), which performs
 `hogwarts.ward.observe`. With `--clinic.framework.owned=true` this application
 creates the OSGi framework itself, with the properties the store names, and
 installs that bundle into it
@@ -67,7 +67,7 @@ The same steps, performed somewhere else. Start this application under the
 `separated` profile, which leaves its own copy of the steps still but keeps
 issuing the worker's credentials, and then start the worker beside it.
 
-**At the edge, over HTTP.** The worker reaches one tenant through its door,
+**On another site, over HTTP.** The worker reaches one tenant through its door,
 with the client this application had the tenant issue:
 
 ```bash

@@ -159,7 +159,7 @@ class AParticipantHoldsItsLaneOnTheStreamIT {
     static URI laneUri;
     static ObjectStore engine;
     static Runs runs;
-    /** The analyser's keys: it holds the assay over HTTP and over the stream. */
+    /** The assayer's keys: it holds the assay over HTTP and over the stream. */
     static KeyPair sealing;
     static KeyPair signing;
     /** The imager's keys: it holds the imaging step, over the stream only. */
@@ -200,7 +200,7 @@ class AParticipantHoldsItsLaneOnTheStreamIT {
         doorBeforeAnySigner = manager.streamDoorOpen(TENANT);
         sealing = KeyWrap.newParticipantKeyPair();
         signing = SigningKey.newKeyPair();
-        manager.authority(TENANT).ensureClient("analyser", "analyser-secret",
+        manager.authority(TENANT).ensureClient("assayer", "assayer-secret",
                 List.of("work/" + ASSAY_STEP), ParticipantKey.of(sealing.getPublic()),
                 SigningKey.of(signing.getPublic()));
         imagerSealing = KeyWrap.newParticipantKeyPair();
@@ -434,8 +434,8 @@ class AParticipantHoldsItsLaneOnTheStreamIT {
                         + "cycle and this test would prove nothing");
 
         try (StepRunner runner = new StepRunner(Duration.ofMinutes(10), NEVER_POLLED_IN_TIME);
-                StreamLane stream = StreamLane.holding(substrate, TENANT, "analyser",
-                        executor("analyser"), sealing.getPrivate(), signing.getPrivate())) {
+                StreamLane stream = StreamLane.holding(substrate, TENANT, "assayer",
+                        executor("assayer"), sealing.getPrivate(), signing.getPrivate())) {
             assertTrue(stream.wakeups().isPresent(),
                     "the stream lane offers no wake-ups, so nothing below can be true of it");
             runner.register(service);
@@ -502,11 +502,11 @@ class AParticipantHoldsItsLaneOnTheStreamIT {
         Run overHttp = runFor("over-http");
         Run overStream = runFor("over-stream");
         try (StepRunner runner = new StepRunner(Duration.ofMinutes(5), Duration.ofMillis(50));
-                StreamLane stream = StreamLane.holding(substrate, TENANT, "analyser",
-                        executor("analyser"), sealing.getPrivate(), signing.getPrivate())) {
+                StreamLane stream = StreamLane.holding(substrate, TENANT, "assayer",
+                        executor("assayer"), sealing.getPrivate(), signing.getPrivate())) {
             runner.register(service);
-            runner.attach(HttpLane.holding(laneUri, () -> token("analyser", "analyser-secret"),
-                    TENANT, "analyser-over-http", executor("analyser"), sealing.getPrivate(),
+            runner.attach(HttpLane.holding(laneUri, () -> token("assayer", "assayer-secret"),
+                    TENANT, "assayer-over-http", executor("assayer"), sealing.getPrivate(),
                     signing.getPrivate()));
             runner.attach(stream);
             long deadline = System.nanoTime() + Eventually.PATIENCE.toNanos();
@@ -536,8 +536,8 @@ class AParticipantHoldsItsLaneOnTheStreamIT {
     @Proving(DboPromises.PROC_A_LANE_OVER_THE_STREAM)
     void workOutAndEventsHomeOnOneChannel() throws Exception {
         Run run = runFor("duplex");
-        try (StreamLane lane = StreamLane.holding(substrate, TENANT, "analyser",
-                executor("analyser"), sealing.getPrivate(), signing.getPrivate())) {
+        try (StreamLane lane = StreamLane.holding(substrate, TENANT, "assayer",
+                executor("assayer"), sealing.getPrivate(), signing.getPrivate())) {
             Run held = lane.claim(run, Duration.ofMinutes(5)).orElseThrow();
             assertEquals(1, lane.inputs(held).size(), "opened here, with the key held here");
             lane.closed(held);
@@ -549,7 +549,7 @@ class AParticipantHoldsItsLaneOnTheStreamIT {
         assertTrue(chain.stream().anyMatch(e -> e.contains("\"code\":\"travel\"")), chain.toString());
         assertTrue(entries("Basic", specimen).stream()
                         .anyMatch(e -> e.contains("\"code\":\"access\"")
-                                && e.contains("\"by\":\"analyser\"")),
+                                && e.contains("\"by\":\"assayer\"")),
                 "the opening came home on the same channel and landed on the document");
     }
 
@@ -578,11 +578,11 @@ class AParticipantHoldsItsLaneOnTheStreamIT {
         Run run = runs.of(ASSAY, RunKind.PIPELINE, "crosses-the-plane",
                 Map.of("specimen", "Basic/" + specimen));
 
-        try (StreamLane lane = StreamLane.holding(substrate, TENANT, "analyser",
-                executor("analyser"), sealing.getPrivate(), signing.getPrivate())) {
+        try (StreamLane lane = StreamLane.holding(substrate, TENANT, "assayer",
+                executor("assayer"), sealing.getPrivate(), signing.getPrivate())) {
             Run held = lane.claim(run, Duration.ofMinutes(5)).orElseThrow();
             assertTrue(new String(lane.inputs(held).get("specimen").get(0).payload(), StandardCharsets.UTF_8)
-                    .contains(PLAINTEXT_MARKER), "the analyser read the document, on its side");
+                    .contains(PLAINTEXT_MARKER), "the assayer read the document, on its side");
             lane.closed(held);
         }
         assertEquals(cloud.jengu.dbo.work.Status.COMPLETED, runs.byKey(run.key()).orElseThrow().status());
@@ -597,15 +597,15 @@ class AParticipantHoldsItsLaneOnTheStreamIT {
                         + "are for");
         List<String> leaks = rows.stream().filter(r -> r.contains(PLAINTEXT_MARKER)
                 || r.contains(IDENTIFYING) || r.contains("Bearer ")
-                || r.contains("analyser-secret")).toList();
+                || r.contains("assayer-secret")).toList();
         assertEquals(List.of(), leaks,
                 "resource content, or a credential, readable in the shared plane");
     }
 
     /*
      * Last, because the run it claims is refused a verb and never closed: it
-     * stays held by the analyser for its lease, and a leg after it that ran an
-     * analyser over the assay would have it in the way.
+     * stays held by the assayer for its lease, and a leg after it that ran
+     * another worker over the assay would have it in the way.
      */
     @Test
     @Order(7)
@@ -616,8 +616,8 @@ class AParticipantHoldsItsLaneOnTheStreamIT {
                 "{\"resourceType\":\"Basic\"}".getBytes(StandardCharsets.UTF_8))).id();
         Run run = runs.of(ASSAY, RunKind.PIPELINE, "asks-clear",
                 Map.of("specimen", "Basic/" + specimen));
-        try (StreamLane lane = StreamLane.holding(substrate, TENANT, "analyser",
-                executor("analyser"), sealing.getPrivate(), signing.getPrivate())) {
+        try (StreamLane lane = StreamLane.holding(substrate, TENANT, "assayer",
+                executor("assayer"), sealing.getPrivate(), signing.getPrivate())) {
             Run held = lane.claim(run, Duration.ofMinutes(5)).orElseThrow();
             // The lane never asks in the clear for a keyed participant; the
             // door refuses the verb itself when asked directly.
@@ -687,8 +687,8 @@ class AParticipantHoldsItsLaneOnTheStreamIT {
         Run run = runs.filling(ASSAY, RunKind.PIPELINE, "given-over-the-stream",
                 Map.of("specimen", RunSlot.given(
                         "{\"resourceType\":\"Basic\",\"code\":{\"text\":\"given\"}}")));
-        try (StreamLane lane = StreamLane.holding(substrate, TENANT, "analyser",
-                executor("analyser"), sealing.getPrivate(), signing.getPrivate())) {
+        try (StreamLane lane = StreamLane.holding(substrate, TENANT, "assayer",
+                executor("assayer"), sealing.getPrivate(), signing.getPrivate())) {
             Run held = lane.claim(run, Duration.ofMinutes(5)).orElseThrow();
             Map<String, List<StoredObject>> opened = lane.inputs(held);
             assertEquals("Basic", opened.get("specimen").get(0).typeName(),
@@ -699,7 +699,7 @@ class AParticipantHoldsItsLaneOnTheStreamIT {
                 "closed on the head the opening left");
         assertTrue(entries(WorkModel.TYPE, run.id()).stream()
                         .anyMatch(e -> e.contains("\"code\":\"access\"")
-                                && e.contains("\"by\":\"analyser\"")),
+                                && e.contains("\"by\":\"assayer\"")),
                 "the opening of what the run carried is on the run's own trail");
     }
 

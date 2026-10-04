@@ -15,7 +15,7 @@ whatever was applied by hand the last time something was urgent. Nobody can say
 what differs between them, because there is no single thing to compare.
 
 Here a declared set is a thing in its own right, applied to a new tenant, an
-old one and an appliance alike — [One Declared Set,
+old one and a second site alike — [One Declared Set,
 Applied](../patterns/pattern-one-declared-set-applied.md). Where it is read from
 — a git repository, a directory, a mounted ConfigMap, a lane from a cloud — is
 a detail of reading, and reading is all a source does. What a declaration
@@ -29,7 +29,7 @@ between scopes. The scope does.
 
 What a scope last agreed with is recorded on its own run, in the store, rather
 than in the source. So two scopes reading the same repository can stand at
-different points in it — a test appliance at the revision being tried,
+different points in it — a test site at the revision being tried,
 production at the one that was tried a month ago. Moving production forward is
 then not a migration somebody writes. It is the same apply, against a revision
 that has already been exercised somewhere it did not matter.

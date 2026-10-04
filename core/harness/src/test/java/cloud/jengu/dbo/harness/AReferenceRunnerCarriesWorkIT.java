@@ -40,7 +40,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class AReferenceRunnerCarriesWorkIT {
 
     /** The role whoever opens work at a workplace holds it as. */
-    private static final String BENCH_ROLE = "PractitionerRole/bench";
+    private static final String WORKPLACE_ROLE = "PractitionerRole/workplace";
 
     private static final String PROCESS = "lab.result";
 
@@ -142,7 +142,7 @@ class AReferenceRunnerCarriesWorkIT {
         assertFalse(after.needsAPerson(),
                 "a queue that collects 'their server was down' stops being read: " + after);
         assertTrue(runner("their-lis-4", step, Duration.ofMinutes(5))
-                        .open(after.key(), BENCH_ROLE).isPresent(),
+                        .open(after.key(), WORKPLACE_ROLE).isPresent(),
                 "and somebody can take it again");
     }
 
@@ -151,13 +151,13 @@ class AReferenceRunnerCarriesWorkIT {
     void aWorkplaceIsTheSameClient() {
         String step = "validate-by-hand";
         Run waiting = work(step, "by-hand");
-        Runner workplace = runner("the-bench", step, Duration.ofMinutes(30));
+        Runner workplace = runner("the-workplace", step, Duration.ofMinutes(30));
 
         // somebody opens it
-        Run opened = workplace.open(waiting.key(), BENCH_ROLE).orElseThrow();
+        Run opened = workplace.open(waiting.key(), WORKPLACE_ROLE).orElseThrow();
         assertTrue(opened.claimed(Instant.now()), "two people opening one thing is what a "
                 + "claim is for, and a person is no more entitled to hold it twice");
-        assertTrue(workplace.open(waiting.key(), BENCH_ROLE).isEmpty());
+        assertTrue(workplace.open(waiting.key(), WORKPLACE_ROLE).isEmpty());
 
         // ... and finishes it, through the same report a service uses
         Run done = workplace.report(opened, Runner.Outcome.done(Map.of("checked", 1L)));
@@ -184,6 +184,6 @@ class AReferenceRunnerCarriesWorkIT {
         assertTrue(after.assignment().note().contains("released"),
                 "released is not done, and the difference is the whole point of a deadline");
         assertTrue(runner("their-lis-6", step, Duration.ofMinutes(5))
-                        .open(after.key(), BENCH_ROLE).isPresent());
+                        .open(after.key(), WORKPLACE_ROLE).isPresent());
     }
 }

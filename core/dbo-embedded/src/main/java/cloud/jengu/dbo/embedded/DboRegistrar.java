@@ -12,7 +12,7 @@ import java.util.Map;
  * {@code StepService} and the runner performs its step, registers a
  * {@code TenantObserver} and the tenant feeds it. The services ARE the
  * configuration, which is what lets the same code drop into a cloud process,
- * an edge process or an embedding without any of them changing. An
+ * a worker process or an embedding without any of them changing. An
  * application holding one of these assemblies has beans where the runtime
  * expects bundles, and this is the one line between them.
  *

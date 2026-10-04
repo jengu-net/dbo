@@ -1,4 +1,4 @@
-// A bedside thermometer's driver, as the clinic's application ships it: an
+// A step of the clinic's own, as the clinic's application ships it: an
 // OSGi bundle of the application's own, installed into the same framework as
 // the store and registering a step service there.
 //
@@ -21,8 +21,8 @@ dependencies {
 tasks.jar {
     bundle {
         bnd(mapOf(
-            "Bundle-SymbolicName" to "cloud.jengu.dbo.samples.thermometer",
-            "Bundle-Activator" to "cloud.jengu.dbo.samples.thermometer.Thermometer",
+            "Bundle-SymbolicName" to "cloud.jengu.dbo.samples.ward",
+            "Bundle-Activator" to "cloud.jengu.dbo.samples.ward.ObservingTheWard",
             // Nothing exported: the step service is the bundle's whole
             // contribution, and it reaches the runner as a service.
             "-exportcontents" to "",

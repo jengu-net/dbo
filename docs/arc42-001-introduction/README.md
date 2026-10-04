@@ -99,8 +99,8 @@ backup is implicitly restore-tested, because the import path is in daily use.
 
 **And the version is a per-tenant choice.** The available servers are pinned
 to FHIR R4. Several national base specifications are already R5, and the
-device and observation model — the part that matters most to anyone
-integrating clinical instruments — is substantially better in R5 and R6. A
+observation and diagnostics model — the part that matters most to anyone
+integrating laboratory results — is substantially better in R5 and R6. A
 store whose FHIR version is a property of the deployment is the wrong shape
 for the next decade.
 

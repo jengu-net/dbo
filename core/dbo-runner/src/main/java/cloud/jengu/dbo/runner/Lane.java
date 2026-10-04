@@ -49,7 +49,7 @@ import java.util.Set;
  * documents the task names. In an OSGi container the host registers one
  * {@code Lane} service per tenant it offers work from, and the runner's
  * activator tracks them — installing the bundle into the existing container
- * (cloud, edge, a dev embedding) is the whole deployment.
+ * (a server, a worker, a dev embedding) is the whole deployment.
  */
 public interface Lane {
 
@@ -453,7 +453,7 @@ public interface Lane {
      * somewhere nothing records it, and the trail exists to answer who saw
      * whom. Asking the tenant makes every reassembly an act performed where
      * it can be written down, with the run that occasioned it and the purpose
-     * that was stated for it. In an appliance this is a local call, so the one
+     * that was stated for it. In an embedded store this is a local call, so the one
      * rule costs nothing to keep.
      *
      * <p><b>The answer comes back sealed.</b> On the stream it crosses a plane
@@ -1035,7 +1035,7 @@ public interface Lane {
                 for (String recipient : named) {
                     if (!recipient.equals(identity.name()) && !routee(recipient)) {
                         // Only what this participant has declared behind it:
-                        // a router seals past itself to its own edges, and
+                        // a router seals past itself to its own routees, and
                         // to nothing it merely knows the name of.
                         throw new IllegalStateException(tenant + ": '" + identity.name()
                                 + "' has not declared '" + recipient
@@ -1229,8 +1229,8 @@ public interface Lane {
                 // signature.
                 // Who opened: this identity, or a routee behind it whose
                 // signed link the router is carrying home. A router cannot
-                // open, so an opening it forwards is its edge's, signed with
-                // the edge's own key — which is what stops a router
+                // open, so an opening it forwards is its routee's, signed with
+                // the routee's own key — which is what stops a router
                 // manufacturing one.
                 String by = link == null || link.author() == null ? identity.name() : link.author();
                 if (!by.equals(identity.name()) && !routee(by)) {

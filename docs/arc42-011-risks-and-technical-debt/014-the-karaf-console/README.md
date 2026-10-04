@@ -33,7 +33,7 @@ on first use — through a hand-written `Import-Package`, a lazily-reached jar
 outside a bundle, a binding that silences itself. Today the only witness is a
 container test going red, which says *that* something is unwired, not *what*.
 `bundle:tree-show`, `package:exports`, `service:list` and `bundle:diag` against
-a live container are the instrument for exactly that class of bug. That alone
+a live container are the tool for exactly that class of bug. That alone
 justifies the work.
 
 ## Four tiers, and what each one costs

@@ -97,8 +97,8 @@ public final class FleetHandler implements HttpHandler {
             exchange.getResponseHeaders().set("WWW-Authenticate", "Bearer");
             fail(exchange, context.isEmpty() ? 401 : 403, "access_denied",
                     "reading the fleet needs the '" + SCOPE + "' scope. A participation "
-                            + "credential does not carry it: what a bench may do and what a "
-                            + "deployment may ask about every bench are different questions");
+                            + "credential does not carry it: what a worker may do and what a "
+                            + "deployment may ask about every worker are different questions");
             return false;
         }
         return true;

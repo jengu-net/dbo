@@ -42,7 +42,7 @@ class WhatAStreamAskIsSignedOverTest {
 
     /** Valid JSON, spelled the way a caller might rather than the way we would. */
     private static final String AS_WRITTEN =
-            "{\"participant\" : \"analyser\",  \"n\" : 1.50, \"note\":\"a, b\"}";
+            "{\"participant\" : \"assayer\",  \"n\" : 1.50, \"note\":\"a, b\"}";
 
     @Test
     @DisplayName("the body's own bytes survive the ask whole, so what the door verifies is "
@@ -110,7 +110,7 @@ class WhatAStreamAskIsSignedOverTest {
                 ask.get("id"), ask.get("verb"), StreamAsk.bytesOf(ask.get("body")));
 
         Map<String, Object> tampered = read(RecordWire.write(askCarrying(
-                new RecordWire.Raw(AS_WRITTEN.replace("\"analyser\"", "\"somebody-else\"")))));
+                new RecordWire.Raw(AS_WRITTEN.replace("\"assayer\"", "\"somebody-else\"")))));
         byte[] forged = StreamAsk.signedOver(
                 tampered.get("id"), tampered.get("verb"),
                 StreamAsk.bytesOf(tampered.get("body")));
@@ -122,7 +122,7 @@ class WhatAStreamAskIsSignedOverTest {
     private static Map<String, Object> askCarrying(Object body) {
         Map<String, Object> ask = new LinkedHashMap<>();
         ask.put("id", "ask-1");
-        ask.put("participant", "analyser");
+        ask.put("participant", "assayer");
         ask.put("verb", "claim");
         ask.put("body", body);
         return ask;

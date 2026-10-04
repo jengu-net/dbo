@@ -11,7 +11,7 @@ import org.osgi.framework.BundleContext;
 import java.util.Map;
 
 /**
- * A driver bundle: it registers a step service and a lane, and that is all.
+ * A step bundle: it registers a step service and a lane, and that is all.
  *
  * <p>Everything the embeddable promise says was proved by tests that
  * construct the runner themselves — which proves the seam and says nothing
@@ -33,7 +33,7 @@ public final class ProbeActivator implements BundleActivator {
     public static final String PERFORMED = "dbo.probe.performed";
 
     /**
-     * The step this driver contributes — its own, declared nowhere else.
+     * The step this bundle contributes — its own, declared nowhere else.
      *
      * <p>{@code <module>.<process>.<step>}, which it was not until a tenant
      * declared it: nothing had ever put this id past {@code StepId}, because
@@ -44,7 +44,7 @@ public final class ProbeActivator implements BundleActivator {
     /**
      * Set to {@code false} where the container already has a lane.
      *
-     * <p>A driver bundle carries no lane in life: the host holds that, and
+     * <p>A step bundle carries no lane in life: the host holds that, and
      * this one holds a standing one so the whiteboard can be proved with no
      * store anywhere near it. In a container that IS a host — one holding a
      * real carrier into a real tenant — its own lane would answer first and

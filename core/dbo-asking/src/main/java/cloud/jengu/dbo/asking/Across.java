@@ -370,8 +370,8 @@ public final class Across implements Questions {
         }
 
         @Override
-        public Questions.Trail at(String appliance) {
-            return asked.refusing("at", "which appliance an entry came from is carried on the "
+        public Questions.Trail at(String site) {
+            return asked.refusing("at", "which site an entry came from is carried on the "
                     + "entry and the face renders no parameter for it");
         }
 

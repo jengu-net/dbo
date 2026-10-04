@@ -27,7 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  *
  * <p>The clinic is one place today and two by the end of this story. It takes
  * its canonical content from Rowling Land, the jurisdiction it sits in, and it
- * puts an appliance in the building so that a lost connection is an
+ * keeps a replica of itself in the building so that a lost connection is an
  * inconvenience rather than a closed practice.
  *
  * <p>Both halves are the same idea: content that belongs somewhere else,
@@ -38,9 +38,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  *
  * <p><b>The zone half</b> runs on Rowling Land's own tenant, with a clinic this story
  * declares after the zone already holds content, which is the ordinary order.
- * <b>The appliance half</b> is one tenant in two places, and the world is one
+ * <b>The replica half</b> is one tenant in two places, and the world is one
  * place. It is proven where it needs no runtime at all, as two databases and a
- * lane between them ({@code AnApplianceCarriesPatientDataByWorkIT} in the
+ * lane between them ({@code ASecondPlaceCarriesPatientDataByWorkIT} in the
  * harness), and this story leans on it.
  */
 @AUserStory
@@ -355,27 +355,27 @@ class OneTenantInTwoPlacesIT {
                 "a clinic nobody declares any more is still served");
     }
 
-    // ── and the hospital's side of an appliance's lane, held over HTTP ──
+    // ── and the hospital's side of a replica's lane, held over HTTP ──
 
     @Test
     @Order(8)
-    @DisplayName("the lane the hospital opens for an appliance over HTTP is the hospital's own: "
+    @DisplayName("the lane the hospital opens for a replica over HTTP is the hospital's own: "
             + "its epoch and where the far side said it had reached are facts in its store")
     @Proving(DboPromises.PROC_LANE_EPOCH)
     void theLaneIsTheHospitalsOwn() {
         var replication = hospitalsReplication(dbo.workToken(HOSPITAL));
-        String edge = names.value("edge");
-        var opened = replication.open(edge);
+        String replica = names.value("replica");
+        var opened = replication.open(replica);
         assertTrue(opened.epoch() != null, "opening a lane minted no epoch");
         Proves.that(DboPromises.PROC_LANE_EPOCH,
-                opened.epoch().equals(replication.open(edge).epoch())
-                        && opened.epoch().equals(replication.lane(edge).orElseThrow().epoch()),
+                opened.epoch().equals(replication.open(replica).epoch())
+                        && opened.epoch().equals(replication.lane(replica).orElseThrow().epoch()),
                 "re-opening the same lane minted another epoch, so a peer's cursor would not "
                         + "survive the hospital asking again");
-        replication.mark(edge, names.value("they-said-here"));
+        replication.mark(replica, names.value("they-said-here"));
         Proves.that(DboPromises.PROC_LANE_EPOCH,
                 names.value("they-said-here").equals(
-                        replication.lane(edge).orElseThrow().theirMarker()),
+                        replication.lane(replica).orElseThrow().theirMarker()),
                 "where the far side said it had reached is not a fact in the hospital's store");
     }
 
@@ -386,7 +386,7 @@ class OneTenantInTwoPlacesIT {
     @Proving(DboPromises.PROC_WORK_DRIVEN_ARRIVAL_AND_EXPIRY)
     void aBatchCarriesTheHospitalsOwnWork() {
         var replication = hospitalsReplication(dbo.workToken(HOSPITAL));
-        String bench = names.value("bench");
+        String building = names.value("building");
         String subject = dbo.write(HOSPITAL, "Observation", """
                 {"resourceType":"Observation","status":"registered","code":{"text":"%s"}}"""
                 .formatted(names.value("needs-a-second-read"))).idOrFail();
@@ -404,34 +404,34 @@ class OneTenantInTwoPlacesIT {
                 b -> b.items().stream().anyMatch(item -> item.work()
                         && new String(item.payload(), StandardCharsets.UTF_8)
                                 .contains(work.key()));
-        var batch = replication.outbound(bench, 500, java.util.Set.of(process()));
+        var batch = replication.outbound(building, 500, java.util.Set.of(process()));
         long giveUp = System.nanoTime() + Duration.ofMinutes(3).toNanos();
         while (!carriesIt.test(batch) && System.nanoTime() < giveUp) {
-            replication.sent(bench, batch);
-            batch = replication.outbound(bench, 500, java.util.Set.of(process()));
+            replication.sent(building, batch);
+            batch = replication.outbound(building, 500, java.util.Set.of(process()));
         }
         Proves.that(DboPromises.PROC_WORK_DRIVEN_ARRIVAL_AND_EXPIRY,
                 carriesIt.test(batch)
-                        && batch.epoch().equals(replication.lane(bench).orElseThrow().epoch()),
+                        && batch.epoch().equals(replication.lane(building).orElseThrow().epoch()),
                 "the run the hospital holds did not travel under the lane's epoch: "
                         + batch.items().size() + " items");
-        replication.sent(bench, batch);
+        replication.sent(building, batch);
         Proves.that(DboPromises.PROC_WORK_DRIVEN_ARRIVAL_AND_EXPIRY,
-                batch.cursor().equals(replication.lane(bench).orElseThrow().ourCursor()),
+                batch.cursor().equals(replication.lane(building).orElseThrow().ourCursor()),
                 "accepting the batch did not move the hospital's own cursor");
     }
 
     @Test
     @Order(10)
-    @DisplayName("what an appliance sends is applied to the hospital's store, filed under the "
-            + "appliance that authored it, and sending it again applies nothing")
-    @Proving(DboPromises.PROC_MIRRORED_RUNS_ARE_FILED_BY_APPLIANCE)
-    void whatTheApplianceSendsIsApplied() {
+    @DisplayName("what a replica sends is applied to the hospital's store, filed under the "
+            + "replica that authored it, and sending it again applies nothing")
+    @Proving(DboPromises.PROC_MIRRORED_RUNS_ARE_FILED_BY_SOURCE)
+    void whatTheReplicaSendsIsApplied() {
         var replication = hospitalsReplication(dbo.workToken(HOSPITAL));
-        String bench = names.value("bench");
-        String key = process() + "/validate/from-the-bench";
-        var fromTheBench = new cloud.jengu.dbo.sync.Lanes.Batch(
-                replication.open(bench).epoch(), bench, null,
+        String building = names.value("building");
+        String key = process() + "/validate/from-the-building";
+        var fromTheBuilding = new cloud.jengu.dbo.sync.Lanes.Batch(
+                replication.open(building).epoch(), building, null,
                 List.of(cloud.jengu.dbo.sync.Lanes.Item.work(
                         java.util.UUID.randomUUID().toString(), 1L,
                         java.time.Instant.parse("2026-08-30T08:00:00Z"),
@@ -441,16 +441,16 @@ class OneTenantInTwoPlacesIT {
                                 + "\"person\"],\"domains\":[\"work\"]}")
                                 .getBytes(StandardCharsets.UTF_8))));
 
-        var applied = replication.apply(bench, fromTheBench);
+        var applied = replication.apply(building, fromTheBuilding);
         cloud.jengu.dbo.work.Runs runs = new cloud.jengu.dbo.work.Runs(
                 tenants.store(HOSPITAL).orElseThrow());
-        Proves.that(DboPromises.PROC_MIRRORED_RUNS_ARE_FILED_BY_APPLIANCE,
+        Proves.that(DboPromises.PROC_MIRRORED_RUNS_ARE_FILED_BY_SOURCE,
                 applied.refused().isEmpty() && applied.applied() == 1
-                        && runs.byKey(bench + cloud.jengu.dbo.work.WorkModel.AUTHOR_SEPARATOR
+                        && runs.byKey(building + cloud.jengu.dbo.work.WorkModel.AUTHOR_SEPARATOR
                                 + key).isPresent(),
-                "what the appliance sent was not filed under the appliance in the hospital's "
+                "what the replica sent was not filed under the replica in the hospital's "
                         + "own store: " + applied);
-        assertEquals(0, replication.apply(bench, fromTheBench).applied(),
+        assertEquals(0, replication.apply(building, fromTheBuilding).applied(),
                 "a re-sent batch applied twice");
     }
 
@@ -461,15 +461,15 @@ class OneTenantInTwoPlacesIT {
     @Proving(DboPromises.PROC_ENTITLEMENT_IS_DECLARED_NOT_DEFAULTED)
     void replicationIsTheHospitalsOwnAct() {
         var authority = tenants.authority(HOSPITAL).orElseThrow();
-        String boundedClient = names.value("bench-bounded");
+        String boundedClient = names.value("steps-bounded");
         authority.ensureClient(boundedClient, "secret",
                 List.of("work/" + process() + ".validate"));
         IllegalStateException bounded = assertThrows(IllegalStateException.class,
-                () -> hospitalsReplication(tokenOf(boundedClient)).open(names.value("edge")));
+                () -> hospitalsReplication(tokenOf(boundedClient)).open(names.value("replica")));
         String readerClient = names.value("reads-only");
         authority.ensureClient(readerClient, "secret", List.of("system/*.read"));
         IllegalStateException none = assertThrows(IllegalStateException.class,
-                () -> hospitalsReplication(tokenOf(readerClient)).open(names.value("edge")));
+                () -> hospitalsReplication(tokenOf(readerClient)).open(names.value("replica")));
         Proves.that(DboPromises.PROC_ENTITLEMENT_IS_DECLARED_NOT_DEFAULTED,
                 bounded.getMessage().contains("bounded to steps")
                         && none.getMessage().contains("participation scope"),

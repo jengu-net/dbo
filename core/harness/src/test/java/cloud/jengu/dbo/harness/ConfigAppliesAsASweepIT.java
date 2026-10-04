@@ -264,7 +264,7 @@ class ConfigAppliesAsASweepIT {
     }
 
     /**
-     * The other half: a device decommissioned in a repository stops being a
+     * The other half: an entry decommissioned in a repository stops being a
      * record here.
      *
      * <p>The store can say what it holds of a projected type honestly, because
@@ -277,16 +277,16 @@ class ConfigAppliesAsASweepIT {
     @DisplayName("a complete read that stops naming a projected record withdraws it, and what "
             + "it was is still answerable")
     void aProjectionNoLongerDeclaredIsWithdrawn() {
-        ConfigApplication.Declared device = new ConfigApplication.Declared("Projection",
-                "devices/bench-7.json",
-                "{\"code\":\"bench-7\",\"label\":\"Bench 7\"}".getBytes(StandardCharsets.UTF_8));
-        ConfigSource declaring = () -> new ConfigSource.Fetch(List.of(device),
-                ConfigSource.markerOf(List.of(device)), true);
+        ConfigApplication.Declared entry = new ConfigApplication.Declared("Projection",
+                "rooms/room-7.json",
+                "{\"code\":\"room-7\",\"label\":\"Room 7\"}".getBytes(StandardCharsets.UTF_8));
+        ConfigSource declaring = () -> new ConfigSource.Fetch(List.of(entry),
+                ConfigSource.markerOf(List.of(entry)), true);
 
         assertEquals(1, configuration.applyFrom("zone/decommissioned", declaring).applied());
         String id = store.getByIdentifier("Projection",
                         List.of(new cloud.jengu.dbo.core.api.Identifier(PROJECTED_SYSTEM,
-                                "bench-7")))
+                                "room-7")))
                 .stream().findFirst().orElseThrow().id();
 
         // The same scope, read complete, no longer naming it.
@@ -300,7 +300,7 @@ class ConfigAppliesAsASweepIT {
                 "withdrawn, and still counted as held");
 
         // Withdrawn is a deleted version, not a vanished record: somebody
-        // asking what that bench was, and when it went, has an answer.
+        // asking what that room was, and when it went, has an answer.
         assertFalse(store.history("Projection", id).isEmpty(),
                 "the record was removed and took its own history with it, so nobody can say "
                         + "what it had been");

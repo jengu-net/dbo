@@ -156,13 +156,13 @@ class HandlingShieldsIT {
     @Timeout(300)
     @DisplayName("a tenant user cannot edit configuration projected from a declaration")
     void projectedConfigurationIsTheLanesToWrite() {
-        PutResult applied = store.put(PutRequest.create("Projected", body("device-a")),
+        PutResult applied = store.put(PutRequest.create("Projected", body("setting-a")),
                 Handling.Authority.CONFIG_LANE);
 
         cloud.jengu.dbo.core.api.HandlingRefusedException refused = assertThrows(
                 cloud.jengu.dbo.core.api.HandlingRefusedException.class,
                 () -> store.put(new PutRequest("Projected", applied.id(), null,
-                        body("device-a-edited"))));
+                        body("setting-a-edited"))));
 
         assertTrue(refused.getMessage().contains("read-only-here"), refused.getMessage());
         assertTrue(refused.getMessage().contains("CONFIG_LANE"),
@@ -187,17 +187,17 @@ class HandlingShieldsIT {
             + "not")
     void anUpsertSaysWhoIsMakingIt() {
         cloud.jengu.dbo.core.api.IdentityRef ref =
-                cloud.jengu.dbo.core.api.IdentityRef.identifier(CODE_SYSTEM, "device-b");
+                cloud.jengu.dbo.core.api.IdentityRef.identifier(CODE_SYSTEM, "setting-b");
 
-        store.putConditional(ref, PutRequest.create("Projected", body("device-b")),
+        store.putConditional(ref, PutRequest.create("Projected", body("setting-b")),
                 Handling.Authority.CONFIG_LANE);
         // and again, which is the case that made this an upsert at all
-        store.putConditional(ref, PutRequest.create("Projected", body("device-b")),
+        store.putConditional(ref, PutRequest.create("Projected", body("setting-b")),
                 Handling.Authority.CONFIG_LANE);
 
         assertThrows(cloud.jengu.dbo.core.api.HandlingRefusedException.class,
                 () -> store.putConditional(ref,
-                        PutRequest.create("Projected", body("device-b"))),
+                        PutRequest.create("Projected", body("setting-b"))),
                 "an upsert that states no authority is the least-privileged caller, and a "
                         + "projection is not that caller's to write");
     }

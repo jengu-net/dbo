@@ -23,7 +23,7 @@ assumes the split it describes.
   concept: an honest answer or a refusal, never an approximation.
 - [**Change, and who is listening**](change-and-who-is-listening/README.md) (§6, §10)
   — one feed primitive behind paging, subscriptions, dependent copies and
-  appliance sync.
+  replica sync.
 - [**Processes and work**](processes-and-work/README.md) (§8) — what has to be done,
   who is entitled to do it, and how work leaves the store and comes back.
 

@@ -9,14 +9,14 @@ standfirst: >-
 template: essay.html
 ---
 
-Meristem builds laboratory software. Their analysers sit in practices all over
+Meristem builds laboratory software. Their workers sit in practices all over
 the country, each practice a tenant, and they run one synchronisation service
-for all of them. Most of what it carries, it cannot read. When an analyser
-needs the specimen document, it is opened there, on the analyser, and the
+for all of them. Most of what it carries, it cannot read. When a worker needs
+the specimen document, it is opened there, by that worker, and the
 opening is what the practice sees in its trail as a reading; the hops that
 carried it unopened are in the trail too, as travel. What Ines is not willing
 to build is a copy of the store's work model on her side of the wire. The scene
-is [US-DBO-EDGE-ROUNDTRIP](../arc42-003-context/user-stories/us-dbo-edge-roundtrip.md),
+is [US-DBO-WORK-ROUNDTRIP](../arc42-003-context/user-stories/us-dbo-work-roundtrip.md),
 walked at Hogwarts by
 [`WorkLeavesTheClinicAndComesBackIT`](https://github.com/jengu-net/dbo/blob/main/samples/spring-boot-server-app/src/test/java/cloud/jengu/dbo/samples/stories/WorkLeavesTheClinicAndComesBackIT.java).
 
@@ -109,12 +109,11 @@ step admits.
 
 ## A step as a bundle of the clinic's own
 
-The clinic ships a driver for its ward thermometers, and the driver is an OSGi
-bundle: it registers the step it performs, which is how a bundle contributes
-anything.
+The clinic ships one of its own steps as an OSGi bundle: the bundle registers
+the step it performs, which is how a bundle contributes anything.
 
 ```java
---8<-- "samples/ward-thermometer/src/main/java/cloud/jengu/dbo/samples/thermometer/Thermometer.java:driver"
+--8<-- "samples/ward-bundle/src/main/java/cloud/jengu/dbo/samples/ward/ObservingTheWard.java:bundle"
 ```
 
 A bundle performing a step belongs in the runner's class space, so it has to
@@ -180,7 +179,7 @@ with her token:
 `waiting` is the people's list: ready, and open to people alone — asked across
 the tenant's door as `Task?status=ready&performer-type=person`. `take` claims
 the task as the `PractitionerRole` she holds there, so the task's `owner` is her
-role, never a device, on a lease she extends with a checkpoint. While she holds
+role, never an executor, on a lease she extends with a checkpoint. While she holds
 it the run's context answers her and nobody else — another nurse holding the
 same id is answered 404 — and the reading she makes through it lands on the
 trail under her practitioner. `finish` completes it, and the clinic, which has
@@ -260,7 +259,7 @@ and reads the same answers.
   a node start resets it. What is recorded is what a listener asks for as
   work.
 
-The [joins table](../arc42-003-context/user-stories/us-dbo-edge-roundtrip.md#joins)
+The [joins table](../arc42-003-context/user-stories/us-dbo-work-roundtrip.md#joins)
 names the test behind each.
 
 ## What the store cannot do yet

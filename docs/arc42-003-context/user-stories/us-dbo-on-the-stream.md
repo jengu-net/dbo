@@ -20,7 +20,7 @@ its asks is enrolled there, which here is after the tenant came up, and every
 lane below goes through a door opened that way. Three participants take
 part:
 
-- an **analyser**, enrolled with its own keys, performing an assay;
+- an **assayer**, enrolled with its own keys, performing an assay;
 - an **imager**, enrolled with its own keys, whose scans are large;
 - a **courier**, which carries work and holds no key at all.
 
@@ -32,8 +32,8 @@ back closed, with the same tally, and the step service was handed the same
 document on both. The hop over the stream is on the task's trail like any
 other hop.
 
-The stream is full duplex. Work goes out sealed to the analyser, the
-analyser opens it with the key it holds, and the signed account of that
+The stream is full duplex. Work goes out sealed to the assayer, the
+assayer opens it with the key it holds, and the signed account of that
 opening comes home on the same channel and lands on the document as a
 reading, beside the travel entry on the task.
 

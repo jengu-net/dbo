@@ -28,7 +28,7 @@ class AWorkerIsInContactUntilItFallsSilentTest {
 
     private static final String STEP = "lab.result.verify";
     private static final ContactListener.Worker WORKER =
-            new ContactListener.Worker("analyser-client", "analyser", "2");
+            new ContactListener.Worker("worker-client", "worker", "2");
 
     private final MovableClock clock = new MovableClock();
     private final Contacts contacts = new Contacts("node-a", clock, null, (named, threw) -> {
@@ -46,7 +46,7 @@ class AWorkerIsInContactUntilItFallsSilentTest {
         contacts.heard("hospital", Set.of("verify"), WORKER, null);
         clock.move(Duration.ofSeconds(20));
         contacts.heard("hospital", Set.of(STEP), WORKER,
-                Map.of("example.bench", Map.of("queued", 3L)));
+                Map.of("example.worker", Map.of("queued", 3L)));
         Instant lastHeard = clock.instant();
         clock.move(Duration.ofSeconds(29));
         contacts.expire();
@@ -61,7 +61,7 @@ class AWorkerIsInContactUntilItFallsSilentTest {
         assertEquals(lastHeard, unknown.lastSeen(), "it is unknown as of when it was last heard");
         assertEquals("node-a", unknown.node(), "and the event names the node that lost it");
         ContactListener.Statistics statistics = (ContactListener.Statistics) told.events.get(2);
-        assertEquals(Map.of("queued", 3L), statistics.statistics().get("example.bench"),
+        assertEquals(Map.of("queued", 3L), statistics.statistics().get("example.worker"),
                 "statistics arrive nested, as the worker sent them");
 
         contacts.heard("hospital", Set.of(STEP), WORKER, null);

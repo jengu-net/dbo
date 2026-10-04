@@ -29,8 +29,8 @@ also what makes it a place two parties who do not trust each other can both
 use — an exchange is a process with obligations, not a file drop, and somebody
 has to hold the record of it.
 
-Almost none of that work happens where the store is. A sample is analysed on an
-instrument in a laboratory. A model is exported by a firm competing with the
+Almost none of that work happens where the store is. A sample is analysed in a
+laboratory. A model is exported by a firm competing with the
 others on the same project. A consignment is inspected at a border. A component
 declaration is signed by a supplier's own system. A great deal of it is a person
 at a screen deciding something. Some of those places are behind a router with no
@@ -90,7 +90,7 @@ would double every count taken from it.
 ## A step is a workplace
 
 The most useful way to read a step is as a **place where work is held and
-done** — a desk, a bench, a queue in front of a machine. Someone or something
+done** — a desk, a counter, a queue in front of a machine. Someone or something
 stands at it.
 
 **Manual is the baseline, and automation is an attachment.** A step is fully
@@ -146,7 +146,7 @@ step, and a step that did not open itself to that is refused by name.
 
 ## How work reaches whoever does it
 
-**Nothing is pushed.** A **participant** — a service, an on-site appliance, a
+**Nothing is pushed.** A **participant** — a service, a worker on site, a
 member organisation's own system, or a person opening a screen — asks what is
 waiting for the steps it performs and takes what it can.
 
@@ -160,8 +160,8 @@ things: the path between [two sites of one tenant](#two-sites-of-one-tenant),
 and a hop in the chain a run's travel is recorded as.) It says nothing about the route work travels or a line it must
 stay inside; it says *whose* work this is, which is why it carries an
 entitlement rather than a direction. So the picture is an ordinary one: the
-step is the bench, its backlog is what waits at that bench, and a lane is
-somebody's standing to work there — which bench, in which tenant, with which
+step is the desk, its backlog is what waits at that desk, and a lane is
+somebody's standing to work there — which desk, in which tenant, with which
 verbs.
 
 A participant holds a lane and never a handle to the store, which is why the
@@ -219,7 +219,7 @@ close can be wrong, and discovering that must not require inventing a second run
 to disagree with the first: the run itself becomes claimable again, with the
 reason on the record. That reopening is reached through the lane like every
 other act, and by its own half of an entitlement — the supervisory half, which
-nothing implies. A bench that validates results does not thereby overturn the
+nothing implies. A participant that validates results does not thereby overturn the
 ones somebody judged done; a credential speaking for the whole tenant supervises
 nothing until the word is written down, exactly as one that may write every type
 still may not erase a person; and a credential that supervises takes no work.
@@ -250,13 +250,13 @@ work to claim in a real deployment, authored by the side that originates it.
 what the participant reports, and the store has no view below that seam, so a
 report that arrives early is a true-looking record of something that has not
 happened — and nobody looks for work the store says is finished. A participant
-with durable execution underneath waits for it; a router waits for its edge. A
+with durable execution underneath waits for it; a router waits for its routees. A
 wedged one then lets the claim lapse, and the run reads *released* rather than
 *done*, which is the honest state.
 
 ## Two sites of one tenant
 
-A site with an on-premises appliance and a cloud is **one tenant in two places**,
+A site with an on-premises replica and a cloud is **one tenant in two places**,
 not two tenants: same code, same declarations, different local settings. What
 travels between them is the stored bytes as they are, in the carrier form —
 sealed to the site meant to open them, readable in their manifest by whatever
@@ -266,7 +266,7 @@ carries them.
   back; something outside carries the bytes, authenticates and reconnects. A
   network is somebody's job, not a dependency of the store working.
 - **Records travel because work needs them, and leave when it no longer does** —
-  not by following references outward, which is how an appliance ends up holding
+  not by following references outward, which is how a site ends up holding
   a copy of the entire collection.
 - **The lane has a second bound, deliberately different: declarations travel by
   type.** A tenant's own definitions — terminology, canonicals, none of it about
@@ -281,7 +281,7 @@ carries them.
   flight" can both be true at once, and a peer acting on the first has the work
   done twice.
 
-The accepted consequence: an appliance that dies holding its own work keeps it
+The accepted consequence: a site that dies holding its own work keeps it
 until it returns. Moving that work is a deliberate act by a person, not something
 a clock infers from a link that is merely slow.
 
@@ -298,7 +298,7 @@ same participant, competing, with the claim sorting out who does what; there is
 nothing to partition and no rebalancing to get wrong.
 
 **No orchestrator is named anywhere in it.** The same participant runs as a
-service, on an appliance with nothing else on it, or as a screen with a person in
+service, on a machine with nothing else on it, or as a screen with a person in
 front of it. Whatever runs work locally may be durable in its own way; what is
 owed, by whom, and what happened is the store's.
 
@@ -306,7 +306,7 @@ That is a statement about the *contract*, not about the store's deployment. The
 store's own durable substrate is named in its constraints and used by its own
 code; what the seam keeps neutral is *meaning* — a run, a claim and an outcome
 say the same thing whether the work happened in a workflow, in a loop, or in
-front of a person — which is what lets a bench with nothing on it be a
+front of a person — which is what lets a desk with nothing on it be a
 participant without anybody installing a substrate there.
 
 ## Where the detail is written down

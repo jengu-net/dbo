@@ -153,7 +153,7 @@ stated is empty rather than unlimited. It takes a run, does the work, and
 reports back on the same channel. Nothing is queued for it while it is asleep,
 and nothing is retried at it.
 
-An appliance that is offline for a weekend is therefore not an incident. It is
+A participant that is offline for a weekend is therefore not an incident. It is
 behind by a distance you can read.
 
 ## Where the person is

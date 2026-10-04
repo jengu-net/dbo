@@ -13,7 +13,7 @@ package cloud.jengu.dbo.logging;
  *       box that is stuck.</li>
  *   <li>{@code dbo.log.format} — {@code json|text}, default {@code json}.
  *       The deployment target is a cluster where something is always parsing;
- *       {@code text} is for reading over SSH on an edge box.</li>
+ *       {@code text} is for reading over SSH on a remote node.</li>
  *   <li>{@code dbo.log.level.<prefix>} — the level for loggers under one name,
  *       longest prefix winning. {@code dbo.log.level.ca.uhn.fhir=info} says it
  *       for the FHIR stack alone.</li>

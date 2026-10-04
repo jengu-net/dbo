@@ -28,7 +28,7 @@ import java.util.Base64;
  * holds the public halves and nothing that signs or opens.
  *
  * <p>What a signature buys is non-forgery and non-repudiation — a router
- * cannot manufacture an edge's access link, an edge cannot deny one it
+ * cannot manufacture a routee's access link, a routee cannot deny one it
  * signed. What it does not buy is omission-proofing, and that limit is
  * accepted where the chain is described.
  *

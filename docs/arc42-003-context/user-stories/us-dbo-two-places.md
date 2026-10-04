@@ -1,8 +1,8 @@
 # US-DBO-TWO-PLACES — one tenant in two places, and content that belongs somewhere else
 
 > The clinic takes its canonical content from a national zone it does not
-> run, and it puts an appliance in the building so that a lost connection
-> is an inconvenience rather than a closed practice.
+> run, and it keeps a replica of itself in the building so that a lost
+> connection is an inconvenience rather than a closed practice.
 >
 > Both halves are the same idea — content that belongs somewhere else,
 > arriving because somebody declared that it should, and staying legible
@@ -13,12 +13,12 @@
 > systems and gets every version of them, because none of it is about
 > anybody. Patient data travels **by work**: it arrives with a task and
 > leaves when no open run still names it. That second bound is the whole
-> reason an appliance does not slowly become a copy of the clinic.
+> reason a second place does not slowly become a copy of the clinic.
 
 ## The scene
 
 Ines's clinic is a dependent of a zone tenant that publishes terminology, and
-the practice building has an appliance running the same tenant as the cloud.
+the practice building runs a replica of the same tenant as the cloud.
 Neither arrangement involves a second copy of the store's model on anybody's
 side of a wire.
 
@@ -37,13 +37,13 @@ catalogue.
 Dependencies are against the **direct** upstream only. Chains compose hop by
 hop, so nobody inherits a transitive relationship they did not agree to.
 
-## Two appliances of one tenant
+## Two places of one tenant
 
-The appliance is not a second tenant. Same code, same declarations, same face;
+The replica is not a second tenant. Same code, same declarations, same face;
 only the local settings differ.
 
-What a run produced on the appliance travels with that run, and lands on the
-cloud **filed under the appliance that made it**. The run comes too, mirrored
+What a run produced in the building travels with that run, and lands on the
+cloud **filed under the place that made it**. The run comes too, mirrored
 beside the cloud's, because the side that authored a run is the only side that
 advances it.
 
@@ -53,12 +53,12 @@ peer acting on the first has the work done twice.
 
 ## Reconnecting is ordinary
 
-A batch sent twice applies once. An appliance that loses its connection,
+A batch sent twice applies once. A replica that loses its connection,
 reconnects and repeats itself is the normal case, so the lane absorbs the
 repeat.
 
 A peer resuming a cursor that a different lane instance issued is refused
-rather than replayed. An appliance restored from last week's copy looks
+rather than replayed. A replica restored from last week's copy looks
 perfectly healthy while resuming a position that means nothing, and the epoch
 is what makes that visible instead of silently wrong.
 
@@ -91,12 +91,12 @@ citations say it is.
 | `REQ-DBO-ZONE-SUBJECT-DOMAINS` | Subject-resolution identifier systems come from the zone's declared domains — the official national terminology — never from dbo code. | PROVEN |
 | `REQ-DBO-ZONE-BROKER-CHOICE` | The broker set is jurisdictional, the choice organizational: the zone declares the available national brokers; a tenant selects its contracted one and may restrict what it accepts. | PROVEN |
 | `REQ-DBO-ZONE-SESSIONS-ACCUMULATE` | The per-zone hub's session records which broker performed each ceremony and accumulates ceremonies; cross-broker reuse is the default, tenant acceptance policy the restriction — the strictest tenant is satisfied without invalidating anyone else's session. | PROVEN |
-| `REQ-DBO-PROC-THE-LANE-HAS-TWO-BOUNDS` | What moves between two appliances of one tenant has two bounds, deliberately different: declarations by type — the tenant's own definitions, none of it about anybody — which travel as every version of the types asked for since the peer's position, filed under their source, read-only there, shadowed by a local override and never revoked by work; and patient data by work, which arrives with a task and leaves with it. What a run produced travels with the run as a copy that outlives it. A type the lane does not admit is refused by name, never quietly left out. | PROVEN |
-| `REQ-DBO-PROC-WORK-DRIVEN-ARRIVAL-AND-EXPIRY` | A record travels to an appliance because a piece of work names it, and is removed when no open run there still names it. Work-driven arrival without work-driven expiry is a bench accumulating a register one task at a time. | PROVEN |
-| `REQ-DBO-PROC-MIRRORED-RUNS-ARE-FILED-BY-APPLIANCE` | A run arriving from another appliance of the same tenant is stored under that appliance, beside the local run of the same key rather than on top of it. | PROVEN |
-| `REQ-DBO-PROC-AUDIT-REPLICATES-AS-RECORDED` | An appliance's audit entries reach its peer as that appliance recorded them — original actor, original time, and the appliance named — and the arrival writes no second trail. Direct writes to the audit type stay refused for every caller; the replication lane is admitted through one narrow port that can express no other write, and a re-delivered entry lands exactly once under the source's own identity. | PROVEN |
+| `REQ-DBO-PROC-THE-LANE-HAS-TWO-BOUNDS` | What moves between two replicas of one tenant has two bounds, deliberately different: declarations by type — the tenant's own definitions, none of it about anybody — which travel as every version of the types asked for since the peer's position, filed under their source, read-only there, shadowed by a local override and never revoked by work; and patient data by work, which arrives with a task and leaves with it. What a run produced travels with the run as a copy that outlives it. A type the lane does not admit is refused by name, never quietly left out. | PROVEN |
+| `REQ-DBO-PROC-WORK-DRIVEN-ARRIVAL-AND-EXPIRY` | A record travels to a replica because a piece of work names it, and is removed when no open run there still names it. Work-driven arrival without work-driven expiry is a replica accumulating a register one task at a time. | PROVEN |
+| `REQ-DBO-PROC-MIRRORED-RUNS-ARE-FILED-BY-SOURCE` | A run arriving from another replica of the same tenant is stored under that replica, beside the local run of the same key rather than on top of it. | PROVEN |
+| `REQ-DBO-PROC-AUDIT-REPLICATES-AS-RECORDED` | A replica's audit entries reach its peer as that replica recorded them — original actor, original time, and the replica named — and the arrival writes no second trail. Direct writes to the audit type stay refused for every caller; the replication lane is admitted through one narrow port that can express no other write, and a re-delivered entry lands exactly once under the source's own identity. | PROVEN |
 | `REQ-DBO-PROC-LANE-APPLY-IS-REPLAY-AND-REORDER-SAFE` | What a peer sends applies once however often it is sent, and a batch arriving behind a newer one does not put the older version back. The comparison is the source version, so neither property depends on the transport being careful. | PROVEN |
-| `REQ-DBO-PROC-LANE-EPOCH` | A lane carries an epoch, and a peer resuming a cursor issued by another lane instance is refused rather than replayed — an appliance restored from a copy looks healthy while resuming a position that no longer means anything. | PROVEN |
+| `REQ-DBO-PROC-LANE-EPOCH` | A lane carries an epoch, and a peer resuming a cursor issued by another lane instance is refused rather than replayed — a replica restored from a copy looks healthy while resuming a position that no longer means anything. | PROVEN |
 | `REQ-DBO-FEED-PUSH-ACK-RESUME` | Push consumers acknowledge with the cursor; any interrupted stream resumes from the last acknowledged position. | PROVEN |
 | `REQ-DBO-FEED-IDEMPOTENT-DELIVERY` | Delivery is at-least-once with idempotent apply by identity and version. | PROVEN |
 | `REQ-DBO-TEN-WHAT-A-TENANT-CARES-ABOUT-IS-EDITABLE` | What a tenant streams from another tenant can be added to and taken away while it serves. A dependency declared today catches up from the upstream's whole history; one no longer declared stops delivering, and the copies it already brought stay, because they are what this tenant answers from. A dependency on a tenant that is not up yet is a wait rather than a teardown: nothing that was serving stops serving because somebody named an upstream before it arrived. | PROVEN |
@@ -114,7 +114,7 @@ Coverage: {PROVEN=25, PLANNED=1} — a leg marked PLANNED cites a promise that e
   back; something outside carries the bytes, authenticates and reconnects. A
   network is somebody's job and not a dependency of the store working, which
   is right and also means there is nothing here to configure.
-- **Moving work between appliances is a person's act.** An appliance that dies
+- **Moving work between places is a person's act.** A replica that dies
   holding work it authored keeps that work until it returns. Nothing infers
   from a slow link that the other side should take over.
 

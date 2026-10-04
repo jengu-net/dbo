@@ -11,7 +11,7 @@ import java.util.Optional;
  *
  * <p>FHIR lets a writer point at a resource it can describe but cannot name:
  * {@code "reference": "Patient?identifier=https://ehr.example|12345"}. The
- * writer knows an identifier — a device, an integration, a bundle author
+ * writer knows an identifier — a worker, an integration, a bundle author
  * allocating nothing — and the server resolves it. Stored unresolved, such a
  * reference points at nothing: the document is accepted and broken, which is
  * the failure this exists to prevent.

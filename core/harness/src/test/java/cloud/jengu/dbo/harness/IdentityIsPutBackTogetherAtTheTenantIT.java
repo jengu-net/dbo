@@ -63,10 +63,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * that happened somewhere nothing wrote it down, and the trail exists to
  * answer who saw whom.
  *
- * <p>So it is a callback, and the same one everywhere — in an appliance it is
- * a local call, which is what makes one rule affordable. What comes back is
- * sealed to the asker, because the plane this may cross holds nothing readable
- * and reassembled identity is the last thing that should be its exception.
+ * <p>So it is a callback, and the same one everywhere — in a replica of the
+ * tenant it is a local call, which is what makes one rule affordable. What
+ * comes back is sealed to the asker, because the plane this may cross holds
+ * nothing readable and reassembled identity is the last thing that should be
+ * its exception.
  */
 @Tag("integration")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -84,7 +85,7 @@ class IdentityIsPutBackTogetherAtTheTenantIT {
     static PdiObjectStore store;
     static Runs runs;
     static Declarations declarations;
-    static KeyPair analyser;
+    static KeyPair assayer;
     static KeyPair signer;
     static final List<String> openings = new ArrayList<>();
     static final List<RunChain.Link> links = new ArrayList<>();
@@ -111,7 +112,7 @@ class IdentityIsPutBackTogetherAtTheTenantIT {
         runs = new Runs(store);
         declarations = new Declarations(store, new PgChangeFeed(ds, WorkModel.DOMAIN),
                 Duration.ofSeconds(30));
-        analyser = KeyWrap.newParticipantKeyPair();
+        assayer = KeyWrap.newParticipantKeyPair();
         signer = SigningKey.newKeyPair();
     }
 
@@ -131,7 +132,7 @@ class IdentityIsPutBackTogetherAtTheTenantIT {
         Lane lane = lane();
         Run held = lane.claim(run, Duration.ofMinutes(5)).orElseThrow();
 
-        // What work arrives as, and what it does not: the analyser holds the
+        // What work arrives as, and what it does not: the assayer holds the
         // record and cannot read the person out of it.
         String carrier = opened(lane.sealed(held).payload().get(0));
         assertTrue(carrier.contains("__pdiEnc"), carrier);
@@ -150,14 +151,14 @@ class IdentityIsPutBackTogetherAtTheTenantIT {
         // rendering would have passed on plaintext — it did, when this was
         // mutated to hand the record back unsealed — which makes it an
         // assertion about Base64 rather than about sealing.
-        assertTrue(answer.wrapped().containsKey("analyser"),
+        assertTrue(answer.wrapped().containsKey("assayer"),
                 "the answer was sealed to nobody, so either it is readable or it is lost");
         String carried = new String(answer.ciphertext(), StandardCharsets.UTF_8);
         assertFalse(carried.contains(FAMILY) || carried.contains(CODE),
                 "the reassembled person travelled readable, so a plane that holds nothing "
                         + "readable would now hold the one thing it most must not");
 
-        String whole = new String(answer.open("analyser", analyser.getPrivate()).payload(),
+        String whole = new String(answer.open("assayer", assayer.getPrivate()).payload(),
                 StandardCharsets.UTF_8);
         assertTrue(whole.contains(FAMILY) && whole.contains(CODE),
                 "the answer did not carry the person, so the callback reassembled nothing "
@@ -170,7 +171,7 @@ class IdentityIsPutBackTogetherAtTheTenantIT {
                 "putting the person back together left no entry, so the store cannot answer "
                         + "who saw whom — which is the only thing a callback buys over "
                         + "handing the vault to the runner");
-        assertEquals("Patient/" + patientId + " by analyser",
+        assertEquals("Patient/" + patientId + " by assayer",
                 openings.get(openings.size() - 1));
     }
 
@@ -220,14 +221,14 @@ class IdentityIsPutBackTogetherAtTheTenantIT {
     // ------------------------------------------------------------ fixtures
 
     private static String opened(SealedPayload payload) throws Exception {
-        StoredObject object = payload.open("analyser", analyser.getPrivate());
+        StoredObject object = payload.open("assayer", assayer.getPrivate());
         return new String(object.payload(), StandardCharsets.UTF_8);
     }
 
     private static Lane lane() {
-        Executor identity = new Executor("analyser", "1.0", "cloud.jengu.test", Scope.BASELINE);
+        Executor identity = new Executor("assayer", "1.0", "cloud.jengu.test", Scope.BASELINE);
         return Lane.inProcess("t-pdi", runs, new PgChangeFeed(ds, WorkModel.DOMAIN),
-                declarations, "analyser", identity, store, null,
+                declarations, "assayer", identity, store, null,
                 Lane.Entitlement.everything(), null, new Lane.Trail() {
                     @Override
                     public void handedTo(Run r, String to, RunChain.Link link) {
@@ -248,7 +249,7 @@ class IdentityIsPutBackTogetherAtTheTenantIT {
                 }, new Lane.Keys() {
                     @Override
                     public Optional<ParticipantKey> of(String participant) {
-                        return Optional.of(ParticipantKey.of(analyser.getPublic()));
+                        return Optional.of(ParticipantKey.of(assayer.getPublic()));
                     }
 
                     @Override

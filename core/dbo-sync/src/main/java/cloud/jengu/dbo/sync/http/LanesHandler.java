@@ -19,7 +19,7 @@ import java.util.Set;
  *
  * <p><b>The same asymmetry {@code LaneHandler} answers, one layer up.</b>
  * {@code Lanes} takes the store's internals, so only a host that <em>is</em>
- * the container can build one — and declarations flow cloud → appliance, so
+ * the container can build one — and declarations flow cloud → site, so
  * the cloud is the side that must produce outbound batches while being the
  * side whose dbo is a separate deployment. Pull-not-push does not move it:
  * whoever pulls, the cloud still has to produce the batch.

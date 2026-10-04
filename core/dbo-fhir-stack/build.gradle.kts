@@ -76,7 +76,7 @@ configurations.named("embedded") {
     // serve reaches for it — proven by removing it and running the container:
     // every bundle still resolves, conversion still converts, validation still
     // validates. 8.7M of a 97M bundle, which is 8.7M in every image and every
-    // edge that pulls one.
+    // node that pulls one.
     //
     // Its neighbours are NOT the same answer, and the evidence is worth
     // keeping: dstu3 is reached by HAPI's own validation support
@@ -95,7 +95,7 @@ configurations.named("embedded") {
  * **Each export carries the version of the jar it came from.** A package
  * exported without one is exported at 0.0.0, and any consumer stating a range
  * — which bnd computes by default, so most of them do — then fails to resolve
- * against this bundle. A host platform's driver SPI importing
+ * against this bundle. A host platform's own bundle importing
  * `org.hl7.fhir.r4.model;version="[6.9,7)"` is the case that found this:
  * unversioned, this bundle cannot satisfy it, and the framework where the
  * store owns the FHIR classes does not come up at all.

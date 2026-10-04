@@ -44,7 +44,7 @@ class RecordWireCarriesTheRecordAsDeclaredTest {
             Map.of("read", 4L), new Run.Item("Observation/o1", Failure.RECORD, "no such code"),
             List.of("r4"),
             new Run.Assignment(Scope.zone("ee"),
-                    new Executor("bench-7", "1.2", "cloud.jengu.test", Scope.BASELINE),
+                    new Executor("worker-7", "1.2", "cloud.jengu.test", Scope.BASELINE),
                     "the step's own", Instant.parse("2026-08-29T10:15:30Z"), "client-7",
                     "PractitionerRole/nurse-1", "0190a000-0000-7000-8000-00000000c1a1"),
             new Run.Produced(List.of("Observation/o1/2"), Map.of("Observation", 2L), 1L),
@@ -135,7 +135,7 @@ class RecordWireCarriesTheRecordAsDeclaredTest {
             + "ignored rather than refused")
     void aDeclarationSurvivesAndTheFutureIsTolerated() {
         Declarations.Declared declared = new Declarations.Declared("dbo.lab", "validate",
-                "bench-7", "1.2", "cloud.jengu.test", Scope.BASELINE, "consumer-7");
+                "worker-7", "1.2", "cloud.jengu.test", Scope.BASELINE, "consumer-7");
 
         String wire = RecordWire.write(declared);
         String ahead = wire.substring(0, wire.length() - 1) + ",\"whatComesNext\":\"a value\"}";

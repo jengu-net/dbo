@@ -42,11 +42,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * patient data by work — with what a run produced travelling beside it.
  *
  * <p>Two real runtimes of one tenant, as the by-work proof has them. A
- * declaration written on the cloud arrives on the edge byte for byte, filed
+ * declaration written on the cloud arrives on the worker byte for byte, filed
  * under its source and never revoked; an observation produced inside a run
- * on the edge arrives on the cloud the same way; a type not asked for does
+ * on the worker arrives on the cloud the same way; a type not asked for does
  * not cross; and a type the lane does not admit — a person — is refused by
- * name, which is what a bench holding no register of people rests on.
+ * name, which is what a worker holding no register of people rests on.
  */
 @Tag("integration")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -58,11 +58,11 @@ class TheLaneHasTwoBoundsIT {
     private static final Set<String> DECLARATIONS = Set.of("CodeSystem", "Observation");
 
     static PgObjectStore cloudStore;
-    static PgObjectStore edgeStore;
+    static PgObjectStore workerStore;
     static Runs cloudRuns;
-    static Runs edgeRuns;
+    static Runs workerRuns;
     static Lanes cloud;
-    static Lanes edge;
+    static Lanes worker;
 
     @BeforeAll
     void up() throws Exception {
@@ -71,11 +71,11 @@ class TheLaneHasTwoBoundsIT {
                 SharedPostgres.get().getUsername(), SharedPostgres.get().getPassword());
                 var st = c.createStatement()) {
             st.execute("CREATE DATABASE bounds_cloud");
-            st.execute("CREATE DATABASE bounds_edge");
+            st.execute("CREATE DATABASE bounds_worker");
         }
         String base = jdbcUrl.substring(0, jdbcUrl.lastIndexOf('/') + 1);
         PGSimpleDataSource cloudDs = ds(base + "bounds_cloud");
-        PGSimpleDataSource edgeDs = ds(base + "bounds_edge");
+        PGSimpleDataSource workerDs = ds(base + "bounds_worker");
         R4Personality personality = new R4Personality(List.of(
                 FhirTypeConfig.internal("Patient"),
                 FhirTypeConfig.internal("CodeSystem"),
@@ -86,22 +86,22 @@ class TheLaneHasTwoBoundsIT {
         declarations.addAll(LaneModel.registrations());
         declarations.addAll(PlacementModel.registrations());
         cloudStore = new PgObjectStore(cloudDs, declarations);
-        edgeStore = new PgObjectStore(edgeDs, declarations);
+        workerStore = new PgObjectStore(workerDs, declarations);
         cloudRuns = new Runs(cloudStore);
-        edgeRuns = new Runs(edgeStore);
+        workerRuns = new Runs(workerStore);
         // Both content feeds: a declared set spans them, since a code system
         // travels on the one a face moves on and an observation does not.
         String defs = Domains.DEFINITIONS;
         cloud = new Lanes(cloudStore, new PgChangeFeed(cloudDs, WorkModel.DOMAIN), cloudRuns,
                 "cloud", null, new PgChangeFeed(cloudDs, R4Personality.DOMAIN),
                 new PgChangeFeed(cloudDs, defs), DECLARATIONS);
-        edge = new Lanes(edgeStore, new PgChangeFeed(edgeDs, WorkModel.DOMAIN), edgeRuns,
-                "edge", null, new PgChangeFeed(edgeDs, R4Personality.DOMAIN),
-                new PgChangeFeed(edgeDs, defs), DECLARATIONS);
+        worker = new Lanes(workerStore, new PgChangeFeed(workerDs, WorkModel.DOMAIN), workerRuns,
+                "worker", null, new PgChangeFeed(workerDs, R4Personality.DOMAIN),
+                new PgChangeFeed(workerDs, defs), DECLARATIONS);
     }
 
     @Test
-    @DisplayName("a declaration on the cloud arrives on the edge byte for byte, filed under its "
+    @DisplayName("a declaration on the cloud arrives on the worker byte for byte, filed under its "
             + "source, and a type not asked for does not cross")
     @Proving(DboPromises.PROC_THE_LANE_HAS_TWO_BOUNDS)
     void declarationsTravelByType() {
@@ -113,73 +113,73 @@ class TheLaneHasTwoBoundsIT {
                 "{\"resourceType\":\"Patient\",\"name\":[{\"family\":\"Kask\"}]}"
                         .getBytes(StandardCharsets.UTF_8))).id();
 
-        Lanes.Batch batch = cloud.outbound("edge", 500, TRAVELS, Set.of("CodeSystem"));
+        Lanes.Batch batch = cloud.outbound("worker", 500, TRAVELS, Set.of("CodeSystem"));
         assertTrue(batch.items().stream().anyMatch(i -> i.copy() && "CodeSystem".equals(i.typeName())),
                 "the declaration travels as a copy: " + batch.items());
         assertTrue(batch.items().stream().noneMatch(i -> "Patient".equals(i.typeName())),
                 "a type not asked for does not cross");
-        Lanes.Applied applied = edge.apply("cloud", batch);
+        Lanes.Applied applied = worker.apply("cloud", batch);
         assertEquals(List.of(), applied.refused());
-        cloud.sent("edge", batch);
+        cloud.sent("worker", batch);
 
-        StoredObject arrived = edgeStore.get("CodeSystem", id).orElseThrow();
+        StoredObject arrived = workerStore.get("CodeSystem", id).orElseThrow();
         assertArrayEquals(codeSystem, arrived.payload(), "byte for byte");
-        assertEquals("cloud", edge.copiedFrom("CodeSystem", id).orElseThrow(),
-                "filed under its source: why this appliance holds it is answerable");
-        assertTrue(edgeStore.get("Patient", patient).isEmpty(), "the person did not cross");
+        assertEquals("cloud", worker.copiedFrom("CodeSystem", id).orElseThrow(),
+                "filed under its source: why this worker holds it is answerable");
+        assertTrue(workerStore.get("Patient", patient).isEmpty(), "the person did not cross");
 
         // Never revoked by work: a declaration is not work-bound.
-        Lanes.Revoked revoked = edge.revoke();
-        assertTrue(edgeStore.get("CodeSystem", id).isPresent(), "kept: " + revoked);
+        Lanes.Revoked revoked = worker.revoke();
+        assertTrue(workerStore.get("CodeSystem", id).isPresent(), "kept: " + revoked);
 
         // The lane resumes from where it left off on the content feed: a
         // second ask carries nothing new.
-        Lanes.Batch again = cloud.outbound("edge", 500, TRAVELS, Set.of("CodeSystem"));
+        Lanes.Batch again = cloud.outbound("worker", 500, TRAVELS, Set.of("CodeSystem"));
         assertTrue(again.items().stream().noneMatch(Lanes.Item::copy), "nothing new: " + again.items());
     }
 
     @Test
-    @DisplayName("a type the lane does not admit is refused by name — a bench holds no register "
-            + "of people rests on it")
+    @DisplayName("a type the lane does not admit is refused by name — a worker holding no "
+            + "register of people rests on it")
     @Proving(DboPromises.PROC_THE_LANE_HAS_TWO_BOUNDS)
     void aTypeNotAdmittedIsRefusedByName() {
         IllegalStateException refused = assertThrows(IllegalStateException.class,
-                () -> cloud.outbound("edge", 500, TRAVELS, Set.of("Patient")));
+                () -> cloud.outbound("worker", 500, TRAVELS, Set.of("Patient")));
         assertTrue(refused.getMessage().contains("does not carry 'Patient' by type")
                         && refused.getMessage().contains("CodeSystem"),
                 "named, with what it does admit: " + refused.getMessage());
     }
 
     @Test
-    @DisplayName("an observation produced inside a run on the edge arrives on the cloud with "
-            + "the run, filed under the edge, and outlives the run")
+    @DisplayName("an observation produced inside a run on the worker arrives on the cloud "
+            + "with the run, filed under the worker, and outlives the run")
     @Proving({DboPromises.PROC_THE_LANE_HAS_TWO_BOUNDS,
             DboPromises.PROC_A_RUN_NAMES_WHAT_IT_PRODUCED})
     void producedVersionsTravelWithTheirRun() {
-        Run run = edgeRuns.pipeline(PROCESS, STEP, PROCESS + "/" + STEP + "/produced-here",
+        Run run = workerRuns.pipeline(PROCESS, STEP, PROCESS + "/" + STEP + "/produced-here",
                 List.of(WorkModel.DOMAIN));
-        Run held = edgeRuns.claim(run, new Executor("analyser", "1.0", "cloud.jengu.test",
+        Run held = workerRuns.claim(run, new Executor("assayer", "1.0", "cloud.jengu.test",
                 Scope.BASELINE), Instant.now().plusSeconds(60)).orElseThrow();
         byte[] observation = ("{\"resourceType\":\"Observation\",\"status\":\"final\","
                 + "\"code\":{\"text\":\"HbA1c\"},\"valueQuantity\":{\"value\":6.1}}")
                 .getBytes(StandardCharsets.UTF_8);
-        String id = edgeStore.put(PutRequest.create("Observation", observation)).id();
-        Run named = edgeRuns.produced(held, "Observation", id, 1);
+        String id = workerStore.put(PutRequest.create("Observation", observation)).id();
+        Run named = workerRuns.produced(held, "Observation", id, 1);
         assertEquals(List.of("Observation/" + id + "/1"), named.produced().versions());
-        edgeRuns.closed(named);
+        workerRuns.closed(named);
 
-        Lanes.Batch batch = edge.outbound("cloud", 500, TRAVELS);
+        Lanes.Batch batch = worker.outbound("cloud", 500, TRAVELS);
         assertTrue(batch.items().stream().anyMatch(i -> i.copy()
                         && "Observation".equals(i.typeName()) && id.equals(i.id())),
                 "what the run produced travels with it: " + batch.items());
-        Lanes.Applied applied = cloud.apply("edge", batch);
+        Lanes.Applied applied = cloud.apply("worker", batch);
         assertEquals(List.of(), applied.refused());
 
         StoredObject arrived = cloudStore.get("Observation", id).orElseThrow();
         assertArrayEquals(observation, arrived.payload());
-        assertEquals("edge", cloud.copiedFrom("Observation", id).orElseThrow(),
-                "filed under the appliance that produced it");
-        assertTrue(cloudRuns.byKey("edge" + Lanes.MIRROR_SEPARATOR + run.key()).isPresent(),
+        assertEquals("worker", cloud.copiedFrom("Observation", id).orElseThrow(),
+                "filed under the worker that produced it");
+        assertTrue(cloudRuns.byKey("worker" + Lanes.MIRROR_SEPARATOR + run.key()).isPresent(),
                 "and the run it came with is mirrored beside it");
         cloud.revoke();
         assertTrue(cloudStore.get("Observation", id).isPresent(),

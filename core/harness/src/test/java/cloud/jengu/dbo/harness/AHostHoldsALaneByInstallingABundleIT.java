@@ -64,7 +64,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * mounted and the lane passes its tests.
  *
  * <p>So this stands where a host stands. A real framework, the runner and the
- * stream bundle installed into it, a driver bundle contributing a step, and
+ * stream bundle installed into it, a bundle contributing a step, and
  * the deployment's configuration — the substrate it already shares with the
  * store, the tenant it holds a lane into, the participant it enrolled as and
  * the private halves of that enrolment. Nothing here constructs a lane,
@@ -72,7 +72,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * and lands on the tenant's own store, the only thing that can have carried
  * it is a lane the container built from what it was told.
  *
- * <p>The driver's own lane is switched off, deliberately. It carries a
+ * <p>The step bundle's own lane is switched off, deliberately. It carries a
  * standing in-memory one so the whiteboard can be proved with no store within
  * reach; left on here it would answer first and the carrier under test would
  * never be asked.
@@ -88,7 +88,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class AHostHoldsALaneByInstallingABundleIT {
 
     private static final String TENANT = "streamhostbundle";
-    /** The step the driver bundle contributes, declared here by the tenant. */
+    /** The step the probe bundle contributes, declared here by the tenant. */
     private static final String STEP = "probe.assay.report";
     private static final StepDeclaration REPORT =
             StepDeclaration.of(STEP, "1.0", WorkModel.DOMAIN)
@@ -172,7 +172,7 @@ class AHostHoldsALaneByInstallingABundleIT {
                 Base64.getEncoder().encodeToString(signing.getPrivate().getEncoded()));
         config.put("dbo.lane.executor.version", "1.0");
         config.put("dbo.lane.executor.provider", "cloud.jengu.test");
-        // The driver keeps its step and gives up its lane: see the class note.
+        // The probe keeps its step and gives up its lane: see the class note.
         config.put("dbo.probe.lane", "false");
 
         framework = ServiceLoader.load(FrameworkFactory.class).findFirst().orElseThrow()
@@ -256,7 +256,7 @@ class AHostHoldsALaneByInstallingABundleIT {
         }
         assertEquals(cloud.jengu.dbo.work.Status.COMPLETED, closed.status(), "still held: " + closed);
         assertEquals(Map.of("reported", 1L), closed.tally(),
-                "the outcome the driver reported came home over the same channel: " + closed);
+                "the outcome the probe reported came home over the same channel: " + closed);
     }
 
     @Test

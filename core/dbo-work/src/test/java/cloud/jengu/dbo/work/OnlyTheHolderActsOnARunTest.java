@@ -41,9 +41,9 @@ class OnlyTheHolderActsOnARunTest {
             .retrying(new cloud.jengu.dbo.core.process.RetryPolicy(List.of("lapsed"), "PT0S",
                     5))));
 
-    private final Executor first = new Executor("analyser-a", "1", "example.lab",
+    private final Executor first = new Executor("worker-a", "1", "example.lab",
             Scope.BASELINE);
-    private final Executor second = new Executor("analyser-b", "1", "example.lab",
+    private final Executor second = new Executor("worker-b", "1", "example.lab",
             Scope.BASELINE);
 
     @Test
@@ -110,7 +110,7 @@ class OnlyTheHolderActsOnARunTest {
         assertTrue(after.heldBy(second), "B's claim did not survive A's late release: "
                 + after.assignment() + " " + after.status());
         assertTrue(after.automation(), "A's late release sent B's run to people: " + after);
-        assertTrue(refused.getMessage().contains("not claimed by analyser-a"),
+        assertTrue(refused.getMessage().contains("not claimed by worker-a"),
                 "refused, but not for holding nothing: " + refused.getMessage());
 
         // And B, which does hold it, is answered as a holder.
@@ -182,7 +182,7 @@ class OnlyTheHolderActsOnARunTest {
         Runner runner = new Runner(runs, held.feed(),
                 new Declarations(held.store(), held.feed(), Duration.ofMinutes(1)),
                 new Declarations.Declared(PROCESS, STEP, first.name(), first.version(),
-                        first.provider(), Scope.BASELINE, "participant.analyser-a"),
+                        first.provider(), Scope.BASELINE, "participant.worker-a"),
                 Duration.ofMinutes(5));
         Run claimed = runs.claim(run, first, Duration.ZERO).orElseThrow();
         assertEquals(1, Participation.releaseLapsed(runs),

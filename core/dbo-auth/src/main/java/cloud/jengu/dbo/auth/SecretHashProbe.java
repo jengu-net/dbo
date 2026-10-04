@@ -5,7 +5,7 @@ package cloud.jengu.dbo.auth;
  * {@link SecretHash} public.
  *
  * <p>The property is worth asserting rather than assuming: a hash that
- * reaches a bench and then fails to match is an offline sign-in that fails at
+ * reaches a site and then fails to match is an offline sign-in that fails at
  * the bedside, which is the exact moment nobody can debug it.
  */
 public final class SecretHashProbe {

@@ -91,7 +91,7 @@ edit is a record of what somebody was willing to leave, not of what happened.
 
 Underneath, one change feed carries every one of those writes exactly once. A
 named consumer resumes from where it stopped rather than from the beginning,
-which is what lets a report, a subscription and an appliance all watch the
+which is what lets a report, a subscription and a replica all watch the
 same tenant without three mechanisms.
 
 ## Joins
@@ -148,7 +148,7 @@ citations say it is.
 | `REQ-DBO-POL-FHIR-AUDIT-PROJECTION` | On a FHIR tenant the audit stream is served as AuditEvent — native records as the truth form, rendered per personality on read, contribution via mapped POST; write access is scope-gated. | PROVEN |
 | `REQ-DBO-POL-DECLARATIVE-RETENTION` | Retention is declared per tenant and type as a floor and a ceiling — keepAtLeast (append-only holds even against policy) and removeAfter (the engine must remove) — composing with write discipline without conflict. | PROVEN |
 | `REQ-DBO-POL-RETENTION-SWEEP` | A durable scheduled sweep executes removal as the one sanctioned mutation of history, and every removal is audited without retaining the removed data. | PROVEN |
-| `REQ-DBO-FEED-ONE-PRIMITIVE` | Pagination, subscription delivery, content streams and edge sync are all the same primitive: an ordered, replayable sequence with an opaque durable cursor. | PROVEN |
+| `REQ-DBO-FEED-ONE-PRIMITIVE` | Pagination, subscription delivery, content streams and replica sync are all the same primitive: an ordered, replayable sequence with an opaque durable cursor. | PROVEN |
 | `REQ-DBO-FEED-KEYSET-CURSORS` | Cursors are keyset positions, never offsets; a page is stable under concurrent writes. | PROVEN |
 | `REQ-DBO-FEED-NAMED-CONSUMERS` | Every durable consumer holds a named cursor in the store; progress, lag and replay are uniformly observable. | PROVEN |
 | `REQ-DBO-EVT-TRANSACTIONAL-OUTBOX` | Every change event originates as an outbox row committed with the write. (R8, §6) | PROVEN |

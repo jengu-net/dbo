@@ -741,7 +741,7 @@ public final class TenantAuthority {
                 + String.join(", ", new java.util.TreeSet<>(providers))
                 + ", so this store holds no password for them — a password beside a "
                 + "federated identity is a second way in that never reaches the identity "
-                + "provider. A bench PIN is still available, and is the factor for the case "
+                + "provider. An offline PIN is still available, and is the factor for the case "
                 + "federation cannot serve.");
     }
 
@@ -790,8 +790,8 @@ public final class TenantAuthority {
      * Retires the password on every credential this person holds, keeping
      * every other factor.
      *
-     * <p>A bench PIN survives deliberately. It exists for the case federation
-     * cannot serve — a bench with no network — and taking it away at the
+     * <p>An offline PIN survives deliberately. It exists for the case federation
+     * cannot serve — a site with no network — and taking it away at the
      * moment an organisation adopts an eID would remove the fallback for
      * exactly the situation the rule was written around.
      *
@@ -857,7 +857,7 @@ public final class TenantAuthority {
         Optional<StoredObject> existing = store.getByIdentifier("LocalCredential",
                 List.of(new Identifier(IdentityModel.LOGIN_SYSTEM, login))).stream().findFirst();
         // A login's other factors survive its password being set. Rewriting the
-        // whole record would drop the edge PIN somebody set for themselves,
+        // whole record would drop the offline PIN somebody set for themselves,
         // which is the same whole-object overwrite that put the PIN on a
         // configured resource in the first place — one
         // level down, and just as quiet.
@@ -879,7 +879,7 @@ public final class TenantAuthority {
     /**
      * Sets one authentication factor for a login, leaving the others alone.
      *
-     * <p><b>Factors are kinds, not fields.</b> A PIN presented at a bench with
+     * <p><b>Factors are kinds, not fields.</b> A PIN presented at a site with
      * no network is one kind; a password is another; a passkey and a one-time
      * code will be more. Naming the field after the first case we met would
      * have made every later one an exception.
@@ -888,7 +888,7 @@ public final class TenantAuthority {
      * {@code pin}, {@code otp}, {@code swk}, {@code face}, {@code fpt} — rather
      * than a name of ours. That vocabulary already exists, and it is the one
      * that belongs in the issued token's {@code amr} claim, so a relying party
-     * can tell that a bench PIN is not the assurance a password is. Inventing
+     * can tell that an offline PIN is not the assurance a password is. Inventing
      * "edgePin" would have meant translating at the token boundary forever.
      *
      * <p>Credentials live here rather than on a {@code Practitioner} because
@@ -945,10 +945,10 @@ public final class TenantAuthority {
     }
 
     /**
-     * Every login that has a given factor set, with its hash — for a bench
+     * Every login that has a given factor set, with its hash — for a site
      * that must verify people with no network.
      *
-     * <p><b>This distributes credential material, and says so.</b> An edge
+     * <p><b>This distributes credential material, and says so.</b> A site
      * authenticates offline, so it cannot ask anybody at the moment somebody
      * presents a PIN; it has to hold a verifier in advance. That is a real
      * cost and it is accepted deliberately, which is different from how it
@@ -1992,7 +1992,7 @@ public final class TenantAuthority {
      * say — and a ceremony written the natural way, resolving the subject and
      * refusing if absent, is a regression nothing fails on.
      *
-     * <p>Only the password moves. A bench PIN somebody set for themselves is a
+     * <p>Only the password moves. An offline PIN somebody set for themselves is a
      * different factor with a different life, and rewriting the record would
      * take it with it.
      */
@@ -2101,7 +2101,7 @@ public final class TenantAuthority {
      * <p><b>A grant is not a credential.</b> It authenticates nothing,
      * authorises nothing but this, and there is no path from here to a token.
      *
-     * <p>Only the password moves: a bench PIN somebody set for themselves is a
+     * <p>Only the password moves: an offline PIN somebody set for themselves is a
      * different factor with a different life.
      */
     public boolean redeemSecretGrant(String grant, String chosenSecret) {

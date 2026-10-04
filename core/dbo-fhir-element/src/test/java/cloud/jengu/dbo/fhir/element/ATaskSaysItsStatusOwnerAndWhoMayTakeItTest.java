@@ -38,20 +38,20 @@ class ATaskSaysItsStatusOwnerAndWhoMayTakeItTest {
         String run = """
                 {"key":"lab.result.verify/one","process":"lab.result","step":"verify",
                  "kind":"pipeline","status":"ready",
-                 "performerType":["person"],"statusReason":"the analyser answered nonsense",
+                 "performerType":["person"],"statusReason":"the worker answered nonsense",
                  "note":"the work failed"}""";
         Map<?, ?> r4 = rendered("r4", run);
         Map<?, ?> r5 = rendered("r5", run);
 
         assertEquals("ready", r4.get("status"));
         assertFalse(r4.containsKey("owner"), "nobody holds a released run: " + r4.get("owner"));
-        assertEquals(Map.of("text", "the analyser answered nonsense"), r4.get("statusReason"));
+        assertEquals(Map.of("text", "the worker answered nonsense"), r4.get("statusReason"));
         assertEquals(List.of(Map.of("coding", List.of(Map.of("system", "urn:dbo:run:performer",
                 "code", "person")))), r4.get("performerType"));
         assertEquals(List.of(Map.of("concept", Map.of("coding", List.of(Map.of(
                         "system", "urn:dbo:run:performer", "code", "person"))))),
                 r5.get("requestedPerformer"));
-        assertEquals(Map.of("concept", Map.of("text", "the analyser answered nonsense")),
+        assertEquals(Map.of("concept", Map.of("text", "the worker answered nonsense")),
                 r5.get("statusReason"));
     }
 

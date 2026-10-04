@@ -52,7 +52,7 @@ public record PdiSpec(Map<String, Map<String, Disposition>> personTypes,
         // declaration, because it looks like protection.
         //
         // Refused here rather than defaulted, the same trade `handling` makes:
-        // an unclassified thing is refused at the edge, not guessed at.
+        // an unclassified thing is refused at the boundary, not guessed at.
         for (Map.Entry<String, Map<String, Disposition>> type : copy.entrySet()) {
             for (Map.Entry<String, Disposition> element : type.getValue().entrySet()) {
                 if (element.getValue() == Disposition.REMOVE

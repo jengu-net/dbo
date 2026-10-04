@@ -55,7 +55,7 @@ record of her tenant's like any other.
 
 The store never decides that a silence is too long, because how long is too
 long depends on the cadence of the hop — a service polled every five minutes
-and a worker beside a serial line are not the same silence, and only Ines
+and a worker that answers once a day are not the same silence, and only Ines
 knows which is which. Her listener names its threshold, and there is no
 default.
 

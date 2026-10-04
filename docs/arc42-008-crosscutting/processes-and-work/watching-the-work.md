@@ -95,7 +95,7 @@ lands, and a completion with a gap is refused and told which link. What the chai
 cannot do is compel a participant to send: an intended recipient can open a
 payload and never say so, and that limit is accepted rather than hidden — the
 data was legitimately theirs, and what is lost is the entry for an authorised
-read on a device the tenant answers for.
+read somewhere the tenant answers for.
 
 The tenant wires a trail into its lane. A claim writes the hop on the task.
 A participant that opens a sealed document says so from where its key is,
@@ -107,7 +107,7 @@ own read to seal is recorded as nothing.
 Those entries are chained. Each carries the link it commits to and its own,
 the first commits to the task the store minted, and the participant signs
 the links it makes with the signing key it offered at enrolment — so a router
-cannot manufacture an edge's opening and an edge cannot deny one. The result
+cannot manufacture a routee's opening and a routee cannot deny one. The result
 that closes the run carries the head it commits to; the store walks the chain
 when the result lands, and a completion whose chain has a hole is refused and
 told which link, so the run stays owed under a named participant. A

@@ -165,7 +165,7 @@ record was read.
 **What it is.** One primitive serves paging and synchronisation: an ordered,
 replayable sequence with a durable cursor. Every durable consumer is a name
 and a position, so progress, lag and replay mean the same thing for a client
-paging results, a subscriber, a dependent tenant and an appliance that has
+paging results, a subscriber, a dependent tenant and a second site that has
 been offline since Friday.
 
 **How to reach it.** Read with a consumer name and acknowledge a cursor; reset

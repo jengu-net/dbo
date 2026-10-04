@@ -38,21 +38,21 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * US-DBO-EDGE-ROUNDTRIP, walked in Rowling Land, the sample world.
+ * US-DBO-WORK-ROUNDTRIP, walked in Rowling Land, the sample world.
  *
- * <p>Hogwarts records care and sends its assays out. Meristem runs the bench
+ * <p>Hogwarts records care and sends its assays out. Meristem runs the worker
  * that performs them: one service, in a JVM that is not the store's and holds
  * no database of its own, reaching the hospital over a lane with a credential
  * the hospital issued.
  *
  * <p>What Meristem does not build is a copy of the store's work model. The
- * bench declares the step it performs, takes work over the lane, reports what
+ * worker declares the step it performs, takes work over the lane, reports what
  * it got done, and hands back what it could not. Everything about who may take
  * what, what a report may say, and what happened afterwards belongs to the
  * tenant.
  *
  * <p><b>The hospital is shared with every other story running</b>, and with
- * the sample worker that performs admissions there. So the bench's process,
+ * the sample worker that performs admissions there. So Meristem's process,
  * its steps, its client and the task scopes all carry this story's prefix and
  * run mark, and every assertion is about the run the previous leg made.
  */
@@ -64,22 +64,22 @@ class WorkLeavesTheClinicAndComesBackIT {
     /** The clinic whose lane the worker holds over the substrate. */
     private static final String CLINIC = "st-jerome";
 
-    private static final StoryNames NAMES = StoryNames.of(DboStories.EDGE_ROUNDTRIP);
+    private static final StoryNames NAMES = StoryNames.of(DboStories.WORK_ROUNDTRIP);
 
     /**
-     * The process the bench's steps belong to, as {@code <module>.<process>}: the
+     * The process Meristem's steps belong to, as {@code <module>.<process>}: the
      * module is this story's and this run's.
      */
     private static final String PROCESS = NAMES.prefix() + "-" + NAMES.run() + ".lab";
     private static final String ASSAY = PROCESS + ".assay";
     private static final String REVIEW = PROCESS + ".review";
 
-    /** The bench's client, and the name its executor gives itself, which must agree. */
-    private static final String BENCH = NAMES.value("meristem");
-    private static final String SECRET = "a-secret-for-" + BENCH;
+    /** Meristem's client, and the name its executor gives itself, which must agree. */
+    private static final String MERISTEM = NAMES.value("meristem");
+    private static final String SECRET = "a-secret-for-" + MERISTEM;
 
     /**
-     * What the bench performs: one named input slot, an order of milestones,
+     * What Meristem performs: one named input slot, an order of milestones,
      * and the verbs a report may use. Closing is in it; a step whose closure
      * is somebody's judgement would leave it out.
      */
@@ -89,7 +89,7 @@ class WorkLeavesTheClinicAndComesBackIT {
                     .reaching("received", "measured", "reported")
                     .containing("open", "close");
 
-    /** Its closure is a person's act: the bench prepares and somebody signs. */
+    /** Its closure is a person's act: Meristem prepares and somebody signs. */
     private static final StepDeclaration REVIEW_STEP =
             StepDeclaration.of(REVIEW, "1.0", WorkModel.DOMAIN).containing("open");
 
@@ -97,28 +97,28 @@ class WorkLeavesTheClinicAndComesBackIT {
     private static final StepDeclaration SEALED_STEP =
             StepDeclaration.of(PROCESS + ".sealed", "1.0", WorkModel.DOMAIN)
                     .taking("specimen", "https://meristem.example/shape/specimen");
-    /** A step of two inputs, whose openings the analyser signs into one chain. */
+    /** A step of two inputs, whose openings the assayer signs into one chain. */
     private static final StepDeclaration CHAINED_STEP =
             StepDeclaration.of(PROCESS + ".chained", "1.0", WorkModel.DOMAIN)
                     .taking("specimen", "https://meristem.example/shape/specimen")
                     .taking("order", "https://meristem.example/shape/order");
-    /** A step a gateway takes on behalf of the benches behind it. */
+    /** A step a router takes on behalf of the routees behind it. */
     private static final StepDeclaration ROUTED_STEP =
             StepDeclaration.of(PROCESS + ".routed", "1.0", WorkModel.DOMAIN)
                     .taking("specimen", "https://meristem.example/shape/specimen");
-    private static final String GATEWAY = NAMES.value("gateway");
-    private static final String KEYED_BENCH = NAMES.value("bench-7");
-    private static final String KEYLESS_BENCH = NAMES.value("bench-9");
-    private final java.security.KeyPair edgeSealing =
+    private static final String ROUTER = NAMES.value("router");
+    private static final String KEYED_ROUTEE = NAMES.value("routee-7");
+    private static final String KEYLESS_ROUTEE = NAMES.value("routee-9");
+    private final java.security.KeyPair routeeSealing =
             cloud.jengu.dbo.core.api.seal.KeyWrap.newParticipantKeyPair();
-    private final java.security.KeyPair edgeSigning =
+    private final java.security.KeyPair routeeSigning =
             cloud.jengu.dbo.core.api.seal.SigningKey.newKeyPair();
-    private HttpLane gateway;
-    private static final String ANALYSER = NAMES.value("analyser");
+    private HttpLane routerLane;
+    private static final String ASSAYER = NAMES.value("assayer");
     private static final String COURIER = NAMES.value("courier");
-    private final java.security.KeyPair analyser =
+    private final java.security.KeyPair assayer =
             cloud.jengu.dbo.core.api.seal.KeyWrap.newParticipantKeyPair();
-    private final java.security.KeyPair analyserSigning =
+    private final java.security.KeyPair assayerSigning =
             cloud.jengu.dbo.core.api.seal.SigningKey.newKeyPair();
 
     /**
@@ -177,7 +177,7 @@ class WorkLeavesTheClinicAndComesBackIT {
     private ATenantsDoor hospital;
     private ObjectStore engine;
     private Runs runs;
-    private HttpLane bench;
+    private HttpLane meristem;
     private String specimen;
     private String runKey;
 
@@ -187,40 +187,41 @@ class WorkLeavesTheClinicAndComesBackIT {
         engine = tenants.store(HOSPITAL).orElseThrow();
         runs = new Runs(engine);
 
-        // The bench's credential is bounded to the one step it performs, and
+        // Meristem's credential is bounded to the one step it performs, and
         // its executor names itself with that client id: a credential bounded
-        // to steps may work only as itself, so a bench free to spell any name
+        // to steps may work only as itself, so a worker free to spell any name
         // could read the inputs of runs it was never entitled to.
         TenantAuthority authority = tenants.authority(HOSPITAL).orElseThrow();
-        authority.ensureClient(BENCH, SECRET, List.of("work/" + ASSAY));
-        bench = HttpLane.to(URI.create(dbo.at(HOSPITAL) + "/work"), () -> benchToken(authority),
-                HOSPITAL, BENCH, new Executor(BENCH, "2.1", "example.meristem", Scope.BASELINE));
+        authority.ensureClient(MERISTEM, SECRET, List.of("work/" + ASSAY));
+        meristem = HttpLane.to(URI.create(dbo.at(HOSPITAL) + "/work"),
+                () -> meristemToken(authority), HOSPITAL, MERISTEM,
+                new Executor(MERISTEM, "2.1", "example.meristem", Scope.BASELINE));
 
-        // An analyser that offered keys at enrolment, and a courier that
+        // An assayer that offered keys at enrolment, and a courier that
         // offered none: what each holds decides how its work arrives.
-        authority.ensureClient(ANALYSER, ANALYSER + "-secret",
+        authority.ensureClient(ASSAYER, ASSAYER + "-secret",
                 List.of("work/" + SEALED_STEP.id(), "work/" + CHAINED_STEP.id()),
-                cloud.jengu.dbo.core.api.seal.ParticipantKey.of(analyser.getPublic()),
-                cloud.jengu.dbo.core.api.seal.SigningKey.of(analyserSigning.getPublic()));
+                cloud.jengu.dbo.core.api.seal.ParticipantKey.of(assayer.getPublic()),
+                cloud.jengu.dbo.core.api.seal.SigningKey.of(assayerSigning.getPublic()));
         authority.ensureClient(COURIER, COURIER + "-secret", List.of("work/" + SEALED_STEP.id()));
         HttpLane.to(URI.create(dbo.at(HOSPITAL) + "/work"), () -> participantToken(COURIER),
                 HOSPITAL, COURIER, executor(COURIER)).introduce(SEALED_STEP);
-        HttpLane.to(URI.create(dbo.at(HOSPITAL) + "/work"), () -> participantToken(ANALYSER),
-                HOSPITAL, ANALYSER, executor(ANALYSER)).introduce(CHAINED_STEP);
+        HttpLane.to(URI.create(dbo.at(HOSPITAL) + "/work"), () -> participantToken(ASSAYER),
+                HOSPITAL, ASSAYER, executor(ASSAYER)).introduce(CHAINED_STEP);
 
-        // A gateway holding the claim for benches behind it: one offered keys,
+        // A router holding the claim for routees behind it: one offered keys,
         // one did not.
-        authority.ensureClient(GATEWAY, GATEWAY + "-secret", List.of("work/" + ROUTED_STEP.id()));
-        authority.ensureClient(KEYED_BENCH, KEYED_BENCH + "-secret", List.of(),
-                cloud.jengu.dbo.core.api.seal.ParticipantKey.of(edgeSealing.getPublic()),
-                cloud.jengu.dbo.core.api.seal.SigningKey.of(edgeSigning.getPublic()));
-        authority.ensureClient(KEYLESS_BENCH, KEYLESS_BENCH + "-secret", List.of());
-        gateway = HttpLane.to(URI.create(dbo.at(HOSPITAL) + "/work"),
-                () -> participantToken(GATEWAY), HOSPITAL, GATEWAY, executor(GATEWAY));
-        gateway.introduce(ROUTED_STEP);
-        gateway.routes(List.of(
-                cloud.jengu.dbo.work.Trackable.routed(KEYED_BENCH, GATEWAY),
-                cloud.jengu.dbo.work.Trackable.routed(KEYLESS_BENCH, GATEWAY)));
+        authority.ensureClient(ROUTER, ROUTER + "-secret", List.of("work/" + ROUTED_STEP.id()));
+        authority.ensureClient(KEYED_ROUTEE, KEYED_ROUTEE + "-secret", List.of(),
+                cloud.jengu.dbo.core.api.seal.ParticipantKey.of(routeeSealing.getPublic()),
+                cloud.jengu.dbo.core.api.seal.SigningKey.of(routeeSigning.getPublic()));
+        authority.ensureClient(KEYLESS_ROUTEE, KEYLESS_ROUTEE + "-secret", List.of());
+        routerLane = HttpLane.to(URI.create(dbo.at(HOSPITAL) + "/work"),
+                () -> participantToken(ROUTER), HOSPITAL, ROUTER, executor(ROUTER));
+        routerLane.introduce(ROUTED_STEP);
+        routerLane.routes(List.of(
+                cloud.jengu.dbo.work.Trackable.routed(KEYED_ROUTEE, ROUTER),
+                cloud.jengu.dbo.work.Trackable.routed(KEYLESS_ROUTEE, ROUTER)));
 
         var written = dbo.write(HOSPITAL, "Observation", """
                 {"resourceType":"Observation","status":"registered",
@@ -228,7 +229,7 @@ class WorkLeavesTheClinicAndComesBackIT {
         assertTrue(written.accepted(), "the specimen was not accepted: " + written.body());
         specimen = written.idOrFail();
 
-        // Declared now and asserted on last, so it comes up while the bench
+        // Declared now and asserted on last, so it comes up while Meristem
         // works rather than in front of the legs that read through a run.
         dbo.declare(WARD, """
                 {"code":"%s","face":"r4","audit":{"level":"writes"},
@@ -244,40 +245,40 @@ class WorkLeavesTheClinicAndComesBackIT {
         dbo.retract(WARD);
     }
 
-    private static String benchToken(TenantAuthority authority) {
-        if (authority.token(BENCH, SECRET, null)
+    private static String meristemToken(TenantAuthority authority) {
+        if (authority.token(MERISTEM, SECRET, null)
                 instanceof TenantAuthority.TokenResult.Issued minted) {
             return minted.accessToken();
         }
-        throw new IllegalStateException("the hospital would not issue the bench a token");
+        throw new IllegalStateException("the hospital would not issue Meristem a token");
     }
 
-    // ── the bench says what it can do ──
+    // ── Meristem says what it can do ──
 
     @Test
     @Order(1)
-    @DisplayName("the bench declares the step it performs and the hospital learns it, without "
-            + "anybody having installed a bundle into the hospital")
+    @DisplayName("Meristem's worker declares the step it performs and the hospital learns it, "
+            + "without anybody having installed a bundle into the hospital")
     @Proving({DboPromises.PROC_STEP_DECLARES_ITSELF, DboPromises.PROC_STEPS_ARRIVE_BY_INTRODUCTION,
             DboPromises.PROC_STEP_DECLARES_ITS_SLOTS, DboPromises.PROC_MILESTONES_ARE_DECLARED})
     void theBenchIntroducesWhatItPerforms() {
-        bench.introduce(ASSAY_STEP);
-        bench.introduce(REVIEW_STEP);
+        meristem.introduce(ASSAY_STEP);
+        meristem.introduce(REVIEW_STEP);
 
         // Introducing the same id with the same definition again is the
-        // ordinary case: a bench restarts, and a restart is not a collision.
-        bench.introduce(ASSAY_STEP);
+        // ordinary case: a worker restarts, and a restart is not a collision.
+        meristem.introduce(ASSAY_STEP);
     }
 
     @Test
     @Order(2)
-    @DisplayName("introducing a step grants the bench nothing: it still may not author work, "
+    @DisplayName("introducing a step grants the worker nothing: it still may not author work, "
             + "because stating an obligation is the tenant's act and not a runner's")
     @Proving({DboPromises.PROC_INTRODUCTION_GRANTS_NOTHING,
             DboPromises.PROC_WORK_IS_AUTHORED_ON_THE_SURFACE})
     void introducingAStepGrantsNothing() {
-        HttpResponse<String> authored = postTask(task(NAMES.value("by-the-bench"), specimen),
-                benchToken(tenants.authority(HOSPITAL).orElseThrow()));
+        HttpResponse<String> authored = postTask(task(NAMES.value("by-meristem"), specimen),
+                meristemToken(tenants.authority(HOSPITAL).orElseThrow()));
 
         Proves.that(DboPromises.PROC_INTRODUCTION_GRANTS_NOTHING,
                 authored.statusCode() == 401 || authored.statusCode() == 403,
@@ -331,11 +332,11 @@ class WorkLeavesTheClinicAndComesBackIT {
                         + undeclared.body());
     }
 
-    // ── the bench takes it ──
+    // ── Meristem takes it ──
 
     @Test
     @Order(5)
-    @DisplayName("the bench is offered only what its credential covers, and taking anything "
+    @DisplayName("the worker is offered only what its credential covers, and taking anything "
             + "else is refused rather than quietly returning nothing")
     @Proving({DboPromises.PROC_CLAIM_IS_THE_INTERSECTION,
             DboPromises.PROC_ENTITLEMENT_IS_DECLARED_NOT_DEFAULTED})
@@ -348,7 +349,7 @@ class WorkLeavesTheClinicAndComesBackIT {
         long giveUp = System.nanoTime() + Duration.ofMinutes(3).toNanos();
         while (offered.stream().noneMatch(r -> runKey.equals(r.key()))
                 && System.nanoTime() < giveUp) {
-            offered.addAll(bench.poll(Set.of("assay"), 50));
+            offered.addAll(meristem.poll(Set.of("assay"), 50));
         }
         Proves.that(DboPromises.PROC_CLAIM_IS_THE_INTERSECTION,
                 offered.stream().anyMatch(r -> runKey.equals(r.key())),
@@ -360,7 +361,7 @@ class WorkLeavesTheClinicAndComesBackIT {
         Run review = runs.byKey(REVIEW + "/" + signing).orElseThrow();
 
         IllegalStateException refused = assertThrows(IllegalStateException.class,
-                () -> bench.claim(review, Duration.ofMinutes(5)));
+                () -> meristem.claim(review, Duration.ofMinutes(5)));
         Proves.that(DboPromises.PROC_ENTITLEMENT_IS_DECLARED_NOT_DEFAULTED,
                 refused.getMessage().contains("review"),
                 "a lane that silently offered nothing would look exactly like a lane with no "
@@ -377,8 +378,8 @@ class WorkLeavesTheClinicAndComesBackIT {
             DboPromises.PROC_RUN_NAMES_THE_STEP_VERSION, DboPromises.PROC_EXECUTOR_DECLARES_ITSELF})
     void takingItSaysWhoHoldsIt() {
         Run waiting = runs.byKey(runKey).orElseThrow();
-        Run taken = bench.claim(waiting, Duration.ofMinutes(5)).orElseThrow(
-                () -> new AssertionError("the bench could not take work it was entitled to"));
+        Run taken = meristem.claim(waiting, Duration.ofMinutes(5)).orElseThrow(
+                () -> new AssertionError("the worker could not take work it was entitled to"));
 
         Proves.that(DboPromises.PROC_A_RUN_KEEPS_STATUS_CLAIMANT_AND_ELIGIBILITY_APART,
                 taken.status() == cloud.jengu.dbo.work.Status.IN_PROGRESS
@@ -388,7 +389,7 @@ class WorkLeavesTheClinicAndComesBackIT {
                 "automation is running it now, and the run says " + taken.status()
                         + " automation=" + taken.automation() + " " + taken.assignment());
         Proves.that(DboPromises.PROC_RUN_NAMES_WHAT_RAN_IT,
-                BENCH.equals(taken.assignment().executor().name()),
+                MERISTEM.equals(taken.assignment().executor().name()),
                 "the run does not name what took it, so a decision cannot be reproduced: "
                         + taken.assignment());
         Proves.that(DboPromises.PROC_RUN_NAMES_THE_STEP_VERSION,
@@ -400,12 +401,12 @@ class WorkLeavesTheClinicAndComesBackIT {
 
     @Test
     @Order(7)
-    @DisplayName("the specimen arrives with the work, and nothing else does: the bench asks "
+    @DisplayName("the specimen arrives with the work, and nothing else does: the worker asks "
             + "for a run, never for a reference of its own choosing")
     @Proving(DboPromises.PROC_INPUTS_ARRIVE_WITH_THE_WORK)
     void theInputsArriveWithTheWork() {
         Run held = runs.byKey(runKey).orElseThrow();
-        Map<String, List<StoredObject>> inputs = bench.inputs(held);
+        Map<String, List<StoredObject>> inputs = meristem.inputs(held);
 
         assertTrue(inputs.containsKey("specimen"),
                 "the slot the step declared was not resolved by the party that holds the "
@@ -422,7 +423,7 @@ class WorkLeavesTheClinicAndComesBackIT {
     @Proving(DboPromises.PROC_PROGRESS_NAMES_THE_MILESTONE)
     void progressNamesADeclaredMilestone() {
         Run held = runs.byKey(runKey).orElseThrow();
-        bench.milestone(held, "measured", Map.of("read", 2L), Duration.ofMinutes(5));
+        meristem.milestone(held, "measured", Map.of("read", 2L), Duration.ofMinutes(5));
 
         Run at = runs.byKey(runKey).orElseThrow();
         assertEquals("measured", at.milestone().name(), "the run says where it got to");
@@ -436,7 +437,7 @@ class WorkLeavesTheClinicAndComesBackIT {
 
     @Test
     @Order(9)
-    @DisplayName("a step whose closure is somebody's judgement refuses a bench reporting "
+    @DisplayName("a step whose closure is somebody's judgement refuses a worker reporting "
             + "done, by name, whatever its credential says")
     @Proving(DboPromises.PROC_REPORT_THROUGH_DECLARED_ACTIONS)
     void aVerbTheStepDoesNotDeclareIsRefused() {
@@ -460,7 +461,7 @@ class WorkLeavesTheClinicAndComesBackIT {
     @Proving({DboPromises.PROC_FAILURE_IS_RELEASED, DboPromises.PROC_DONE_MEANS_DONE})
     void aFailureIsReleasedNotClosed() {
         Run held = runs.byKey(runKey).orElseThrow();
-        bench.released(held, "the control sample was out of range",
+        meristem.released(held, "the control sample was out of range",
                 cloud.jengu.dbo.work.Failure.UNKNOWN);
 
         Run handed = runs.byKey(runKey).orElseThrow();
@@ -502,15 +503,15 @@ class WorkLeavesTheClinicAndComesBackIT {
 
     @Test
     @Order(12)
-    @DisplayName("what the bench did is in the hospital's trail, attributed to the bench "
+    @DisplayName("what the worker did is in the hospital's trail, attributed to the worker "
             + "rather than to the store's own machinery")
     @Proving({DboPromises.POL_TRAVEL_AND_ACCESS_ARE_DIFFERENT_ENTRIES, DboPromises.WF_HOPS_AUDITED})
     void theTrailTellsWhatTheBenchDid() {
-        HttpResponse<String> trail = hospital.get("/AuditEvent?agent=" + BENCH);
+        HttpResponse<String> trail = hospital.get("/AuditEvent?agent=" + MERISTEM);
         assertEquals(200, trail.statusCode(), trail.body());
         Proves.that(DboPromises.WF_HOPS_AUDITED,
                 !dbo.says(trail).at("entry.resource.id").isEmpty(),
-                "the bench's hops are not in the trail under the bench's name: "
+                "the worker's hops are not in the trail under the worker's name: "
                         + trail.body());
     }
 
@@ -583,7 +584,7 @@ class WorkLeavesTheClinicAndComesBackIT {
     @Proving({DboPromises.PROC_A_HOST_HOLDS_A_LANE_WHEREVER_IT_IS,
             DboPromises.PROC_ENTITLEMENT_IS_DECLARED_NOT_DEFAULTED})
     void theCredentialDecidesTheReach() {
-        String elsewhere = NAMES.value("bench-elsewhere");
+        String elsewhere = NAMES.value("worker-elsewhere");
         String token = participant(elsewhere, "work/" + PROCESS + ".something-else");
         Run work = runs.pipeline(PROCESS, "validate", PROCESS + "/validate/refused",
                 List.of(WorkModel.DOMAIN));
@@ -600,7 +601,7 @@ class WorkLeavesTheClinicAndComesBackIT {
         // The executor identity is what a claim is recorded under and what
         // `inputs` checks against, so a bounded credential free to spell any
         // name could read the inputs of runs it never claimed.
-        String itself = NAMES.value("bench-itself");
+        String itself = NAMES.value("worker-itself");
         String own = participant(itself, "work/" + ASSAY);
         cloud.jengu.dbo.runner.Lane impersonating = HttpLane.to(
                 URI.create(dbo.at(HOSPITAL) + "/work"), () -> own, HOSPITAL, itself,
@@ -635,14 +636,14 @@ class WorkLeavesTheClinicAndComesBackIT {
         Run work = runs.pipeline(PROCESS, "validate", PROCESS + "/validate/narrowed",
                 List.of(WorkModel.DOMAIN));
 
-        // The hospital's own credential, serving a lane on behalf of a bench
+        // The hospital's own credential, serving a lane on behalf of a worker
         // that was granted some other step. The reach on the lane is the
-        // bench's, not the host's.
+        // worker's, not the host's.
         String host = dbo.workToken(HOSPITAL);
-        String narrowedBench = NAMES.value("bench-narrowed");
+        String narrowedWorker = NAMES.value("worker-narrowed");
         cloud.jengu.dbo.runner.Lane narrowed = HttpLane.boundedTo(
-                URI.create(dbo.at(HOSPITAL) + "/work"), () -> host, HOSPITAL, narrowedBench,
-                new Executor(narrowedBench, "1.0", "example.meristem", Scope.BASELINE),
+                URI.create(dbo.at(HOSPITAL) + "/work"), () -> host, HOSPITAL, narrowedWorker,
+                new Executor(narrowedWorker, "1.0", "example.meristem", Scope.BASELINE),
                 Set.of(PROCESS + ".a-different-step"));
         Proves.that(DboPromises.PROC_CLAIM_IS_THE_INTERSECTION,
                 narrowed.poll(Set.of("validate"), 10).isEmpty(),
@@ -653,7 +654,7 @@ class WorkLeavesTheClinicAndComesBackIT {
 
         // The other direction: what is asked for is intersected with what the
         // credential covers, never substituted for it.
-        String asking = NAMES.value("bench-asking-for-more");
+        String asking = NAMES.value("worker-asking-for-more");
         String token = participant(asking, "work/" + PROCESS + ".something-else");
         cloud.jengu.dbo.runner.Lane widened = HttpLane.boundedTo(
                 URI.create(dbo.at(HOSPITAL) + "/work"), () -> token, HOSPITAL, asking,
@@ -670,7 +671,7 @@ class WorkLeavesTheClinicAndComesBackIT {
     @Test
     @Order(16)
     @DisplayName("a refusal and a store that did not answer are different exceptions, because "
-            + "a bench must stop asking for one and keep asking for the other")
+            + "a worker must stop asking for one and keep asking for the other")
     @Proving(DboPromises.PROC_REFUSED_IS_NOT_UNANSWERED)
     void aRefusalIsNotAnUnansweredCall() throws Exception {
         String readsOnly = NAMES.value("reads-only-too");
@@ -681,13 +682,13 @@ class WorkLeavesTheClinicAndComesBackIT {
                 !(settled instanceof cloud.jengu.dbo.core.api.StoreUnreachableException),
                 "a decision about the caller read as transient: " + settled.getMessage());
 
-        // Nothing is listening: the verb is retryable, and a bench that read
+        // Nothing is listening: the verb is retryable, and a worker that read
         // this as a refusal would stop taking work it is entitled to.
         int dead;
         try (java.net.ServerSocket free = new java.net.ServerSocket(0)) {
             dead = free.getLocalPort();
         }
-        String offline = NAMES.value("bench-offline");
+        String offline = NAMES.value("worker-offline");
         cloud.jengu.dbo.runner.Lane unreachable = HttpLane.to(
                 URI.create("http://127.0.0.1:" + dead + "/t/" + HOSPITAL + "/work"),
                 () -> token, HOSPITAL, offline,
@@ -769,21 +770,21 @@ class WorkLeavesTheClinicAndComesBackIT {
             + "rotates the version, and a private half or a wrong kind is refused")
     @Proving(DboPromises.PROC_A_PARTICIPANT_OFFERS_ITS_KEY_AT_ENROLMENT)
     void whatAParticipantHoldsDecidesWhatItMayOpen() throws Exception {
-        var analyser = cloud.jengu.dbo.core.api.seal.KeyWrap.newParticipantKeyPair();
-        var offered = cloud.jengu.dbo.core.api.seal.ParticipantKey.of(analyser.getPublic());
-        String analyserId = NAMES.value("analyser-7");
+        var assayer = cloud.jengu.dbo.core.api.seal.KeyWrap.newParticipantKeyPair();
+        var offered = cloud.jengu.dbo.core.api.seal.ParticipantKey.of(assayer.getPublic());
+        String assayerId = NAMES.value("assayer-7");
 
-        HttpResponse<String> enrolled = enrol(analyserId, offered.render());
+        HttpResponse<String> enrolled = enrol(assayerId, offered.render());
         assertEquals(200, enrolled.statusCode(), enrolled.body());
         Proves.that(DboPromises.PROC_A_PARTICIPANT_OFFERS_ITS_KEY_AT_ENROLMENT,
                 enrolled.body().contains("\"kid\":\"" + offered.kid() + "\""),
                 "the version the store will wrap to is not named by the key's own thumbprint: "
                         + enrolled.body());
         TenantAuthority authority = tenants.authority(HOSPITAL).orElseThrow();
-        var recorded = authority.participantKey(analyserId);
+        var recorded = authority.participantKey(assayerId);
         assertEquals(java.util.Optional.of(offered), recorded,
                 "the key offered is not the key recorded");
-        String record = clientRecord(analyserId);
+        String record = clientRecord(assayerId);
         Proves.that(DboPromises.PROC_A_PARTICIPANT_OFFERS_ITS_KEY_AT_ENROLMENT,
                 record.contains("\"crv\":\"X25519\"") && !record.contains("\"d\":"),
                 "the record is not the public half alone: " + record);
@@ -794,7 +795,7 @@ class WorkLeavesTheClinicAndComesBackIT {
         Proves.that(DboPromises.PROC_A_PARTICIPANT_OFFERS_ITS_KEY_AT_ENROLMENT,
                 java.util.Arrays.equals(dataKey, cloud.jengu.dbo.core.api.seal.KeyWrap.unwrap(
                         cloud.jengu.dbo.core.api.seal.KeyWrap.Wrapped.parse(wrapped.render()),
-                        analyser.getPrivate())),
+                        assayer.getPrivate())),
                 "the participant, holding the private half, could not open what was wrapped "
                         + "to it after it travelled as text");
         var impostor = cloud.jengu.dbo.core.api.seal.KeyWrap.newParticipantKeyPair();
@@ -806,10 +807,10 @@ class WorkLeavesTheClinicAndComesBackIT {
         // A new key rotates the version, and the old wrap still says which
         // it was made to.
         var second = cloud.jengu.dbo.core.api.seal.KeyWrap.newParticipantKeyPair();
-        assertEquals(200, enrol(analyserId,
+        assertEquals(200, enrol(assayerId,
                 cloud.jengu.dbo.core.api.seal.ParticipantKey.of(second.getPublic()).render())
                 .statusCode());
-        var current = authority.participantKey(analyserId).orElseThrow();
+        var current = authority.participantKey(assayerId).orElseThrow();
         Proves.that(DboPromises.PROC_A_PARTICIPANT_OFFERS_ITS_KEY_AT_ENROLMENT,
                 !current.kid().equals(wrapped.kid()),
                 "re-enrolling with a new key did not rotate the version");
@@ -826,7 +827,7 @@ class WorkLeavesTheClinicAndComesBackIT {
 
         // The private half, or the wrong kind of key, is refused and recorded
         // nowhere.
-        String leakingId = NAMES.value("analyser-9");
+        String leakingId = NAMES.value("assayer-9");
         HttpResponse<String> leaked = enrol(leakingId, "{\"kty\":\"OKP\",\"crv\":\"X25519\","
                 + "\"x\":\"hSDwCYkwp1R0i33ctD73Wg2_Og0mOBr066SpjqqbTmo\",\"d\":\"never\"}");
         Proves.that(DboPromises.PROC_A_PARTICIPANT_OFFERS_ITS_KEY_AT_ENROLMENT,
@@ -845,7 +846,7 @@ class WorkLeavesTheClinicAndComesBackIT {
 
     @Test
     @Order(19)
-    @DisplayName("the wire carries the manifest readable and the payload sealed; the analyser "
+    @DisplayName("the wire carries the manifest readable and the payload sealed; the assayer "
             + "opens it with the key it holds, and the opening lands on the document's trail "
             + "while the hop lands on the task")
     @Proving({DboPromises.PROC_WORK_TRAVELS_SEALED,
@@ -861,8 +862,8 @@ class WorkLeavesTheClinicAndComesBackIT {
                 NAMES.value("sealed-out"), Map.of("specimen", "Observation/" + sealedSpecimen));
 
         HttpLane lane = HttpLane.holding(URI.create(dbo.at(HOSPITAL) + "/work"),
-                () -> participantToken(ANALYSER), HOSPITAL, ANALYSER, executor(ANALYSER),
-                analyser.getPrivate(), analyserSigning.getPrivate());
+                () -> participantToken(ASSAYER), HOSPITAL, ASSAYER, executor(ASSAYER),
+                assayer.getPrivate(), assayerSigning.getPrivate());
         Run held = lane.claim(run, Duration.ofMinutes(5)).orElseThrow();
 
         String wire = sealedVerbRaw(held);
@@ -874,20 +875,20 @@ class WorkLeavesTheClinicAndComesBackIT {
         Proves.that(DboPromises.PROC_WORK_TRAVELS_SEALED,
                 !wire.contains(marker) && wire.contains("ECDH-ES+A256GCM"),
                 "the payload is readable on the wire, or its key is not wrapped to the "
-                        + "analyser, so whatever carries this run can read it: " + wire);
+                        + "assayer, so whatever carries this run can read it: " + wire);
 
         Map<String, List<StoredObject>> inputs = lane.inputs(held);
         Proves.that(DboPromises.PROC_WORK_TRAVELS_SEALED,
                 new String(inputs.get("specimen").get(0).payload(),
                         java.nio.charset.StandardCharsets.UTF_8).contains(marker),
-                "the analyser, holding the private half, could not read the document");
+                "the assayer, holding the private half, could not read the document");
 
         List<String> onTheDocument = entries("Observation", sealedSpecimen);
         List<String> opened = onTheDocument.stream()
                 .filter(e -> e.contains("\"code\":\"access\"")).toList();
         Proves.that(DboPromises.POL_TRAVEL_AND_ACCESS_ARE_DIFFERENT_ENTRIES,
                 opened.size() == 1 && opened.get(0).contains("\"run\":\"" + held.key() + "\"")
-                        && opened.get(0).contains("\"by\":\"" + ANALYSER + "\"")
+                        && opened.get(0).contains("\"by\":\"" + ASSAYER + "\"")
                         && onTheDocument.stream()
                                 .noneMatch(e -> e.contains("\"interaction\":\"read\"")),
                 "the document's trail does not hold exactly the one opening, naming the run "
@@ -909,13 +910,13 @@ class WorkLeavesTheClinicAndComesBackIT {
                 .formatted(NAMES.value("plain-specimen")));
         String plain = written.idOrFail();
 
-        Run forTheAnalyser = runs.of(SEALED_STEP, cloud.jengu.dbo.work.RunKind.PIPELINE,
+        Run forTheAssayer = runs.of(SEALED_STEP, cloud.jengu.dbo.work.RunKind.PIPELINE,
                 NAMES.value("keyed-asks-clear"), Map.of("specimen", "Observation/" + plain));
         HttpLane keyed = HttpLane.to(URI.create(dbo.at(HOSPITAL) + "/work"),
-                () -> participantToken(ANALYSER), HOSPITAL, ANALYSER, executor(ANALYSER));
-        Run heldByAnalyser = keyed.claim(forTheAnalyser, Duration.ofMinutes(5)).orElseThrow();
+                () -> participantToken(ASSAYER), HOSPITAL, ASSAYER, executor(ASSAYER));
+        Run heldByAssayer = keyed.claim(forTheAssayer, Duration.ofMinutes(5)).orElseThrow();
         IllegalStateException clearRefused = assertThrows(IllegalStateException.class,
-                () -> keyed.inputs(heldByAnalyser));
+                () -> keyed.inputs(heldByAssayer));
         Proves.that(DboPromises.PROC_WORK_TRAVELS_SEALED,
                 clearRefused.getMessage().contains("travel sealed"),
                 "a participant that offered a key received its inputs in the clear: "
@@ -934,17 +935,17 @@ class WorkLeavesTheClinicAndComesBackIT {
                         + sealRefused.getMessage());
     }
 
-    // ── and what the analyser did is a chain nobody can quietly shorten ──
+    // ── and what the assayer did is a chain nobody can quietly shorten ──
 
     @Test
     @Order(21)
     @DisplayName("claimed, opened twice, closed: every link commits to the one before, the "
-            + "first to the task, the openings are signed by the analyser, and the result "
+            + "first to the task, the openings are signed by the assayer, and the result "
             + "carries the head")
     @Proving(DboPromises.POL_A_RUNS_TRAIL_IS_CHAINED_FROM_THE_TASK)
     void aCleanRunClosesOnItsChain() {
         Run run = twoInputRun("clean");
-        HttpLane lane = analysersLane();
+        HttpLane lane = assayersLane();
         Run held = lane.claim(run, Duration.ofMinutes(5)).orElseThrow();
         assertEquals(2, lane.inputs(held).size(), "both documents were not opened");
         lane.closed(held);
@@ -957,17 +958,17 @@ class WorkLeavesTheClinicAndComesBackIT {
                 chain.size() == 3 && "travel".equals(chain.get(0).get("code"))
                         && cloud.jengu.dbo.work.RunChain.root(held)
                                 .equals(chain.get(0).get("previous"))
-                        && ANALYSER.equals(chain.get(0).get("to"))
+                        && ASSAYER.equals(chain.get(0).get("to"))
                         && chain.get(0).get("link").equals(chain.get(1).get("previous"))
                         && chain.get(1).get("link").equals(chain.get(2).get("previous")),
                 "the hop and the two openings do not each commit to the one before, the first "
                         + "to the task: " + chain);
         Proves.that(DboPromises.POL_A_RUNS_TRAIL_IS_CHAINED_FROM_THE_TASK,
-                cloud.jengu.dbo.core.api.seal.SigningKey.of(analyserSigning.getPublic())
+                cloud.jengu.dbo.core.api.seal.SigningKey.of(assayerSigning.getPublic())
                         .verifies(chain.get(2).get("link").getBytes(
                                 java.nio.charset.StandardCharsets.UTF_8),
                                 chain.get(2).get("signature")),
-                "an opening is not signed by the analyser, checkably by anybody holding the "
+                "an opening is not signed by the assayer, checkably by anybody holding the "
                         + "public half it enrolled with: " + chain);
     }
 
@@ -978,18 +979,18 @@ class WorkLeavesTheClinicAndComesBackIT {
     @Proving(DboPromises.POL_A_RUNS_TRAIL_IS_CHAINED_FROM_THE_TASK)
     void aSuppressedLinkIsExposedByTheNext() {
         Run run = twoInputRun("suppressed");
-        HttpLane lane = analysersLane();
+        HttpLane lane = assayersLane();
         Run held = lane.claim(run, Duration.ofMinutes(5)).orElseThrow();
         String head = lane.sealed(held).manifest().head();
 
         String suppressed = cloud.jengu.dbo.work.RunChain.accessLink(head, held.key(),
-                reference(held, "specimen"), ANALYSER);
+                reference(held, "specimen"), ASSAYER);
         String next = cloud.jengu.dbo.work.RunChain.accessLink(suppressed, held.key(),
-                reference(held, "order"), ANALYSER);
+                reference(held, "order"), ASSAYER);
         IllegalStateException refused = assertThrows(IllegalStateException.class,
                 () -> lane.opened(held, reference(held, "order"),
                         new cloud.jengu.dbo.work.RunChain.Link("access", suppressed, next,
-                                ANALYSER, reference(held, "order"), sign(next))));
+                                ASSAYER, reference(held, "order"), sign(next))));
         Proves.that(DboPromises.POL_A_RUNS_TRAIL_IS_CHAINED_FROM_THE_TASK,
                 refused.getMessage().contains(suppressed)
                         && refused.getMessage().contains("missing before")
@@ -1007,7 +1008,7 @@ class WorkLeavesTheClinicAndComesBackIT {
     @Proving(DboPromises.POL_A_RUNS_TRAIL_IS_CHAINED_FROM_THE_TASK)
     void aMismatchedHeadIsRefusedAndTheRunStaysOwed() {
         Run run = twoInputRun("mismatch");
-        HttpLane lane = analysersLane();
+        HttpLane lane = assayersLane();
         Run held = lane.claim(run, Duration.ofMinutes(5)).orElseThrow();
         lane.inputs(held);
 
@@ -1028,42 +1029,44 @@ class WorkLeavesTheClinicAndComesBackIT {
                 "the run closed without a result, or its openings are not on record");
     }
 
-    // ── a gateway carries work it cannot read ──
+    // ── a router carries work it cannot read ──
 
     @Test
     @Order(24)
-    @DisplayName("the router claims, names its edge as the recipient, cannot open what it "
-            + "carries, forwards the edge's signed opening, and closes on the chain the edge left")
+    @DisplayName("the router claims, names its routee as the recipient, cannot open what it "
+            + "carries, forwards the routee's signed opening, and closes on the chain the routee "
+            + "left")
     @Proving({DboPromises.PROC_THE_ROUTER_HOLDS_THE_CLAIM,
             DboPromises.POL_A_RUNS_TRAIL_IS_CHAINED_FROM_THE_TASK})
-    void theRouterHoldsTheClaimAndTheEdgeHoldsTheKey() throws Exception {
+    void theRouterHoldsTheClaimAndTheRouteeHoldsTheKey() throws Exception {
         String marker = NAMES.value("routed-plaintext");
-        Run held = gateway.claim(routedRun("routed", marker), Duration.ofMinutes(5)).orElseThrow();
+        Run held = routerLane.claim(routedRun("routed", marker), Duration.ofMinutes(5))
+                .orElseThrow();
 
-        cloud.jengu.dbo.work.SealedWork work = gateway.sealed(held, List.of(KEYED_BENCH));
+        cloud.jengu.dbo.work.SealedWork work = routerLane.sealed(held, List.of(KEYED_ROUTEE));
         Proves.that(DboPromises.PROC_THE_ROUTER_HOLDS_THE_CLAIM,
-                work.manifest().recipients().equals(List.of(KEYED_BENCH))
-                        && !work.payload().get(0).wrapped().containsKey(GATEWAY),
-                "the work was not sealed past the router to the edge it named: "
+                work.manifest().recipients().equals(List.of(KEYED_ROUTEE))
+                        && !work.payload().get(0).wrapped().containsKey(ROUTER),
+                "the work was not sealed past the router to the routee it named: "
                         + work.manifest().recipients() + " "
                         + work.payload().get(0).wrapped().keySet());
         assertThrows(java.security.GeneralSecurityException.class,
-                () -> work.payload().get(0).open(GATEWAY, edgeSealing.getPrivate()),
+                () -> work.payload().get(0).open(ROUTER, routeeSealing.getPrivate()),
                 "the router is among those the payload was sealed to");
 
-        StoredObject opened = work.payload().get(0).open(KEYED_BENCH, edgeSealing.getPrivate());
+        StoredObject opened = work.payload().get(0).open(KEYED_ROUTEE, routeeSealing.getPrivate());
         assertTrue(new String(opened.payload(), java.nio.charset.StandardCharsets.UTF_8)
-                .contains(marker), "the edge, holding its key, could not read the specimen");
+                .contains(marker), "the routee, holding its key, could not read the specimen");
         String reference = work.payload().get(0).reference();
         String previous = work.manifest().head();
         String link = cloud.jengu.dbo.work.RunChain.accessLink(previous, held.key(), reference,
-                KEYED_BENCH);
-        String head = gateway.opened(held, reference, new cloud.jengu.dbo.work.RunChain.Link(
-                "access", previous, link, KEYED_BENCH, reference,
+                KEYED_ROUTEE);
+        String head = routerLane.opened(held, reference, new cloud.jengu.dbo.work.RunChain.Link(
+                "access", previous, link, KEYED_ROUTEE, reference,
                 cloud.jengu.dbo.core.api.seal.SigningKey.sign(
                         link.getBytes(java.nio.charset.StandardCharsets.UTF_8),
-                        edgeSigning.getPrivate())));
-        gateway.closed(held, head);
+                        routeeSigning.getPrivate())));
+        routerLane.closed(held, head);
         assertEquals(cloud.jengu.dbo.work.Status.COMPLETED,
                 runs.byKey(held.key()).orElseThrow().status(), "the run did not close");
 
@@ -1071,17 +1074,17 @@ class WorkLeavesTheClinicAndComesBackIT {
         Proves.that(DboPromises.POL_A_RUNS_TRAIL_IS_CHAINED_FROM_THE_TASK,
                 chain.stream().map(e -> e.get("code")).toList()
                         .equals(List.of("travel", "travel", "access"))
-                        && GATEWAY.equals(chain.get(0).get("to"))
-                        && KEYED_BENCH.equals(chain.get(1).get("to"))
+                        && ROUTER.equals(chain.get(0).get("to"))
+                        && KEYED_ROUTEE.equals(chain.get(1).get("to"))
                         && chain.get(1).get("link").equals(chain.get(2).get("previous"))
-                        && KEYED_BENCH.equals(chain.get(2).get("by")),
+                        && KEYED_ROUTEE.equals(chain.get(2).get("by")),
                 "the chain is not the store's hop to the router, the router's forward to the "
-                        + "edge, and the edge's own opening: " + chain);
+                        + "routee, and the routee's own opening: " + chain);
         Proves.that(DboPromises.PROC_THE_ROUTER_HOLDS_THE_CLAIM,
-                cloud.jengu.dbo.core.api.seal.SigningKey.of(edgeSigning.getPublic()).verifies(
+                cloud.jengu.dbo.core.api.seal.SigningKey.of(routeeSigning.getPublic()).verifies(
                         chain.get(2).get("link").getBytes(java.nio.charset.StandardCharsets.UTF_8),
                         chain.get(2).get("signature")),
-                "the opening is not signed with the edge's key");
+                "the opening is not signed with the routee's key");
     }
 
     @Test
@@ -1089,47 +1092,47 @@ class WorkLeavesTheClinicAndComesBackIT {
     @DisplayName("a router seals only past itself to what it declared behind it, and only to a "
             + "routee that offered a key; an opening it carries is its routee's or nobody's")
     @Proving(DboPromises.PROC_THE_ROUTER_HOLDS_THE_CLAIM)
-    void aRouterSealsToItsOwnEdgesOnly() {
-        Run held = gateway.claim(routedRun("strangers", NAMES.value("strangers")),
+    void aRouterSealsToItsOwnRouteesOnly() {
+        Run held = routerLane.claim(routedRun("strangers", NAMES.value("strangers")),
                 Duration.ofMinutes(5)).orElseThrow();
         String stranger = NAMES.value("somebody-else");
 
         IllegalStateException notBehind = assertThrows(IllegalStateException.class,
-                () -> gateway.sealed(held, List.of(stranger)));
+                () -> routerLane.sealed(held, List.of(stranger)));
         IllegalStateException keyless = assertThrows(IllegalStateException.class,
-                () -> gateway.sealed(held, List.of(KEYLESS_BENCH)));
+                () -> routerLane.sealed(held, List.of(KEYLESS_ROUTEE)));
         IllegalStateException itself = assertThrows(IllegalStateException.class,
-                () -> gateway.sealed(held));
+                () -> routerLane.sealed(held));
         String reference = held.inputs().get("specimen").one();
         IllegalStateException forged = assertThrows(IllegalStateException.class,
-                () -> gateway.opened(held, reference, new cloud.jengu.dbo.work.RunChain.Link(
+                () -> routerLane.opened(held, reference, new cloud.jengu.dbo.work.RunChain.Link(
                         "access", cloud.jengu.dbo.work.RunChain.root(held), "x", stranger,
                         reference, "sig")));
         Proves.that(DboPromises.PROC_THE_ROUTER_HOLDS_THE_CLAIM,
                 notBehind.getMessage().contains("has not declared '" + stranger + "' behind it")
-                        && keyless.getMessage().contains("'" + KEYLESS_BENCH + "' offered no key")
-                        && itself.getMessage().contains("'" + GATEWAY + "' offered no key")
+                        && keyless.getMessage().contains("'" + KEYLESS_ROUTEE + "' offered no key")
+                        && itself.getMessage().contains("'" + ROUTER + "' offered no key")
                         && forged.getMessage().contains("cannot report an opening of its"),
                 "the router sealed or reported for somebody it may not: "
                         + notBehind.getMessage() + " / " + keyless.getMessage() + " / "
                         + itself.getMessage() + " / " + forged.getMessage());
-        assertTrue(chainOf(held).stream().noneMatch(e -> KEYLESS_BENCH.equals(e.get("to"))),
+        assertTrue(chainOf(held).stream().noneMatch(e -> KEYLESS_ROUTEE.equals(e.get("to"))),
                 "a refused seal handed something on");
     }
 
     @Test
     @Order(26)
-    @DisplayName("a router whose edge never answers waits, the claim lapses, the run reads "
+    @DisplayName("a router whose routee never answers waits, the claim lapses, the run reads "
             + "released and still owed, and a late report is refused")
     @Proving({DboPromises.PROC_DONE_MEANS_DONE, DboPromises.PROC_THE_ROUTER_HOLDS_THE_CLAIM})
-    void aWedgedEdgeLetsTheClaimLapse() {
+    void aWedgedRouteeLetsTheClaimLapse() {
         // Held for nothing, so the claim has lapsed by the time anybody looks:
         // the router still holds it — nobody has acted on the run — until the
         // housekeeping below hands it back.
-        Run held = gateway.claim(routedRun("wedged", NAMES.value("wedged")),
+        Run held = routerLane.claim(routedRun("wedged", NAMES.value("wedged")),
                 Duration.ZERO).orElseThrow();
-        gateway.sealed(held, List.of(KEYED_BENCH));
-        gateway.releaseLapsed();
+        routerLane.sealed(held, List.of(KEYED_ROUTEE));
+        routerLane.releaseLapsed();
 
         Run released = runs.byKey(held.key()).orElseThrow();
         Proves.that(DboPromises.PROC_DONE_MEANS_DONE,
@@ -1142,7 +1145,7 @@ class WorkLeavesTheClinicAndComesBackIT {
         // Refused as a claim that is no longer the router's, across the wire,
         // which is what tells a runner to drop the work rather than release it.
         assertThrows(cloud.jengu.dbo.work.Runs.NotHeld.class,
-                () -> gateway.closed(held, cloud.jengu.dbo.work.RunChain.root(held)),
+                () -> routerLane.closed(held, cloud.jengu.dbo.work.RunChain.root(held)),
                 "a report after the claim lapsed closed the run");
         Proves.that(DboPromises.PROC_THE_ROUTER_HOLDS_THE_CLAIM,
                 runs.byKey(held.key()).orElseThrow().open(),
@@ -1690,7 +1693,7 @@ class WorkLeavesTheClinicAndComesBackIT {
                 "the clinic was not told the review is done: " + done.body());
     }
 
-    // ── a driver the clinic ships as a bundle of its own ──
+    // ── a step the clinic ships as a bundle of its own ──
 
     /** The clinic's own framework, which the store was installed into. */
     @Autowired
@@ -1702,26 +1705,26 @@ class WorkLeavesTheClinicAndComesBackIT {
 
     @Test
     @Order(36)
-    @DisplayName("a step the hospital declares is performed by a driver bundle the clinic "
+    @DisplayName("a step the hospital declares is performed by a bundle the clinic "
             + "installed into its own framework, with no bean performing it: the assembly "
             + "installed the store beside the bundle, and the runner took the bundle's service "
             + "up as it takes a bean's")
     @Proving({DboPromises.CONT_A_HOST_MAY_OWN_THE_CONTAINER,
             DboPromises.PROC_STEP_SERVICE_EMBEDDABLE})
-    void aDriverBundleOfTheClinicsPerformsADeclaredStep() {
+    void aBundleOfTheClinicsPerformsADeclaredStep() {
         String observe = "hogwarts.ward.observe";
         Proves.that(DboPromises.CONT_A_HOST_MAY_OWN_THE_CONTAINER,
                 beansThatPerform.stream().noneMatch(bean -> observe.equals(bean.step())),
                 "a bean performs " + observe + ", so whatever performs it proves nothing about "
                         + "the clinic's bundle");
-        org.osgi.framework.Bundle driver = inTheClinicsFramework(
-                "cloud.jengu.dbo.samples.thermometer");
+        org.osgi.framework.Bundle clinicsBundle = inTheClinicsFramework(
+                "cloud.jengu.dbo.samples.ward");
         org.osgi.framework.Bundle runner = inTheClinicsFramework("cloud.jengu.dbo.runner");
         Proves.that(DboPromises.CONT_A_HOST_MAY_OWN_THE_CONTAINER,
-                driver.getState() == org.osgi.framework.Bundle.ACTIVE
+                clinicsBundle.getState() == org.osgi.framework.Bundle.ACTIVE
                         && runner.getState() == org.osgi.framework.Bundle.ACTIVE,
-                "the clinic's framework does not hold its driver and the store's runner, both "
-                        + "running: driver " + driver.getState() + ", runner "
+                "the clinic's framework does not hold its bundle and the store's runner, both "
+                        + "running: bundle " + clinicsBundle.getState() + ", runner "
                         + runner.getState());
 
         var patient = dbo.write(HOSPITAL, "Patient", """
@@ -1738,8 +1741,8 @@ class WorkLeavesTheClinicAndComesBackIT {
                 "the ward observation was never performed: " + answer.body());
         Proves.that(DboPromises.CONT_A_HOST_MAY_OWN_THE_CONTAINER,
                 cloud.jengu.dbo.samples.worker.HearingBack.counted(answer, "bundle")
-                        .equals(java.util.Optional.of(driver.getBundleId())),
-                "the run was not performed by the clinic's driver bundle, which counts its own "
+                        .equals(java.util.Optional.of(clinicsBundle.getBundleId())),
+                "the run was not performed by the clinic's bundle, which counts its own "
                         + "bundle id: " + answer.body());
     }
 
@@ -1964,28 +1967,28 @@ class WorkLeavesTheClinicAndComesBackIT {
             + "may again once a report names it")
     @Proving(DboPromises.PROC_A_DROPPED_ROUTEE_IS_NOT_SEALED_TO)
     void aDroppedRouteeIsNotSealedTo() {
-        gateway.routes(List.of(cloud.jengu.dbo.work.Trackable.routed(KEYLESS_BENCH, GATEWAY)));
-        Run held = gateway.claim(routedRun("dropped", NAMES.value("dropped")),
+        routerLane.routes(List.of(cloud.jengu.dbo.work.Trackable.routed(KEYLESS_ROUTEE, ROUTER)));
+        Run held = routerLane.claim(routedRun("dropped", NAMES.value("dropped")),
                 Duration.ofMinutes(5)).orElseThrow();
         try {
             IllegalStateException dropped = assertThrows(IllegalStateException.class,
-                    () -> gateway.sealed(held, List.of(KEYED_BENCH)),
+                    () -> routerLane.sealed(held, List.of(KEYED_ROUTEE)),
                     "the router sealed to a routee its latest report left out");
             Proves.that(DboPromises.PROC_A_DROPPED_ROUTEE_IS_NOT_SEALED_TO,
-                    dropped.getMessage().contains("has not declared '" + KEYED_BENCH
+                    dropped.getMessage().contains("has not declared '" + KEYED_ROUTEE
                             + "' behind it"),
                     "the refusal does not say the routee is not behind the router: "
                             + dropped.getMessage());
-            assertTrue(chainOf(held).stream().noneMatch(e -> KEYED_BENCH.equals(e.get("to"))),
+            assertTrue(chainOf(held).stream().noneMatch(e -> KEYED_ROUTEE.equals(e.get("to"))),
                     "a refused seal handed the work on");
         } finally {
-            gateway.routes(List.of(
-                    cloud.jengu.dbo.work.Trackable.routed(KEYED_BENCH, GATEWAY),
-                    cloud.jengu.dbo.work.Trackable.routed(KEYLESS_BENCH, GATEWAY)));
+            routerLane.routes(List.of(
+                    cloud.jengu.dbo.work.Trackable.routed(KEYED_ROUTEE, ROUTER),
+                    cloud.jengu.dbo.work.Trackable.routed(KEYLESS_ROUTEE, ROUTER)));
         }
         Proves.that(DboPromises.PROC_A_DROPPED_ROUTEE_IS_NOT_SEALED_TO,
-                gateway.sealed(held, List.of(KEYED_BENCH)).manifest().recipients()
-                        .equals(List.of(KEYED_BENCH)),
+                routerLane.sealed(held, List.of(KEYED_ROUTEE)).manifest().recipients()
+                        .equals(List.of(KEYED_ROUTEE)),
                 "a routee reported again could not be sealed to");
     }
 
@@ -2348,10 +2351,10 @@ class WorkLeavesTheClinicAndComesBackIT {
                 Map.of("specimen", "Observation/" + specimen));
     }
 
-    private HttpLane analysersLane() {
+    private HttpLane assayersLane() {
         return HttpLane.holding(URI.create(dbo.at(HOSPITAL) + "/work"),
-                () -> participantToken(ANALYSER), HOSPITAL, ANALYSER, executor(ANALYSER),
-                analyser.getPrivate(), analyserSigning.getPrivate());
+                () -> participantToken(ASSAYER), HOSPITAL, ASSAYER, executor(ASSAYER),
+                assayer.getPrivate(), assayerSigning.getPrivate());
     }
 
     private Run twoInputRun(String key) {
@@ -2374,7 +2377,7 @@ class WorkLeavesTheClinicAndComesBackIT {
     private String sign(String link) {
         return cloud.jengu.dbo.core.api.seal.SigningKey.sign(
                 link.getBytes(java.nio.charset.StandardCharsets.UTF_8),
-                analyserSigning.getPrivate());
+                assayerSigning.getPrivate());
     }
 
     /** The run's chain entries as recorded, in the order they were written. */
@@ -2413,15 +2416,15 @@ class WorkLeavesTheClinicAndComesBackIT {
     /** The sealed verb as a carrier sees it: the raw answer, uninterpreted. */
     private String sealedVerbRaw(Run run) {
         Map<String, Object> body = new java.util.LinkedHashMap<>();
-        body.put("participant", ANALYSER);
-        body.put("identity", cloud.jengu.dbo.core.wire.RecordWire.encode(executor(ANALYSER)));
+        body.put("participant", ASSAYER);
+        body.put("identity", cloud.jengu.dbo.core.wire.RecordWire.encode(executor(ASSAYER)));
         body.put("run", cloud.jengu.dbo.core.wire.RecordWire.encode(run));
         HttpResponse<String> answer = dbo.send(HttpRequest.newBuilder(
                         URI.create(dbo.at(HOSPITAL) + "/work/sealed"))
                 .header("Content-Type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(
                         cloud.jengu.dbo.core.wire.RecordWire.write(body))),
-                participantToken(ANALYSER));
+                participantToken(ASSAYER));
         assertEquals(200, answer.statusCode(), answer.body());
         return answer.body();
     }

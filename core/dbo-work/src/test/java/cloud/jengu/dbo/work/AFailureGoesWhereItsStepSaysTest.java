@@ -39,8 +39,8 @@ class AFailureGoesWhereItsStepSaysTest {
     private Runner runner(Runs runs) {
         return new Runner(runs, held.feed(),
                 new Declarations(held.store(), held.feed(), Duration.ofMinutes(1)),
-                new Declarations.Declared(PROCESS, STEP, "analyser", "1", "example.lab",
-                        Scope.BASELINE, "analyser"), Duration.ofMinutes(5));
+                new Declarations.Declared(PROCESS, STEP, "worker", "1", "example.lab",
+                        Scope.BASELINE, "worker"), Duration.ofMinutes(5));
     }
 
     @Test
@@ -52,7 +52,7 @@ class AFailureGoesWhereItsStepSaysTest {
         Run run = runs.pipeline(PROCESS, STEP);
 
         runner(runs).runOnce(50, taken -> {
-            throw new UnsupportedOperationException("the analyser answered in a dialect "
+            throw new UnsupportedOperationException("the far side answered in a dialect "
                     + "nobody wrote a parser for");
         });
 
@@ -72,10 +72,10 @@ class AFailureGoesWhereItsStepSaysTest {
         Runs runs = runs(StepDeclaration.of(PROCESS + "." + STEP, "1", WorkModel.DOMAIN)
                 .retrying(new RetryPolicy(List.of("unreachable"), "PT1M", 2)));
         Run run = runs.pipeline(PROCESS, STEP);
-        Executor analyser = new Executor("analyser", "1", "example.lab", Scope.BASELINE);
+        Executor worker = new Executor("worker", "1", "example.lab", Scope.BASELINE);
 
         Instant before = Instant.now();
-        Run first = runs.released(runs.claim(run, analyser, Instant.now().plusSeconds(60))
+        Run first = runs.released(runs.claim(run, worker, Instant.now().plusSeconds(60))
                         .orElseThrow(), "the LIS did not answer", Failure.UNREACHABLE);
         assertEquals(Status.ON_HOLD, first.status());
         assertTrue(first.automation(), "a declared fault went to people: " + first);
@@ -115,11 +115,11 @@ class AFailureGoesWhereItsStepSaysTest {
             + "will pass, and to people otherwise")
     @Proving(DboPromises.PROC_ESCALATION_BY_FAILURE_CLASS)
     void aLapseIsTransientOnlyWhenDeclared() throws InterruptedException {
-        Executor analyser = new Executor("analyser", "1", "example.lab", Scope.BASELINE);
+        Executor worker = new Executor("worker", "1", "example.lab", Scope.BASELINE);
         Runs silent = runs(StepDeclaration.of(PROCESS + "." + STEP, "1", WorkModel.DOMAIN)
                 .retrying(new RetryPolicy(List.of("unreachable"), "PT0S", 5)));
         Run undeclared = silent.pipeline(PROCESS, STEP, "undeclared");
-        silent.claim(undeclared, analyser, Instant.now().plusMillis(1)).orElseThrow();
+        silent.claim(undeclared, worker, Instant.now().plusMillis(1)).orElseThrow();
         Thread.sleep(20);
         Participation.releaseLapsed(silent);
         assertFalse(silent.byKey("undeclared").orElseThrow().automation(),
@@ -128,7 +128,7 @@ class AFailureGoesWhereItsStepSaysTest {
         Runs patient = runs(StepDeclaration.of(PROCESS + "." + STEP, "1", WorkModel.DOMAIN)
                 .retrying(new RetryPolicy(List.of("lapsed"), "PT0S", 5)));
         Run declared = patient.pipeline(PROCESS, STEP, "declared");
-        patient.claim(declared, analyser, Instant.now().plusMillis(1)).orElseThrow();
+        patient.claim(declared, worker, Instant.now().plusMillis(1)).orElseThrow();
         Thread.sleep(20);
         Participation.releaseLapsed(patient);
         Run after = patient.byKey("declared").orElseThrow();
@@ -150,13 +150,13 @@ class AFailureGoesWhereItsStepSaysTest {
                 Failure.UNREACHABLE);
         assertFalse(seen.automation(), "past one attempt it should be a person's");
 
-        Run byHand = runs.reopen(seen, "the analyser is back; I will run this one myself",
+        Run byHand = runs.reopen(seen, "the service is back; I will run this one myself",
                 false);
         assertFalse(byHand.automation());
-        Run again = runs.reopen(byHand, "on reflection, let the analyser have it", true);
+        Run again = runs.reopen(byHand, "on reflection, let automation have it", true);
         assertTrue(again.forAutomation(Instant.now()), "returned to automation and not offered");
         assertEquals(0, again.attempts());
-        assertEquals("on reflection, let the analyser have it", again.statusReason());
+        assertEquals("on reflection, let automation have it", again.statusReason());
     }
 
     @Test

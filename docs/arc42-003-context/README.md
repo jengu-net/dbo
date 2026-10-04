@@ -27,7 +27,8 @@ reaching a face without passing through the application.</p>
 
 ## The system built on the store
 
-One consumer, in two assemblies: a cloud deployment and an edge appliance.
+One consumer, in two assemblies: a cloud deployment and a replica of a
+tenant in a second place.
 It reaches the store over the FHIR surface in production and through the
 in-JVM embedded container in development and test, which is the same engine
 either way.

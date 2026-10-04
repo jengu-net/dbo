@@ -24,7 +24,7 @@ import java.util.List;
 @Catalogue(namespace = "US-DBO")
 public enum DboStories implements Story {
 
-    EDGE_ROUNDTRIP("Work leaves the tenant that authored it and comes back: a step declared "
+    WORK_ROUNDTRIP("Work leaves the tenant that authored it and comes back: a step declared "
             + "by whoever performs it, a task authored on the surface, claimed over a lane by "
             + "one shared service that reads a payload only when it has to.",
             List.of(
@@ -521,10 +521,10 @@ public enum DboStories implements Story {
                     DboPromises.ZONE_SUBJECT_DOMAINS,
                     DboPromises.ZONE_BROKER_CHOICE,
                     DboPromises.ZONE_SESSIONS_ACCUMULATE,
-                    // And the appliance: the other bound, deliberately different.
+                    // And the second place: the other bound, deliberately different.
                     DboPromises.PROC_THE_LANE_HAS_TWO_BOUNDS,
                     DboPromises.PROC_WORK_DRIVEN_ARRIVAL_AND_EXPIRY,
-                    DboPromises.PROC_MIRRORED_RUNS_ARE_FILED_BY_APPLIANCE,
+                    DboPromises.PROC_MIRRORED_RUNS_ARE_FILED_BY_SOURCE,
                     DboPromises.PROC_AUDIT_REPLICATES_AS_RECORDED,
                     DboPromises.PROC_LANE_APPLY_IS_REPLAY_AND_REORDER_SAFE,
                     DboPromises.PROC_LANE_EPOCH,

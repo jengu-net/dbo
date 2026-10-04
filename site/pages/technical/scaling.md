@@ -9,7 +9,7 @@ template: essay.html
 ---
 
 Most stores have one deployment shape and a second, unhappy one for tests.
-This one is meant to be the same store in a test suite, on an appliance in a
+This one is meant to be the same store in a test suite, on a small machine in a
 laboratory, and in a cluster — because the alternative is that a consumer
 mocks it, and a mocked store is one whose real behaviour is discovered late.
 
@@ -37,7 +37,7 @@ Measured cold start for the serving distribution is about five seconds from
 boot to a first response on a current schema. A store that took thirty seconds
 would be a store people mocked.
 
-### Which is also how it runs on a small appliance
+### Which is also how it runs on a small machine
 
 The same shape — one JVM, one Postgres beside it, no container and no
 orchestrator — is what runs on hardware the size of a Raspberry Pi, on a shelf
@@ -49,7 +49,7 @@ That is deliberate, and it is also where the numbers come from: performance is
 an unnamed cloud instance cannot be repeated and a figure taken on the target
 can.
 
-An appliance is offline as a matter of course — a weekend, a network somebody
+A second site is offline as a matter of course — a weekend, a network somebody
 unplugged — and that is an ordinary state rather than a fault. It catches up by
 replaying from its own position when it comes back, and nothing had to be
 queued for it or retried at it.

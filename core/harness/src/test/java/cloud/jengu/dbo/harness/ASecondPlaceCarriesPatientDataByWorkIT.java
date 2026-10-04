@@ -43,12 +43,12 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * The appliance half of US-DBO-TWO-PLACES: one tenant in two places, and
+ * The second-site half of US-DBO-TWO-PLACES: one tenant in two places, and
  * patient data travelling between them by work rather than by type.
  *
- * <p>What a run produced on the appliance arrives on the cloud with the run and
- * leaves when no open run still names it, which is why an appliance does not
- * slowly become a copy of the whole clinic. The story's zone half walks the
+ * <p>What a run produced at the second site arrives on the cloud with the run
+ * and leaves when no open run still names it, which is why a second site does
+ * not slowly become a copy of the whole clinic. The story's zone half walks the
  * sample world; this half is two places of one tenant, and the world is one
  * place, so it is proven here with no runtime at all: two databases and a lane
  * between them.
@@ -56,77 +56,77 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @Tag("integration")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-class AnApplianceCarriesPatientDataByWorkIT {
+class ASecondPlaceCarriesPatientDataByWorkIT {
 
-    // ── the appliance half ──
+    // ── the second-site half ──
     private static final String PROCESS = "dbo.lab.assay";
     private static final Set<String> TRAVELS = Set.of(PROCESS);
 
     static PostgreSQLContainer<?> postgres;
 
     static PGSimpleDataSource cloudDs;
-    static PGSimpleDataSource edgeDs;
+    static PGSimpleDataSource siteDs;
     static PgObjectStore cloudStore;
-    static PgObjectStore edgeStore;
+    static PgObjectStore siteStore;
     static Runs cloudRuns;
-    static Runs edgeRuns;
+    static Runs siteRuns;
     static Lanes cloud;
-    static Lanes edge;
+    static Lanes site;
 
     @BeforeAll
     void up() throws Exception {
         postgres = SharedPostgres.get();
-        String jdbcUrl = SharedPostgres.urlFor("AnApplianceCarriesPatientDataByWorkIT");
+        String jdbcUrl = SharedPostgres.urlFor("ASecondPlaceCarriesPatientDataByWorkIT");
 
-        // The appliance half: one tenant, two databases, one lane between them.
+        // The second-site half: one tenant, two databases, one lane between them.
         try (Connection c = DriverManager.getConnection(jdbcUrl,
                         postgres.getUsername(), postgres.getPassword());
                 var st = c.createStatement()) {
             st.execute("CREATE DATABASE kevad_cloud");
-            st.execute("CREATE DATABASE kevad_edge");
+            st.execute("CREATE DATABASE kevad_site");
         }
         String base = jdbcUrl.substring(0, jdbcUrl.lastIndexOf('/') + 1);
         cloudDs = ds(base + "kevad_cloud");
-        edgeDs = ds(base + "kevad_edge");
+        siteDs = ds(base + "kevad_site");
         List<TypeRegistration> declarations = new ArrayList<>(new R4Personality(
                 List.of(FhirTypeConfig.internal("Observation"))).registrations());
         declarations.addAll(WorkModel.registrations());
         declarations.addAll(LaneModel.registrations());
         declarations.addAll(PlacementModel.registrations());
         cloudStore = new PgObjectStore(cloudDs, declarations);
-        edgeStore = new PgObjectStore(edgeDs, declarations);
+        siteStore = new PgObjectStore(siteDs, declarations);
         cloudRuns = new Runs(cloudStore);
-        edgeRuns = new Runs(edgeStore);
+        siteRuns = new Runs(siteStore);
         cloud = new Lanes(cloudStore, new PgChangeFeed(cloudDs, WorkModel.DOMAIN), cloudRuns,
                 "cloud");
-        edge = new Lanes(edgeStore, new PgChangeFeed(edgeDs, WorkModel.DOMAIN), edgeRuns, "edge");
+        site = new Lanes(siteStore, new PgChangeFeed(siteDs, WorkModel.DOMAIN), siteRuns, "site");
     }
 
     // ── and patient data travels by work rather than by type ──
 
     @Test
     @Order(4)
-    @DisplayName("what a run produced on the appliance arrives on the cloud with the run, "
-            + "filed under the appliance that made it")
+    @DisplayName("what a run produced at the second site arrives on the cloud with the "
+            + "run, filed under the site that made it")
     @Proving({DboPromises.PROC_THE_LANE_HAS_TWO_BOUNDS,
-            DboPromises.PROC_MIRRORED_RUNS_ARE_FILED_BY_APPLIANCE})
-    void whatTheApplianceProducedTravelsWithItsRun() {
-        Run run = edgeRuns.pipeline(PROCESS, "measure", PROCESS + "/on-the-edge",
+            DboPromises.PROC_MIRRORED_RUNS_ARE_FILED_BY_SOURCE})
+    void whatTheSecondPlaceProducedTravelsWithItsRun() {
+        Run run = siteRuns.pipeline(PROCESS, "measure", PROCESS + "/at-the-second-site",
                 List.of(WorkModel.DOMAIN));
-        Run held = edgeRuns.claim(run, new Executor("analyser", "1.0", "example.meristem",
+        Run held = siteRuns.claim(run, new Executor("assayer", "1.0", "example.meristem",
                 Scope.BASELINE), Instant.now().plusSeconds(60)).orElseThrow();
-        String id = edgeStore.put(PutRequest.create("Observation",
+        String id = siteStore.put(PutRequest.create("Observation",
                 "{\"resourceType\":\"Observation\",\"status\":\"final\"}"
                         .getBytes(StandardCharsets.UTF_8))).id();
-        edgeRuns.closed(edgeRuns.produced(held, "Observation", id, 1));
+        siteRuns.closed(siteRuns.produced(held, "Observation", id, 1));
 
-        Lanes.Batch batch = edge.outbound("cloud", 500, TRAVELS);
-        assertEquals(List.of(), cloud.apply("edge", batch).refused(), "the batch applied whole");
+        Lanes.Batch batch = site.outbound("cloud", 500, TRAVELS);
+        assertEquals(List.of(), cloud.apply("site", batch).refused(), "the batch applied whole");
 
-        assertEquals("edge", cloud.copiedFrom("Observation", id).orElseThrow(),
-                "filed under the appliance that produced it rather than merged into the "
+        assertEquals("site", cloud.copiedFrom("Observation", id).orElseThrow(),
+                "filed under the site that produced it rather than merged into the "
                         + "cloud's own record of the same type");
-        assertTrue(cloudRuns.byKey("edge" + Lanes.MIRROR_SEPARATOR + run.key()).isPresent(),
+        assertTrue(cloudRuns.byKey("site" + Lanes.MIRROR_SEPARATOR + run.key()).isPresent(),
                 "and the run it came with is mirrored beside the cloud's own rather than on "
                         + "top of them, because the side that authored a run is the only side "
                         + "that advances it");
@@ -139,26 +139,26 @@ class AnApplianceCarriesPatientDataByWorkIT {
     @Proving({DboPromises.PROC_LANE_APPLY_IS_REPLAY_AND_REORDER_SAFE,
             DboPromises.FEED_IDEMPOTENT_DELIVERY})
     void aReSentBatchAppliesOnce() {
-        Lanes.Batch again = edge.outbound("cloud", 500, TRAVELS);
-        Lanes.Applied reapplied = cloud.apply("edge", again);
+        Lanes.Batch again = site.outbound("cloud", 500, TRAVELS);
+        Lanes.Applied reapplied = cloud.apply("site", again);
 
         assertEquals(List.of(), reapplied.refused(),
-                "a re-sent batch was refused rather than absorbed, so an appliance that "
+                "a re-sent batch was refused rather than absorbed, so a site that "
                         + "reconnects and repeats itself looks like an error: " + reapplied);
     }
 
     @Test
     @Order(6)
     @DisplayName("a peer resuming a cursor another lane instance issued is refused rather "
-            + "than replayed, because an appliance restored from a copy looks healthy")
+            + "than replayed, because a site restored from a copy looks healthy")
     @Proving(DboPromises.PROC_LANE_EPOCH)
     void aCursorFromAnotherLaneIsRefused() {
         // A second lane over the same store is a new instance with a new
-        // epoch: the appliance was restored, and its old position means
+        // epoch: the site was restored, and its old position means
         // nothing now even though it parses.
-        Lanes restored = new Lanes(edgeStore, new PgChangeFeed(edgeDs, WorkModel.DOMAIN),
-                edgeRuns, "edge");
-        Lanes.Batch fromTheOldInstance = edge.outbound("cloud", 500, TRAVELS);
+        Lanes restored = new Lanes(siteStore, new PgChangeFeed(siteDs, WorkModel.DOMAIN),
+                siteRuns, "site");
+        Lanes.Batch fromTheOldInstance = site.outbound("cloud", 500, TRAVELS);
 
         assertTrue(fromTheOldInstance.items().isEmpty()
                         || restored.outbound("cloud", 500, TRAVELS) != null,
@@ -174,7 +174,7 @@ class AnApplianceCarriesPatientDataByWorkIT {
         // Refused as a state rather than as a bad argument: the caller's ask
         // was well formed and this lane simply does not carry that type.
         IllegalStateException refused = assertThrows(IllegalStateException.class,
-                () -> cloud.outbound("edge", 500, TRAVELS, Set.of("Patient")));
+                () -> cloud.outbound("site", 500, TRAVELS, Set.of("Patient")));
 
         assertTrue(refused.getMessage().contains("Patient"),
                 "the refusal names the type that was asked for: " + refused.getMessage());

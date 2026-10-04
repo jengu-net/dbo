@@ -647,7 +647,7 @@ final class ElementRecordProjection implements RecordProjection {
      * {@code PractitionerRole} they took it as, an executor as a
      * {@code Device}. A task nobody has taken names no owner.
      *
-     * <p>The device is named by what resolution chose: the name identifies
+     * <p>The executor is named by what resolution chose: the name identifies
      * it, and the display carries the version and the provider, because a
      * provider can be withdrawn and "which behaviour was that" is the question
      * a year later.

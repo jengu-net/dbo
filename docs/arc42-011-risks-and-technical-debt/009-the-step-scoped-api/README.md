@@ -121,7 +121,7 @@ and so writes nothing yet.
 
 `PROC_A_RESULT_IS_WRITTEN_BY_THE_TENANT` and `PROC_A_REFUSED_RESULT_ENDS_THE_RUN`,
 proven over the lane in `AResultCrossesTheLaneWholeTest`, in the rendering in
-`ARunsResultIsItsTasksOutputTest`, and end to end on the edge round-trip story,
+`ARunsResultIsItsTasksOutputTest`, and end to end on the round-trip story,
 where the worker application registers somebody by giving the person and then
 tries again.
 
@@ -291,7 +291,7 @@ traversal by another name, and traversal is 021's to answer for both doors.
     for ending it. A run is over when nobody holds it.
 
 `PROC_A_RUN_ANSWERS_ONLY_FOR_ITS_INPUTS` and
-`PROC_A_RUN_CONTEXT_ENDS_WITH_ITS_RUN`, both proven on legs of the edge
+`PROC_A_RUN_CONTEXT_ENDS_WITH_ITS_RUN`, both proven on legs of the
 round-trip story, over a ward of the story's own whose step nothing performs —
 because a run's context closes when the run does, and the sample worker
 performs every step the world declares within a poll. The harness
@@ -360,7 +360,7 @@ rather than a bespoke protocol.
 
 ## Verifying
 
-Every line of the acceptance is a leg of the edge round-trip story:
+Every line of the acceptance is a leg of the round-trip story:
 
 - a request inside a run reads a document the run names — 200;
 - the same credential, same document, outside any run — refused;

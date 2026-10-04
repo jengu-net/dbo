@@ -90,7 +90,7 @@ class Tier1SearchIT {
 
     // ------------------------------------------------------------ scenarios
 
-    /** Inventory: `Device?identifier=<EDGE>|` — any value in system. */
+    /** Inventory: `Device?identifier=<SYSTEM>|` — any value in system. */
     @Test
     @Proving(DboPromises.SRCH_TIER1_PARITY)
     void anyValueInSystemTokenMatches() {
@@ -118,7 +118,7 @@ class Tier1SearchIT {
         assertFalse(bodyOf(children).contains("Root Org"));
     }
 
-    /** Inventory (lab edge): `Observation?status=final&_tag:not=lis-synced&_sort=-_lastUpdated`. */
+    /** Inventory (lab worker): `Observation?status=final&_tag:not=lis-synced&_sort=-_lastUpdated`. */
     @Test
     @Proving(DboPromises.SRCH_TIER1_PARITY)
     void tagNotModifierFindsTheUnsyncedOnes() {
@@ -153,7 +153,7 @@ class Tier1SearchIT {
         assertFalse(body.contains("55555-5"));
     }
 
-    /** Inventory (lab edge HL7 context): `ServiceRequest?specimen.identifier=<barcode>&status=active`. */
+    /** Inventory (lab worker HL7 context): `ServiceRequest?specimen.identifier=<barcode>&status=active`. */
     @Test
     @Proving(DboPromises.SRCH_TIER1_PARITY)
     void oneLevelChainReachesTheSpecimenBarcode() {
@@ -176,7 +176,7 @@ class Tier1SearchIT {
                 Map.of("specimen.identifier", "BAR-XXXX"), null)));
     }
 
-    /** Inventory (edge sync cursor): `?_lastUpdated=gt<cursor>&_sort=_lastUpdated`. */
+    /** Inventory (replica sync cursor): `?_lastUpdated=gt<cursor>&_sort=_lastUpdated`. */
     @Test
     @Proving(DboPromises.SRCH_TIER1_PARITY)
     void lastUpdatedCursorSweepSeesOnlyNewerWrites() throws Exception {

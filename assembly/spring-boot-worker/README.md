@@ -212,8 +212,8 @@ shape rather than a special case.
 
 **A worker belonging to somebody else is the third case**, and the only one
 HTTP is for: another organisation's application performing a step for a tenant
-it does not run — a laboratory, a tenant's own edge device. It reaches the
-deployment over the lane and nothing else, with a credential that tenant
+it does not run — a laboratory, a service on a tenant's own site. It reaches
+the deployment over the lane and nothing else, with a credential that tenant
 issued, and has no business near the deployment's database.
 
 So the carrier follows the organisation rather than the process boundary:

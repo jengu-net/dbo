@@ -55,10 +55,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * What is sealed is the carrier form, so a sealed copy still in flight after
  * an erasure is in the same state as the store's own records after a shred.
  *
- * <p>The person-key layer sits inside the transport seal: the analyser that
+ * <p>The person-key layer sits inside the transport seal: the assayer that
  * opens the seal gets the record as the store's encrypted disclosure mode
  * hands it out — identifying elements under the person's key, which the
- * analyser never held. Shred the person and the copy is unchanged and now
+ * assayer never held. Shred the person and the copy is unchanged and now
  * unopenable by anybody, with no special case for copies in flight.
  */
 @Tag("integration")
@@ -75,7 +75,7 @@ class AnErasureReachesTheCopyInFlightIT {
     static PdiObjectStore store;
     static Runs runs;
     static Declarations declarations;
-    static KeyPair analyser;
+    static KeyPair assayer;
     static KeyPair signer;
     static final List<String> openings = new ArrayList<>();
     static final List<RunChain.Link> links = new ArrayList<>();
@@ -102,7 +102,7 @@ class AnErasureReachesTheCopyInFlightIT {
         runs = new Runs(store);
         declarations = new Declarations(store, new PgChangeFeed(ds, WorkModel.DOMAIN),
                 Duration.ofSeconds(30));
-        analyser = KeyWrap.newParticipantKeyPair();
+        assayer = KeyWrap.newParticipantKeyPair();
         signer = SigningKey.newKeyPair();
     }
 
@@ -118,9 +118,9 @@ class AnErasureReachesTheCopyInFlightIT {
                         .getBytes(StandardCharsets.UTF_8))).id();
         Run run = runs.of(ASSAY, RunKind.PIPELINE, "sealed-before-shred",
                 Map.of("patient", "Patient/" + patientId));
-        Executor identity = new Executor("analyser", "1.0", "cloud.jengu.test", Scope.BASELINE);
+        Executor identity = new Executor("assayer", "1.0", "cloud.jengu.test", Scope.BASELINE);
         Lane lane = Lane.inProcess("t-pdi", runs, new PgChangeFeed(ds, WorkModel.DOMAIN),
-                declarations, "analyser", identity, store, null,
+                declarations, "assayer", identity, store, null,
                 Lane.Entitlement.everything(), null, new Lane.Trail() {
                     @Override
                     public void handedTo(Run r, String to, RunChain.Link link) {
@@ -141,7 +141,7 @@ class AnErasureReachesTheCopyInFlightIT {
                 }, new Lane.Keys() {
                     @Override
                     public Optional<ParticipantKey> of(String participant) {
-                        return Optional.of(ParticipantKey.of(analyser.getPublic()));
+                        return Optional.of(ParticipantKey.of(assayer.getPublic()));
                     }
 
                     @Override
@@ -157,7 +157,7 @@ class AnErasureReachesTheCopyInFlightIT {
         assertFalse(wire.contains("Kask") || wire.contains("37001010021"),
                 "the carrier sees an identity: " + wire);
 
-        // Opened by the analyser before any erasure: the carrier form, with
+        // Opened by the assayer before any erasure: the carrier form, with
         // the identifying elements under the person's key it never held.
         String openedBefore = open(inFlight);
         assertTrue(openedBefore.contains("__pdiEnc"), openedBefore);
@@ -165,11 +165,11 @@ class AnErasureReachesTheCopyInFlightIT {
                 "the seal hands out what the store's encrypted disclosure mode hands out, "
                         + "and that is not the identity: " + openedBefore);
         String previous = inFlight.manifest().head();
-        String link = RunChain.accessLink(previous, held.key(), "Patient/" + patientId, "analyser");
+        String link = RunChain.accessLink(previous, held.key(), "Patient/" + patientId, "assayer");
         lane.opened(held, "Patient/" + patientId, new RunChain.Link("access", previous, link,
-                "analyser", "Patient/" + patientId,
+                "assayer", "Patient/" + patientId,
                 SigningKey.sign(link.getBytes(StandardCharsets.UTF_8), signer.getPrivate())));
-        assertEquals(List.of("Patient/" + patientId + " by analyser"), openings,
+        assertEquals(List.of("Patient/" + patientId + " by assayer"), openings,
                 "the opening is reported from where the key was used");
 
         vault.shred(patientId);
@@ -189,7 +189,7 @@ class AnErasureReachesTheCopyInFlightIT {
     }
 
     private static String open(SealedWork work) throws Exception {
-        StoredObject opened = work.payload().get(0).open("analyser", analyser.getPrivate());
+        StoredObject opened = work.payload().get(0).open("assayer", assayer.getPrivate());
         return new String(opened.payload(), StandardCharsets.UTF_8);
     }
 }

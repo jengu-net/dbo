@@ -87,7 +87,7 @@ from earlier runs too. The database outlives a run wherever the container is
 reused. So two things separate what one story makes from everything else:
 
 - **A prefix:** the story's code in lowercase, such as `clinical-record` or
-  `edge-roundtrip`, taken from its `DboStories` constant so that it cannot
+  `work-roundtrip`, taken from its `DboStories` constant so that it cannot
   drift from the story it names.
 - **A run mark:** a short value minted once per JVM and appended to the
   prefix, so a rerun never meets the data a previous run left behind.
@@ -144,7 +144,7 @@ promise-by-promise picture is in the [listing](listing.md).
 | [TWO-PLACES](../../arc42-003-context/user-stories/us-dbo-two-places.md) | `OneTenantInTwoPlacesIT` (on the world, zone half) | 7 | 9 | 16 | 4 | 1 | moved |
 | [STANDARD-MOVES](../../arc42-003-context/user-stories/us-dbo-standard-moves.md) | `TheStandardMovesUnderTheDataIT` (on the world) | 19 | 7 | 29 | 9 | 0 | moved |
 | [VENDOR-CHANGE](../../arc42-003-context/user-stories/us-dbo-vendor-change.md) | `TheClinicChangesVendorIT` (on the world) | 1 | 6 | 0 | 7 | 0 | moved |
-| [EDGE-ROUNDTRIP](../../arc42-003-context/user-stories/us-dbo-edge-roundtrip.md) | `WorkLeavesTheClinicAndComesBackIT` (on the world) | 14 | 23 | 16 | 19 | 4 | moved |
+| [WORK-ROUNDTRIP](../../arc42-003-context/user-stories/us-dbo-work-roundtrip.md) | `WorkLeavesTheClinicAndComesBackIT` (on the world) | 14 | 23 | 16 | 19 | 4 | moved |
 | [FLEET-HEALTH](../../arc42-003-context/user-stories/us-dbo-fleet-health.md) | `AnOperatorReadsAndSteersTheFleetIT` (on the world, one node) | 9 | 14 | 16 | 3 | 7 | moved but for two nodes |
 | [FLEET-STEP](../../arc42-003-context/user-stories/us-dbo-fleet-step.md) | `OneStepIsPerformedForEveryTenantIT` (on the world, ten legs) | 11 | 12 | 6 | 0 | 0 | moved; the eight harness classes left are walked in the technical story [A-STEP-IS-RUN-FOR-THE-FLEET](../../arc42-003-context/user-stories/us-dbo-a-step-is-run-for-the-fleet.md) (`AStepIsRunForTheFleetIT`) |
 
@@ -209,14 +209,14 @@ Another 33 classes do not feed a story:
    to `storyTest`: concurrent stories share one world, so running them
    together costs threads and not worlds.
 2. **Move the story classes that already exist,** keeping their legs. Go in
-   order of how little the world has to change: clinical record, edge
-   roundtrip, standard moves, two places, vendor change, tenant opening, fleet
+   order of how little the world has to change: clinical record,
+   round trip, standard moves, two places, vendor change, tenant opening, fleet
    health. Each class lands with its own legs green while running beside the
    classes already moved, its data renamed to the story's prefix, and nothing
    new is fitted yet.
 
    Done for all seven, and person rights has its first two legs. The harness classes
-   for clinical record, edge roundtrip, standard moves, vendor change and
+   for clinical record, round trip, standard moves, vendor change and
    tenant opening are deleted. The catalogue now reads the stories' citations
    from the server sample's test classes, so no promise lost its proof in the
    move. What each story needed from the world:
@@ -225,7 +225,7 @@ Another 33 classes do not feed a story:
    |---|---|
    | Clinical record | St Jerome, which now keys patients by its own record number (`urn:st-jerome:mrn`); its terminology comes from the zone |
    | Person rights | Hogwarts |
-   | Edge roundtrip | Hogwarts, with a bench lane of the story's own |
+   | Round trip | Hogwarts, with a lane of the story's own |
    | Standard moves | A clinic it declares: every world member takes its profiles by replication, and this one authors them |
    | Vendor change | Two clinics it declares, because what leaves is a whole estate |
    | Tenant opening | Two clinics it declares, because opening one is the story |
@@ -251,9 +251,9 @@ Another 33 classes do not feed a story:
    - **The servlet adapter escaped a query twice**, and **two callers
      creating one identity at once got a conflict**: both in the step 1
      commits.
-   **Two places is split.** Its zone half walks the world. Its appliance half
+   **Two places is split.** Its zone half walks the world. Its second-site half
    is one tenant in two places, and the world is one place, so it stays in
-   the harness as `AnApplianceCarriesPatientDataByWorkIT`: two databases and a
+   the harness as `ASecondPlaceCarriesPatientDataByWorkIT`: two databases and a
    lane between them, with no runtime. Moving it onto the application would
    put the store's engine and the driver on the application's classpath,
    which is the two-class-space trouble item 033 is about.
@@ -419,7 +419,7 @@ are declared by no story. They are the
 [one lane for the fleet](../../arc42-008-crosscutting/processes-and-work/one-lane-for-the-fleet.md) family: a step the
 deployment performs for every tenant, with its register, enrolment and
 posture. They form one scene with one subject, the deployment acting for many
-tenants. Edge roundtrip's subject is work leaving one tenant, and bolting
+tenants. Round trip's subject is work leaving one tenant, and bolting
 these onto it would blur both.
 
 **No story runs first.** The classes run at once, so nothing may depend on

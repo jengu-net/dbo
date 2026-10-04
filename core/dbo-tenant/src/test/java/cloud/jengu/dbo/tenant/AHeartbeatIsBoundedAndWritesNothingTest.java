@@ -40,7 +40,7 @@ class AHeartbeatIsBoundedAndWritesNothingTest {
         ContactLane lane = heard(asked);
 
         IllegalStateException refused = assertThrows(IllegalStateException.class,
-                () -> lane.heartbeat(Map.of("example.bench", "x".repeat(LIMIT))));
+                () -> lane.heartbeat(Map.of("example.worker", "x".repeat(LIMIT))));
 
         assertTrue(refused.getMessage().contains("limit of " + LIMIT + " bytes"),
                 refused.getMessage());
@@ -57,7 +57,7 @@ class AHeartbeatIsBoundedAndWritesNothingTest {
         List<String> asked = new ArrayList<>();
         ContactLane lane = heard(asked);
 
-        lane.heartbeat(Map.of("example.bench",
+        lane.heartbeat(Map.of("example.worker",
                 Map.of("anything", List.of(1L, Map.of("at", "any depth")))));
 
         assertEquals(List.of("heartbeat"), asked);
@@ -68,7 +68,7 @@ class AHeartbeatIsBoundedAndWritesNothingTest {
                 new Class<?>[] {Lane.class}, (proxy, method, arguments) -> switch (
                         method.getName()) {
                     case "tenant" -> "hospital";
-                    case "identity" -> new Executor("bench", "1", "example.bench",
+                    case "identity" -> new Executor("worker", "1", "example.worker",
                             Scope.BASELINE);
                     default -> {
                         asked.add(method.getName());
@@ -78,6 +78,6 @@ class AHeartbeatIsBoundedAndWritesNothingTest {
         return new ContactLane(underneath, new Contacts("node-a", Clock.systemUTC(), null,
                 (listener, threw) -> {
                     throw threw;
-                }), null, null, LIMIT, "bench");
+                }), null, null, LIMIT, "worker");
     }
 }

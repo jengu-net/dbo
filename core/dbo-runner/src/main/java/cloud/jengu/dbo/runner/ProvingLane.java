@@ -41,7 +41,7 @@ import java.util.Set;
  * <p>Usage:
  * <pre>{@code
  * ProvingLane lane = ProvingLane.offering(service.step())
- *         .with("device", "Device", json)
+ *         .with("specimen", "Specimen", json)
  *         .lane();
  * new StepRunner(Duration.ofMinutes(5), Duration.ofMillis(1))
  *         .register(service).attach(lane).cycle();

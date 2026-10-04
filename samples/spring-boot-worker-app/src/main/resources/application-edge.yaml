@@ -1,4 +1,4 @@
-# A worker at the edge: one tenant's, reached over HTTP.
+# A worker on another site: one tenant's, reached over HTTP.
 #
 # The tenant, where it answers, and a client that tenant issued — with `work`
 # and nothing else, so the credential that takes work is refused by the

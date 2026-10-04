@@ -3,7 +3,7 @@ title: "One Feed, Every Consumer"
 eyebrow: Pattern
 standfirst: >-
   Paging through results, subscribing to changes, keeping a dependent copy
-  current, and reconciling an appliance that was offline all weekend are one
+  current, and reconciling a second site that was offline all weekend are one
   primitive, so every consumer is a name and a position.
 pattern: 15
 template: essay.html
@@ -16,7 +16,7 @@ kind of consumer is asking.**
 
 Serving four things that look unrelated. A client paging through a large
 result set. A subscriber that must not miss a change. A dependent copy of
-shared reference data. An appliance in a building that spends weekends
+shared reference data. A second site in a building that spends weekends
 disconnected.
 
 Built separately, those are four sets of state, four failure modes, and four
@@ -54,11 +54,11 @@ The payoff is not elegance. It is that every durable consumer is the same kind
 of thing, so four different questions collapse into one. A subscriber that was
 down resumes rather than skips. A dependent copy is a consumer of the same
 feed as everything else, so there is no separate synchronisation subsystem to
-go stale. An appliance that was offline on purpose converges by replaying from
+go stale. A second site that was offline on purpose converges by replaying from
 its position — nothing had to be queued for it, and nothing had to be retried
 at it.
 
-And an appliance sitting a long way back is not an alarm. It is behind by a
+And a second site sitting a long way back is not an alarm. It is behind by a
 distance, which is a number you read off the same line as everyone else's.
 
 ## What each reader gets

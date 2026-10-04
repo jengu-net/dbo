@@ -163,7 +163,7 @@ profiles a step declares.
 
 **Diagnosis.** Whether the machinery works cannot depend on the machinery. If
 liveness were a task, a wedged engine would be undiagnosable: the symptom and
-the broken instrument would be indistinguishable.
+the broken part would be indistinguishable.
 
 **Recovery.** Repairing the mechanism when it is broken. This is break-glass
 for the machinery rather than for clinical data, and it is loud by

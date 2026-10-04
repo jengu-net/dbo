@@ -364,7 +364,7 @@ class ADeploymentIsEquippedBeforeItStartsIT {
                      "code":[{"coding":[{"system":"urn:example:role","code":"doctor"}]}]}"""
                     .formatted(practitioner)).statusCode());
             sideAuthority(employer).ensureRoleGrant("doctor", List.of("user/*.read"));
-            // A password and a bench PIN, set BEFORE anybody federates —
+            // A password and an offline PIN, set BEFORE anybody federates —
             // which is the situation the rule has to survive: an organisation
             // adopting an eID has people already holding credentials, and
             // refusing the federation until somebody tidies them up would fail
@@ -833,7 +833,7 @@ class ADeploymentIsEquippedBeforeItStartsIT {
     @Test
     @Order(22)
     @DisplayName("and a password for them is then refused at both doors, naming where they "
-            + "sign in — while a bench PIN still works")
+            + "sign in — while an offline PIN still works")
     @Proving(DboPromises.AUTH_PASSWORD_ONLY_WHERE_WE_ARE_THE_IDP)
     void aFederatedSubjectHoldsNoPassword() throws Exception {
         String person = hubPerson();
@@ -841,14 +841,14 @@ class ADeploymentIsEquippedBeforeItStartsIT {
         // The password they held before is gone, and the PIN they held beside
         // it is not. That asymmetry is the rule: a password beside a federated
         // identity is a second way in that never reaches the identity
-        // provider, while a bench PIN is the factor for the case federation
-        // cannot serve — a bench with no network — and taking it away would
+        // provider, while an offline PIN is the factor for the case federation
+        // cannot serve — a site with no network — and taking it away would
         // remove the fallback for the situation the rule was written around.
         assertFalse(sideAuthority("kliinika").holdsPassword("arst@kliinika"),
                 "the password survived federation, so there is still a way in that never "
                         + "reaches the identity provider");
         assertTrue(sideAuthority("kliinika").verifyFactor("arst@kliinika", "pin", "4711"),
-                "the bench PIN was retired along with the password, which takes away the "
+                "the offline PIN was retired along with the password, which takes away the "
                         + "fallback for the case federation cannot serve");
 
         IllegalArgumentException atTheFirstDoor = assertThrows(IllegalArgumentException.class,

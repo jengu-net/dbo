@@ -56,7 +56,8 @@ class EngineKnowsNoFaceIT {
     }
 
     @Test
-    @DisplayName("the participant bundle names no orchestrator, so the same one runs on an edge")
+    @DisplayName("the participant bundle names no orchestrator, so the same one runs on a "
+            + "worker that has none")
     void theParticipantNamesNoOrchestrator() throws Exception {
         List<String> imports = importPackagesOf("cloud.jengu.dbo.work");
 
@@ -67,7 +68,7 @@ class EngineKnowsNoFaceIT {
                                 || i.startsWith("ca.uhn.fhir") || i.startsWith("cloud.jengu.dbo.fhir"))
                         .toList(),
                 "a participant that imported an orchestrator would not be the same binary on "
-                        + "an edge that has none, and a step must be runnable by a "
+                        + "a worker that has none, and a step must be runnable by a "
                         + "DBOS workflow, by a synchronous call, or by neither");
     }
 

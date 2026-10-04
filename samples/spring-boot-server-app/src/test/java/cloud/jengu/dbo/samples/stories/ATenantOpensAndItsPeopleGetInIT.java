@@ -636,16 +636,16 @@ class ATenantOpensAndItsPeopleGetInIT {
                 "{\"role\":\"x\",\"scopes\":[\"user/*.read\"]}", accessFor("hermione",
                         "granger9")), "a human's token provisioned grants");
 
-        // An appliance is given the secret its operator holds, and approving it
+        // A participant is given the secret its operator holds, and approving it
         // again leaves that secret working; a client with no secret is refused,
         // since this store mints none.
-        String appliance = names.value("edge");
-        String secret = names.value("edge-secret");
-        String client = "{\"client_id\":\"" + appliance + "\",\"secret\":\"" + secret
+        String participant = names.value("participant");
+        String secret = names.value("participant-secret");
+        String client = "{\"client_id\":\"" + participant + "\",\"secret\":\"" + secret
                 + "\",\"scope\":[\"system/*.read\"]}";
         assertEquals(200, admin("/clients", client, dbo.token(second)));
         assertEquals(200, admin("/clients", client, dbo.token(second)));
-        token(second, appliance, secret);
+        token(second, participant, secret);
         HttpResponse<String> unminted = adminResponse("/clients",
                 "{\"client_id\":\"" + names.value("no-secret") + "\",\"scope\":[]}",
                 dbo.token(second));
@@ -981,7 +981,7 @@ class ATenantOpensAndItsPeopleGetInIT {
             authority(partner).ensureClient(names.value("support"), "support-secret",
                     List.of("system/*.read"));
             String partnerToken = token(partner, names.value("support"), "support-secret");
-            authority(managed).ensureClient(names.value("bench"), "bench-secret",
+            authority(managed).ensureClient(names.value("assayer"), "assayer-secret",
                     List.of("work/" + step));
 
             var specimen = dbo.write(managed, "Basic",
@@ -990,14 +990,15 @@ class ATenantOpensAndItsPeopleGetInIT {
             var runs = new cloud.jengu.dbo.work.Runs(tenants.store(managed).orElseThrow());
             var run = runs.of(assay, cloud.jengu.dbo.work.RunKind.PIPELINE, "followed",
                     java.util.Map.of("specimen", "Basic/" + specimen.idOrFail()));
-            var bench = cloud.jengu.dbo.runner.http.HttpLane.to(
+            var assayer = cloud.jengu.dbo.runner.http.HttpLane.to(
                     URI.create(dbo.at(managed) + "/work"),
-                    () -> token(managed, names.value("bench"), "bench-secret"), managed,
-                    names.value("bench"), new cloud.jengu.dbo.work.Executor(names.value("bench"),
+                    () -> token(managed, names.value("assayer"), "assayer-secret"), managed,
+                    names.value("assayer"),
+                    new cloud.jengu.dbo.work.Executor(names.value("assayer"),
                             "1.0", "example.meristem", cloud.jengu.dbo.work.Scope.BASELINE));
-            bench.introduce(assay);
-            var held = bench.claim(run, Duration.ofMinutes(5)).orElseThrow();
-            bench.inputs(held);
+            assayer.introduce(assay);
+            var held = assayer.claim(run, Duration.ofMinutes(5)).orElseThrow();
+            assayer.inputs(held);
             // A read with a stated purpose, by the practice itself: on its
             // trail with the purpose, which is the practice's to reveal.
             assertEquals(200, dbo.send(HttpRequest.newBuilder(URI.create(fhir(managed)
@@ -1008,7 +1009,7 @@ class ATenantOpensAndItsPeopleGetInIT {
                     + encoded(held.key()), partnerToken);
             Proves.that(DboPromises.TEN_A_PARTNER_MANAGES_TENANTS,
                     journey.statusCode() == 200 && journey.body().contains("travel")
-                            && journey.body().contains("\"value\":\"" + names.value("bench")
+                            && journey.body().contains("\"value\":\"" + names.value("assayer")
                             + "\""),
                     "the partner does not read the run's journey, hop by hop: " + journey.body());
             Proves.that(DboPromises.TEN_A_PARTNER_MANAGES_TENANTS,

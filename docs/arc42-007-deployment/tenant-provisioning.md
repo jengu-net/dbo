@@ -30,7 +30,7 @@ cut once and handed over as bytes, and a tenant loads it instead.
   never decides where they are kept or for how long.
 - **They are cut on demand, not on a schedule.** The first tenant that wants a
   face it has no image of cuts one; a node serving one face never cuts the
-  others, and an edge node that wants none takes none. One cutting at a time
+  others, and a node that wants none takes none. One cutting at a time
   is kept to one by a lock on the directory, so tenants coming up together
   wait seconds rather than each reading the whole face.
 - **An image is checked before it is loaded, and refused by name.** It carries
