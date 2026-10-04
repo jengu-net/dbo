@@ -1,4 +1,4 @@
-package cloud.jengu.dbo.runner.http;
+package cloud.jengu.dbo.runner.transport;
 
 import cloud.jengu.dbo.core.process.StepDeclaration;
 import cloud.jengu.dbo.core.wire.RecordWire;
@@ -13,15 +13,20 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * The lane's verbs as a service, behind whatever door carries them.
+ * The lane's verbs, dispatched for whatever transport carried them.
  *
- * <p>A verb is a body and an answer, and who may ask is decided the same way
- * whichever way the body arrived: the credential is validated through the
- * tenant's authority, the identity it asks to work as must be its own unless
- * it is the tenant, and the reach is the credential's narrowed by what was
- * asked. HTTP is one door; the store's own stream is another; both hand a
- * body here and carry the answer back, and neither decides anything on the
- * way.
+ * <p><b>The transport SPI's first layer.</b> A transport hands this a caller
+ * and a verb: what the caller presented — a bearer token, or a signature over
+ * the ask's own bytes — and the body as it arrived. The store authenticates
+ * the caller through the tenant's authority, authorises it — the identity it
+ * asks to work as must be its own unless it is the tenant, and its reach is
+ * the credential's narrowed by what was asked — and dispatches the verb to
+ * the tenant's own lane. A transport decides none of it on the way, so a
+ * consumer carrying verbs over a socket of its own reaches exactly what HTTP
+ * and the store's stream reach.
+ *
+ * <p>One per tenant, from the store that serves it; HTTP is the reference
+ * transport, and the stream is the second.
  */
 public final class LaneVerbService {
 
@@ -49,25 +54,45 @@ public final class LaneVerbService {
         record Denied(int status, String wwwAuthenticate, String reason) implements Answer {}
     }
 
-    private final LaneHandler.Grants grants;
-    private final LaneHandler.Lanes lanes;
+    private final Grants grants;
+    private final SignedGrants signed;
+    private final Lanes lanes;
 
-    public LaneVerbService(LaneHandler.Grants grants, LaneHandler.Lanes lanes) {
+    /**
+     * @param grants how a token is read, or null where no token is taken
+     * @param signed how a signed ask is read, or null where none is taken
+     */
+    public LaneVerbService(Grants grants, SignedGrants signed, Lanes lanes) {
         this.grants = grants;
+        this.signed = signed;
         this.lanes = lanes;
     }
 
     /** One verb, from whoever carries the authorization named, on the body given. */
     public Answer serve(String authorization, LaneVerbs verb, Object body) {
-        return serve(grants.of(authorization), verb, body);
+        return serve(grants == null
+                ? new Access.Denied(401, null, "this tenant takes no token here")
+                : grants.of(authorization), verb, body);
     }
 
-    /** One verb, from whoever the door has already decided is asking. */
-    public Answer serve(LaneHandler.Access access, LaneVerbs verb, Object body) {
-        if (access instanceof LaneHandler.Denied denied) {
+    /**
+     * One verb, from the participant whose enrolled key signed the bytes
+     * given — which must be the bytes that travelled, so an ask altered on
+     * the way fails as a forgery.
+     */
+    public Answer serveSigned(String participant, byte[] signedOver, String signature,
+            LaneVerbs verb, Object body) {
+        return serve(signed == null
+                ? new Access.Denied(401, null, "this tenant takes no signed ask here")
+                : signed.of(participant, signedOver, signature), verb, body);
+    }
+
+    /** One verb, from whoever the store has already decided is asking. */
+    public Answer serve(Access access, LaneVerbs verb, Object body) {
+        if (access instanceof Access.Denied denied) {
             return new Answer.Denied(denied.status(), denied.wwwAuthenticate(), denied.reason());
         }
-        LaneHandler.Grant grant = (LaneHandler.Grant) access;
+        Access.Grant grant = (Access.Grant) access;
         String participant = string(body, LaneVerbs.PARTICIPANT);
         Executor identity = RecordWire.decode(field(body, LaneVerbs.IDENTITY), Executor.class);
         if (participant == null || identity == null || identity.name() == null) {

@@ -1,14 +1,13 @@
-package cloud.jengu.dbo.runner.http;
+package cloud.jengu.dbo.runner.transport;
 
 import java.util.Optional;
 
 /**
  * The participation surface's vocabulary, in one place.
  *
- * <p>Both ends read it: the handler routes on it and the client posts to it.
+ * <p>Every transport reads it: a door routes on it and a lane posts to it.
  * Two spellings of one verb is how a surface comes to answer 404 for a lane
- * that is mounted and working, and the same argument that gave the edge
- * channel one handshake codec gives this one enum.
+ * that is mounted and working.
  *
  * <p>There is deliberately no verb for {@code tenant()} or {@code identity()}.
  * A remote lane knows both without asking — they are what it was built with —

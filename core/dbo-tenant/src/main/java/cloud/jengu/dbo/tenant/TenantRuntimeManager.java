@@ -499,6 +499,25 @@ public final class TenantRuntimeManager implements AutoCloseable {
                     null, (listener, threw) -> LOG.warn("a contact listener threw: {}",
                             listener, threw));
 
+    /**
+     * Each tenant's verbs, for any transport: the dispatch every door this
+     * tenant is reached by hands its asks to, by code.
+     */
+    private final Map<String, cloud.jengu.dbo.runner.transport.LaneVerbService> verbServices =
+            new ConcurrentHashMap<>();
+
+    /**
+     * A tenant's verbs, for a host carrying them over a transport of its own:
+     * it hands over what the caller presented and the verb, and the tenant
+     * authenticates, authorises and dispatches as it does for its own doors.
+     * Empty for a tenant with no authority, which has no way to say who is
+     * asking.
+     */
+    public java.util.Optional<cloud.jengu.dbo.runner.transport.LaneVerbService> verbs(
+            String code) {
+        return java.util.Optional.ofNullable(verbServices.get(code));
+    }
+
     /** Each tenant's way of starting work in this process, by code. */
     private final Map<String, StepSurface> starters = new ConcurrentHashMap<>();
 
@@ -644,7 +663,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
      * gets none.
      */
     private void openTheDoorIfWanted(String code, cloud.jengu.dbo.auth.TenantAuthority authority,
-            cloud.jengu.dbo.runner.http.LaneHandler.Lanes lanes,
+            cloud.jengu.dbo.runner.transport.LaneVerbService verbs,
             cloud.jengu.dbo.runner.InProcessWakeups claimable) {
         if (substrate == null || doors.containsKey(code) || !wantsADoor(authority)) {
             return;
@@ -656,7 +675,6 @@ public final class TenantRuntimeManager implements AutoCloseable {
             if (now != null && now != authority) {
                 return null;
             }
-            WorkGrants grants = new WorkGrants(authority);
             // Grown BEFORE the door opens, because opening one is when its
             // listener takes the connection it then keeps. Counted rather
             // than read off the map, since several tenants open at once and
@@ -665,7 +683,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
             sizeSubstrate();
             cloud.jengu.dbo.stream.StreamDoor door;
             try {
-                door = new cloud.jengu.dbo.stream.StreamDoor(substrate, code, grants, lanes);
+                door = new cloud.jengu.dbo.stream.StreamDoor(substrate, code, verbs);
             } catch (RuntimeException notOpened) {
                 doorsHeld.decrementAndGet();
                 sizeSubstrate();
@@ -692,13 +710,13 @@ public final class TenantRuntimeManager implements AutoCloseable {
      */
     private void openTheDoorLater(String code) {
         cloud.jengu.dbo.auth.TenantAuthority authority = authorities.get(code);
-        cloud.jengu.dbo.runner.http.LaneHandler.Lanes lanes = laneFactories.get(code);
+        cloud.jengu.dbo.runner.transport.LaneVerbService verbs = verbServices.get(code);
         cloud.jengu.dbo.runner.InProcessWakeups claimable = wakeups.get(code);
-        if (authority == null || lanes == null || claimable == null) {
+        if (authority == null || verbs == null || claimable == null) {
             return;
         }
         try {
-            openTheDoorIfWanted(code, authority, lanes, claimable);
+            openTheDoorIfWanted(code, authority, verbs, claimable);
         } catch (RuntimeException notOpened) {
             if (reportedFailures.add(code + ":stream door:" + notOpened)) {
                 LOG.warn("tenant {}: its door on the stream did not open, and is tried again "
@@ -800,7 +818,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
      * performed it. A writeback with a path of its own would be a second
      * opinion about all three.
      */
-    private final Map<String, cloud.jengu.dbo.runner.http.LaneHandler.Lanes> laneFactories =
+    private final Map<String, cloud.jengu.dbo.runner.transport.Lanes> laneFactories =
             new ConcurrentHashMap<>();
     /** Where each tenant's ask-to-apply door is mounted, for the same teardown. */
     private final Map<String, String> configurationContexts = new ConcurrentHashMap<>();
@@ -1646,7 +1664,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
      */
     public java.util.Optional<cloud.jengu.dbo.runner.Lane> fleetLane(
             String tenant, String stepCode, cloud.jengu.dbo.work.Executor identity) {
-        cloud.jengu.dbo.runner.http.LaneHandler.Lanes factory = laneFactories.get(tenant);
+        cloud.jengu.dbo.runner.transport.Lanes factory = laneFactories.get(tenant);
         if (factory == null) {
             return java.util.Optional.empty();
         }
@@ -3760,7 +3778,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
             // the same face a posted transaction bundle goes through, and
             // only for the types each step declared it writes.
             RunResults runResults = new RunResults(spec.code(), spec.steps(), store);
-            cloud.jengu.dbo.runner.http.LaneHandler.Lanes laneFactory =
+            cloud.jengu.dbo.runner.transport.Lanes laneFactory =
                     (participant, identity, entitlement) -> {
                         // WHOSE KEYS the asker's own are: the credential the
                         // door verified, which the verb service has made the
@@ -3879,7 +3897,15 @@ public final class TenantRuntimeManager implements AutoCloseable {
             // use it, and before the HTTP door so a door that fails to open
             // leaves nothing mounted that a retry would trip over; otherwise
             // when somebody who can is enrolled.
-            openTheDoorIfWanted(spec.code(), authority, laneFactory, claimable);
+            // One dispatch for every transport this tenant is reached by:
+            // the token's door, the stream's signed asks, and whatever a
+            // host carries the verbs over itself.
+            WorkGrants workGrants = new WorkGrants(authority);
+            cloud.jengu.dbo.runner.transport.LaneVerbService verbs =
+                    new cloud.jengu.dbo.runner.transport.LaneVerbService(workGrants,
+                            workGrants, laneFactory);
+            verbServices.put(spec.code(), verbs);
+            openTheDoorIfWanted(spec.code(), authority, verbs, claimable);
             if (spec.managedBy() != null) {
                 // The relation, made true at the door: the partner's own
                 // authority is trusted here because this tenant declared it,
@@ -3906,7 +3932,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 }, partner);
             }
             sharedServer.createContext(workPath, new cloud.jengu.dbo.runner.http.LaneHandler(
-                    workPath, new WorkGrants(authority), laneFactory));
+                    workPath, verbs));
             // Kept for the writeback, after the doors are mounted from it: a
             // fleet consumer reports through this and nothing else.
             laneFactories.put(spec.code(), laneFactory);
@@ -5091,6 +5117,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
             }
         }
         laneFactories.remove(code);
+        verbServices.remove(code);
         doorLooked.remove(code);
         OpenDoor door = doors.remove(code);
         if (door != null) {

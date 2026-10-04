@@ -1,5 +1,7 @@
 package cloud.jengu.dbo.runner.http;
 
+import cloud.jengu.dbo.runner.transport.Access;
+
 import cloud.jengu.dbo.promises.DboPromises;
 import cloud.jengu.dbo.promises.Proving;
 import cloud.jengu.dbo.runner.Lane;
@@ -66,7 +68,7 @@ class AHeartbeatIsAVerbOfTheLaneTest {
         com.sun.net.httpserver.HttpServer server =
                 com.sun.net.httpserver.HttpServer.create(new InetSocketAddress(0), 0);
         server.createContext("/work", new LaneHandler("/work",
-                authorization -> new LaneHandler.Grant("bench",
+                authorization -> new Access.Grant("bench",
                         Lane.Entitlement.everything(), true),
                 (participant, identity, entitlement) -> farSide));
         server.start();

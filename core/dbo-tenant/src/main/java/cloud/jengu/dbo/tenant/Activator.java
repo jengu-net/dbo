@@ -702,6 +702,12 @@ public final class Activator implements BundleActivator {
                                 ctx.registerService(cloud.jengu.dbo.asking.Asking.class,
                                         cloud.jengu.dbo.asking.Asking.at(runtime.engine()),
                                         props)));
+                        // The tenant's verbs, for a host that carries them
+                        // over a transport of its own.
+                        manager.verbs(runtime.spec().code()).ifPresent(verbs -> regs.add(
+                                ctx.registerService(
+                                        cloud.jengu.dbo.runner.transport.LaneVerbService.class,
+                                        verbs, props)));
                         if (runtime.authority() != null) {
                             // Who is asking, as this tenant answers it. Only
                             // this tenant's own keys verify its own tokens, so

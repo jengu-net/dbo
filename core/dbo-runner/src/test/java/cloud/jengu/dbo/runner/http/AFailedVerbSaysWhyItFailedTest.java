@@ -1,5 +1,7 @@
 package cloud.jengu.dbo.runner.http;
 
+import cloud.jengu.dbo.runner.transport.Access;
+
 import cloud.jengu.dbo.promises.DboPromises;
 import cloud.jengu.dbo.promises.Proving;
 import cloud.jengu.dbo.runner.Lane;
@@ -54,7 +56,7 @@ class AFailedVerbSaysWhyItFailedTest {
         com.sun.net.httpserver.HttpServer server =
                 com.sun.net.httpserver.HttpServer.create(new InetSocketAddress(0), 0);
         server.createContext("/work", new LaneHandler("/work",
-                authorization -> new LaneHandler.Grant("a-participant",
+                authorization -> new Access.Grant("a-participant",
                         Lane.Entitlement.everything(), true),
                 (participant, identity, entitlement) -> broken));
         server.start();

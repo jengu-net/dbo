@@ -87,6 +87,17 @@ public final class DboTenants {
         return runtime.lookup().one(TenantAuthority.class, forTenant(tenant));
     }
 
+    /**
+     * A tenant's lane verbs, for an application carrying them over a
+     * transport of its own: it hands over what the caller presented and the
+     * verb, and the tenant authenticates, authorises and dispatches exactly as
+     * it does behind its own doors. Empty for a tenant with no authority.
+     */
+    public Optional<cloud.jengu.dbo.runner.transport.LaneVerbService> verbs(String tenant) {
+        return runtime.lookup().one(cloud.jengu.dbo.runner.transport.LaneVerbService.class,
+                forTenant(tenant));
+    }
+
     private static String forTenant(String tenant) {
         return "(tenant=" + tenant + ")";
     }

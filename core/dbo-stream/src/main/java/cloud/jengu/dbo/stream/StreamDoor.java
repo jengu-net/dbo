@@ -1,9 +1,8 @@
 package cloud.jengu.dbo.stream;
 
 import cloud.jengu.dbo.core.wire.RecordWire;
-import cloud.jengu.dbo.runner.http.LaneHandler;
-import cloud.jengu.dbo.runner.http.LaneVerbService;
-import cloud.jengu.dbo.runner.http.LaneVerbs;
+import cloud.jengu.dbo.runner.transport.LaneVerbService;
+import cloud.jengu.dbo.runner.transport.LaneVerbs;
 import dev.dbos.transact.DBOS;
 import dev.dbos.transact.StartWorkflowOptions;
 import dev.dbos.transact.config.DBOSConfig;
@@ -138,18 +137,16 @@ public final class StreamDoor implements AutoCloseable {
     private volatile int serving;
     private volatile Thread keeper;
 
-    private final LaneHandler.SignedGrants grants;
     private final Spill spill;
 
-    public StreamDoor(DataSource substrate, String tenant, LaneHandler.SignedGrants grants,
-            LaneHandler.Lanes lanes) {
+    /**
+     * @param verbs the tenant's verbs, taking signed asks: on this plane an
+     *              ask is authenticated by signature, never by a token
+     */
+    public StreamDoor(DataSource substrate, String tenant, LaneVerbService verbs) {
         this.tenant = tenant;
-        this.grants = grants;
         this.spill = new Spill(substrate);
-        // No token door: on this plane an ask is authenticated by signature,
-        // so the service is handed an access already decided.
-        this.service = new LaneVerbService(authorization -> new LaneHandler.Denied(401, null,
-                "the stream door takes no token"), lanes);
+        this.service = verbs;
         // Its own executor id: on launch an instance recovers the pending
         // workflows of its executor, and a door must never pick up an
         // asker's, nor an asker a door's.
@@ -337,10 +334,9 @@ public final class StreamDoor implements AutoCloseable {
                     ? null : String.valueOf(ask.get("participant"));
             String signature = ask.get("signature") == null
                     ? null : String.valueOf(ask.get("signature"));
-            LaneHandler.Access access =
-                    grants.of(participant,
+            answer = service.serveSigned(participant,
                     StreamAsk.signedOver(ask.get("id"), ask.get("verb"), bytes),
-                    signature);
+                    signature, verb.get(), body);
             // A sender from before the bytes were signed signed the
             // rendering instead. Its rendering IS what sits in the message,
             // so the first attempt usually agrees — but where the body's own
@@ -349,13 +345,12 @@ public final class StreamDoor implements AutoCloseable {
             // 401: a refusal about scope is not about which bytes were
             // signed, and retrying it would say the wrong thing twice.
             String rendered = RecordWire.write(body);
-            if (access instanceof LaneHandler.Denied denied && denied.status() == 401
-                    && !rendered.equals(bytes)) {
-                access = grants.of(participant,
+            if (answer instanceof LaneVerbService.Answer.Denied denied
+                    && denied.status() == 401 && !rendered.equals(bytes)) {
+                answer = service.serveSigned(participant,
                         StreamAsk.signedOver(ask.get("id"), ask.get("verb"), rendered),
-                        signature);
+                        signature, verb.get(), body);
             }
-            answer = service.serve(access, verb.get(), body);
         } catch (RuntimeException failed) {
             // Said here, as the HTTP door says it: the asker hears only that
             // the verb did not complete, so a cause not logged on this side

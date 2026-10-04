@@ -61,9 +61,9 @@ tasks.jar {
             // logged and nothing throws; an extension point simply never
             // fires. In a container with no other provider this changes
             // nothing at all — the bundle wires to itself, as before.
-            "Import-Package" to "cloud.jengu.dbo.runner.http,*",
+            "Import-Package" to "cloud.jengu.dbo.runner.http,cloud.jengu.dbo.runner.transport,*",
             "Bundle-Activator" to "cloud.jengu.dbo.runner.Activator",
-            "Export-Package" to "cloud.jengu.dbo.runner;version=0.1.0,cloud.jengu.dbo.runner.http;version=0.1.0",
+            "Export-Package" to "cloud.jengu.dbo.runner;version=0.1.0,cloud.jengu.dbo.runner.http;version=0.1.0,cloud.jengu.dbo.runner.transport;version=0.1.0",
         ))
     }
 }

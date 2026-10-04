@@ -2,7 +2,10 @@ package cloud.jengu.dbo.runner.http;
 
 import cloud.jengu.dbo.core.process.StepDeclaration;
 import cloud.jengu.dbo.core.wire.RecordWire;
-import cloud.jengu.dbo.runner.Lane;
+import cloud.jengu.dbo.runner.transport.Grants;
+import cloud.jengu.dbo.runner.transport.LaneVerbService;
+import cloud.jengu.dbo.runner.transport.LaneVerbs;
+import cloud.jengu.dbo.runner.transport.Lanes;
 import cloud.jengu.dbo.work.Declarations;
 import cloud.jengu.dbo.work.Executor;
 import cloud.jengu.dbo.work.Run;
@@ -60,55 +63,6 @@ import java.util.Set;
  */
 public final class LaneHandler implements HttpHandler {
 
-    /** What the token turned out to be — a grant, or the denial to answer with. */
-    public sealed interface Access permits Grant, Denied {
-    }
-
-    /**
-     * A credential's reach, decided where credentials are understood.
-     *
-     * @param clientId    who presented it — the only executor name a bounded
-     *                    credential may claim as
-     * @param entitlement what it covers, stated rather than defaulted
-     * @param isTheTenant whether this credential is the tenant itself, and so
-     *                    may serve a lane in another participant's name
-     */
-    public record Grant(String clientId, Lane.Entitlement entitlement, boolean isTheTenant)
-            implements Access {
-    }
-
-    /** Why not, in the terms HTTP will answer in. */
-    public record Denied(int status, String wwwAuthenticate, String reason) implements Access {
-    }
-
-    /** Where a token becomes a reach. The store's authority implements it. */
-    @FunctionalInterface
-    public interface Grants {
-        Access of(String authorizationHeader);
-    }
-
-    /**
-     * The host's own lanes. Given who is working and what they may reach, the
-     * host builds the in-process lane it would have built anyway — so this
-     * surface adds a transport and never a second implementation of the
-     * participation protocol.
-     */
-    /**
-     * Who may ask, decided from a signature rather than a token: a door on a
-     * plane that must hold no credential authenticates the ask by the key
-     * the participant enrolled with, and derives its reach from the same
-     * record a token would have.
-     */
-    @FunctionalInterface
-    public interface SignedGrants {
-        Access of(String participant, byte[] signed, String signature);
-    }
-
-    @FunctionalInterface
-    public interface Lanes {
-        Lane laneFor(String participant, Executor identity, Lane.Entitlement entitlement);
-    }
-
     /**
      * A verb that could not complete answers 500, and until this line existed
      * that was the whole of what anybody learned: the far side swallowed the
@@ -127,11 +81,17 @@ public final class LaneHandler implements HttpHandler {
     private final LaneVerbService service;
 
     public LaneHandler(String basePath, Grants grants, Lanes lanes) {
+        this(basePath, new LaneVerbService(grants, null, lanes));
+    }
+
+    /**
+     * HTTP as one transport onto the verbs; the verbs themselves — who may
+     * ask, as whom, and what each does — are the same behind every one.
+     */
+    public LaneHandler(String basePath, LaneVerbService service) {
         this.basePath = basePath.endsWith("/")
                 ? basePath.substring(0, basePath.length() - 1) : basePath;
-        // HTTP is one door onto the verbs; the verbs themselves — who may
-        // ask, as whom, and what each does — are the same behind every door.
-        this.service = new LaneVerbService(grants, lanes);
+        this.service = service;
     }
 
     @Override

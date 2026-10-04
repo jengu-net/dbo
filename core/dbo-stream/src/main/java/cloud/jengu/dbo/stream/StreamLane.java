@@ -1,7 +1,7 @@
 package cloud.jengu.dbo.stream;
 
 import cloud.jengu.dbo.core.wire.RecordWire;
-import cloud.jengu.dbo.runner.http.LaneVerbs;
+import cloud.jengu.dbo.runner.transport.LaneVerbs;
 import cloud.jengu.dbo.runner.http.WireLane;
 import cloud.jengu.dbo.work.Executor;
 import dev.dbos.transact.DBOS;

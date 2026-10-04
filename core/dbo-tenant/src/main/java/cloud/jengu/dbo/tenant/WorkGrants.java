@@ -3,7 +3,10 @@ package cloud.jengu.dbo.tenant;
 import cloud.jengu.dbo.auth.Scopes;
 import cloud.jengu.dbo.auth.TenantAuthority;
 import cloud.jengu.dbo.runner.Lane;
-import cloud.jengu.dbo.runner.http.LaneHandler;
+import cloud.jengu.dbo.runner.transport.Access;
+import cloud.jengu.dbo.runner.transport.Grants;
+import cloud.jengu.dbo.runner.transport.Lanes;
+import cloud.jengu.dbo.runner.transport.SignedGrants;
 
 import java.util.List;
 import java.util.Optional;
@@ -22,7 +25,7 @@ import java.util.Optional;
  * garbage — wrong issuer, wrong keys — rather than being a valid token
  * refused, which is the strongest anti-enumeration property available.
  */
-final class WorkGrants implements LaneHandler.Grants, LaneHandler.SignedGrants {
+final class WorkGrants implements Grants, SignedGrants {
 
     private final TenantAuthority authority;
 
@@ -31,14 +34,14 @@ final class WorkGrants implements LaneHandler.Grants, LaneHandler.SignedGrants {
     }
 
     @Override
-    public LaneHandler.Access of(String authorizationHeader) {
+    public Access of(String authorizationHeader) {
         if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
-            return new LaneHandler.Denied(401, "Bearer", "authentication required");
+            return new Access.Denied(401, "Bearer", "authentication required");
         }
         Optional<TenantAuthority.AuthContext> context =
                 authority.validate(authorizationHeader.substring(7).trim());
         if (context.isEmpty()) {
-            return new LaneHandler.Denied(401, "Bearer error=\"invalid_token\"", "invalid token");
+            return new Access.Denied(401, "Bearer error=\"invalid_token\"", "invalid token");
         }
         List<String> granted = context.get().scopes();
         if (!reachesTheLane(granted)) {
@@ -46,10 +49,10 @@ final class WorkGrants implements LaneHandler.Grants, LaneHandler.SignedGrants {
             // credential minted for the resource surface reaches no lane, and
             // is told so rather than being handed an empty one — an empty
             // lane and an unentitled one look identical from the far side.
-            return new LaneHandler.Denied(403, null,
+            return new Access.Denied(403, null,
                     "this credential carries no participation scope and no supervisory scope");
         }
-        return new LaneHandler.Grant(context.get().clientId(), entitlementOf(granted),
+        return new Access.Grant(context.get().clientId(), entitlementOf(granted),
                 Scopes.worksAsTheTenant(granted));
     }
 
@@ -65,19 +68,19 @@ final class WorkGrants implements LaneHandler.Grants, LaneHandler.SignedGrants {
      * without a token ever lying on the plane the ask crossed.
      */
     @Override
-    public LaneHandler.Access of(String participant, byte[] signed, String signature) {
+    public Access of(String participant, byte[] signed, String signature) {
         Optional<cloud.jengu.dbo.core.api.seal.SigningKey> key =
                 participant == null ? Optional.empty() : authority.signingKey(participant);
         if (key.isEmpty() || !key.get().verifies(signed, signature)) {
-            return new LaneHandler.Denied(401, null,
+            return new Access.Denied(401, null,
                     "an ask on the stream is signed by the participant's enrolment key");
         }
         List<String> granted = authority.clientScopes(participant).orElse(List.of());
         if (!reachesTheLane(granted)) {
-            return new LaneHandler.Denied(403, null,
+            return new Access.Denied(403, null,
                     "this credential carries no participation scope and no supervisory scope");
         }
-        return new LaneHandler.Grant(participant, entitlementOf(granted),
+        return new Access.Grant(participant, entitlementOf(granted),
                 Scopes.worksAsTheTenant(granted));
     }
 
