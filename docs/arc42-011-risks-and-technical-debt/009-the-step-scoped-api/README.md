@@ -45,7 +45,13 @@ The context and the `done` verb answer only the client holding the run: the one
 that started it at the step door, until a lane claims it, and then the client
 that claimed it, recorded on the run as its claimant. Any other credential with
 `work`, holding the run's id, gets the 404 a run that never existed gets
-(`PROC_A_RUN_CONTEXT_IS_ITS_PERFORMERS`).
+(`PROC_A_RUN_CONTEXT_IS_ITS_PERFORMERS`). A person who claimed the run at
+`/claim` is held the same way, on a lease `/checkpoint` extends. Every write
+through the door — the holder's `done` and `checkpoint`, the asker's `done` —
+is conditional on what entitles it, asked again of the version the write
+replaces: a lease handed back, a lane taking the run, or a reopening that lands
+between the door's look and the write leaves the asker answered with that same
+404 (`PROC_ONLY_THE_HOLDER_ACTS_ON_A_RUN`).
 
 Still open, deliberately: reach is the named documents with no traversal, the
 context is read-only, and the general surface is untouched.
@@ -149,7 +155,8 @@ recorded as its requester, and nobody else, for what the run was given (as
 (`Type/id/_history/n`); the record as it stands now, or another version of it,
 is not what the run did and answers 404. A collection read compares the clock
 with T, so the window closing needs no transition and no sweep.
-`POST /run/<id>/done` from the asker moves T to now. Past T the context
+`POST /run/<id>/done` from the asker moves T to now, while the window is still
+its to shut. Past T the context
 answers as a run that never existed, byte for byte. A refused result opens no
 window, and a reopened run's T is cleared with its ending.
 

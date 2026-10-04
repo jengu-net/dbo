@@ -184,6 +184,21 @@ notice. This is also why a participant must not rely on its own memory to avoid
 doing something twice — it will occasionally see a run it has seen before, and
 the claim, not its bookkeeping, is what settles who is doing it.
 
+**Only the holder speaks, and the holder is its claim.** Checkpoints,
+milestones, hand-backs, closes and results are taken only from whoever still
+holds the run, and each is a conditional write judged on the version it
+replaces — so housekeeping handing a lapsed claim back, or somebody else taking
+the run, makes the former holder's write the one that loses, however close the
+two land. A holder is told so as a refusal, and drops the work rather than
+releasing it as a failure. What names the holder is the claim itself: the store
+names each claim as it lands, and the run the claim hands back carries that
+name on every verb its holder says. A name and a credential would not do,
+because two replicas of one executor share both; the replica whose claim was
+handed back is refused what it says about the run the other now holds. The
+store's own acts — housekeeping, a sweep, an operator reopening a run, the
+store performing work it authored itself — hold nothing and are not judged by
+holding.
+
 **Progress is evidence, not a heartbeat.** A long step extends its claim by
 saying what it has got done — how many items, which named milestone — rather than
 by sending a tick. A tick proves a process is running; what a deadline protects
