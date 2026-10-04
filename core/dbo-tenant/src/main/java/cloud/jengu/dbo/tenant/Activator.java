@@ -73,6 +73,12 @@ public final class Activator implements BundleActivator {
     private TenantRuntimeManager manager;
     private ServiceTracker<TenantLifecycleListener, TenantLifecycleListener> lifecycle;
     private ServiceTracker<TenantObserver, TenantObserver> observers;
+    private ServiceTracker<cloud.jengu.dbo.work.ContactListener,
+            cloud.jengu.dbo.work.ContactListener> contactListeners;
+    private java.util.concurrent.ScheduledExecutorService contactTimers;
+
+    /** What this node is called in every contact event it sends. */
+    static final String NODE_NAME = "dbo.node.name";
     private ServiceTracker<cloud.jengu.dbo.runner.StepService,
             cloud.jengu.dbo.runner.StepService> performers;
     /** What each taken-up bean is withdrawn by, when its bundle goes. */
@@ -234,6 +240,45 @@ public final class Activator implements BundleActivator {
                     }
                 });
         observers.open();
+        // A contact listener is refused when it is taken up if it declares no
+        // silence, by name: there is no default for it to fall back on, and a
+        // listener that was quietly never told anything would look exactly
+        // like one whose workers never went quiet.
+        contactListeners = new ServiceTracker<>(ctx, cloud.jengu.dbo.work.ContactListener.class,
+                new ServiceTrackerCustomizer<>() {
+                    @Override
+                    public cloud.jengu.dbo.work.ContactListener addingService(
+                            ServiceReference<cloud.jengu.dbo.work.ContactListener> ref) {
+                        cloud.jengu.dbo.work.ContactListener listener = ctx.getService(ref);
+                        try {
+                            manager.contacts().listen(listener);
+                        } catch (IllegalArgumentException refused) {
+                            LOG.error("a contact listener was refused: {}",
+                                    refused.getMessage());
+                            ctx.ungetService(ref);
+                            return null;
+                        }
+                        return listener;
+                    }
+
+                    @Override
+                    public void modifiedService(
+                            ServiceReference<cloud.jengu.dbo.work.ContactListener> ref,
+                            cloud.jengu.dbo.work.ContactListener listener) {
+                    }
+
+                    @Override
+                    public void removedService(
+                            ServiceReference<cloud.jengu.dbo.work.ContactListener> ref,
+                            cloud.jengu.dbo.work.ContactListener listener) {
+                        TenantRuntimeManager held = manager;
+                        if (held != null) {
+                            held.contacts().forget(listener);
+                        }
+                        ctx.ungetService(ref);
+                    }
+                });
+        contactListeners.open();
         // THE SAME WHITEBOARD, AND NOW THE SAME INTERFACE. A step is a
         // StepService whichever level declared it: the runner's own activator
         // watches this too and polls tenant lanes for the steps a TENANT
@@ -721,6 +766,17 @@ public final class Activator implements BundleActivator {
         // And erased, by whoever a deployment gave erasure to: a token of its
         // own, because it is the one act here that cannot be undone.
         manager.serveErasure(ctx.getProperty("dbo.tenant.erase.token"));
+        // Contact, per node: named by the deployment where it says, and timed
+        // on one thread of its own so a listener is told in order and never
+        // on the thread of the request that was heard.
+        String node = ctx.getProperty(NODE_NAME);
+        contactTimers = java.util.concurrent.Executors.newSingleThreadScheduledExecutor(
+                runnable -> Thread.ofPlatform().name("dbo-contact").daemon(true)
+                        .unstarted(runnable));
+        manager.contacts(new cloud.jengu.dbo.work.Contacts(
+                node == null || node.isBlank() ? TenantRuntimeManager.defaultNodeName() : node,
+                java.time.Clock.systemUTC(), contactTimers,
+                (listener, threw) -> LOG.warn("a contact listener threw: {}", listener, threw)));
         watchExtensions(ctx);
         // The durable substrate, when this deployment has one: each tenant's
         // lane then has a door on the stream beside its HTTP door, for a
@@ -788,6 +844,14 @@ public final class Activator implements BundleActivator {
         }
         if (observers != null) {
             observers.close();
+        }
+        if (contactListeners != null) {
+            contactListeners.close();
+            contactListeners = null;
+        }
+        if (contactTimers != null) {
+            contactTimers.shutdownNow();
+            contactTimers = null;
         }
         if (manager != null) {
             manager.close();

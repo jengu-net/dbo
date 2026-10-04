@@ -488,6 +488,38 @@ public final class TenantRuntimeManager implements AutoCloseable {
     }
 
     /**
+     * This node's contact with the workers of the steps somebody listens to.
+     *
+     * <p>One per node, over every tenant it serves, because contact is what a
+     * node heard and a listener is told which node heard it. Until a host
+     * names the node, it is named for the process it runs in.
+     */
+    private volatile cloud.jengu.dbo.work.Contacts contacts =
+            new cloud.jengu.dbo.work.Contacts(defaultNodeName(), java.time.Clock.systemUTC(),
+                    null, (listener, threw) -> LOG.warn("a contact listener threw: {}",
+                            listener, threw));
+
+    /** What every lane built here tells when a worker is heard. */
+    public void contacts(cloud.jengu.dbo.work.Contacts heard) {
+        this.contacts = heard;
+    }
+
+    public cloud.jengu.dbo.work.Contacts contacts() {
+        return contacts;
+    }
+
+    /** The host and process, which is a name until a deployment gives the node one. */
+    static String defaultNodeName() {
+        String host;
+        try {
+            host = java.net.InetAddress.getLocalHost().getHostName();
+        } catch (java.io.IOException unnamed) {
+            host = "localhost";
+        }
+        return host + "/" + ProcessHandle.current().pid();
+    }
+
+    /**
      * What a pool onto the substrate has to hold for this many doors.
      *
      * <p>Each door needs {@link cloud.jengu.dbo.stream.StreamDoor#CONNECTIONS},
@@ -3661,7 +3693,11 @@ public final class TenantRuntimeManager implements AutoCloseable {
                         // The fleet's lane has no door, and makes its
                         // performer the caller before asking.
                         String asker = cloud.jengu.dbo.core.api.Caller.current();
-                        return cloud.jengu.dbo.runner.Lane.inProcess(spec.code(), laneRuns,
+                        // Heard by this node, whichever door the asker came
+                        // through: what a worker asks for is how the node
+                        // knows it is there.
+                        return new ContactLane(cloud.jengu.dbo.runner.Lane.inProcess(
+                                    spec.code(), laneRuns,
                                     laneFeed, laneDeclarations, participant, identity,
                                     runtime.engine(), laneIntroductions, entitlement,
                                     laneTrackables,
@@ -3754,7 +3790,8 @@ public final class TenantRuntimeManager implements AutoCloseable {
                                     // Nothing here says when work appears: a
                                     // participant over this door polls.
                                     null,
-                                    runResults);
+                                    runResults),
+                                contacts, laneRuns, asker);
                     };
             // The same lane on the store's own stream, for a participant that
             // connects to the substrate and to nothing else: a door per tenant
