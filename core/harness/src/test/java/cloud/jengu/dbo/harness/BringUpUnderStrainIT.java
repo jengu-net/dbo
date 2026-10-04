@@ -151,7 +151,8 @@ class BringUpUnderStrainIT {
      * finish alone, because each one waits for another to arrive, so a node
      * bringing them up one after another times out at the barrier, which is
      * the assertion made without a stopwatch; and a bring-up that does not
-     * return until the leg releases it.
+     * return until the leg releases it, and then gives up rather than coming
+     * up.
      */
     static final class Scripted implements TenantDatabaseProvisioner {
 
@@ -221,6 +222,7 @@ class BringUpUnderStrainIT {
                     Thread.currentThread().interrupt();
                     throw new IllegalStateException(e);
                 }
+                throw letGo(code);
             }
             if (code.equals(holding)) {
                 reached.countDown();
@@ -232,8 +234,23 @@ class BringUpUnderStrainIT {
                     Thread.currentThread().interrupt();
                     throw new IllegalStateException(e);
                 }
+                throw letGo(code);
             }
             return real.provision(spec);
+        }
+
+        /**
+         * What a held bring-up does once its leg is over: it gives up, as one
+         * whose storage has not arrived does, and builds nothing.
+         *
+         * <p>Let through to the real provisioner, it came up for real — a
+         * validator and a whole bring-up for a tenant whose leg had finished
+         * with it, and a place in the room for as long as that took. The leg
+         * after it queued behind tenants nobody wanted, and the last one held
+         * the node's close until they were up.
+         */
+        private static NotProvisionedYet letGo(String code) {
+            return new NotProvisionedYet("tenant " + code + " was held for a leg that is over");
         }
 
         private void meet() {
@@ -1024,6 +1041,8 @@ class BringUpUnderStrainIT {
         assertTrue(storage.reached.getCount() == 0 && !manager.codes().contains("loops-stuck"),
                 "the held tenant came up anyway, so this proved nothing");
 
+        // Withdrawn before it is let go, so no later pass reads it again.
+        Files.deleteIfExists(dir.resolve("loops-stuck.json"));
         storage.released.countDown();
     }
 
@@ -1074,10 +1093,10 @@ class BringUpUnderStrainIT {
                             && !manager.codes().contains("room-two"),
                     "a held bring-up finished, so the room was not full and this proved nothing");
         } finally {
-            storage.freed.countDown();
             Files.deleteIfExists(dir.resolve("room-refused.json"));
             Files.deleteIfExists(dir.resolve("room-one.json"));
             Files.deleteIfExists(dir.resolve("room-two.json"));
+            storage.freed.countDown();
         }
     }
 
@@ -1138,9 +1157,9 @@ class BringUpUnderStrainIT {
                             && !manager.codes().contains("rewire-full-two"),
                     "a held bring-up finished, so the room was not full and this proved nothing");
         } finally {
-            storage.freed.countDown();
             Files.deleteIfExists(dir.resolve("rewire-full-one.json"));
             Files.deleteIfExists(dir.resolve("rewire-full-two.json"));
+            storage.freed.countDown();
             Files.deleteIfExists(dir.resolve("rewire-clinic.json"));
             Files.deleteIfExists(dir.resolve("rewire-zone.json"));
         }
