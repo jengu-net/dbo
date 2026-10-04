@@ -468,7 +468,7 @@ final class ElementPayloads implements Payloads<Element> {
         InstanceValidator validator = new InstanceValidator(context(),
                 new ElementHostServices(context()),
                 XVerExtensionManagerFactory.createExtensionManager(context()),
-                new ValidatorSession(), new ValidatorSettings());
+                sessionOver(context()), new ValidatorSettings());
         validator.setFetcher(new ElementFetcher(context()));
         // What a write is held to, and what it is not — see the policy.
         validator.setPolicyAdvisor(new ElementValidationPolicy());
@@ -488,6 +488,45 @@ final class ElementPayloads implements Payloads<Element> {
         // when somebody else's server does. The context is offline by
         // construction — see ElementVersion.
         return validator;
+    }
+
+    /**
+     * A validator's session, holding this view as the version it already is.
+     *
+     * <p>An extension definition says which elements it may sit on, and the
+     * validator checks each against the core version it names. It asks for
+     * that version by its short name — {@code 4.0} — and the view's own
+     * version is {@code 4.0.1}; the library's comparison wants the patch the
+     * short name does not have, so it never matches, and the validator loads
+     * the core package from the machine's package cache into a second context
+     * of its own. Per session, and a session is per validator, which is per
+     * view: every tenant brought up rebuilt its view after each definition
+     * the face publishes, and paid a whole core context — about two seconds of
+     * a busy core — for each extension definition among them.
+     *
+     * <p>The view is that version, and holds what the check asks for: the
+     * element's definition, at the version this tenant validates against.
+     * Asking it is the same check, answered by the definitions the tenant
+     * holds rather than whatever this machine's package cache has, which an
+     * offline face has no business reading.
+     */
+    static ValidatorSession sessionOver(SimpleWorkerContext view) {
+        ValidatorSession session = new ValidatorSession();
+        String own = view.getVersion();
+        if (own == null || own.isBlank()) {
+            return session;
+        }
+        try {
+            for (String named : org.hl7.fhir.utilities.VersionUtilities
+                    .iterateCorePublishedVersions(own, own)) {
+                session.getOtherVersions().put(named, view);
+            }
+        } catch (org.hl7.fhir.exceptions.FHIRException notAVersionItNames) {
+            // A version the library cannot read is one its own check cannot
+            // read either, and says so where it is asked. Nothing to seed, and
+            // no reason to refuse every other write over it here.
+        }
+        return session;
     }
 
     @Override
