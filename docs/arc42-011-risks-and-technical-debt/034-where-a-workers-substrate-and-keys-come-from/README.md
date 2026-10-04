@@ -1,20 +1,26 @@
-**Open, and down to its last decision. The keys are the application's and
+**Open, and down to its last decision. The keys are the application's, and
 the reasoning is not a preference: a store that held a participant's private
 halves could sign as it, which is the one thing the signing key exists to
-prevent. Both pools are sized now. The lane's is sized from the lanes it
-carries: a host holding one lane keeps five connections instead of ten, and
-one holding a dozen gets thirty-eight instead of running out at ten. The
-serving side's grows: three connections for each tenant's door on the stream,
-added as the door opens and given back as it closes, because its demand is
-known after its pool is built and not before. What is left is whether a
-co-located worker shares the serving half's pool, and after sizing there is
-little on the other side of that.**
+prevent. The worker sample shows the shape: under its `substrate` profile it
+names the deployment's database and nothing else, and it mints its own two
+key pairs (`MintingAnEnrolment`, `./gradlew
+:samples:spring-boot-worker-app:mintEnrolment`), handing over only the public
+halves. Both pools onto the substrate are sized. The lane's is sized from the
+lanes it carries: a host holding one lane keeps five connections instead of
+ten, and one holding a dozen gets thirty-eight instead of running out at ten.
+The serving side's grows by three for each tenant's door on the stream, added
+as the door opens and given back as it closes. What is left is whether a
+co-located worker — the clinic's application holding St Jerome's lane over the
+substrate in Rowling Land is one — shares the serving half's pool, and after
+sizing there is little on the other side of that.**
 
 # Where a worker's substrate and keys come from
 
 Left over from the item that built the carrier. Nothing here is a defect: the
 configuration works, is refused when incomplete, and is proven end to end by
-`TheWorkArrivesOverTheSubstrateIT`. These are shape questions, and shape is
+the edge round-trip story, where the clinic's worker holds St Jerome's lane
+over the substrate, and by `samples/check-separated.sh substrate`, where the
+worker runs in a JVM of its own. These are shape questions, and shape is
 cheapest to change before deployments depend on it.
 
 ## The keys are the application's — settled
@@ -44,8 +50,9 @@ worker reads it rather than infers it.
 
 ## What the pool actually costs — measured
 
-A co-located run of `TheWorkArrivesOverTheSubstrateIT`, seven tenants served
-and one lane held, queried against the substrate database itself:
+A co-located run of `TheWorkArrivesOverTheSubstrateIT` — an application test
+since folded into the edge round-trip story — seven tenants served and one
+lane held, queried against the substrate database itself:
 
 ```
 substrateConnections=20    (plus one for the probe)

@@ -1,11 +1,11 @@
 **Open. The store promises that reaching data means performing a step, and a
-plain read still bypasses it. The slice that exists is built and proven; what
-is left is traversal, a write refusal that needs it, and demoting the general
-surface. The traversal half is not this item's to design — item 021 defers the
-same question from the other side and has it written out, and one answer has to
-serve both doors. How an application reads what its run produced is built: the
-asker collects, for a window its step declares, as the audience the step
-names.**
+plain read still bypasses it. The slice that exists is built and proven: a run
+reaches the documents it names, its context answers only the client holding
+it, and the asker collects what the run produced, for a window its step
+declares, as the audience the step names. What is left is traversal, a write
+refusal that needs it, and demoting the general surface. The traversal half is
+not this item's to design — item 021 defers the same question from the other
+side and has it written out, and one answer has to serve both doors.**
 
 # The step-scoped API
 
@@ -17,8 +17,7 @@ The documentation already claims that access is granted to a step and that
 there is no way to reach the data without performing the work that needed it —
 `using-dbo.md` says so in the regulation mapping, and says it as the answer to
 a legal obligation. It is not true. A credential holding `system/*.read` reads
-any record with no step anywhere in the picture, which is how all nine written
-guide chapters work.
+any record with no step anywhere in the picture.
 
 The rule is written up as a crosscutting concept
 ([reaching the data](../../arc42-008-crosscutting/reaching-the-data/README.md)).
@@ -56,7 +55,7 @@ context is read-only, and the general surface is untouched.
 A run started at the step door records the client that asked for it, and
 `GET /t/<tenant>/run/<id>` — the run's own address, beside its context and its
 `done` verb — answers that client with the run as a `Task`: its key as the
-`urn:dbo:run` identifier, its status, who holds it and who may take it, the
+`urn:dbo:run` identifier, its status, its owner and who may take it, the
 slots as they were filled, and the step's result as outputs — the tally, each
 version it produced, and the milestone it reached. The rendering is the records surface's
 own, so a run has one shape whichever door shows it.
@@ -154,10 +153,10 @@ with T, so the window closing needs no transition and no sweep.
 answers as a run that never existed, byte for byte. A refused result opens no
 window, and a reopened run's T is cleared with its ending.
 
-**Why a window and not a holder.** The holder answered who owes the next act,
-and the asker owes nothing: collecting is optional, and a result nobody
-collects is not work left undone. A holder value would make every reader of a
-run's status treat a finished run as open — the answer's `Task`, `awaiting` and
+**Why a window and not a claim.** A run's status and owner answer who owes the
+next act, and the asker owes nothing: collecting is optional, and a result
+nobody collects is not work left undone. A claim for the asker would make every
+reader of a run's status treat a finished run as open — the answer's `Task`, `awaiting` and
 `settled`, the operator's lists. Obligation and access are two questions, and
 they coincided only while the performer was a run's only reader. So the reach
 rule reads: **the performer while it holds the run; the requester while its
@@ -349,8 +348,8 @@ rather than a bespoke protocol.
 - **Per-step capability statement generation beyond the type list.** The
   minimal context lists its types; generating the full contract from a
   declaration is the next slice.
-- **Demoting `system/*` or changing any existing chapter's examples.** The
-  guide gains a chapter; it does not lose nine.
+- **Demoting `system/*`.** It is a separate decision with its own
+  migration.
 
 ## Verifying
 

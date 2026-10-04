@@ -7,7 +7,10 @@ the warning now. What remains is a tenant's OWN pool, rebuilt when a tenant is
 brought up again: it names its driver by string, Hikari finds no registered
 driver of that name from the thread it is rebuilt on and instantiates one
 directly, and the subscription engine on that pool can no longer unwrap. The
-warning is still there, from those listeners only.**
+warning is still there, from those listeners only. The class whose run showed
+it, `TheWorkArrivesOverTheSubstrateIT`, is folded into the edge round-trip
+story, so the crossing is next measured on whichever run brings a tenant up a
+second time.**
 
 # The notification listener cannot unwrap a pooled connection
 
@@ -28,7 +31,8 @@ runs — hundreds of times in one run of one test.
 
 A probe at the two places DBOS is handed a DataSource, printing the class it
 asks for, the class the connection actually is, and the loader of each. In one
-run of `TheWorkArrivesOverTheSubstrateIT`:
+run of `TheWorkArrivesOverTheSubstrateIT`, an application test since folded
+into the edge round-trip story:
 
 | | the class `StreamDoor`/`StreamLane` is | the `PGConnection` it asks for | the connection it gets |
 |---|---|---|---|
@@ -183,9 +187,9 @@ unwrap: `samples/check-separated.sh`, under `edge` and `substrate`, logs the
 warning on neither side, where the server logged one per door per second.
 
 **Not proven, because it is not true yet:** the warning is gone. A run of
-`:samples:spring-boot-server-app:test` still carries it — not from the doors,
-which stay silent through the run, but from the two tenants
-`TheWorkArrivesOverTheSubstrateIT` sees brought up a second time. Their pools
+`:samples:spring-boot-server-app:test` carried it when last read — not from the doors,
+which stayed silent through the run, but from the two tenants
+`TheWorkArrivesOverTheSubstrateIT` brought up a second time. Their pools
 are rebuilt with `Registered driver with driverClassName=org.postgresql.Driver
 was not found, trying direct instantiation`, and the subscription engine
 launched on each, which unwrapped on the first bring-up, warns from then on.

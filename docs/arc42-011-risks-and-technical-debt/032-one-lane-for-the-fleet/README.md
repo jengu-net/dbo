@@ -1,11 +1,20 @@
-**Open, and not started. The desired state is described beside the concept it
-grows out of — [one lane for the fleet](../../arc42-008-crosscutting/processes-and-work/one-lane-for-the-fleet.md)
+**Open, and the plan is built. Steps 0 to 7 are done: application-level
+steps are declared in the management descriptor under `fleetSteps`, a step
+code belongs to one level, declaring a step prepares its substrate, a joiner
+reads every tenant's work feed into the step queues, one bean performs for
+every tenant and reports through each tenant's own lane, and a tenant reads a
+register, sees an incident where the trail disagrees with it, enrols the
+processor per tenant, authorises row by row, and has each unapproved row obey
+its posture. A fleet performer reports through the mapping a runner uses, so
+its runs keep the run model: status, eligibility and the failure routing its
+step declares. The fleet-step story walks it on Rowling Land and the technical
+story `AStepIsRunForTheFleetIT` walks what the world cannot carry. The desired
+state is described beside the concept it grows out of —
+[one lane for the fleet](../../arc42-008-crosscutting/processes-and-work/one-lane-for-the-fleet.md)
 and [what a tenant agreed to](../../arc42-008-crosscutting/processes-and-work/processing-and-consent.md).
-This item is the delta against what is built, the decisions behind it, and
-**[the plan](#the-plan-eight-steps-in-the-order-they-become-possible)** —
-eight steps whose first two exist to stop the store acquiring two schedulers
-over one run. Nothing is implemented and the plan is proposed rather than
-agreed.**
+What is left is what the plan never scheduled: what the reduced account in
+the management tenant holds, and whether and how an erasure reaches a joined
+item a processor has opened.**
 
 | | what it is |
 |---|---|
@@ -13,8 +22,8 @@ agreed.**
 | [What does not exist](#what-does-not-exist) | the delta, as a table |
 | [What the durable layer actually offers](#what-the-durable-layer-actually-offers) | its queues poll, its channels are fixed, and what that restricts |
 | [Where a step is declared](#where-an-application-level-step-is-declared) | the management tenant's descriptor, and what an entry carries |
-| [The decisions](#the-decisions-before-anything-is-built) | seven, four settled, three open |
-| **[The plan](#the-plan-eight-steps-in-the-order-they-become-possible)** | **eight steps, each with how it is proven** |
+| [The decisions](#the-decisions-before-anything-is-built) | seven, and what each left open |
+| **[The plan](#the-plan-eight-steps-in-the-order-they-become-possible)** | **eight steps, each with how it is proven, all built** |
 
 # One lane for the fleet, and two levels of step
 
@@ -856,18 +865,6 @@ agreement, which is what decision three was really asserting.
 *That part proven by:* `AStepIsRunForTheFleetIT`, claiming
 `REQ-DBO-PROC-A-TENANT-ADMITS-OR-DECLINES-WHAT-IS-DONE-TO-IT`.
 
-**What is left of step 7, and why.** The register itself and the incident are
-now unblocked by the grain decision and are ordinary work. The two postures
-that turn on sealing are not: nothing in steps 4 to 6 seals or carries a
-payload — the joiner sends the run by identity and a performer is handed four
-strings — so *refusing to seal where a row says not until approved* has nothing
-to refuse yet. A performer opens through `Lane.inputs`, which already records
-the access on the document naming the opener in that tenant's own trail, so the
-third part of step 7 is the existing mechanism rather than new work. What has
-to be built before the postures can be is **per-tenant enrolment of an
-application-level processor**, which decision two settled in shape and no step
-below 7 schedules.
-
 ## What this plan does not schedule
 
 **The reduced account**, because what it holds is undecided and the constraint
@@ -905,7 +902,7 @@ application participates, and the tenant-level step stays for that reason.
   than how.
 - And the thing to prove first, before a joiner exists: that a step service
   reached over the stream and one reached over HTTP are indistinguishable in a
-  deployment — **done**. The harness proved it for the lane, and
-  `TheWorkArrivesOverTheSubstrateIT` now proves it for an application built on
-  the assemblies: the same application, the same bean and the same step as the
-  HTTP test beside it, with one word changed.
+  deployment — **done**. The harness proved it for the lane, and the edge
+  round-trip story proves it for an application built on the assemblies: the
+  clinic's worker holds St Jerome's lane over the substrate and Hogwarts' over
+  HTTP, and the same bean records a patient at each with the same outcome.

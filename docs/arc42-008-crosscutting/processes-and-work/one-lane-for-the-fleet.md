@@ -6,11 +6,12 @@ The contract it grows out of is [processes and work](README.md); the delta
 against what is built is
 [its ledger item](../../arc42-011-risks-and-technical-debt/032-one-lane-for-the-fleet/README.md).
 
-**Nothing here is built.** It is the model
-[the contract](README.md) is growing into, written down beside it because a
-reader who has just learned how work reaches a participant today deserves to
-know which way it is moving. The delta against what exists, and the decisions
-still open, are in
+**Most of it is built**: application-level steps declared in the management
+tenant, one level per step code, a substrate per step, the joiner, one bean
+performing for every tenant, the writeback through each tenant's own lane, and
+the register a tenant reads with its incidents, enrolment, authorisation and
+postures. What is still open — the reduced account, and an erasure reaching a
+copy a processor has opened — is in
 [the ledger item](../../arc42-011-risks-and-technical-debt/032-one-lane-for-the-fleet/README.md).
 
 ### A step is defined at one of two levels

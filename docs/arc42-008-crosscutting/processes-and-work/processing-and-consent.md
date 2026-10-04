@@ -5,11 +5,11 @@ what it did, recorded regardless; and what the difference between the two
 means. It rests on [one lane for the fleet](one-lane-for-the-fleet.md), and
 the contract underneath both is [processes and work](README.md).
 
-**Nothing here is built.** It is the model
-[the contract](README.md) is growing into, written down beside it because a
-reader who has just learned how work reaches a participant today deserves to
-know which way it is moving. The delta against what exists, and the decisions
-still open, are in
+**It is built**: the register derived from the management tenant's
+declaration, the incident read from the tenant's own trail, a processor
+enrolled per tenant, authorisation per row, and the postures. What is still
+open — the reduced account, and an erasure reaching a copy a processor has
+opened — is in
 [the ledger item](../../arc42-011-risks-and-technical-debt/032-one-lane-for-the-fleet/README.md).
 
 ### Router or processor, and asking is what decides
