@@ -615,9 +615,10 @@ public enum DboPromises implements Promise {
 
     PROC_PRESENCE_IS_DERIVED("A participant is present while its named feed cursor "
             + "moves; a declaration whose consumer is behind and unmoving is "
-            + "declared-but-not-present, skipped by resolution and shown as such. No "
-            + "heartbeat and no lease — and a caught-up participant's cursor does not "
-            + "move either, so silence with nothing waiting is not absence."),
+            + "declared-but-not-present, skipped by resolution and shown as such. Resolution "
+            + "reads no heartbeat and no lease — a heartbeat is contact, which is the "
+            + "application's and decides nothing here — and a caught-up participant's cursor "
+            + "does not move either, so silence with nothing waiting is not absence."),
 
     PROC_A_CONTACT_LISTENER_IS_OPTIONAL_PER_STEP("An application may register, per step, a "
             + "listener told when a node comes into contact with a worker of that step and when "
