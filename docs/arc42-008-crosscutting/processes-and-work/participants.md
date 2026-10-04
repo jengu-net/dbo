@@ -128,3 +128,11 @@ stream is held only by a participant enrolled with both keys, and the clear
 verb is refused there by name. A container given
 no substrate serves its lanes over HTTP and in-process only, as every
 container did before the fleet.
+
+**A worker beside the store keeps a pool of its own onto the substrate.** A
+worker in the same process as the serving half — the clinic's application
+holding St Jerome's lane in Rowling Land is one — does not share the serving
+half's pool. The store manages its connections per tenant on purpose, and both
+pools are sized from what they carry: the lane's from the lanes it holds, five
+connections for one, and the serving side's by three for each tenant's door as
+it opens. Sharing would save little and cross that line.

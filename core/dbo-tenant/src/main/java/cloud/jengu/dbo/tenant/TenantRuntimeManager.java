@@ -446,8 +446,8 @@ public final class TenantRuntimeManager implements AutoCloseable {
      * <p>PUBLIC HALVES ONLY, which is the whole of why this can be the
      * deployment's to hand over: what a tenant records is what it will seal
      * to, and a copy of that record opens nothing. The private halves are the
-     * processor's own and never reach here, exactly as item 034 settled for a
-     * worker's.
+     * processor's own and never reach here, exactly as a worker's are its own
+     * (participants.md, in the crosscutting concepts).
      */
     private volatile Processor processor;
 

@@ -576,9 +576,9 @@ be something the library gives rather than something to build: a `DBOSClient`
 over the substrate writes to the durable layer **without being an executor** —
 no registered workflow, no queue polling, no permanently held listener. A
 joiner that launched a full durable runtime per substrate would hold a listener
-and a pool for every step in the deployment, which is the connection cost
-[item 034](../034-where-a-workers-substrate-and-keys-come-from/README.md)
-measured.
+and a pool for every step in the deployment, and a pool held per substrate is
+what [a participant's connections](../../arc42-008-crosscutting/processes-and-work/participants.md)
+are sized against.
 
 **Idempotence is also the library's**, not a table to keep: one row per
 workflow id, so the id is derived from the run's own identity and a re-offer
@@ -699,9 +699,8 @@ nothing was listening to the second queue. Correct behaviour of the durable
 layer, and a defect here.
 
 **So placement is a real dial**: two steps naming one substrate are served by
-one consumer, one listener and one pool, which is what
-[item 034](../034-where-a-workers-substrate-and-keys-come-from/README.md)'s
-arithmetic assumed all along.
+one consumer, one listener and one pool, which is what the pool sizing
+assumed all along.
 
 ### And the fix uncovered a way to lose work
 
