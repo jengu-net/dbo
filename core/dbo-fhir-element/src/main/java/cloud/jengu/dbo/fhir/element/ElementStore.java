@@ -323,8 +323,58 @@ public final class ElementStore implements FhirStoreFacade,
         }
     }
 
+    /**
+     * Which version of each of this tenant's profiles the view was built
+     * from, by canonical, read before it was built.
+     *
+     * <p>What makes a snapshot taken from the view safe to keep under a
+     * version. A profile can move between a view being built and its
+     * definitions being expanded — a write on another thread, a profile
+     * arriving through a lane — and a snapshot taken then is what the profile
+     * used to say, filed under what it says now. Kept, it is the snapshot
+     * every later view is built from for that version, so the tenant stamps
+     * and checks against a definition it no longer holds until the profile
+     * moves again.
+     */
+    private volatile Map<String, Long> viewBuiltFrom = Map.of();
+
+    /** The version of each profile this tenant holds now, by canonical. */
+    private Map<String, Long> heldProfileVersions() {
+        Map<String, Long> held = new java.util.HashMap<>();
+        try {
+            for (cloud.jengu.dbo.core.api.Held one
+                    : FaceBase.inventoryOf(store, "StructureDefinition")) {
+                String canonical = FaceBase.canonicalOf(one);
+                if (canonical != null) {
+                    held.put(canonical, one.versionId());
+                }
+            }
+        } catch (RuntimeException notHeldHere) {
+            // A tenant that does not register the type holds no profiles.
+        }
+        return held;
+    }
+
+    /**
+     * Whether the view was built from this version of the profile, which is
+     * the only version a snapshot taken from it may be kept under.
+     */
+    private boolean viewIsOf(String canonical, cloud.jengu.dbo.core.api.Held held) {
+        return Long.valueOf(held.versionId()).equals(viewBuiltFrom.get(canonical));
+    }
+
     @SuppressWarnings("unchecked")
     private Payloads<Object> builtView() {
+        // Read before the build, so a profile that moves during it is found
+        // newer than this says and its snapshot is not kept from this view.
+        Map<String, Long> from = heldProfileVersions();
+        Payloads<Object> held = builtViewOf();
+        viewBuiltFrom = Map.copyOf(from);
+        return held;
+    }
+
+    @SuppressWarnings("unchecked")
+    private Payloads<Object> builtViewOf() {
         Payloads<Object> held;
         if (fromTheIndex() != null) {
             held = (Payloads<Object>) (Payloads<?>) fromTheIndex();
@@ -1756,6 +1806,12 @@ public final class ElementStore implements FhirStoreFacade,
         }
         org.hl7.fhir.r5.context.SimpleWorkerContext view = elementPayloads().context();
         for (Map.Entry<String, cloud.jengu.dbo.core.api.Held> entry : unkept.entrySet()) {
+            if (!viewIsOf(entry.getKey(), entry.getValue())) {
+                // The profile moved since this view was built. What moved it
+                // rebuilds the view and expands again, from the version it
+                // wrote.
+                continue;
+            }
             byte[] snapshotted = snapshotFrom(view, entry.getKey());
             if (snapshotted == null) {
                 // The rows are here, so this profile was resolvable when they
@@ -1791,6 +1847,11 @@ public final class ElementStore implements FhirStoreFacade,
         org.hl7.fhir.r5.context.SimpleWorkerContext view = elementPayloads().context();
         int unresolved = 0;
         for (Map.Entry<String, cloud.jengu.dbo.core.api.Held> entry : differential.entrySet()) {
+            if (!viewIsOf(entry.getKey(), entry.getValue())) {
+                // As in keepSnapshotsFor: expanded from this view, the rows
+                // would say what the profile used to and claim to be current.
+                continue;
+            }
             byte[] snapshotted = snapshotFrom(view, entry.getKey());
             if (snapshotted == null) {
                 unresolved++;
