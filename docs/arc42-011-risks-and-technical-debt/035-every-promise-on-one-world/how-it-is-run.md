@@ -1,9 +1,10 @@
 # Moving tests onto worlds that already exist
 
-Tests are being taken off worlds of their own and put onto shared ones: the
-harness's shared tenants, and where the behaviour is reachable through a door,
-the world the user stories walk. This document is how that work is *run* — the loop,
-the gate, and the rules that were paid for rather than reasoned out.
+Tests are being taken off worlds of their own: their promises are proven in
+legs of the user stories, on the world the stories walk, and what cannot be
+waits on the harness's shared tenants. This document is how that work is
+*run* — the loop, the gate, and the rules that were paid for rather than
+reasoned out. [Back to the item](README.md).
 
 It is not the case for doing it. That is in the commit messages and in
 [the requirement catalogue](../../arc42-006-runtime/req-catalogue.md), which says

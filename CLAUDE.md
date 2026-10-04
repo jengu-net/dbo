@@ -67,7 +67,7 @@ Where a bring-up genuinely needs proving and nothing already proves it, the
 world is sized for that question and its reason goes in the ledger. This
 narrows the shared-world rule while the build is slow and does not widen it:
 the allowance may still only fall. Delete it when item 019's conclusion is
-answered by items 003 and 035.
+answered by item 035.
 
 **The R5 validator needs a 2g heap.** Test tasks set it; a new test task that
 loads the validator must too.

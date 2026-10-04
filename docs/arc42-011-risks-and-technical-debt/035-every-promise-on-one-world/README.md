@@ -1,17 +1,16 @@
-**Open; step 3 has reached every class. Nine user-story classes walk Rowling
-Land, the sample world, in one context, concurrently: 205 legs in about eight
-and a half minutes. Of the harness classes that booted a world, 55 are deleted
-and every other one is classified in the listing with the reason it stays —
-grouped into the technical stories they become (the version measured,
-bring-up made to go wrong, what a deployment is given before it starts, a
-deployment with a substrate, a second container)
-or deferred with the eleven set aside at the start. Walking the stories found
-eight store defects, each fixed with a test that fails without the fix, and
-one test-tool defect: credentials cached past their lifetime. The two findings
-recorded then are closed: a tenant's door on the stream opens only for a
-participant that signs, so Rowling Land carries a substrate at no cost to the
-stories, and erasure has a door of its own.
-Next: the technical stories, and the full verify before pushing.**
+**Open; every story is on the one world, and steps 3 to 6 have reached every
+class. Ten story classes — the nine user stories and the erasure story — walk
+Rowling Land, the sample world, in the clinic application's tests
+(`samples/spring-boot-server-app`): one context, every story at once, 229 legs
+in about ten minutes when last timed. Thirteen harness classes still build a
+runtime of their own, each with its reason in the worlds ledger, and five take
+the harness's shared tenants; the technical stories hold what the sample world
+cannot be (the version measured, bring-up under strain, a deployment equipped
+before it starts, a step run for the fleet, a second container). Walking the
+stories found eight store defects, each fixed with a test that fails without
+the fix, and one test-tool defect: credentials cached past their lifetime.
+Next: the ten classes the listing leaves for later (step 7), then the close
+(step 8).**
 
 # Every promise proven on one world, inside its story
 
@@ -19,10 +18,11 @@ Next: the technical stories, and the full verify before pushing.**
 
 A test that builds its own world, or prepares a state of its own on a shared
 one, pays for a bring-up nobody else uses. Repeated across 127 classes, that is
-why the suite takes over an hour. Item 003 moved classes onto the harness's
+why the suite takes over an hour. An earlier item moved classes onto the harness's
 shared runtime one at a time. It stopped with 38 classes still holding a
 runtime, each for a recorded reason, and with 22 shapes and a six-member cast
-on the shared one.
+on the shared one. What that move found is kept here as traps, and the loop
+it ran by is [how the work is run](how-it-is-run.md).
 
 This item changes what the target is. The target is no longer the cheapest
 world for a class. It is one world, Rowling Land, the sample world, served by one Spring
@@ -33,10 +33,6 @@ arranged for it.
 **This is not a port.** No class is moved. Its promise is proven in a story
 leg, and its arrangement is used as preparation for that leg where it helps.
 The class is deleted once nothing it proves is proven only by it.
-
-It supersedes [item 003](../003-tests-move-down-the-ladder/README.md). Item
-003's findings are the traps this item starts from, and 003 is deleted when
-step 2 lands.
 
 ## The rules
 
@@ -292,7 +288,9 @@ Another 33 classes do not feed a story:
      and legs in three stories were refused with "too many clients". A
      tenant's pool, and a step's substrate, now keep one connection while
      idle; the same run peaks at 70 and passes.
-6. **Read the 14 classes that cite no promise.** Each is a measurement whose
+6. ~~**Read the 14 classes that cite no promise.**~~ Done: all fourteen are
+   deleted, five walked in `BringUpUnderStrainIT` and two folded into
+   `TheVersionIsMeasuredIT`. Each is a measurement whose
    finding is recorded somewhere, a fold into a leg under the promise it
    should have cited, or a deletion.
 7. **Last, the 11 that may not fit.** Nothing is done with them until steps
@@ -403,8 +401,8 @@ database for the class's lifetime, which rule 4 accounts for.
 
 **A whole-plane claim holds on a shared world.** "Nothing readable lands in
 the substrate" is stronger when every story wrote to that substrate, not
-weaker. Item 003 kept two classes off the shared runtime for asserting about a
-whole plane, and that reason is withdrawn here.
+weaker. The move onto the shared runtime kept two classes off it for asserting
+about a whole plane, and that reason is withdrawn here.
 
 **A sweep claim is a claim about the pass's answer for this leg's tenant.**
 While the stories run, other stories' tenants come and go in every pass. So
@@ -437,7 +435,9 @@ None at present.
 
 - **What a tenant costs is seconds, not memory.** Definitions are shared per
   face and process. A tenant costs 3 to 11 MB, and a world's tenants are held
-  to the end of the run (item 003). The managing tenant takes about two and a
+  to the end of the run, where a class's own world gave them back at its
+  `@AfterAll`: moving a class onto a shared world trades bring-up seconds for
+  megabytes held, and seconds are the scarcer. The managing tenant takes about two and a
   half minutes to bring up and each further tenant 25 to 60 seconds, almost
   all of it the terminology baseline.
 - **One JVM carries every face's definitions at once.** The heap ceiling and
@@ -467,7 +467,12 @@ None at present.
   the author, not one that only receives.
 - **A face is cut once and cached.** A profile written to a face root after
   the face was cut does not reach a tenant on that face by the path being
-  tested (item 003's refused move).
+  tested. The face root and the hospital look like a profile-replication
+  pair and are not, for this reason.
+- **A type declares one identity class per tenant.** People held with no
+  national number and people keyed by one are two tenants, not a flag on
+  one: St Jerome keys nobody by that number, and the hospital keys everybody
+  by it.
 
 ## Not being done
 

@@ -45,7 +45,7 @@ proves, and the choice is made deliberately, down a ladder.
    runtime.
 
 `config/worlds-ledger.txt` records every harness class on the fourth rung
-with its reason. [How the move down the ladder is run](../../arc42-011-risks-and-technical-debt/003-tests-move-down-the-ladder/how-it-is-run.md)
+with its reason. [How the move onto the stories is run](../../arc42-011-risks-and-technical-debt/035-every-promise-on-one-world/how-it-is-run.md)
 sits with the item that tracks it. A new class without a reason fails the build, and the
 number that predate the ledger only falls.
 
