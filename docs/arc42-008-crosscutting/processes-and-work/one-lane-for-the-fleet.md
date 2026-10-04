@@ -2,17 +2,13 @@
 
 How a step defined once comes to perform for every tenant: two levels of
 step, where each is declared, and what joins their work into one place.
-The contract it grows out of is [processes and work](README.md); the delta
-against what is built is
-[its ledger item](../../arc42-011-risks-and-technical-debt/032-one-lane-for-the-fleet/README.md).
+The contract it grows out of is [processes and work](README.md).
 
-**Most of it is built**: application-level steps declared in the management
-tenant, one level per step code, a substrate per step, the joiner, one bean
-performing for every tenant, the writeback through each tenant's own lane, and
-the register a tenant reads with its incidents, enrolment, authorisation and
-postures. What is still open — the reduced account, and an erasure reaching a
-copy a processor has opened — is in
-[the ledger item](../../arc42-011-risks-and-technical-debt/032-one-lane-for-the-fleet/README.md).
+**It is built**: application-level steps declared in the management tenant,
+one level per step code, a substrate per step, the joiner, one bean performing
+for every tenant, the writeback through each tenant's own lane, and the
+register a tenant reads with its incidents, enrolment, authorisation and
+postures. What is still open is [at the end](#still-open).
 
 ### A step is defined at one of two levels
 
@@ -78,8 +74,24 @@ under real load is worth its own database — for the contention it stops sharin
 as much as for the notifications — while a deployment running everything in one
 application points them all at one. That the two can be the same design is the
 point: a store does not know how it will be run.
-[The ledger](../../arc42-011-risks-and-technical-debt/032-one-lane-for-the-fleet/README.md)
-carries what the durable layer restricts and what each shape costs.
+
+**What the durable layer restricts, read out of its own sources.** A queue
+is polled at the interval it names, a second by default; the interval grows
+only after an error, so an idle step is not drifting towards a two-minute
+latency. Its notifications are three channels whose names are library
+constants, every process connected to that database hears all three and
+discards what is not its own, and Postgres scopes a notification to a
+database — so a database of its own is the only thing that narrows one step's
+traffic, and it buys contention isolation on the durable layer's own hot
+tables besides. Notification can be switched off altogether, so nothing may
+depend on a wake-up arriving. What a step's database costs is one listener
+connection held for good and one pool, per participating process: small
+where a worker serves one step, large in an all-in-one server. These
+databases are the runtime's and are not tenants — a durable bootstrap and
+nothing else, made over the same admin connection by a different path. And
+the joiner writes into a different database from the one it read, so
+delivery is at least once and the write is idempotent on the run's own
+identity.
 
 **A wake-up is a hint, and the queue is the truth.** A notification nobody was
 listening for is not redelivered, so a consumer that missed one finds the work
@@ -242,7 +254,7 @@ is today, and the unified layer never becomes a second place to ask.
 manager level can answer across tenants without asking each of them. Reduced
 rather than a copy: what a fleet operator needs is not what a tenant holds, and
 anything about a person has no business in a management tenant at all. Which
-fields those are is not decided.
+fields those are is [still open](#still-open).
 
 
 ### What does not change
@@ -254,3 +266,12 @@ progress is still evidence rather than a tick; a run still ends closed or
 released; and work is still authored on the tenant's own surface and never on
 the lane. What changes is how many doors an application asks, and where the
 execution state of the deployment's own steps lives.
+
+### Still open
+
+**What the reduced account holds.** The constraint is easier than the
+content: nothing about a person, and nothing a tenant's own record already
+answers. Which fields an operator needs to answer across tenants without
+asking each of them is not decided, and until it is, the manager level asks
+each node and tenant over their own doors. Anything answering across steps
+reads as many databases as there are step substrates.

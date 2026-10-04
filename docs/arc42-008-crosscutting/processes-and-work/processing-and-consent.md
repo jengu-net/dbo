@@ -8,9 +8,7 @@ the contract underneath both is [processes and work](README.md).
 **It is built**: the register derived from the management tenant's
 declaration, the incident read from the tenant's own trail, a processor
 enrolled per tenant, authorisation per row, and the postures. What is still
-open — the reduced account, and an erasure reaching a copy a processor has
-opened — is in
-[the ledger item](../../arc42-011-risks-and-technical-debt/032-one-lane-for-the-fleet/README.md).
+open is [at the end](#still-open).
 
 ### Router or processor, and asking is what decides
 
@@ -205,4 +203,15 @@ before a tenant joins and never changes quietly afterwards.
 under an unapproved row is in the tenant's trail like every other, so whichever
 posture a deployment takes, the tenant's account of what was read is complete.
 
+### Still open
 
+**Whether an erasure reaches a copy a processor has opened, and how.** A
+joined item is a copy: the run is a record in the tenant that authored it, so
+withdrawing a step or removing its substrate destroys copies and no records. A
+sealed copy in flight is already answered — it is the carrier form, identifying
+elements under the person's key, in the same state after a shred as the
+store's own records. A copy a processor has opened and holds is not, and
+neither is an item sitting in a step's substrate, which is a copy the
+deployment holds rather than one in transit. That is a question about the
+store's erasure promise rather than about the register, and it is not
+decided.

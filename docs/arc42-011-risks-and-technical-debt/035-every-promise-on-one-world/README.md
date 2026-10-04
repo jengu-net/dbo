@@ -416,7 +416,7 @@ the smallest cap that it can carry.
 
 **The fleet steps are a story of their own.** Seventeen `PROC_*` promises
 are declared by no story. They are the
-[item 032](../032-one-lane-for-the-fleet/README.md) family: a step the
+[one lane for the fleet](../../arc42-008-crosscutting/processes-and-work/one-lane-for-the-fleet.md) family: a step the
 deployment performs for every tenant, with its register, enrolment and
 posture. They form one scene with one subject, the deployment acting for many
 tenants. Edge roundtrip's subject is work leaving one tenant, and bolting
