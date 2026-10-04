@@ -76,6 +76,7 @@ public final class Activator implements BundleActivator {
     private ServiceTracker<cloud.jengu.dbo.work.ContactListener,
             cloud.jengu.dbo.work.ContactListener> contactListeners;
     private java.util.concurrent.ScheduledExecutorService contactTimers;
+    private ServiceRegistration<cloud.jengu.dbo.work.RunInitiator> initiator;
 
     /** What this node is called in every contact event it sends. */
     static final String NODE_NAME = "dbo.node.name";
@@ -789,6 +790,11 @@ public final class Activator implements BundleActivator {
                         limit, ContactLane.DEFAULT_HEARTBEAT_LIMIT);
             }
         }
+        // Starting work on a tenant from beside the store: one service for
+        // every tenant this node serves, which answers for a tenant it does
+        // not as the door would.
+        initiator = ctx.registerService(cloud.jengu.dbo.work.RunInitiator.class,
+                manager.runInitiator(), null);
         watchExtensions(ctx);
         // The durable substrate, when this deployment has one: each tenant's
         // lane then has a door on the stream beside its HTTP door, for a
@@ -856,6 +862,10 @@ public final class Activator implements BundleActivator {
         }
         if (observers != null) {
             observers.close();
+        }
+        if (initiator != null) {
+            initiator.unregister();
+            initiator = null;
         }
         if (contactListeners != null) {
             contactListeners.close();

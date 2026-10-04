@@ -46,6 +46,11 @@ spring:
 # over HTTP, as the tenant is to know it. Empty unless a worker has handed its
 # enrolment over: see application-separated.yaml.
 clinic:
+  # How long a worker that registers patients may say nothing before this
+  # application hears it has gone quiet (NoticingTheWorkers). Several of its
+  # polls: the worker heartbeats on every one.
+  contact:
+    silence: PT30S
   # This application as a client of each clinic that opens with a staff
   # directory (OpeningAClinic). A sample's secret, for the reason above.
   application:

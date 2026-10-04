@@ -637,6 +637,15 @@ public enum DboPromises implements Promise {
             + "everything for its step is unknown on that node, and a worker heard there again "
             + "appears again: contact is not carried across a restart."),
 
+    PROC_CONTACT_IS_RECORDED_ONLY_THROUGH_WORK("Nothing about contact reaches a tenant's "
+            + "records unless a listener asks for it as work: the listener starts a run through "
+            + "the ordinary way of asking for one, under a key of its own so the same decision "
+            + "made twice — on two nodes, or after a retry — is one run, and the run's step "
+            + "writes the record through its result, validated by the tenant and carrying the "
+            + "run. A listener in the container starts it through the initiator the container "
+            + "registers; an application over HTTP through the same contract bound to the "
+            + "tenant's door."),
+
     PROC_A_HEARTBEAT_IS_A_LANE_VERB("A worker says it is still there with a heartbeat, a verb "
             + "of the participation lane on every transport, carrying one JSON object of "
             + "statistics. It counts as activity for every step the worker declared on that "

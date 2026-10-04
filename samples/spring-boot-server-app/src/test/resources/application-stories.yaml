@@ -59,6 +59,11 @@ clinic:
   # the bundles, the class space and the one framework are the same.
   framework:
     owned: true
+  # A worker that goes quiet is heard as quiet after this long: shorter than
+  # the application's own, because a story waits for it, and long enough that
+  # a worker under the load of every story at once is not heard leaving.
+  contact:
+    silence: PT10S
   enrolment:
     tenant: st-jerome
     participant: ${dbo.test.substrate.participant}

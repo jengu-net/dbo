@@ -327,6 +327,31 @@ final class StepSurface implements HttpHandler {
                     + stepCode);
             return;
         }
+        Object body = Json.parse(new String(exchange.getRequestBody().readAllBytes(),
+                StandardCharsets.UTF_8));
+        Started started = starting(stepCode, body, requester);
+        respond(exchange, started.status(), started.body());
+    }
+
+    /** What asking for a run came to: the status the door answers with, and its body. */
+    record Started(int status, String body) {
+    }
+
+    /**
+     * A run of a step, over what the body fills its slots with, recorded as
+     * the requester's — the door's act without the door, so a caller in this
+     * process starts work exactly as one over HTTP does.
+     *
+     * <p>Not authorised here: the door has already decided the credential may
+     * act in work for this step, and a caller in this process is the tenant's
+     * own.
+     *
+     * @param body      the request, parsed: {@code inputs} and an optional
+     *                  {@code scope}, which makes the run's key and so finds
+     *                  a run already started under it rather than another
+     * @param requester recorded as the client the run answers, or null
+     */
+    Started starting(String stepCode, Object body, String requester) {
         TenantSpec.Step step = declared.get(stepCode);
         Map<String, String> slots;
         if (step != null) {
@@ -345,21 +370,17 @@ final class StepSurface implements HttpHandler {
             // own record, before any participant said anything.
             Fleet.Offer offered = fleet.offer(tenant, stepCode);
             if (offered == null) {
-                fail(exchange, 404, "not_found", "this tenant offers no step '" + stepCode
+                return refused(404, "not_found", "this tenant offers no step '" + stepCode
                         + "'; it offers: " + declared.keySet());
-                return;
             }
             if (offered.refusedBecause() != null) {
                 // 409 rather than 403: nothing is wrong with the credential.
                 // The deployment performs this step and this tenant has said
                 // something about it, so the state of the pair is what refuses.
-                fail(exchange, 409, "refused", offered.refusedBecause());
-                return;
+                return refused(409, "refused", offered.refusedBecause());
             }
             slots = offered.slots();
         }
-        Object body = Json.parse(new String(exchange.getRequestBody().readAllBytes(),
-                StandardCharsets.UTF_8));
         Map<String, Object> given = new LinkedHashMap<>();
         if (Json.objOpt(body, "inputs") instanceof Map<?, ?> named) {
             named.forEach((slot, filled) -> given.put(String.valueOf(slot), filled));
@@ -375,9 +396,8 @@ final class StepSurface implements HttpHandler {
         // look exactly like one they got right.
         for (String named : given.keySet()) {
             if (!slots.containsKey(named)) {
-                fail(exchange, 400, "invalid_request", stepCode + " declares no slot '"
+                return refused(400, "invalid_request", stepCode + " declares no slot '"
                         + named + "'; it takes: " + slots.keySet());
-                return;
             }
         }
         Map<String, cloud.jengu.dbo.work.RunSlot> inputs = new LinkedHashMap<>();
@@ -393,8 +413,7 @@ final class StepSurface implements HttpHandler {
             try {
                 inputs.put(slot.getKey(), fill(slot.getKey(), shape, filled));
             } catch (IllegalArgumentException wrong) {
-                fail(exchange, 400, "invalid_request", wrong.getMessage());
-                return;
+                return refused(400, "invalid_request", wrong.getMessage());
             }
         }
         String scope = Optional.ofNullable(Json.strOpt(body, "scope"))
@@ -417,9 +436,14 @@ final class StepSurface implements HttpHandler {
         // — the trail's `run` parameter among them — so a caller that started
         // a run here can ask what it did without first holding a credential
         // that may read the run's own record to find its name out.
-        respond(exchange, 201, "{\"run\":" + quote(run.id()) + ",\"key\":" + quote(run.key())
+        return new Started(201, "{\"run\":" + quote(run.id()) + ",\"key\":" + quote(run.key())
                 + ",\"step\":" + quote(stepCode)
                 + ",\"context\":" + quote(runPath + "/" + run.id() + "/fhir") + "}");
+    }
+
+    private static Started refused(int status, String error, String detail) {
+        return new Started(status, "{\"error\":" + quote(error) + ",\"detail\":"
+                + quote(detail) + "}");
     }
 
     /**
@@ -793,6 +817,22 @@ final class StepSurface implements HttpHandler {
             return;
         }
         respond(exchange, 200, task.get());
+    }
+
+    /**
+     * The run, answered to a caller in this process: the tenant's own, so
+     * there is no requester to check it against, and the answer is the one
+     * the door gives.
+     */
+    Started answering(String id) {
+        Optional<Run> found = runs.byId(id);
+        if (found.isEmpty()) {
+            return refused(404, "not_found", "no such run");
+        }
+        return rendered.apply(found.get().id()).map(StepSurface::theRun)
+                .map(task -> new Started(200, task))
+                .orElseGet(() -> refused(501, "not_implemented",
+                        "this tenant's face renders no run as a Task"));
     }
 
     /**

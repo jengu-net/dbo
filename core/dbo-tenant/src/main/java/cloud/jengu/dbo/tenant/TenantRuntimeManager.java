@@ -499,6 +499,53 @@ public final class TenantRuntimeManager implements AutoCloseable {
                     null, (listener, threw) -> LOG.warn("a contact listener threw: {}",
                             listener, threw));
 
+    /** Each tenant's way of starting work in this process, by code. */
+    private final Map<String, StepSurface> starters = new ConcurrentHashMap<>();
+
+    /**
+     * Starting a run on a tenant this node serves, from inside its process,
+     * and hearing back how it ended — the step door's acts without the door.
+     *
+     * <p>What a bundle beside the store starts work with; an application
+     * reaching a tenant over HTTP holds the same contract bound to the door.
+     * A tenant this node does not serve, or one that declares no steps,
+     * answers 404 as the door would.
+     */
+    public cloud.jengu.dbo.work.RunInitiator runInitiator() {
+        return new cloud.jengu.dbo.work.RunInitiator() {
+            @Override
+            public Started starting(String tenant, String step,
+                    Map<String, Slot> inputs, String key) {
+                StepSurface starter = starters.get(tenant);
+                if (starter == null) {
+                    return new Started(404, null, null, "{\"error\":\"not_found\","
+                            + "\"detail\":\"this node starts no work on '" + tenant + "'\"}");
+                }
+                StringBuilder named = new StringBuilder();
+                inputs.forEach((slot, filled) -> named.append(named.length() == 0 ? "" : ",")
+                        .append(cloud.jengu.dbo.work.RunInitiator.quoted(slot)).append(':').append(filled.rendered()));
+                Object body = Json.parse("{\"inputs\":{" + named + "}"
+                        + (key == null ? "" : ",\"scope\":"
+                        + cloud.jengu.dbo.work.RunInitiator.quoted(key)) + "}");
+                StepSurface.Started started = starter.starting(step, body, null);
+                return new Started(started.status(),
+                        cloud.jengu.dbo.work.RunInitiator.field(started.body(), "run"),
+                        cloud.jengu.dbo.work.RunInitiator.field(started.body(), "key"),
+                        started.body());
+            }
+
+            @Override
+            public Answer answer(String tenant, String run) {
+                StepSurface starter = starters.get(tenant);
+                if (starter == null) {
+                    return new Answer(404, "{\"error\":\"not_found\"}");
+                }
+                StepSurface.Started answered = starter.answering(run);
+                return new Answer(answered.status(), answered.body());
+            }
+        };
+    }
+
     /** What every lane built here tells when a worker is heard. */
     public void contacts(cloud.jengu.dbo.work.Contacts heard) {
         this.contacts = heard;
@@ -1297,6 +1344,27 @@ public final class TenantRuntimeManager implements AutoCloseable {
                             + "Scim's tokens are the authority's, so the door is not mounted "
                             + "and provisioning cannot reach this tenant — everything else it "
                             + "declared is being served");
+                });
+
+        // Work asked for from inside this process: the step door's act
+        // without the door, for a tenant that declares steps whether or not
+        // it has an authority to guard a door with.
+        activities.register(TenantPoint.SURFACES,
+                "(" + TenantFacts.HAS_STEPS + "=true)",
+                "starting work in process",
+                tenant -> {
+                    String code = tenant.facts().code();
+                    java.util.function.Function<String, java.util.Optional<String>> rendered =
+                            id -> {
+                                cloud.jengu.dbo.rest.WorkSurface work =
+                                        tenant.runtime().endpoint().workSurface;
+                                return work == null ? java.util.Optional.empty() : work.read(id);
+                            };
+                    starters.put(code, new StepSurface(bearer -> java.util.Optional.empty(),
+                            tenant.laneRuns(), tenant.runtime().store(),
+                            tenant.runtime().engine(), tenant.spec().steps(),
+                            "/t/" + code + "/run", true, code, this::offerOf, rendered));
+                    return () -> starters.remove(code);
                 });
 
         // Work as the way in. A tenant that declares no steps offers no such

@@ -186,6 +186,47 @@ same id is answered 404 — and the reading she makes through it lands on the
 trail under her practitioner. `finish` completes it, and the clinic, which has
 been told `ready` and then `in-progress`, is told `completed`.
 
+## Whether a worker is there
+
+The store tells the application when it is in contact with the workers of a
+step, and the application decides what that means. Every request a worker
+makes for a step is something the node heard; a worker that is woken rather
+than polling, or that holds a long claim, says so with a heartbeat. The runner
+sends one each cycle, with its counts per step under `dbo.runner`, and an
+application adds its own under a namespace of its choosing:
+
+```java
+--8<-- "samples/spring-boot-worker-app/src/main/java/cloud/jengu/dbo/samples/worker/SayingHowItIsGoing.java:statistics"
+```
+
+The statistics are one JSON document, nested as deep as the worker likes and
+read by nobody in the store. A node refuses a heartbeat over its limit — 64 KB
+unless `dbo.heartbeat-limit` says otherwise — and nothing about a person goes in
+one, because a heartbeat travels outside any sealed work.
+
+The clinic listens for the workers that register patients. A listener names
+its step and how long a worker may say nothing before it is unknown, and there
+is no default: a listener without one stops the application at startup.
+
+```java
+--8<-- "samples/spring-boot-server-app/src/main/java/cloud/jengu/dbo/samples/server/NoticingTheWorkers.java:listener"
+```
+
+Contact is held in memory, on the node that heard the worker, and each event
+names that node. When a node starts, every listener is told that everything
+about its step is unknown there. Nothing about contact is in a tenant's records
+unless a listener asks for it as work, as this one does: under a key of its own,
+so the same transition noticed twice — by two nodes, or after a retry — is one
+run, and the step writes the note through its result:
+
+```java
+--8<-- "samples/spring-boot-worker-app/src/main/java/cloud/jengu/dbo/samples/worker/RecordingContact.java:step"
+```
+
+`DboInitiator` is the Spring binding of `RunInitiator`. A plain bundle in the
+container starts work with the `RunInitiator` service the container registers,
+and reads the same answers.
+
 ## What the store guarantees
 
 - **Inputs arrive with the work.** A claimed run's inputs are resolved by the
@@ -214,6 +255,10 @@ been told `ready` and then `in-progress`, is told `completed`.
 - **The run answers its initiator**, and anybody else is told it is not there.
 - **An application may own the one framework.** The store installs into it,
   refuses one that lacks what it needs by name, and never stops it.
+- **Contact is noticed, never stored.** A listener per step hears a worker
+  appear, its statistics, and its silence past the listener's own threshold;
+  a node start resets it. What is recorded is what a listener asks for as
+  work.
 
 The [joins table](../arc42-003-context/user-stories/us-dbo-edge-roundtrip.md#joins)
 names the test behind each.

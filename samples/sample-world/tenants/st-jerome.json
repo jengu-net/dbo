@@ -20,6 +20,8 @@
     { "code": "care.records.correct",
       "slots": { "record": "Reference(Patient)", "corrected": "Patient" },
       "writes": ["Patient"], "answers": "desk", "collect": "PT15M" },
+    { "code": "care.contact.record", "slots": { "note": "Observation" },
+      "writes": ["Observation"] },
     { "code": "care.visit.record", "slots": { "observations": "Observation[]" },
       "writes": ["Observation"], "answers": "desk", "collect": "PT15M" }
   ],

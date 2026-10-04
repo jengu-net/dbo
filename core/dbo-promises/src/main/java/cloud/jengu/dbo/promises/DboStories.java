@@ -55,6 +55,16 @@ public enum DboStories implements Story {
                     // own, in the framework the application owns.
                     DboPromises.CONT_A_HOST_MAY_OWN_THE_CONTAINER,
                     DboPromises.PROC_A_LANE_OVER_THE_STREAM,
+                    // And whether a worker is there is the application's to
+                    // hear: a heartbeat, a listener per step, a silence it
+                    // chose, and a note it asks for as work.
+                    DboPromises.PROC_A_HEARTBEAT_IS_A_LANE_VERB,
+                    DboPromises.PROC_HEARTBEAT_STATISTICS_ARE_OPAQUE_AND_BOUNDED,
+                    DboPromises.PROC_THE_RUNNER_REPORTS_ITS_COUNTS_IN_ITS_HEARTBEAT,
+                    DboPromises.PROC_A_CONTACT_LISTENER_IS_OPTIONAL_PER_STEP,
+                    DboPromises.PROC_A_CONTACT_LISTENER_DECLARES_ITS_SILENCE,
+                    DboPromises.PROC_A_NODE_START_RESETS_CONTACT,
+                    DboPromises.PROC_CONTACT_IS_RECORDED_ONLY_THROUGH_WORK,
                     DboPromises.WF_POSTGRES_SUBSTRATE,
                     DboPromises.WF_TWO_PLANES,
                     DboPromises.WF_CONTENT_FREE_PLATFORM_PLANE,

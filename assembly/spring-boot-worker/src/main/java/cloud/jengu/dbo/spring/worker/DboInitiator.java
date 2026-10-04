@@ -48,8 +48,12 @@ import java.util.function.Supplier;
  * states the purpose the step declared. Each collection is on the tenant's
  * trail as a reading, and the window shuts by the clock or when this
  * application says it has collected.
+ *
+ * <p>The Spring binding of {@link cloud.jengu.dbo.work.RunInitiator}: what a
+ * plain bundle in the container starts runs with, this application starts
+ * them with over the tenant's door, and the answers read the same.
  */
-public final class DboInitiator {
+public final class DboInitiator implements cloud.jengu.dbo.work.RunInitiator {
 
     private static final Logger LOG = LoggerFactory.getLogger("dbo.worker");
 
@@ -65,111 +69,8 @@ public final class DboInitiator {
     }
 
     /**
-     * How one slot is filled.
-     *
-     * <p>A type rather than a string, because a reference and an object cannot
-     * be told apart once both are strings: {@code "Organization/123"} is a
-     * reference and {@code "{\"resourceType\":…}"} is an object, and a caller
-     * that meant one while the wire read the other would have the run refused
-     * at the door at best and filled wrongly at worst. Saying which is meant
-     * costs one word and removes the guess.
-     */
-    public record Slot(Kind kind, List<String> values, boolean many) {
-
-        /** Whether the values are references or the objects themselves. */
-        public enum Kind { REFERENCE, OBJECT }
-
-        /** One reference, to something the tenant already holds. */
-        public static Slot reference(String reference) {
-            return new Slot(Kind.REFERENCE, List.of(reference), false);
-        }
-
-        /**
-         * One reference, written as a search the tenant resolves.
-         *
-         * <p>What this is FOR: an application that knows a record by something
-         * about it — an identifier, a business key — and not by the id this
-         * store gave it. It need not look the id up first, and need not be
-         * able to: the tenant resolves the search against its own records when
-         * the run is authored, and the run then records what it matched.
-         *
-         * <p>Refused if it matches none, or if it matches several and the slot
-         * takes one. Both come back as a 400 saying which, because a run over
-         * whichever record came back first is a run nobody can account for.
-         */
-        public static Slot matching(String query) {
-            return new Slot(Kind.REFERENCE, List.of(query), false);
-        }
-
-        /** Several references. */
-        public static Slot references(List<String> references) {
-            return new Slot(Kind.REFERENCE, List.copyOf(references), true);
-        }
-
-        /** One object, sent with the run: its JSON, as this application has it. */
-        public static Slot object(String json) {
-            return new Slot(Kind.OBJECT, List.of(json), false);
-        }
-
-        /** Several such objects, in the order they are meant to be read. */
-        public static Slot objects(List<String> json) {
-            return new Slot(Kind.OBJECT, List.copyOf(json), true);
-        }
-
-        /** What goes in the request: a quoted reference, or the object itself. */
-        private String rendered() {
-            StringBuilder out = new StringBuilder();
-            if (many) {
-                out.append('[');
-            }
-            for (int at = 0; at < values.size(); at++) {
-                out.append(at == 0 ? "" : ",")
-                        .append(kind == Kind.REFERENCE ? quote(values.get(at)) : values.get(at));
-            }
-            if (many) {
-                out.append(']');
-            }
-            return out.toString();
-        }
-    }
-
-    /** What the tenant answered, and the run it named if it started one. */
-    public record Started(int status, String run, String key, String body) {
-
-        /** 201: asking for a run creates one. */
-        public boolean accepted() {
-            return status == 201;
-        }
-
-        public String runOrFail() {
-            if (!accepted()) {
-                throw new IllegalStateException("no run was started: " + status + " " + body);
-            }
-            return run;
-        }
-    }
-
-    /**
-     * Asks a tenant to start a run of a step, over the documents named.
-     *
-     * @param tenant the tenant the work is about, which must be one this
-     *               application holds an HTTP lane into
-     * @param step   the step code, whether the tenant declared it or the
-     *               deployment did
-     * @param inputs a reference per slot the step declares, as
-     *               {@code slot -> "Type/id"}
-     */
-    public Started start(String tenant, String step, Map<String, String> inputs) {
-        // ONE REFERENCE EACH, which is what almost every run is over. Its own
-        // method rather than the general one: naming the shape of every slot to
-        // fill three with references would be ceremony over the ordinary thing.
-        Map<String, Slot> filled = new java.util.LinkedHashMap<>();
-        inputs.forEach((slot, reference) -> filled.put(slot, Slot.reference(reference)));
-        return starting(tenant, step, filled);
-    }
-
-    /**
-     * The same, for slots that carry objects, or several of anything.
+     * Asks a tenant to start a run of a step, over its own door, on the work
+     * credential this application holds for that tenant.
      *
      * <p>What each slot may hold is the step's to declare and this does not
      * check it. The tenant's door does, against the declaration, and answers
@@ -177,8 +78,13 @@ public final class DboInitiator {
      * rule than a copy of it here that could disagree.
      *
      * @param inputs a {@link Slot} per slot the step declares
+     * @param key    the run's key within its step, which finds a run already
+     *               started under it rather than starting another; null for
+     *               one of its own
      */
-    public Started starting(String tenant, String step, Map<String, Slot> inputs) {
+    @Override
+    public Started starting(String tenant, String step, Map<String, Slot> inputs,
+            String key) {
         DboWorkerProperties.Lane lane = askable(tenant);
         Supplier<String> token = tokens.get(tenant);
         StringBuilder named = new StringBuilder();
@@ -192,7 +98,8 @@ public final class DboInitiator {
                         URI.create(lane.getBase().toString().replaceAll("/+$", "")
                                 + "/step/" + step))
                 .header("Content-Type", "application/json")
-                .POST(HttpRequest.BodyPublishers.ofString("{\"inputs\":{" + named + "}}"));
+                .POST(HttpRequest.BodyPublishers.ofString("{\"inputs\":{" + named + "}"
+                        + (key == null ? "" : ",\"scope\":" + quote(key)) + "}"));
         if (token != null) {
             // THE WORK CREDENTIAL, the same one the lane polls with. A
             // participant that may take work of a step may ask for work of it;
@@ -204,7 +111,8 @@ public final class DboInitiator {
                     http.send(request.build(), HttpResponse.BodyHandlers.ofString());
             String body = answered.body();
             Started started = new Started(answered.statusCode(),
-                    valueOf(body, "run"), valueOf(body, "key"), body);
+                    cloud.jengu.dbo.work.RunInitiator.field(body, "run"),
+                    cloud.jengu.dbo.work.RunInitiator.field(body, "key"), body);
             if (!started.accepted()) {
                 // Said once, by name. A run that was not started is the
                 // difference between "nothing to do" and "we were refused",
@@ -223,44 +131,6 @@ public final class DboInitiator {
     }
 
     /**
-     * What a run answered the application that asked for it.
-     *
-     * @param status the HTTP status: 200 with the run, 404 for a run this
-     *               application did not ask for or that does not exist — the
-     *               two are deliberately the same answer
-     * @param body   the run as a FHIR {@code Task} on a 200, the refusal
-     *               otherwise
-     */
-    public record Answer(int status, String body) {
-
-        /** Whether the run answered at all. */
-        public boolean answered() {
-            return status == 200;
-        }
-
-        /** The Task's status — {@code in-progress}, {@code completed}, … — or null unanswered. */
-        public String state() {
-            return answered() ? valueOf(body, "status") : null;
-        }
-
-        /**
-         * Whether the work is over: completed, failed or cancelled.
-         *
-         * <p>A task waiting — for a machine or for a person — is not, and
-         * neither is one somebody holds. {@code ready} used to count, which
-         * was true while ready meant a person had it and stopped being true
-         * when ready came to mean on the list for whoever may take it: an
-         * application would have taken a task automation was about to perform
-         * for one that had come to rest.
-         */
-        public boolean settled() {
-            String state = state();
-            return "completed".equals(state) || "failed".equals(state)
-                    || "cancelled".equals(state);
-        }
-    }
-
-    /**
      * Asks a run how it stands.
      *
      * <p>Only the run this application asked for answers it, and on the
@@ -271,6 +141,7 @@ public final class DboInitiator {
      * @param tenant the tenant the run was started on
      * @param run    the run's id, as {@link Started#run()} gave it
      */
+    @Override
     public Answer answer(String tenant, String run) {
         DboWorkerProperties.Lane lane = askable(tenant);
         Supplier<String> token = tokens.get(tenant);
@@ -292,39 +163,6 @@ public final class DboInitiator {
             throw new IllegalStateException("asking '" + tenant + "' about run '" + run
                     + "' did not complete", failed);
         }
-    }
-
-    /**
-     * Asks a run how it stands until it has come to rest, or until patience
-     * runs out.
-     *
-     * <p>Polling, on purpose. The store tells nobody when a run ends — a run
-     * is a record, and its end is a version of it — so the asker asks, at a
-     * pace that starts quick for work that is quick and slows for work that
-     * is not. Out of patience, the last answer is returned rather than an
-     * exception: "still in progress" is an answer, and what to do about it is
-     * the caller's decision.
-     *
-     * @param patience how long to keep asking
-     * @return the first settled answer, the first refusal, or the last answer
-     *         when patience ran out
-     */
-    public Answer awaiting(String tenant, String run, Duration patience) {
-        long until = System.nanoTime() + patience.toNanos();
-        long pause = 100;
-        Answer last = answer(tenant, run);
-        while (last.answered() && !last.settled() && System.nanoTime() < until) {
-            try {
-                Thread.sleep(Math.min(pause,
-                        Math.max(1, (until - System.nanoTime()) / 1_000_000)));
-            } catch (InterruptedException interrupted) {
-                Thread.currentThread().interrupt();
-                return last;
-            }
-            pause = Math.min(pause * 2, 2_000);
-            last = answer(tenant, run);
-        }
-        return last;
     }
 
     /**
@@ -462,18 +300,6 @@ public final class DboInitiator {
                     + "tenant's base and a client to ask with, and says carrier: substrate");
         }
         return lane;
-    }
-
-    /** The one field, without a JSON parser this module does not have. */
-    private static String valueOf(String body, String field) {
-        String at = "\"" + field + "\":\"";
-        int start = body == null ? -1 : body.indexOf(at);
-        if (start < 0) {
-            return null;
-        }
-        int from = start + at.length();
-        int end = body.indexOf('"', from);
-        return end < 0 ? null : body.substring(from, end);
     }
 
     private static String quote(String value) {

@@ -17,8 +17,7 @@
 #                  it is testing.
 #
 # @Proving is checked by the compiler. This file is the other half.
-AREA-SHARED-CONCERN                      FIXTURE
-REQ-DBO-PROC-RUNNER-DECLARES-ITS-VITALS  REASON MISSING
-US-DBO-ALL-HOPE                          FIXTURE
-US-DBO-NEVER-WRITTEN                     FIXTURE
-US-DBO-ONLY-PROSE                        FIXTURE
+AREA-SHARED-CONCERN   FIXTURE
+US-DBO-ALL-HOPE       FIXTURE
+US-DBO-NEVER-WRITTEN  FIXTURE
+US-DBO-ONLY-PROSE     FIXTURE

@@ -1745,6 +1745,267 @@ class WorkLeavesTheClinicAndComesBackIT {
                         + "bundle id: " + answer.body());
     }
 
+    // ── whether a worker is there ──
+
+    /** The clinic's application, listening for the workers that register patients. */
+    @Autowired
+    cloud.jengu.dbo.samples.server.NoticingTheWorkers noticing;
+
+    /** The container the clinic's application holds, for a listener of the story's own. */
+    @Autowired
+    cloud.jengu.dbo.embedded.EmbeddedRuntime container;
+
+    /** A worker of the step the clinic listens to, named by this story and this run. */
+    private static final String REGISTRAR = NAMES.value("registrar");
+
+    /** When the registrar last said anything, as this side knows it. */
+    private java.time.Instant registrarLastSpoke;
+
+    @Test
+    @Order(37)
+    @DisplayName("a worker that registers patients says it is there, with what it routes nested "
+            + "in its statistics: the clinic hears it appear, asks for a note under a key of its "
+            + "own, and the note is written by the run it asked for")
+    @Proving({DboPromises.PROC_A_HEARTBEAT_IS_A_LANE_VERB,
+            DboPromises.PROC_A_CONTACT_LISTENER_IS_OPTIONAL_PER_STEP,
+            DboPromises.PROC_HEARTBEAT_STATISTICS_ARE_OPAQUE_AND_BOUNDED,
+            DboPromises.PROC_CONTACT_IS_RECORDED_ONLY_THROUGH_WORK})
+    void aWorkerIsHeardAndTheClinicNotesItThroughWork() throws Exception {
+        cloud.jengu.dbo.runner.Lane registrar = registrarsLane();
+        registrar.declare(new cloud.jengu.dbo.work.Declarations.Declared("care.records",
+                "register", REGISTRAR, "3.1", "example.registry", Scope.BASELINE, REGISTRAR));
+        Map<String, Object> said = Map.of("example.registry", Map.of(
+                "desks", List.of(Map.of("id", "front", "queued", 2L),
+                        Map.of("id", "ward", "queued", 0L))));
+        registrar.heartbeat(said);
+        registrar.heartbeat(said);
+        registrarLastSpoke = java.time.Instant.now();
+
+        var appeared = noted("appeared", Duration.ofMinutes(1));
+        Proves.that(DboPromises.PROC_A_CONTACT_LISTENER_IS_OPTIONAL_PER_STEP,
+                appeared.isPresent(), "the clinic never heard the registrar appear: "
+                        + noticing.noted());
+        Proves.that(DboPromises.PROC_HEARTBEAT_STATISTICS_ARE_OPAQUE_AND_BOUNDED,
+                until(() -> noticing.lastSaid(HOSPITAL, REGISTRAR).map(said::equals)
+                        .orElse(false), Duration.ofSeconds(30)),
+                "what the registrar said did not reach the listener as it was nested: "
+                        + noticing.lastSaid(HOSPITAL, REGISTRAR));
+
+        cloud.jengu.dbo.work.RunInitiator.Started started = appeared.get().started();
+        Proves.that(DboPromises.PROC_CONTACT_IS_RECORDED_ONLY_THROUGH_WORK, started.accepted()
+                        && started.key().startsWith(
+                                cloud.jengu.dbo.samples.worker.RecordingContact.STEP + "/"
+                                        + REGISTRAR + "-3.1-appeared-"),
+                "the note was not asked for under the clinic's key: " + started);
+        // The same decision made twice is one run: the key finds it.
+        cloud.jengu.dbo.work.RunInitiator.Started again = initiator.starting(HOSPITAL,
+                cloud.jengu.dbo.samples.worker.RecordingContact.STEP,
+                Map.of("note", cloud.jengu.dbo.work.RunInitiator.Slot.object(
+                        "{\"resourceType\":\"Observation\",\"status\":\"final\","
+                                + "\"code\":{\"text\":\"a second node's word\"}}")),
+                started.key().substring(started.key().indexOf('/') + 1));
+        assertEquals(started.run(), again.run(),
+                "asking again under the same key started a second run");
+
+        String note = writtenNote(started);
+        Proves.that(DboPromises.PROC_CONTACT_IS_RECORDED_ONLY_THROUGH_WORK,
+                note.contains(REGISTRAR + " 3.1 appeared on "),
+                "the note the run wrote does not say who appeared: " + note);
+    }
+
+    @Test
+    @Order(38)
+    @DisplayName("the clinic's own worker is heard the same way, and its heartbeat carries the "
+            + "runner's counts per step under dbo.runner beside the worker's own namespace")
+    @Proving(DboPromises.PROC_THE_RUNNER_REPORTS_ITS_COUNTS_IN_ITS_HEARTBEAT)
+    void theRunnersCountsRideItsHeartbeat() throws Exception {
+        String worker = lanes.getIdentity().getName();
+        Proves.that(DboPromises.PROC_THE_RUNNER_REPORTS_ITS_COUNTS_IN_ITS_HEARTBEAT,
+                until(() -> noticing.lastSaid(HOSPITAL, worker)
+                        .map(last -> last.get("dbo.runner") instanceof Map<?, ?> runner
+                                && runner.get(cloud.jengu.dbo.samples.server
+                                        .AskingForARegistration.STEP) instanceof Map<?, ?> counts
+                                && counts.containsKey("performed")
+                                && last.containsKey("sample.worker"))
+                        .orElse(false), Duration.ofMinutes(1)),
+                "the clinic's worker said nothing about what it performed: "
+                        + noticing.lastSaid(HOSPITAL, worker));
+    }
+
+    @Test
+    @Order(39)
+    @DisplayName("the registrar falls silent, and at the clinic's threshold — not before — it is "
+            + "unknown, which the clinic notes through work as well")
+    @Proving({DboPromises.PROC_A_CONTACT_LISTENER_DECLARES_ITS_SILENCE,
+            DboPromises.PROC_CONTACT_IS_RECORDED_ONLY_THROUGH_WORK})
+    void aSilentWorkerIsUnknownAtTheThreshold() throws Exception {
+        Duration silence = noticing.silence();
+        var unknown = noted("unknown", silence.plus(Duration.ofMinutes(1)));
+        java.time.Instant heard = java.time.Instant.now();
+
+        Proves.that(DboPromises.PROC_A_CONTACT_LISTENER_DECLARES_ITS_SILENCE,
+                unknown.isPresent(), "the registrar went quiet and was never unknown: "
+                        + noticing.noted());
+        Proves.that(DboPromises.PROC_A_CONTACT_LISTENER_DECLARES_ITS_SILENCE,
+                !heard.isBefore(registrarLastSpoke.plus(silence)),
+                "it was unknown before its silence ran out: last spoke " + registrarLastSpoke
+                        + ", unknown by " + heard + ", silence " + silence);
+        Proves.that(DboPromises.PROC_CONTACT_IS_RECORDED_ONLY_THROUGH_WORK,
+                writtenNote(unknown.get().started()).contains(REGISTRAR + " 3.1 unknown on "),
+                "the silence was not noted by the run the clinic asked for");
+    }
+
+    @Test
+    @Order(40)
+    @DisplayName("a listener taken up on this node is told first that everything about its step "
+            + "is unknown here, and a worker the clinic already heard must appear to it again")
+    @Proving(DboPromises.PROC_A_NODE_START_RESETS_CONTACT)
+    void aListenerStartsFromNothing() throws Exception {
+        String node = noticing.resets().stream()
+                .filter(reset -> cloud.jengu.dbo.samples.server.AskingForARegistration.STEP
+                        .equals(reset.step()))
+                .map(cloud.jengu.dbo.work.ContactListener.Reset::node)
+                .findFirst().orElse(null);
+        Proves.that(DboPromises.PROC_A_NODE_START_RESETS_CONTACT, node != null,
+                "the clinic's listener was never told its node started: " + noticing.resets());
+
+        List<Object> told = new java.util.concurrent.CopyOnWriteArrayList<>();
+        cloud.jengu.dbo.work.ContactListener listening = new cloud.jengu.dbo.work.ContactListener() {
+            @Override
+            public String step() {
+                return cloud.jengu.dbo.samples.server.AskingForARegistration.STEP;
+            }
+
+            @Override
+            public Duration silence() {
+                return Duration.ofMinutes(5);
+            }
+
+            @Override
+            public void appeared(Appeared appeared) {
+                if (REGISTRAR.equals(appeared.worker().name())) {
+                    told.add(appeared);
+                }
+            }
+
+            @Override
+            public void reset(Reset reset) {
+                told.add(reset);
+            }
+        };
+        try (var registered = container.registrar().register(
+                cloud.jengu.dbo.work.ContactListener.class, listening, Map.of())) {
+            registrarsLane().heartbeat(Map.of());
+            assertTrue(until(() -> told.size() >= 2, Duration.ofSeconds(30)),
+                    "the story's listener heard nothing: " + told);
+        }
+        Proves.that(DboPromises.PROC_A_NODE_START_RESETS_CONTACT,
+                told.get(0).equals(new cloud.jengu.dbo.work.ContactListener.Reset(
+                        cloud.jengu.dbo.samples.server.AskingForARegistration.STEP, node))
+                        && told.get(1) instanceof cloud.jengu.dbo.work.ContactListener.Appeared,
+                "a listener new to this node was not told to start from nothing, or did not "
+                        + "hear the registrar appear: " + told);
+    }
+
+    @Test
+    @Order(41)
+    @DisplayName("a heartbeat whose statistics are over the node's limit is refused, naming the "
+            + "limit")
+    @Proving(DboPromises.PROC_HEARTBEAT_STATISTICS_ARE_OPAQUE_AND_BOUNDED)
+    void anOversizedHeartbeatIsRefused() {
+        IllegalStateException refused = assertThrows(IllegalStateException.class,
+                () -> registrarsLane().heartbeat(Map.of("example.registry",
+                        "x".repeat(70 * 1024))));
+
+        Proves.that(DboPromises.PROC_HEARTBEAT_STATISTICS_ARE_OPAQUE_AND_BOUNDED,
+                refused.getMessage().contains("limit of 65536 bytes"),
+                "the refusal does not name the limit: " + refused.getMessage());
+    }
+
+    @Test
+    @Order(42)
+    @DisplayName("a bundle beside the store asks for the same note through the initiator the "
+            + "container registers, under the same key, and is answered with the run the "
+            + "clinic's application started over the door")
+    @Proving(DboPromises.PROC_CONTACT_IS_RECORDED_ONLY_THROUGH_WORK)
+    void theContainersInitiatorIsTheSameContract() {
+        var appeared = noticing.noted().stream()
+                .filter(one -> HOSPITAL.equals(one.tenant())
+                        && REGISTRAR.equals(one.worker().name())
+                        && "appeared".equals(one.transition()))
+                .findFirst().orElseThrow(() -> new AssertionError(
+                        "the clinic noted no appearance to ask about: " + noticing.noted()));
+        org.osgi.framework.BundleContext beside = clinicFramework.getBundleContext();
+        var reference = beside.getServiceReference(cloud.jengu.dbo.work.RunInitiator.class);
+        assertTrue(reference != null, "the container registers no initiator");
+        cloud.jengu.dbo.work.RunInitiator inProcess = beside.getService(reference);
+        try {
+            String key = appeared.started().key();
+            cloud.jengu.dbo.work.RunInitiator.Started found = inProcess.starting(HOSPITAL,
+                    cloud.jengu.dbo.samples.worker.RecordingContact.STEP,
+                    Map.of("note", cloud.jengu.dbo.work.RunInitiator.Slot.object(
+                            "{\"resourceType\":\"Observation\",\"status\":\"final\","
+                                    + "\"code\":{\"text\":\"a bundle's word\"}}")),
+                    key.substring(key.indexOf('/') + 1));
+            Proves.that(DboPromises.PROC_CONTACT_IS_RECORDED_ONLY_THROUGH_WORK,
+                    found.accepted() && appeared.started().run().equals(found.run()),
+                    "the container's initiator did not find the run under the same key: "
+                            + found);
+            Proves.that(DboPromises.PROC_CONTACT_IS_RECORDED_ONLY_THROUGH_WORK,
+                    "completed".equals(inProcess.awaiting(HOSPITAL, found.run(),
+                            Duration.ofMinutes(1)).state()),
+                    "the container's initiator does not hear how the run ended");
+        } finally {
+            beside.ungetService(reference);
+        }
+    }
+
+    /** The registrar's lane, on a credential bounded to the step it performs. */
+    private cloud.jengu.dbo.runner.Lane registrarsLane() {
+        String token = participant(REGISTRAR,
+                "work/" + cloud.jengu.dbo.samples.server.AskingForARegistration.STEP);
+        return HttpLane.to(URI.create(dbo.at(HOSPITAL) + "/work"), () -> token, HOSPITAL,
+                REGISTRAR, new Executor(REGISTRAR, "3.1", "example.registry", Scope.BASELINE));
+    }
+
+    /** What the clinic noted about the registrar at the hospital, once it has. */
+    private java.util.Optional<cloud.jengu.dbo.samples.server.NoticingTheWorkers.Noted> noted(
+            String transition, Duration give) throws InterruptedException {
+        java.util.function.Supplier<java.util.Optional<
+                cloud.jengu.dbo.samples.server.NoticingTheWorkers.Noted>> found =
+                () -> noticing.noted().stream()
+                        .filter(one -> HOSPITAL.equals(one.tenant())
+                                && REGISTRAR.equals(one.worker().name())
+                                && transition.equals(one.transition()))
+                        .findFirst();
+        until(() -> found.get().isPresent(), give);
+        return found.get();
+    }
+
+    /** The note a contact run wrote, once the run has come to rest. */
+    private String writtenNote(cloud.jengu.dbo.work.RunInitiator.Started started) {
+        var answer = initiator.awaiting(HOSPITAL, started.runOrFail(), Duration.ofMinutes(3));
+        assertEquals("completed", answer.state(), "the note was not written: " + answer.body());
+        List<String> produced = cloud.jengu.dbo.samples.worker.HearingBack.produced(answer);
+        assertEquals(1, produced.size(), "one note: " + produced);
+        String[] version = produced.get(0).split("/");
+        HttpResponse<String> read = dbo.read(HOSPITAL, version[0], version[1]);
+        assertEquals(200, read.statusCode(), read.body());
+        return read.body();
+    }
+
+    private static boolean until(java.util.function.BooleanSupplier done, Duration give)
+            throws InterruptedException {
+        long giveUp = System.nanoTime() + give.toNanos();
+        while (System.nanoTime() < giveUp) {
+            if (done.getAsBoolean()) {
+                return true;
+            }
+            Thread.sleep(250);
+        }
+        return done.getAsBoolean();
+    }
+
     private org.osgi.framework.Bundle inTheClinicsFramework(String symbolicName) {
         return java.util.Arrays.stream(clinicFramework.getBundleContext().getBundles())
                 .filter(bundle -> symbolicName.equals(bundle.getSymbolicName()))

@@ -25,6 +25,8 @@
     { "code": "hogwarts.ward.observe", "slots": { "patient": "Reference(Patient)" } },
     { "code": "care.records.register", "slots": { "patient": "Patient" },
       "writes": ["Patient"], "answers": "desk", "collect": "PT15M" },
+    { "code": "care.contact.record", "slots": { "note": "Observation" },
+      "writes": ["Observation"] },
     { "code": "care.records.identify", "slots": { "person": "Person" },
       "writes": ["Person"] },
     { "code": "care.records.correct",
