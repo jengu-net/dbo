@@ -1125,14 +1125,19 @@ class WorkLeavesTheClinicAndComesBackIT {
     @DisplayName("a router whose routee never answers waits, the claim lapses, the run reads "
             + "released and still owed, and a late report is refused")
     @Proving({DboPromises.PROC_DONE_MEANS_DONE, DboPromises.PROC_THE_ROUTER_HOLDS_THE_CLAIM})
-    void aWedgedRouteeLetsTheClaimLapse() {
-        // Held for nothing, so the claim has lapsed by the time anybody looks:
-        // the router still holds it — nobody has acted on the run — until the
-        // housekeeping below hands it back.
+    void aWedgedRouteeLetsTheClaimLapse() throws Exception {
+        // Held only long enough to forward, then the routee says nothing. The
+        // router still holds the run — nobody has acted on it — until a
+        // housekeeping pass after the hold hands it back: this one's, or that
+        // of any other participant on the tenant, which may come first.
         Run held = routerLane.claim(routedRun("wedged", NAMES.value("wedged")),
-                Duration.ZERO).orElseThrow();
+                Duration.ofSeconds(5)).orElseThrow();
         routerLane.sealed(held, List.of(KEYED_ROUTEE));
-        routerLane.releaseLapsed();
+        assertTrue(until(() -> {
+            routerLane.releaseLapsed();
+            Run now = runs.byKey(held.key()).orElseThrow();
+            return now.assignment() == null || now.assignment().executor() == null;
+        }, Duration.ofMinutes(1)), "the lapsed claim was never handed back");
 
         Run released = runs.byKey(held.key()).orElseThrow();
         Proves.that(DboPromises.PROC_DONE_MEANS_DONE,
