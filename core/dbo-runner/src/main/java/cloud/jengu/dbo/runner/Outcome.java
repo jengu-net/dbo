@@ -76,6 +76,19 @@ public sealed interface Outcome {
     record Refused(String reason) implements Outcome {}
 
     /**
+     * What performing came to when the run stopped being this participant's
+     * before it was finished: somebody acted on it — the housekeeping that
+     * hands a lapsed claim back, another participant taking it.
+     *
+     * <p>Neither done nor failed. Nothing was reported, because the run is
+     * somebody else's to finish and anything said in this participant's name
+     * would undo what they did. A service has no reason to return one; the
+     * runner reports it when the lane refuses a holder's verb for holding
+     * nothing.
+     */
+    record Lost(String reason) implements Outcome {}
+
+    /**
      * One record a result asks the tenant to write, said the way a
      * transaction bundle entry says it.
      *

@@ -422,8 +422,15 @@ public class WireLane implements Lane {
                             + reply.status() + ") — " + reason(envelope));
         }
         if (reply.status() != 200) {
-            throw new IllegalStateException(tenant + ": " + verb.path() + " refused ("
-                    + reply.status() + ") — " + reason(envelope));
+            String said = tenant + ": " + verb.path() + " refused (" + reply.status() + ") — "
+                    + reason(envelope);
+            if (envelope instanceof Map<?, ?> map && Boolean.TRUE.equals(map.get(LaneVerbs.LOST))) {
+                // The run is no longer this participant's, said as the
+                // in-process lane says it, so a runner across a wire drops
+                // the work as one beside the tenant does.
+                throw new cloud.jengu.dbo.work.Runs.NotHeld(said);
+            }
+            throw new IllegalStateException(said);
         }
         return envelope instanceof Map<?, ?> map ? map.get(LaneVerbs.RESULT) : null;
     }

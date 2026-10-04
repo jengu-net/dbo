@@ -31,6 +31,13 @@ public final class Runs {
     private final Claimable claimable;
 
     /**
+     * Whose clock a deadline is read from: the store's, read where the write
+     * lands. A deadline computed by whoever asked, before the round trips that
+     * carry the ask here, can already have passed when the claim is written.
+     */
+    private final java.time.Clock clock;
+
+    /**
      * The step catalogue, for reporting through declared actions.
      * Empty means nothing is declared here and no verb is narrowed.
      */
@@ -90,6 +97,18 @@ public final class Runs {
      */
     public Runs(ObjectStore store, cloud.jengu.dbo.core.process.Steps steps,
             Claimable claimable) {
+        this(store, steps, claimable, java.time.Clock.systemUTC());
+    }
+
+    /**
+     * The same, reading deadlines from the clock given — the store's own,
+     * and a test's where how long something took is what is asked.
+     *
+     * @param clock what a deadline is measured from, at the write
+     */
+    public Runs(ObjectStore store, cloud.jengu.dbo.core.process.Steps steps,
+            Claimable claimable, java.time.Clock clock) {
+        this.clock = java.util.Objects.requireNonNull(clock, "clock");
         this.claimable = claimable == null ? Claimable.NOBODY : claimable;
         this.store = store;
         this.steps = steps;
@@ -507,10 +526,37 @@ public final class Runs {
      */
     public Optional<Run> claim(Run seen, Executor by, java.time.Instant until,
             String claimant) {
+        return claiming(seen, by, landed -> until, claimant);
+    }
+
+    /**
+     * Takes this run for as long as given, measured from when the claim is
+     * written (REQ-DBO-PROC-A-HOLD-RUNS-FROM-WHEN-THE-CLAIM-LANDS).
+     *
+     * <p>What a participant knows is how long its work takes; when that
+     * duration starts is the store's to say. A deadline the participant
+     * computed before asking is short by every round trip between its clock
+     * and this write — and under load, with a short hold, it has passed
+     * before the claim lands: the run is anybody's to take again the moment
+     * it is taken, and the claim settles nothing.
+     */
+    public Optional<Run> claim(Run seen, Executor by, java.time.Duration holdFor) {
+        return claim(seen, by, holdFor, null);
+    }
+
+    /** The same, naming the client whose credential took it. */
+    public Optional<Run> claim(Run seen, Executor by, java.time.Duration holdFor,
+            String claimant) {
+        java.util.Objects.requireNonNull(holdFor, "holdFor");
+        return claiming(seen, by, landed -> landed.plus(holdFor), claimant);
+    }
+
+    private Optional<Run> claiming(Run seen, Executor by,
+            java.util.function.UnaryOperator<java.time.Instant> deadline, String claimant) {
         refuseIfAuthoredElsewhere(seen, "claimed");
         requireAdmits(seen, by);
         Run current = byKey(seen.key()).orElse(null);
-        java.time.Instant now = java.time.Instant.now();
+        java.time.Instant now = clock.instant();
         if (current == null || !current.open() || current.claimed(now)) {
             return Optional.empty();
         }
@@ -531,6 +577,10 @@ public final class Runs {
             // was declared at.
             return Optional.empty();
         }
+        // Read as the last thing before the write, after every read the
+        // checks above made: this is the moment the claim lands, as near as
+        // the store can say it.
+        java.time.Instant until = deadline.apply(clock.instant());
         State claimed = state(current).withAssignment(
                 new Run.Assignment(current.assignment() == null ? null : current.assignment().at(),
                         by, null, until, claimant))
@@ -568,15 +618,31 @@ public final class Runs {
      */
     public Optional<Run> claimAsPerson(Run seen, String role, java.time.Instant until,
             String claimant) {
+        return claimingAsPerson(seen, role, landed -> until, claimant);
+    }
+
+    /**
+     * The same, for as long as given, measured from when the claim is
+     * written — as an executor's is.
+     */
+    public Optional<Run> claimAsPerson(Run seen, String role, java.time.Duration holdFor,
+            String claimant) {
+        java.util.Objects.requireNonNull(holdFor, "holdFor");
+        return claimingAsPerson(seen, role, landed -> landed.plus(holdFor), claimant);
+    }
+
+    private Optional<Run> claimingAsPerson(Run seen, String role,
+            java.util.function.UnaryOperator<java.time.Instant> deadline, String claimant) {
         refuseIfAuthoredElsewhere(seen, "claimed");
         if (role == null || !role.startsWith("PractitionerRole/")) {
             throw new IllegalArgumentException("a person claims as a PractitionerRole, and '"
                     + role + "' is not one");
         }
         Run current = byKey(seen.key()).orElse(null);
-        if (current == null || !current.open() || current.claimed(java.time.Instant.now())) {
+        if (current == null || !current.open() || current.claimed(clock.instant())) {
             return Optional.empty();
         }
+        java.time.Instant until = deadline.apply(clock.instant());
         State claimed = state(current).withAssignment(
                 new Run.Assignment(current.assignment() == null ? null : current.assignment().at(),
                         null, null, until, claimant, role))
@@ -626,19 +692,7 @@ public final class Runs {
      */
     public Run milestone(Run run, String name, Map<String, Long> counts,
             java.time.Instant until) {
-        String stepId = run.process() + "." + run.step();
-        Run.Milestone reached;
-        Optional<cloud.jengu.dbo.core.process.StepDeclaration> declaration = steps.byId(stepId);
-        if (declaration.isPresent() && !declaration.get().milestones().isEmpty()) {
-            List<String> declared = declaration.get().milestones();
-            int position = declared.indexOf(name);
-            if (position < 0) {
-                throw new NotAMilestone(stepId, name, declared);
-            }
-            reached = new Run.Milestone(name, position + 1, declared.size());
-        } else {
-            reached = new Run.Milestone(name, 0, 0);
-        }
+        Run.Milestone reached = reached(run, name);
         Run tallied = counts.isEmpty() ? run : tally(run, counts);
         // The deadline moves; whose the work is does not. Read from the
         // snapshot rather than from the run this was called with, so an
@@ -650,6 +704,21 @@ public final class Runs {
                         snapshot.assignment() == null ? null : snapshot.assignment().executor(),
                         snapshot.assignment() == null ? null : snapshot.assignment().note(),
                         until, claimantOf(snapshot), roleOf(snapshot))));
+    }
+
+    /** The named point, positioned over the step's declared order where it has one. */
+    private Run.Milestone reached(Run run, String name) {
+        String stepId = run.process() + "." + run.step();
+        Optional<cloud.jengu.dbo.core.process.StepDeclaration> declaration = steps.byId(stepId);
+        if (declaration.isPresent() && !declaration.get().milestones().isEmpty()) {
+            List<String> declared = declaration.get().milestones();
+            int position = declared.indexOf(name);
+            if (position < 0) {
+                throw new NotAMilestone(stepId, name, declared);
+            }
+            return new Run.Milestone(name, position + 1, declared.size());
+        }
+        return new Run.Milestone(name, 0, 0);
     }
 
     /** A point the step's own map does not contain, refused naming both sides. */
@@ -668,9 +737,7 @@ public final class Runs {
      * failure this exists to prevent.
      */
     public Run released(Run run, String because) {
-        return update(run, snapshot -> snapshot.withAssignment(new Run.Assignment(
-                snapshot.assignment() == null ? null : snapshot.assignment().at(),
-                null, because, null)).withStanding(snapshot.standing().as(Status.READY)));
+        return update(run, releasing(run, because, null));
     }
 
     /**
@@ -693,14 +760,22 @@ public final class Runs {
      * else the step's declaration in this store's catalogue.
      */
     public Run released(Run run, String because, Failure failure) {
+        return update(run, releasing(run, because, failure));
+    }
+
+    /** What handing a run back writes, routed by the failure as {@link #released} says. */
+    private java.util.function.UnaryOperator<State> releasing(Run run, String because,
+            Failure failure) {
         if (failure == null) {
-            return released(run, because);
+            return snapshot -> snapshot.withAssignment(new Run.Assignment(
+                    snapshot.assignment() == null ? null : snapshot.assignment().at(),
+                    null, because, null)).withStanding(snapshot.standing().as(Status.READY));
         }
         cloud.jengu.dbo.core.process.RetryPolicy declared = run.retry() != null ? run.retry()
                 : steps.byId(run.process() + "." + run.step())
                         .map(cloud.jengu.dbo.core.process.StepDeclaration::retry).orElse(null);
-        java.time.Instant now = java.time.Instant.now();
-        return update(run, snapshot -> {
+        java.time.Instant now = clock.instant();
+        return snapshot -> {
             State handed = snapshot.withAssignment(new Run.Assignment(
                     snapshot.assignment() == null ? null : snapshot.assignment().at(),
                     null, because, null));
@@ -715,7 +790,140 @@ public final class Runs {
                         .attempted(standing.attempts() + 1));
             }
             return handed.withStanding(standing.as(Status.READY).openTo(false).notBefore(null));
-        });
+        };
+    }
+
+    /*
+     * What a holder says about the run it holds
+     * (REQ-DBO-PROC-ONLY-THE-HOLDER-ACTS-ON-A-RUN).
+     *
+     * Each verb below is the same act as its namesake above, said by the
+     * executor that claimed the run, and lands only while the run still names
+     * that executor as its holder — judged on the version being replaced, and
+     * written conditionally on it, so a hand-back or another participant's
+     * claim that lands first leaves this one nothing to write. The verbs
+     * above stay for the store's own acts — housekeeping, a sweep, a person at
+     * the console — which hold nothing and are not judged by holding.
+     */
+
+    /**
+     * Progress, said by the holder: counts on the record and the deadline
+     * moved, in one advance, measured from when the advance is written.
+     *
+     * @throws NotHeld when the run no longer names {@code holder} as holding
+     *                 it; nothing is written
+     */
+    public Run checkpoint(Run run, Executor holder, Map<String, Long> counts,
+            java.time.Duration holdFor) {
+        counts.keySet().forEach(name ->
+                cloud.jengu.dbo.core.api.Paths.requireValid("tally_" + name));
+        return advanceHeld(run, holder, "checkpointed", snapshot -> extended(
+                counts.isEmpty() ? snapshot : snapshot.withTally(counts), holdFor));
+    }
+
+    /**
+     * A milestone, said by the holder — named, positioned as
+     * {@link #milestone(Run, String, Map, java.time.Instant)} says, and
+     * extending the claim as a checkpoint does.
+     *
+     * @throws NotHeld when the run no longer names {@code holder} as holding
+     *                 it; nothing is written
+     */
+    public Run milestone(Run run, Executor holder, String name, Map<String, Long> counts,
+            java.time.Duration holdFor) {
+        Run.Milestone reached = reached(run, name);
+        counts.keySet().forEach(count ->
+                cloud.jengu.dbo.core.api.Paths.requireValid("tally_" + count));
+        return advanceHeld(run, holder, "advanced to a milestone", snapshot -> extended(
+                (counts.isEmpty() ? snapshot : snapshot.withTally(counts))
+                        .withMilestone(reached), holdFor));
+    }
+
+    /**
+     * The holder handing back what it could not finish, routed by what failed
+     * as {@link #released(Run, String, Failure)} says.
+     *
+     * <p>Only the holder hands its own work back. A participant whose claim
+     * somebody else has already ended — housekeeping routed it, another
+     * participant took it — has nothing left to hand back, and a release in
+     * its name would undo what the other did: send a run to people that was
+     * already back with automation, or clear somebody else's live claim.
+     *
+     * @throws NotHeld when the run no longer names {@code holder} as holding
+     *                 it; nothing is written
+     */
+    public Run released(Run run, Executor holder, String because, Failure failure) {
+        return advanceHeld(run, holder, "released", releasing(run, because, failure));
+    }
+
+    /**
+     * Done, said by the holder, through the step's declared {@code close}.
+     *
+     * @throws NotHeld when the run no longer names {@code holder} as holding
+     *                 it; nothing is written
+     */
+    public Run closed(Run run, Executor holder) {
+        requireAction(run, "close");
+        return advanceHeld(run, holder, "closed", snapshot -> answered(snapshot.withStanding(
+                snapshot.standing().as(Status.COMPLETED))));
+    }
+
+    /**
+     * Done over a committed result, said by the holder, as
+     * {@link #closed(Run, List)} says.
+     *
+     * <p>The records the result carried are already written when this is
+     * asked, and are the tenant's; what is refused here is only the run's
+     * account of them, because the run is no longer this holder's to close.
+     *
+     * @throws NotHeld when the run no longer names {@code holder} as holding
+     *                 it; nothing is written
+     */
+    public Run closed(Run run, Executor holder, List<String> versions) {
+        requireAction(run, "close");
+        return advanceHeld(run, holder, "closed", closing(versions));
+    }
+
+    /**
+     * A result the tenant would not hold, ending the run the holder held, as
+     * {@link #refused(Run, String)} says.
+     *
+     * @throws NotHeld when the run no longer names {@code holder} as holding
+     *                 it; nothing is written
+     */
+    public Run refused(Run run, Executor holder, String because) {
+        return advanceHeld(run, holder, "ended", snapshot -> snapshot.withStanding(
+                snapshot.standing().as(Status.FAILED).because(because)).withRefused(because));
+    }
+
+    /** The deadline moved to {@code holdFor} from now; whose the work is does not change. */
+    private State extended(State snapshot, java.time.Duration holdFor) {
+        java.util.Objects.requireNonNull(holdFor, "holdFor");
+        return snapshot.withAssignment(new Run.Assignment(
+                snapshot.assignment() == null ? null : snapshot.assignment().at(),
+                snapshot.assignment() == null ? null : snapshot.assignment().executor(),
+                snapshot.assignment() == null ? null : snapshot.assignment().note(),
+                clock.instant().plus(holdFor), claimantOf(snapshot), roleOf(snapshot)));
+    }
+
+    /**
+     * A run its holder no longer holds: somebody acted on it — the housekeeping
+     * that hands a lapsed claim back, another participant taking it — or it is
+     * over. A refusal and not a failure: the work is not this participant's any
+     * more, and nothing was written in its name.
+     */
+    public static final class NotHeld extends IllegalStateException {
+
+        public NotHeld(String key, Executor holder, String what) {
+            super("run '" + key + "' is not claimed by "
+                    + (holder == null ? "nobody" : holder.name()) + ", so it is not "
+                    + what + " in its name — somebody acted on the run since it was taken");
+        }
+
+        /** The same refusal, as another side said it — carried across a lane. */
+        public NotHeld(String reason) {
+            super(reason);
+        }
     }
 
     /**
@@ -733,10 +941,50 @@ public final class Runs {
                 .toList();
         List<Run> readied = new ArrayList<>();
         for (Run run : due) {
-            readied.add(update(run, snapshot -> snapshot.withStanding(
-                    snapshot.standing().as(Status.READY).notBefore(null))));
+            // Still held back, as of the version this replaces: a run somebody
+            // claimed since it was found is theirs, and readying it would say
+            // it waits for a taker while it has one.
+            advanceIf(run, "readied", current -> current.status() == Status.ON_HOLD
+                            && current.notBefore() != null && !current.notBefore().isAfter(now),
+                    snapshot -> snapshot.withStanding(
+                            snapshot.standing().as(Status.READY).notBefore(null)))
+                    .ifPresent(readied::add);
         }
         return readied;
+    }
+
+    /**
+     * Hands back a claim found lapsed — the tenant's housekeeping, routed as
+     * a lapse ({@link Failure#LAPSED}) — if it still is.
+     *
+     * <p>Asked of the version the hand-back replaces, and written
+     * conditionally on it: a holder that reported since it was found has
+     * moved its deadline, a run somebody else claimed is theirs, and one its
+     * holder finished is over. Each is a write that landed first, and
+     * handing the run back on top of it would undo it.
+     *
+     * @param lapsed the run as {@link #lapsed} found it
+     * @param now    what the deadline is judged against
+     * @return the run handed back, or empty when the claim found lapsed is no
+     *         longer what the run says
+     */
+    public Optional<Run> handBack(Run lapsed, java.time.Instant now) {
+        Run.Assignment found = lapsed.assignment();
+        if (found == null || found.until() == null) {
+            return Optional.empty();
+        }
+        return advanceIf(lapsed, "handed back", current -> current.open()
+                        && current.status() == Status.IN_PROGRESS
+                        && current.assignment() != null
+                        && java.util.Objects.equals(current.assignment().executor(),
+                                found.executor())
+                        && java.util.Objects.equals(current.assignment().claimant(),
+                                found.claimant())
+                        && java.util.Objects.equals(current.assignment().role(), found.role())
+                        && found.until().equals(current.assignment().until())
+                        && !found.until().isAfter(now),
+                releasing(lapsed, "the claim lapsed at " + found.until()
+                        + " — released, which is not the same as done", Failure.LAPSED));
     }
 
     /**
@@ -887,7 +1135,12 @@ public final class Runs {
      */
     public Run closed(Run run, List<String> versions) {
         requireAction(run, "close");
-        return update(run, snapshot -> {
+        return update(run, closing(versions));
+    }
+
+    /** What closing over a committed result writes: the versions named, and done. */
+    private java.util.function.UnaryOperator<State> closing(List<String> versions) {
+        return snapshot -> {
             Run.Produced before = snapshot.produced();
             List<String> named = new ArrayList<>(before.versions());
             Map<String, Long> watermark = new LinkedHashMap<>(before.watermark());
@@ -902,7 +1155,7 @@ public final class Runs {
             return answered(snapshot.withProduced(new Run.Produced(List.copyOf(named),
                             Map.copyOf(watermark), before.counted() + versions.size()))
                     .withStanding(snapshot.standing().as(Status.COMPLETED)));
-        });
+        };
     }
 
     /**
@@ -1327,23 +1580,67 @@ public final class Runs {
      * was lost, which is the worst way round.
      */
     private Run update(Run run, java.util.function.UnaryOperator<State> change) {
-        refuseIfAuthoredElsewhere(run, "advanced");
-        Run current = run;
+        return advanceIf(run, "advanced", current -> true, change).orElseThrow();
+    }
+
+    /**
+     * An advance a holder makes, landing only while the run names it as the
+     * holder (REQ-DBO-PROC-ONLY-THE-HOLDER-ACTS-ON-A-RUN).
+     *
+     * <p>Judged on the version the write replaces and written conditionally on
+     * it, as a claim is: a hand-back or another participant's claim that lands
+     * between the read and the write makes this write the one that loses, and
+     * the re-read finds the run is no longer this holder's. So two writers
+     * racing one run cannot both win, whichever of them is first.
+     */
+    private Run advanceHeld(Run run, Executor holder, String what,
+            java.util.function.UnaryOperator<State> change) {
+        return advanceIf(run, what, current -> current.heldBy(holder), change)
+                .orElseThrow(() -> new NotHeld(run.key(), holder, what));
+    }
+
+    /**
+     * Advances a run, re-reading and re-applying if somebody wrote first — and
+     * only while what the advance is about is still so.
+     *
+     * <p><b>The change is a function of what is there, not a payload computed
+     * before the read.</b> That is the whole of why this can retry: a
+     * pre-computed payload replayed onto a newer version silently discards
+     * whatever the other writer did. So the change is applied to the version
+     * read here, never to the run the caller was holding: a caller's copy is
+     * a view of some earlier version, and applied to it the advance would
+     * restore that version over whatever happened since — a hand-back undone
+     * by a release from somebody who no longer held the run.
+     *
+     * <p><b>What the advance is about is asked of the same version.</b> A
+     * write that is right only while the run stands some way — held by this
+     * executor, still lapsed, still held back — asks it of the version it is
+     * about to replace, so a write landing in between is noticed by the
+     * conflict rather than written over.
+     *
+     * @return the run as advanced, or empty when it no longer stands as the
+     *         advance needs, in which case nothing was written
+     */
+    private Optional<Run> advanceIf(Run run, String what,
+            java.util.function.Predicate<Run> stillSo,
+            java.util.function.UnaryOperator<State> change) {
+        refuseIfAuthoredElsewhere(run, what);
         for (int attempt = 1; ; attempt++) {
-            StoredObject stored = store.get(WorkModel.TYPE, current.id()).orElseThrow(
+            Run current = byKey(run.key()).orElseThrow(
                     () -> new IllegalStateException("run " + run.key() + " has gone"));
+            if (!stillSo.test(current)) {
+                return Optional.empty();
+            }
             State state = change.apply(state(current));
             try {
-                store.put(new PutRequest(WorkModel.TYPE, stored.id(), stored.versionId(),
+                store.put(new PutRequest(WorkModel.TYPE, current.id(), current.versionId(),
                         state.payload()));
-                return announced(byKey(state.key()).orElseThrow());
+                return Optional.of(announced(byKey(state.key()).orElseThrow()));
             } catch (cloud.jengu.dbo.core.api.VersionConflictException lost) {
                 if (attempt == ATTEMPTS) {
                     throw new Contended(run.key(), lost);
                 }
-                // Read what they wrote, and apply this advance on top of it.
-                current = byKey(run.key()).orElseThrow(
-                        () -> new IllegalStateException("run " + run.key() + " has gone"));
+                // Read what they wrote, and ask again on top of it.
             }
         }
     }

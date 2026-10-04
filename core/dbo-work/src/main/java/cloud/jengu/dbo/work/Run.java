@@ -239,6 +239,23 @@ public record Run(String id, long versionId, String key, String process, String 
     }
 
     /**
+     * Whether this executor holds the run, as the run itself says — the test
+     * every act a holder takes on it is put to.
+     *
+     * <p>Held means open, claimed by that executor, and under a deadline,
+     * which a claim always writes and every hand-back clears. It is judged
+     * from what is written and never from the clock: past the deadline the
+     * tenant's housekeeping may hand the run back and another participant may
+     * take it, and either is a write that ends this claim. Until one of them
+     * happens nobody else holds the run, and its holder is the only one who
+     * can finish its work.
+     */
+    public boolean heldBy(Executor executor) {
+        return executor != null && open() && assignment != null
+                && executor.equals(assignment.executor()) && assignment.until() != null;
+    }
+
+    /**
      * Whether automation may take this run now: open, open to automation as
      * well as to people, nobody holding it, and its not-before passed.
      *

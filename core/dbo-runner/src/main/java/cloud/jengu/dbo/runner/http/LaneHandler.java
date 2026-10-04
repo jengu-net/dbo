@@ -158,7 +158,8 @@ public final class LaneHandler implements HttpHandler {
                     body(exchange));
             switch (answer) {
                 case LaneVerbService.Answer.Ok ok -> respond(exchange, ok.result());
-                case LaneVerbService.Answer.Refused refused -> refuse(exchange, refused.reason());
+                case LaneVerbService.Answer.Refused refused ->
+                        refuse(exchange, refused.reason(), refused.lost());
                 case LaneVerbService.Answer.Denied denied -> {
                     if (denied.wwwAuthenticate() != null) {
                         exchange.getResponseHeaders().set("WWW-Authenticate",
@@ -170,7 +171,7 @@ public final class LaneHandler implements HttpHandler {
         } catch (IllegalStateException refused) {
             // What a lane refuses, said as a refusal — the reason travels,
             // because the far side's recovery depends on which refusal it is.
-            refuse(exchange, String.valueOf(refused.getMessage()));
+            refuse(exchange, String.valueOf(refused.getMessage()), false);
         } catch (IllegalArgumentException malformed) {
             fail(exchange, 400, String.valueOf(malformed.getMessage()));
         } catch (RuntimeException failed) {
@@ -196,10 +197,14 @@ public final class LaneHandler implements HttpHandler {
         send(exchange, 200, RecordWire.write(envelope));
     }
 
-    private static void refuse(HttpExchange exchange, String reason) throws IOException {
+    private static void refuse(HttpExchange exchange, String reason, boolean lost)
+            throws IOException {
         Map<String, Object> envelope = new LinkedHashMap<>();
         envelope.put(LaneVerbs.REFUSED, Boolean.TRUE);
         envelope.put(LaneVerbs.REASON, reason);
+        if (lost) {
+            envelope.put(LaneVerbs.LOST, Boolean.TRUE);
+        }
         send(exchange, 409, RecordWire.write(envelope));
     }
 

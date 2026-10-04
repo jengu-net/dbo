@@ -932,7 +932,7 @@ final class StepSurface implements HttpHandler {
             return;
         }
         Optional<Run> taken = runs.claimAsPerson(found.get(), "PractitionerRole/" + role,
-                java.time.Instant.now().plus(A_PERSONS_LEASE), asking.clientId());
+                A_PERSONS_LEASE, asking.clientId());
         if (taken.isEmpty()) {
             fail(exchange, 409, "conflict", "somebody holds this run, or it is over");
             return;

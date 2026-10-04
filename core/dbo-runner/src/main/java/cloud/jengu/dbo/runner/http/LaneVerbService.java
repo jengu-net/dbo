@@ -31,8 +31,19 @@ public final class LaneVerbService {
         /** The verb's result, as a wire tree. */
         record Ok(Object result) implements Answer {}
 
-        /** What the lane refused, in its own words — the far side's recovery depends on which. */
-        record Refused(String reason) implements Answer {}
+        /**
+         * What the lane refused, in its own words — the far side's recovery
+         * depends on which.
+         *
+         * @param lost whether it was refused because the run is no longer the
+         *             asker's, which the far side answers by dropping the work
+         */
+        record Refused(String reason, boolean lost) implements Answer {
+
+            public Refused(String reason) {
+                this(reason, false);
+            }
+        }
 
         /** The door did not open: no credential, a bad one, one without reach, or a malformed ask. */
         record Denied(int status, String wwwAuthenticate, String reason) implements Answer {}
@@ -75,6 +86,11 @@ public final class LaneVerbService {
         try {
             return new Answer.Ok(answer(verb, lanes.laneFor(participant, identity,
                     narrowed(grant.entitlement(), body)), body));
+        } catch (cloud.jengu.dbo.work.Runs.NotHeld lost) {
+            // A refusal like any other, marked: the asker's work is somebody
+            // else's now, and a holder that cannot tell this from its own
+            // failure releases what it no longer holds.
+            return new Answer.Refused(String.valueOf(lost.getMessage()), true);
         } catch (IllegalStateException refused) {
             // What a lane refuses, said as a refusal — the reason travels,
             // because the far side's recovery depends on which refusal it is.

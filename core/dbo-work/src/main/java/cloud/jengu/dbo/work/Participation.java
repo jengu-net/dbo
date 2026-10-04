@@ -99,7 +99,7 @@ public final class Participation {
      *                to do the work, short enough that its death is noticed.
      */
     public Optional<Run> claim(Run run, Duration holdFor) {
-        return runs.claim(run, identity, Instant.now().plus(holdFor));
+        return runs.claim(run, identity, holdFor);
     }
 
     /** Progress, which extends the claim — never a tick (see {@link Runs#checkpoint}). */
@@ -121,12 +121,17 @@ public final class Participation {
         // A lapse is a failure like any other, routed by what the step
         // declared: an executor that died said nothing about why, so it goes
         // back to automation only where the step said a lapse will pass.
-        lapsed.forEach(run -> runs.released(run,
-                "the claim lapsed at " + run.assignment().until()
-                        + " — released, which is not the same as done", Failure.LAPSED));
+        // Each handed back only if it still lapsed as found: a holder that
+        // reported meanwhile, or a participant that took it, wrote first.
+        int handedBack = 0;
+        for (Run run : lapsed) {
+            if (runs.handBack(run, now).isPresent()) {
+                handedBack++;
+            }
+        }
         // And what was held back and is due, offered again.
         runs.due(now);
-        return lapsed.size();
+        return handedBack;
     }
 
     /**

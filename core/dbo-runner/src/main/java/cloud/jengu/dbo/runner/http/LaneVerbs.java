@@ -92,6 +92,13 @@ public enum LaneVerbs {
     public static final String PURPOSE = "purpose";
     /** A refusal travels as a refusal: this flag, and why. */
     public static final String REFUSED = "refused";
+    /**
+     * Beside {@link #REFUSED}: the verb was refused because the run is no
+     * longer the asker's — somebody acted on it since it was claimed. A
+     * holder told this drops the work and reports nothing, where any other
+     * refusal is the work going wrong.
+     */
+    public static final String LOST = "lost";
 
     private final String path;
 

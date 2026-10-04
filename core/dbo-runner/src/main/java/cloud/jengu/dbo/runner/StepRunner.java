@@ -314,6 +314,14 @@ public final class StepRunner implements AutoCloseable {
             // the run will never get.
             sign.failed(refused.reason());
             report(lane, claimed, "refused", took);
+        } else if (outcome instanceof Outcome.Lost lost) {
+            // Somebody acted on the run before this runner finished it, and
+            // nothing was said in its name. Neither the step's success nor
+            // its failure, so the vitals are untouched; counted as its own
+            // word, so a fleet losing claims under load can be seen.
+            LOG.info("a claim was lost before its work was reported: tenant={} step={} {}",
+                    lane.tenant(), claimed.step(), lost.reason());
+            report(lane, claimed, "lost", took);
         }
     }
 

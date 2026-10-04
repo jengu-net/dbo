@@ -377,6 +377,9 @@ public final class StreamDoor implements AutoCloseable {
                 envelope.put("status", 409);
                 envelope.put(LaneVerbs.REFUSED, Boolean.TRUE);
                 envelope.put(LaneVerbs.REASON, refused.reason());
+                if (refused.lost()) {
+                    envelope.put(LaneVerbs.LOST, Boolean.TRUE);
+                }
             }
             case LaneVerbService.Answer.Denied denied -> {
                 envelope.put("status", denied.status());

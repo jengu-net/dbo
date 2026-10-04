@@ -1124,11 +1124,13 @@ class WorkLeavesTheClinicAndComesBackIT {
     @DisplayName("a router whose edge never answers waits, the claim lapses, the run reads "
             + "released and still owed, and a late report is refused")
     @Proving({DboPromises.PROC_DONE_MEANS_DONE, DboPromises.PROC_THE_ROUTER_HOLDS_THE_CLAIM})
-    void aWedgedEdgeLetsTheClaimLapse() throws InterruptedException {
+    void aWedgedEdgeLetsTheClaimLapse() {
+        // Held for nothing, so the claim has lapsed by the time anybody looks:
+        // the router still holds it — nobody has acted on the run — until the
+        // housekeeping below hands it back.
         Run held = gateway.claim(routedRun("wedged", NAMES.value("wedged")),
-                Duration.ofSeconds(1)).orElseThrow();
+                Duration.ZERO).orElseThrow();
         gateway.sealed(held, List.of(KEYED_BENCH));
-        Thread.sleep(1500);
         gateway.releaseLapsed();
 
         Run released = runs.byKey(held.key()).orElseThrow();
@@ -1139,7 +1141,9 @@ class WorkLeavesTheClinicAndComesBackIT {
                         && String.valueOf(released.assignment().note()).contains("lapsed"),
                 "the run does not read released and still owed, with why: "
                         + released.assignment());
-        assertThrows(RuntimeException.class,
+        // Refused as a claim that is no longer the router's, across the wire,
+        // which is what tells a runner to drop the work rather than release it.
+        assertThrows(cloud.jengu.dbo.work.Runs.NotHeld.class,
                 () -> gateway.closed(held, cloud.jengu.dbo.work.RunChain.root(held)),
                 "a report after the claim lapsed closed the run");
         Proves.that(DboPromises.PROC_THE_ROUTER_HOLDS_THE_CLAIM,

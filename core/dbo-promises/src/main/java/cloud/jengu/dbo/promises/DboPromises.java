@@ -371,6 +371,21 @@ public enum DboPromises implements Promise {
             + "than its own deadline is still handed the work it claimed, and a run nobody "
             + "began is not sent to people as the failure of work that never happened."),
 
+    PROC_ONLY_THE_HOLDER_ACTS_ON_A_RUN("Only the participant holding a run may checkpoint "
+            + "it, name a milestone on it, hand it back or close it, and only while it holds "
+            + "it: once somebody else has acted on the run — the housekeeping that hands a "
+            + "lapsed claim back, another participant taking it — what the former holder says "
+            + "is refused as a refusal and changes nothing, however the two writes race. A "
+            + "runner told so drops the work quietly instead of releasing it as a failure, so "
+            + "a run housekeeping already routed is not sent to people, and nobody's live "
+            + "claim is cleared by a participant that no longer holds it."),
+
+    PROC_A_HOLD_RUNS_FROM_WHEN_THE_CLAIM_LANDS("A participant claims a run for a duration, "
+            + "and the store measures it from when the claim is written, by its own clock — "
+            + "never from a deadline the participant computed before asking. However long "
+            + "the ask took to arrive, nobody else may take the run until the whole hold has "
+            + "passed since the claim landed."),
+
     PROC_A_RUNNER_ASKS_ONCE_IT_HOLDS_ITS_STEPS("A runner told which steps its host is about "
             + "to register asks no lane for work until it holds them all, so a host whose lanes "
             + "arrive before its services does not move its participant past the work of the "

@@ -74,7 +74,13 @@ class StepRunnerIT {
                 cloud.jengu.dbo.core.process.StepDeclaration.of(DISPATCHING + ".dispatch", "1",
                                 WorkModel.DOMAIN)
                         .retrying(new cloud.jengu.dbo.core.process.RetryPolicy(
-                                List.of("unreachable"), "PT0S", 3))));
+                                List.of("unreachable"), "PT0S", 3)),
+                // The route step says a lapse will pass, so a claim
+                // housekeeping hands back is there for another runner to take.
+                cloud.jengu.dbo.core.process.StepDeclaration.of(DISPATCHING + ".route", "1",
+                                WorkModel.DOMAIN)
+                        .retrying(new cloud.jengu.dbo.core.process.RetryPolicy(
+                                List.of("lapsed"), "PT0S", 3))));
         declarations = new Declarations(store, new PgChangeFeed(ds, WorkModel.DOMAIN),
                 Duration.ofSeconds(30));
     }
@@ -257,6 +263,46 @@ class StepRunnerIT {
                 "a holder whose run was handed back was still given its inputs");
         assertTrue(fenced.getMessage().contains("not claimed by runner-slow"),
                 "refused, but not for holding nothing: " + fenced.getMessage());
+    }
+
+    @Test
+    @DisplayName("a holder whose claim was handed back and taken by another runner is refused "
+            + "its release, checkpoint, milestone and close, and the other runner's claim "
+            + "stands")
+    @Proving(DboPromises.PROC_ONLY_THE_HOLDER_ACTS_ON_A_RUN)
+    void aFormerHolderCannotUndoTheNextHoldersClaim() {
+        Run work = runs.pipeline(DISPATCHING, "route", DISPATCHING + "/route/raced",
+                List.of(WorkModel.DOMAIN));
+        Lane first = lane("t-raced", "runner-first");
+        Lane second = lane("t-raced", "runner-second");
+
+        Run heldByFirst = first.claim(work, Duration.ZERO).orElseThrow();
+        first.releaseLapsed();
+        Run heldBySecond = second.claim(runs.byId(work.id()).orElseThrow(),
+                Duration.ofMinutes(5)).orElseThrow();
+        Run before = runs.byId(work.id()).orElseThrow();
+
+        List<org.junit.jupiter.api.function.Executable> verbs = List.of(
+                () -> first.released(heldByFirst, "the service threw: not claimed",
+                        cloud.jengu.dbo.work.Failure.UNKNOWN),
+                () -> first.checkpoint(heldByFirst, Map.of("routed", 1L), Duration.ofMinutes(5)),
+                () -> first.milestone(heldByFirst, "routed", Map.of(), Duration.ofMinutes(5)),
+                () -> first.closed(heldByFirst));
+        for (org.junit.jupiter.api.function.Executable verb : verbs) {
+            org.junit.jupiter.api.Assertions.assertThrows(Runs.NotHeld.class, verb,
+                    "a runner whose claim was taken over still acted on the run");
+        }
+
+        Run after = runs.byId(work.id()).orElseThrow();
+        assertEquals(before.versionId(), after.versionId(),
+                "a refused verb still wrote a version: " + after);
+        assertTrue(after.heldBy(second.identity()),
+                "the second runner's claim did not survive the first's late verbs: "
+                        + after.assignment());
+        assertTrue(after.automation(), "the late release sent the run to people: " + after);
+        second.closed(heldBySecond);
+        assertTrue(!runs.byId(work.id()).orElseThrow().open(),
+                "the runner holding the run could not close it");
     }
 
     @Test

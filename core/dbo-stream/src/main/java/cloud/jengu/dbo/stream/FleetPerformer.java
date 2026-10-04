@@ -119,6 +119,11 @@ public final class FleetPerformer implements FleetWork.Performs {
             // asking about that run will find it.
             LOG.info("a fleet step released its run: tenant={} step={} run={}",
                     tenant, step, runId);
+        } else if (said instanceof Outcome.Lost) {
+            // Somebody acted on the run before this consumer finished it, and
+            // nothing was said in its name: the work is theirs now.
+            LOG.info("a fleet step's claim was lost before its work was reported: tenant={} "
+                    + "step={} run={}", tenant, step, runId);
         }
     }
 }

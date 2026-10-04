@@ -2,6 +2,7 @@ package cloud.jengu.dbo.runner;
 
 import cloud.jengu.dbo.work.Failure;
 import cloud.jengu.dbo.work.Run;
+import cloud.jengu.dbo.work.Runs;
 
 import java.time.Duration;
 import java.util.Map;
@@ -42,7 +43,10 @@ public final class Performing {
      * @param service  what performs it
      * @param holdFor  how long each report extends the hold
      * @return what the service said, a {@code Failed} carrying what it threw,
-     *         or a {@code Refused} when the tenant would not hold its result
+     *         a {@code Refused} when the tenant would not hold its result, or
+     *         a {@code Lost} when the run stopped being this participant's
+     *         before it was finished — reported nowhere, because it is
+     *         somebody else's to finish
      */
     public static Outcome performed(Lane lane, Run claimed, StepService service,
             Duration holdFor) {
@@ -92,9 +96,21 @@ public final class Performing {
                 return Outcome.failed(reason);
             }
             return outcome;
+        } catch (Runs.NotHeld lost) {
+            // Not ours any more: somebody acted on the run first. Whatever was
+            // refused — the inputs, a report, the close — nothing is released,
+            // because a release in this participant's name would undo what the
+            // other did.
+            return new Outcome.Lost(lost.getMessage());
         } catch (RuntimeException thrown) {
             String reason = "the service threw: " + thrown.getMessage();
-            lane.released(latest.get(), reason, Failure.of(thrown));
+            try {
+                lane.released(latest.get(), reason, Failure.of(thrown));
+            } catch (Runs.NotHeld lost) {
+                // The service failed on work that had already stopped being
+                // ours; its failure is nobody's to route.
+                return new Outcome.Lost(lost.getMessage());
+            }
             return Outcome.failed(reason);
         }
     }

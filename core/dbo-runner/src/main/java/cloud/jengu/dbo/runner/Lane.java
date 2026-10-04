@@ -718,8 +718,10 @@ public interface Lane {
                 // Claimed by the credential the door validated, which is who
                 // may then read the run's context and end it — the client
                 // set as the caller, not the executor named in the body.
-                Optional<Run> claimed = runs.claim(stored, identity,
-                        java.time.Instant.now().plus(holdFor),
+                // For a duration, not until an instant: the deadline is read
+                // from the store's clock where the claim is written, so a hold
+                // is never short by the round trips that carried the ask.
+                Optional<Run> claimed = runs.claim(stored, identity, holdFor,
                         cloud.jengu.dbo.core.api.Caller.authenticated());
                 // The hop. Taking the work is the store handing it to this
                 // participant, and that is a fact about the task's journey —
@@ -741,20 +743,28 @@ public interface Lane {
 
             @Override
             public Run checkpoint(Run run, Map<String, Long> counts, Duration holdFor) {
-                return runs.checkpoint(run, counts, java.time.Instant.now().plus(holdFor));
+                // Every verb a holder says lands only while this identity
+                // holds the run — asked by the primitive of the version it
+                // replaces, so nothing between the asking and the write can
+                // slip past it.
+                return runs.checkpoint(run, identity, counts, holdFor);
             }
 
             @Override
             public Run milestone(Run run, String milestone, Map<String, Long> counts,
                     Duration holdFor) {
-                return runs.milestone(run, milestone, counts,
-                        java.time.Instant.now().plus(holdFor));
+                return runs.milestone(run, identity, milestone, counts, holdFor);
             }
 
             @Override
             public void released(Run run, String reason,
                     cloud.jengu.dbo.work.Failure failure) {
-                runs.released(run, reason, failure);
+                // Never narrowed by the step's actions — a step must hear that
+                // its executor failed — but said only by the executor holding
+                // the run. A participant whose claim somebody else ended has
+                // nothing to hand back, and a release in its name would undo
+                // what the other did.
+                runs.released(run, identity, reason, failure);
             }
 
             @Override
@@ -764,9 +774,9 @@ public interface Lane {
 
             @Override
             public void closed(Run run, String head) {
-                Run current = runs.byKey(run.key()).orElse(run);
+                Run current = claimedByThisIdentity(run);
                 requireCompleteChain(current, head);
-                runs.closed(run);
+                runs.closed(current, identity);
             }
 
             @Override
@@ -798,7 +808,7 @@ public interface Lane {
                     // ENDED, with the tenant's words: the same result would be
                     // refused the same way next time, so nobody is asked to
                     // try again.
-                    return runs.refused(current, refused.getMessage());
+                    return runs.refused(current, identity, refused.getMessage());
                 } finally {
                     if (outer == null) {
                         cloud.jengu.dbo.core.api.Caller.clearRun();
@@ -806,7 +816,11 @@ public interface Lane {
                         cloud.jengu.dbo.core.api.Caller.setRun(outer);
                     }
                 }
-                return runs.closed(current, versions);
+                // Conditional on the claim, like every other verb a holder
+                // says. The records are written by now and are the tenant's;
+                // what a lost claim refuses is the run's account of them,
+                // because the run is somebody else's to finish.
+                return runs.closed(current, identity, versions);
             }
 
             /**
@@ -911,7 +925,7 @@ public interface Lane {
                 Run current = runs.byKey(run.key()).orElseThrow(() -> new IllegalStateException(
                         tenant + ": no run '" + run.key() + "' to read inputs of"));
                 if (!heldByThisIdentity(current)) {
-                    throw new IllegalStateException(tenant + ": run '" + run.key()
+                    throw new Runs.NotHeld(tenant + ": run '" + run.key()
                             + "' is not claimed by " + identity.name()
                             + " — inputs travel with a claim, never with a question");
                 }
@@ -1258,9 +1272,9 @@ public interface Lane {
                 Run current = runs.byKey(run.key()).orElseThrow(() -> new IllegalStateException(
                         tenant + ": no run '" + run.key() + "'"));
                 if (!heldByThisIdentity(current)) {
-                    throw new IllegalStateException(tenant + ": run '" + run.key()
+                    throw new Runs.NotHeld(tenant + ": run '" + run.key()
                             + "' is not claimed by " + identity.name()
-                            + " — inputs travel with a claim, never with a question");
+                            + " — only the participant holding a run acts on it");
                 }
                 return current;
             }
@@ -1282,9 +1296,7 @@ public interface Lane {
              * having been attempted by nobody.
              */
             private boolean heldByThisIdentity(Run current) {
-                return current.assignment() != null
-                        && identity.equals(current.assignment().executor())
-                        && current.assignment().until() != null;
+                return current.heldBy(identity);
             }
         };
     }
