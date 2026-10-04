@@ -966,10 +966,16 @@ class TheClinicRecordsCareAndAccountsForItIT {
                         cloud.jengu.dbo.core.api.Domains.DEFINITIONS)
                         + "_data SET envelope = '{}'::jsonb WHERE id = ?::uuid", id),
                 "the envelope was not where it was looked for");
-        store.rebuildEnvelopes("ValueSet");
+        int rebuilt = store.rebuildEnvelopes("ValueSet");
+        String found = recordsDoor.get("/ValueSet?url=" + encoded(url)).body();
         Proves.that(DboPromises.SRCH_THE_DATABASE_ENVELOPE_LOSES_NOTHING_BEFORE_IT_IS_USED,
-                fullUrls(recordsDoor.get("/ValueSet?url=" + encoded(url)).body()) == 1,
-                "a reindex did not rebuild the envelope where the bytes are");
+                fullUrls(found) == 1,
+                "a reindex did not rebuild the envelope where the bytes are: rebuilt " + rebuilt
+                        + ", found " + found + ", rows " + new WhatTheDatabaseHolds(environment,
+                                records).rows("SELECT envelope::text || ' ' || payload_version "
+                                + "|| ' ' || version_id FROM " + cloud.jengu.dbo.core.api.Domains
+                                .tables(cloud.jengu.dbo.core.api.Domains.DEFINITIONS)
+                                + "_data WHERE type = 'ValueSet'"));
     }
 
     // ── a clinic authors a search parameter of its own ──

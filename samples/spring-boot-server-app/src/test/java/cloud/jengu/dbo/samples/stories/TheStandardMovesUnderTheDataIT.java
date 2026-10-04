@@ -334,13 +334,14 @@ class TheStandardMovesUnderTheDataIT {
         String stale = applyBack(id, version, basicNote(orphanShape()));
         long current = versionOf(admin(claim), id);
         String applied = applyBack(id, current, basicNote(orphanShape()));
+        String served = clinic.get("/Basic/" + id).body();
         Proves.that(DboPromises.SHAPE_HANDBACK_KEEPS_THE_DISCIPLINE,
                 stale.contains("\"converted\":0") && stale.contains(id)
                         && applied.contains("\"converted\":1")
-                        && clinic.get("/Basic/" + id).body()
-                                .contains("\"valueString\":\"9.0.0\""),
+                        && served.contains("\"valueString\":\"9.0.0\""),
                 "a stale hand-back was taken, or a current one was not re-stamped by the pack: "
-                        + stale + " / " + applied);
+                        + stale + " / " + applied + " / served " + served + " / the pack "
+                        + clinic.get("/StructureDefinition?url=" + enc(orphanShape())).body());
     }
 
     // ── and a pack that moves backwards does not hide what it no longer covers ──
