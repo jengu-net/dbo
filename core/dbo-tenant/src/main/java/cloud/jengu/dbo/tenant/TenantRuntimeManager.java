@@ -2109,6 +2109,11 @@ public final class TenantRuntimeManager implements AutoCloseable {
                     // Bounded across passes, not within one: how many
                     // validators a node holds at once is the same question
                     // whichever beat began the bring-up.
+                    // What can be refused or waited out without holding
+                    // anything is decided before the room is entered, so a
+                    // declaration that can never come up says so while the
+                    // room is full of ones that can.
+                    decidedBeforeAnythingIsHeld(spec);
                     java.util.concurrent.Semaphore room = broughtUpRoom;
                     room.acquireUninterruptibly();
                     try {
@@ -3226,7 +3231,24 @@ public final class TenantRuntimeManager implements AutoCloseable {
         }
     }
 
-    private void mountTenant(TenantSpec spec) {
+    /**
+     * Everything a bring-up can decide from the declaration and the runtimes
+     * already serving, decided before anything is created — and before the
+     * bring-up takes its place in the room.
+     *
+     * <p><b>Outside the room, because none of it holds what the room
+     * bounds.</b> The room counts validators, and these hold none: a lookup
+     * in the face registry, a comparison against what the face declares, a
+     * look at which tenants are up. Asked inside it, a declaration naming a
+     * face nothing provides waited behind every bring-up that did hold one —
+     * minutes each, on a node bringing up several — and was reported coming
+     * up for all of that time, when its answer was known the moment it was
+     * read. A tenant waiting for an upstream likewise took a place it could
+     * not use while the upstream it waited for queued behind it.
+     *
+     * @return the face that will serve it
+     */
+    private FhirVersion decidedBeforeAnythingIsHeld(TenantSpec spec) {
         // Dependencies wire against the upstream's LIVE runtime —
         // like the zone hub, an upstream that isn't up yet stops bring-up
         // here, before anything is created, and the scan retries once it is.
@@ -3244,6 +3266,13 @@ public final class TenantRuntimeManager implements AutoCloseable {
         // database exists. An absent capability used to surface where it was
         // first needed — mid-request, or as a quiet degradation.
         FaceRequirements.refuseUnservable(spec, version.face());
+        return version;
+    }
+
+    private void mountTenant(TenantSpec spec) {
+        // Asked again here, inside the room: an upstream can go between the
+        // look before the room and the moment there is room.
+        FhirVersion version = decidedBeforeAnythingIsHeld(spec);
         TenantDatabaseProvisioner.TenantDatabase db = provisioner.provision(spec);
         tenantDataSources.put(spec.code(), db.dataSource());
         String base = baseUrl(spec.code());

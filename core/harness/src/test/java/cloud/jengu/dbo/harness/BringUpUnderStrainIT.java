@@ -77,8 +77,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * vocabulary arrives twice, once at bring-up and once over a stream, and is
  * one publication rather than an override. A tenant whose storage goes while
  * a racing node mounts it is not a tenant that failed. A node stopped
- * mid-sync says nothing about the pools it closed on purpose. And a stream
- * keeps moving while a tenant is held halfway through coming up.
+ * mid-sync says nothing about the pools it closed on purpose. A stream keeps
+ * moving while a tenant is held halfway through coming up. And a declaration
+ * that can never come up says so while every place in the bring-up room is
+ * held by tenants that can.
  *
  * <p><b>Why this cannot be walked on Rowling Land.</b> Every leg stages a
  * failure the world would never show, and the staging belongs to the runtime
@@ -165,6 +167,11 @@ class BringUpUnderStrainIT {
         private final CountDownLatch reached = new CountDownLatch(1);
         private volatile String holding;
 
+        /** Bring-ups that fill the room and stay in it until the leg frees them. */
+        private final Set<String> occupying = ConcurrentHashMap.newKeySet();
+        private final CountDownLatch freed = new CountDownLatch(1);
+        private volatile CountDownLatch occupied = new CountDownLatch(0);
+
         Scripted(LocalDatabasePerTenantProvisioner real) {
             this.real = real;
         }
@@ -185,6 +192,11 @@ class BringUpUnderStrainIT {
             this.holding = code;
         }
 
+        void occupy(Set<String> codes) {
+            this.occupied = new CountDownLatch(codes.size());
+            occupying.addAll(codes);
+        }
+
         @Override
         public TenantDatabase provision(TenantSpec spec) {
             String code = spec.code();
@@ -193,6 +205,17 @@ class BringUpUnderStrainIT {
             }
             if (pairing.contains(code)) {
                 meet();
+            }
+            if (occupying.contains(code)) {
+                occupied.countDown();
+                try {
+                    if (!freed.await(HELD_FOR.toSeconds(), TimeUnit.SECONDS)) {
+                        throw new IllegalStateException("never freed");
+                    }
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    throw new IllegalStateException(e);
+                }
             }
             if (code.equals(holding)) {
                 reached.countDown();
@@ -266,6 +289,7 @@ class BringUpUnderStrainIT {
     @AfterAll
     void down() {
         storage.released.countDown();
+        storage.freed.countDown();
         if (manager != null) {
             manager.close();
         }
@@ -996,6 +1020,60 @@ class BringUpUnderStrainIT {
                 "the held tenant came up anyway, so this proved nothing");
 
         storage.released.countDown();
+    }
+
+    // ---- A refusal while the room is full ------------------------------------
+
+    /**
+     * Walked after the stream leg, whose loops are what carry the passes
+     * here: a pass started by hand would wait for the bring-ups this leg
+     * holds open.
+     */
+    @Test
+    @Order(18)
+    @Timeout(600)
+    @DisplayName("a declaration that can never come up is reported failed, with its reason, "
+            + "while every place in the bring-up room is held by tenants that can")
+    @Proving(DboPromises.OPS_RUNTIME_SAYS_WHAT_IT_SERVES)
+    void aRefusalDoesNotQueueBehindAFullRoom() throws Exception {
+        storage.occupy(Set.of("room-one", "room-two"));
+        try {
+            Files.writeString(dir.resolve("room-one.json"), observations("room-one"));
+            Files.writeString(dir.resolve("room-two.json"), observations("room-two"));
+            assertTrue(storage.occupied.await(60, TimeUnit.SECONDS),
+                    "the two bring-ups never filled the room, so this would prove nothing");
+
+            Files.writeString(dir.resolve("room-refused.json"), """
+                    {"code":"room-refused","face":"no-such-face","types":[
+                      {"name":"Patient","identity":"internal","handling":"operational"}]}""");
+            // Inside the hold, and that is the whole assertion: queued behind
+            // the room, nothing is said until a held bring-up gives up, so a
+            // wait that outlived the hold would pass either way.
+            long deadline = System.currentTimeMillis() + WAITED_FOR.toMillis();
+            TenantState.State state = null;
+            while (state != TenantState.State.FAILED && System.currentTimeMillis() < deadline) {
+                state = manager.tenantStates().stream()
+                        .filter(one -> one.code().equals("room-refused"))
+                        .map(TenantState::state).findFirst().orElse(null);
+                if (state != TenantState.State.FAILED) {
+                    Thread.sleep(200);
+                }
+            }
+            assertEquals(TenantState.State.FAILED, state,
+                    "a declaration naming a face nothing provides queued behind bring-ups "
+                            + "that hold the room, and was reported as coming up");
+            assertTrue(String.valueOf(manager.troubles().get("room-refused"))
+                            .contains("no-such-face"),
+                    "failed without saying why: " + manager.troubles().get("room-refused"));
+            assertTrue(!manager.codes().contains("room-one")
+                            && !manager.codes().contains("room-two"),
+                    "a held bring-up finished, so the room was not full and this proved nothing");
+        } finally {
+            storage.freed.countDown();
+            Files.deleteIfExists(dir.resolve("room-refused.json"));
+            Files.deleteIfExists(dir.resolve("room-one.json"));
+            Files.deleteIfExists(dir.resolve("room-two.json"));
+        }
     }
 
     /** The installed r4, minus one capability, everything else delegated. */
