@@ -1,15 +1,14 @@
-**Open. Seven tenants in four classes now, across three documentation-only changes
-— one of them this item's own. What a tenant costs IS measured: 226 MB for a
-face's first, 11 MB for the next on it. The floor is attributed now — twelve
-classes keep 1755 MB and seventy more keep 477, against the 2 GB heap it had
-when that was taken — the dial is 3g now, which bought room and answered
-nothing. Nothing is
-being left unclosed: the floor is the FHIR definition corpus, loaded once per
-face and resident by design — the model objects, their strings, and those
-strings' arrays, which together are over half the live heap. It is the
-toolchain's `SimpleWorkerContext`, one per version — the store's own definitions
-have been in a database schema since before this was filed. Next: what still
-needs that context.**
+**Open. Seven tenants died of heap in four classes, across three
+documentation-only changes — one of them this item's own. What a tenant costs
+IS measured: 226 MB for a face's first, 11 MB for the next on it. The floor is
+attributed — twelve classes kept 1755 MB and seventy more kept 477, against
+the 2 GB heap of the time — and the dial is 3g now, which bought room and
+answered nothing. Nothing is being left unclosed: the floor is the FHIR
+definition corpus, the toolchain's `SimpleWorkerContext`, one per version per
+process and resident by design. Needing fewer of those is items 024 and 025's
+work, not this one's. What is left here is the tail and the decision about the
+dial (steps 7 and 8), and both want reading again on a suite whose
+world-booting classes are now mostly legs of one story world.**
 
 # The suite runs out of heap
 
@@ -301,8 +300,8 @@ So the megabytes are the toolchain's model of the definitions, held for
 validation and snapshotting, rather than the store's copy of them. The store's
 copy is in Postgres and is read with SQL.
 
-**And one is a caution about item 003.** `DelegationIT` keeps 124 MB, and it is
-the first class moved onto the shared cast. The shared world's tenants are
+**And one is a caution about moving classes onto a shared world.** `DelegationIT`
+kept 124 MB, and it was the first class moved onto the shared cast. The shared world's tenants are
 never dropped by design, so a class moving down the ladder transfers its
 retention to the shared runtime rather than removing it. Moving classes saves
 bring-up time; whether it saves memory is a separate question and nobody had
@@ -390,14 +389,14 @@ suite of fifty-odd classes needs it.
 
 ## Why it matters beyond a red build
 
-Three items are waiting on the same constraint from different directions.
+Two items are waiting on the same constraint from different directions.
 [Item 019](../019-the-build-repeats-itself/README.md) found that the container
 suites are the forty minutes and no cache reaches them.
-[Item 003](../003-tests-move-down-the-ladder/README.md) moves classes onto a
-shared world so fewer tenants exist at once, and the sample applications
-(`samples/`) are what those stories run against
-([item 035](../035-every-promise-on-one-world/README.md)). Each of them is, underneath, a way of holding fewer tenants
-alive — and none of them can be judged without knowing what one costs.
+[Item 035](../035-every-promise-on-one-world/README.md) proves promises on
+one shared world, the one the user stories walk in the sample applications'
+tests, so fewer tenants exist at once. Each of them is, underneath, a way of
+holding fewer tenants alive — and none of them can be judged without knowing
+what one costs.
 
 The temporary rule about not proving a bring-up on the shared runtime is the
 same constraint again, written as a working rule because it was cheaper to

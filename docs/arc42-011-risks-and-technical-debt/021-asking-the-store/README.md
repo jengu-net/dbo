@@ -1,10 +1,12 @@
-**Open. The vocabulary exists with two bindings a caller cannot tell apart, and
-that is now true of work as well as records: the surface serves a run search,
-and what both hand back is an `Ongoing` — the seven fields of a run that a
-rendering carries — rather than a `Run` whose other eleven only one binding
-could fill. The guide chapter reads over a ward the sample compiles, and asking against
-unsealing is settled where the invariant it seemed to contradict is stated.
-Next: joins, which the vocabulary declares and refuses.**
+**Open. The vocabulary exists with two bindings a caller cannot tell apart —
+`Asking` in the process and `Across` over a tenant's door — for work as well
+as records and the trail, with an observer the integrator supplies, off by
+default. What both hand back for a run is an `Ongoing`, the seven fields of a
+run that a rendering carries, rather than a `Run` whose other eleven only one
+binding could fill. The guide's care chapter quotes the questions a screen
+asks from the clinic's application, and asking against unsealing is settled
+where the invariant it seemed to contradict is stated. Next: joins, which the
+vocabulary declares and refuses.**
 
 # Asking the store a question
 
@@ -25,9 +27,9 @@ vocabulary for half its screens and something else for the rest.
 
 **The line is asking against unsealing**, and the store already draws it. A
 read by a credential not entitled to unseal answers the record *without* the
-identifying elements rather than refusing — proven in the guide, where the
-hospital's own service credential writes a person and cannot read her name
-back. So a screen can list, filter, count and page without learning who anybody
+identifying elements rather than refusing — proven in the person-rights
+story, where the clinic that asked for Liis to be recorded at Hogwarts
+collects her without her name. So a screen can list, filter, count and page without learning who anybody
 is; learning who somebody is is a disclosure, and that is where a purpose and a
 run belong. [Item 009](../009-the-step-scoped-api/README.md) is about reaching
 a person's data, and reaching is what stays behind a step.
@@ -37,6 +39,12 @@ it needs stating before anything is built, because the obvious reading of item
 009 is that no general query should exist at all.
 
 ## Where it stands
+
+**Built:** the vocabulary (`Questions`, in `core/dbo-asking`) with its two
+bindings, `Asking.at` over a tenant's own store and `Across.through` a
+tenant's door, and the observer seam, `Watching`, off unless asked for. What
+follows is the ground it was built on, kept because the reasons in it still
+decide what the vocabulary may hand back.
 
 **The in-JVM binding is already registered, and it is raw.** A tenant coming up
 puts `ObjectStore`, `FhirStoreFacade`, `ChangeFeed` and its `Lanes` on the OSGi
@@ -370,7 +378,7 @@ construction; a convenience that spanned them would be available to anything
 that ever got hold of it.
 
 **A way to count what you cannot see.** The store already refuses an
-enumeration at the front door, and the guide proves it. A count is the easiest
+enumeration at the front door, and the stories prove it. A count is the easiest
 place to lose that: a total over records a caller may not read tells them the
 records exist.
 
@@ -456,32 +464,12 @@ first.
 
 ## What this does to the guide
 
-The guide's Core group is organised by store feature — records, history,
-search, references, transactions, validation — and the map says the guide is
-the sample application's story. Those are different things, and the difference
-shows up first at `search.md`: it walks FHIR's query surface, which FHIR
-documents, and teaches the general read door as the way to get records.
-
-So the chapter list changes with this item, not before it:
-
-- **`records.md` and `history.md` are already scenes** and survive: somebody
-  arrives, and two people change one record. They have been rewritten over the
-  sample and read as stories.
-- **`search.md` goes.** What is this store's about it is three claims, and each
-  belongs where a story meets it: an unrecognised parameter is refused rather
-  than answered more broadly; the CapabilityStatement is generated from what is
-  actually served; pages are held by a cursor, so a record written between two
-  fetches is not handed to you twice. The rest is FHIR.
-- **A chapter for asking** — what work is outstanding, what happened to it, who
-  read what, and what goes on the screen — which is this item's vocabulary and
-  does not exist yet.
-- **The remaining Core chapters are read the same way** before they are
-  converted: a chapter that would only exist to walk an API is a chapter that
-  should not exist. `references.md`, `transactions.md` and `validation.md` have
-  not been read this way yet.
-
-Item 001's last step is the guide rewrite and it waits on item 002; this says
-what it should produce when it gets there.
+The guide is the sample applications' story, one chapter per user story, so
+it has no chapter that walks an API. Asking appears where a story meets it:
+the care chapter quotes the questions a screen asks from `CountingTheWard`, and
+the refusal of an unknown parameter and the generated CapabilityStatement are
+guarantees of that chapter. What the general read door is for is FHIR's to
+document.
 
 ## Steps
 
@@ -492,15 +480,14 @@ what it should produce when it gets there.
    are not — because that is where somebody reading the invariant as a
    prohibition will meet it, and a paragraph in this item was never going to be
    read by them.
-2. Agree the vocabulary: what a product asks about runs, the trail, the
+2. ~~Agree the vocabulary: what a product asks about runs, the trail, the
    declarations and the records a screen is made of, written as the methods
-   rather than as the tables. The inventory above is the input, not the answer.
-3. One binding, over the surface, with the existing `Surface` as its shape.
-4. The second binding, from the whiteboard, where most of the mechanism already
-   is — with a test that the same scene passes through both, which is the only
-   thing that proves the caller cannot tell, and a host outside the framework
-   asking one question, which is the only thing that proves the types travel.
-5. The observer seam, off by default.
+   rather than as the tables.~~ Done: `Questions`, with work, records and the
+   trail.
+3. ~~One binding, over the surface.~~ Done: `Across`.
+4. ~~The second binding, from the whiteboard, with a test that the same scene
+   passes through both.~~ Done: `Asking`.
+5. ~~The observer seam, off by default.~~ Done: `Watching`.
 6. ~~The guide chapter.~~ Done. The questions a screen asks are
    `CountingTheWard` in the clinic's application, quoted by
    [care is recorded](../../guide/care-is-recorded.md#asking-what-is-there), so

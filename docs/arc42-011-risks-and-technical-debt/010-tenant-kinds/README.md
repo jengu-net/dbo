@@ -2,8 +2,8 @@
 closed — the dispatcher reads what the registrations say, the custom resource
 is checked as paths, and a zone declares itself — and not one of them was
 closed by a kind. The design below is superseded by the activity selectors
-built meanwhile, and the finding that supersedes it has moved to the guide's
-Lifecycle chapter, where a reader meets it. What is left is one speculative
+built meanwhile, and the finding that supersedes it is in the guide's
+*A tenant opens* chapter, under selecting tenants, where a reader meets it. What is left is one speculative
 benefit: a coarse label an outside bundle could select on. Next: decide whether
 anybody wants that, and delete this if not.**
 

@@ -1,11 +1,15 @@
-**Open. The cache is on, and CI has now said what it is worth: a
-documentation-only pull request went from forty-four minutes to thirty-seven,
-and one touching sources went to forty-five. The cache can only ever return the
-part CI barely spends time on. The forty minutes is the container suites, and
-nearly all of it is ONE task — `:core:harness:test` — so `org.gradle.parallel`
-cannot reach it and the only dial that can is a second fork, whose cost item
-023 has already measured the parts of. Next: items 003 and 035, or that one
-measurement.**
+**Open, and down to one step. The cache is on, and CI said what it is worth:
+a documentation-only pull request went from forty-four minutes to
+thirty-seven, and one touching sources not at all. `org.gradle.parallel` is on
+too: every test task that boots a world holds the one permit of a shared build
+service, so two worlds never meet in one machine and the rest of the build
+runs beside the one there is. The definitions gate is a task of its own, its
+comparisons run side by side (9.1 minutes to 5.6), and the cache answers for
+it on about nine commits in ten. A second world beside the first is a dial,
+`dboConcurrentWorlds`, off by default because a laptop or a hosted runner has
+no room for two. What is left is step 1: the tasks that write into the tree —
+the ledgers and the projections — declare no outputs, so they run every
+time.**
 
 # The build repeats work whose inputs did not change
 
@@ -88,39 +92,38 @@ tasks that drive Docker, and they are excluded on purpose and correctly.
 Nothing about caching can reach them.
 
 What can is fewer and shorter container suites: one world serving more of
-the proofs, which is item 003, on the application that runs the stories, which
-is item 035. This item should not be read as the answer to the forty
-minutes. It is the answer to paying the forty minutes for a paragraph, and
+the proofs, on the application that runs the stories, which is item 035.
+This item should not be read as the answer to the forty minutes. It is the answer to paying the forty minutes for a paragraph, and
 that part now costs thirty-seven.
 
 ## What is kept out, and why it says so
 
-The tests that drive Docker are not cacheable, and each says it where it is
-configured: the harness suite, the distribution test, the memory
-measurement, the guide and the conformance report. What a container held is
-an input none of them can declare, so a restored pass would claim a suite
-succeeded against a world nobody can describe.
+The tests that drive Docker are not cacheable. The root build says it once
+for every project on its list of those that boot a world — the harness, the
+conformance report, the server assembly and the clinic's application, whose
+tests are the stories — and the harness's distribution test and memory
+measurement say it where they are configured. What a container held is an
+input none of them can declare, so a restored pass would claim a suite
+succeeded against a world nobody can describe — a restored story run reads
+green in no time at all.
 
 ## The hazard, found and closed
 
-Three modules read the tree by path rather than through the classpath, which
-is the shape of input a cache cannot see. Two are the excluded ones. The
-third is the sample's check that a chapter quoting the world is quoting it
-truly, and it now declares the chapters and the world as inputs.
+A task that reads the tree by path rather than through the classpath reads an
+input a cache cannot see, so it declares what it reads or stays out of the
+cache. The guide quotes its sources through the site build, which declares the
+tree it reads.
 
-That declaration was proven rather than assumed: with the chapters unchanged
-the test comes from the cache, and editing a quoted line makes the task
-re-run and go red.
-
-The tasks that write into the tree — the ledgers, the projections, the
-skills — declare no outputs at all, so nothing can cache them and they run
-every time. That is why they were safe to leave while the cache went on, and
-it is still worth giving them inputs so they can be skipped.
+The tasks that write into the tree — the ledgers and the projections —
+declare no outputs, so nothing can cache them and they run every time. That
+is why they were safe to leave while the cache went on, and it is still worth
+giving them inputs and outputs so they can be skipped. The skills' generator
+declares both.
 
 ## Steps
 
 1. Audit inputs, task by task, starting with the ones that write into the
-   tree: the recorded projections, the ledgers, the skills. Each either
+   tree: the recorded projections and the ledgers. Each either
    declares what it reads or says why it cannot.
 2. ~~Turn caching on for a named few and measure.~~ Done, and wider than
    planned: caching is on for everything except the tasks that drive a
@@ -129,38 +132,24 @@ it is still worth giving them inputs so they can be skipped.
    can say what its inputs are.
 4. ~~Watch a documentation-only pull request in CI.~~ Done: 37m 09s against
    43m 38s. See the table above.
-5. Revisit `dboTestParallelism` and `org.gradle.parallel` separately and
-   with their own measurement. They are memory decisions today and may be
-   the right ones; nothing here has measured them. This is now the only
-   dial left in this item that could move the container suites, and the
-   reason to be careful is the same as it always was: what this machine
-   cannot carry is tenants alive at once.
+5. ~~Revisit `dboTestParallelism` and `org.gradle.parallel` separately and
+   with their own measurement.~~ Done, and they came out as one rule rather
+   than two dials. `org.gradle.parallel` is on, and what made it safe is a
+   permit: every test task that boots a world holds it, so the world-booting
+   tasks run one after another and everything else runs beside them. A test
+   task that finds the container library on its classpath without holding the
+   permit fails before it runs, naming itself. A second world is
+   `dboConcurrentWorlds`, per invocation, on a machine with the room; two
+   worlds are two heaps of three or four gigabytes and two databases, which is
+   why it is off by default ([item 023](../023-the-suite-runs-out-of-heap/README.md)
+   has what a world's heap is made of).
 
-   **And it is one dial rather than two**, which is worth knowing before
-   either is measured. The five uncacheable tasks are named — `:core:harness`
-   has `test`, `distTest` and `memoryTest`, and `:guide` and
-   `:core:conformance` have one each — and the forty minutes is not spread
-   across them. `distTest` is four classes and about a minute; the guide's is
-   a world and its chapters, five and a half locally; what is left is
-   `:core:harness:test`, one task running some two hundred classes against one
-   Postgres.
-
-   `org.gradle.parallel` overlaps tasks that do not depend on each other. It
-   cannot split one task, so it cannot reach the cost, whatever it is worth
-   elsewhere. Only `maxParallelForks` — `dboTestParallelism` — divides
-   `:core:harness:test`, and the guide's and the conformance suite's are
-   already pinned to one for reasons written where they are set: a container
-   set has nothing to parallelise within a class and everything to lose by
-   racing two of them for one port.
-
-   So the measurement this step wants is a narrow one: what a second fork of
-   `:core:harness:test` costs in memory. [Item
-   023](../023-the-suite-runs-out-of-heap/README.md) has the number a fork
-   holds — a floor of about 1.6 GB before a tenant, plus 226 MB for a face's
-   first — and a second fork is a second JVM paying both again rather than
-   sharing them, because `ElementVersion.BY_CODE` and `FaceBase` are static
-   per process. Two forks is two floors. Whether the runner carries that is
-   the whole question, and the instrument to answer it is already written.
+   The definitions gate is CPU and nothing else, so it could run beside a
+   world. Measured beside the stories on an eight-core laptop, it should not
+   by default: it took 10.8 minutes instead of 5.6 and the stories 18.4
+   instead of 12.7, so the two together finished later than one after the
+   other. It holds the permit unless `dboDefinitionsBesideAWorld=true`, and
+   its own build cache keeps it off most runs anyway.
 
 ## What this is not
 

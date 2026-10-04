@@ -1,14 +1,13 @@
-**Open. The user stories' authored prose is cut: the four worst went 16.8,
-16.1, 16.1 and 15.1 per thousand to 11.0, 9.8, 8.5 and 11.7. The promise text
-turned out not to need the same pass — measured whole it is 7.5 per thousand,
-where the working rules are 7 — and the one cut worth making was a promise
-reciting its neighbours rather than a style fix. Next: the crosscutting
-concepts, which measure 7.5 too. The counter was reading code as prose and is
-fixed: the tree is 7.0 per thousand with no section above 8.5. The guide
-measures 7.2 over its settled chapter list and its two densest are cut; the
-five pages left between 10 and 11.2 are a read rather than a cut, and they are
-worth taking as item 002 moves each chapter onto the surface rather than ahead
-of it. Next: everything else under `docs/`.**
+**Open, and every part of the tree now measures inside the band. The user
+stories' authored prose is cut: the four worst went 16.8, 16.1, 16.1 and 15.1
+per thousand to 11.0, 9.8, 8.5 and 11.7. The promise text and the crosscutting
+pages measured 7.5 and needed one edit each, found by reading. The counter was
+reading code as prose and is fixed: the specification sections are 7.0 per
+thousand with none above 8.5. The guide, one chapter per user story, is 4.0
+over eighteen chapters with none above 9.0, and the rest of `docs/` —
+`using-dbo.md`, the conformance and evidence pages — is 5.8 or below but for
+two index pages of about a hundred words. What is left is step 5's reading,
+and the measure has over-predicted the work every time it was taken.**
 
 # The specification is cut to the house style
 
@@ -125,8 +124,7 @@ earns its place.
 
 **Twice now the measure has over-predicted the work.** The promise text and the
 crosscutting pages both came in at 7.5 against an expectation of a cut, and
-both yielded one edit found by reading. That is worth saying before step 4
-spends the same effort on the guide.
+both yielded one edit found by reading.
 
 ## What the tree measures, and what the counter was counting
 
@@ -148,42 +146,16 @@ contrasts. That is the rule's own permission — an alternative a reader would
 reach for, named in one clause — applied recursively, and it is where the
 count stops being useful rather than where the prose stops being good.
 
-**So the sections are done and the item is not.** Every section reads at or
-below the working rules' 7 to 8.5. What is left is the guide, and which
-chapters the guide has is settled by
-[item 021](../021-asking-the-store/README.md) rather than here.
+**So the sections are done.** Every section reads at or below the working
+rules' 7 to 8.5.
 
 ## What the guide measured
 
-**7.2 per thousand over 28,071 words across thirty-five chapters**, measured
-over the settled chapter list — `search.md` gone, `asking.md` in its place.
-That is the third time the measure has over-predicted the work: the guide as a
-whole is already inside the band, and only the head of the list is worth
-reading.
-
-| | per thousand | words |
-|---|---|---|
-| `isolation` | 17.0 → 11.2 | 471 |
-| `tenants` | 13.3 → 10.9 | 754 |
-| `authority` | 11.2 | 446 |
-| `history` | 11.1 | 630 |
-| `references` | 11.0 | 546 |
-| `records`, `erasure` | 10.5 | |
-| the other twenty-nine | 10.3 down to 2.1 | |
-
-The two densest were read and cut, and what came out was the same three shapes
-every pass has found. A contrast about the **writing** rather than about the
-subject — *shown rather than asserted*, *worth trying rather than reading*, *a
-claim that skips them is not worth reading*. A distinction drawn **twice** —
-*ids are not global* and then *a leaked id is not a key to anything* three
-sentences later; *it is not instant* and then *but it is not free either*. And
-**scaffolding** announcing a distinction the next clause makes anyway — *note
-what that is and is not*.
-
-What was left alone is the point. `401`, **not** `403`; *not an empty list, and
-not a permission error*; *a query rather than an expedition across nodes*.
-Isolation still reads at 11.2 and every contrast in it now names something a
-reader would otherwise assume.
+**4.0 per thousand over 12,306 words across eighteen chapters**, measured over
+the guide as it is written now, one chapter per user story quoting the sample
+applications. The densest two are `export-and-import` at 9.0 and
+`terminology` at 8.7, both under 250 words; every other chapter is below 7.
+That is the fourth time the measure has over-predicted the work.
 
 ## The count is a signal and not a target
 
@@ -210,15 +182,9 @@ and the number is how the pages get ordered rather than what they are cut to.
    7.5 per thousand over 54,689 words, where this document said 9 to 10. The
    `why-` essays are 8.1, the patterns 6.2, the section READMEs 7.8. One cut
    made, in the densest page, and the counter cannot see it.
-4. The guide chapters, unless item 002 rewrites them first. **Measured and
-   started**: 7.2 per thousand whole, the two densest cut. The chapter list is
-   settled now — item 021 replaced `search.md` with `asking.md`. What is left
-   of this step is the five pages between 10 and 11.2, and they are a read
-   rather than a cut on the number: the guide is already inside the band, so
-   each of them is one page somebody opens rather than a pass over a section.
-
-   Item 002 is rewriting these chapters onto the sample's surface one at a
-   time, which touches the prose around each include. A page cut here and
-   rewritten there is two passes over the same paragraph, so the remaining
-   five are worth taking as each chapter moves rather than ahead of it.
-5. Everything else under `docs/`, then delete this item.
+4. ~~The guide chapters.~~ Measured, and inside the band: 4.0 per thousand,
+   none above 9.0.
+5. Everything else under `docs/`, then delete this item. Measured:
+   `using-dbo.md` 5.8, `docs/README.md` 2.3, the conformance reports 1.3, the
+   search-usage inventory 2.2, and the conformance and evidence indexes about
+   9 over a hundred words each.

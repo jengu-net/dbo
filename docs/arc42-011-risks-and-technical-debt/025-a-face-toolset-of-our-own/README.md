@@ -1,5 +1,5 @@
-**Open. Ten of the twelve moves on the critical path are done; four were
-measurements, the fifth was the decision they were gathered for, and the
+**Open. Eleven of the twelve moves on the critical path are done, and the
+twelfth is wired but for the face image; four were measurements, the fifth was the decision they were gathered for, and the
 checker is finished. A face costs 225 MB because of the form its definitions
 are held in, not their size: 92,807 element definitions as object graphs,
 1.1 million primitive wrappers, one byte array per string. The three cheap
@@ -158,8 +158,12 @@ only for a measurement on a tenant that declared neither. Its two hazards are
 closed by construction rather than by care — a tenant whose rows have not
 arrived is served by the loaded specification until they do, and a definition
 stating only what it CHANGES is named and left unexpanded rather than pulling
-a whole specification into the heap to snapshot it. What remains is step 10's
-other half and step 11 itself.**
+a whole specification into the heap to snapshot it. **And a dependent asks
+its face for the closure it needs**, every round, so a definition published
+after it came up still reaches it. What remains is the image cut per closure
+and accepted on coverage, which is designed below and not built, and refusing
+a tenant that narrows below what its stored documents were validated
+against.**
 
 # A face toolset of our own
 
@@ -607,8 +611,8 @@ was no way to tell what was next from what was merely undone.
 | 7 | ~~**The rest of a checker** — fixed and pattern values, slicing, required bindings~~ **Done**, all five checks, each held against the database's own. Slicing turned out to be a correctness defect rather than a missing feature | a checker that covers what a tenant's own profiles actually say, rather than what base definitions happen not to | 5, because profiles arrive as rows |
 | 8 | ~~**FHIRPath compiled at the cut**~~ **It already was** — into `definition_invariant.path`, when the definition arrives. What was missing was an answerer that RUNS it: **68.4%** of the compiled paths now run in heap and agree with the database, and the rest are declined rather than guessed at | invariants, which are the largest thing the toolchain still answers alone | 5 |
 | 9 | ~~**The payload path without `elementmodel`**~~ **Done.** The round trip was spiked and holds — 6,532 documents and 86 MB in and out unaltered with no context, and no type knowledge either. The envelope is now built too: **3,156 keys over 200 documents, nothing declined, no divergence** from `dbo.envelope` | the last reason a serving node builds a context at all; it is row one of item 024's foot and belonged in neither item's steps | 5, 7 |
-| 10 | **Derived subscriptions** — the closure as what to replicate, the filter computed rather than declared. **The derivation is built and closes over grains**: a dependent of four declared types needs **119 names of the 5,275** a face holds. Not yet wired into the sync path | the database, the expansion, the image and the index all narrowed from one derivation | 5, and [item 021](../021-asking-the-store/README.md)'s answers, which are written |
-| 11 | **The distribution ratchet**: a serving node carries no definition packages. **Cannot fire yet, and now says so with a number**: the ceiling is recorded and may only fall. Its real dependency was never 7, 8 and 9 existing — it is nothing on the serving path BUILDING a context, and `ElementPayloads` still does | the 225 MB, 65 MB of jar, and the property that a context cannot be POPULATED rather than merely is not | 7, 8, 9 — and, it turns out, a write that asks them |
+| 10 | **Derived subscriptions** — the closure as what to replicate, the filter computed rather than declared. **The derivation is built and closes over grains**: a dependent of four declared types needs **119 names of the 5,275** a face holds. **Wired**: a dependent asks its face for its closure every round. The image cut per closure is not built | the database, the expansion, the image and the index all narrowed from one derivation | 5, and [item 021](../021-asking-the-store/README.md)'s answers, which are written |
+| 11 | ~~**The distribution ratchet**: a serving node carries no definition packages.~~ **Done**: the packages are a fragment a face root installs to populate a face, and `config/carried-packages.txt` reads zero | the 225 MB, 65 MB of jar, and the property that a context cannot be POPULATED rather than merely is not | 7, 8, 9 — and, it turns out, a write that asks them |
 
 **Nothing on it is a megabyte until the last one**, which is the same shape
 item 024's path has and for the same reason: an index held beside a context
