@@ -1006,6 +1006,13 @@ public enum DboPromises implements Promise {
             + "HTTP: work goes out and travel, access and result events come home as they "
             + "happen on the same channel. It serves exactly the verbs the other two do, "
             + "and a runner cannot tell which it holds."),
+    PROC_A_STREAM_RIDES_ANY_CARRIER(
+            "The stream protocol rides a carrier the store does not own as well as its own "
+            + "substrate: a host registers a carrier, every tenant's door opens on it, and the "
+            + "same work reaches the same outcome as over HTTP. The store keeps authentication, "
+            + "authorisation, the signature over each ask's bytes, sealing and the feed's "
+            + "cursors; a carrier carries opaque asks, answers and wake-ups, may delay or drop "
+            + "an ask, and an ask it altered is refused as a forgery."),
     PROC_A_STREAM_DOOR_OPENS_FOR_WHOEVER_CAN_ASK(
             "A tenant's door on the deployment's stream is opened when a participant that signs "
             + "its asks is enrolled on it, at bring-up or at any time after, and not before: a "

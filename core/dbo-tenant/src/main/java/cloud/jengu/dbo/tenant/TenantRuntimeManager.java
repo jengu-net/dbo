@@ -518,6 +518,56 @@ public final class TenantRuntimeManager implements AutoCloseable {
         return java.util.Optional.ofNullable(verbServices.get(code));
     }
 
+    /**
+     * Carriers a host registered for the stream protocol, and the door each
+     * holds open per tenant.
+     */
+    private final Map<cloud.jengu.dbo.runner.transport.StreamCarrier, Map<String, OpenDoor>>
+            carried = new ConcurrentHashMap<>();
+
+    /**
+     * Carries every tenant's stream over this carrier too, from now on: a
+     * door opens on it for each tenant this node serves verbs for, and for
+     * each that comes up later.
+     */
+    public void carrying(cloud.jengu.dbo.runner.transport.StreamCarrier carrier) {
+        carried.putIfAbsent(carrier, new ConcurrentHashMap<>());
+        verbServices.keySet().forEach(code -> openOn(carrier, code));
+    }
+
+    /** Stops carrying over this carrier, closing the doors it held. */
+    public void notCarrying(cloud.jengu.dbo.runner.transport.StreamCarrier carrier) {
+        Map<String, OpenDoor> open = carried.remove(carrier);
+        if (open != null) {
+            open.values().forEach(OpenDoor::close);
+        }
+    }
+
+    /**
+     * A tenant's door on a host's carrier. One that will not open is said
+     * once and leaves the tenant serving everything else, as a door on the
+     * substrate does.
+     */
+    private void openOn(cloud.jengu.dbo.runner.transport.StreamCarrier carrier, String code) {
+        Map<String, OpenDoor> open = carried.get(carrier);
+        cloud.jengu.dbo.runner.transport.LaneVerbService verbs = verbServices.get(code);
+        cloud.jengu.dbo.runner.InProcessWakeups claimable = wakeups.get(code);
+        if (open == null || verbs == null || claimable == null) {
+            return;
+        }
+        try {
+            open.computeIfAbsent(code, opening -> {
+                cloud.jengu.dbo.stream.StreamDoor door =
+                        new cloud.jengu.dbo.stream.StreamDoor(carrier, code, verbs);
+                return new OpenDoor(door, claimable.wake(door::workAppeared));
+            });
+        } catch (RuntimeException notOpened) {
+            if (reportedFailures.add(code + ":carried door:" + notOpened)) {
+                LOG.warn("tenant {}: its door on a host's carrier did not open", code, notOpened);
+            }
+        }
+    }
+
     /** Each tenant's way of starting work in this process, by code. */
     private final Map<String, StepSurface> starters = new ConcurrentHashMap<>();
 
@@ -599,14 +649,14 @@ public final class TenantRuntimeManager implements AutoCloseable {
     /**
      * What a pool onto the substrate has to hold for this many doors.
      *
-     * <p>Each door needs {@link cloud.jengu.dbo.stream.StreamDoor#CONNECTIONS},
+     * <p>Each door needs {@link cloud.jengu.dbo.stream.SubstrateCarrier#CONNECTIONS},
      * one of them for as long as it is open; the two beyond them are what is
      * not any one door's — a door being opened, which migrates and counts its
      * generations before it is a door, and a payload set aside beside a
      * message.
      */
     static int substratePoolFor(int doorsOpen) {
-        return doorsOpen * cloud.jengu.dbo.stream.StreamDoor.CONNECTIONS + 2;
+        return doorsOpen * cloud.jengu.dbo.stream.SubstrateCarrier.CONNECTIONS + 2;
     }
 
     /**
@@ -3906,6 +3956,9 @@ public final class TenantRuntimeManager implements AutoCloseable {
                             workGrants, laneFactory);
             verbServices.put(spec.code(), verbs);
             openTheDoorIfWanted(spec.code(), authority, verbs, claimable);
+            // And on every carrier a host registered, which chose to carry
+            // the stream and so is not asked whether anybody can use it.
+            carried.keySet().forEach(carrier -> openOn(carrier, spec.code()));
             if (spec.managedBy() != null) {
                 // The relation, made true at the door: the partner's own
                 // authority is trusted here because this tenant declared it,
@@ -5118,6 +5171,12 @@ public final class TenantRuntimeManager implements AutoCloseable {
         }
         laneFactories.remove(code);
         verbServices.remove(code);
+        carried.values().forEach(open -> {
+            OpenDoor onIt = open.remove(code);
+            if (onIt != null) {
+                onIt.close();
+            }
+        });
         doorLooked.remove(code);
         OpenDoor door = doors.remove(code);
         if (door != null) {

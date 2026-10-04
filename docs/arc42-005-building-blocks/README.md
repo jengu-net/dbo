@@ -115,11 +115,14 @@ and the map answers which module names which.
 - **`dbo-pdi`** — personal-data isolation: identifying elements encrypted
   inside the payload, and the vault that holds the keys.
 - **`dbo-policy`** — audit and write discipline as tenant policy.
-- **`dbo-work`** — runs as records, step declarations, the claim.
-  **`dbo-runner`** — the participation lane and the embeddable step runner.
-  **`dbo-stream`** — the lane's third carrier, over the store's own substrate:
-  the door a tenant mounts and the lane a participant's container holds, which
-  it builds from what the container was told.
+- **`dbo-work`** — runs as records, step declarations, the claim, contact
+  with the workers of a step, and the initiator that asks a tenant for a run.
+  **`dbo-runner`** — the participation lane, the embeddable step runner, and
+  the transport SPI: the dispatch every transport hands its verbs to, and the
+  carrier the stream protocol rides.
+  **`dbo-stream`** — the stream protocol and its carrier over the store's own
+  substrate: the door a tenant mounts and the lane a participant's container
+  holds, which it builds from what the container was told.
   **`dbo-sync`** — declared content dependencies and the replication lane
   between two appliances of one tenant.
 - **`dbo-subscriptions`** — durable subscription delivery over the change feed.

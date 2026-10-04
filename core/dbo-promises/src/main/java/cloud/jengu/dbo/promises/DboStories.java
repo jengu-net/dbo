@@ -67,6 +67,8 @@ public enum DboStories implements Story {
                     DboPromises.PROC_CONTACT_IS_RECORDED_ONLY_THROUGH_WORK,
                     // A router seals past itself only to what it still routes.
                     DboPromises.PROC_A_DROPPED_ROUTEE_IS_NOT_SEALED_TO,
+                    // And the stream rides whatever carries it.
+                    DboPromises.PROC_A_STREAM_RIDES_ANY_CARRIER,
                     DboPromises.WF_POSTGRES_SUBSTRATE,
                     DboPromises.WF_TWO_PLANES,
                     DboPromises.WF_CONTENT_FREE_PLATFORM_PLANE,
@@ -253,6 +255,8 @@ public enum DboStories implements Story {
                     // can tell which carrier it holds.
                     DboPromises.PROC_A_LANE_OVER_THE_STREAM,
                     DboPromises.PROC_A_HOST_HOLDS_A_LANE_WHEREVER_IT_IS,
+                    // Over the store's own substrate, or a carrier a host brings.
+                    DboPromises.PROC_A_STREAM_RIDES_ANY_CARRIER,
                     // A door for whoever can ask through one, whenever they arrive.
                     DboPromises.PROC_A_STREAM_DOOR_OPENS_FOR_WHOEVER_CAN_ASK,
                     // Told there is work, and still claiming it the ordinary way.

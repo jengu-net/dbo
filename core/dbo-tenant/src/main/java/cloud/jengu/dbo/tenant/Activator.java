@@ -77,6 +77,8 @@ public final class Activator implements BundleActivator {
             cloud.jengu.dbo.work.ContactListener> contactListeners;
     private java.util.concurrent.ScheduledExecutorService contactTimers;
     private ServiceRegistration<cloud.jengu.dbo.work.RunInitiator> initiator;
+    private ServiceTracker<cloud.jengu.dbo.runner.transport.StreamCarrier,
+            cloud.jengu.dbo.runner.transport.StreamCarrier> carriers;
 
     /** What this node is called in every contact event it sends. */
     static final String NODE_NAME = "dbo.node.name";
@@ -280,6 +282,37 @@ public final class Activator implements BundleActivator {
                     }
                 });
         contactListeners.open();
+        // A carrier a host registered for the stream protocol: every tenant's
+        // door opens on it too, and closes when it goes.
+        carriers = new ServiceTracker<>(ctx, cloud.jengu.dbo.runner.transport.StreamCarrier.class,
+                new ServiceTrackerCustomizer<>() {
+                    @Override
+                    public cloud.jengu.dbo.runner.transport.StreamCarrier addingService(
+                            ServiceReference<cloud.jengu.dbo.runner.transport.StreamCarrier> ref) {
+                        cloud.jengu.dbo.runner.transport.StreamCarrier carrier =
+                                ctx.getService(ref);
+                        manager.carrying(carrier);
+                        return carrier;
+                    }
+
+                    @Override
+                    public void modifiedService(
+                            ServiceReference<cloud.jengu.dbo.runner.transport.StreamCarrier> ref,
+                            cloud.jengu.dbo.runner.transport.StreamCarrier carrier) {
+                    }
+
+                    @Override
+                    public void removedService(
+                            ServiceReference<cloud.jengu.dbo.runner.transport.StreamCarrier> ref,
+                            cloud.jengu.dbo.runner.transport.StreamCarrier carrier) {
+                        TenantRuntimeManager held = manager;
+                        if (held != null) {
+                            held.notCarrying(carrier);
+                        }
+                        ctx.ungetService(ref);
+                    }
+                });
+        carriers.open();
         // THE SAME WHITEBOARD, AND NOW THE SAME INTERFACE. A step is a
         // StepService whichever level declared it: the runner's own activator
         // watches this too and polls tenant lanes for the steps a TENANT
@@ -872,6 +905,10 @@ public final class Activator implements BundleActivator {
         if (initiator != null) {
             initiator.unregister();
             initiator = null;
+        }
+        if (carriers != null) {
+            carriers.close();
+            carriers = null;
         }
         if (contactListeners != null) {
             contactListeners.close();

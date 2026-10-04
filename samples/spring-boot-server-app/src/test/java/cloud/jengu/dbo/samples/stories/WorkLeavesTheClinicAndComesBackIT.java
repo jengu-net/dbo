@@ -1989,6 +1989,196 @@ class WorkLeavesTheClinicAndComesBackIT {
                 "a routee reported again could not be sealed to");
     }
 
+    // ── and the stream rides whatever carries it ──
+
+    /** A participant holding its lane over a carrier of the story's own. */
+    private static final String CARRIED = NAMES.value("carried");
+    private static final StepDeclaration CARRIED_STEP =
+            StepDeclaration.of(PROCESS + ".carried", "1.0", WorkModel.DOMAIN)
+                    .taking("specimen", "https://meristem.example/shape/specimen");
+    private final java.security.KeyPair carriedSealing =
+            cloud.jengu.dbo.core.api.seal.KeyWrap.newParticipantKeyPair();
+    private final java.security.KeyPair carriedSigning =
+            cloud.jengu.dbo.core.api.seal.SigningKey.newKeyPair();
+
+    @Test
+    @Order(44)
+    @DisplayName("a host carries the stream over a carrier of its own: the hospital's door opens "
+            + "on it, the same sealed work reaches the same outcome as over HTTP, and an ask the "
+            + "carrier altered is refused as a forgery")
+    @Proving({DboPromises.PROC_A_STREAM_RIDES_ANY_CARRIER, DboPromises.PROC_A_LANE_OVER_THE_STREAM})
+    void theStreamRidesAnyCarrier() throws Exception {
+        TenantAuthority authority = tenants.authority(HOSPITAL).orElseThrow();
+        authority.ensureClient(CARRIED, CARRIED + "-secret", List.of("work/" + CARRIED_STEP.id()),
+                cloud.jengu.dbo.core.api.seal.ParticipantKey.of(carriedSealing.getPublic()),
+                cloud.jengu.dbo.core.api.seal.SigningKey.of(carriedSigning.getPublic()));
+        InMemoryCarrier carrier = new InMemoryCarrier(ask -> ask);
+        InMemoryCarrier altering = new InMemoryCarrier(
+                ask -> ask.replace("\"limit\":50", "\"limit\":5000"));
+        try (var carrying = container.registrar().register(
+                cloud.jengu.dbo.runner.transport.StreamCarrier.class, carrier, Map.of());
+             var tampered = container.registrar().register(
+                     cloud.jengu.dbo.runner.transport.StreamCarrier.class, altering, Map.of());
+             var carried = cloud.jengu.dbo.stream.StreamLane.holding(carrier, HOSPITAL, CARRIED,
+                     executor(CARRIED), carriedSealing.getPrivate(), carriedSigning.getPrivate());
+             var forged = cloud.jengu.dbo.stream.StreamLane.holding(altering, HOSPITAL, CARRIED,
+                     executor(CARRIED), carriedSealing.getPrivate(),
+                     carriedSigning.getPrivate())) {
+            carried.introduce(CARRIED_STEP);
+            HttpLane overHttp = HttpLane.holding(URI.create(dbo.at(HOSPITAL) + "/work"),
+                    () -> participantToken(CARRIED), HOSPITAL, CARRIED, executor(CARRIED),
+                    carriedSealing.getPrivate(), carriedSigning.getPrivate());
+
+            Run byCarrier = performedOver(carried, "carried-by-the-host");
+            Run byHttp = performedOver(overHttp, "carried-by-http");
+
+            Proves.that(DboPromises.PROC_A_STREAM_RIDES_ANY_CARRIER,
+                    byCarrier.status() == cloud.jengu.dbo.work.Status.COMPLETED
+                            && byCarrier.tally().equals(byHttp.tally())
+                            && byHttp.status() == byCarrier.status(),
+                    "the same work over the host's carrier did not come to what it came to over "
+                            + "HTTP: " + byCarrier + " / " + byHttp);
+            Proves.that(DboPromises.PROC_A_STREAM_RIDES_ANY_CARRIER,
+                    chainOf(byCarrier).stream().map(e -> e.get("code")).toList()
+                            .equals(chainOf(byHttp).stream().map(e -> e.get("code")).toList()),
+                    "the trail differs by carrier: " + chainOf(byCarrier) + " / "
+                            + chainOf(byHttp));
+            // What the specimen says, which is sealed: the run's own name
+            // travels in the manifest, and is no secret.
+            Proves.that(DboPromises.PROC_A_STREAM_RIDES_ANY_CARRIER,
+                    carrier.carried() > 0 && !carrier.sawPlaintext(specimenText(
+                            "carried-by-the-host")),
+                    "the host's carrier carried nothing, or saw the payload it carried");
+
+            IllegalStateException refused = assertThrows(IllegalStateException.class,
+                    () -> forged.poll(Set.of("carried"), 50),
+                    "an ask the carrier widened was answered");
+            Proves.that(DboPromises.PROC_A_STREAM_RIDES_ANY_CARRIER,
+                    refused.getMessage().contains("(401)")
+                            && refused.getMessage().contains("signed by the participant"),
+                    "an altered ask was not refused as a forgery: " + refused.getMessage());
+        }
+    }
+
+    /** One run of the carried step, performed by a real runner over the lane given. */
+    private Run performedOver(cloud.jengu.dbo.runner.Lane lane, String marker) throws Exception {
+        String specimen = dbo.write(HOSPITAL, "Observation",
+                "{\"resourceType\":\"Observation\",\"status\":\"registered\","
+                        + "\"code\":{\"text\":\"" + specimenText(marker) + "\"}}")
+                .idOrFail();
+        Run run = runs.of(CARRIED_STEP, cloud.jengu.dbo.work.RunKind.PIPELINE,
+                NAMES.value(marker), Map.of("specimen", "Observation/" + specimen));
+        try (cloud.jengu.dbo.runner.StepRunner runner = new cloud.jengu.dbo.runner.StepRunner(
+                Duration.ofMinutes(5), Duration.ofMillis(50))) {
+            runner.register(cloud.jengu.dbo.runner.StepService.performing(CARRIED_STEP.id().toString(),
+                    work -> cloud.jengu.dbo.runner.Outcome.done(Map.of("read",
+                            (long) work.all("specimen").size()))));
+            runner.attach(lane);
+            assertTrue(until(() -> {
+                runner.cycle();
+                return !runs.byKey(run.key()).orElseThrow().open();
+            }, Duration.ofMinutes(1)), "the carried run was never performed");
+        }
+        return runs.byKey(run.key()).orElseThrow();
+    }
+
+    /** What a carried run's specimen says: nothing else on the wire carries it. */
+    private static String specimenText(String marker) {
+        return NAMES.value(marker + "-specimen-reads-this");
+    }
+
+    /**
+     * A carrier of the story's own: asks handed to the door in this process,
+     * answers handed back, held answers kept in a map. It may alter what it
+     * carries, which is the one thing a carrier must not get away with.
+     */
+    private static final class InMemoryCarrier
+            implements cloud.jengu.dbo.runner.transport.StreamCarrier {
+
+        private final java.util.function.UnaryOperator<String> carrying;
+        private final Map<String, Answering> doors = new java.util.concurrent.ConcurrentHashMap<>();
+        private final Map<String, List<Runnable>> listening =
+                new java.util.concurrent.ConcurrentHashMap<>();
+        private final Map<String, String> held = new java.util.concurrent.ConcurrentHashMap<>();
+        private final List<String> seen = new java.util.concurrent.CopyOnWriteArrayList<>();
+
+        InMemoryCarrier(java.util.function.UnaryOperator<String> carrying) {
+            this.carrying = carrying;
+        }
+
+        int carried() {
+            return seen.size();
+        }
+
+        boolean sawPlaintext(String marker) {
+            return seen.stream().anyMatch(text -> text.contains(marker));
+        }
+
+        @Override
+        public Door door(String tenant) {
+            return new Door() {
+                @Override
+                public void serve(Answering answering) {
+                    doors.put(tenant, answering);
+                }
+
+                @Override
+                public void wake() {
+                    listening.getOrDefault(tenant, List.of()).forEach(Runnable::run);
+                }
+
+                @Override
+                public String hold(String id, String answer) {
+                    held.put(id, answer);
+                    return id;
+                }
+
+                @Override
+                public void close() {
+                    doors.remove(tenant);
+                }
+            };
+        }
+
+        @Override
+        public Asker asker(String tenant, String participant) {
+            return new Asker() {
+                @Override
+                public java.util.Optional<String> ask(String id, String ask, Duration patience) {
+                    Answering door = doors.get(tenant);
+                    if (door == null) {
+                        throw new cloud.jengu.dbo.core.api.StoreUnreachableException(
+                                tenant + ": no door on this carrier");
+                    }
+                    String answer = door.answer(id, carrying.apply(ask));
+                    seen.add(ask);
+                    seen.add(answer);
+                    return java.util.Optional.of(answer);
+                }
+
+                @Override
+                public java.util.Optional<String> collect(String key) {
+                    String answer = held.remove(key);
+                    if (answer != null) {
+                        seen.add(answer);
+                    }
+                    return java.util.Optional.ofNullable(answer);
+                }
+
+                @Override
+                public AutoCloseable listen(Runnable woken) {
+                    listening.computeIfAbsent(tenant,
+                            t -> new java.util.concurrent.CopyOnWriteArrayList<>()).add(woken);
+                    return () -> listening.getOrDefault(tenant, List.of()).remove(woken);
+                }
+
+                @Override
+                public void close() {
+                }
+            };
+        }
+    }
+
     /** The registrar's lane, on a credential bounded to the step it performs. */
     private cloud.jengu.dbo.runner.Lane registrarsLane() {
         String token = participant(REGISTRAR,

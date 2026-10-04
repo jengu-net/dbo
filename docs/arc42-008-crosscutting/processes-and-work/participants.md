@@ -121,21 +121,29 @@ it, naming is the forward and leaves the travel link that makes the routee
 the chain's next author, and the opening it carries home is its routee's,
 signed with the routee's own key.
 
-The lane has three carriers and a runner cannot tell which it holds:
-in-process, HTTP, and the store's own stream. The third is the one a shared
-fleet holds. The host connects to the durable substrate it already runs on,
-each served tenant opens a door there — one long-lived workflow, guarded by
-the same authority and the same participation scope as the HTTP door — and a
-verb is a message to that door with its answer an event on it. Work goes out
-and the signed openings and the result come home on the one channel, no
-tenant accepts a callback, and the verbs are encoded once for both wires so
-nothing can be served on one that the other cannot carry. The plane between
-holds no credential and nothing readable: an ask is signed with the
-participant's enrolment key rather than carrying a token, so a lane on the
-stream is held only by a participant enrolled with both keys, and the clear
-verb is refused there by name. A container given
-no substrate serves its lanes over HTTP and in-process only, as every
-container did before the fleet.
+The lane has three bindings and a runner cannot tell which it holds:
+in-process, HTTP, and the stream. Whatever carries a verb, the tenant decides
+it the same way: a transport hands over what the caller presented — a token,
+or a signature over the ask's own bytes — and the verb, and the tenant's one
+dispatch authenticates the caller, authorises it and hands the verb to the
+lane it would have built in-process. HTTP is the reference transport; a host
+carrying verbs over a transport of its own is handed the same dispatch.
+
+The stream is the one a shared fleet holds. An ask is signed with the
+participant's enrolment key rather than carrying a token, delivered to a
+tenant's door, and answered keyed by the ask; an answer too large for a
+message is held until it is collected, and the door says *look again* when
+work appears. That protocol rides a **carrier**: the store's own durable
+substrate, where each served tenant's door is one long-lived workflow opened
+once somebody can ask through it, or a carrier a host registers — a socket of
+its own — on which every tenant's door opens. The store keeps authentication,
+authorisation, the signature, sealing and the feed's cursors; a carrier only
+carries, can delay or drop an ask, and an ask it altered no longer matches its
+signature and is refused as a forgery. The plane between holds no credential
+and nothing readable, so a lane on the stream is held only by a participant
+enrolled with both keys, and the clear verb is refused there by name. A
+container given no substrate and no carrier serves its lanes over HTTP and
+in-process only.
 
 **A worker beside the store keeps a pool of its own onto the substrate.** A
 worker in the same process as the serving half — the clinic's application
