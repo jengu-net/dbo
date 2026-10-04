@@ -28,7 +28,7 @@ overturned, the new record says so and the old one's status changes.
 | [010 Why the engine is shaped this way](010-why-the-engine-is-shaped-this-way.md) | Context | the solution strategy |
 | [011 A pattern language for the store](011-a-pattern-language-for-the-store.md) | Resolved | the patterns |
 | [012 The engine takes no framework](012-the-engine-takes-no-framework.md) | Adopted | building blocks |
-| [013 The store knows workers, not devices](013-the-store-knows-workers-not-devices.md) | Accepted | nothing yet |
+| [013 The store knows workers, not devices](013-the-store-knows-workers-not-devices.md) | Built | participants, and the guide's work chapter |
 
 ## The numbers a comment may still carry
 

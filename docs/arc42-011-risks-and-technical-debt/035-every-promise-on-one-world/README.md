@@ -1,8 +1,8 @@
 **Open; every story is on the one world, and steps 3 to 6 have reached every
 class. Ten story classes — the nine user stories and the erasure story — walk
 Rowling Land, the sample world, in the clinic application's tests
-(`samples/spring-boot-server-app`): one context, every story at once, 229 legs
-in about ten minutes when last timed. Thirteen harness classes still build a
+(`samples/spring-boot-server-app`): one context, every story at once, 237 legs
+in about six minutes when last timed. Thirteen harness classes still build a
 runtime of their own, each with its reason in the worlds ledger, and five take
 the harness's shared tenants; the technical stories hold what the sample world
 cannot be (the version measured, bring-up under strain, a deployment equipped

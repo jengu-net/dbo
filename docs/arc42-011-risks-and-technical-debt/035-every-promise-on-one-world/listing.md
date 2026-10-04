@@ -465,10 +465,10 @@ Story class: `AnOperatorReadsAndSteersTheFleetIT`, on the world.
 | `OPS_FLEET_IS_READ_FROM_OUTSIDE` | — | W | `3` `oneProcessReadsTheWholeDeployment` |
 | `PROC_NETWORK_MAP` | — | W | `4` `theMapIsOneAnswerAcrossNodes` |
 | `PROC_PRESENCE_IS_DERIVED` | — | W | `5` `aWorkerAnnouncesItselfAndPresenceIsDerived` |
-| `PROC_RUNNER_DECLARES_ITS_VITALS` | — |  | `5` `aWorkerAnnouncesItselfAndPresenceIsDerived` |
-| `PROC_A_DEPARTED_ROUTEE_IS_A_STATEMENT` | — | W | `6` `whatSitsBehindTheBench` |
-| `PROC_A_ROUTED_TREE_TRAVELS_AS_A_LANE_VERB` | — | W | `6` `whatSitsBehindTheBench` |
-| `PROC_A_TRACKABLE_MAY_ROUTE_OTHERS` | — | W | `6` `whatSitsBehindTheBench` |
+| `PROC_THE_RUNNER_REPORTS_ITS_COUNTS_IN_ITS_HEARTBEAT` | — |  | `theRunnersCountsRideItsHeartbeat`, in the round-trip story |
+| `PROC_A_DROPPED_ROUTEE_IS_NOT_SEALED_TO` | — | W | `6` `whatSitsBehindTheConnector` |
+| `PROC_A_ROUTED_TREE_TRAVELS_AS_A_LANE_VERB` | — | W | `6` `whatSitsBehindTheConnector` |
+| `PROC_A_TRACKABLE_MAY_ROUTE_OTHERS` | — | W | `6` `whatSitsBehindTheConnector` |
 | `PROC_NUMBERS_LEAVE_AS_LABELS_NEVER_AS_TEXT` | — | W | `7` `numbersLeaveAsLabelsAndNeverAsText` |
 | `PROC_REPORTING_RUNS_WHERE_NOTHING_COLLECTS` | — | W | `7` `numbersLeaveAsLabelsAndNeverAsText` |
 | `OPS_FLEET_IS_ACTED_ON_THROUGH_THE_LANE` | — | W | `8` `aWrongClosureIsUndoneThroughTheLane` |
