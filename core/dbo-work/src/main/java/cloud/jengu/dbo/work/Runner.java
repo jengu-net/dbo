@@ -118,7 +118,15 @@ public final class Runner {
                 // coordinate about this one.
                 continue;
             }
-            handled.add(report(claimed.get(), handler));
+            try {
+                handled.add(report(claimed.get(), handler));
+            } catch (Runs.NotHeld lost) {
+                // Somebody acted on the run before this participant finished
+                // it — housekeeping handed a lapsed claim back, another
+                // participant took it — and nothing was said in its name.
+                // Neither done nor failed here: the work is theirs now.
+                continue;
+            }
         }
         return List.copyOf(handled);
     }
@@ -139,42 +147,74 @@ public final class Runner {
      *             {@code PractitionerRole/<id>}
      */
     public Optional<Run> open(String key, String role) {
-        return runs.byKey(key).flatMap(run -> runs.claimAsPerson(run, role,
-                java.time.Instant.now().plus(hold), null));
+        return runs.byKey(key).flatMap(run -> runs.claimAsPerson(run, role, hold, null));
     }
 
-    /** Progress, which extends the claim. */
+    /**
+     * Progress, which extends the claim.
+     *
+     * @param run the run as its claim, or the last verb said about it, handed
+     *            it back
+     * @throws Runs.NotHeld when the run no longer stands under that claim
+     */
     public Run checkpoint(Run run, Map<String, Long> counts) {
-        return participation.checkpoint(run, counts, hold);
+        return runs.checkpoint(run, holder(run), counts, hold);
     }
 
     /**
      * What happened, on the record — the same records dbo would have written
      * had it done the work itself.
+     *
+     * <p>Said as the run's holder, under the claim {@code claimed} carries,
+     * as every verb a holder says is. The account goes first, so a claim
+     * somebody else ended since is refused before this participant names a
+     * card on work that is no longer its own.
+     *
+     * @param claimed the run as its claim, or the last verb said about it,
+     *                handed it back
+     * @throws Runs.NotHeld when the run no longer stands under that claim;
+     *                      nothing more is written in its name
      */
     public Run report(Run claimed, Outcome outcome) {
-        Run current = outcome.tally().isEmpty() ? claimed
-                : runs.tally(claimed, outcome.tally());
+        Executor holder = holder(claimed);
+        Run current = outcome.tally().isEmpty() && outcome.problems().isEmpty() ? claimed
+                : runs.checkpoint(claimed, holder, outcome.tally(), hold);
         for (Problem problem : outcome.problems()) {
             runs.item(current, problem.reference(), problem.failure(), problem.message());
         }
-        Run latest = runs.byKey(current.key()).orElse(current);
         if (!outcome.finished()) {
             // Out with somebody, and still this participant's to hold: the
             // claim keeps running, and the deadline is what notices if they
             // never come back.
-            return latest;
+            return runs.byKey(current.key()).orElse(current);
         }
-        boolean anybodyWaiting = runs.items(latest).stream()
+        boolean anybodyWaiting = runs.items(current).stream()
                 .anyMatch(item -> item.open() && item.needsAPerson());
+        // The run this participant holds, never the store's copy read back:
+        // the claim is read off it, and the store's copy names whoever holds
+        // the run now.
         return anybodyWaiting
-                ? runs.forPeople(latest, "an outcome of this work needs somebody")
-                : runs.closed(latest);
+                ? runs.forPeople(current, holder, "an outcome of this work needs somebody")
+                : runs.closed(current, holder);
     }
 
-    /** Hands work back deliberately, rather than by dying and being noticed. */
+    /**
+     * Hands work back deliberately, rather than by dying and being noticed.
+     *
+     * @throws Runs.NotHeld when the run no longer stands under the claim
+     *                      {@code claimed} carries; nothing is written
+     */
     public Run giveBack(Run claimed, String why) {
-        return runs.released(claimed, why);
+        return runs.released(claimed, holder(claimed), why, null);
+    }
+
+    /**
+     * Who the run's claim names: this participant's executor, or nobody for a
+     * person who opened it here — a person is not a device, and the claim
+     * they hold names their role.
+     */
+    private Executor holder(Run claimed) {
+        return claimed.heldByAPerson() ? null : self.executor();
     }
 
     /** How far behind this participant is. */
@@ -183,16 +223,23 @@ public final class Runner {
     }
 
     private Run report(Run claimed, Handler handler) {
+        Outcome outcome;
         try {
-            return report(claimed, handler.handle(claimed));
+            outcome = handler.handle(claimed);
         } catch (Exception failed) {
             // The class and the step's declared retry decide where it goes:
             // a record that is wrong ends it, a fault the step said will pass
             // goes back to automation later, and anything else to a person.
+            // Released first, so a claim somebody else ended since is refused
+            // before a card is named in this participant's name.
             Failure failure = Failure.of(failed);
-            runs.item(claimed, self.name(), failure, String.valueOf(failed.getMessage()));
-            Run latest = runs.byKey(claimed.key()).orElse(claimed);
-            return runs.released(latest, "the work failed: " + failed.getMessage(), failure);
+            Run released = runs.released(claimed, holder(claimed),
+                    "the work failed: " + failed.getMessage(), failure);
+            runs.item(released, self.name(), failure, String.valueOf(failed.getMessage()));
+            return runs.byKey(released.key()).orElse(released);
         }
+        // Outside the handler's failure: a claim lost while reporting is not
+        // the work failing, and must not be released as though it were.
+        return report(claimed, outcome);
     }
 }

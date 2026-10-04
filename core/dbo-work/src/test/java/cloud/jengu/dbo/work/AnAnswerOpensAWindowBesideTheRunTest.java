@@ -89,10 +89,12 @@ class AnAnswerOpensAWindowBesideTheRunTest {
         Run answered = runs.closed(asked(COLLECT), List.of("Patient/p1/1"));
         Instant now = Instant.now();
 
-        Run collected = runs.collected(answered, now);
+        Run collected = runs.collected(answered, ASKER, now).orElseThrow();
         assertEquals(now, collected.window().until());
         assertFalse(collected.collectableBy(ASKER, now));
-        assertEquals(collected.versionId(), runs.collected(collected, now.plusSeconds(1))
+        assertTrue(runs.collected(collected, ASKER, now.plusSeconds(1)).isEmpty(),
+                "a shut window was shut again");
+        assertEquals(collected.versionId(), runs.byId(collected.id()).orElseThrow()
                 .versionId(), "shutting a shut window advanced the run");
     }
 

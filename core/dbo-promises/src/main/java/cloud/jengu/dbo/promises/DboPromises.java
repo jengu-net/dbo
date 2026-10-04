@@ -378,7 +378,17 @@ public enum DboPromises implements Promise {
             + "is refused as a refusal and changes nothing, however the two writes race. A "
             + "runner told so drops the work quietly instead of releasing it as a failure, so "
             + "a run housekeeping already routed is not sent to people, and nobody's live "
-            + "claim is cleared by a participant that no longer holds it."),
+            + "claim is cleared by a participant that no longer holds it. The same holds at "
+            + "the step door: a person who claimed the run there, or the client that started "
+            + "it, closes or checkpoints it only while it still holds it, and one that no "
+            + "longer does is answered as for a run that never existed."),
+
+    PROC_A_CLAIM_IS_NAMED_BY_THE_STORE_NOT_BY_ITS_TAKER("A claim is told from every other "
+            + "claim by a name the store gives it as it lands, and a holder is judged by the "
+            + "claim it carries rather than by what it calls itself. Two replicas of one "
+            + "executor — the same name, version and credential — can each hold a run in turn, "
+            + "and the one whose claim was handed back is refused what it says about the run "
+            + "the other now holds."),
 
     PROC_A_HOLD_RUNS_FROM_WHEN_THE_CLAIM_LANDS("A participant claims a run for a duration, "
             + "and the store measures it from when the claim is written, by its own clock — "

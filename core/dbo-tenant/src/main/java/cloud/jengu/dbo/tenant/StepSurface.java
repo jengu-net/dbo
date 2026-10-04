@@ -858,11 +858,18 @@ final class StepSurface implements HttpHandler {
         if (!held(found, asking) && found.isPresent()
                 && found.get().collectableBy(asking, clock.instant())) {
             // The asker is done collecting: its window shuts now, and the run
-            // — over already — is otherwise untouched.
-            Run collected = runs.collected(found.get(), clock.instant());
-            respond(exchange, 200, "{\"run\":" + quote(collected.id()) + ",\"key\":"
-                    + quote(collected.key()) + ",\"status\":"
-                    + quote(collected.status().wire()) + "}");
+            // — over already — is otherwise untouched. Shut only while it is
+            // still the asker's to shut, judged where the write lands: a run
+            // reopened since this look is somebody's work again, and answers
+            // as one that never existed.
+            Optional<Run> collected = runs.collected(found.get(), asking, clock.instant());
+            if (collected.isEmpty()) {
+                fail(exchange, 404, "not_found", "no such run");
+                return;
+            }
+            respond(exchange, 200, "{\"run\":" + quote(collected.get().id()) + ",\"key\":"
+                    + quote(collected.get().key()) + ",\"status\":"
+                    + quote(collected.get().status().wire()) + "}");
             return;
         }
         // Ended only by whoever holds it. Somebody else ending a run would
@@ -874,7 +881,17 @@ final class StepSurface implements HttpHandler {
         }
         Run ended;
         try {
-            ended = runs.closed(found.get());
+            // Conditional on holding, asked again of the version the close
+            // replaces: a lease that lapsed and was handed back, or a lane
+            // that took the run, between the look above and this write is a
+            // write that landed first, and the asker no longer holds the run.
+            ended = runs.closed(found.get(), asking);
+        } catch (Runs.NotHeld lost) {
+            // Answered as anybody who does not hold the run is, word for
+            // word: the asker held it a moment ago, and the difference
+            // between the two refusals would say nothing true about it now.
+            fail(exchange, 404, "not_found", "no such run");
+            return;
         } catch (Runs.NotAnAction refused) {
             // A step that declares its actions and omits close has said its
             // closure is somebody else's act. Told by name rather than as a
@@ -959,8 +976,15 @@ final class StepSurface implements HttpHandler {
             fail(exchange, 404, "not_found", "no such run");
             return;
         }
-        Run extended = runs.checkpoint(found.get(), Map.of(),
-                java.time.Instant.now().plus(A_PERSONS_LEASE));
+        Run extended;
+        try {
+            // Conditional on holding, as a close is; the lease is measured
+            // from the store's clock as the checkpoint is written.
+            extended = runs.checkpoint(found.get(), asking, A_PERSONS_LEASE);
+        } catch (Runs.NotHeld lost) {
+            fail(exchange, 404, "not_found", "no such run");
+            return;
+        }
         respond(exchange, 200, "{\"run\":" + quote(extended.id()) + ",\"until\":"
                 + quote(String.valueOf(extended.assignment().until())) + "}");
     }

@@ -776,7 +776,8 @@ public interface Lane {
             public void closed(Run run, String head) {
                 Run current = claimedByThisIdentity(run);
                 requireCompleteChain(current, head);
-                runs.closed(current, identity);
+                // The asker's run, not the store's: the claim is read off it.
+                runs.closed(run, identity);
             }
 
             @Override
@@ -808,7 +809,7 @@ public interface Lane {
                     // ENDED, with the tenant's words: the same result would be
                     // refused the same way next time, so nobody is asked to
                     // try again.
-                    return runs.refused(current, identity, refused.getMessage());
+                    return runs.refused(run, identity, refused.getMessage());
                 } finally {
                     if (outer == null) {
                         cloud.jengu.dbo.core.api.Caller.clearRun();
@@ -820,7 +821,7 @@ public interface Lane {
                 // says. The records are written by now and are the tenant's;
                 // what a lost claim refuses is the run's account of them,
                 // because the run is somebody else's to finish.
-                return runs.closed(current, identity, versions);
+                return runs.closed(run, identity, versions);
             }
 
             /**
@@ -993,7 +994,7 @@ public interface Lane {
 
             @Override
             public cloud.jengu.dbo.work.SealedWork sealed(Run run, List<String> named) {
-                Run current = claimedByThisIdentity(run);
+                Run current = readableByThisIdentity(run);
                 if (named == null || named.isEmpty()) {
                     throw new IllegalStateException(tenant + ": a payload is sealed to somebody, "
                             + "and nobody was named");
@@ -1090,7 +1091,7 @@ public interface Lane {
             @Override
             public cloud.jengu.dbo.work.SealedPayload identified(Run run, String reference,
                     String purpose) {
-                Run current = claimedByThisIdentity(run);
+                Run current = readableByThisIdentity(run);
                 if (!names(current, reference)) {
                     throw new IllegalStateException(tenant + ": run '" + current.key()
                             + "' names no input '" + reference + "' to identify");
@@ -1177,7 +1178,7 @@ public interface Lane {
             @Override
             public String opened(Run run, String reference,
                     cloud.jengu.dbo.work.RunChain.Link link) {
-                Run current = claimedByThisIdentity(run);
+                Run current = readableByThisIdentity(run);
                 if (!names(current, reference)) {
                     throw new IllegalStateException(tenant + ": run '" + current.key()
                             + "' names no input '" + reference + "' to have opened");
@@ -1267,8 +1268,35 @@ public interface Lane {
                                 + run.key() + "' — the trail's chain already has a hole"));
             }
 
-            /** The guard inputs() promises, shared by every verb answered against a claim. */
+            /**
+             * The guard a holder's write is put to before anything is
+             * written in its name: the run still stands under the claim the
+             * asker carries — the run its claim handed it, or one a verb
+             * handed back since. Judged by the claim and not by this
+             * identity, because a replica of the same executor shares the
+             * identity and the credential, and its claim is not this one.
+             * The write itself is judged again, conditionally, where it
+             * lands.
+             */
             private Run claimedByThisIdentity(Run run) {
+                Run current = runs.byKey(run.key()).orElseThrow(() -> new IllegalStateException(
+                        tenant + ": no run '" + run.key() + "'"));
+                if (!current.heldUnder(identity, run.hold())) {
+                    throw new Runs.NotHeld(tenant + ": run '" + run.key()
+                            + "' is not claimed by " + identity.name()
+                            + " — only the participant holding a run acts on it");
+                }
+                return current;
+            }
+
+            /**
+             * The guard a read against a claim is put to: the run is held by
+             * this identity, under whichever of its claims. A read is
+             * authorised by the credential, which a replica of the same
+             * executor shares, so it is judged by the identity; what a holder
+             * says is judged by its claim, {@link #claimedByThisIdentity}.
+             */
+            private Run readableByThisIdentity(Run run) {
                 Run current = runs.byKey(run.key()).orElseThrow(() -> new IllegalStateException(
                         tenant + ": no run '" + run.key() + "'"));
                 if (!heldByThisIdentity(current)) {

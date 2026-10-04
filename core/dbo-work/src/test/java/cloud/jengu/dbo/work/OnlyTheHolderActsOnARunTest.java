@@ -139,6 +139,66 @@ class OnlyTheHolderActsOnARunTest {
         assertTrue(after.heldBy(first), "the holder's report was undone: " + after.assignment());
     }
 
+    @Test
+    @DisplayName("two replicas of one executor: the first's lapsed claim handed back and taken "
+            + "by the second, the first's late checkpoint, milestone, release and close are "
+            + "refused, and the second's stand")
+    @Proving({DboPromises.PROC_ONLY_THE_HOLDER_ACTS_ON_A_RUN,
+            DboPromises.PROC_A_CLAIM_IS_NAMED_BY_THE_STORE_NOT_BY_ITS_TAKER})
+    void aReplicaOfTheSameExecutorIsNotTheHolder() {
+        Run run = runs.pipeline(PROCESS, STEP, "replicas");
+        // Two processes running one executor: the same name and version.
+        Run claimedByA = runs.claim(run, first, Duration.ZERO).orElseThrow();
+        assertEquals(1, Participation.releaseLapsed(runs),
+                "housekeeping did not hand the lapsed claim back");
+        Run claimedByB = runs.claim(runs.byKey(run.key()).orElseThrow(), first,
+                Duration.ofMinutes(5)).orElseThrow();
+        Run takenOver = runs.byKey(run.key()).orElseThrow();
+
+        refusedAndUnchanged(takenOver, () -> runs.checkpoint(claimedByA, first,
+                Map.of("read", 1L), Duration.ofMinutes(5)), "checkpoint");
+        refusedAndUnchanged(takenOver, () -> runs.milestone(claimedByA, first, "read",
+                Map.of(), Duration.ofMinutes(5)), "milestone");
+        refusedAndUnchanged(takenOver, () -> runs.released(claimedByA, first,
+                "the service threw: not claimed", Failure.UNKNOWN), "release");
+        refusedAndUnchanged(takenOver, () -> runs.closed(claimedByA, first), "close");
+        refusedAndUnchanged(takenOver, () -> runs.closed(claimedByA, first,
+                List.of("Observation/o1/1")), "close over a result");
+
+        Run progressed = runs.checkpoint(claimedByB, first, Map.of("read", 2L),
+                Duration.ofMinutes(5));
+        assertEquals(2L, progressed.tally().get("read"), "the holder's checkpoint was lost");
+        Run closed = runs.closed(progressed, first);
+        assertEquals(Status.COMPLETED, closed.status(), "the holder could not close its run");
+    }
+
+    @Test
+    @DisplayName("the reference runner whose lapsed claim housekeeping handed back is refused "
+            + "its checkpoint, its report and its hand-back, and the run stays where "
+            + "housekeeping routed it")
+    @Proving(DboPromises.PROC_ONLY_THE_HOLDER_ACTS_ON_A_RUN)
+    void theReferenceRunnerSpeaksOnlyAsTheHolder() {
+        Run run = runs.pipeline(PROCESS, STEP, "carried");
+        Runner runner = new Runner(runs, held.feed(),
+                new Declarations(held.store(), held.feed(), Duration.ofMinutes(1)),
+                new Declarations.Declared(PROCESS, STEP, first.name(), first.version(),
+                        first.provider(), Scope.BASELINE, "participant.analyser-a"),
+                Duration.ofMinutes(5));
+        Run claimed = runs.claim(run, first, Duration.ZERO).orElseThrow();
+        assertEquals(1, Participation.releaseLapsed(runs),
+                "housekeeping did not hand the lapsed claim back");
+        Run handedBack = runs.byKey(run.key()).orElseThrow();
+
+        refusedAndUnchanged(handedBack, () -> runner.checkpoint(claimed, Map.of("read", 1L)),
+                "checkpoint");
+        refusedAndUnchanged(handedBack, () -> runner.report(claimed,
+                Runner.Outcome.done(Map.of("read", 1L))), "report");
+        refusedAndUnchanged(handedBack, () -> runner.giveBack(claimed, "nothing to do"),
+                "hand-back");
+        assertTrue(runs.items(handedBack).isEmpty(),
+                "a refused report still named a card: " + runs.items(handedBack));
+    }
+
     private void refusedAndUnchanged(Run before, Executable verb, String what) {
         Run stored = runs.byKey(before.key()).orElseThrow();
         assertThrows(Runs.NotHeld.class, verb,

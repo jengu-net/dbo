@@ -102,9 +102,20 @@ public final class Participation {
         return runs.claim(run, identity, holdFor);
     }
 
-    /** Progress, which extends the claim — never a tick (see {@link Runs#checkpoint}). */
+    /**
+     * Progress, which extends the claim — never a tick (see {@link Runs#checkpoint}).
+     *
+     * <p>Said as this participant's holder, under the claim {@code run}
+     * carries: a claim housekeeping handed back, or one another participant
+     * took since — a replica of this one among them — is refused, and nothing
+     * is written in its name.
+     *
+     * @param run the run as its claim, or the last verb said about it, handed
+     *            it back
+     * @throws Runs.NotHeld when the run no longer stands under that claim
+     */
     public Run checkpoint(Run run, java.util.Map<String, Long> counts, Duration holdFor) {
-        return runs.checkpoint(run, counts, Instant.now().plus(holdFor));
+        return runs.checkpoint(run, identity, counts, holdFor);
     }
 
     /**

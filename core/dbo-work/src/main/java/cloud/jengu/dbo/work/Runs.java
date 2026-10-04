@@ -457,7 +457,7 @@ public final class Runs {
     public Run selected(Run run, Scope at, Executor executor, String note) {
         return update(run, snapshot -> snapshot.withAssignment(
                 new Run.Assignment(at, executor, note, null, claimantOf(snapshot),
-                        roleOf(snapshot))));
+                        roleOf(snapshot), holdOf(snapshot))));
     }
 
     /**
@@ -473,7 +473,7 @@ public final class Runs {
     public Run fellThrough(Run run, Scope at, String reason) {
         Run recorded = update(run, snapshot -> snapshot.withAssignment(
                 new Run.Assignment(at, null, reason, null, claimantOf(snapshot),
-                        roleOf(snapshot))));
+                        roleOf(snapshot), holdOf(snapshot))));
         return forPeople(recorded, reason);
     }
 
@@ -581,9 +581,12 @@ public final class Runs {
         // checks above made: this is the moment the claim lands, as near as
         // the store can say it.
         java.time.Instant until = deadline.apply(clock.instant());
+        // The claim's own name, minted as it lands: what every verb its
+        // holder says is judged by, because the executor and the claimant
+        // are shared by every replica of one executor and the claim is not.
         State claimed = state(current).withAssignment(
                 new Run.Assignment(current.assignment() == null ? null : current.assignment().at(),
-                        by, null, until, claimant))
+                        by, null, until, claimant, null, UuidV7.newId()))
                 .withStanding(Standing.of(current).as(Status.IN_PROGRESS).notBefore(null));
         try {
             store.put(new PutRequest(WorkModel.TYPE, current.id(), current.versionId(),
@@ -645,7 +648,7 @@ public final class Runs {
         java.time.Instant until = deadline.apply(clock.instant());
         State claimed = state(current).withAssignment(
                 new Run.Assignment(current.assignment() == null ? null : current.assignment().at(),
-                        null, null, until, claimant, role))
+                        null, null, until, claimant, role, UuidV7.newId()))
                 .withStanding(Standing.of(current).as(Status.IN_PROGRESS).notBefore(null));
         try {
             store.put(new PutRequest(WorkModel.TYPE, current.id(), current.versionId(),
@@ -670,7 +673,7 @@ public final class Runs {
                 snapshot.assignment() == null ? null : snapshot.assignment().at(),
                 snapshot.assignment() == null ? null : snapshot.assignment().executor(),
                 snapshot.assignment() == null ? null : snapshot.assignment().note(), until,
-                claimantOf(snapshot), roleOf(snapshot))));
+                claimantOf(snapshot), roleOf(snapshot), holdOf(snapshot))));
     }
 
     /**
@@ -703,7 +706,7 @@ public final class Runs {
                         snapshot.assignment() == null ? null : snapshot.assignment().at(),
                         snapshot.assignment() == null ? null : snapshot.assignment().executor(),
                         snapshot.assignment() == null ? null : snapshot.assignment().note(),
-                        until, claimantOf(snapshot), roleOf(snapshot))));
+                        until, claimantOf(snapshot), roleOf(snapshot), holdOf(snapshot))));
     }
 
     /** The named point, positioned over the step's declared order where it has one. */
@@ -797,13 +800,16 @@ public final class Runs {
      * What a holder says about the run it holds
      * (REQ-DBO-PROC-ONLY-THE-HOLDER-ACTS-ON-A-RUN).
      *
-     * Each verb below is the same act as its namesake above, said by the
-     * executor that claimed the run, and lands only while the run still names
-     * that executor as its holder — judged on the version being replaced, and
-     * written conditionally on it, so a hand-back or another participant's
-     * claim that lands first leaves this one nothing to write. The verbs
-     * above stay for the store's own acts — housekeeping, a sweep, a person at
-     * the console — which hold nothing and are not judged by holding.
+     * Each verb below is the same act as its namesake above, said by whoever
+     * holds the run, and lands only while the run still stands under that
+     * holder's claim — judged on the version being replaced, and written
+     * conditionally on it, so a hand-back or another claim that lands first
+     * leaves this one nothing to write. An executor's claim is named by the
+     * hold the store minted when it landed, which the run the holder was
+     * handed carries; a client holding a run at the step door is named by its
+     * credential. The verbs above stay for the store's own acts —
+     * housekeeping, a sweep, the store performing its own run, an operator
+     * reopening one — which hold nothing and are not judged by holding.
      */
 
     /**
@@ -896,6 +902,44 @@ public final class Runs {
                 snapshot.standing().as(Status.FAILED).because(because)).withRefused(because));
     }
 
+    /**
+     * Given to people by the holder: what its work found needs somebody, so
+     * the run waits for a person, its claim let go — as {@link
+     * #forPeople(Run, String)} says.
+     *
+     * @throws NotHeld when the run no longer stands under the holder's claim;
+     *                 nothing is written
+     */
+    public Run forPeople(Run run, Executor holder, String because) {
+        return advanceHeld(run, holder, "given to people", givenToPeople(because));
+    }
+
+    /**
+     * Progress, said by the client holding the run at the step door — its
+     * starter, or a person who claimed it there: the lease moved to
+     * {@code holdFor} from when the advance is written.
+     *
+     * @param claimant the client the authority read off the credential asking
+     * @throws NotHeld when the run is not that client's now; nothing is written
+     */
+    public Run checkpoint(Run run, String claimant, java.time.Duration holdFor) {
+        return advanceHeldByClient(run, claimant, "checkpointed",
+                snapshot -> extended(snapshot, holdFor));
+    }
+
+    /**
+     * Done, said by the client holding the run at the step door, through the
+     * step's declared {@code close}.
+     *
+     * @param claimant the client the authority read off the credential asking
+     * @throws NotHeld when the run is not that client's now; nothing is written
+     */
+    public Run closed(Run run, String claimant) {
+        requireAction(run, "close");
+        return advanceHeldByClient(run, claimant, "closed", snapshot -> answered(
+                snapshot.withStanding(snapshot.standing().as(Status.COMPLETED))));
+    }
+
     /** The deadline moved to {@code holdFor} from now; whose the work is does not change. */
     private State extended(State snapshot, java.time.Duration holdFor) {
         java.util.Objects.requireNonNull(holdFor, "holdFor");
@@ -903,7 +947,8 @@ public final class Runs {
                 snapshot.assignment() == null ? null : snapshot.assignment().at(),
                 snapshot.assignment() == null ? null : snapshot.assignment().executor(),
                 snapshot.assignment() == null ? null : snapshot.assignment().note(),
-                clock.instant().plus(holdFor), claimantOf(snapshot), roleOf(snapshot)));
+                clock.instant().plus(holdFor), claimantOf(snapshot), roleOf(snapshot),
+                holdOf(snapshot)));
     }
 
     /**
@@ -981,6 +1026,7 @@ public final class Runs {
                         && java.util.Objects.equals(current.assignment().claimant(),
                                 found.claimant())
                         && java.util.Objects.equals(current.assignment().role(), found.role())
+                        && java.util.Objects.equals(current.assignment().hold(), found.hold())
                         && found.until().equals(current.assignment().until())
                         && !found.until().isAfter(now),
                 releasing(lapsed, "the claim lapsed at " + found.until()
@@ -1087,25 +1133,22 @@ public final class Runs {
      * The requester has collected what it wanted: its window shuts now rather
      * than when the step said it would.
      *
-     * <p>A window already shut, or one never opened, is left as it is — the
-     * requester saying it is done twice asks for nothing new, and a run whose
-     * result is not written has no window to shut.
+     * <p>Only while the window is the requester's to shut, asked of the
+     * version the write replaces and written conditionally on it: a run
+     * reopened since the requester looked is somebody's work again, and a
+     * window already shut, or never opened, has nothing to shut — the
+     * requester saying it is done twice asks for nothing new, and nothing is
+     * written, because a version saying nothing happened would be a change
+     * somebody reads.
+     *
+     * @param requester the client the authority read off the credential asking
+     * @return the run with its window shut, or empty when it was not this
+     *         requester's to shut, in which case nothing was written
      */
-    public Run collected(Run run, java.time.Instant now) {
-        Run current = byKey(run.key()).orElse(run);
-        if (current.window() == null || current.window().until() == null
-                || !now.isBefore(current.window().until())) {
-            // Nothing to shut, and nothing written: a version saying nothing
-            // happened would be a change somebody reads.
-            return current;
-        }
-        return update(current, snapshot -> {
-            Run.Window window = snapshot.window();
-            if (window == null || window.until() == null || !now.isBefore(window.until())) {
-                return snapshot;
-            }
-            return snapshot.withWindow(new Run.Window(window.collect(), now));
-        });
+    public Optional<Run> collected(Run run, String requester, java.time.Instant now) {
+        return advanceIf(run, "collected", current -> current.collectableBy(requester, now),
+                snapshot -> snapshot.withWindow(new Run.Window(snapshot.window().collect(),
+                        now)));
     }
 
     /**
@@ -1222,14 +1265,19 @@ public final class Runs {
      * automated took, and what a sweep found wrong.
      */
     public Run forPeople(Run run, String because) {
-        return update(run, snapshot -> {
+        return update(run, givenToPeople(because));
+    }
+
+    /** What giving a run to people writes: ready for a person, and no claim on it. */
+    private static java.util.function.UnaryOperator<State> givenToPeople(String because) {
+        return snapshot -> {
             State given = snapshot.withStanding(snapshot.standing().as(Status.READY)
                     .openTo(false).notBefore(null).because(because));
             return snapshot.assignment() == null ? given
                     : given.withAssignment(new Run.Assignment(snapshot.assignment().at(),
                             snapshot.assignment().executor(), snapshot.assignment().note(),
                             null));
-        });
+        };
     }
 
     /**
@@ -1455,6 +1503,11 @@ public final class Runs {
         return snapshot.assignment() == null ? null : snapshot.assignment().role();
     }
 
+    /** Which claim the run stands under, carried through the same advances. */
+    private static String holdOf(State snapshot) {
+        return snapshot.assignment() == null ? null : snapshot.assignment().hold();
+    }
+
     private State state(Run run) {
         return new State(run.key(), run.process(), run.step(), run.kind(), Standing.of(run),
                 run.parent(), run.correlation(), run.trace(), run.tally(), run.item(),
@@ -1584,19 +1637,45 @@ public final class Runs {
     }
 
     /**
-     * An advance a holder makes, landing only while the run names it as the
-     * holder (REQ-DBO-PROC-ONLY-THE-HOLDER-ACTS-ON-A-RUN).
+     * An advance a holder makes, landing only while the run still stands
+     * under the claim the holder was handed
+     * (REQ-DBO-PROC-ONLY-THE-HOLDER-ACTS-ON-A-RUN).
      *
-     * <p>Judged on the version the write replaces and written conditionally on
-     * it, as a claim is: a hand-back or another participant's claim that lands
-     * between the read and the write makes this write the one that loses, and
-     * the re-read finds the run is no longer this holder's. So two writers
-     * racing one run cannot both win, whichever of them is first.
+     * <p>The claim is read off the run the caller holds — the one its claim
+     * handed it, or one a verb handed back since — and never off the store's
+     * copy, which names whoever holds the run now. Judged on the version the
+     * write replaces and written conditionally on it, as a claim is: a
+     * hand-back or another claim that lands between the read and the write
+     * makes this write the one that loses, and the re-read finds the run
+     * stands under somebody else's claim. So two writers racing one run
+     * cannot both win, whichever of them is first — and a replica of the
+     * same executor is somebody else.
      */
     private Run advanceHeld(Run run, Executor holder, String what,
             java.util.function.UnaryOperator<State> change) {
-        return advanceIf(run, what, current -> current.heldBy(holder), change)
+        String hold = run.hold();
+        return advanceIf(run, what, current -> current.heldUnder(holder, hold), change)
                 .orElseThrow(() -> new NotHeld(run.key(), holder, what));
+    }
+
+    /**
+     * An advance the client holding a run at the step door makes — the
+     * starter that asked for it, or a person who claimed it there — landing
+     * only while the run is still that client's
+     * (REQ-DBO-PROC-ONLY-THE-HOLDER-ACTS-ON-A-RUN).
+     *
+     * <p>The same discipline as {@link #advanceHeld}: asked of the version
+     * the write replaces, from this store's clock, and written conditionally
+     * on it, so a lease that lapsed and was handed back, or a lane that took
+     * the run, between the door's look and this write is the write that
+     * landed first.
+     */
+    private Run advanceHeldByClient(Run run, String claimant, String what,
+            java.util.function.UnaryOperator<State> change) {
+        return advanceIf(run, what, current -> current.heldBy(claimant, clock.instant()), change)
+                .orElseThrow(() -> new NotHeld("run '" + run.key() + "' is not held by "
+                        + claimant + ", so it is not " + what + " in its name — somebody acted "
+                        + "on the run since it was taken"));
     }
 
     /**
@@ -1888,6 +1967,9 @@ public final class Runs {
                 }
                 if (assignment.role() != null) {
                     json.append(",\"role\":").append(Json.quoted(assignment.role()));
+                }
+                if (assignment.hold() != null) {
+                    json.append(",\"hold\":").append(Json.quoted(assignment.hold()));
                 }
             }
             if (stepVersion != null) {

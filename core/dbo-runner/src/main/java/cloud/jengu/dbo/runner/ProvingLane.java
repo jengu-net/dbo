@@ -459,7 +459,8 @@ public final class ProvingLane implements Lane {
                 run.kind(), run.parent(), run.correlation(), run.trace(),
                 run.tally(), run.item(), run.domains(),
                 new Run.Assignment(Scope.BASELINE, by, null,
-                        Instant.now().plus(Duration.ofMinutes(5))),
+                        Instant.now().plus(Duration.ofMinutes(5)), null, null,
+                        java.util.UUID.randomUUID().toString()),
                 run.produced(), run.stepVersion(), run.inputs(), run.milestone(),
                 run.requester(), run.refused(), cloud.jengu.dbo.work.Status.IN_PROGRESS,
                 run.automation(), null, null, run.attempts(), run.retry());

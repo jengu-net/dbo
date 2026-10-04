@@ -54,7 +54,10 @@ class APersonTakesARunAsTheirRoleTest {
     private static final String STEP = "ward.porter.fetch";
 
     private final InMemory held = new InMemory();
-    private final Runs runs = new Runs(held.store());
+    /** Run once, just before the next write lands — the other writer arriving in between. */
+    private final java.util.concurrent.atomic.AtomicReference<Runnable> beforeTheNextWrite =
+            new java.util.concurrent.atomic.AtomicReference<>();
+    private final Runs runs = new Runs(racing(held.store()));
     private final HttpClient client = HttpClient.newHttpClient();
     private HttpServer server;
     private String base;
@@ -145,6 +148,109 @@ class APersonTakesARunAsTheirRoleTest {
         assertEquals(send(base + invented + "/claim", "POST", "hermione").body(), clerk.body());
         assertTrue(runs.byId(run.id()).orElseThrow().open()
                 && !runs.byId(run.id()).orElseThrow().claimed(Instant.now()));
+    }
+
+    @Test
+    @DisplayName("a nurse whose lapsed lease is handed back and taken by another between the "
+            + "door's look and the close is answered as a stranger, and the other's claim "
+            + "stands")
+    @Proving(DboPromises.PROC_ONLY_THE_HOLDER_ACTS_ON_A_RUN)
+    void aLateCloseAtTheDoorLosesTheRace() throws Exception {
+        Run run = started(null);
+        assertEquals(200, send(base + run.id() + "/claim", "POST", "hermione").statusCode());
+        beforeTheNextWrite.set(() -> handedBackAndTakenByPoppy(run));
+
+        HttpResponse<String> late = done(run, "hermione");
+
+        assertEquals(404, late.statusCode(), late.body());
+        assertEquals(strangersDone(), late.body(),
+                "a close that lost its run answered differently from a run that never existed");
+        Run after = runs.byId(run.id()).orElseThrow();
+        assertEquals(Status.IN_PROGRESS, after.status(), "the late close ended the run");
+        assertEquals("PractitionerRole/nurse-2", after.assignment().role(),
+                "the late close undid the next nurse's claim");
+        assertEquals("person-2", after.assignment().claimant());
+    }
+
+    @Test
+    @DisplayName("a nurse whose lapsed lease is handed back and taken by another between the "
+            + "door's look and the checkpoint extends nothing, and is answered as a stranger")
+    @Proving(DboPromises.PROC_ONLY_THE_HOLDER_ACTS_ON_A_RUN)
+    void aLateCheckpointAtTheDoorLosesTheRace() throws Exception {
+        Run run = started(null);
+        assertEquals(200, send(base + run.id() + "/claim", "POST", "hermione").statusCode());
+        beforeTheNextWrite.set(() -> handedBackAndTakenByPoppy(run));
+
+        HttpResponse<String> late = send(base + run.id() + "/checkpoint", "POST", "hermione");
+        Run taken = runs.byId(run.id()).orElseThrow();
+
+        assertEquals(404, late.statusCode(), late.body());
+        assertEquals(send(base + INVENTED + "/checkpoint", "POST", "hermione").body(),
+                late.body(), "a checkpoint that lost its run answered differently from a run "
+                        + "that never existed");
+        assertEquals("PractitionerRole/nurse-2", taken.assignment().role());
+        assertEquals(taken.versionId(), runs.byId(run.id()).orElseThrow().versionId(),
+                "the late checkpoint still wrote to the next nurse's run");
+    }
+
+    @Test
+    @DisplayName("the client that started a run, closing it as a lane takes it over, is "
+            + "answered as a stranger and the lane's claim stands")
+    @Proving(DboPromises.PROC_ONLY_THE_HOLDER_ACTS_ON_A_RUN)
+    void aStartersLateCloseLosesToALane() throws Exception {
+        Run run = started("person-1");
+        cloud.jengu.dbo.work.Executor lane = new cloud.jengu.dbo.work.Executor("porter-bot",
+                "1", "example.ward", cloud.jengu.dbo.work.Scope.BASELINE);
+        beforeTheNextWrite.set(() -> runs.claim(runs.byId(run.id()).orElseThrow(), lane,
+                java.time.Duration.ofMinutes(5), "porter-bot").orElseThrow());
+
+        HttpResponse<String> late = done(run, "hermione");
+
+        assertEquals(404, late.statusCode(), late.body());
+        assertEquals(strangersDone(), late.body());
+        Run after = runs.byId(run.id()).orElseThrow();
+        assertEquals(Status.IN_PROGRESS, after.status(), "the starter's late close ended the "
+                + "run a lane holds");
+        assertTrue(after.heldBy(lane), "the starter's late close undid the lane's claim: "
+                + after.assignment());
+    }
+
+    private static final String INVENTED = "0190a000-0000-7000-8000-00000000beef";
+
+    /** What a close by somebody holding nothing is answered, word for word. */
+    private String strangersDone() throws Exception {
+        return send(base + INVENTED + "/done", "POST", "hermione").body();
+    }
+
+    /**
+     * Housekeeping finding the first nurse's lease lapsed and handing it
+     * back, and the second nurse taking the run — both landing after the
+     * door looked and before it wrote.
+     */
+    private void handedBackAndTakenByPoppy(Run run) {
+        Run holding = runs.byId(run.id()).orElseThrow();
+        Instant lapsed = holding.assignment().until().plusSeconds(1);
+        runs.handBack(holding, lapsed).orElseThrow();
+        runs.claimAsPerson(runs.byId(run.id()).orElseThrow(), "PractitionerRole/nurse-2",
+                java.time.Duration.ofMinutes(30), "person-2").orElseThrow();
+    }
+
+    /** The store, letting a test put another writer between a read and the write after it. */
+    private ObjectStore racing(ObjectStore store) {
+        return (ObjectStore) Proxy.newProxyInstance(ObjectStore.class.getClassLoader(),
+                new Class<?>[] {ObjectStore.class}, (proxy, method, args) -> {
+                    if ("put".equals(method.getName())) {
+                        Runnable other = beforeTheNextWrite.getAndSet(null);
+                        if (other != null) {
+                            other.run();
+                        }
+                    }
+                    try {
+                        return method.invoke(store, args);
+                    } catch (java.lang.reflect.InvocationTargetException thrown) {
+                        throw thrown.getCause();
+                    }
+                });
     }
 
     private Run started(String requester) {

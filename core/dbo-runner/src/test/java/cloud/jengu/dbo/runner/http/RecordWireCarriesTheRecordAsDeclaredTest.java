@@ -46,7 +46,7 @@ class RecordWireCarriesTheRecordAsDeclaredTest {
             new Run.Assignment(Scope.zone("ee"),
                     new Executor("bench-7", "1.2", "cloud.jengu.test", Scope.BASELINE),
                     "the step's own", Instant.parse("2026-08-29T10:15:30Z"), "client-7",
-                    "PractitionerRole/nurse-1"),
+                    "PractitionerRole/nurse-1", "0190a000-0000-7000-8000-00000000c1a1"),
             new Run.Produced(List.of("Observation/o1/2"), Map.of("Observation", 2L), 1L),
             // ALL THREE SHAPES, because the wire is where a repeat or a given
             // object would be quietly flattened: a map of one value per slot

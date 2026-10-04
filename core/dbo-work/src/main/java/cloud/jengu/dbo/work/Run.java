@@ -200,9 +200,25 @@ public record Run(String id, long versionId, String key, String process, String 
      *                 it is not a person. Beside the executor rather than
      *                 instead of it, because a person is not a device and a
      *                 run that named one as the other would say so wrongly
+     * @param hold     which claim this is: minted by the store when the claim
+     *                 lands, carried by every advance that leaves the claim
+     *                 standing, and cleared with it. Neither the executor nor
+     *                 the claimant can say this, because two replicas of one
+     *                 executor share both — they are the same name and
+     *                 version on the same credential — and each would pass
+     *                 the other's holder check. The claim can, because each
+     *                 claim lands once. Null when nothing is claimed, and for
+     *                 a run its starter holds at the step door, which nobody
+     *                 claimed
      */
     public record Assignment(Scope at, Executor executor, String note, java.time.Instant until,
-            String claimant, String role) {
+            String claimant, String role, String hold) {
+
+        /** An assignment that is not a claim, or carries none forward. */
+        public Assignment(Scope at, Executor executor, String note, java.time.Instant until,
+                String claimant, String role) {
+            this(at, executor, note, until, claimant, role, null);
+        }
 
         /** An executor's assignment, or nobody's: no person holds it. */
         public Assignment(Scope at, Executor executor, String note, java.time.Instant until,
@@ -239,20 +255,61 @@ public record Run(String id, long versionId, String key, String process, String 
     }
 
     /**
-     * Whether this executor holds the run, as the run itself says — the test
-     * every act a holder takes on it is put to.
+     * Whether this executor holds the run under some claim, as the run itself
+     * says — what a read through the executor's lane is judged by.
+     *
+     * <p>A read is authorised by the credential, and two replicas of one
+     * executor share it: one reading the run the other now holds learns
+     * nothing its credential does not already reach. What either of them
+     * <em>says</em> about the run is judged by the claim, {@link
+     * #heldUnder(Executor, String)}.
      *
      * <p>Held means open, claimed by that executor, and under a deadline,
      * which a claim always writes and every hand-back clears. It is judged
      * from what is written and never from the clock: past the deadline the
      * tenant's housekeeping may hand the run back and another participant may
-     * take it, and either is a write that ends this claim. Until one of them
-     * happens nobody else holds the run, and its holder is the only one who
-     * can finish its work.
+     * take it, and either is a write that ends this claim.
      */
     public boolean heldBy(Executor executor) {
         return executor != null && open() && assignment != null
                 && executor.equals(assignment.executor()) && assignment.until() != null;
+    }
+
+    /**
+     * Whether the run still stands under the claim named, taken by the
+     * executor named — the test every act a holder takes on it is put to.
+     *
+     * <p>The claim and not the executor, because the executor does not tell
+     * a fleet's replicas apart: one replica whose claim housekeeping handed
+     * back, and another of the same executor that then took the run, carry
+     * the same name, version and credential. Each claim lands once, so the
+     * hold the store minted when it landed names it, and the replica holding
+     * an older one is refused whatever it is called.
+     *
+     * <p>Judged from what is written and never from the clock, as {@link
+     * #heldBy(Executor)} is: until somebody acts on the run, its holder is the
+     * only one who can finish its work.
+     *
+     * @param executor what took it, or null for a claim a person took, which
+     *                 names a role and no device
+     * @param hold     the claim, as the run handed back by the claim carries
+     *                 it ({@link #hold()})
+     */
+    public boolean heldUnder(Executor executor, String hold) {
+        return hold != null && open() && assignment != null && assignment.until() != null
+                && hold.equals(assignment.hold())
+                && java.util.Objects.equals(executor, assignment.executor());
+    }
+
+    /**
+     * The claim this run stands under, as the store minted it when the claim
+     * landed, or null when nothing has claimed it.
+     *
+     * <p>What a holder carries back on every verb it says: the run the claim
+     * handed it, or any run a verb handed back since, names it.
+     */
+    public String hold() {
+        return assignment == null ? null : assignment.hold();
     }
 
     /**
@@ -513,8 +570,9 @@ public record Run(String id, long versionId, String key, String process, String 
         }
         Object claimant = ((Map<?, ?>) json).get("claimant");
         Object role = ((Map<?, ?>) json).get("role");
+        Object hold = ((Map<?, ?>) json).get("hold");
         if (at == null && executor == null && note == null && claimant == null && role == null
-                && ((Map<?, ?>) json).get("until") == null) {
+                && hold == null && ((Map<?, ?>) json).get("until") == null) {
             return null;
         }
         Object until = ((Map<?, ?>) json).get("until");
@@ -522,7 +580,8 @@ public record Run(String id, long versionId, String key, String process, String 
                 note == null ? null : note.toString(),
                 until == null ? null : java.time.Instant.parse(until.toString()),
                 claimant == null ? null : claimant.toString(),
-                role == null ? null : role.toString());
+                role == null ? null : role.toString(),
+                hold == null ? null : hold.toString());
     }
 
     /** Whether this run is in front of a person because nothing automated took it. */

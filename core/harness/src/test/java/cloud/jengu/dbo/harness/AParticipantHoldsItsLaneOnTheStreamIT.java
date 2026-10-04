@@ -426,7 +426,10 @@ class AParticipantHoldsItsLaneOnTheStreamIT {
         // pass whether or not a wake-up exists — which is the failure mode a
         // timing test is most likely to have.
         HttpLane courierLane = courier();
-        assertTrue(courierLane.claim(waiting, Duration.ofMinutes(10)).isPresent(),
+        // Kept: what the courier says about the run it holds is said under
+        // the claim this run carries.
+        Run held = courierLane.claim(waiting, Duration.ofMinutes(10)).orElse(null);
+        assertTrue(held != null,
                 "the courier could not hold the run, so the runner would find it on its first "
                         + "cycle and this test would prove nothing");
 
@@ -447,7 +450,7 @@ class AParticipantHoldsItsLaneOnTheStreamIT {
                     "the runner performed work that was claimed by somebody else");
 
             // The store making a run claimable, through its own machinery.
-            courierLane.released(waiting, "handing it to whoever is listening", null);
+            courierLane.released(held, "handing it to whoever is listening", null);
 
             assertTrue(performed.await(WAKE_UP_PATIENCE.toSeconds(), TimeUnit.SECONDS),
                     "a run became claimable and the runner slept through it: the wake-up did "
