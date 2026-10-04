@@ -150,8 +150,8 @@ class ServerDistIT {
         // takes it from no root, so the specification has to be turned into
         // records here — and the packages that is done from ship beside the
         // bundle set rather than in it. A node left to the default installs
-        // none of them and cannot build a worker context at all, which is what
-        // item 025's last move is for; this is the other kind of node.
+        // none of them and cannot build a worker context at all, and this is
+        // the other kind of node, the one that populates a face.
         pb.environment().put("DBO_FACE_PACKAGES", "true");
         pb.environment().put("PATH",
                 System.getProperty("java.home") + "/bin:" + pb.environment().getOrDefault("PATH", ""));

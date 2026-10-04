@@ -80,7 +80,7 @@ dependencies {
 // The definitions are NOT here any more: they are a fragment of this bundle
 // (core/dbo-fhir-packages), attached where a face root runs and absent
 // everywhere else. A node without it resolves and starts exactly as before and
-// finds no definitions to load, which is the property item 025 was for.
+// finds no definitions to load, so it cannot build a worker context.
 tasks.named<ProcessResources>("processResources") {
     from(definitionsIndexFiles) { into("definitions") }
     // How a version is discovered where there is no service registry

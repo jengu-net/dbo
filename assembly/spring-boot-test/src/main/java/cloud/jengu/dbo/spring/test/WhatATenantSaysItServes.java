@@ -12,7 +12,7 @@ import java.util.List;
  * <p><b>Text, and a reader over it.</b> The store composes this statement into
  * a StringBuilder and never holds it as a model, because a FHIR object graph
  * needs a populated worker context to parse into — which is the several
- * hundred megabytes item 025 exists to stop building, and which a serving node
+ * hundred megabytes the index face exists not to build, and which a serving node
  * now cannot build at all. A test helper that handed out model objects would
  * put that back in the one place nobody would look for it.
  *

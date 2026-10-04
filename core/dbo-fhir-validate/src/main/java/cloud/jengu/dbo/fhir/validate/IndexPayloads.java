@@ -12,7 +12,7 @@ import java.util.Map;
 /**
  * A face's payloads, read and judged against the definition index.
  *
- * <p>What item 025 has been building towards: everything the write path asks
+ * <p>Everything the write path asks
  * of a document, answered without a worker context. The toolchain's reader
  * parses a document into an {@code elementmodel.Element}, and that needs a
  * version's whole definition corpus in heap whether or not anything

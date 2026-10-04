@@ -147,7 +147,7 @@ public final class ElementVersion {
      * every tenant of a face validates against and the difference is a
      * quarter of a gigabyte: a face held as records and offered by name costs
      * 101 MB where the same face parsed from its packages costs 225. Offering
-     * the carried ones the same way is the cheapest thing on item 024's path
+     * the carried ones the same way is the cheapest way to a smaller context
      * and the most load-bearing, which is exactly the combination that wants
      * one release where both can be run.
      *

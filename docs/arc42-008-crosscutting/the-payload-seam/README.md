@@ -384,6 +384,60 @@ and `DeclaredFace` fits them exactly. Envelope extraction does not: it depends o
 declared types, so it stays per tenant. That is the same line drawn twice — the half of a
 personality that is per version, and the half that is per tenant.
 
+## A write judged from the index
+
+**A face's definitions cost what they cost because of their form.** The FHIR
+toolchain holds a version as an object graph — 92,807 element definitions,
+a million primitive wrappers, one byte array per string — and that is 225 MB
+for r5. The same content as flat rows is 167 bytes an element against 5,249,
+and all three carried versions together are 4.3 MB. What a tenant needs is
+smaller again: the closure of its declared types, a fixed kernel of 64
+datatype structures plus one to three structures per type, 7.2% of r5's
+elements for a tenant of the hospital's shape.
+
+**A tenant declares `indexFace`, and its writes are judged from those rows.**
+The checker reads `definitions.definition_element` through
+`core/dbo-fhir-index`, a bundle importing nothing but the JDK, and
+`core/dbo-fhir-validate` answers cardinality at every depth, fixed and
+pattern values, slicing, required bindings and the compiled rules a
+document walk can run. A rule it cannot run is declined rather than guessed
+at, and the database answers it. The document is read and written without
+the element model, so it comes back byte for byte, and its envelope is built
+from the compiled search parameters. Each answer was held against the
+database's own over the version before anything served from it, and that
+comparison found the checker right where the toolchain was wrong: an element
+allowed once and sent twice is dropped by the toolchain in silence.
+
+**A dependent asks its face for the closure it needs, every round.** The
+closure is computed at the upstream, because a tenant cannot compute the
+closure of what it does not hold, and closed over grains, so a value set
+brings the systems it is built from. A dependent of four declared types needs
+119 of the 5,275 names a face holds.
+
+**The definition packages are a bootstrap input.** A face root reads them
+once to turn a version into records, and everything afterwards serves from
+the records. So they ship as a fragment of the element face that a node
+installs only to populate a face (`DBO_FACE_PACKAGES`). A node without it
+announces every version, serves every face-backed tenant, and refuses by name
+(`PackagesNotInstalled`) to build a face from a specification it does not
+hold. A fragment cannot be started, and is installed before its host, because
+it attaches when the host resolves.
+
+Three guards are part of the rule rather than care:
+
+- **An index with no rows accepts everything.** A tenant declaring the index
+  face before its rows have arrived is served by the loaded specification
+  until they do, and the log says why.
+- **A definition stating only what it changes is named and left unexpanded**,
+  rather than pulling a whole specification into the heap to snapshot it.
+- **The index face cannot expand a face.** Expansion makes the rows the index
+  reads, so a face is expanded by the toolchain path and its tenants come up
+  from its image.
+
+What is still open — an image cut per closure, refusing a narrowing below
+what a tenant holds, and a runtime that cannot build a context at all — is
+[a ledger item](../../arc42-011-risks-and-technical-debt/037-what-a-closure-and-a-context-still-need/README.md).
+
 ## Where the detail is
 
 - **What a face owes the engine, and the three sets it owes them in** — [the

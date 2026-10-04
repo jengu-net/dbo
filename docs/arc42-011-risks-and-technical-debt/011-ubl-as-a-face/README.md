@@ -55,7 +55,7 @@ path goes through the element model and throws without them.~~ **That demand is
 gone**, and not because anything was done for UBL. A narrowed read — `_elements`
 — used to go through the element model while a whole read copied tokens, so the
 model refused to set an id it did not declare and a logical model had to carry
-the store's slots to survive one. Item 024 made the two the same read, for its
+the store's slots to survive one. Taking definitions out of the heap made the two the same read, for its
 own reason: two reads of one record disagreeing about what is in it is not a
 smaller answer but a different one. The demand went with the model path, so a
 logical model is one thing simpler to write than this spike found.

@@ -141,8 +141,9 @@ declares both.
    permit fails before it runs, naming itself. A second world is
    `dboConcurrentWorlds`, per invocation, on a machine with the room; two
    worlds are two heaps of three or four gigabytes and two databases, which is
-   why it is off by default ([item 023](../023-the-suite-runs-out-of-heap/README.md)
-   has what a world's heap is made of).
+   why it is off by default: over half a world's heap is the FHIR definition
+   corpus, one context per version per process
+   ([item 037](../037-what-a-closure-and-a-context-still-need/README.md)).
 
    The definitions gate is CPU and nothing else, so it could run beside a
    world. Measured beside the stories on an eight-core laptop, it should not

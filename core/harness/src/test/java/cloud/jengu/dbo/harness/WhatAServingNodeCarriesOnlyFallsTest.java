@@ -22,7 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * The definition packages a serving node carries, recorded, and they may only
  * fall.
  *
- * <p>Item 025's last move is a property: a serving node that carries no
+ * <p>The property this holds: a serving node that carries no
  * definition packages cannot populate a worker context, whatever classes it
  * holds — {@code SimpleWorkerContext} with nothing to load is a class, not a
  * graph. It takes a few hundred megabytes of heap out of a face and 65 of jar
@@ -40,8 +40,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * <p>So what is ratcheted is the ceiling. A number in a file falls as the
  * serving path stops needing the packages, and fails the build if it rises.
  * When it reaches zero the ratchet and the property are the same statement,
- * and this test becomes the one item 025 asked for rather than a stand-in for
- * it.
+ * and this test is the property itself rather than a stand-in for it.
  */
 class WhatAServingNodeCarriesOnlyFallsTest {
 

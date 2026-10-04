@@ -11,7 +11,7 @@ import java.util.List;
  *
  * <p>The store's own reader, over a response body. No model and no parser of
  * this module's own: a typed FHIR resource needs a populated worker context to
- * parse into, which is the weight item 025 spent itself removing, and a second
+ * parse into, which is the weight the index face removed from the write path, and a second
  * JSON library would be a second opinion about what a document says.
  *
  * <p><b>Paths are written the short way and compiled to the long one.</b> The

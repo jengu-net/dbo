@@ -502,12 +502,14 @@ document.
    caught up by snapshot and cursor, and what leaves it is retracted. The
    feature after. **And a second caller for them has appeared**, which is worth
    knowing before the four are answered:
-   [item 025](../025-a-face-toolset-of-our-own/README.md) wants a tenant to
+   the index face wants a tenant to
    stream the closure of the types it declared rather than a face's whole
    definitional set — the same mechanism with the filter computed from a
    declaration instead of written in one. Whatever is decided here about a
    record that stops matching, where the filter runs, the grain and catching
-   up, is decided for that too.
+   up, is decided for that too — and a dependent now asks its face for its
+   closure every round, with the rest in
+   [item 037](../037-what-a-closure-and-a-context-still-need/README.md).
 
 ## What this is not
 

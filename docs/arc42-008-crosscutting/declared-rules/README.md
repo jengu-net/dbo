@@ -365,7 +365,7 @@ brokers and steps it is. For the types a dependency streams it is not safe: a
 tenant that narrows below what its stored documents were validated against is
 refused at declaration; instead it is accepted and discovered at the next
 write — the wrong place and the wrong party. Recorded as
-[a face toolset of our own](../../arc42-011-risks-and-technical-debt/025-a-face-toolset-of-our-own/README.md).
+[what a closure and a context still need](../../arc42-011-risks-and-technical-debt/037-what-a-closure-and-a-context-still-need/README.md).
 
 ## Where the detail is written down
 

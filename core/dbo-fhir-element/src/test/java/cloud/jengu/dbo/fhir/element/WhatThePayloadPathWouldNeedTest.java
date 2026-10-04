@@ -20,7 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Item 025 step 9, spiked: what it would take to stop parsing through
+ * Spiked: what it would take to stop parsing through
  * {@code elementmodel}.
  *
  * <p>This is the move the decision at step 4 rests on, which is why it is

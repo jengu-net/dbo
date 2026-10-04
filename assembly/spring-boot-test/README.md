@@ -78,8 +78,8 @@ tenantSays.searchableBy("Patient");       // identifier, name…
 ```
 
 Text, asked questions — not a `CapabilityStatement`. A typed FHIR resource
-needs a populated worker context to parse into, which is the weight item 025
-spent itself removing and which a serving node now cannot build at all. A test
+needs a populated worker context to parse into, which is the weight the index face
+removed from the write path and which a serving node now cannot build at all. A test
 wanting the typed resource can add the toolchain itself, where the cost shows.
 
 `why(...)` is short on purpose: group these with `assertAll` and a message

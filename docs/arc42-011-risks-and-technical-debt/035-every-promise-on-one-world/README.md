@@ -385,8 +385,8 @@ does the following:
 - **Each cost paid once per JVM.** The terminology baseline and a face's
   definitions are shared wherever the store allows it. Where a second tenant
   on the same face pays again for something the first already loaded, that
-  is a defect to fix, not a cost to accept. Items 024 and 025 hold what is
-  already known about it.
+  is a defect to fix, not a cost to accept. [Item 037](../037-what-a-closure-and-a-context-still-need/README.md)
+  holds what is left of it.
 - **Story tenants are few, small, and started early.** A story declares a
   tenant only when no world member can play the part. It declares only the
   types its legs use, and declares it at the start of the class. The bring-up
@@ -442,7 +442,7 @@ None at present.
   all of it the terminology baseline.
 - **One JVM carries every face's definitions at once.** The heap ceiling and
   what fills it are in
-  [item 023](../023-the-suite-runs-out-of-heap/README.md). The R5 validator
+  [item 037](../037-what-a-closure-and-a-context-still-need/README.md). The R5 validator
   needs 2g, and a suite that also loads r4 and r6 needs more.
 - **Emptiness cannot be shared.** Two places proves that a clinic takes one of
   a zone's two types by asserting that the other type is empty there. While

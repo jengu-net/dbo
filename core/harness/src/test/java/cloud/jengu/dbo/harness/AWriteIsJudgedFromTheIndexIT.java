@@ -22,11 +22,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * A write judged from the index, through the door a caller uses.
  *
- * <p>The move item 025's critical path never wrote down. Everything the item
+ * <p>The move that decides a write. Everything the index work
  * built — the index, the checks, the rules, the envelope, a face meeting the
  * whole payload contract — was held against the database's own answer and
- * agreed, and none of it had ever decided a write. Step 11's property cannot
- * hold until that stops being true: a node still parsing every write into an
+ * agreed, and none of it had ever decided a write. A serving node free of the
+ * definition packages cannot exist until that stops being true: a node still parsing every write into an
  * element model still needs the definition packages, whatever else it can do.
  *
  * <p><b>Two seams, or neither.</b> A write reads its payload and builds its

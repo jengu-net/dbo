@@ -7,7 +7,7 @@ import java.util.jar.JarFile
 // they appear on the host's own classpath at the path the host already looks
 // in, so the face needs no second mechanism to find them and no service to
 // ask. Absent, the host resolves and starts exactly as before and finds
-// nothing — which is the whole of item 025's last move. A node that does not
+// nothing. A node that does not
 // install this CANNOT populate a worker context, whatever classes it holds,
 // because SimpleWorkerContext with nothing to load is a class and not a graph.
 //

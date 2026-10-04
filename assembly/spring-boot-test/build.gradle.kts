@@ -30,8 +30,8 @@ dependencies {
     api("org.testcontainers:testcontainers-postgresql:2.0.5")
     // The dependency-free reader the store's own checks use. A document is
     // text a test asks questions of, not an object graph it has to build —
-    // building one needs a populated worker context, which is the weight this
-    // repository spent item 025 removing.
+    // building one needs a populated worker context, which is the weight the
+    // index face removed from the write path.
     api(project(":core:dbo-fhir-validate"))
     api("org.junit.jupiter:junit-jupiter:6.0.0")
 

@@ -23,17 +23,17 @@ import java.util.Set;
  * The step from an element count to a megabyte.
  *
  * <p>{@link WhatAClosureReachesTest} counted what a tenant's declared types
- * reach: 1,164 of r5's 16,150 elements. That is a count, and item 025's claim
- * is a quantity. This holds the SAME content in the two forms and asks the JVM
+ * reach: 1,164 of r5's 16,150 elements. That is a count, and the claim
+ * about the form is a quantity. This holds the SAME content in the two forms and asks the JVM
  * which is smaller — the closure parsed into the model the toolchain
  * navigates, against the closure as flat arrays over an interned dictionary.
  *
  * <p><b>The comparison is honest because the content is identical.</b> Both
  * sides hold the same 78 structures. Neither builds a worker context: a
  * context is a face's whole corpus and would be measuring something else, and
- * the point here is the FORM, which is what item 025 says the cost is.
+ * the point here is the FORM, which is where the cost is.
  *
- * <p><b>What the flat side holds</b> is what item 025 says a checker reads and
+ * <p><b>What the flat side holds</b> is what a checker reads and
  * what {@code definitions.definition_element} already stores: path, parent,
  * min, max, the type codes, the binding and its strength. Dropping a column to
  * flatter the measurement would make it meaningless, so the columns are the
@@ -142,7 +142,7 @@ final class WhatAFlatIndexCostsTest {
         // upgrade rather than on a regression.
         org.junit.jupiter.api.Assertions.assertTrue(flatCost * 10 < modelCost,
                 "the flat form is no longer an order of magnitude smaller: flat " + flatCost
-                        + " against model " + modelCost + " — which is item 025's whole premise");
+                        + " against model " + modelCost + " — which is the index face's whole premise");
 
         // The comparison is only fair while the flat side holds what a checker
         // reads. If base definitions start carrying fixed or pattern values,
@@ -465,7 +465,7 @@ final class WhatAFlatIndexCostsTest {
      * type codes are ones it has already interned. So the figure is measured
      * rather than multiplied.
      *
-     * <p>Three versions rather than one, because that is item 024's criterion.
+     * <p>Three versions rather than one, because a new face costing another hundred megabytes is the criterion.
      * Its recorded baseline is 226 MB for a face's first tenant and 445 for a
      * second face on top, and the thing it says must stop being true is that
      * another face costs another few hundred megabytes.
@@ -516,7 +516,7 @@ final class WhatAFlatIndexCostsTest {
         // Held across the measurement, or the collector has the last word.
         assertTrue(held.stream().allMatch(i -> i.elements > 0), "an index came out empty");
 
-        // Item 024's criterion, asked of the form rather than of a tenant:
+        // The criterion for a new face, asked of the form rather than of a tenant:
         // every version this release carries, together, under one tenth of
         // what ONE of them costs as model objects today.
         assertTrue(together < 22L * 1024 * 1024,
@@ -536,7 +536,7 @@ final class WhatAFlatIndexCostsTest {
      * <p>The documentation on each element — its {@code short}, its
      * {@code definition}, its {@code comment} — is NOT stripped, and the model
      * side does carry it. That difference is real and is left in deliberately:
-     * it is item 025's argument rather than a flaw in the comparison. A model
+     * it is the argument for the flat form rather than a flaw in the comparison. A model
      * built for authoring holds the prose a human reads; a checker does not
      * read it, and refusing to hold it is most of what the flat form is.
      */

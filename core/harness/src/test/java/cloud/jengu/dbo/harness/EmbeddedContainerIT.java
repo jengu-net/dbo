@@ -95,8 +95,7 @@ class EmbeddedContainerIT {
                 // it reads. This container's tenant builds its face from the
                 // specification rather than from records, so it needs them;
                 // a serving node does not install this and then cannot build
-                // a context at all, which is the whole of item 025's last
-                // move. Everything here is installed before anything starts,
+                // a context at all. Everything here is installed before anything starts,
                 // so a fragment attaches wherever it sits in this list — which
                 // is not true where bundles are started as they are installed.
                 "dbo.fhir.packages",

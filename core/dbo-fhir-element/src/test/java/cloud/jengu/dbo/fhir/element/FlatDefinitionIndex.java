@@ -16,13 +16,13 @@ import java.util.Map;
 /**
  * A version's definitions as flat arrays over one interned dictionary.
  *
- * <p>The form item 025 proposes, built far enough to be measured and read
+ * <p>The flat form the index face uses, built far enough to be measured and read
  * from. It is a SPIKE and lives in a test source set on purpose: whether the
  * `fhir/index` module is worth creating is what the measurements decide, and
  * a module created first would be the answer assumed rather than found.
  *
  * <p>What it holds is what {@code definitions.definition_element} stores and
- * what item 025 says a checker reads — path, parent, min, max, type codes,
+ * what a checker reads — path, parent, min, max, type codes,
  * binding and strength, invariants. No toolchain: it is built by a token scan
  * over the carried packages, which is the claim the design rests on.
  *

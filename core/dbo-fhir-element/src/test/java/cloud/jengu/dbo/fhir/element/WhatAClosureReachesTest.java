@@ -20,7 +20,7 @@ import java.util.TreeMap;
 /**
  * How much of a version's definitions a tenant's declared types actually reach.
  *
- * <p>The whole of item 025 rests on this number and nothing had produced it.
+ * <p>The index face rests on this number.
  * A face costs 225 MB because every structure a release carries is parsed and
  * held; the proposal is to hold the closure of what a tenant declared instead.
  * Whether that is worth building is the ratio between the two, and it is a
