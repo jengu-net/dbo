@@ -1355,9 +1355,9 @@ public enum DboPromises implements Promise {
     TEN_A_SLOW_BRING_UP_HOLDS_UP_ONLY_ITSELF("A tenant slow to come up — storage that "
             + "is late, a schema another node is still writing — holds up nobody else. A "
             + "tenant withdrawn meanwhile stops being served on the deployment's next beat, "
-            + "and a tenant declared or declared differently meanwhile is begun as soon as "
-            + "the node has room for it, rather than once every bring-up in front of it is "
-            + "done."),
+            + "a tenant declared meanwhile is begun as soon as the node has room for it, "
+            + "rather than once every bring-up in front of it is done, and a serving tenant "
+            + "declared differently is rebuilt on that beat without waiting for room at all."),
 
     TEN_A_DECLARATION_IS_A_RECORD("What a deployment has been told to serve is records "
             + "in the managing tenant, applied from whatever source declares them like any "

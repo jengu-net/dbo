@@ -78,9 +78,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * one publication rather than an override. A tenant whose storage goes while
  * a racing node mounts it is not a tenant that failed. A node stopped
  * mid-sync says nothing about the pools it closed on purpose. A stream keeps
- * moving while a tenant is held halfway through coming up. And a declaration
+ * moving while a tenant is held halfway through coming up. A declaration
  * that can never come up says so while every place in the bring-up room is
- * held by tenants that can.
+ * held by tenants that can. And a serving tenant declared differently is
+ * rebuilt while the room stays full.
  *
  * <p><b>Why this cannot be walked on Rowling Land.</b> Every leg stages a
  * failure the world would never show, and the staging belongs to the runtime
@@ -169,7 +170,7 @@ class BringUpUnderStrainIT {
 
         /** Bring-ups that fill the room and stay in it until the leg frees them. */
         private final Set<String> occupying = ConcurrentHashMap.newKeySet();
-        private final CountDownLatch freed = new CountDownLatch(1);
+        private volatile CountDownLatch freed = new CountDownLatch(1);
         private volatile CountDownLatch occupied = new CountDownLatch(0);
 
         Scripted(LocalDatabasePerTenantProvisioner real) {
@@ -192,8 +193,11 @@ class BringUpUnderStrainIT {
             this.holding = code;
         }
 
+        /** Fresh each time, so a later leg can fill the room after an earlier one freed it. */
         void occupy(Set<String> codes) {
+            this.freed = new CountDownLatch(1);
             this.occupied = new CountDownLatch(codes.size());
+            occupying.clear();
             occupying.addAll(codes);
         }
 
@@ -207,9 +211,10 @@ class BringUpUnderStrainIT {
                 meet();
             }
             if (occupying.contains(code)) {
+                CountDownLatch until = freed;
                 occupied.countDown();
                 try {
-                    if (!freed.await(HELD_FOR.toSeconds(), TimeUnit.SECONDS)) {
+                    if (!until.await(HELD_FOR.toSeconds(), TimeUnit.SECONDS)) {
                         throw new IllegalStateException("never freed");
                     }
                 } catch (InterruptedException e) {
@@ -1073,6 +1078,71 @@ class BringUpUnderStrainIT {
             Files.deleteIfExists(dir.resolve("room-refused.json"));
             Files.deleteIfExists(dir.resolve("room-one.json"));
             Files.deleteIfExists(dir.resolve("room-two.json"));
+        }
+    }
+
+    // ---- A change to one tenant while the room is full of others ------------
+
+    /**
+     * A serving tenant that stops streaming from its upstream is rebuilt in
+     * place, and the rebuild used to take its turn in the bring-up room — so a
+     * change to one tenant waited for the bring-ups of tenants it has nothing
+     * to do with. The story suite met it under load: a clinic told it no longer
+     * cares about its zone was still streaming from it when its minute ran out.
+     *
+     * <p>Walked after the stream leg for the reason the refusal leg is: the
+     * runtime's own loops carry the passes while the room is held.
+     */
+    @Test
+    @Order(19)
+    @Timeout(600)
+    @DisplayName("a serving tenant declared differently is rebuilt while every place in the "
+            + "bring-up room is held by tenants still coming up")
+    @Proving(DboPromises.TEN_A_SLOW_BRING_UP_HOLDS_UP_ONLY_ITSELF)
+    void aRebuildDoesNotQueueBehindAFullRoom() throws Exception {
+        Files.writeString(dir.resolve("rewire-zone.json"), vocabulary("rewire-zone", ""));
+        UntilServed.scan(manager, up -> up.contains("rewire-zone"));
+        Files.writeString(dir.resolve("rewire-clinic.json"), vocabulary("rewire-clinic",
+                ",\"dependencies\":[{\"name\":\"rewire-zone\",\"types\":[\"CodeSystem\"]}]"));
+        UntilServed.scan(manager, up -> up.contains("rewire-clinic"));
+        assertTrue(!manager.streamsOf("rewire-clinic").isEmpty(),
+                "the clinic was never streaming from its zone, so dropping it would prove "
+                        + "nothing");
+
+        storage.occupy(Set.of("rewire-full-one", "rewire-full-two"));
+        try {
+            Files.writeString(dir.resolve("rewire-full-one.json"),
+                    observations("rewire-full-one"));
+            Files.writeString(dir.resolve("rewire-full-two.json"),
+                    observations("rewire-full-two"));
+            assertTrue(storage.occupied.await(60, TimeUnit.SECONDS),
+                    "the two bring-ups never filled the room, so this would prove nothing");
+
+            Files.writeString(dir.resolve("rewire-clinic.json"), vocabulary("rewire-clinic", ""));
+            // Inside the hold, and that is the whole assertion: queued behind
+            // the room, the rebuild cannot begin until a held bring-up gives
+            // up, so a wait that outlived the hold would pass either way.
+            long deadline = System.currentTimeMillis() + WAITED_FOR.toMillis();
+            boolean rebuilt = false;
+            while (!rebuilt && System.currentTimeMillis() < deadline) {
+                rebuilt = manager.codes().contains("rewire-clinic")
+                        && manager.streamsOf("rewire-clinic").isEmpty()
+                        && !manager.redeclarations().containsKey("rewire-clinic");
+                if (!rebuilt) {
+                    Thread.sleep(200);
+                }
+            }
+            assertTrue(rebuilt, "a change to one serving tenant queued behind the bring-ups of "
+                    + "tenants it has nothing to do with: " + manager.redeclarations());
+            assertTrue(!manager.codes().contains("rewire-full-one")
+                            && !manager.codes().contains("rewire-full-two"),
+                    "a held bring-up finished, so the room was not full and this proved nothing");
+        } finally {
+            storage.freed.countDown();
+            Files.deleteIfExists(dir.resolve("rewire-full-one.json"));
+            Files.deleteIfExists(dir.resolve("rewire-full-two.json"));
+            Files.deleteIfExists(dir.resolve("rewire-clinic.json"));
+            Files.deleteIfExists(dir.resolve("rewire-zone.json"));
         }
     }
 

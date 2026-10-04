@@ -2864,15 +2864,15 @@ public final class TenantRuntimeManager implements AutoCloseable {
                     declared.code(), change.says());
             return;
         }
-        // A rebuild is a bring-up where the tenant stands, and holds what one
-        // holds, so it takes its turn in the same room.
-        java.util.concurrent.Semaphore room = broughtUpRoom;
-        room.acquireUninterruptibly();
-        try {
-            rebuild(serving, declared, change);
-        } finally {
-            room.release();
-        }
+        // Not through the bring-up room. The room bounds what a node holds on
+        // top of the tenants it serves, and a rebuild adds nothing to that: it
+        // takes the serving tenant down before it builds the new one, so the
+        // validator it builds stands where the old one stood, and the count is
+        // what it was. Queued in the room, a change to one serving tenant
+        // waited for the bring-ups of tenants it has nothing to do with —
+        // minutes each when their storage was slow — and a clinic told to stop
+        // streaming from its zone went on streaming from it all that time.
+        rebuild(serving, declared, change);
     }
 
     /**
@@ -2993,7 +2993,16 @@ public final class TenantRuntimeManager implements AutoCloseable {
      */
     private volatile int broughtUpTogether = 2;
 
-    /** The room {@link #broughtUpTogether} describes, shared by every pass. */
+    /**
+     * The room {@link #broughtUpTogether} describes, shared by every pass.
+     *
+     * <p>A tenant coming up where nothing of it is served takes a place, for
+     * as long as its mount runs. Two things do not: what a bring-up can decide
+     * without creating anything, and a serving tenant rebuilt in place. The
+     * first holds nothing. The second takes the tenant down before it builds
+     * again, so what it holds replaces what the tenant held; the node holds
+     * at most what it serves plus this many, as it did when rebuilds queued.
+     */
     private volatile java.util.concurrent.Semaphore broughtUpRoom =
             new java.util.concurrent.Semaphore(2);
 
