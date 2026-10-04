@@ -33,6 +33,7 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -98,8 +99,9 @@ class StepRunnerIT {
 
     @Test
     @DisplayName("a registered service consumes: claimed, performed, closed with the tally — "
-            + "and the vitals ride the declaration")
-    @Proving({DboPromises.PROC_STEP_SERVICE_EMBEDDABLE, DboPromises.PROC_RUNNER_DECLARES_ITS_VITALS})
+            + "and the declaration it was offered the work under carries no counts")
+    @Proving({DboPromises.PROC_STEP_SERVICE_EMBEDDABLE,
+            DboPromises.PROC_THE_RUNNER_REPORTS_ITS_COUNTS_IN_ITS_HEARTBEAT})
     void registeredServiceConsumes() {
         Run work = runs.pipeline(PROCESS, "validate", PROCESS + "/validate/one",
                 List.of(WorkModel.DOMAIN));
@@ -144,11 +146,14 @@ class StepRunnerIT {
 
         List<StoredObject> declared = store.select(
                 Criteria.of(ExecutorModel.TYPE).limit(50));
-        assertTrue(declared.stream()
-                        .map(d -> new String(d.payload(), StandardCharsets.UTF_8))
-                        .anyMatch(d -> d.contains("\"performed\":\"1\"")
-                                && d.contains("meanMillis")),
-                "the vitals ride the declaration record");
+        // Counts travel in the heartbeat, which writes nothing: a declaration
+        // re-written with them each cycle was a write per step per tick.
+        List<String> mine = declared.stream()
+                .map(d -> new String(d.payload(), StandardCharsets.UTF_8))
+                .filter(d -> d.contains("\"runner-one\"")).toList();
+        assertFalse(mine.isEmpty(), "the runner did not declare itself");
+        assertTrue(mine.stream().noneMatch(d -> d.contains("performed")),
+                "counts were written into the declaration record: " + mine);
     }
 
     @Test

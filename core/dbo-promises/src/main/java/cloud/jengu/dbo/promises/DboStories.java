@@ -154,7 +154,7 @@ public enum DboStories implements Story {
                     DboPromises.OPS_FLEET_IS_READ_FROM_OUTSIDE,
                     DboPromises.OPS_FLEET_IS_ACTED_ON_THROUGH_THE_LANE,
                     // Who is out there, derived rather than declared.
-                    DboPromises.PROC_RUNNER_DECLARES_ITS_VITALS,
+                    DboPromises.PROC_THE_RUNNER_REPORTS_ITS_COUNTS_IN_ITS_HEARTBEAT,
                     DboPromises.PROC_PRESENCE_IS_DERIVED,
                     DboPromises.PROC_A_TRACKABLE_MAY_ROUTE_OTHERS,
                     DboPromises.PROC_A_ROUTED_TREE_TRAVELS_AS_A_LANE_VERB,

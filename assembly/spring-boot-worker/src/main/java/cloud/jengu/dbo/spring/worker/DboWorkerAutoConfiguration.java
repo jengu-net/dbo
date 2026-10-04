@@ -167,7 +167,8 @@ public class DboWorkerAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     public DboWorker dboWorker(EmbeddedRuntime runtime, DboWorkerProperties properties,
-            ObjectProvider<StepService> steps, ObjectProvider<TenantToken> tokens) {
+            ObjectProvider<StepService> steps, ObjectProvider<TenantToken> tokens,
+            ObjectProvider<cloud.jengu.dbo.runner.HeartbeatStatistics> statistics) {
         // THE DEPLOYMENT'S ARE NOT THIS WORKER'S. A step is written as a
         // StepService whichever level declared it, so a process that is both a
         // server and a worker has both kinds of bean in one context — and
@@ -177,6 +178,9 @@ public class DboWorkerAutoConfiguration {
         refuseADuplicateStep(performing);
         refuseALaneThatCannotBeUsed(properties);
         refuseAnOverrideOfAStepThisApplicationBrought(performing, properties);
+        List<cloud.jengu.dbo.runner.HeartbeatStatistics> contributing =
+                statistics.orderedStream().toList();
+        refuseTheStoresNamespace(contributing);
         if (performing.isEmpty()) {
             // Not a refusal: a worker with no steps yet is an application
             // part-way through being written, and failing its context would
@@ -190,7 +194,26 @@ public class DboWorkerAutoConfiguration {
         Map<String, Supplier<String>> supplied = new LinkedHashMap<>();
         tokens.forEach(token -> supplied.put(token.tenant(), token));
         return new DboWorker(runtime, properties, performing,
-                DboWorker.tokensFor(properties, supplied));
+                DboWorker.tokensFor(properties, supplied), contributing);
+    }
+
+    /**
+     * A contributor naming {@code dbo.}, or nothing, refused here with its
+     * class: the runner would refuse it too, into a log, and the worker would
+     * heartbeat without it.
+     */
+    private static void refuseTheStoresNamespace(
+            List<cloud.jengu.dbo.runner.HeartbeatStatistics> contributing) {
+        List<String> wrong = contributing.stream()
+                .filter(one -> one.namespace() == null || one.namespace().isBlank()
+                        || one.namespace().startsWith("dbo."))
+                .map(one -> one.getClass().getName() + " contributes under '"
+                        + one.namespace() + "'")
+                .toList();
+        if (!wrong.isEmpty()) {
+            throw new IllegalStateException("heartbeat statistics go under a namespace of the "
+                    + "contributor's own, and 'dbo.' is the store's: " + String.join("; ", wrong));
+        }
     }
 
     /** The application's own steps: every StepService bean but the fleet's. */

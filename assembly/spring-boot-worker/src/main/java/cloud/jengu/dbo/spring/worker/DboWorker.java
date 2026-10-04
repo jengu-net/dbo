@@ -42,6 +42,7 @@ public final class DboWorker implements SmartLifecycle {
     private final DboWorkerProperties properties;
     private final List<StepService> steps;
     private final Map<String, Supplier<String>> tokens;
+    private final List<cloud.jengu.dbo.runner.HeartbeatStatistics> statistics;
 
     private final List<DboRegistrar.Registration> lanes = new ArrayList<>();
     private final List<DboRegistrar.Registration> performing = new ArrayList<>();
@@ -49,10 +50,17 @@ public final class DboWorker implements SmartLifecycle {
 
     DboWorker(EmbeddedRuntime runtime, DboWorkerProperties properties, List<StepService> steps,
             Map<String, Supplier<String>> tokens) {
+        this(runtime, properties, steps, tokens, List.of());
+    }
+
+    DboWorker(EmbeddedRuntime runtime, DboWorkerProperties properties, List<StepService> steps,
+            Map<String, Supplier<String>> tokens,
+            List<cloud.jengu.dbo.runner.HeartbeatStatistics> statistics) {
         this.runtime = runtime;
         this.properties = properties;
         this.steps = List.copyOf(steps);
         this.tokens = Map.copyOf(tokens);
+        this.statistics = List.copyOf(statistics);
     }
 
     /**
@@ -85,6 +93,12 @@ public final class DboWorker implements SmartLifecycle {
         // the gap lasts.
         for (StepService step : steps) {
             performing.add(registrar.register(StepService.class, step, Map.of()));
+        }
+        // What this application adds to its heartbeats, before any lane, so
+        // the first heartbeat on each already says it.
+        for (cloud.jengu.dbo.runner.HeartbeatStatistics contributor : statistics) {
+            performing.add(registrar.register(cloud.jengu.dbo.runner.HeartbeatStatistics.class,
+                    contributor, Map.of()));
         }
         for (DboWorkerProperties.Lane declared : properties.getLanes()) {
             if (declared.overTheSubstrate()) {

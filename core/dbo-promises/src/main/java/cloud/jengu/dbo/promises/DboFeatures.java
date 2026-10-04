@@ -79,7 +79,7 @@ public enum DboFeatures implements Feature {
             + "surface a step needs to be run by something.",
             List.of(DboPromises.PROC_STEP_SERVICE_EMBEDDABLE,
                     DboPromises.PROC_FAILURE_IS_RELEASED,
-                    DboPromises.PROC_RUNNER_DECLARES_ITS_VITALS)),
+                    DboPromises.PROC_THE_RUNNER_REPORTS_ITS_COUNTS_IN_ITS_HEARTBEAT)),
 
     THE_CATALOGUE_IS_THE_STORES_OWN("Process and step definitions are DBO's own "
             + "vocabulary, declared once and referenced everywhere: shape validation, "

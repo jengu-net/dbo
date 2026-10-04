@@ -36,6 +36,7 @@ public final class Activator implements BundleActivator {
     private StepRunner runner;
     private ServiceTracker<StepService, StepService> services;
     private ServiceTracker<Lane, Lane> lanes;
+    private ServiceTracker<HeartbeatStatistics, HeartbeatStatistics> statistics;
 
     @Override
     public void start(BundleContext context) {
@@ -98,7 +99,40 @@ public final class Activator implements BundleActivator {
                         context.ungetService(ref);
                     }
                 });
+        // What a worker adds to its heartbeats. A contributor claiming the
+        // store's namespace is refused by name and never asked.
+        statistics = new ServiceTracker<>(context, HeartbeatStatistics.class,
+                new ServiceTrackerCustomizer<>() {
+
+                    @Override
+                    public HeartbeatStatistics addingService(
+                            ServiceReference<HeartbeatStatistics> ref) {
+                        HeartbeatStatistics contributor = context.getService(ref);
+                        try {
+                            runner.contributing(contributor);
+                        } catch (IllegalArgumentException refused) {
+                            org.slf4j.LoggerFactory.getLogger(StepRunner.class).error(
+                                    "heartbeat statistics refused: {}", refused.getMessage());
+                            context.ungetService(ref);
+                            return null;
+                        }
+                        return contributor;
+                    }
+
+                    @Override
+                    public void modifiedService(ServiceReference<HeartbeatStatistics> ref,
+                            HeartbeatStatistics contributor) {
+                    }
+
+                    @Override
+                    public void removedService(ServiceReference<HeartbeatStatistics> ref,
+                            HeartbeatStatistics contributor) {
+                        runner.withdrawing(contributor);
+                        context.ungetService(ref);
+                    }
+                });
         services.open();
+        statistics.open();
         lanes.open();
         runner.start();
     }
@@ -110,6 +144,9 @@ public final class Activator implements BundleActivator {
         }
         if (lanes != null) {
             lanes.close();
+        }
+        if (statistics != null) {
+            statistics.close();
         }
         if (runner != null) {
             runner.close();

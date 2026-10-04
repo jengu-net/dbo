@@ -199,23 +199,19 @@ class AnOperatorReadsAndSteersTheFleetIT {
 
     @Test
     @Order(4)
-    @DisplayName("a bench announces what it can do with its vitals riding the declaration, "
-            + "and whether it is present is derived from its cursor rather than declared")
-    @Proving({DboPromises.PROC_RUNNER_DECLARES_ITS_VITALS, DboPromises.PROC_PRESENCE_IS_DERIVED})
+    @DisplayName("a bench announces what it can do, and whether it is present is derived from "
+            + "its cursor rather than declared")
+    @Proving(DboPromises.PROC_PRESENCE_IS_DERIVED)
     void aBenchAnnouncesItselfAndPresenceIsDerived() {
         String bench = NAMES.value("meristem-1");
         var declarations = new Declarations(tenants.store(HOSPITAL).orElseThrow(),
                 tenants.changes(HOSPITAL).orElseThrow(), Duration.ofMinutes(2));
         declarations.declare(new Declarations.Declared(PROCESS, "assay", bench, "2.1",
-                "example.meristem", Scope.BASELINE, bench,
-                Map.of("firmware", "4.2", "site", "Tartu")));
+                "example.meristem", Scope.BASELINE, bench));
 
         var mine = declarations.known().stream()
                 .filter(d -> bench.equals(d.declared().name())).toList();
         assertFalse(mine.isEmpty(), "the bench announced itself and is not known");
-        Proves.that(DboPromises.PROC_RUNNER_DECLARES_ITS_VITALS,
-                "4.2".equals(mine.get(0).declared().metadata().get("firmware")),
-                "its vitals do not ride the declaration: " + mine);
         // Present, which is the half of this rule that is easy to get wrong.
         // A caught-up bench's cursor does not move either, so silence with
         // nothing waiting is not absence.

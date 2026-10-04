@@ -401,9 +401,12 @@ public enum DboPromises implements Promise {
             + "arrive before its services does not move its participant past the work of the "
             + "steps still arriving — work that would then never be offered to it."),
 
-    PROC_RUNNER_DECLARES_ITS_VITALS("The runner re-declares each service with an extensible "
-            + "metadata block, replaced never accumulated; presence stays derived from the "
-            + "cursor, and vitals annotate it."),
+    PROC_THE_RUNNER_REPORTS_ITS_COUNTS_IN_ITS_HEARTBEAT("The runner reports its counts per "
+            + "step — performed, failed, mean duration and the last failure's reason — in each "
+            + "heartbeat under dbo.runner, beside what the worker's own contributors add under "
+            + "namespaces of their own; a contributor claiming dbo. is refused. A declaration "
+            + "carries no counts and is said when it changes or did not land, never as a sign "
+            + "of life; presence stays derived from the cursor."),
 
     /** TODO: prove it in a test. No single test walks catalogue → CodeSystem/PlanDefinition
      * → "never hand-edited" end to end; the projection generator itself has no negative

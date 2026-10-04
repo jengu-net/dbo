@@ -3003,7 +3003,6 @@ cloud.jengu.dbo.promises.DboPromises                                   PROC_PROG
 cloud.jengu.dbo.promises.DboPromises                                   PROC_REFUSED_IS_NOT_UNANSWERED:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_REPORTING_RUNS_WHERE_NOTHING_COLLECTS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_REPORT_THROUGH_DECLARED_ACTIONS:cloud.jengu.dbo.promises.DboPromises
-cloud.jengu.dbo.promises.DboPromises                                   PROC_RUNNER_DECLARES_ITS_VITALS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_RUN_ENVELOPE_DISCLOSES_STATE_NOT_SUBJECT:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_RUN_HAS_A_RECORD:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_RUN_INPUTS_FILL_THE_SLOTS:cloud.jengu.dbo.promises.DboPromises
@@ -3024,6 +3023,7 @@ cloud.jengu.dbo.promises.DboPromises                                   PROC_THE_
 cloud.jengu.dbo.promises.DboPromises                                   PROC_THE_LANE_HAS_TWO_BOUNDS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_THE_REGISTER_IS_READ_AT_A_DOOR:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_THE_ROUTER_HOLDS_THE_CLAIM:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   PROC_THE_RUNNER_REPORTS_ITS_COUNTS_IN_ITS_HEARTBEAT:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_THE_WRITEBACK_PASSES_THE_TENANTS_RULES:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_TRACE_JOIN:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_TRACE_RIDES_THE_LANE:cloud.jengu.dbo.promises.DboPromises
@@ -3282,6 +3282,9 @@ cloud.jengu.dbo.runner.FleetStep                                       annotatio
 cloud.jengu.dbo.runner.FleetStep                                       name():String
 cloud.jengu.dbo.runner.FleetStep                                       provider():String
 cloud.jengu.dbo.runner.FleetStep                                       version():String
+cloud.jengu.dbo.runner.HeartbeatStatistics                             interface
+cloud.jengu.dbo.runner.HeartbeatStatistics                             namespace():String
+cloud.jengu.dbo.runner.HeartbeatStatistics                             statistics():Map
 cloud.jengu.dbo.runner.InProcessWakeups                                appeared(cloud.jengu.dbo.work.Run):void
 cloud.jengu.dbo.runner.InProcessWakeups                                class
 cloud.jengu.dbo.runner.InProcessWakeups                                listening():boolean
@@ -3437,10 +3440,12 @@ cloud.jengu.dbo.runner.ProvingLane.Offer                               lane():cl
 cloud.jengu.dbo.runner.ProvingLane.Offer                               notYet():cloud.jengu.dbo.runner.ProvingLane.Offer
 cloud.jengu.dbo.runner.ProvingLane.Offer                               wakeable():cloud.jengu.dbo.runner.ProvingLane.Offer
 cloud.jengu.dbo.runner.ProvingLane.Offer                               with(String,String,String):cloud.jengu.dbo.runner.ProvingLane.Offer
+cloud.jengu.dbo.runner.StepRunner                                      RUNNER_STATISTICS:String
 cloud.jengu.dbo.runner.StepRunner                                      attach(cloud.jengu.dbo.runner.Lane):cloud.jengu.dbo.runner.StepRunner
 cloud.jengu.dbo.runner.StepRunner                                      awaiting(Collection):cloud.jengu.dbo.runner.StepRunner
 cloud.jengu.dbo.runner.StepRunner                                      class
 cloud.jengu.dbo.runner.StepRunner                                      close():void
+cloud.jengu.dbo.runner.StepRunner                                      contributing(cloud.jengu.dbo.runner.HeartbeatStatistics):cloud.jengu.dbo.runner.StepRunner
 cloud.jengu.dbo.runner.StepRunner                                      cycle():int
 cloud.jengu.dbo.runner.StepRunner                                      detach(String):void
 cloud.jengu.dbo.runner.StepRunner                                      new(Duration,Duration)
@@ -3448,6 +3453,7 @@ cloud.jengu.dbo.runner.StepRunner                                      new(Durat
 cloud.jengu.dbo.runner.StepRunner                                      register(cloud.jengu.dbo.runner.StepService):cloud.jengu.dbo.runner.StepRunner
 cloud.jengu.dbo.runner.StepRunner                                      start():cloud.jengu.dbo.runner.StepRunner
 cloud.jengu.dbo.runner.StepRunner                                      unregister(String):void
+cloud.jengu.dbo.runner.StepRunner                                      withdrawing(cloud.jengu.dbo.runner.HeartbeatStatistics):void
 cloud.jengu.dbo.runner.StepService                                     FOR_THE_FLEET:String
 cloud.jengu.dbo.runner.StepService                                     declaration():Optional
 cloud.jengu.dbo.runner.StepService                                     interface
@@ -3614,7 +3620,6 @@ cloud.jengu.dbo.runner.http.WireLane.Reply                             status():
 cloud.jengu.dbo.runner.http.WireLane.Reply                             toString():String
 cloud.jengu.dbo.runner.http.WireLane.Transport                         interface
 cloud.jengu.dbo.runner.http.WireLane.Transport                         post(cloud.jengu.dbo.runner.http.LaneVerbs,String):cloud.jengu.dbo.runner.http.WireLane.Reply
-cloud.jengu.dbo.runner.http.WireLane.Transport                         tell(cloud.jengu.dbo.runner.http.LaneVerbs,String):cloud.jengu.dbo.runner.http.WireLane.Reply
 cloud.jengu.dbo.scim.ScimHandler                                       class
 cloud.jengu.dbo.scim.ScimHandler                                       handle(HttpExchange):void
 cloud.jengu.dbo.scim.ScimHandler                                       new(cloud.jengu.dbo.auth.TenantAuthority,cloud.jengu.dbo.core.api.ObjectStore,cloud.jengu.dbo.pdi.PersonVault,String,String)
@@ -4711,10 +4716,8 @@ cloud.jengu.dbo.work.Declarations.Declared                             equals(Ob
 cloud.jengu.dbo.work.Declarations.Declared                             executor():cloud.jengu.dbo.work.Executor
 cloud.jengu.dbo.work.Declarations.Declared                             hashCode():int
 cloud.jengu.dbo.work.Declarations.Declared                             key():String
-cloud.jengu.dbo.work.Declarations.Declared                             metadata():Map
 cloud.jengu.dbo.work.Declarations.Declared                             name():String
 cloud.jengu.dbo.work.Declarations.Declared                             new(String,String,String,String,String,cloud.jengu.dbo.work.Scope,String)
-cloud.jengu.dbo.work.Declarations.Declared                             new(String,String,String,String,String,cloud.jengu.dbo.work.Scope,String,Map)
 cloud.jengu.dbo.work.Declarations.Declared                             process():String
 cloud.jengu.dbo.work.Declarations.Declared                             provider():String
 cloud.jengu.dbo.work.Declarations.Declared                             record
@@ -4722,7 +4725,6 @@ cloud.jengu.dbo.work.Declarations.Declared                             scope():c
 cloud.jengu.dbo.work.Declarations.Declared                             step():String
 cloud.jengu.dbo.work.Declarations.Declared                             toString():String
 cloud.jengu.dbo.work.Declarations.Declared                             version():String
-cloud.jengu.dbo.work.Declarations.Declared                             withVitals(Map):cloud.jengu.dbo.work.Declarations.Declared
 cloud.jengu.dbo.work.Declarations.Known                                declared():cloud.jengu.dbo.work.Declarations.Declared
 cloud.jengu.dbo.work.Declarations.Known                                equals(Object):boolean
 cloud.jengu.dbo.work.Declarations.Known                                hashCode():int

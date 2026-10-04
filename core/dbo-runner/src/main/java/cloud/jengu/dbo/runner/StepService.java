@@ -5,7 +5,7 @@ package cloud.jengu.dbo.runner;
  *
  * <p>An integrator writes this and registers it; registration starts
  * consumption. Everything else — pulling, claiming, checkpointing, reporting,
- * vitals — is the runner's, written once. In an OSGi container, registering
+ * the heartbeat — is the runner's, written once. In an OSGi container, registering
  * this as a service is the whole wiring: the runner's activator tracks the
  * type, so a bundle contributes a step the way it contributes anything else.
  *

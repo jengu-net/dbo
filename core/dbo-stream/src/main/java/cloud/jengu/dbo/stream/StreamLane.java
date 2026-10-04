@@ -237,7 +237,7 @@ public final class StreamLane extends WireLane implements AutoCloseable {
                             + "' and the bytes were not there to collect"));
         }
 
-        /** One ask, signed — built here so telling and asking spell it once. */
+        /** One ask, signed. */
         private Map<String, Object> asked(String id, LaneVerbs verb, String body) {
             Map<String, Object> ask = new LinkedHashMap<>();
             ask.put("id", id);
@@ -253,30 +253,6 @@ public final class StreamLane extends WireLane implements AutoCloseable {
             ask.put("signature", cloud.jengu.dbo.core.api.seal.SigningKey.sign(
                     StreamAsk.signedOver(id, verb.path(), body), signing));
             return ask;
-        }
-
-        /**
-         * Handed to the substrate and left there.
-         *
-         * <p>The send is the durable part: the message is a row the far side
-         * will find whether or not it was listening when it landed, so this is
-         * not fire-and-forget in the sense of unreliable — it is fire-and-forget
-         * in the sense of not waiting. The answer this does not wait for is the
-         * one the caller was going to discard.
-         */
-        @Override
-        public Reply tell(LaneVerbs verb, String body) {
-            String door = door();
-            if (door == null) {
-                // Not an exception: the caller is telling, not asking, and a
-                // door between generations is a moment rather than a fault.
-                // What is lost is one re-said declaration, and the next cycle
-                // says it again.
-                return new Reply(200, "");
-            }
-            String id = UUID.randomUUID().toString();
-            dbos.send(door, RecordWire.write(asked(id, verb, body)), StreamDoor.TOPIC, id);
-            return new Reply(200, "");
         }
 
         @Override

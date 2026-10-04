@@ -19,15 +19,22 @@ import java.util.concurrent.atomic.AtomicLong;
  * The reference runner: step services in, consumption out.
  *
  * <p>Registering a {@link StepService} starts everything the participation
- * doctrine demands, written once: declared as a candidate on every lane
- *, work pulled and claimed, performed, checkpointed, reported — and
- * the service re-declared with its vitals as it goes, so an operator
- * sees throughput and health beside the presence the cursor already proves.
+ * doctrine demands, written once: declared as a candidate on every lane, work
+ * pulled and claimed, performed, checkpointed, reported — and a heartbeat on
+ * every lane each cycle, carrying the runner's counts per step under
+ * {@code dbo.runner} beside whatever {@link HeartbeatStatistics} contribute,
+ * so a node hears the worker even when it has nothing to ask for.
+ *
+ * <p><b>A declaration is said when it changes, not as a sign of life.</b> It
+ * is a record in the tenant's store, and re-writing it every cycle was a
+ * write per step per tenant per tick to say "still here" — which the
+ * heartbeat now says without writing anything. One that did not land is said
+ * again next cycle.
  *
  * <p><b>Stateless over tenants</b>: tenants arrive as {@link Lane}s and the
  * runner holds only the task in hand and the documents the task names. Its
  * counters are its own soft accounting — reconstructible from nothing,
- * published as vitals, lost without loss.
+ * carried in heartbeats, lost without loss.
  *
  * <p><b>No state here may span lanes.</b> A lane is the unit of everything
  * this runner does, and anything keyed more coarsely mixes tenants: the
@@ -51,9 +58,9 @@ public final class StepRunner implements AutoCloseable {
     /**
      * Where the numbers go, beside where they are declared.
      *
-     * <p>Vitals annotate presence at the point of resolution, for the tenant
-     * whose work they describe; these are the same events aggregated for
-     * whoever runs the fleet. Both, because they answer different questions
+     * <p>The heartbeat's counts are for the node that hears this worker,
+     * for the tenant whose work they describe; these are the same events
+     * aggregated for whoever runs the fleet. Both, because they answer different questions
      * and one is not a worse copy of the other — and this one is lossy, so
      * nothing decides anything on it.
      */
@@ -68,7 +75,19 @@ public final class StepRunner implements AutoCloseable {
      * {@link #lanes} is, so a lane going away takes its accounting with it
      * rather than leaving a count a re-attached lane would inherit.
      */
-    private final Map<String, Map<String, Vitals>> vitals = new ConcurrentHashMap<>();
+    private final Map<String, Map<String, Counts>> counts = new ConcurrentHashMap<>();
+    /**
+     * What each lane was last told about each step, so a declaration is said
+     * again only when it changed or did not land. Keyed per lane, like
+     * everything here.
+     */
+    private final Map<String, Map<String, Declarations.Declared>> declaredOn =
+            new ConcurrentHashMap<>();
+    /** Whoever adds to a heartbeat, beside the runner's own counts. */
+    private final List<HeartbeatStatistics> contributors =
+            new java.util.concurrent.CopyOnWriteArrayList<>();
+    /** The namespace the runner's own counts travel under, which no contributor may use. */
+    public static final String RUNNER_STATISTICS = "dbo.runner";
     /**
      * What a lane's wake-ups are listened to through, per lane, so detaching
      * one stops its listening — keyed like everything else here, because a
@@ -123,6 +142,7 @@ public final class StepRunner implements AutoCloseable {
     public synchronized void unregister(String step) {
         if (services.remove(step) != null) {
             lanes.values().forEach(lane -> lane.withdraw(declared(lane, step)));
+            declaredOn.values().forEach(said -> said.remove(step));
             LOG.info("step service withdrawn: step={}", step);
         }
     }
@@ -153,7 +173,8 @@ public final class StepRunner implements AutoCloseable {
         Lane lane = lanes.remove(tenant);
         if (lane != null) {
             services.keySet().forEach(step -> lane.withdraw(declared(lane, step)));
-            vitals.remove(tenant);
+            counts.remove(tenant);
+            declaredOn.remove(tenant);
             stopListening(tenant);
             LOG.info("lane detached: tenant={}", tenant);
         }
@@ -170,6 +191,28 @@ public final class StepRunner implements AutoCloseable {
             LOG.warn("a lane's wake-ups did not stop: tenant={} {}",
                     tenant, stopping.getMessage());
         }
+    }
+
+    /**
+     * Adds what a contributor says to every heartbeat from here on.
+     *
+     * @throws IllegalArgumentException naming the contributor, for a blank
+     *         namespace or one starting {@code dbo.}, which is the store's
+     */
+    public StepRunner contributing(HeartbeatStatistics contributor) {
+        String namespace = contributor.namespace();
+        if (namespace == null || namespace.isBlank() || namespace.startsWith("dbo.")) {
+            throw new IllegalArgumentException(contributor.getClass().getName()
+                    + " contributes heartbeat statistics under '" + namespace + "'; a "
+                    + "contributor names a namespace of its own, and 'dbo.' is the store's");
+        }
+        contributors.add(contributor);
+        return this;
+    }
+
+    /** Stops asking a contributor. */
+    public void withdrawing(HeartbeatStatistics contributor) {
+        contributors.remove(contributor);
     }
 
     /**
@@ -219,7 +262,7 @@ public final class StepRunner implements AutoCloseable {
 
     /**
      * One cycle over every lane: housekeeping, poll, claim, perform, report,
-     * vitals. Public so a test — or a host scheduling for itself — drives the
+     * any declaration that has not landed, and a heartbeat. Public so a test — or a host scheduling for itself — drives the
      * runner without the thread; the loop is this in a sleep.
      */
     public int cycle() {
@@ -272,15 +315,20 @@ public final class StepRunner implements AutoCloseable {
             perform(lane, service, claimed.get());
             performed++;
         }
-        // Vitals ride the declaration record, replaced never accumulated —
-        // re-said even on a quiet cycle, because "still here, nothing
-        // waiting" is itself a vital sign.
-        services.keySet().forEach(step -> declare(lane, step));
+        // Said again only where it changed or did not land: "still here,
+        // nothing waiting" is the heartbeat's to say, and it writes nothing.
+        services.keySet().forEach(step -> {
+            if (!declared(lane, step).equals(declaredOn.getOrDefault(lane.tenant(), Map.of())
+                    .get(step))) {
+                declare(lane, step);
+            }
+        });
+        heartbeat(lane);
         return performed;
     }
 
     private void perform(Lane lane, StepService service, Run claimed) {
-        Vitals sign = vitalsOf(lane, service.step());
+        Counts sign = countsOf(lane, service.step());
         long began = System.nanoTime();
         // Every report answers with the run as it now stands, and the next one
         // must be built on THAT rather than on the run as claimed. A report
@@ -317,7 +365,7 @@ public final class StepRunner implements AutoCloseable {
         } else if (outcome instanceof Outcome.Lost lost) {
             // Somebody acted on the run before this runner finished it, and
             // nothing was said in its name. Neither the step's success nor
-            // its failure, so the vitals are untouched; counted as its own
+            // its failure, so the counts are untouched; counted as its own
             // word, so a fleet losing claims under load can be seen.
             LOG.info("a claim was lost before its work was reported: tenant={} step={} {}",
                     lane.tenant(), claimed.step(), lost.reason());
@@ -364,7 +412,10 @@ public final class StepRunner implements AutoCloseable {
                 service.declaration().ifPresent(brought ->
                         lane.introduce(brought));
             }
-            lane.declare(declared(lane, step).withVitals(vitalsOf(lane, step).block()));
+            Declarations.Declared declaring = declared(lane, step);
+            lane.declare(declaring);
+            declaredOn.computeIfAbsent(lane.tenant(), tenant -> new ConcurrentHashMap<>())
+                    .put(step, declaring);
         } catch (RuntimeException declineFailed) {
             LOG.warn("declaration failed: tenant={} step={} {}",
                     lane.tenant(), step, declineFailed.getMessage());
@@ -389,10 +440,43 @@ public final class StepRunner implements AutoCloseable {
         telemetry.observed("dbo.run.duration", Duration.ofNanos(nanos), labels);
     }
 
+    /**
+     * Still here, with the runner's counts for this lane's steps and what
+     * each contributor says.
+     *
+     * <p>A contributor that throws is left out of this one heartbeat and
+     * named, rather than costing the worker its contact; a heartbeat the
+     * node refuses is said once per cycle, like a declaration that did not
+     * land.
+     */
+    private void heartbeat(Lane lane) {
+        Map<String, Object> statistics = new java.util.LinkedHashMap<>();
+        for (HeartbeatStatistics contributor : contributors) {
+            try {
+                Map<String, Object> said = contributor.statistics();
+                if (said != null) {
+                    statistics.put(contributor.namespace(), said);
+                }
+            } catch (RuntimeException contributorFailed) {
+                LOG.warn("heartbeat statistics left out: namespace={} {}",
+                        contributor.namespace(), contributorFailed.getMessage());
+            }
+        }
+        Map<String, Object> runner = new java.util.LinkedHashMap<>();
+        services.keySet().forEach(step -> runner.put(step, countsOf(lane, step).said()));
+        statistics.put(RUNNER_STATISTICS, runner);
+        try {
+            lane.heartbeat(statistics);
+        } catch (RuntimeException heartbeatFailed) {
+            LOG.warn("heartbeat failed: tenant={} {}", lane.tenant(),
+                    heartbeatFailed.getMessage());
+        }
+    }
+
     /** This lane's counters for this step, and no other lane's. */
-    private Vitals vitalsOf(Lane lane, String step) {
-        return vitals.computeIfAbsent(lane.tenant(), t -> new ConcurrentHashMap<>())
-                .computeIfAbsent(step, s -> new Vitals());
+    private Counts countsOf(Lane lane, String step) {
+        return counts.computeIfAbsent(lane.tenant(), t -> new ConcurrentHashMap<>())
+                .computeIfAbsent(step, s -> new Counts());
     }
 
     private static String bareStep(String fullId) {
@@ -414,10 +498,14 @@ public final class StepRunner implements AutoCloseable {
     }
 
     /**
-     * The runner's own soft accounting, rendered into the declaration's
-     * vitals block — reconstructible from nothing, lost without loss.
+     * The runner's own soft accounting, carried in each heartbeat —
+     * reconstructible from nothing, lost without loss.
+     *
+     * <p>The last error is the reason the run was released with, the step's
+     * own words, under the rule every statistic is held to: nothing about a
+     * person.
      */
-    private static final class Vitals {
+    private static final class Counts {
 
         private final AtomicLong performed = new AtomicLong();
         private final AtomicLong failures = new AtomicLong();
@@ -434,18 +522,16 @@ public final class StepRunner implements AutoCloseable {
             lastError = reason;
         }
 
-        Map<String, String> block() {
+        Map<String, Object> said() {
             long count = performed.get();
-            Map<String, String> block = new java.util.LinkedHashMap<>();
-            block.put("performed", Long.toString(count));
-            block.put("failed", Long.toString(failures.get()));
-            block.put("meanMillis", Long.toString(
-                    count == 0 ? 0 : totalNanos.get() / count / 1_000_000));
-            block.put("at", java.time.Instant.now().toString());
+            Map<String, Object> said = new java.util.LinkedHashMap<>();
+            said.put("performed", count);
+            said.put("failed", failures.get());
+            said.put("meanMillis", count == 0 ? 0L : totalNanos.get() / count / 1_000_000);
             if (lastError != null) {
-                block.put("lastError", lastError);
+                said.put("lastError", lastError);
             }
-            return block;
+            return said;
         }
     }
 }

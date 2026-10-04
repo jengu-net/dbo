@@ -131,12 +131,11 @@ class RecordWireCarriesTheRecordAsDeclaredTest {
     }
 
     @Test
-    @DisplayName("a declaration's vitals travel, and a field this side has not learned is "
+    @DisplayName("a declaration travels whole, and a field this side has not learned is "
             + "ignored rather than refused")
     void aDeclarationSurvivesAndTheFutureIsTolerated() {
         Declarations.Declared declared = new Declarations.Declared("dbo.lab", "validate",
-                "bench-7", "1.2", "cloud.jengu.test", Scope.BASELINE, "consumer-7")
-                .withVitals(Map.of("queue", "0"));
+                "bench-7", "1.2", "cloud.jengu.test", Scope.BASELINE, "consumer-7");
 
         String wire = RecordWire.write(declared);
         String ahead = wire.substring(0, wire.length() - 1) + ",\"whatComesNext\":\"a value\"}";
@@ -144,6 +143,5 @@ class RecordWireCarriesTheRecordAsDeclaredTest {
                 RecordWire.decode(RecordWire.read(ahead), Declarations.Declared.class);
 
         assertEquals(declared, back, "a peer one version ahead is not a broken peer");
-        assertTrue(back.metadata().containsKey("queue"), "and the vitals it did carry arrived");
     }
 }
