@@ -141,6 +141,10 @@ public interface ObjectStore {
      * Recompute envelopes, identifiers and references for a type from stored
      * payloads and (re)apply declared indexes. Payloads are never touched
      * (REQ-DBO-CORE-REINDEX-IS-AN-OPERATION).
+     *
+     * @return how many objects were rebuilt. An object written while the
+     *         rebuild ran keeps the envelope its own write extracted and is not
+     *         counted, since the rebuild did not write it.
      */
     int rebuildEnvelopes(String typeName);
 

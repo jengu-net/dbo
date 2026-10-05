@@ -1446,6 +1446,12 @@ public final class PgObjectStore implements ObjectStore {
      * a large reindex never pins the instance's xmin for its whole duration
      * (the barrier-liveness lesson applied to our own worst case).
      * Idempotent per object, so interruption just means re-running.
+     *
+     * @return how many objects this reindex wrote an envelope for. A row
+     *         rewritten between being read and being written is left to the
+     *         write that rewrote it, whose envelope is already current, and is
+     *         not counted — so the number can be lower than the type's row
+     *         count while every row ends up current.
      */
     public int rebuildEnvelopes(String typeName, int batchSize) {
         TypeRegistration type = registry.require(typeName);
@@ -1522,7 +1528,8 @@ public final class PgObjectStore implements ObjectStore {
             // changed it, and overwriting that with one derived from the
             // payload we read would put back exactly the staleness this
             // rebuild exists to remove.
-            inTx(c -> {
+            int written = inTx(c -> {
+                int kept = 0;
                 for (Rebuilt one : rebuilt) {
                     int touched;
                     try (PreparedStatement up = c.prepareStatement(
@@ -1536,14 +1543,18 @@ public final class PgObjectStore implements ObjectStore {
                     if (touched == 0) {
                         continue;
                     }
+                    kept++;
                     replaceIdentifiers(c, type, one.row().id(), one.envelope().identifiers());
                     // a reindex rewrites edges for rows that already have them
                     replaceReferences(c, domain, one.row().id(), one.envelope().references(),
                             false);
                 }
-                return null;
+                return kept;
             });
-            total += batch.size();
+            // What was written, not what was read: a row left to the write
+            // that moved it was not rebuilt by this reindex. The batch size
+            // still decides whether there is another batch.
+            total += written;
             if (batch.size() < batchSize) {
                 return total;
             }
@@ -1703,7 +1714,7 @@ public final class PgObjectStore implements ObjectStore {
                         CREATE TEMP TABLE reindexed ON COMMIT DROP AS
                         SELECT b.id,
                                (%s(convert_from(b.payload, 'UTF8')::jsonb, ?, ?)) AS parts,
-                               b.shape
+                               b.shape, b.version_id, false AS kept
                           FROM %s_data b
                          WHERE b.type = ? AND NOT b.deleted
                            AND b.payload_version = ?
@@ -1722,7 +1733,17 @@ public final class PgObjectStore implements ObjectStore {
                 }
                 // The shape dimension derives from the ROW and joins the
                 // envelope here, exactly as it does on the write path.
+                //
+                // Written only over the version the walk read, as the
+                // ordinary loop is. A write committing between the walk and
+                // here already put an envelope from its own payload, and
+                // overwriting it with one from the payload the walk read would
+                // leave the record found by values it no longer holds. Such a
+                // row is left to the write that moved it, and what follows
+                // touches only the rows written here — which are locked until
+                // this commits, so no write can come between them either.
                 try (PreparedStatement up = c.prepareStatement("""
+                        WITH written AS (
                         UPDATE %s_data d
                            SET envelope = (r.parts -> 'envelope') || COALESCE(
                                  (SELECT jsonb_build_object('_shape', jsonb_agg(
@@ -1734,17 +1755,21 @@ public final class PgObjectStore implements ObjectStore {
                                    WHERE e LIKE '%%|%%'
                                   HAVING count(*) > 0), '{}'::jsonb)
                           FROM reindexed r
-                         WHERE d.id = r.id""".formatted(d))) {
+                         WHERE d.id = r.id AND d.version_id = r.version_id
+                        RETURNING d.id)
+                        UPDATE reindexed r SET kept = true
+                          FROM written w
+                         WHERE r.id = w.id""".formatted(d))) {
                     up.executeUpdate();
                 }
                 try (PreparedStatement clear = c.prepareStatement(
-                        "DELETE FROM %s_identifier WHERE object_id IN (SELECT id FROM reindexed)"
-                                .formatted(d))) {
+                        ("DELETE FROM %s_identifier WHERE object_id IN"
+                                + " (SELECT id FROM reindexed WHERE kept)").formatted(d))) {
                     clear.executeUpdate();
                 }
                 try (PreparedStatement clear = c.prepareStatement(
-                        "DELETE FROM %s_reference WHERE owner_id IN (SELECT id FROM reindexed)"
-                                .formatted(d))) {
+                        ("DELETE FROM %s_reference WHERE owner_id IN"
+                                + " (SELECT id FROM reindexed WHERE kept)").formatted(d))) {
                     clear.executeUpdate();
                 }
                 try (PreparedStatement ins = c.prepareStatement("""
@@ -1753,6 +1778,7 @@ public final class PgObjectStore implements ObjectStore {
                           FROM reindexed r,
                                jsonb_to_recordset(r.parts -> 'identifiers')
                                    AS x(system text, value text)
+                         WHERE r.kept
                         ON CONFLICT DO NOTHING""".formatted(d))) {
                     ins.setString(1, type.typeName());
                     ins.setArray(2, c.createArrayOf("text", identityBearing));
@@ -1764,19 +1790,24 @@ public final class PgObjectStore implements ObjectStore {
                           FROM reindexed r,
                                jsonb_to_recordset(r.parts -> 'references')
                                    AS e("refType" text, "targetType" text, "targetId" text)
+                         WHERE r.kept
                         ON CONFLICT DO NOTHING""".formatted(d))) {
                     ins.executeUpdate();
                 }
                 try (PreparedStatement counted = c.prepareStatement(
                         "SELECT (SELECT count(*) FROM reindexed),"
-                                + " (SELECT id FROM reindexed ORDER BY id DESC LIMIT 1)");
+                                + " (SELECT id FROM reindexed ORDER BY id DESC LIMIT 1),"
+                                + " (SELECT count(*) FROM reindexed WHERE kept)");
                      ResultSet rs = counted.executeQuery()) {
                     rs.next();
-                    return new Object[] {rs.getInt(1), rs.getObject(2)};
+                    return new Object[] {rs.getInt(1), rs.getObject(2), rs.getInt(3)};
                 }
             });
+            // Walked decides where the next batch starts; written is what is
+            // reported, because a row left to the write that moved it was not
+            // rebuilt here.
             int rows = (Integer) moved[0];
-            total = done + rows;
+            total = done + (Integer) moved[2];
             if (rows < batchSize) {
                 return total;
             }

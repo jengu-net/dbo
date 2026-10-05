@@ -1286,9 +1286,12 @@ public enum DboPromises implements Promise {
             + "between two statements of an open transaction left the connection idle in "
             + "transaction, and this store sets a sixty-second guard on every tenant "
             + "database, so on a loaded node its own guard terminated its own reindex. The "
-            + "write is conditional on the version the row was read at: a row rewritten "
-            + "meanwhile already carries an envelope from the write that changed it, and "
-            + "replacing it would restore the staleness the rebuild exists to remove."),
+            + "write is conditional on the version the row was read at, wherever the "
+            + "extraction happened — in this process, or in the database's own walk of a type "
+            + "whose extractor lives there: a row rewritten meanwhile already carries an "
+            + "envelope from the write that changed it, replacing it would restore the "
+            + "staleness the rebuild exists to remove, and a row left alone is not counted "
+            + "as rebuilt."),
 
     PDI_A_REFUSAL_ANSWERS_AS_A_REFUSAL("A search refused for want of a stated purpose "
             + "answers as a refusal the caller can act on, never as a fault: the request was "
