@@ -111,6 +111,46 @@ form only where somebody there holds a password.
 
 One bean draws for the deployment; a second fails at context refresh.
 
+## Who signed in
+
+Every sign-in and every refresh returns an ID token that says who the person
+is (`name`, `given_name`, `family_name`, `preferred_username`, `locale`), when
+and how they signed in (`auth_time`, `amr`, carried unchanged through every
+refresh), and which roles they hold at which organisation:
+
+```json
+"grants": [{"organization": "<id>", "roles": ["lab-tech"]}, {"roles": ["healer"]}],
+"organizations": {"<id>": {"name": "Main Lab", "identifier": [ … ]}}
+```
+
+A role is listed where it is held; the organisations under it are the
+reader's to decide. `/t/{code}/oidc/userinfo` answers the same set, as JSON
+or, for `Accept: application/jwt`, signed by the tenant's key, and
+`TenantAuthority.userInfo` and `verifyIdToken` do the same in-process. The
+access token carries none of it.
+
+On a tenant that vaults identity, reading who the person is is their own
+access and the trail says so: once, at sign-in, with the person as its actor
+and `PATRQT` as its purpose. A refresh re-derives what they hold and reuses
+who they are.
+
+A bean implementing `UserClaims` adds to what the person carries:
+
+```java
+@Component
+class WhatOurPortalIsTold implements UserClaims {
+    public Map<String, Object> contribute(Subject subject) { … }
+}
+```
+
+It is handed the Person, their Practitioners and their roles with each
+organisation resolved, so adding costs no query; it is told the client, and
+what it adds for one application need reach no other. It cannot say what
+only the authority says (`sub`, `aud`, `auth_time` and the like). A claim
+set over `dbo.auth.claims-max-bytes` (4096 unset) is refused at minting, and
+a contributor that throws stops the sign-in: a token never goes out without
+what the application relies on.
+
 ## Tokens on the application's own API
 
 An application that secures its own API with Spring Security's resource

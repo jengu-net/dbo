@@ -1185,6 +1185,21 @@ public final class TenantRuntimeManager implements AutoCloseable {
     private volatile java.util.function.Supplier<cloud.jengu.dbo.auth.LoginPage> loginPage =
             () -> cloud.jengu.dbo.auth.LoginPage.BARE;
 
+    /**
+     * What the application adds to every tenant's claims about a person, and
+     * how large those claims may grow. Read through fields, as the page is,
+     * so a contributor arriving while tenants serve is asked from then on.
+     */
+    public void userClaims(java.util.function.Supplier<cloud.jengu.dbo.auth.UserClaims> claims,
+            int maxBytes) {
+        this.userClaims = claims;
+        this.claimsMaxBytes = maxBytes;
+    }
+
+    private volatile java.util.function.Supplier<cloud.jengu.dbo.auth.UserClaims> userClaims =
+            () -> null;
+    private volatile int claimsMaxBytes = 4096;
+
     /** Registers an observer of one of a tenant's streams. */
     public void addObserver(TenantDomain domain, String consumer, String target, String name,
             TenantObserver observer) {
@@ -3539,6 +3554,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
                         java.util.List.of("user/*.read", "user/*.write"),
                         "confidential", db.rpRedirectUris());
             }
+            authority.claims(spec.code(), () -> userClaims.get(), claimsMaxBytes);
             sharedServer.createContext(oidcPath, new cloud.jengu.dbo.auth.AuthorityHandler(
                     authority, oidcPath, spec.code(), () -> loginPage.get()));
             authorityContexts.put(spec.code(), oidcPath);

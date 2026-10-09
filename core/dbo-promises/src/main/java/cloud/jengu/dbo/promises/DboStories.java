@@ -365,6 +365,11 @@ public enum DboStories implements Story {
                     // The page they sign in on is the application's to draw.
                     DboPromises.AUTH_THE_SIGN_IN_PAGE_IS_THE_HOSTS,
                     DboPromises.AUTH_A_WRONG_PASSWORD_STAYS_ON_THE_PAGE,
+                    // And the application learns who signed in from the store.
+                    DboPromises.AUTH_THE_ID_TOKEN_SAYS_WHO_SIGNED_IN_AND_WHAT_THEY_HOLD,
+                    DboPromises.AUTH_USERINFO_ANSWERS_WHAT_THE_ID_TOKEN_SAYS,
+                    DboPromises.AUTH_A_PERSON_READING_THEIR_OWN_IDENTITY_IS_RECORDED_AS_THEIRS,
+                    DboPromises.AUTH_AN_APPLICATION_ADDS_TO_WHAT_A_PERSON_CARRIES,
                     DboPromises.AUTH_FIRST_SECRET_BY_ONE_TIME_GRANT,
                     DboPromises.AUTH_SELF_SERVICE_CHANGE,
                     DboPromises.AUTH_RECOVERY_IS_AN_OPERATOR_ACT,

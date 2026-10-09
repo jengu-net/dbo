@@ -71,6 +71,8 @@ public class DboServerProperties {
                 ? null : String.valueOf(http.getPort()));
         put(said, "dbo.tenant.auth.kek", auth.getKek());
         put(said, "dbo.tenant.auth.issuer.base", auth.getIssuerBase());
+        put(said, "dbo.tenant.auth.claims.max.bytes", auth.getClaimsMaxBytes() == null
+                ? null : String.valueOf(auth.getClaimsMaxBytes()));
         put(said, "dbo.tenant.admin.url", admin.getJdbcUrl());
         put(said, "dbo.tenant.admin.user", admin.getUser());
         put(said, "dbo.tenant.admin.password", admin.getPassword());
@@ -248,6 +250,12 @@ public class DboServerProperties {
         private String issuerBase;
 
         /**
+         * How large the claims about a person may grow, in bytes, before
+         * minting them is refused. Unset, 4096.
+         */
+        private Integer claimsMaxBytes;
+
+        /**
          * Serving tenants with no authority at all, said out loud.
          *
          * <p>The serving distribution exits rather than do this, and an
@@ -270,6 +278,14 @@ public class DboServerProperties {
 
         public void setIssuerBase(String issuerBase) {
             this.issuerBase = issuerBase;
+        }
+
+        public Integer getClaimsMaxBytes() {
+            return claimsMaxBytes;
+        }
+
+        public void setClaimsMaxBytes(Integer claimsMaxBytes) {
+            this.claimsMaxBytes = claimsMaxBytes;
         }
 
         public boolean isDisabled() {

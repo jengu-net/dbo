@@ -1,5 +1,7 @@
 package cloud.jengu.dbo.spring.test.secured;
 
+import cloud.jengu.dbo.auth.Subject;
+import cloud.jengu.dbo.auth.UserClaims;
 import cloud.jengu.dbo.spring.server.DboAuthentication;
 import cloud.jengu.dbo.spring.server.DboBearerTokens;
 import cloud.jengu.dbo.spring.server.DboRequestTenant;
@@ -12,6 +14,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -38,6 +41,28 @@ public class TheSecuredApplication {
                 .authorizeHttpRequests(requests -> requests.anyRequest().authenticated())
                 .oauth2ResourceServer(server -> server.authenticationManagerResolver(tokens))
                 .build();
+    }
+
+    /**
+     * What this application adds to a person's claims, and the ways adding
+     * can go wrong, each answering one client so a test can ask for it.
+     */
+    @Bean
+    UserClaims whatThisApplicationAdds() {
+        return subject -> switch (subject.clientId()) {
+            case "breaks" -> throw new IllegalStateException("the directory this reads is down");
+            case "oversteps" -> Map.of("sub", "somebody-else");
+            case "overflows" -> Map.of("notes", "x".repeat(8_192));
+            default -> Map.of(
+                    "practitioners", subject.practitioners().size(),
+                    "held_at", subject.practitioners().stream()
+                            .flatMap(practitioner -> practitioner.roles().stream())
+                            .flatMap(role -> role.organization().stream())
+                            .map(Subject.Organization::json)
+                            .map(json -> json.replaceAll("(?s).*\"name\"\\s*:\\s*\"([^\"]*)\".*",
+                                    "$1"))
+                            .toList());
+        };
     }
 
     @RestController

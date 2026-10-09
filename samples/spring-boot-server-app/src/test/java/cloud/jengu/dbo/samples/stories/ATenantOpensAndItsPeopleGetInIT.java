@@ -622,7 +622,7 @@ class ATenantOpensAndItsPeopleGetInIT {
                 () -> new AssertionError("no identity token: " + tokens.body())));
         assertTrue(id.contains("\"aud\":\"" + portal() + "\"")
                 && id.contains("\"nonce\":\"" + nonce + "\"")
-                && id.contains("\"roles\":[\"healer\"]")
+                && id.contains("\"grants\":[{\"roles\":[\"healer\"]}]")
                 && id.contains("\"fhirUser\":\"Practitioner/" + healerPractitioner + "\""), id);
 
         assertEquals(200, admin("/role-grants",
@@ -1289,6 +1289,185 @@ class ATenantOpensAndItsPeopleGetInIT {
                         && location.contains("error=access_denied"),
                 "somebody the hospital grants nothing was not answered to the application: "
                         + nothingGranted.statusCode() + " " + location);
+    }
+
+    // ── and the application learns who signed in from the store ──
+
+    /** Pomona: a healer anywhere in the clinic, and a lab technician at its Main Lab. */
+    private String pomona;
+
+    private String pomonaRefresh;
+
+    private String pomonaAccess;
+
+    /** When Pomona first signed in, as her first identity token says. */
+    private String pomonaSignedInAt;
+
+    private static String authTimeIn(String claims) {
+        return claims.replaceAll("(?s).*\"auth_time\":(\\d+).*", "$1");
+    }
+
+    private HttpResponse<String> asPomona(String nonce) {
+        return signIn("pomona", "herbology7", nonce);
+    }
+
+    private static String idTokenOf(HttpResponse<String> tokens) {
+        return tokens.body().replaceAll("(?s).*\"id_token\"\\s*:\\s*\"([^\"]+)\".*", "$1");
+    }
+
+    private int selfAccessesOf(String person) {
+        String trail = dbo.get(fhir(second) + "/AuditEvent?agent="
+                + encoded("Person/" + person), dbo.token(second)).body();
+        return trail.split("PATRQT", -1).length - 1;
+    }
+
+    @Test
+    @Order(39)
+    @DisplayName("the identity token says who signed in and which roles they hold where, each "
+            + "against the organisation it is held at, and the access token says neither")
+    @Proving({DboPromises.AUTH_THE_ID_TOKEN_SAYS_WHO_SIGNED_IN_AND_WHAT_THEY_HOLD,
+            DboPromises.AUTH_AN_APPLICATION_ADDS_TO_WHAT_A_PERSON_CARRIES})
+    void theIdentityTokenSaysWhoSignedIn() {
+        pomona = aClinician(second, "pomona", "healer");
+        String practitioner = authority(second).linkedOfType(pomona, "Practitioner").get(0);
+        assertEquals(201, new ATenantsDoor(dbo, second).post("/PractitionerRole", """
+                {"resourceType":"PractitionerRole",
+                 "practitioner":{"reference":"Practitioner/%s"},
+                 "organization":{"identifier":{"system":"%s","value":"main-lab"}},
+                 "code":[{"coding":[{"system":"urn:example:role","code":"lab-tech"}]}]}"""
+                .formatted(practitioner, orgs())).statusCode());
+        authority(second).ensureLocalCredential("pomona", "herbology7", pomona);
+
+        HttpResponse<String> tokens = asPomona(names.value("nonce-pomona"));
+        assertEquals(200, tokens.statusCode(), tokens.body());
+        pomonaRefresh = dbo.says(tokens).one("refresh_token").orElseThrow();
+        pomonaAccess = dbo.says(tokens).one("access_token").orElseThrow();
+        String id = claimsOf(idTokenOf(tokens));
+        pomonaSignedInAt = authTimeIn(id);
+        Proves.that(DboPromises.AUTH_THE_ID_TOKEN_SAYS_WHO_SIGNED_IN_AND_WHAT_THEY_HOLD,
+                id.contains("\"family_name\":\"pomona\"")
+                        && id.contains("\"preferred_username\":\"pomona\"")
+                        && id.contains("\"amr\":[\"pwd\"]") && id.contains("\"auth_time\":"),
+                "the identity token does not say who signed in, or how: " + id);
+        Proves.that(DboPromises.AUTH_THE_ID_TOKEN_SAYS_WHO_SIGNED_IN_AND_WHAT_THEY_HOLD,
+                id.matches("(?s).*\\{\"organization\":\"[^\"]+\",\"roles\":\\[\"lab-tech\"\\]\\}.*")
+                        && id.contains("{\"roles\":[\"healer\"]}")
+                        && id.contains("\"name\":\"Main Lab\""),
+                "a role is not listed against the organisation it is held at, apart from the "
+                        + "roles held elsewhere: " + id);
+        String access = claimsOf(pomonaAccess);
+        Proves.that(DboPromises.AUTH_THE_ID_TOKEN_SAYS_WHO_SIGNED_IN_AND_WHAT_THEY_HOLD,
+                !access.contains("pomona") && !access.contains("grants")
+                        && !access.contains("Main Lab") && !access.contains("ward_roles"),
+                "the access token carries the person's claims to every surface it reaches: "
+                        + access);
+
+        // The clinic's portal is told the ward roles; its other application,
+        // signing the same person in, is not.
+        Proves.that(DboPromises.AUTH_AN_APPLICATION_ADDS_TO_WHAT_A_PERSON_CARRIES,
+                id.contains("\"ward_roles\":[") && id.contains("\"lab-tech\"")
+                        && portal().endsWith(
+                                cloud.jengu.dbo.samples.server.TellingThePortalWhoSignedIn.PORTAL),
+                "what the application adds for its portal did not reach the portal: " + id);
+        String verifier = verifier();
+        HttpResponse<String> form = formPost(oidc(second) + "/authorize/login",
+                "client_id=" + webApp() + "&redirect_uri=" + encoded(REDIRECT)
+                        + "&state=xyz&code_challenge=" + challenge(verifier)
+                        + "&login=pomona&password=herbology7");
+        HttpResponse<String> other = formPost(oidc(second) + "/token",
+                "grant_type=authorization_code&client_id=" + webApp() + "&code=" + codeIn(form)
+                        + "&redirect_uri=" + encoded(REDIRECT) + "&code_verifier=" + verifier);
+        assertEquals(200, other.statusCode(), other.body());
+        String otherId = claimsOf(idTokenOf(other));
+        Proves.that(DboPromises.AUTH_AN_APPLICATION_ADDS_TO_WHAT_A_PERSON_CARRIES,
+                !otherId.contains("ward_roles") && otherId.contains("\"family_name\":\"pomona\""),
+                "what the application adds for its portal reached another client: " + otherId);
+    }
+
+    @Test
+    @Order(40)
+    @DisplayName("a refresh mints a new identity token, with the same sign-in and the roles as "
+            + "they stand")
+    @Proving(DboPromises.AUTH_THE_ID_TOKEN_SAYS_WHO_SIGNED_IN_AND_WHAT_THEY_HOLD)
+    void aRefreshMintsANewIdentityToken() throws InterruptedException {
+        // A second later, so a refresh that took the time of the refresh
+        // rather than of the sign-in would show.
+        Thread.sleep(1_100);
+        HttpResponse<String> refreshed = formPost(oidc(second) + "/token",
+                "grant_type=refresh_token&refresh_token=" + encoded(pomonaRefresh));
+        assertEquals(200, refreshed.statusCode(), refreshed.body());
+        Proves.that(DboPromises.AUTH_THE_ID_TOKEN_SAYS_WHO_SIGNED_IN_AND_WHAT_THEY_HOLD,
+                refreshed.body().contains("\"id_token\""),
+                "a refresh returned no identity token: " + refreshed.body());
+        String id = claimsOf(idTokenOf(refreshed));
+        Proves.that(DboPromises.AUTH_THE_ID_TOKEN_SAYS_WHO_SIGNED_IN_AND_WHAT_THEY_HOLD,
+                id.contains("\"family_name\":\"pomona\"") && id.contains("\"lab-tech\"")
+                        && authTimeIn(id).equals(pomonaSignedInAt),
+                "the refreshed identity token lost who signed in, or took the time of a later "
+                        + "sign-in: " + id);
+        pomonaRefresh = dbo.says(refreshed).one("refresh_token").orElseThrow();
+        pomonaAccess = dbo.says(refreshed).one("access_token").orElseThrow();
+    }
+
+    @Test
+    @Order(41)
+    @DisplayName("UserInfo answers what the identity token says, over HTTP and in-process, and "
+            + "its signed answer is verified against the clinic's own keys")
+    @Proving(DboPromises.AUTH_USERINFO_ANSWERS_WHAT_THE_ID_TOKEN_SAYS)
+    void userInfoAnswersWhatTheIdentityTokenSays() {
+        assertTrue(dbo.get(oidc(second) + "/.well-known/openid-configuration", null).body()
+                .contains("\"userinfo_endpoint\":\"" ), "discovery lists no UserInfo");
+        HttpResponse<String> plain = dbo.get(oidc(second) + "/userinfo", pomonaAccess);
+        Proves.that(DboPromises.AUTH_USERINFO_ANSWERS_WHAT_THE_ID_TOKEN_SAYS,
+                plain.statusCode() == 200 && plain.body().contains("\"family_name\":\"pomona\"")
+                        && plain.body().contains("\"lab-tech\"")
+                        && plain.body().contains("\"ward_roles\""),
+                "UserInfo does not answer what the identity token says: " + plain.statusCode()
+                        + " " + plain.body());
+        var inProcess = authority(second).userInfo(pomonaAccess).orElseThrow();
+        Proves.that(DboPromises.AUTH_USERINFO_ANSWERS_WHAT_THE_ID_TOKEN_SAYS,
+                "pomona".equals(inProcess.get("family_name"))
+                        && inProcess.containsKey("grants") && inProcess.containsKey("ward_roles")
+                        && String.valueOf(inProcess.get("auth_time")).equals(pomonaSignedInAt),
+                "in-process UserInfo answers differently from the identity token: " + inProcess);
+
+        HttpResponse<String> signed = dbo.send(HttpRequest.newBuilder(URI.create(oidc(second)
+                + "/userinfo")).header("Accept", "application/jwt").GET(), pomonaAccess);
+        assertEquals(200, signed.statusCode(), signed.body());
+        Proves.that(DboPromises.AUTH_USERINFO_ANSWERS_WHAT_THE_ID_TOKEN_SAYS,
+                authority(second).verifyIdToken(signed.body(), portal())
+                        .map(claims -> "pomona".equals(claims.get("family_name")))
+                        .orElse(false)
+                        && authority(second).verifyIdToken(signed.body(), webApp()).isEmpty(),
+                "the signed answer does not verify against the clinic's keys for the portal "
+                        + "alone: " + claimsOf(signed.body()));
+    }
+
+    @Test
+    @Order(42)
+    @DisplayName("reading who signed in is recorded once, at sign-in, as the person's own "
+            + "access, and neither a refresh nor UserInfo reads it again")
+    @Proving(DboPromises.AUTH_A_PERSON_READING_THEIR_OWN_IDENTITY_IS_RECORDED_AS_THEIRS)
+    void readingWhoSignedInIsTheirOwnAccess() {
+        int before = selfAccessesOf(pomona);
+        HttpResponse<String> tokens = asPomona(null);
+        assertEquals(200, tokens.statusCode(), tokens.body());
+        int signedIn = selfAccessesOf(pomona);
+        Proves.that(DboPromises.AUTH_A_PERSON_READING_THEIR_OWN_IDENTITY_IS_RECORDED_AS_THEIRS,
+                signedIn > before,
+                "signing in read who the person is and the trail does not say it was their "
+                        + "own access: " + before + " -> " + signedIn);
+
+        HttpResponse<String> refreshed = formPost(oidc(second) + "/token",
+                "grant_type=refresh_token&refresh_token=" + encoded(
+                        dbo.says(tokens).one("refresh_token").orElseThrow()));
+        assertEquals(200, refreshed.statusCode(), refreshed.body());
+        assertEquals(200, dbo.get(oidc(second) + "/userinfo",
+                dbo.says(refreshed).one("access_token").orElseThrow()).statusCode());
+        Proves.that(DboPromises.AUTH_A_PERSON_READING_THEIR_OWN_IDENTITY_IS_RECORDED_AS_THEIRS,
+                selfAccessesOf(pomona) == signedIn,
+                "a refresh or UserInfo read the person's identity again: " + signedIn + " -> "
+                        + selfAccessesOf(pomona));
     }
 
     private static boolean mentions(java.nio.file.Path file, String code) {

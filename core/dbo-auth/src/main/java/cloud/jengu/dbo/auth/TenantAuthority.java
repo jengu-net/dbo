@@ -20,6 +20,7 @@ import java.security.PrivateKey;
 import java.security.interfaces.RSAPublicKey;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.Base64;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -248,7 +249,8 @@ public final class TenantAuthority {
         pendingCodes.put(code, new PendingAuthorization(parked.clientId(), parked.redirectUri(),
                 parked.codeChallenge(), person.get(),
                 String.join(" ", scopes), String.join(",", grants.roles()),
-                parked.nonce(), System.currentTimeMillis() + 60_000));
+                parked.nonce(), System.currentTimeMillis() + 60_000, null,
+                Json.strings(claims, "amr"), System.currentTimeMillis() / 1000));
         return new FederatedOutcome.Success(parked.redirectUri(), parked.rpState(), code);
     }
 
@@ -1275,7 +1277,7 @@ public final class TenantAuthority {
      * practitioner it names resolves to nothing at that moment and to the
      * practitioner as soon as it arrives, so a declared set needs no order.
      */
-    private List<StoredObject> rolesHeldBy(String practitionerId) {
+    List<StoredObject> rolesHeldBy(String practitionerId) {
         // Keyed by id, because a role naming the practitioner BOTH ways is one
         // role and counting it twice would double nothing but the work.
         java.util.Map<String, StoredObject> found = new java.util.LinkedHashMap<>();
@@ -1381,7 +1383,7 @@ public final class TenantAuthority {
      * complete reads it correctly — nothing is cached, which is the point of
      * resolving on the read.
      */
-    private String organisationOf(Object practitionerRolePayload) {
+    String organisationOf(Object practitionerRolePayload) {
         Object organisation = ((Map<?, ?>) practitionerRolePayload).get("organization");
         if (organisation == null) {
             return null;
@@ -1408,7 +1410,7 @@ public final class TenantAuthority {
                 .stream().findFirst().map(StoredObject::id).orElse(null);
     }
 
-    private static boolean periodActive(Object practitionerRolePayload) {
+    static boolean periodActive(Object practitionerRolePayload) {
         Object period = ((Map<?, ?>) practitionerRolePayload).get("period");
         if (period == null) {
             return true;
@@ -1422,8 +1424,15 @@ public final class TenantAuthority {
 
     // -------------------------------------------------- authorization code
 
+    /**
+     * @param login    the login signed in with, or null where the hub
+     *                 identified the person
+     * @param amr      how they signed in
+     * @param authTime when, in epoch seconds
+     */
     record PendingAuthorization(String clientId, String redirectUri, String codeChallenge,
-            String personId, String scope, String roles, String nonce, long expiresAt) {}
+            String personId, String scope, String roles, String nonce, long expiresAt,
+            String login, List<String> amr, long authTime) {}
 
     public sealed interface AuthorizeResult {
         record LoginRequired(String clientId, String redirectUri) implements AuthorizeResult {}
@@ -1476,7 +1485,8 @@ public final class TenantAuthority {
         pendingCodes.put(code, new PendingAuthorization(clientId, redirectUri, codeChallenge,
                 person.get(), String.join(" ", grants.scopes()),
                 String.join(",", grants.roles()), nonce == null ? "" : nonce,
-                System.currentTimeMillis() + 60_000));
+                System.currentTimeMillis() + 60_000, login, List.of("pwd"),
+                System.currentTimeMillis() / 1000));
         return new LoginResult.Redirect(code);
     }
 
@@ -1520,8 +1530,18 @@ public final class TenantAuthority {
         if (!pkceMatches(pending.codeChallenge(), codeVerifier)) {
             return new TokenResult.Rejected("invalid_grant", "PKCE verification failed");
         }
+        Map<String, Object> identity;
+        try {
+            identity = personClaims.identity(pending.personId(),
+                    Optional.ofNullable(pending.login()));
+        } catch (RuntimeException unreadable) {
+            return new TokenResult.Rejected("temporarily_unavailable",
+                    "who this person is could not be read");
+        }
+        Session session = remembered(new Session(UuidV7.newId(), pending.authTime(),
+                pending.amr(), identity));
         return humanTokens(pending.personId(), clientId, pending.scope(), pending.roles(),
-                pending.nonce());
+                pending.nonce(), session, Subject.Occasion.SIGN_IN);
     }
 
     /** Refresh RE-EVALUATES grants — yesterday's revocation is today's denial. */
@@ -1551,8 +1571,21 @@ public final class TenantAuthority {
         if (grants.scopes().isEmpty()) {
             return new TokenResult.Rejected("access_denied", "no active grants");
         }
+        // Who they are comes from the sign-in, carried in the refresh token,
+        // so a refresh reads nobody's identity again. A refresh token minted
+        // before sessions existed starts one with what it does know.
+        Object carried = ((Map<?, ?>) claims).get("idc");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> identity = carried instanceof Map<?, ?> map
+                ? new LinkedHashMap<>((Map<String, Object>) map) : new LinkedHashMap<>();
+        Session session = remembered(new Session(
+                Optional.ofNullable(Json.strOpt(claims, "sid")).orElseGet(UuidV7::newId),
+                ((Map<?, ?>) claims).get("auth_time") instanceof Number at
+                        ? at.longValue() : Json.num(claims, "iat"),
+                Json.strings(claims, "amr"), identity));
         return humanTokens(personId, Json.str(claims, "client_id"),
-                String.join(" ", grants.scopes()), String.join(",", grants.roles()));
+                String.join(" ", grants.scopes()), String.join(",", grants.roles()), null,
+                session, Subject.Occasion.REFRESH);
     }
 
     // -------------------------------------------------- on-behalf-of (§16.4)
@@ -1744,21 +1777,89 @@ public final class TenantAuthority {
                 String.join(" ", scopes));
     }
 
-    private TokenResult humanTokens(String personId, String clientId, String scope,
-            String rolesCsv) {
-        return humanTokens(personId, clientId, scope, rolesCsv, null);
+    /**
+     * One sign-in, as the tokens minted from it remember it: when and how the
+     * person signed in, and who they are as sign-in read them.
+     */
+    record Session(String sid, long authTime, List<String> amr, Map<String, Object> identity) {}
+
+    /** By sid, so UserInfo answers from the sign-in rather than reading again. */
+    private final Map<String, Session> sessions = new ConcurrentHashMap<>();
+    private final Map<String, Long> sessionsSeen = new ConcurrentHashMap<>();
+    private static final long REFRESH_TTL_SECONDS = 43_200;
+
+    private Session remembered(Session session) {
+        long now = System.currentTimeMillis() / 1000;
+        sessions.put(session.sid(), session);
+        sessionsSeen.put(session.sid(), now);
+        // Kept as long as a refresh token can still bring the session back,
+        // and no longer: a refresh puts it back in any case.
+        sessionsSeen.entrySet().removeIf(seen -> {
+            boolean stale = seen.getValue() < now - REFRESH_TTL_SECONDS;
+            if (stale) {
+                sessions.remove(seen.getKey());
+            }
+            return stale;
+        });
+        return session;
+    }
+
+    private final PersonClaims personClaims = new PersonClaims(this);
+    private volatile String tenant;
+    private volatile java.util.function.Supplier<UserClaims> userClaims = () -> null;
+    private volatile int claimsMaxBytes = 4096;
+
+    /**
+     * What the application adds to the person's claims, and how large the
+     * whole set may grow.
+     *
+     * @param contributor asked at every minting rather than once, so a
+     *                    contributor that arrives while the tenant serves is
+     *                    asked from then on
+     */
+    public void claims(String tenant, java.util.function.Supplier<UserClaims> contributor,
+            int maxBytes) {
+        this.tenant = tenant;
+        this.userClaims = contributor;
+        this.claimsMaxBytes = maxBytes;
+    }
+
+    ObjectStore subjects() {
+        return subjectStore;
+    }
+
+    /** Whether some grant gives this role anything, at this organisation or tenant-wide. */
+    boolean grants(String roleCode, String organisationId) {
+        return (organisationId != null && activeGrant(roleCode, organisationId).isPresent())
+                || activeGrant(roleCode, null).isPresent();
     }
 
     /**
-     * OIDC: the auth-code exchange carries an id_token (aud = the CLIENT, unlike
-     * the access token's aud = issuer) so standard RPs — Spring oauth2Login —
-     * can build a principal without touching the access token. {@code nonce}
-     * null = refresh (no id_token); empty = code flow without a nonce.
+     * OIDC: every human minting carries an ID token, at sign-in and at every
+     * refresh, with the person's claims as they stand. Its aud is the CLIENT,
+     * unlike the access token's issuer, so a standard relying party builds
+     * its principal without touching the access token.
+     *
+     * <p>The access token gets none of the person's claims. It reaches the
+     * store's surfaces and every service it is exchanged for, which are third
+     * parties to the person, so it keeps only what those surfaces enforce on
+     * and the session it belongs to.
+     *
+     * @param nonce empty = code flow without a nonce; null = refresh
      */
     private TokenResult humanTokens(String personId, String clientId, String scope,
-            String rolesCsv, String nonce) {
+            String rolesCsv, String nonce, Session session, Subject.Occasion occasion) {
         StoredObject key = activeKey().orElseThrow(() -> new IllegalStateException("no active signing key"));
         long now = System.currentTimeMillis() / 1000;
+        Map<String, Object> claims;
+        try {
+            claims = personClaims.mint(tenant, personId, clientId,
+                    scope.isEmpty() ? List.of() : List.of(scope.split(" ")), occasion,
+                    session.authTime(), session.amr(), session.identity(),
+                    userClaims.get(), claimsMaxBytes);
+        } catch (PersonClaims.Refused refused) {
+            return new TokenResult.Rejected(refused.error, refused.getMessage());
+        }
         String rolesJson = rolesCsv == null || rolesCsv.isEmpty() ? "[]"
                 : "[\"" + rolesCsv.replace(",", "\",\"") + "\"]";
         // sub is the person; fhirUser is the capacity they act in. SMART's own
@@ -1777,29 +1878,135 @@ public final class TenantAuthority {
         List<String> reach = evaluateGrants(personId).organisations();
         String orgClaim = reach.isEmpty() ? ""
                 : ",\"org\":[\"" + String.join("\",\"", reach) + "\"]";
+        String signedIn = ",\"sid\":\"" + session.sid() + "\""
+                + ",\"auth_time\":" + session.authTime()
+                + ",\"amr\":" + Json.render(session.amr());
         String base = "\"iss\":\"" + issuer + "\",\"sub\":\"" + personId + "\""
                 + ",\"aud\":\"" + issuer + "\",\"client_id\":\"" + clientId + "\""
                 + ",\"fhirUser\":\"" + fhirUser + "\""
                 + ",\"roles\":" + rolesJson + orgClaim
-                + ",\"scope\":\"" + scope + "\",\"iat\":" + now;
+                + ",\"scope\":\"" + scope + "\",\"iat\":" + now + signedIn;
         String access = "{" + base + ",\"jti\":\"" + UuidV7.newId() + "\""
                 + ",\"exp\":" + (now + TOKEN_TTL_SECONDS) + "}";
+        // The refresh token carries who they are from sign-in, so a refresh
+        // re-derives what they hold without reading their identity again.
+        // It goes only to the client and back, which already holds the same
+        // claims in its ID token.
         String refresh = "{" + base + ",\"jti\":\"" + UuidV7.newId() + "\",\"typ\":\"refresh\""
-                + ",\"exp\":" + (now + 43_200) + "}";
+                + ",\"idc\":" + Json.render(session.identity())
+                + ",\"exp\":" + (now + REFRESH_TTL_SECONDS) + "}";
         String kid = field(key, "kid");
-        String idToken = null;
-        if (nonce != null) {
-            idToken = Jws.sign(kid, "{\"iss\":\"" + issuer + "\",\"sub\":\"" + personId + "\""
-                    + ",\"aud\":\"" + clientId + "\""
-                    + ",\"fhirUser\":\"" + fhirUser + "\""
-                    + ",\"roles\":" + rolesJson
-                    + (nonce.isEmpty() ? "" : ",\"nonce\":\"" + nonce + "\"")
-                    + ",\"iat\":" + now + ",\"exp\":" + (now + TOKEN_TTL_SECONDS) + "}",
-                    privateKey(key));
-        }
+        String idToken = Jws.sign(kid, "{\"iss\":\"" + issuer + "\",\"sub\":\"" + personId + "\""
+                + ",\"aud\":\"" + clientId + "\""
+                + ",\"fhirUser\":\"" + fhirUser + "\""
+                + (nonce == null || nonce.isEmpty() ? "" : ",\"nonce\":\"" + nonce + "\"")
+                + ",\"iat\":" + now + ",\"exp\":" + (now + TOKEN_TTL_SECONDS) + signedIn
+                + personal(claims) + "}",
+                privateKey(key));
         return new TokenResult.IssuedHuman(
                 Jws.sign(kid, access, privateKey(key)), TOKEN_TTL_SECONDS, scope,
                 Jws.sign(kid, refresh, privateKey(key)), idToken);
+    }
+
+    /** The person's claims, as members to append to a JSON object. */
+    private static String personal(Map<String, Object> claims) {
+        String rendered = Json.render(claims);
+        return rendered.length() <= 2 ? "" : "," + rendered.substring(1, rendered.length() - 1);
+    }
+
+    /**
+     * OIDC UserInfo: the claims about the person an access token was minted
+     * for, the same set the ID token minted with it carries. Empty for a token
+     * this authority does not accept, or one that names no person.
+     */
+    public Optional<Map<String, Object>> userInfo(String accessToken) {
+        if (validate(accessToken).isEmpty()) {
+            return Optional.empty();
+        }
+        Object claims = Json.parse(Jws.parse(accessToken).claimsJson());
+        if (!issuer.equals(Json.str(claims, "iss")) || Json.strOpt(claims, "fhirUser") == null) {
+            return Optional.empty();
+        }
+        String personId = Json.str(claims, "sub");
+        String sid = Json.strOpt(claims, "sid");
+        long authTime = ((Map<?, ?>) claims).get("auth_time") instanceof Number at
+                ? at.longValue() : Json.num(claims, "iat");
+        Session session = sid == null ? null : sessions.get(sid);
+        if (session == null) {
+            // Nothing remembers this sign-in, which is what a restart leaves:
+            // who they are is read again, as themselves, and recorded again,
+            // because it is a read again.
+            session = remembered(new Session(sid == null ? UuidV7.newId() : sid, authTime,
+                    Json.strings(claims, "amr"),
+                    personClaims.identity(personId, Optional.empty())));
+        }
+        Map<String, Object> answer = new LinkedHashMap<>();
+        answer.put("sub", personId);
+        answer.put("fhirUser", Json.str(claims, "fhirUser"));
+        answer.put("auth_time", session.authTime());
+        answer.put("amr", session.amr());
+        try {
+            answer.putAll(personClaims.mint(tenant, personId, Json.str(claims, "client_id"),
+                    List.of(Json.str(claims, "scope").split(" ")), Subject.Occasion.USERINFO,
+                    session.authTime(), session.amr(), session.identity(), userClaims.get(),
+                    claimsMaxBytes));
+        } catch (PersonClaims.Refused refused) {
+            return Optional.empty();
+        }
+        return Optional.of(answer);
+    }
+
+    /**
+     * The same answer as a signed JWT (OIDC Core §5.3.2), addressed to the
+     * client the access token was minted for.
+     */
+    public Optional<String> userInfoJwt(String accessToken) {
+        return userInfo(accessToken).map(claims -> {
+            Object presented = Json.parse(Jws.parse(accessToken).claimsJson());
+            Map<String, Object> signed = new LinkedHashMap<>();
+            signed.put("iss", issuer);
+            signed.put("aud", Json.str(presented, "client_id"));
+            // As long as the access token it answered, and no longer: a
+            // signed answer is a credential's word, and outliving it would
+            // let it vouch for a session that has ended.
+            signed.put("iat", System.currentTimeMillis() / 1000);
+            signed.put("exp", Json.num(presented, "exp"));
+            signed.putAll(claims);
+            StoredObject key = activeKey().orElseThrow(
+                    () -> new IllegalStateException("no active signing key"));
+            return Jws.sign(field(key, "kid"), Json.render(signed), privateKey(key));
+        });
+    }
+
+    /**
+     * An ID token or a signed UserInfo answer this authority issued to this
+     * client, verified against the tenant's own keys: its claims, or empty.
+     * Not {@link #validate}, which admits access tokens to the surfaces and
+     * would turn an ID token away for carrying no scope.
+     */
+    public Optional<Map<String, Object>> verifyIdToken(String idToken, String clientId) {
+        try {
+            Jws.Parts parts = Jws.parse(idToken);
+            RSAPublicKey key = keyCache.get(parts.kid());
+            if (key == null) {
+                refreshKeyCache();
+                key = keyCache.get(parts.kid());
+            }
+            if (key == null || !Jws.verify(parts, key)) {
+                return Optional.empty();
+            }
+            Object claims = Json.parse(parts.claimsJson());
+            if (!issuer.equals(Json.str(claims, "iss"))
+                    || !clientId.equals(Json.strOpt(claims, "aud"))
+                    || Json.num(claims, "exp") < System.currentTimeMillis() / 1000) {
+                return Optional.empty();
+            }
+            @SuppressWarnings("unchecked")
+            Map<String, Object> verified = (Map<String, Object>) claims;
+            return Optional.of(verified);
+        } catch (RuntimeException invalid) {
+            return Optional.empty();
+        }
     }
 
     private Optional<StoredObject> findClient(String clientId) {
@@ -2035,6 +2242,11 @@ public final class TenantAuthority {
                 + ",\"response_types_supported\":[\"code\",\"token\"]"
                 + ",\"subject_types_supported\":[\"public\"]"
                 + ",\"scopes_supported\":[\"openid\"]"
+                + ",\"userinfo_endpoint\":\"" + issuer + "/userinfo\""
+                + ",\"userinfo_signing_alg_values_supported\":[\"RS256\"]"
+                + ",\"claims_supported\":[\"sub\",\"fhirUser\",\"name\",\"given_name\""
+                + ",\"family_name\",\"preferred_username\",\"locale\",\"auth_time\",\"amr\""
+                + ",\"sid\",\"grants\",\"organizations\"]"
                 + ",\"id_token_signing_alg_values_supported\":[\"RS256\"]}";
     }
 

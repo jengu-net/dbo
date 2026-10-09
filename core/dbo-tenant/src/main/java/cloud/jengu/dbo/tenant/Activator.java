@@ -83,6 +83,7 @@ public final class Activator implements BundleActivator {
     /** What this node is called in every contact event it sends. */
     static final String NODE_NAME = "dbo.node.name";
     private ServiceTracker<cloud.jengu.dbo.auth.LoginPage, cloud.jengu.dbo.auth.LoginPage> pages;
+    private ServiceTracker<cloud.jengu.dbo.auth.UserClaims, cloud.jengu.dbo.auth.UserClaims> claims;
     private ServiceTracker<cloud.jengu.dbo.runner.StepService,
             cloud.jengu.dbo.runner.StepService> performers;
     /** What each taken-up bean is withdrawn by, when its bundle goes. */
@@ -323,6 +324,13 @@ public final class Activator implements BundleActivator {
             cloud.jengu.dbo.auth.LoginPage page = pages.getService();
             return page != null ? page : cloud.jengu.dbo.auth.LoginPage.BARE;
         });
+        // What the application adds to a person's claims, looked up at each
+        // minting the same way.
+        claims = new ServiceTracker<>(ctx, cloud.jengu.dbo.auth.UserClaims.class, null);
+        claims.open();
+        String claimsMaxBytes = ctx.getProperty("dbo.tenant.auth.claims.max.bytes");
+        manager.userClaims(claims::getService,
+                claimsMaxBytes == null ? 4096 : Integer.parseInt(claimsMaxBytes));
         // THE SAME WHITEBOARD, AND NOW THE SAME INTERFACE. A step is a
         // StepService whichever level declared it: the runner's own activator
         // watches this too and polls tenant lanes for the steps a TENANT
@@ -911,6 +919,9 @@ public final class Activator implements BundleActivator {
         }
         if (pages != null) {
             pages.close();
+        }
+        if (claims != null) {
+            claims.close();
         }
         if (observers != null) {
             observers.close();

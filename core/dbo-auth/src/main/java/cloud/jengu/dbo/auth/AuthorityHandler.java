@@ -55,6 +55,7 @@ public final class AuthorityHandler implements HttpHandler {
                 case "authorize" -> authorize(exchange);
                 case "authorize/login" -> authorizeLogin(exchange);
                 case "authorize/broker" -> authorizeBroker(exchange);
+                case "userinfo" -> userInfo(exchange);
                 case "delegation" -> delegation(exchange);
                 case "federated" -> federated(exchange);
                 case "admin/role-grants" -> adminRoleGrants(exchange);
@@ -135,10 +136,46 @@ public final class AuthorityHandler implements HttpHandler {
                                     : ",\"id_token\":\"" + issued.idToken() + "\"")
                             + ",\"refresh_token\":\"" + issued.refreshToken() + "\"}");
             case TenantAuthority.TokenResult.Rejected rejected -> respond(exchange,
-                    "invalid_client".equals(rejected.error()) ? 401 : 400,
+                    "invalid_client".equals(rejected.error()) ? 401
+                            : "temporarily_unavailable".equals(rejected.error()) ? 503 : 400,
                     "{\"error\":\"" + rejected.error() + "\",\"error_description\":\""
                             + rejected.description() + "\"}");
         }
+    }
+
+    /**
+     * OIDC UserInfo (Core §5.3): the person's claims for the access token
+     * presented, as JSON, or as a JWT signed by this tenant's key when the
+     * caller asks for {@code application/jwt}.
+     */
+    private void userInfo(HttpExchange exchange) throws IOException {
+        if (!"GET".equals(exchange.getRequestMethod())
+                && !"POST".equals(exchange.getRequestMethod())) {
+            respond(exchange, 405, "{\"error\":\"invalid_request\"}");
+            return;
+        }
+        String bearer = bearerOf(exchange);
+        String accept = exchange.getRequestHeaders().getFirst("Accept");
+        boolean signed = accept != null && accept.contains("application/jwt");
+        java.util.Optional<String> answer = bearer == null ? java.util.Optional.empty()
+                : signed ? authority.userInfoJwt(bearer)
+                : authority.userInfo(bearer).map(Json::render);
+        if (answer.isEmpty()) {
+            exchange.getResponseHeaders().set("WWW-Authenticate",
+                    "Bearer error=\"invalid_token\"");
+            respond(exchange, 401, "{\"error\":\"invalid_token\"}");
+            return;
+        }
+        if (signed) {
+            byte[] body = answer.get().getBytes(StandardCharsets.UTF_8);
+            exchange.getResponseHeaders().set("Content-Type", "application/jwt");
+            exchange.getResponseHeaders().set("Cache-Control", "no-store");
+            exchange.sendResponseHeaders(200, body.length);
+            exchange.getResponseBody().write(body);
+            return;
+        }
+        exchange.getResponseHeaders().set("Cache-Control", "no-store");
+        respond(exchange, 200, answer.get());
     }
 
     /** GET /authorize: validate the front-channel request, serve the sign-in page. */

@@ -47,7 +47,8 @@ public final class DboExtensions implements AutoCloseable {
             List<TenantObserver> observers,
             List<cloud.jengu.dbo.runner.StepService> performers,
             List<cloud.jengu.dbo.work.ContactListener> contact,
-            List<cloud.jengu.dbo.auth.LoginPage> pages) {
+            List<cloud.jengu.dbo.auth.LoginPage> pages,
+            List<cloud.jengu.dbo.auth.UserClaims> claims) {
         List<String> wrong = new ArrayList<>();
         // A contact listener says how long a worker may be silent, and there
         // is no default: refused here, by name, rather than by the runtime
@@ -70,6 +71,16 @@ public final class DboExtensions implements AutoCloseable {
                     + String.join(", ", pages.stream().map(page -> page.getClass().getName())
                             .toList())
                     + "); one page draws every tenant, and it is told which tenant it draws");
+        }
+        // The same for what a person's claims carry: two contributors would
+        // leave which of them an application hears from to the ranking.
+        if (claims.size() > 1) {
+            wrong.add("there are " + claims.size() + " "
+                    + cloud.jengu.dbo.auth.UserClaims.class.getSimpleName() + " beans ("
+                    + String.join(", ", claims.stream().map(bean -> bean.getClass().getName())
+                            .toList())
+                    + "); one contributor answers for every tenant, and it is told which tenant "
+                    + "and which client it answers");
         }
         Map<TenantLifecycleListener, Map<String, String>> listening = new LinkedHashMap<>();
         for (TenantLifecycleListener listener : listeners) {
@@ -166,10 +177,12 @@ public final class DboExtensions implements AutoCloseable {
                 cloud.jengu.dbo.work.ContactListener.class, listener, Map.of())));
         pages.forEach(page -> registered.add(registrar.register(
                 cloud.jengu.dbo.auth.LoginPage.class, page, Map.of())));
+        claims.forEach(contributor -> registered.add(registrar.register(
+                cloud.jengu.dbo.auth.UserClaims.class, contributor, Map.of())));
         if (!registered.isEmpty()) {
             LOG.info("extension points: listeners={} observers={} fleet-steps={} contact={}"
-                    + " login-page={}", listening.size(), watching.size(), performing.size(),
-                    heard.size(), !pages.isEmpty());
+                    + " login-page={} user-claims={}", listening.size(), watching.size(),
+                    performing.size(), heard.size(), !pages.isEmpty(), !claims.isEmpty());
         }
     }
 

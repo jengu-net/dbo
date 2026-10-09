@@ -1569,6 +1569,31 @@ public enum DboPromises implements Promise {
             + "next; a partner's token is accepted where the managed tenant declared the "
             + "relation; and an unknown tenant, a retracted one, another tenant's keys and "
             + "an expired token are refused alike."),
+    AUTH_THE_ID_TOKEN_SAYS_WHO_SIGNED_IN_AND_WHAT_THEY_HOLD(
+            "Every sign-in and every refresh mints an ID token that says who the person is "
+            + "and which roles they hold at which organisation, each role against the "
+            + "organisation it is held at rather than merged with roles held elsewhere. When "
+            + "and how they signed in is carried unchanged through every refresh, and what "
+            + "they hold is re-derived at each. The access token carries none of it: it "
+            + "reaches the store's surfaces and every service it is exchanged for, which are "
+            + "third parties to the person."),
+    AUTH_USERINFO_ANSWERS_WHAT_THE_ID_TOKEN_SAYS(
+            "UserInfo answers the claims the ID token minted with the same access token "
+            + "carries, over HTTP and in-process, as JSON or as a JWT signed by the tenant's "
+            + "key, and is listed in discovery. An ID token or a signed answer can be "
+            + "verified in-process against the tenant's own keys."),
+    AUTH_A_PERSON_READING_THEIR_OWN_IDENTITY_IS_RECORDED_AS_THEIRS(
+            "On a tenant that vaults identity, the authority reads who a person is for their "
+            + "own claims as the person and for self-access, and the trail records it as "
+            + "theirs: once, at sign-in. A refresh or a UserInfo call reuses what sign-in "
+            + "read and reads nobody's identity again."),
+    AUTH_AN_APPLICATION_ADDS_TO_WHAT_A_PERSON_CARRIES(
+            "An application adds its own claims to a person's ID token and UserInfo from "
+            + "what the authority already loaded, told which tenant and which client it is "
+            + "answering, so what it adds for one application need reach no other. It "
+            + "cannot say what only the authority says, a claim set over the bound is "
+            + "refused at minting rather than cut short downstream, and a contributor that "
+            + "fails stops the minting rather than letting a token out without its claims."),
     AUTH_SELF_SERVICE_CHANGE(
             "A signed-in subject can replace their own password by proving possession "
             + "of the current one. No ticket, no second channel, and no other factor is "

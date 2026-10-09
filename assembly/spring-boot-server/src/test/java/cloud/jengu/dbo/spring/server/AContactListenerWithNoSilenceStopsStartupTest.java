@@ -40,7 +40,7 @@ class AContactListenerWithNoSilenceStopsStartupTest {
         // null rather than on the refusal.
         IllegalStateException refused = assertThrows(IllegalStateException.class,
                 () -> new DboExtensions(null, List.of(), List.of(), List.of(),
-                        List.of(new Forgetful()), List.of()));
+                        List.of(new Forgetful()), List.of(), List.of()));
 
         assertTrue(refused.getMessage().contains(Forgetful.class.getName()),
                 "the refusal names the bean: " + refused.getMessage());
