@@ -5,6 +5,7 @@ import cloud.jengu.dbo.auth.UserClaims;
 import cloud.jengu.dbo.spring.server.DboAuthentication;
 import cloud.jengu.dbo.spring.server.DboBearerTokens;
 import cloud.jengu.dbo.spring.server.DboRequestTenant;
+import cloud.jengu.dbo.spring.server.EnableDboServer;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -23,6 +24,7 @@ import java.util.Optional;
  * store answering whose token it is.
  */
 @SpringBootApplication
+@EnableDboServer
 public class TheSecuredApplication {
 
     /** Its API is under {@code /api/<tenant>/}, so that is where it reads the tenant. */

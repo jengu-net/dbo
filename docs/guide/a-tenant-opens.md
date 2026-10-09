@@ -21,14 +21,15 @@ where each clinic's code carries the story's name and a mark for the run.
 
 ## The store is a dependency
 
-The application is a bare `@SpringBootApplication`:
+The application is a `@SpringBootApplication` that asks for a store:
 
 ```java
 --8<-- "samples/spring-boot-server-app/src/main/java/cloud/jengu/dbo/samples/server/ServerApplication.java:application"
 ```
 
-What makes it serve tenants is `dbo-spring-boot-server` on its classpath and
-`dbo.tenants.directory` in its `application.yaml`
+What makes it serve tenants is `dbo-spring-boot-server` on its classpath,
+`@EnableDboServer` on the class, and `dbo.tenants.directory` in its
+`application.yaml`
 ([quick start](quick-start.md#embedded-one-jvm)). The directory is watched: a
 file appearing there is a tenant coming up, and a file leaving is a tenant
 retracted. A tenant is added by writing a file, not by a release.

@@ -156,6 +156,7 @@ class ABeanIsAStepThisApplicationPerformsIT {
      * — has nothing to do with where the work came from.
      */
     @Configuration
+    @EnableDboWorker
     static class AnApplication {
 
         @Bean
@@ -199,6 +200,7 @@ class ABeanIsAStepThisApplicationPerformsIT {
 
     /** Two beans, one step code. */
     @Configuration
+    @EnableDboWorker
     static class TwoOfThem {
 
         @Bean

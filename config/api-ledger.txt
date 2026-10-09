@@ -2912,6 +2912,7 @@ cloud.jengu.dbo.promises.DboPromises                                   AUTH_THE_
 cloud.jengu.dbo.promises.DboPromises                                   AUTH_THE_PAGE_OFFERS_THE_BROKERS_A_TENANT_ACCEPTS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   AUTH_THE_SIGN_IN_PAGE_IS_THE_HOSTS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   AUTH_USERINFO_ANSWERS_WHAT_THE_ID_TOKEN_SAYS:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   CONT_A_HOST_ASKS_FOR_THE_STORE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   CONT_A_HOST_MAY_OWN_THE_CONTAINER:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   CONT_DYNAMIC_TENANT_SERVICES:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   CONT_EMBEDDED_IN_JVM:cloud.jengu.dbo.promises.DboPromises

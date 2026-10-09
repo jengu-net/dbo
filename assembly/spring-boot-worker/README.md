@@ -1,9 +1,9 @@
 # Performing a tenant's work from a Spring Boot application
 
-One dependency, and a bean that is a step. The application polls the tenants
-named in its configuration, performs what they offer and reports — over a
-lane, and nothing else. It is handed no store and has no way to reach one,
-which is the property that lets it run anywhere.
+One dependency, one annotation, and a bean that is a step. The application
+polls the tenants named in its configuration, performs what they offer and
+reports — over a lane, and nothing else. It is handed no store and has no way
+to reach one, which is the property that lets it run anywhere.
 
 ```kotlin
 implementation("cloud.jengu.dbo:dbo-spring-boot-worker:0.1.0-SNAPSHOT")
@@ -43,9 +43,20 @@ class AdmittingAPatient implements StepService {
 }
 ```
 
+```java
+@SpringBootApplication
+@EnableDboWorker
+public class WorkerApplication { … }
+```
+
 That is the whole of what an application writes. Nothing constructs a runner,
 registers itself, attaches a lane or names a tenant in code.
 `samples/spring-boot-worker-app` is exactly this, running.
+
+The annotation is the ask, as it is for
+[the server](../spring-boot-server/README.md#asking-for-the-store): without it,
+or a `DboWorkerProperties` bean of the application's own, the jar configures
+nothing.
 
 ## The one rule
 

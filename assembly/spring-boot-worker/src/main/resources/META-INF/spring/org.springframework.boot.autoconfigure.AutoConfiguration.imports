@@ -1,1 +1,2 @@
 cloud.jengu.dbo.spring.worker.DboWorkerAutoConfiguration
+cloud.jengu.dbo.spring.worker.DboWorkerNotAskedFor

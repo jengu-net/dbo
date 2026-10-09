@@ -3,7 +3,8 @@
 This is an ordinary Spring Boot application. It has a `main`, a
 `application.yaml` and no code about containers — and it serves the tenants in
 [`../sample-world`](../sample-world) on its own port, through its own filter
-chain, because `dbo-spring-boot-server` is on its classpath. It is also the
+chain, because `dbo-spring-boot-server` is on its classpath and the
+application asks for it. It is also the
 clinic's own software: it asks for work and reads what the work came to, and
 the steps that work is made of come from
 [`../spring-boot-worker-app`](../spring-boot-worker-app), embedded.
@@ -12,7 +13,7 @@ Everything a reader is looking for is in these files:
 
 | | |
 |---|---|
-| [`ServerApplication.java`](src/main/java/cloud/jengu/dbo/samples/server/ServerApplication.java) | a bare `@SpringBootApplication`. Nothing else. |
+| [`ServerApplication.java`](src/main/java/cloud/jengu/dbo/samples/server/ServerApplication.java) | a `@SpringBootApplication` that asks for the store and the worker. Nothing else. |
 | [`application.yaml`](src/main/resources/application.yaml) | `mount: servlet`, where the tenants are, which one holds this deployment's own history, and the embedded worker's lanes |
 | [`EnrollingTheWorker.java`](src/main/java/cloud/jengu/dbo/samples/server/EnrollingTheWorker.java) | the worker made known to each tenant as it comes up |
 | [`build.gradle.kts`](build.gradle.kts) | the dependency on the store, and the one on the worker |

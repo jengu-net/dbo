@@ -3,7 +3,9 @@ package cloud.jengu.dbo.samples.server;
 import cloud.jengu.dbo.embedded.EmbeddedRuntime;
 import cloud.jengu.dbo.embedded.FrameworkContribution;
 import cloud.jengu.dbo.spring.server.DboServerAutoConfiguration;
+import cloud.jengu.dbo.spring.server.EnableDboServer;
 import cloud.jengu.dbo.spring.worker.DboWorkerAutoConfiguration;
+import cloud.jengu.dbo.spring.worker.EnableDboWorker;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
@@ -38,6 +40,7 @@ class AHostOfTwoHalvesReachesOneContainerTest {
     private final ApplicationContextRunner application = new ApplicationContextRunner()
             .withConfiguration(AutoConfigurations.of(
                     DboServerAutoConfiguration.class, DboWorkerAutoConfiguration.class))
+            .withUserConfiguration(BothHalves.class)
             // Never started: the bean exists so that neither assembly builds
             // the real one, because booting a framework is not what is in
             // question here.
@@ -90,5 +93,10 @@ class AHostOfTwoHalvesReachesOneContainerTest {
                 host.getBeansOfType(EmbeddedRuntime.class).size(),
                 "a host of two halves holds more than one container, and each holds a copy of "
                         + "every bundle: " + host.getBeansOfType(EmbeddedRuntime.class).keySet()));
+    }
+
+    @EnableDboServer
+    @EnableDboWorker
+    static class BothHalves {
     }
 }

@@ -18,7 +18,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * One dependency, and the application is a node.
  *
- * <p>What is asserted is the wiring an application gets for free: the
+ * <p>What is asserted is the wiring an application gets for asking: the
  * container comes up with the serving bundle set, the surfaces have somewhere
  * to mount, the runtime is told to wait for it, and a deployment with no
  * authority is refused the way the serving distribution refuses it.
@@ -33,6 +33,7 @@ class AddingThisJarMakesTheApplicationANodeIT {
 
     private final WebApplicationContextRunner application = new WebApplicationContextRunner()
             .withConfiguration(AutoConfigurations.of(DboServerAutoConfiguration.class))
+            .withUserConfiguration(AskingForAStore.class)
             // No authority, said out loud, because no tenant comes up here and
             // the alternative is a key in a test that looks like a key.
             .withPropertyValues("dbo.auth.disabled=true");
@@ -71,6 +72,7 @@ class AddingThisJarMakesTheApplicationANodeIT {
     void aDeploymentWithoutAnAuthorityIsRefused() {
         new WebApplicationContextRunner()
                 .withConfiguration(AutoConfigurations.of(DboServerAutoConfiguration.class))
+                .withUserConfiguration(AskingForAStore.class)
                 .run(context -> {
                     assertNotNull(context.getStartupFailure(),
                             "this application started serving tenants with no authority, which "
@@ -112,6 +114,10 @@ class AddingThisJarMakesTheApplicationANodeIT {
                         + ", and the runtime tests for null");
         assertTrue(!framework.containsKey("dbo.tenant.dir"),
                 "a spec directory nobody set was passed anyway");
+    }
+
+    @EnableDboServer
+    static class AskingForAStore {
     }
 
     private static Throwable rootOf(Throwable thrown) {

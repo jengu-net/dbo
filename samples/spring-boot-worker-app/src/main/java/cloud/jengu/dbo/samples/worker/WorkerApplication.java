@@ -1,5 +1,6 @@
 package cloud.jengu.dbo.samples.worker;
 
+import cloud.jengu.dbo.spring.worker.EnableDboWorker;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
@@ -20,6 +21,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  */
 // --8<-- [start:application]
 @SpringBootApplication
+@EnableDboWorker
 public class WorkerApplication {
 
     public static void main(String[] args) {

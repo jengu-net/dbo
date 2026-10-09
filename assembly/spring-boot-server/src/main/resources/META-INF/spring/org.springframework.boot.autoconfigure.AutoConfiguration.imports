@@ -1,1 +1,2 @@
 cloud.jengu.dbo.spring.server.DboServerAutoConfiguration
+cloud.jengu.dbo.spring.server.DboServerNotAskedFor

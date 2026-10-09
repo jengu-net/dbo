@@ -1231,6 +1231,14 @@ public enum DboPromises implements Promise {
             + "that does not resolve, is refused by name. Closing removes the store's bundles "
             + "and what it registered, and never stops a framework the store did not "
             + "create."),
+    CONT_A_HOST_ASKS_FOR_THE_STORE(
+            "An application carrying the Spring assemblies gets a store, or a worker, only "
+            + "where it asks: by annotating itself, or by declaring the properties as a bean "
+            + "of its own, which its environment then overrides key by key as it would any "
+            + "configuration properties. A context that did neither, a test slice or a tool "
+            + "sharing the classpath, starts with no container, no tenant registry and no "
+            + "filter in its chain, and needs no dbo property set. One that asked for a store "
+            + "and gave it no key is refused, naming the key."),
     CONT_IMPORTS_ARE_COMPUTED_OR_CHECKED(
             "Every bundle with source of its own computes its imports from its bytecode; "
             + "what is written by hand is policy — which JDK surfaces may be absent, and "

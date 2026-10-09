@@ -53,8 +53,8 @@ The first start takes minutes rather than seconds, and nearly all of it is one
 thing: a face root expanding a whole FHIR version out of the specification.
 Later starts against the same database read what the first one wrote.
 
-This is all the application tells the store, and nothing else in it is about a
-container:
+This, and `@EnableDboServer` on its class, is all the application tells the
+store, and nothing else in it is about a container:
 
 ```yaml
 --8<-- "samples/spring-boot-server-app/src/main/resources/application.yaml"
@@ -164,7 +164,7 @@ plane every tenant's work crosses.
 
 ## What is running
 
-Two Spring Boot applications that each added one dependency.
+Two Spring Boot applications that each added one dependency and asked for it.
 `dbo-spring-boot-server` makes the first serve tenants on its own port, inside
 its own filter chain; `dbo-spring-boot-worker` makes a bean implementing
 `StepService` a step the second performs. Neither constructs a container, a

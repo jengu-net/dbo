@@ -13,7 +13,6 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -23,14 +22,19 @@ import java.nio.file.Path;
 import java.util.Map;
 
 /**
- * Adding this jar makes the application a DBO node.
+ * Asking for a store makes the application a DBO node.
  *
  * <p>Tenants come up, their surfaces answer on the application's own port, and beans that implement
  * the extension points are the extension points. Nothing this configuration publishes names a
  * {@code Bundle}, a {@code BundleContext} or a {@code ServiceReference}.
+ *
+ * <p>Conditional on the properties, which the application supplies either by {@link
+ * EnableDboServer} or as a bean of its own. Supplying them is the ask: a context that did neither
+ * is one the jar merely shares a classpath with, and booting a store there would refuse it for want
+ * of a key nobody meant it to have.
  */
 @AutoConfiguration
-@EnableConfigurationProperties(DboServerProperties.class)
+@ConditionalOnBean(DboServerProperties.class)
 public class DboServerAutoConfiguration {
 
   /**

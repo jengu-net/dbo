@@ -11,7 +11,7 @@ answers.
 | [`RegisteringAPatient.java`](src/main/java/cloud/jengu/dbo/samples/worker/RegisteringAPatient.java) | a step whose result carries records: the person it was given and the stay they arrived for, written by the hospital, never by this application |
 | [`application.yaml`](src/main/resources/application.yaml) | who this worker is, standing alone |
 | [`application-edge.yaml`](src/main/resources/application-edge.yaml), [`application-substrate.yaml`](src/main/resources/application-substrate.yaml) | where its lane goes: over HTTP into one tenant, or over the deployment's own database |
-| [`WorkerApplication.java`](src/main/java/cloud/jengu/dbo/samples/worker/WorkerApplication.java) | a bare `@SpringBootApplication` |
+| [`WorkerApplication.java`](src/main/java/cloud/jengu/dbo/samples/worker/WorkerApplication.java) | a `@SpringBootApplication` that asks for a worker |
 | [`TheWorkersSteps.java`](src/main/java/cloud/jengu/dbo/samples/worker/TheWorkersSteps.java) | the same beans, arriving in the clinic's application when it embeds this one |
 
 Nothing here constructs a runner, registers a step service or attaches a lane.

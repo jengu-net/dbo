@@ -1,9 +1,9 @@
 # Serving tenants from a Spring Boot application
 
-One dependency. The application starts and it is a DBO node: tenants come up,
-their doors answer **on the application's own port, through its own servlet
-container**, and a bean that implements an extension point is one. Nobody
-learns the word OSGi.
+One dependency and one annotation. The application starts and it is a DBO
+node: tenants come up, their doors answer **on the application's own port,
+through its own servlet container**, and a bean that implements an extension
+point is one. Nobody learns the word OSGi.
 
 ```kotlin
 implementation("cloud.jengu.dbo:dbo-spring-boot-server:0.1.0-SNAPSHOT")
@@ -17,8 +17,37 @@ dbo:
   management-spec: ../sample-world/mom.json # where the store keeps its own history
 ```
 
-No annotation to add and no bean to declare — this is autoconfiguration.
+```java
+@SpringBootApplication
+@EnableDboServer
+public class ServerApplication { … }
+```
+
 `samples/spring-boot-server-app` is the whole of it, running.
+
+## Asking for the store
+
+The jar on the classpath is not an ask. A host has contexts that must not boot
+a store, such as a test slice, a context runner or a tool sharing the
+classpath, so the auto-configuration does nothing until the application asks,
+in one of two ways:
+
+| the application | gets |
+|---|---|
+| is annotated `@EnableDboServer` | `dbo.*` bound, and the store booted on it |
+| declares a `DboServerProperties` bean of its own | the store booted on that bean |
+| does neither | nothing, and one line at startup saying so; no `dbo.*` property is needed |
+
+A bean of the application's own is for configuration built in code, from a
+container a test started for instance. It is still a
+`@ConfigurationProperties` bean, so `dbo.*` in the environment is bound over
+it key by key: what the environment sets wins, and what it does not set keeps
+the value the code gave it. Declare the bean or the annotation, never both.
+
+The annotation carries no attribute for serving without an authority. That is
+`dbo.auth.disabled=true`, a property, so that it stays in a test's
+configuration and cannot ship in an application's code. An application that
+asked for a store and gave it no `dbo.auth.kek` is refused at startup.
 
 ## The one rule
 

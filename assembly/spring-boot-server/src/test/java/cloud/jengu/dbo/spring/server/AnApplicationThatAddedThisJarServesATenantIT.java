@@ -255,6 +255,7 @@ class AnApplicationThatAddedThisJarServesATenantIT {
      * they are given.
      */
     @SpringBootApplication
+    @EnableDboServer
     @RestController
     static class TheApplication {
 

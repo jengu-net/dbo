@@ -7,8 +7,8 @@ import cloud.jengu.dbo.embedded.FrameworkContribution;
 import org.osgi.framework.launch.Framework;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 
 import java.nio.file.Path;
@@ -20,16 +20,20 @@ import java.util.TreeMap;
 import java.util.function.Supplier;
 
 /**
- * Adding this jar is the whole deployment.
+ * Asking for a worker is the whole deployment.
  *
  * <p>A bean that implements {@code StepService} becomes a step this
  * application performs. The lanes it is offered work over come from
  * configuration. There is no store here and no way to get one — what this
  * carries is the work vocabulary and the lane, which is the whole of what a
  * party outside the deployment compiles against.
+ *
+ * <p>Conditional on the properties, which the application supplies either by
+ * {@link EnableDboWorker} or as a bean of its own, for the reason the server's
+ * half is.
  */
 @AutoConfiguration
-@EnableConfigurationProperties(DboWorkerProperties.class)
+@ConditionalOnBean(DboWorkerProperties.class)
 public class DboWorkerAutoConfiguration {
 
     /**

@@ -62,6 +62,10 @@ dependencies {
     testImplementation("org.springframework.boot:spring-boot-starter-web:$springBootVersion")
     testImplementation(
         "org.springframework.boot:spring-boot-starter-oauth2-resource-server:$springBootVersion")
+    // Asking for a store is proven against both halves, and a context runner
+    // hands its context over as an AssertJ provider.
+    testImplementation(project(":assembly:spring-boot-worker"))
+    testImplementation("org.assertj:assertj-core:3.27.3")
     // The test cites the promise it proves, and the catalogue reads that
     // citation from the index this processor writes beside the classes.
     testImplementation(project(":promise:proving"))
