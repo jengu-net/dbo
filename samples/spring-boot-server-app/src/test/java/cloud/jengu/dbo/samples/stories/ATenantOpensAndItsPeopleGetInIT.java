@@ -731,11 +731,15 @@ class ATenantOpensAndItsPeopleGetInIT {
                 "grant_type=client_credentials&client_id=" + portal() + "&client_secret="
                         + encoded(grant));
         HttpResponse<String> asAPassword = frontChannelLogin("hermione", grant, null);
+        // Refused as a password is whatever the sign-in page answers to one
+        // that matches nobody; what matters is that no code was issued for it.
         Proves.that(DboPromises.AUTH_FIRST_SECRET_BY_ONE_TIME_GRANT,
                 !asASecret.body().contains("access_token")
-                        && asAPassword.headers().firstValue("Location").orElse("")
-                        .contains("error="),
-                "a grant was taken as a credential: " + asASecret.body());
+                        && !asAPassword.headers().firstValue("Location").orElse("")
+                        .contains("code="),
+                "a grant was taken as a credential: " + asASecret.body() + " / "
+                        + asAPassword.statusCode() + " "
+                        + asAPassword.headers().firstValue("Location").orElse(""));
     }
 
     // ── and a clinic takes its FHIR version from a root, as records ──
@@ -1226,7 +1230,10 @@ class ATenantOpensAndItsPeopleGetInIT {
     void theHospitalsPageIsTheApplications() {
         authority(HOSPITAL).ensureClient(webApp(), null, List.of("user/*.read"),
                 "public-pkce", List.of(REDIRECT));
-        authority(HOSPITAL).ensureLocalCredential(visitor(), "a-visitors-secret", visitor());
+        // A person by record id, as every credential names one, and with no
+        // role anywhere in the hospital.
+        authority(HOSPITAL).ensureLocalCredential(visitor(), "a-visitors-secret",
+                java.util.UUID.randomUUID().toString());
 
         HttpResponse<String> hospital = signInPage(HOSPITAL, "\"><script>alert(1)</script>");
         assertEquals(200, hospital.statusCode(), hospital.body());
