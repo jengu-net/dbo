@@ -402,10 +402,13 @@ subprojects {
         apply(plugin = "java-library")
         apply(plugin = "io.freefair.lombok")
     }
+    // On the compile classpath only, so that @Slf4j compiles anywhere. A
+    // module's runtime classpath keeps the binding it chose: put on every one,
+    // the api lets dbo-logging win the provider lookup in an application that
+    // carries logback, and Spring Boot refuses to start.
     pluginManager.withPlugin("java") {
         dependencies {
-            add("implementation", "org.slf4j:slf4j-api:2.0.20")
-            add("runtimeOnly", "ch.qos.logback:logback-classic:1.6.5")
+            add("compileOnly", "org.slf4j:slf4j-api:2.0.20")
         }
     }
     configurations.all {
