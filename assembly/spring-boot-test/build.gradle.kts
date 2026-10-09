@@ -75,3 +75,7 @@ tasks.test {
     // The serving bundle set's classloaders want more than a default heap.
     maxHeapSize = "2g"
 }
+
+publishing.publications.named<MavenPublication>("maven") {
+    artifactId = "dbo-spring-boot-test"
+}

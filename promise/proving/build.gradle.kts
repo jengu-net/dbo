@@ -25,3 +25,7 @@ dependencies {
 tasks.test {
     useJUnitPlatform()
 }
+
+publishing.publications.named<MavenPublication>("maven") {
+    artifactId = "dbo-promise-proving"
+}

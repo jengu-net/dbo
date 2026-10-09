@@ -1,3 +1,7 @@
+plugins {
+    id("io.freefair.lombok") version "9.8.0" apply false
+}
+
 // The published identity of the project. `dbo.repo.url` is a property so a
 // repository move is one flag, not a sweep through every POM.
 val projectUrl = (findProperty("dbo.repo.url") as String?) ?: "https://github.com/jengu-net/dbo"
@@ -396,6 +400,13 @@ subprojects {
     val isPlatform = project.path == ":dbo-bom"
     if (!isPlatform) {
         apply(plugin = "java-library")
+        apply(plugin = "io.freefair.lombok")
+    }
+    pluginManager.withPlugin("java") {
+        dependencies {
+            add("implementation", "org.slf4j:slf4j-api:2.0.20")
+            add("runtimeOnly", "ch.qos.logback:logback-classic:1.6.5")
+        }
     }
     configurations.all {
         resolutionStrategy.eachDependency {

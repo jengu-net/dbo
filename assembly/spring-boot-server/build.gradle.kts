@@ -146,6 +146,13 @@ dependencies {
     annotationProcessor(
         "org.springframework.boot:spring-boot-configuration-processor:$springBootVersion")
 
+    ("org.projectlombok:lombok:1.18.42").apply {
+        compileOnly(this)
+        annotationProcessor(this)
+        testCompileOnly(this)
+        testAnnotationProcessor(this)
+    }
+
     @Suppress("UNCHECKED_CAST")
     val runtimeModules = rootProject.extra["dboRuntimeModules"] as List<String>
     @Suppress("UNCHECKED_CAST")

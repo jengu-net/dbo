@@ -54,7 +54,7 @@ public final class DirectoryConfigSource implements ConfigSource {
             // has to decide what is missing, and deciding that wrongly is how
             // an unreadable mount becomes a withdrawal of everything.
             throw new UncheckedIOException("the declaration directory could not be read: "
-                    + directory, unreadable);
+                    + directory.toAbsolutePath(), unreadable);
         }
         // Complete: the listing is the whole of what this directory declares,
         // and a listing that could not be taken threw above rather than

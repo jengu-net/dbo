@@ -24,3 +24,7 @@ tasks.jar {
         ))
     }
 }
+
+publishing.publications.named<MavenPublication>("maven") {
+    artifactId = "dbo-promise"
+}

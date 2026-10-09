@@ -1,5 +1,7 @@
 package cloud.jengu.dbo.spring.server;
 
+import lombok.Data;
+import lombok.ToString;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import java.util.LinkedHashMap;
@@ -22,6 +24,7 @@ import java.util.Map;
  * recording retractions.
  */
 @ConfigurationProperties("dbo")
+@Data
 public class DboServerProperties {
 
     /** Where the surfaces answer. */
@@ -51,7 +54,12 @@ public class DboServerProperties {
     /** How large a heartbeat's statistics may be on this node, in bytes; 64 KB when unset. */
     private Integer heartbeatLimit;
 
-    /** Anything the runtime reads that this class has not grown a name for. */
+    /**
+     * Anything the runtime reads that this class has not grown a name for.
+     * Left out of {@code toString} with the secrets: what it holds is not
+     * known here, and a key passed this way would be printed with the rest.
+     */
+    @ToString.Exclude
     private Map<String, String> framework = new LinkedHashMap<>();
 
     /**
@@ -116,98 +124,10 @@ public class DboServerProperties {
         OWN_PORT
     }
 
-    public String getNodeName() {
-        return nodeName;
-    }
-
-    public void setNodeName(String nodeName) {
-        this.nodeName = nodeName;
-    }
-
-    public Integer getHeartbeatLimit() {
-        return heartbeatLimit;
-    }
-
-    public void setHeartbeatLimit(Integer heartbeatLimit) {
-        this.heartbeatLimit = heartbeatLimit;
-    }
-
-    public Mount getMount() {
-        return mount;
-    }
-
-    public void setMount(Mount mount) {
-        this.mount = mount;
-    }
-
-    public String getManagementSpec() {
-        return managementSpec;
-    }
-
-    public void setManagementSpec(String managementSpec) {
-        this.managementSpec = managementSpec;
-    }
-
-    public Tenants getTenants() {
-        return tenants;
-    }
-
-    public void setTenants(Tenants tenants) {
-        this.tenants = tenants;
-    }
-
-    public Http getHttp() {
-        return http;
-    }
-
-    public void setHttp(Http http) {
-        this.http = http;
-    }
-
-    public Auth getAuth() {
-        return auth;
-    }
-
-    public void setAuth(Auth auth) {
-        this.auth = auth;
-    }
-
-    public Substrate getSubstrate() {
-        return substrate;
-    }
-
-    public void setSubstrate(Substrate substrate) {
-        this.substrate = substrate;
-    }
-
-    public Admin getAdmin() {
-        return admin;
-    }
-
-    public void setAdmin(Admin admin) {
-        this.admin = admin;
-    }
-
-    public Map<String, String> getFramework() {
-        return framework;
-    }
-
-    public void setFramework(Map<String, String> framework) {
-        this.framework = framework;
-    }
-
     /** Where declarations are kept — not a list of tenants. */
+    @Data
     public static class Tenants {
-
         private String directory;
-
-        public String getDirectory() {
-            return directory;
-        }
-
-        public void setDirectory(String directory) {
-            this.directory = directory;
-        }
     }
 
     /**
@@ -218,33 +138,25 @@ public class DboServerProperties {
      * tenant mints is built from them. A deployment behind a proxy says the
      * address the proxy answers on.
      */
+    @Data
     public static class Http {
 
         private String host = "127.0.0.1";
 
         private Integer port;
-
-        public String getHost() {
-            return host;
-        }
-
-        public void setHost(String host) {
-            this.host = host;
-        }
-
-        public Integer getPort() {
-            return port;
-        }
-
-        public void setPort(Integer port) {
-            this.port = port;
-        }
     }
 
     /** The authority every tenant's own is built on. */
+    @Data
     public static class Auth {
 
-        /** Base64, 32 bytes. Without it this deployment refuses to serve. */
+        /**
+         * Base64, 32 bytes. Without it this deployment refuses to serve.
+         * Left out of {@code toString}, as every secret here is: whatever
+         * prints these properties would print the key every tenant's own is
+         * wrapped in.
+         */
+        @ToString.Exclude
         private String kek;
 
         private String issuerBase;
@@ -264,37 +176,6 @@ public class DboServerProperties {
          */
         private boolean disabled;
 
-        public String getKek() {
-            return kek;
-        }
-
-        public void setKek(String kek) {
-            this.kek = kek;
-        }
-
-        public String getIssuerBase() {
-            return issuerBase;
-        }
-
-        public void setIssuerBase(String issuerBase) {
-            this.issuerBase = issuerBase;
-        }
-
-        public Integer getClaimsMaxBytes() {
-            return claimsMaxBytes;
-        }
-
-        public void setClaimsMaxBytes(Integer claimsMaxBytes) {
-            this.claimsMaxBytes = claimsMaxBytes;
-        }
-
-        public boolean isDisabled() {
-            return disabled;
-        }
-
-        public void setDisabled(boolean disabled) {
-            this.disabled = disabled;
-        }
     }
 
     /**
@@ -315,69 +196,26 @@ public class DboServerProperties {
      * unset rather than defaulted, because a URL guessed here would be a
      * second store nobody meant to reach.
      */
+    @Data
     public static class Substrate {
 
         private String url;
 
         private String user;
 
+        @ToString.Exclude
         private String password;
 
-        public String getUrl() {
-            return url;
-        }
-
-        public void setUrl(String url) {
-            this.url = url;
-        }
-
-        public String getUser() {
-            return user;
-        }
-
-        public void setUser(String user) {
-            this.user = user;
-        }
-
-        public String getPassword() {
-            return password;
-        }
-
-        public void setPassword(String password) {
-            this.password = password;
-        }
     }
 
+    @Data
     public static class Admin {
 
         private String jdbcUrl;
 
         private String user;
 
+        @ToString.Exclude
         private String password;
-
-        public String getJdbcUrl() {
-            return jdbcUrl;
-        }
-
-        public void setJdbcUrl(String jdbcUrl) {
-            this.jdbcUrl = jdbcUrl;
-        }
-
-        public String getUser() {
-            return user;
-        }
-
-        public void setUser(String user) {
-            this.user = user;
-        }
-
-        public String getPassword() {
-            return password;
-        }
-
-        public void setPassword(String password) {
-            this.password = password;
-        }
     }
 }
