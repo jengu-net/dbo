@@ -1560,6 +1560,15 @@ public enum DboPromises implements Promise {
             + "the error, so the person corrects it where they made it. Somebody the tenant "
             + "recognises and grants nothing is still answered to the application, because "
             + "typing again would not change that answer."),
+    AUTH_AN_APPLICATIONS_API_ACCEPTS_WHAT_ITS_TENANTS_DOORS_ACCEPT(
+            "An application embedding the store accepts a bearer token on its own API "
+            + "exactly where the addressed tenant's doors would: checked in-process by that "
+            + "tenant's authority, with no call to the application itself and no list of "
+            + "issuers to keep current. A tenant that comes up while the application runs "
+            + "is accepted on its next request and one that is retracted is refused on its "
+            + "next; a partner's token is accepted where the managed tenant declared the "
+            + "relation; and an unknown tenant, a retracted one, another tenant's keys and "
+            + "an expired token are refused alike."),
     AUTH_SELF_SERVICE_CHANGE(
             "A signed-in subject can replace their own password by proving possession "
             + "of the current one. No ticket, no second channel, and no other factor is "

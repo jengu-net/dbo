@@ -52,3 +52,26 @@ dependencies {
     // classpath question here rather than a container one.
     runtimeOnly(project(":core:dbo-fhir-packages"))
 }
+
+// This module's own proof: an application secured with Spring Security's
+// resource server, as an application on these assemblies would secure its
+// APIs, accepting its tenants' bearer tokens. Test-only, because the module
+// itself must not put a security filter chain into an application that did
+// not ask for one.
+dependencies {
+    testImplementation("org.springframework.boot:spring-boot-starter-web:$springBootVersion")
+    testImplementation(
+        "org.springframework.boot:spring-boot-starter-oauth2-resource-server:$springBootVersion")
+    // The test cites the promise it proves, and the catalogue reads that
+    // citation from the index this processor writes beside the classes.
+    testImplementation(project(":promise:proving"))
+    testImplementation(project(":core:dbo-promises"))
+    testAnnotationProcessor(project(":promise"))
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+}
+
+tasks.test {
+    useJUnitPlatform()
+    // The serving bundle set's classloaders want more than a default heap.
+    maxHeapSize = "2g"
+}

@@ -1,0 +1,8 @@
+{
+  "code": "neighbour",
+  "face": "r4",
+  "audit": { "level": "none" },
+  "types": [
+    { "name": "Basic", "identity": "internal", "handling": "operational" }
+  ]
+}

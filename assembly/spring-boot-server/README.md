@@ -111,6 +111,44 @@ form only where somebody there holds a password.
 
 One bean draws for the deployment; a second fails at context refresh.
 
+## Tokens on the application's own API
+
+An application that secures its own API with Spring Security's resource
+server accepts its tenants' bearer tokens there exactly where their doors
+would. It says which tenant a request addresses; the store says whose token
+it is.
+
+```java
+@Bean
+DboRequestTenant theTenantInThePath() { … }   // e.g. /api/{tenant}/…
+
+@Bean
+SecurityFilterChain api(HttpSecurity http, DboBearerTokens tokens) throws Exception {
+    return http.securityMatcher("/api/**")
+            .authorizeHttpRequests(requests -> requests.anyRequest().authenticated())
+            .oauth2ResourceServer(server -> server.authenticationManagerResolver(tokens))
+            .build();
+}
+```
+
+**The addressed tenant checks the token, never the tenant the token names.**
+A token from one tenant accepted where another is addressed would be a way
+into the second that its door refuses, and a partner's token is accepted
+exactly where the managed tenant declared the relation.
+
+**Nothing is fetched and nothing is kept.** The tenant's authority checks the
+token in-process: the application never calls itself for a key set, a tenant
+that comes up is accepted on its next request, and one that is retracted is
+refused on its next. Every refusal is the same `401 invalid_token`.
+
+The `Authentication` is a `DboAuthentication`: the tenant that accepted the
+token, its scopes as `SCOPE_` authorities, and everything else the authority
+read off it. What the token may do is the application's to decide.
+
+`DboBearerTokens` exists only where `spring-security-oauth2-resource-server`
+is on the classpath and a `DboRequestTenant` bean is defined; an application
+with neither is handed no security.
+
 ## Where the doors are
 
 Every door a tenant opens is under its own prefix — `/t/{code}/fhir` for

@@ -1894,7 +1894,18 @@ public final class TenantAuthority {
      */
     public record AuthContext(String clientId, String fhirUser, String actClient,
             List<String> scopes, String purposeOfUse, List<String> organisations,
-            String audience) {
+            String audience, List<String> roles) {
+
+        public AuthContext {
+            roles = roles == null ? List.of() : List.copyOf(roles);
+        }
+
+        public AuthContext(String clientId, String fhirUser, String actClient,
+                List<String> scopes, String purposeOfUse, List<String> organisations,
+                String audience) {
+            this(clientId, fhirUser, actClient, scopes, purposeOfUse, organisations, audience,
+                    List.of());
+        }
 
         public AuthContext(String clientId, String fhirUser, String actClient,
                 List<String> scopes, String purposeOfUse, List<String> organisations) {
@@ -1937,7 +1948,8 @@ public final class TenantAuthority {
             return Optional.of(new AuthContext(Json.str(claims, "sub"),
                     Json.strOpt(claims, "fhirUser"), actClient,
                     List.of(Json.str(claims, "scope").split(" ")),
-                    purposeOf(claims), reach.isEmpty() ? null : reach));
+                    purposeOf(claims), reach.isEmpty() ? null : reach, null,
+                    Json.strings(claims, "roles")));
         } catch (RuntimeException invalid) {
             return Optional.empty();
         }

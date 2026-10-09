@@ -9,6 +9,7 @@ import jakarta.servlet.Filter;
 import org.osgi.framework.launch.Framework;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -129,6 +130,25 @@ public class DboServerAutoConfiguration {
             throw new IllegalStateException("refusing to serve tenants without an authority. "
                     + "Set dbo.auth.kek (base64, 32 bytes) or explicitly dbo.auth.disabled=true "
                     + "(embedded and test only).");
+        }
+    }
+
+    /**
+     * Bearer tokens on the application's own APIs, where it secures them
+     * with Spring Security's resource server and says which tenant a request
+     * addresses. Without either, nothing here is configured: an application
+     * that asked for no security is not handed any.
+     */
+    @Configuration(proxyBeanMethods = false)
+    @ConditionalOnClass(name = "org.springframework.security.oauth2.server.resource"
+            + ".authentication.BearerTokenAuthenticationToken")
+    public static class BearerTokensOnTheApplicationsApis {
+
+        @Bean
+        @ConditionalOnBean(DboRequestTenant.class)
+        @ConditionalOnMissingBean
+        public DboBearerTokens dboBearerTokens(DboTenants tenants, DboRequestTenant tenantOf) {
+            return new DboBearerTokens(tenants, tenantOf);
         }
     }
 

@@ -302,9 +302,11 @@ cloud.jengu.dbo.auth.TenantAuthority.AuthContext                       hashCode(
 cloud.jengu.dbo.auth.TenantAuthority.AuthContext                       new(String,String,String,List,String)
 cloud.jengu.dbo.auth.TenantAuthority.AuthContext                       new(String,String,String,List,String,List)
 cloud.jengu.dbo.auth.TenantAuthority.AuthContext                       new(String,String,String,List,String,List,String)
+cloud.jengu.dbo.auth.TenantAuthority.AuthContext                       new(String,String,String,List,String,List,String,List)
 cloud.jengu.dbo.auth.TenantAuthority.AuthContext                       organisations():List
 cloud.jengu.dbo.auth.TenantAuthority.AuthContext                       purposeOfUse():String
 cloud.jengu.dbo.auth.TenantAuthority.AuthContext                       record
+cloud.jengu.dbo.auth.TenantAuthority.AuthContext                       roles():List
 cloud.jengu.dbo.auth.TenantAuthority.AuthContext                       scopes():List
 cloud.jengu.dbo.auth.TenantAuthority.AuthContext                       toString():String
 cloud.jengu.dbo.auth.TenantAuthority.AuthorizeResult                   interface
@@ -2825,6 +2827,7 @@ cloud.jengu.dbo.promises.DboFeatures                                   promises(
 cloud.jengu.dbo.promises.DboFeatures                                   title():String
 cloud.jengu.dbo.promises.DboFeatures                                   valueOf(String):cloud.jengu.dbo.promises.DboFeatures
 cloud.jengu.dbo.promises.DboFeatures                                   values():cloud.jengu.dbo.promises.DboFeatures[]
+cloud.jengu.dbo.promises.DboPromises                                   AUTH_AN_APPLICATIONS_API_ACCEPTS_WHAT_ITS_TENANTS_DOORS_ACCEPT:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   AUTH_A_WRONG_PASSWORD_STAYS_ON_THE_PAGE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   AUTH_A_ZONE_IS_ITS_OWN_BROKER:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   AUTH_BEARER_LOCAL_VALIDATION:cloud.jengu.dbo.promises.DboPromises

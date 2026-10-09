@@ -1,0 +1,7 @@
+{
+  "code": "mom",
+  "face": "r4",
+  "types": [
+    { "name": "Basic", "identity": "internal", "handling": "operational" }
+  ]
+}

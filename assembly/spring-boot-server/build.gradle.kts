@@ -135,6 +135,13 @@ dependencies {
     compileOnly("jakarta.servlet:jakarta.servlet-api:6.1.0")
     compileOnly("org.springframework:spring-web:7.0.9")
     compileOnly("org.springframework.boot:spring-boot-web-server:$springBootVersion")
+    // Bearer tokens on the application's own APIs, for an application that
+    // already secures them with Spring Security. compileOnly: the resolver is
+    // configured only where the application brought the library, and an
+    // application without it is not handed a security filter chain it never
+    // asked for.
+    compileOnly("org.springframework.security:spring-security-oauth2-resource-server:7.1.1")
+    compileOnly("org.springframework.security:spring-security-web:7.1.1")
     compileOnly("org.springframework.boot:spring-boot-configuration-processor:$springBootVersion")
     annotationProcessor(
         "org.springframework.boot:spring-boot-configuration-processor:$springBootVersion")
