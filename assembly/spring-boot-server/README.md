@@ -89,6 +89,28 @@ the bean's name in the message. Not quietly observing nothing — a consumer
 that silently reads nothing is indistinguishable from one that is working and
 has nothing to do.
 
+## The sign-in page
+
+A tenant's people sign in on the store's own page, a bare form, unless the
+application draws one. A bean implementing `LoginPage` draws every tenant's,
+is told which tenant it is drawing, and answers empty for a tenant it leaves
+on the store's own.
+
+```java
+@Component
+class OurSignInPage implements LoginPage {
+    public Optional<String> render(Form form) { … }
+}
+```
+
+**The page decides how sign-in looks, never what it sends.** The form's
+action, the fields that carry the application's request, and each broker's
+button arrive built and escaped, and go on the page as they came. A federated
+tenant's page carries a button per broker the tenant accepts, and a password
+form only where somebody there holds a password.
+
+One bean draws for the deployment; a second fails at context refresh.
+
 ## Where the doors are
 
 Every door a tenant opens is under its own prefix — `/t/{code}/fhir` for

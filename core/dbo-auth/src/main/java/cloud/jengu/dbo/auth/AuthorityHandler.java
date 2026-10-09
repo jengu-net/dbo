@@ -21,10 +21,24 @@ public final class AuthorityHandler implements HttpHandler {
 
     private final TenantAuthority authority;
     private final String basePath;
+    private final String tenant;
+    private final java.util.function.Supplier<LoginPage> page;
 
     public AuthorityHandler(TenantAuthority authority, String basePath) {
+        this(authority, basePath, null, () -> LoginPage.BARE);
+    }
+
+    /**
+     * @param page asked on every request rather than once, so a page the
+     *             application registers after the tenant came up is the one
+     *             drawn, and one it withdraws stops being drawn
+     */
+    public AuthorityHandler(TenantAuthority authority, String basePath, String tenant,
+            java.util.function.Supplier<LoginPage> page) {
         this.authority = authority;
         this.basePath = basePath.endsWith("/") ? basePath.substring(0, basePath.length() - 1) : basePath;
+        this.tenant = tenant;
+        this.page = page;
     }
 
     @Override
@@ -40,6 +54,7 @@ public final class AuthorityHandler implements HttpHandler {
                 case "token" -> token(exchange);
                 case "authorize" -> authorize(exchange);
                 case "authorize/login" -> authorizeLogin(exchange);
+                case "authorize/broker" -> authorizeBroker(exchange);
                 case "delegation" -> delegation(exchange);
                 case "federated" -> federated(exchange);
                 case "admin/role-grants" -> adminRoleGrants(exchange);
@@ -126,7 +141,7 @@ public final class AuthorityHandler implements HttpHandler {
         }
     }
 
-    /** GET /authorize: validate the front-channel request, serve the login form. */
+    /** GET /authorize: validate the front-channel request, serve the sign-in page. */
     private void authorize(HttpExchange exchange) throws IOException {
         Map<String, String> q = parseForm(exchange.getRequestURI().getRawQuery() == null
                 ? "" : exchange.getRequestURI().getRawQuery());
@@ -139,38 +154,94 @@ public final class AuthorityHandler implements HttpHandler {
             case TenantAuthority.AuthorizeResult.Rejected rejected ->
                     // NEVER redirect on an invalid client/target
                     respond(exchange, 400, "{\"error\":\"" + rejected.error() + "\"}");
-            case TenantAuthority.AuthorizeResult.LoginRequired ok when authority.federation() != null -> {
-                // §16.2: humans authenticate at the deployment's hub
-                exchange.getResponseHeaders().set("Location", authority.beginFederated(
-                        q.get("client_id"), q.get("redirect_uri"),
-                        q.get("code_challenge"), q.getOrDefault("state", ""),
-                        q.getOrDefault("nonce", "")));
-                exchange.getResponseHeaders().set("Cache-Control", "no-store");
-                exchange.sendResponseHeaders(302, -1);
-            }
             case TenantAuthority.AuthorizeResult.LoginRequired ok -> {
-                String form = "<!doctype html><html><body><form method=\"post\" action=\""
-                        + basePath + "/authorize/login\">"
-                        + hidden("client_id", q.get("client_id"))
-                        + hidden("redirect_uri", q.get("redirect_uri"))
-                        + hidden("state", q.getOrDefault("state", ""))
-                        + hidden("code_challenge", q.getOrDefault("code_challenge", ""))
-                        + hidden("nonce", q.getOrDefault("nonce", ""))
-                        + "<input name=\"login\" autocomplete=\"username\">"
-                        + "<input name=\"password\" type=\"password\" autocomplete=\"current-password\">"
-                        + "<button type=\"submit\">Sign in</button></form></body></html>";
-                byte[] body = form.getBytes(StandardCharsets.UTF_8);
-                exchange.getResponseHeaders().set("Content-Type", "text/html; charset=utf-8");
-                exchange.getResponseHeaders().set("Cache-Control", "no-store");
-                exchange.sendResponseHeaders(200, body.length);
-                exchange.getResponseBody().write(body);
+                TenantAuthority.Federation federation = authority.federation();
+                List<String> brokers = federation == null ? List.of() : federation.providers();
+                boolean password = federation == null || authority.anybodyHoldsAPassword();
+                if (federation != null && !password && brokers.size() <= 1) {
+                    // §16.2: nothing to choose, so no page. A person with a
+                    // session at the hub is then signed in without a click.
+                    exchange.getResponseHeaders().set("Location", authority.beginFederated(
+                            q.get("client_id"), q.get("redirect_uri"),
+                            q.get("code_challenge"), q.getOrDefault("state", ""),
+                            q.getOrDefault("nonce", "")));
+                    exchange.getResponseHeaders().set("Cache-Control", "no-store");
+                    exchange.sendResponseHeaders(302, -1);
+                    return;
+                }
+                signInPage(exchange, 200, q, java.util.Optional.empty(), password,
+                        providers(q, emptyToNull(q.get("code_challenge"))));
             }
         }
     }
 
+    /** The brokers' buttons, each continuing this request parked behind it. */
+    private List<LoginPage.Provider> providers(Map<String, String> request,
+            String codeChallenge) {
+        TenantAuthority.Federation federation = authority.federation();
+        if (federation == null || federation.providers().isEmpty()) {
+            return List.of();
+        }
+        String parked = authority.parkFederated(request.get("client_id"),
+                request.get("redirect_uri"), codeChallenge,
+                request.getOrDefault("state", ""), request.getOrDefault("nonce", ""));
+        return federation.providers().stream().map(broker -> new LoginPage.Provider(broker,
+                LoginPage.escaped(basePath + "/authorize/broker?b="
+                        + java.net.URLEncoder.encode(broker, StandardCharsets.UTF_8)
+                        + "&txn=" + parked))).toList();
+    }
+
+    /**
+     * The page, drawn by the application where it draws one. A page that
+     * throws or answers nothing leaves this tenant on the store's own, which
+     * is a sign-in that works rather than one nobody can complete.
+     */
+    private void signInPage(HttpExchange exchange, int status, Map<String, String> request,
+            java.util.Optional<String> error, boolean password,
+            List<LoginPage.Provider> providers) throws IOException {
+        LoginPage.Form form = new LoginPage.Form(tenant, error,
+                password ? java.util.Optional.of(new LoginPage.Password(
+                        LoginPage.escaped(basePath + "/authorize/login"),
+                        hidden("client_id", request.get("client_id"))
+                                + hidden("redirect_uri", request.get("redirect_uri"))
+                                + hidden("state", request.getOrDefault("state", ""))
+                                + hidden("code_challenge",
+                                        request.getOrDefault("code_challenge", ""))
+                                + hidden("nonce", request.getOrDefault("nonce", ""))))
+                        : java.util.Optional.empty(),
+                providers);
+        String drawn;
+        try {
+            drawn = page.get().render(form).orElseGet(() -> LoginPage.BARE.render(form).orElseThrow());
+        } catch (RuntimeException failed) {
+            drawn = LoginPage.BARE.render(form).orElseThrow();
+        }
+        byte[] body = drawn.getBytes(StandardCharsets.UTF_8);
+        exchange.getResponseHeaders().set("Content-Type", "text/html; charset=utf-8");
+        exchange.getResponseHeaders().set("Cache-Control", "no-store");
+        exchange.sendResponseHeaders(status, body.length);
+        exchange.getResponseBody().write(body);
+    }
+
     private static String hidden(String name, String value) {
         return "<input type=\"hidden\" name=\"" + name + "\" value=\""
-                + value.replace("\"", "&quot;") + "\">";
+                + LoginPage.escaped(value == null ? "" : value) + "\">";
+    }
+
+    /** GET /authorize/broker: a broker's button, continuing the parked request at the hub. */
+    private void authorizeBroker(HttpExchange exchange) throws IOException {
+        Map<String, String> q = parseForm(exchange.getRequestURI().getRawQuery() == null
+                ? "" : exchange.getRequestURI().getRawQuery());
+        java.util.Optional<String> hub = authority.continueWith(q.get("txn"), q.get("b"));
+        if (hub.isEmpty()) {
+            // Not a redirect: the request this would answer to is not one
+            // this tenant can vouch for, so there is nowhere safe to send it.
+            respond(exchange, 400, "{\"error\":\"invalid_request\"}");
+            return;
+        }
+        exchange.getResponseHeaders().set("Location", hub.get());
+        exchange.getResponseHeaders().set("Cache-Control", "no-store");
+        exchange.sendResponseHeaders(302, -1);
     }
 
     /** POST /authorize/login: authenticate via the seam, redirect with the code. */
@@ -182,10 +253,7 @@ public final class AuthorityHandler implements HttpHandler {
         Map<String, String> form = parseForm(new String(
                 exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
         // Validate the CLIENT half first: an unknown client or unregistered
-        // redirect stays a hard 401 (never redirect an invalid target) —
-        // while a credential failure for a VALID client is the standard
-        // OAuth error redirect (RFC 6749 §4.1.2.1), so the RP's own login
-        // page shows the failure instead of a bare JSON body.
+        // redirect stays a hard 401 (never redirect an invalid target).
         if (authority.beginAuthorization(form.get("client_id"), form.get("redirect_uri"),
                 emptyToNull(form.get("code_challenge")))
                 instanceof TenantAuthority.AuthorizeResult.Rejected rejected) {
@@ -195,6 +263,17 @@ public final class AuthorityHandler implements HttpHandler {
         switch (authority.completeLogin(form.get("client_id"), form.get("redirect_uri"),
                 emptyToNull(form.get("code_challenge")), form.getOrDefault("nonce", ""),
                 form.get("login"), form.get("password"))) {
+            // Nobody by that login and secret: the same page again, so they
+            // can correct a typing mistake where they made it. Sending them
+            // back to the application instead would start the whole sign-in
+            // over to fix one character. A 401 rather than a 200, so nothing
+            // automated mistakes the page for a sign-in that worked.
+            case TenantAuthority.LoginResult.NotRecognised ignored -> signInPage(exchange, 401,
+                    form, java.util.Optional.of("access_denied"), true,
+                    providers(form, emptyToNull(form.get("code_challenge"))));
+            // Somebody this tenant knows and grants nothing: the application's
+            // to tell them, as an OAuth error redirect (RFC 6749 §4.1.2.1).
+            // Typing again would not change the answer.
             case TenantAuthority.LoginResult.Denied denied -> {
                 String location = form.get("redirect_uri")
                         + (form.get("redirect_uri").contains("?") ? "&" : "?")

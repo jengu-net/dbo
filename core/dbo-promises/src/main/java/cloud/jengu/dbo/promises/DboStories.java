@@ -282,6 +282,7 @@ public enum DboStories implements Story {
                     // The brokers its zones federate to, and the one its hub does.
                     DboPromises.AUTH_FEDERATED_HUMANS,
                     DboPromises.ZONE_BROKER_CHOICE,
+                    DboPromises.AUTH_THE_PAGE_OFFERS_THE_BROKERS_A_TENANT_ACCEPTS,
                     DboPromises.ZONE_SUBJECT_DOMAINS,
                     DboPromises.ZONE_SESSIONS_ACCUMULATE,
                     DboPromises.AUTH_ONE_CEREMONY_MANY_TENANTS,
@@ -361,6 +362,9 @@ public enum DboStories implements Story {
                     DboPromises.AUTH_ROLE_GRANTS_AS_RECORDS,
                     DboPromises.AUTH_CREDENTIAL_FACTORS_BY_KIND,
                     DboPromises.AUTH_PASSWORD_ONLY_WHERE_WE_ARE_THE_IDP,
+                    // The page they sign in on is the application's to draw.
+                    DboPromises.AUTH_THE_SIGN_IN_PAGE_IS_THE_HOSTS,
+                    DboPromises.AUTH_A_WRONG_PASSWORD_STAYS_ON_THE_PAGE,
                     DboPromises.AUTH_FIRST_SECRET_BY_ONE_TIME_GRANT,
                     DboPromises.AUTH_SELF_SERVICE_CHANGE,
                     DboPromises.AUTH_RECOVERY_IS_AN_OPERATOR_ACT,

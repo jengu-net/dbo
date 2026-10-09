@@ -85,6 +85,11 @@ public final class IdentityHub implements HttpHandler {
         return baseUrl + basePath;
     }
 
+    /** The broker run for a tenant that contracted none. */
+    public String defaultBroker() {
+        return defaultBroker;
+    }
+
     @Override
     public void handle(HttpExchange exchange) throws IOException {
         try {

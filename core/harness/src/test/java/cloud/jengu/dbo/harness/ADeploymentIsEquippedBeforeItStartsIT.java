@@ -313,12 +313,20 @@ class ADeploymentIsEquippedBeforeItStartsIT {
                   {"name":"Practitioner","identity":"identifier","systems":["%s"],"handling":"operational"},
                   {"name":"PractitionerRole","identity":"internal","handling":"operational"}]}"""
                 .formatted(ZONE_SUBJECT_SYSTEM, ZONE_SUBJECT_SYSTEM));
+        // poliklinik: contracted eeid, and lets its people sign in with either
+        Files.writeString(dir.resolve("poliklinik.json"), """
+                {"code":"poliklinik","face":"r4","zone":"ee","broker":"eeid",
+                 "acceptedBrokers":["eeid","tara"],"types":[
+                  {"name":"Person","identity":"identifier","systems":["%s"],"handling":"operational"},
+                  {"name":"Practitioner","identity":"identifier","systems":["%s"],"handling":"operational"},
+                  {"name":"PractitionerRole","identity":"internal","handling":"operational"}]}"""
+                .formatted(ZONE_SUBJECT_SYSTEM, ZONE_SUBJECT_SYSTEM));
         // Waited for: a token asked of a tenant that is not serving yet is
         // answered 404 by the surface — which is also what a tenant nobody
         // declared answers, so a setup that scanned once died naming neither.
-        UntilServed.scan(manager, "haigla", "kliinik");
+        UntilServed.scan(manager, "haigla", "kliinik", "poliklinik");
 
-        for (String member : List.of("haigla", "kliinik")) {
+        for (String member : List.of("haigla", "kliinik", "poliklinik")) {
             String service = serviceToken(member);
             String practitioner = idOf(fhirPost(member, "/Practitioner", service, """
                     {"resourceType":"Practitioner",
@@ -740,9 +748,12 @@ class ADeploymentIsEquippedBeforeItStartsIT {
     @DisplayName("a private clinic in the zone runs the broker it contracted, once, and finds "
             + "its clinician by the zone's own identifier system")
     @Proving({DboPromises.AUTH_FEDERATED_HUMANS, DboPromises.ZONE_BROKER_CHOICE,
-            DboPromises.ZONE_SUBJECT_DOMAINS})
+            DboPromises.ZONE_SUBJECT_DOMAINS,
+            DboPromises.AUTH_THE_PAGE_OFFERS_THE_BROKERS_A_TENANT_ACCEPTS})
     void privateClinicRunsItsContractedBrokerOnce() throws Exception {
-        String token = signIn(zoneBrowser, "kliinik", "", 10);
+        // One broker and nobody holding a password: nothing to choose, so
+        // every hop is a redirect and no page is drawn.
+        String token = signIn(zoneBrowser, "kliinik", "", 10, null, false);
         assertTrue(token.startsWith("ey"), token);
         assertEquals(1, ceremonies.get("eeid").get());
         assertEquals(0, ceremonies.get("tara").get());
@@ -1100,6 +1111,57 @@ class ADeploymentIsEquippedBeforeItStartsIT {
                         + "nothing about where records go");
     }
 
+    // ===================================== choosing a broker
+
+    @Test
+    @Order(30)
+    @DisplayName("a clinic that accepts both brokers lets the person choose, and the one they "
+            + "choose is the one that runs")
+    @Proving(DboPromises.AUTH_THE_PAGE_OFFERS_THE_BROKERS_A_TENANT_ACCEPTS)
+    void theBrokerChosenIsTheOneThatRuns() throws Exception {
+        // A browser with no hub session yet, or the session gathered above
+        // would sign them in without either ceremony.
+        HttpClient freshBrowser = HttpClient.newBuilder()
+                .followRedirects(HttpClient.Redirect.NEVER)
+                .cookieHandler(new CookieManager()).build();
+        int tara = ceremonies.get("tara").get();
+        int eeid = ceremonies.get("eeid").get();
+
+        String token = signIn(freshBrowser, "poliklinik", "", 10, "tara", true);
+
+        assertTrue(token.startsWith("ey"), token);
+        assertEquals(tara + 1, ceremonies.get("tara").get(), "the chosen broker did not run");
+        assertEquals(eeid, ceremonies.get("eeid").get(),
+                "the contracted broker ran although the person chose the other");
+    }
+
+    @Test
+    @Order(31)
+    @DisplayName("a clinic offers only the broker it accepts, and a button pointed at another "
+            + "is refused")
+    @Proving(DboPromises.AUTH_THE_PAGE_OFFERS_THE_BROKERS_A_TENANT_ACCEPTS)
+    void aBrokerTheClinicDoesNotAcceptIsRefused() throws Exception {
+        // Somebody the hospital is the identity provider for, so it draws a
+        // page although it accepts one broker.
+        sideAuthority("haigla").ensureLocalCredential("valvur", "parool", "valvur");
+        HttpResponse<String> page = zoneBrowser.send(HttpRequest.newBuilder(URI.create(
+                base("haigla") + "/oidc/authorize?response_type=code&client_id=webapp"
+                        + "&redirect_uri=" + URLEncoder.encode(REDIRECT, StandardCharsets.UTF_8)
+                        + "&code_challenge=x&code_challenge_method=S256")).GET().build(),
+                HttpResponse.BodyHandlers.ofString());
+        assertEquals(200, page.statusCode(), page.body());
+        assertFalse(page.body().contains("b=eeid"),
+                "the hospital accepts tara only and offered eeid: " + page.body());
+
+        String forged = button(page.body(), "tara").replace("b=tara&", "b=eeid&");
+        HttpResponse<String> refused = zoneBrowser.send(HttpRequest.newBuilder(
+                URI.create(base("haigla")).resolve(forged)).GET().build(),
+                HttpResponse.BodyHandlers.ofString());
+        assertEquals(400, refused.statusCode(),
+                "a button pointed at a broker the hospital does not accept was followed: "
+                        + refused.headers().firstValue("Location").orElse(refused.body()));
+    }
+
     // ======================================================= the brokers
 
     /**
@@ -1273,6 +1335,16 @@ class ADeploymentIsEquippedBeforeItStartsIT {
      */
     private String signIn(HttpClient browser, String code, String state, int hops)
             throws Exception {
+        return signIn(browser, code, state, hops, null, true);
+    }
+
+    /**
+     * @param broker   the button to press if a sign-in page is drawn; null
+     *                 presses the only one there is
+     * @param mayPause whether a sign-in page may be drawn at all
+     */
+    private String signIn(HttpClient browser, String code, String state, int hops,
+            String broker, boolean mayPause) throws Exception {
         byte[] random = new byte[32];
         new SecureRandom().nextBytes(random);
         String verifier = Base64.getUrlEncoder().withoutPadding().encodeToString(random);
@@ -1303,11 +1375,33 @@ class ADeploymentIsEquippedBeforeItStartsIT {
             }
             HttpResponse<String> hopResponse = browser.send(HttpRequest.newBuilder(
                     URI.create(location)).GET().build(), HttpResponse.BodyHandlers.ofString());
+            if (mayPause && hopResponse.statusCode() == 200) {
+                location = URI.create(location).resolve(button(hopResponse.body(), broker))
+                        .toString();
+                continue;
+            }
             assertEquals(302, hopResponse.statusCode(),
                     "hop to " + location + " answered: " + hopResponse.body());
             location = hopResponse.headers().firstValue("Location").orElseThrow();
         }
         throw new AssertionError("redirect chain did not reach the RP");
+    }
+
+    /** Where a sign-in page's button for this broker goes, or its only button's. */
+    private static String button(String page, String broker) {
+        List<String> buttons = new java.util.ArrayList<>();
+        java.util.regex.Matcher href = java.util.regex.Pattern
+                .compile("href=\"([^\"]*authorize/broker[^\"]*)\"").matcher(page);
+        while (href.find()) {
+            buttons.add(href.group(1).replace("&amp;", "&"));
+        }
+        if (broker == null) {
+            assertEquals(1, buttons.size(), "not one button to press: " + page);
+            return buttons.get(0);
+        }
+        return buttons.stream().filter(target -> target.contains("b=" + broker + "&"))
+                .findFirst().orElseThrow(() -> new AssertionError(
+                        "no button for " + broker + ": " + page));
     }
 
     // ===================================================== face helpers

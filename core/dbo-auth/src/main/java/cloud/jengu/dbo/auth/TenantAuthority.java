@@ -105,6 +105,26 @@ public final class TenantAuthority {
                 String hubIssuer) {
             this(hubAuthorizeUrl, hubKey, hubIssuer, null, List.of());
         }
+
+        /**
+         * The brokers somebody signing in here may choose between: the ones
+         * this tenant accepts, contracted one first, or the contracted one
+         * alone where it accepts no list. Never every broker the hub knows:
+         * a ceremony is billed to whoever contracted the broker, and a
+         * button is a way to start one.
+         */
+        public List<String> providers() {
+            if (acceptedBrokers.isEmpty()) {
+                return broker == null ? List.of() : List.of(broker);
+            }
+            List<String> offered = new java.util.ArrayList<>();
+            if (broker != null && acceptedBrokers.contains(broker)) {
+                offered.add(broker);
+            }
+            acceptedBrokers.stream().filter(code -> !offered.contains(code))
+                    .forEach(offered::add);
+            return List.copyOf(offered);
+        }
     }
 
     private volatile Federation federation;
@@ -125,14 +145,45 @@ public final class TenantAuthority {
     /** Front-channel start under federation: park the RP request, return the hub redirect. */
     public String beginFederated(String clientId, String redirectUri, String codeChallenge,
             String rpState, String nonce) {
+        return toTheHub(parkFederated(clientId, redirectUri, codeChallenge, rpState, nonce),
+                federation.broker());
+    }
+
+    /**
+     * Parks the RP request until somebody chooses a broker, and answers the
+     * opaque id a button carries in its place. The request itself never
+     * reaches the page: a button that carried it could be pointed anywhere.
+     */
+    public String parkFederated(String clientId, String redirectUri, String codeChallenge,
+            String rpState, String nonce) {
         String stateId = UuidV7.newId();
         pendingFederated.put(stateId, new PendingFrontChannel(clientId, redirectUri,
                 codeChallenge, nonce == null ? "" : nonce,
                 rpState, System.currentTimeMillis() + 300_000));
+        return stateId;
+    }
+
+    /**
+     * Where the chosen broker's button continues to, or empty for a broker
+     * this tenant does not offer or a request that is not parked. Checked
+     * here and not only at the hub, which runs whatever broker its zone
+     * knows.
+     */
+    public Optional<String> continueWith(String stateId, String broker) {
+        PendingFrontChannel parked = stateId == null ? null : pendingFederated.get(stateId);
+        if (federation == null || parked == null
+                || parked.expiresAt() < System.currentTimeMillis()
+                || !federation.providers().contains(broker)) {
+            return Optional.empty();
+        }
+        return Optional.of(toTheHub(stateId, broker));
+    }
+
+    private String toTheHub(String stateId, String broker) {
         return federation.hubAuthorizeUrl()
                 + "?cb=" + java.net.URLEncoder.encode(issuer + "/federated", StandardCharsets.UTF_8)
                 + "&state=" + stateId
-                + (federation.broker() != null ? "&broker=" + federation.broker() : "")
+                + (broker != null ? "&broker=" + broker : "")
                 + (federation.acceptedBrokers().isEmpty() ? "" : "&accepted="
                         + String.join(",", federation.acceptedBrokers()));
     }
@@ -342,6 +393,17 @@ public final class TenantAuthority {
      * answer to the question a caller is asking — can they sign in with one —
      * and telling them apart is the retirement stamp's job, not this.
      */
+    /**
+     * Whether this tenant is anybody's identity provider, which is whether a
+     * sign-in page here needs a password form at all. A federated tenant
+     * whose people all sign in at the hub has no use for one, and showing it
+     * would cost every one of them a page they never use.
+     */
+    public boolean anybodyHoldsAPassword() {
+        return store.select(Criteria.of("LocalCredential")).stream()
+                .anyMatch(credential -> passwordHashOf(credential) != null);
+    }
+
     public boolean holdsPassword(String login) {
         return store.getByIdentifier("LocalCredential",
                         List.of(new Identifier(IdentityModel.LOGIN_SYSTEM, login))).stream()
@@ -1390,6 +1452,8 @@ public final class TenantAuthority {
     public sealed interface LoginResult {
         record Redirect(String code) implements LoginResult {}
         record Denied(String error) implements LoginResult {}
+        /** Nobody with that login and secret: they may try again on the same page. */
+        record NotRecognised() implements LoginResult {}
     }
 
     /** Authenticates (via the seam), evaluates grants, mints the one-time code. */
@@ -1402,7 +1466,7 @@ public final class TenantAuthority {
         }
         Optional<String> person = humanAuthenticator.authenticate(login, secret);
         if (person.isEmpty()) {
-            return new LoginResult.Denied("access_denied");
+            return new LoginResult.NotRecognised();
         }
         Grants grants = evaluateGrants(person.get());
         if (grants.scopes().isEmpty()) {

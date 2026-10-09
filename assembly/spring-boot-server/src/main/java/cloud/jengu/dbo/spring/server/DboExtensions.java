@@ -23,7 +23,8 @@ import java.util.Map;
  * tenant reaches a point; one implementing {@code TenantObserver} reads a
  * tenant's stream as a named durable consumer; one implementing
  * {@code ContactListener} is told when this node hears a worker of its step
- * and when it stops hearing it. The first two are selected on
+ * and when it stops hearing it; one implementing {@code LoginPage} draws
+ * every tenant's sign-in page. The first two are selected on
  * properties, and the runtime refuses a registration missing what it needs —
  * by name, into a log nobody is reading at four in the morning.
  *
@@ -45,7 +46,8 @@ public final class DboExtensions implements AutoCloseable {
     DboExtensions(EmbeddedRuntime runtime, List<TenantLifecycleListener> listeners,
             List<TenantObserver> observers,
             List<cloud.jengu.dbo.runner.StepService> performers,
-            List<cloud.jengu.dbo.work.ContactListener> contact) {
+            List<cloud.jengu.dbo.work.ContactListener> contact,
+            List<cloud.jengu.dbo.auth.LoginPage> pages) {
         List<String> wrong = new ArrayList<>();
         // A contact listener says how long a worker may be silent, and there
         // is no default: refused here, by name, rather than by the runtime
@@ -58,6 +60,16 @@ public final class DboExtensions implements AutoCloseable {
             } catch (IllegalArgumentException refused) {
                 wrong.add(refused.getMessage());
             }
+        }
+        // One page answers for every tenant and is told which one it draws.
+        // Two would leave which of them a tenant's people see to the order
+        // the framework happened to rank them in.
+        if (pages.size() > 1) {
+            wrong.add("there are " + pages.size() + " "
+                    + cloud.jengu.dbo.auth.LoginPage.class.getSimpleName() + " beans ("
+                    + String.join(", ", pages.stream().map(page -> page.getClass().getName())
+                            .toList())
+                    + "); one page draws every tenant, and it is told which tenant it draws");
         }
         Map<TenantLifecycleListener, Map<String, String>> listening = new LinkedHashMap<>();
         for (TenantLifecycleListener listener : listeners) {
@@ -152,9 +164,12 @@ public final class DboExtensions implements AutoCloseable {
                 cloud.jengu.dbo.runner.StepService.class, performer, on)));
         heard.forEach(listener -> registered.add(registrar.register(
                 cloud.jengu.dbo.work.ContactListener.class, listener, Map.of())));
+        pages.forEach(page -> registered.add(registrar.register(
+                cloud.jengu.dbo.auth.LoginPage.class, page, Map.of())));
         if (!registered.isEmpty()) {
-            LOG.info("extension points: listeners={} observers={} fleet-steps={} contact={}",
-                    listening.size(), watching.size(), performing.size(), heard.size());
+            LOG.info("extension points: listeners={} observers={} fleet-steps={} contact={}"
+                    + " login-page={}", listening.size(), watching.size(), performing.size(),
+                    heard.size(), !pages.isEmpty());
         }
     }
 

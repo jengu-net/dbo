@@ -82,6 +82,7 @@ public final class Activator implements BundleActivator {
 
     /** What this node is called in every contact event it sends. */
     static final String NODE_NAME = "dbo.node.name";
+    private ServiceTracker<cloud.jengu.dbo.auth.LoginPage, cloud.jengu.dbo.auth.LoginPage> pages;
     private ServiceTracker<cloud.jengu.dbo.runner.StepService,
             cloud.jengu.dbo.runner.StepService> performers;
     /** What each taken-up bean is withdrawn by, when its bundle goes. */
@@ -313,6 +314,15 @@ public final class Activator implements BundleActivator {
                     }
                 });
         carriers.open();
+        // The application's sign-in page, the highest-ranked when there are
+        // several, looked up as each page is drawn: one arriving or going
+        // while tenants serve is taken up without anything being told.
+        pages = new ServiceTracker<>(ctx, cloud.jengu.dbo.auth.LoginPage.class, null);
+        pages.open();
+        manager.loginPage(() -> {
+            cloud.jengu.dbo.auth.LoginPage page = pages.getService();
+            return page != null ? page : cloud.jengu.dbo.auth.LoginPage.BARE;
+        });
         // THE SAME WHITEBOARD, AND NOW THE SAME INTERFACE. A step is a
         // StepService whichever level declared it: the runner's own activator
         // watches this too and polls tenant lanes for the steps a TENANT
@@ -898,6 +908,9 @@ public final class Activator implements BundleActivator {
             // consumer that has already shut down.
             performers.close();
             performers = null;
+        }
+        if (pages != null) {
+            pages.close();
         }
         if (observers != null) {
             observers.close();

@@ -1198,6 +1198,92 @@ class ATenantOpensAndItsPeopleGetInIT {
                 "a clinic the application stopped declaring is still served: " + dbo.serving());
     }
 
+    // ── the page they sign in on ──
+
+    /** The hospital, whose page the clinic's application draws. */
+    private static final String HOSPITAL =
+            cloud.jengu.dbo.samples.server.DrawingTheSignInPage.HOSPITAL;
+
+    /** Somebody the hospital is the identity provider for, and grants nothing. */
+    private String visitor() {
+        return names.value("visitor");
+    }
+
+    private HttpResponse<String> signInPage(String tenant, String state) {
+        return dbo.send(HttpRequest.newBuilder(URI.create(oidc(tenant)
+                + "/authorize?response_type=code&client_id=" + webApp()
+                + "&state=" + encoded(state) + "&redirect_uri=" + encoded(REDIRECT)
+                + "&code_challenge=" + challenge(verifier()) + "&code_challenge_method=S256"))
+                .GET(), null);
+    }
+
+    @Test
+    @Order(37)
+    @DisplayName("the hospital's people sign in on the page its application draws, with its "
+            + "broker and its password form on it, and a clinic it draws nothing for signs in "
+            + "on the store's own")
+    @Proving(DboPromises.AUTH_THE_SIGN_IN_PAGE_IS_THE_HOSTS)
+    void theHospitalsPageIsTheApplications() {
+        authority(HOSPITAL).ensureClient(webApp(), null, List.of("user/*.read"),
+                "public-pkce", List.of(REDIRECT));
+        authority(HOSPITAL).ensureLocalCredential(visitor(), "a-visitors-secret", visitor());
+
+        HttpResponse<String> hospital = signInPage(HOSPITAL, "\"><script>alert(1)</script>");
+        assertEquals(200, hospital.statusCode(), hospital.body());
+        Proves.that(DboPromises.AUTH_THE_SIGN_IN_PAGE_IS_THE_HOSTS,
+                hospital.body().contains("Hogwarts Infirmary"),
+                "the hospital's people are not shown the page its application draws: "
+                        + hospital.body());
+        // The hospital is a member of the zone, which is its own broker, and
+        // somebody there holds a password: both ways in are on the page.
+        Proves.that(DboPromises.AUTH_THE_SIGN_IN_PAGE_IS_THE_HOSTS,
+                hospital.body().contains("Sign in with rl")
+                        && hospital.body().contains("name=\"password\""),
+                "the page is missing a way in the hospital offers: " + hospital.body());
+        // What the application's request carried is on the page as text, and
+        // never as markup the page did not write.
+        Proves.that(DboPromises.AUTH_THE_SIGN_IN_PAGE_IS_THE_HOSTS,
+                !hospital.body().contains("<script>"),
+                "the request's state was put on the page as markup: " + hospital.body());
+
+        HttpResponse<String> clinic = signInPage(second, "xyz");
+        assertEquals(200, clinic.statusCode(), clinic.body());
+        Proves.that(DboPromises.AUTH_THE_SIGN_IN_PAGE_IS_THE_HOSTS,
+                !clinic.body().contains("Hogwarts") && clinic.body().contains("name=\"password\""),
+                "a clinic the application draws no page for is not signed in on the store's "
+                        + "own: " + clinic.body());
+    }
+
+    @Test
+    @Order(38)
+    @DisplayName("a mistyped password shows the hospital's page again with the error, and "
+            + "somebody it knows and grants nothing is answered to the application")
+    @Proving(DboPromises.AUTH_A_WRONG_PASSWORD_STAYS_ON_THE_PAGE)
+    void aMistypedPasswordStaysOnThePage() {
+        String verifier = verifier();
+        String attempt = "client_id=" + webApp() + "&redirect_uri=" + encoded(REDIRECT)
+                + "&state=xyz&code_challenge=" + challenge(verifier) + "&login=" + visitor();
+
+        HttpResponse<String> mistyped = formPost(oidc(HOSPITAL) + "/authorize/login",
+                attempt + "&password=a-visitors-secrte");
+        Proves.that(DboPromises.AUTH_A_WRONG_PASSWORD_STAYS_ON_THE_PAGE,
+                mistyped.statusCode() == 401 && mistyped.body().contains("Hogwarts Infirmary")
+                        && mistyped.body().contains("role=\"alert\""),
+                "a mistyped password did not show the hospital's page again with the error: "
+                        + mistyped.statusCode() + " " + mistyped.body());
+
+        // The visitor holds no role here. Typing again would not change that,
+        // so it is the application's to tell them.
+        HttpResponse<String> nothingGranted = formPost(oidc(HOSPITAL) + "/authorize/login",
+                attempt + "&password=a-visitors-secret");
+        String location = nothingGranted.headers().firstValue("Location").orElse("");
+        Proves.that(DboPromises.AUTH_A_WRONG_PASSWORD_STAYS_ON_THE_PAGE,
+                nothingGranted.statusCode() == 302 && location.startsWith(REDIRECT)
+                        && location.contains("error=access_denied"),
+                "somebody the hospital grants nothing was not answered to the application: "
+                        + nothingGranted.statusCode() + " " + location);
+    }
+
     private static boolean mentions(java.nio.file.Path file, String code) {
         try {
             return java.nio.file.Files.readString(file).contains(code);
@@ -1334,8 +1420,8 @@ class ATenantOpensAndItsPeopleGetInIT {
     }
 
     /**
-     * Whether a front-channel sign-in succeeded. A refused one is an error
-     * redirect, not a status, so the location is what differs.
+     * Whether a front-channel sign-in succeeded: a redirect carrying a code.
+     * A refused one is the sign-in page again or an error redirect.
      */
     private boolean signsIn(String login, String password) {
         HttpResponse<String> attempt = frontChannelLogin(login, password, null);

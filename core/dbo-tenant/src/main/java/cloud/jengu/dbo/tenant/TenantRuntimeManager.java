@@ -1173,6 +1173,18 @@ public final class TenantRuntimeManager implements AutoCloseable {
         lifecycleListeners.add(new Object[] {point, filter, name, listener});
     }
 
+    /**
+     * The page every tenant's people sign in on, asked for on each sign-in.
+     * Read through a field rather than handed to each tenant as it comes up,
+     * so a page arriving after a tenant serves is drawn there too.
+     */
+    public void loginPage(java.util.function.Supplier<cloud.jengu.dbo.auth.LoginPage> page) {
+        this.loginPage = page;
+    }
+
+    private volatile java.util.function.Supplier<cloud.jengu.dbo.auth.LoginPage> loginPage =
+            () -> cloud.jengu.dbo.auth.LoginPage.BARE;
+
     /** Registers an observer of one of a tenant's streams. */
     public void addObserver(TenantDomain domain, String consumer, String target, String name,
             TenantObserver observer) {
@@ -3479,9 +3491,12 @@ public final class TenantRuntimeManager implements AutoCloseable {
             cloud.jengu.dbo.auth.IdentityHub hub = spec.zone() != null
                     ? zoneHub(spec) : identityHub;
             if (hub != null) {
+                // The hub's default named rather than left for the hub to
+                // pick, so a sign-in page has a broker to put on its button.
                 authority.federation(new cloud.jengu.dbo.auth.TenantAuthority.Federation(
                         hub.issuer() + "/authorize", hub::assertionKey, hub.issuer(),
-                        spec.broker(), spec.acceptedBrokers()));
+                        spec.broker() != null ? spec.broker() : hub.defaultBroker(),
+                        spec.acceptedBrokers()));
             }
             if (db.bootstrapClientSecret() != null) {
                 // The deployment's own credential for this tenant, and the
@@ -3524,8 +3539,8 @@ public final class TenantRuntimeManager implements AutoCloseable {
                         java.util.List.of("user/*.read", "user/*.write"),
                         "confidential", db.rpRedirectUris());
             }
-            sharedServer.createContext(oidcPath,
-                    new cloud.jengu.dbo.auth.AuthorityHandler(authority, oidcPath));
+            sharedServer.createContext(oidcPath, new cloud.jengu.dbo.auth.AuthorityHandler(
+                    authority, oidcPath, spec.code(), () -> loginPage.get()));
             authorityContexts.put(spec.code(), oidcPath);
             guard = new cloud.jengu.dbo.auth.AuthorityAuthenticator(authority);
         }

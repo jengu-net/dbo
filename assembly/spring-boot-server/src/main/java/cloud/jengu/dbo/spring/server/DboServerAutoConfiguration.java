@@ -98,10 +98,12 @@ public class DboServerAutoConfiguration {
             org.springframework.beans.factory.ObjectProvider<
                     cloud.jengu.dbo.runner.StepService> performers,
             org.springframework.beans.factory.ObjectProvider<
-                    cloud.jengu.dbo.work.ContactListener> contact) {
+                    cloud.jengu.dbo.work.ContactListener> contact,
+            org.springframework.beans.factory.ObjectProvider<
+                    cloud.jengu.dbo.auth.LoginPage> pages) {
         return new DboExtensions(runtime, listeners.orderedStream().toList(),
                 observers.orderedStream().toList(), performers.orderedStream().toList(),
-                contact.orderedStream().toList());
+                contact.orderedStream().toList(), pages.orderedStream().toList());
     }
 
     /** The vocabulary an application reads this deployment through. */

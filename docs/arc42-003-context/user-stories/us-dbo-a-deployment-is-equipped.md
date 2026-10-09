@@ -116,6 +116,7 @@ citations say it is.
 | `REQ-DBO-AUTH-BOOTSTRAP-SECRET-IS-CUSTODY` | A tenant's bootstrap credential is the secret its deployment already holds, named per tenant, and never one the store invented and kept to itself: custody is the operator's, so a deployment without one says what it decided rather than being locked out of its own authority. | PROVEN |
 | `REQ-DBO-AUTH-FEDERATED-HUMANS` | Human authentication is federated to the configured identity broker; the authority resolves the verified national identifier to a Practitioner through the vault index and owns authorization only. Local credentials are an embedded/dev fallback, never the production path. | PROVEN |
 | `REQ-DBO-ZONE-BROKER-CHOICE` | The broker set is jurisdictional, the choice organizational: the zone declares the available national brokers; a tenant selects its contracted one and may restrict what it accepts. | PROVEN |
+| `REQ-DBO-AUTH-THE-PAGE-OFFERS-THE-BROKERS-A-TENANT-ACCEPTS` | A federated tenant's sign-in page offers exactly the brokers the tenant accepts, or its contracted one where it accepts no list, and never every broker its hub knows: a ceremony is billed to whoever contracted the broker. Each button carries an opaque reference to a request the store holds, and a broker the tenant does not accept is refused. Where there is only one broker and nobody at the tenant holds a password, there is nothing to choose and no page. | PROVEN |
 | `REQ-DBO-ZONE-SUBJECT-DOMAINS` | Subject-resolution identifier systems come from the zone's declared domains — the official national terminology — never from dbo code. | PROVEN |
 | `REQ-DBO-ZONE-SESSIONS-ACCUMULATE` | The per-zone hub's session records which broker performed each ceremony and accumulates ceremonies; cross-broker reuse is the default, tenant acceptance policy the restriction — the strictest tenant is satisfied without invalidating anyone else's session. | PROVEN |
 | `REQ-DBO-AUTH-ONE-CEREMONY-MANY-TENANTS` | One national authentication serves every tenant authority in the deployment through the identity hub's session — the upstream broker is invoked once per session, not per tenant; authorization remains strictly per-tenant. | PROVEN |
@@ -125,7 +126,7 @@ citations say it is.
 | `REQ-DBO-ZONE-AN-UNSERVABLE-ZONE-IS-SAID-AT-BRING-UP` | A tenant whose zone did not survive the trip to its face does not come up, and says which definition was lost and what it was built on. Refused rather than degraded: the tenant would otherwise serve the part of the zone that survived, which looks exactly like serving the zone. A zone is a set of rules somebody is relying on being applied, and most of one is not a smaller promise but a different one nobody agreed to. A tenant on the zone's own face is unaffected, because nothing was converted and nothing can have been lost. | PROVEN |
 | `REQ-DBO-SYNC-LOCAL-SHADOWING` | A tenant's own object with the same base identity overrides the streamed copy — version-neutrally, across FHIR versions and business versions; removing the override falls back to the live upstream version. | PROVEN |
 
-Coverage: {PROVEN=14} — a leg marked PLANNED cites a promise that exists and is not yet cited by any test.
+Coverage: {PROVEN=15} — a leg marked PLANNED cites a promise that exists and is not yet cited by any test.
 <!-- story:end -->
 
 ## What the store cannot do yet

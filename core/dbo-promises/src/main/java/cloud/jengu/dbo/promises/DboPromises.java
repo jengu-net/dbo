@@ -1541,6 +1541,25 @@ public enum DboPromises implements Promise {
             + "is untouched, before and after — it serves the case federation cannot, "
             + "and taking it away would remove the fallback for the situation the rule "
             + "was written around."),
+    AUTH_THE_SIGN_IN_PAGE_IS_THE_HOSTS(
+            "A tenant's people sign in on the page the application draws for that tenant, "
+            + "and on the store's own where it draws none. The store hands the page what it "
+            + "posts and where each button goes, already built and escaped, so a page "
+            + "decides how sign-in looks and never what it sends or to whom. A page that "
+            + "arrives or goes while the tenant serves is drawn, or stops being drawn, at "
+            + "the next sign-in."),
+    AUTH_THE_PAGE_OFFERS_THE_BROKERS_A_TENANT_ACCEPTS(
+            "A federated tenant's sign-in page offers exactly the brokers the tenant accepts, "
+            + "or its contracted one where it accepts no list, and never every broker its "
+            + "hub knows: a ceremony is billed to whoever contracted the broker. Each button "
+            + "carries an opaque reference to a request the store holds, and a broker the "
+            + "tenant does not accept is refused. Where there is only one broker and nobody "
+            + "at the tenant holds a password, there is nothing to choose and no page."),
+    AUTH_A_WRONG_PASSWORD_STAYS_ON_THE_PAGE(
+            "A login and password that match nobody show the same sign-in page again with "
+            + "the error, so the person corrects it where they made it. Somebody the tenant "
+            + "recognises and grants nothing is still answered to the application, because "
+            + "typing again would not change that answer."),
     AUTH_SELF_SERVICE_CHANGE(
             "A signed-in subject can replace their own password by proving possession "
             + "of the current one. No ticket, no second channel, and no other factor is "
