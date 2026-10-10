@@ -20,6 +20,11 @@ concepts, because sealing past a router needs them. It never projects anything o
 answers the `Device` projection named under the devices domain in the
 [IHE profiles item](https://github.com/jengu-net/dbo/blob/main/docs/arc42-011-risks-and-technical-debt/008-ihe-profiles/README.md):
 a consumer keeps its own `Device` records, and writes them through work.
+A run held by a program renders its `Task.owner` as a logical `Device`
+reference by the executor's identifier — the store's executor system,
+`urn:dbo:executor`, and the executor's name — with no `Device` stored,
+because that is FHIR's spelling of an executor; an application that keeps a
+`Device` for that worker gives it the same identifier.
 
 ## Presence and contact are two words
 
