@@ -566,11 +566,13 @@ cloud.jengu.dbo.core.api.Caller                                        clear():v
 cloud.jengu.dbo.core.api.Caller                                        clearRun():void
 cloud.jengu.dbo.core.api.Caller                                        current():String
 cloud.jengu.dbo.core.api.Caller                                        onBehalfOf():String
+cloud.jengu.dbo.core.api.Caller                                        readingForWork():boolean
 cloud.jengu.dbo.core.api.Caller                                        run():String
 cloud.jengu.dbo.core.api.Caller                                        set(String):void
 cloud.jengu.dbo.core.api.Caller                                        setChain(String,String):void
 cloud.jengu.dbo.core.api.Caller                                        setRun(String):void
 cloud.jengu.dbo.core.api.Caller                                        underRun(String):cloud.jengu.dbo.core.api.Caller.InRun
+cloud.jengu.dbo.core.api.Caller                                        writingFor(String):cloud.jengu.dbo.core.api.Caller.InRun
 cloud.jengu.dbo.core.api.Caller.InRun                                  close():void
 cloud.jengu.dbo.core.api.Caller.InRun                                  interface
 cloud.jengu.dbo.core.api.Criteria                                      anyOf(String,List):cloud.jengu.dbo.core.api.Criteria

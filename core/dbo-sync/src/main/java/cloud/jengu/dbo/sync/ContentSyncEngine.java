@@ -247,7 +247,7 @@ public final class ContentSyncEngine {
      */
     private cloud.jengu.dbo.core.api.Caller.InRun underItsRun() {
         return runs == null ? () -> { }
-                : cloud.jengu.dbo.core.api.Caller.underRun(PROCESS + "/" + STEP + "/"
+                : cloud.jengu.dbo.core.api.Caller.writingFor(PROCESS + "/" + STEP + "/"
                         + dependency.name());
     }
 
