@@ -4535,8 +4535,8 @@ public final class TenantRuntimeManager implements AutoCloseable {
      *
      * <p><b>And recomputed only when the upstream has moved.</b> The closure
      * is several queries, and running it per poll on every dependent of a busy
-     * face would cost more than the narrowing saves. The high-water mark of
-     * the upstream's definition rows answers whether anything could have
+     * face would cost more than the narrowing saves. The head of the
+     * upstream's definitions feed answers whether anything could have
      * changed, in one indexed read.
      *
      * <p>Empty is not a refusal: a selection's halves are optional and empty
@@ -4553,28 +4553,35 @@ public final class TenantRuntimeManager implements AutoCloseable {
         java.util.List<String> seeds = declared.stream()
                 .map(type -> "http://hl7.org/fhir/StructureDefinition/" + type)
                 .toList();
-        java.util.concurrent.atomic.AtomicLong seenAt = new java.util.concurrent.atomic.AtomicLong(-1);
+        // A cursor, and a sentinel no cursor equals, so the first ask computes.
+        String never = "";
+        java.util.concurrent.atomic.AtomicReference<String> seenAt =
+                new java.util.concurrent.atomic.AtomicReference<>(never);
         java.util.concurrent.atomic.AtomicReference<java.util.Set<String>> held =
                 new java.util.concurrent.atomic.AtomicReference<>(java.util.Set.of());
         return () -> {
             javax.sql.DataSource rows = tenantDataSources.get(upstream);
-            if (rows == null) {
+            TenantRuntime source = runtimes.get(upstream);
+            if (rows == null || source == null
+                    || !(source.definitionsFeed() instanceof PgChangeFeed feed)) {
                 return held.get();
             }
-            long mark;
-            try (java.sql.Connection c = rows.getConnection();
-                    java.sql.PreparedStatement ps = c.prepareStatement(
-                            "SELECT coalesce(max(id), 0) FROM definitions.definition_element");
-                    java.sql.ResultSet rs = ps.executeQuery()) {
-                mark = rs.next() ? rs.getLong(1) : 0;
-            } catch (java.sql.SQLException notReadable) {
+            // The upstream's definitions feed head: every definition that
+            // arrives, changes or goes moves it. The element rows carry no
+            // mark of their own — a definition taken apart again is deleted
+            // and written anew — so nothing read off them can say whether
+            // anything moved.
+            String mark;
+            try {
+                mark = String.valueOf(feed.headCursor());
+            } catch (RuntimeException notReadable) {
                 // The upstream is coming up, or its schema is not there yet.
                 // Narrowing on a guess would withhold what it does have, so
                 // this answers with what it last knew — empty, at first, which
                 // is everything.
                 return held.get();
             }
-            if (mark == seenAt.get()) {
+            if (mark.equals(seenAt.get())) {
                 return held.get();
             }
             cloud.jengu.dbo.fhir.index.DefinitionRows.Manifest manifest =
