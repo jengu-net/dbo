@@ -570,6 +570,9 @@ cloud.jengu.dbo.core.api.Caller                                        run():Str
 cloud.jengu.dbo.core.api.Caller                                        set(String):void
 cloud.jengu.dbo.core.api.Caller                                        setChain(String,String):void
 cloud.jengu.dbo.core.api.Caller                                        setRun(String):void
+cloud.jengu.dbo.core.api.Caller                                        underRun(String):cloud.jengu.dbo.core.api.Caller.InRun
+cloud.jengu.dbo.core.api.Caller.InRun                                  close():void
+cloud.jengu.dbo.core.api.Caller.InRun                                  interface
 cloud.jengu.dbo.core.api.Criteria                                      anyOf(String,List):cloud.jengu.dbo.core.api.Criteria
 cloud.jengu.dbo.core.api.Criteria                                      anyOfPredicates():List
 cloud.jengu.dbo.core.api.Criteria                                      chained(String,String,cloud.jengu.dbo.core.api.Criteria.ChainTarget):cloud.jengu.dbo.core.api.Criteria
@@ -3127,6 +3130,7 @@ cloud.jengu.dbo.promises.DboPromises                                   PROC_INTR
 cloud.jengu.dbo.promises.DboPromises                                   PROC_LANE_APPLY_IS_REPLAY_AND_REORDER_SAFE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_LANE_EPOCH:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_LANE_IS_A_TENANT_SERVICE:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   PROC_MACHINERY_WRITES_UNDER_ITS_RUN:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_MANDATORY_STEPS_CLASSIFY_INCIDENTS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_MILESTONES_ARE_DECLARED:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_MIRRORED_RUNS_ARE_FILED_BY_SOURCE:cloud.jengu.dbo.promises.DboPromises

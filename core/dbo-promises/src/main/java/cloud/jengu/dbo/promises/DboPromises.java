@@ -553,6 +553,10 @@ public enum DboPromises implements Promise {
             + "with an empty set, because empty and unreachable are the same sentence "
             + "to whoever then has to decide what is missing."),
 
+    PROC_MACHINERY_WRITES_UNDER_ITS_RUN("What the store's own machinery writes as part of "
+            + "a run is in the trail under that run: a stream applying what its upstream "
+            + "published, configuration applied from what a source declares. Every such entry "
+            + "names the work it was written for, and a run's trail reaches what it wrote."),
     PROC_CONFIG_APPLIES_AS_A_SWEEP("Applying a declared set is a sweep: it closes when "
             + "what is here agrees with what was declared, one declaration nobody can "
             + "apply is a card naming it and the rest still apply, and the pass tallies "

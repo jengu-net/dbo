@@ -53,6 +53,30 @@ public final class Caller {
         RUN.remove();
     }
 
+    /**
+     * The run in progress on this thread until the answer is closed, and then
+     * whichever run was in progress before it: a pass that calls into work of
+     * its own hands the thread back as it found it.
+     */
+    public static InRun underRun(String runKey) {
+        String outer = RUN.get();
+        RUN.set(runKey);
+        return () -> {
+            if (outer == null) {
+                RUN.remove();
+            } else {
+                RUN.set(outer);
+            }
+        };
+    }
+
+    /** A run marked in progress, until closed. */
+    @FunctionalInterface
+    public interface InRun extends AutoCloseable {
+        @Override
+        void close();
+    }
+
     /** Never null: outside an authenticated request the actor is "system". */
     public static String current() {
         String actor = CURRENT.get();

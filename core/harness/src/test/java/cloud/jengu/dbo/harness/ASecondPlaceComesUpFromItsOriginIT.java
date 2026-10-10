@@ -347,6 +347,24 @@ class ASecondPlaceComesUpFromItsOriginIT {
                 "a site restarted offline came up without its face");
     }
 
+    @Test
+    @Order(9)
+    @DisplayName("what the clinic's stream applies from the county is in the clinic's trail "
+            + "under the stream's run")
+    @Proving(DboPromises.PROC_MACHINERY_WRITES_UNDER_ITS_RUN)
+    void whatAStreamAppliesNamesItsRun() throws Exception {
+        com.fasterxml.jackson.databind.JsonNode bundle =
+                new com.fasterxml.jackson.databind.ObjectMapper().readTree(read(cloud, CLINIC,
+                        "AuditEvent?_count=1000&run=dbo.sync.stream/apply/" + COUNTY));
+        java.util.List<String> about = new java.util.ArrayList<>();
+        for (com.fasterxml.jackson.databind.JsonNode entry : bundle.path("entry")) {
+            about.add(entry.path("resource").path("entity").toString());
+        }
+        assertTrue(about.stream().anyMatch(entity -> entity.contains("Organization/")),
+                "the organisations the stream applied are not in the trail under its run: "
+                        + about);
+    }
+
     /** A token fetched once and again at half its life, never on every call. */
     private static final class HeldToken implements java.util.function.Supplier<String> {
 
