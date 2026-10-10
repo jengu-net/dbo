@@ -14,6 +14,11 @@ package cloud.jengu.dbo.runner;
  * the implementor's choice — a DBOS workflow on a server, nothing on a worker,
  * a person at a screen behind a UI. The runner owns the global truth either
  * way: what is owed, by whom, and what happened.
+ *
+ * <p><b>Called on several threads at once.</b> A runner cycles each lane on
+ * a thread of its own, so a service performing for two tenants, or for a
+ * tenant in the cloud and its place on site, is performing twice at the same
+ * time. Everything one call needs arrives in its {@link Work}.
  */
 public interface StepService {
 

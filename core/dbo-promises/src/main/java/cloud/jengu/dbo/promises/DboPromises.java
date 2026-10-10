@@ -374,6 +374,12 @@ public enum DboPromises implements Promise {
     // so in its own first word, which is the only place that cannot drift
     // from the thing it describes.
 
+    PROC_NO_LANE_WAITS_ON_ANOTHER("A runner cycles each lane it holds on a loop of its own, "
+            + "so a step performing over one lane, or a slow round to a tenant far away, never "
+            + "delays a poll, a claim or a step over another. A lane is told apart by being "
+            + "itself, not by its tenant: two lanes to one tenant code, to the tenant in the "
+            + "cloud and to a place of it on site, are both served, and letting one go "
+            + "leaves the other's declarations and its work standing."),
     PROC_STEP_SERVICE_EMBEDDABLE("One embeddable runner registers step services and needs "
             + "only the participation lane — no orchestrator, no transport, no access to "
             + "the tenant's dbo — so the same bundle runs inside the platform's container, "
