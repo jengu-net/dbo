@@ -50,7 +50,7 @@ final class WorkGrants implements Grants, SignedGrants {
             // is told so rather than being handed an empty one — an empty
             // lane and an unentitled one look identical from the far side.
             return new Access.Denied(403, null,
-                    "this credential carries no participation, supervisory or place scope");
+                    "this credential carries no participation scope, no supervisory scope and no place scope");
         }
         return new Access.Grant(context.get().clientId(), entitlementOf(granted),
                 Scopes.worksAsTheTenant(granted), Scopes.holdsAPlace(granted));
@@ -78,7 +78,7 @@ final class WorkGrants implements Grants, SignedGrants {
         List<String> granted = authority.clientScopes(participant).orElse(List.of());
         if (!reachesTheLane(granted)) {
             return new Access.Denied(403, null,
-                    "this credential carries no participation, supervisory or place scope");
+                    "this credential carries no participation scope, no supervisory scope and no place scope");
         }
         return new Access.Grant(participant, entitlementOf(granted),
                 Scopes.worksAsTheTenant(granted), Scopes.holdsAPlace(granted));
