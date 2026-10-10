@@ -59,7 +59,7 @@ class ASecondPlaceComesUpFromItsOriginIT {
             {"code":"%s","face":"r4","audit":{"level":"none"},
              "dependencies":[{"name":"%s","face":true,
                               "types":["StructureDefinition","SearchParameter","ValueSet","CodeSystem"]},
-                             {"name":"%s","types":["Organization"]}],
+                             {"name":"%s","types":["Organization","CodeSystem"]}],
              "types":[
               {"name":"StructureDefinition","identity":"canonical","handling":"replicated"},
               {"name":"SearchParameter","identity":"canonical","handling":"replicated"},
@@ -112,7 +112,8 @@ class ASecondPlaceComesUpFromItsOriginIT {
         Files.writeString(cloudDir.resolve(ROOT + ".json"), ROOT_DECLARATION);
         Files.writeString(cloudDir.resolve(COUNTY + ".json"), """
                 {"code":"%s","face":"r4","audit":{"level":"none"},
-                 "types":[{"name":"Organization","identity":"internal","handling":"operational"}]}"""
+                 "types":[{"name":"Organization","identity":"internal","handling":"operational"},
+                          {"name":"CodeSystem","identity":"canonical","handling":"operational"}]}"""
                 .formatted(COUNTY));
         Files.writeString(cloudDir.resolve(CLINIC + ".json"), CLINIC_DECLARATION);
         UntilServed.scan(cloud, ROOT, COUNTY);
@@ -123,6 +124,9 @@ class ASecondPlaceComesUpFromItsOriginIT {
                 "{\"resourceType\":\"Organization\",\"name\":\"Tartu maakonna haigla\"}"));
         assertEquals(201, post(cloud, CLINIC, "Patient",
                 "{\"resourceType\":\"Patient\",\"gender\":\"female\"}"));
+        // A definition that is not the face, behind it in the clinic's feed:
+        // the clinic took its face first, so this comes after every face row.
+        assertEquals(201, post(cloud, COUNTY, "CodeSystem", codeSystem("visit-kinds")));
         cloud.syncRound();
 
         cloud.authority(CLINIC).ensureClient("site", "site-secret", List.of("place"));
@@ -197,6 +201,27 @@ class ASecondPlaceComesUpFromItsOriginIT {
 
     @Test
     @Order(3)
+    @DisplayName("the site holds the definitions behind its origin's face, and one published "
+            + "upstream later reaches it on a later round")
+    @Proving(DboPromises.SYNC_A_PLACE_TAKES_ITS_FACE_FROM_A_ROOT_BESIDE_IT)
+    void aPlaceKeepsItsDefinitionsFromItsOrigin() throws Exception {
+        assertTrue(holds(cloud, "visit-kinds"),
+                "the cloud's clinic does not hold the definition this asserts the site took");
+        assertTrue(holds(site, "visit-kinds"),
+                "the site came up without the definitions behind its origin's face");
+
+        assertEquals(201, post(cloud, COUNTY, "CodeSystem", codeSystem("referral-kinds")));
+        cloud.syncRound();
+        assertTrue(holds(cloud, "referral-kinds"),
+                "the cloud's clinic does not hold the definition this asserts the site takes");
+        site.syncRound();
+
+        assertTrue(holds(site, "referral-kinds"),
+                "a definition published upstream after the site came up never reached it");
+    }
+
+    @Test
+    @Order(4)
     @DisplayName("with its origin away the site serves what it holds, and carries on from where "
             + "it acknowledged once it can read again")
     @Proving(DboPromises.SYNC_A_PLACE_SERVES_WHAT_IT_HOLDS_WHILE_ITS_ORIGIN_IS_AWAY)
@@ -220,7 +245,7 @@ class ASecondPlaceComesUpFromItsOriginIT {
     }
 
     @Test
-    @Order(4)
+    @Order(5)
     @DisplayName("a site restarted with its origin away comes up from what it holds")
     @Proving(DboPromises.SYNC_A_PLACE_SERVES_WHAT_IT_HOLDS_WHILE_ITS_ORIGIN_IS_AWAY)
     void aPlaceRestartedOfflineServesWhatItHolds() throws Exception {
@@ -276,6 +301,28 @@ class ASecondPlaceComesUpFromItsOriginIT {
     private static TenantRuntimeManager.OriginFeeds connected() {
         return new TenantRuntimeManager.OriginFeeds(lane.placeFeed(Place.RECORDS),
                 lane.placeFeed(Place.DEFINITIONS), lane.definitionsWithoutTheFace());
+    }
+
+    private static String canonical(String name) {
+        return "http://example.org/vallamaa/" + name;
+    }
+
+    /**
+     * Whether the clinic on that node holds the county's code system by that
+     * name. Searched by its canonical, because the face is thousands of code
+     * systems and a first page holds none of the county's; and an entry is
+     * asked for, because the search's own link names the canonical anyway.
+     */
+    private static boolean holds(TenantRuntimeManager node, String name) throws Exception {
+        return read(node, CLINIC, "CodeSystem?url=" + canonical(name))
+                .contains("\"resourceType\":\"CodeSystem\"");
+    }
+
+    private static String codeSystem(String name) {
+        return """
+                {"resourceType":"CodeSystem","url":"%s","name":"%s","status":"active",
+                 "content":"complete","concept":[{"code":"a","display":"A"}]}"""
+                .formatted(canonical(name), name.replace("-", ""));
     }
 
     private static int post(TenantRuntimeManager node, String code, String type, String body)
