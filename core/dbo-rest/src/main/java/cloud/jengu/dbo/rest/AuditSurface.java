@@ -33,7 +33,9 @@ public interface AuditSurface {
         // document at record time; the rest of what a domain contributed rides
         // opaquely and is not indexed, so it is not searchable and this set
         // says so by leaving it out.
-        return java.util.Set.of("agent", "entity", "action", "date", "run", "type");
+        // site: the trail one place of the tenant handed it, for "what happened
+        // there" — the rest of the trail is one with the tenant's own.
+        return java.util.Set.of("agent", "entity", "action", "date", "run", "type", "site");
     }
 
     /** A searchset Bundle of rendered AuditEvents. */

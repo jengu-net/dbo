@@ -36,4 +36,12 @@ public interface Origin {
      * position of {@link #definitions()}; a place reads one of the two.
      */
     ChangeFeed definitionsWithoutTheFace();
+
+    /**
+     * Where this place hands its own trail, or null when the link carries
+     * none: the place then keeps its trail to itself.
+     */
+    default Trail trail() {
+        return null;
+    }
 }

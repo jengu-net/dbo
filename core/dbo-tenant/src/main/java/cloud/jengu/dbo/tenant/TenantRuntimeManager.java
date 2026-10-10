@@ -378,6 +378,8 @@ public final class TenantRuntimeManager implements AutoCloseable {
     private final java.util.Set<String> places = ConcurrentHashMap.newKeySet();
     /** How each place reads its origin right now; absent while it cannot. */
     private final Map<String, OriginFeeds> originFeeds = new ConcurrentHashMap<>();
+    /** Each place's own trail, handed to its tenant over the link it reads through. */
+    private final Map<String, TrailPusher> trailPushers = new ConcurrentHashMap<>();
     /**
      * Each tenant's declaration as it was last read, by code: what a place of
      * it elsewhere is handed, so the two are declared with the same text.
@@ -4205,7 +4207,14 @@ public final class TenantRuntimeManager implements AutoCloseable {
                         .filter(engine -> engine.name().equals(faceChain))
                         .findFirst()
                         .map(engine -> engine.streamedAmong(ids))
-                        .orElse(java.util.Set.of())));
+                        .orElse(java.util.Set.of()),
+                // Taken only by a tenant that keeps a trail of its own, and
+                // through the one port that writes an entry recorded elsewhere.
+                serving.engine() instanceof cloud.jengu.dbo.core.api.AuditReplay replay
+                        && tenantDataSources.get(code) != null
+                        ? participant -> PlaceTrails.of(tenantDataSources.get(code), replay,
+                                participant)
+                        : null));
     }
 
     /**
@@ -4214,7 +4223,16 @@ public final class TenantRuntimeManager implements AutoCloseable {
      * has a face root of its own beside it, and the first when it has none.
      */
     public record OriginFeeds(ChangeFeed records, ChangeFeed definitions,
-            ChangeFeed definitionsWithoutTheFace) {}
+            ChangeFeed definitionsWithoutTheFace,
+            /** Where the place hands its own trail, or null for a link that carries none. */
+            cloud.jengu.dbo.runner.transport.Trail trail) {
+
+        /** A link that carries no trail: the place keeps its own. */
+        public OriginFeeds(ChangeFeed records, ChangeFeed definitions,
+                ChangeFeed definitionsWithoutTheFace) {
+            this(records, definitions, definitionsWithoutTheFace, null);
+        }
+    }
 
     /**
      * Serves a tenant here as a second place of the tenant of the same code
@@ -4272,6 +4290,11 @@ public final class TenantRuntimeManager implements AutoCloseable {
         String origin = spec.code();
         OriginFeeds feeds = originFeeds.getOrDefault(spec.code(), new OriginFeeds(
                 new Unreachable(origin), new Unreachable(origin), new Unreachable(origin)));
+        if (feeds.trail() != null) {
+            trailPushers.put(spec.code(), new TrailPusher(on, feeds.trail()));
+        } else {
+            trailPushers.remove(spec.code());
+        }
         FhirVersion version = versions.require(spec.face());
         TenantSpec.Dependency face = faceChainOf(spec);
         TenantRuntime root = face == null ? null : runtimes.get(face.name());
@@ -5013,6 +5036,35 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 } else {
                     LOG.warn("sync round failed for one stream; retrying from the "
                             + "acked cursor next round", e);
+                }
+            }
+        });
+        // Each place's own trail, up the link it reads through. What is not
+        // taken waits in the place's own trail, and the tenant says where to
+        // hand on from.
+        trailPushers.forEach((code, pusher) -> {
+            if (closing || !runtimes.containsKey(code)) {
+                return;
+            }
+            String name = "trail." + code;
+            try {
+                int handed = pusher.round();
+                if (handed > 0) {
+                    LOG.info("place {} handed its tenant entries={} of its trail", code, handed);
+                }
+                if (unreached.remove(name)) {
+                    LOG.info("place {} hands its trail to its tenant again", code);
+                }
+            } catch (RuntimeException e) {
+                if (unreachable(e)) {
+                    if (unreached.add(name)) {
+                        LOG.warn("place {} cannot hand its trail to its tenant ({}); it waits "
+                                + "here and goes when the tenant can be reached", code,
+                                e.getMessage());
+                    }
+                } else {
+                    LOG.warn("place {} could not hand its trail to its tenant; retrying next "
+                            + "round", code, e);
                 }
             }
         });

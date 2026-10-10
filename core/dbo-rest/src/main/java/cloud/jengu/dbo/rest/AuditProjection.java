@@ -146,6 +146,9 @@ public final class AuditProjection implements AuditSurface {
         if (query.get("run") != null) {
             criteria.eq("run", EnvelopeValue.of(query.get("run")));
         }
+        if (query.get("site") != null) {
+            criteria.eq("appliance", EnvelopeValue.of(query.get("site")));
+        }
         if (query.get("action") != null) {
             criteria.eq("interaction", EnvelopeValue.of(switch (query.get("action")) {
                 case "C" -> "create";

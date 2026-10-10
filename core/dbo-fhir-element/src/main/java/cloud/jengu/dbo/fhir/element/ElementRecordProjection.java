@@ -993,7 +993,18 @@ final class ElementRecordProjection implements RecordProjection {
             json.append(",{\"who\":{\"reference\":\"").append(entry.get("onBehalfOf"))
                     .append("\"},\"requestor\":false}");
         }
-        json.append(']').append(",\"source\":{\"observer\":{\"display\":\"dbo\"}}");
+        json.append(']');
+        if (entry.get("appliance") != null) {
+            // Recorded elsewhere and handed here: where it was observed is the
+            // place that recorded it, named as its credential names it.
+            String site = String.valueOf(entry.get("appliance"));
+            json.append(",\"source\":{\"observer\":{\"type\":\"Device\",\"identifier\":{")
+                    .append("\"system\":\"").append(AUTH_CLIENT_ID).append("\",\"value\":")
+                    .append(Json.quoted(site)).append("},\"display\":").append(Json.quoted(site))
+                    .append("}}");
+        } else {
+            json.append(",\"source\":{\"observer\":{\"display\":\"dbo\"}}");
+        }
         if (entry.get("purpose") != null) {
             // What the caller said they needed an identity for, as the
             // standard purpose-of-use coding; named purposeOfEvent where the
