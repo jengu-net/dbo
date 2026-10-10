@@ -337,6 +337,15 @@ public enum DboPromises implements Promise {
             + "and written down nowhere, and lets it go when told. While it holds the lane it "
             + "can keep a place of that tenant up to date or stop, and stopping withdraws the "
             + "place's link and nothing else: the lane goes on carrying work."),
+    PROC_A_LANE_SIGNS_IN_AGAIN_WHEN_ITS_TOKEN_IS_REFUSED("A lane tells its credential "
+            + "which token the tenant answered 401 to, so a credential that keeps its token "
+            + "drops that one and the lane's next call signs in again, rather than offering "
+            + "it until it expires. A token signed in for since is kept."),
+    PROC_AN_AUTHORITY_OUT_OF_REACH_IS_THE_LINK_DOWN("A worker's credential that cannot "
+            + "reach its tenant's authority, or is answered with a server error there, says "
+            + "the link is down, as the lane does when the tenant does not answer, so a "
+            + "place whose origin is away comes up from what it holds. An authority that "
+            + "refuses the credential is still a refusal."),
     PROC_A_HOST_HOLDS_A_LANE_WHEREVER_IT_IS("A host that reaches the store over HTTP "
             + "obtains the same lane as one that holds the store in-process: the tenant "
             + "serves the participation verbs on its own private surface, guarded by its "

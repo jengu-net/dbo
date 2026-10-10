@@ -1,5 +1,8 @@
 package cloud.jengu.dbo.spring.worker;
 
+import cloud.jengu.dbo.core.api.StoreUnreachableException;
+import cloud.jengu.dbo.runner.http.LaneCredential;
+
 import java.io.IOException;
 import java.net.URI;
 import java.net.URLEncoder;
@@ -9,12 +12,11 @@ import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.function.Supplier;
 
 /**
  * A credential that is obtained rather than configured.
  *
- * <p>The lane takes a {@link Supplier} and not a string, and the sample says
+ * <p>The lane takes a {@link java.util.function.Supplier} and not a string, and the sample says
  * why in one line: a runner outlives an access token, and one captured at
  * construction starts failing an hour later in a way that reads like the
  * store going away. So this signs in at the tenant's own authority, keeps
@@ -28,7 +30,7 @@ import java.util.function.Supplier;
  * <p>No library, for the reason the rest of this store has none: the whole of
  * the exchange is one form post and one field out of the answer.
  */
-final class ClientCredentials implements Supplier<String> {
+final class ClientCredentials implements LaneCredential {
 
     private static final Duration EARLY = Duration.ofMinutes(1);
 
@@ -60,6 +62,19 @@ final class ClientCredentials implements Supplier<String> {
         return signIn();
     }
 
+    /**
+     * The tenant stopped taking the token: its authority restarted with new
+     * keys, or this client was removed. Kept until expiry, it would be offered
+     * on every call until then.
+     */
+    @Override
+    public synchronized void refused(String refused) {
+        if (refused.equals(token)) {
+            token = null;
+            renewAt = Instant.MIN;
+        }
+    }
+
     private synchronized String signIn() {
         // Checked again under the lock: several lanes waking together would
         // otherwise each sign in, and the tenant would see a burst of
@@ -80,8 +95,15 @@ final class ClientCredentials implements Supplier<String> {
             if (didNotComplete instanceof InterruptedException) {
                 Thread.currentThread().interrupt();
             }
-            throw new IllegalStateException("could not reach " + tenant + " to sign in at "
+            // The link down, said as the lane says it: a place restarted while
+            // its origin is away serves what it holds on exactly this type,
+            // and starts over on any other.
+            throw new StoreUnreachableException("could not reach " + tenant + " to sign in at "
                     + tokenEndpoint, didNotComplete);
+        }
+        if (answer.statusCode() >= 500) {
+            throw new StoreUnreachableException(tenant + "'s authority did not answer a sign-in: "
+                    + answer.statusCode() + " from " + tokenEndpoint);
         }
         if (answer.statusCode() != 200) {
             // The status and not the body: a refusal from an authority can

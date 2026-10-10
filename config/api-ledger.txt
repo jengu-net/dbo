@@ -3022,6 +3022,7 @@ cloud.jengu.dbo.promises.DboPromises                                   PRM_PROOF
 cloud.jengu.dbo.promises.DboPromises                                   PRM_REGISTERED_AT_COMPILE_TIME:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PRM_STATUS_IS_DERIVED:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_AN_APPLICATION_STEP_IS_THE_DEPLOYMENTS_TO_DECLARE:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   PROC_AN_AUTHORITY_OUT_OF_REACH_IS_THE_LINK_DOWN:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_AN_UNAUTHORISED_ROW_OBEYS_ITS_POSTURE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_AN_UNCOLLECTED_ANSWER_LAPSES:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_AUDIT_REPLICATES_AS_RECORDED:cloud.jengu.dbo.promises.DboPromises
@@ -3043,6 +3044,7 @@ cloud.jengu.dbo.promises.DboPromises                                   PROC_A_HO
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_HOST_HOLDS_A_LANE_WHEREVER_IT_IS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_LANE_IS_ATTACHED_WHILE_THE_APPLICATION_RUNS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_LANE_OVER_THE_STREAM:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   PROC_A_LANE_SIGNS_IN_AGAIN_WHEN_ITS_TOKEN_IS_REFUSED:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_NODE_ANSWERS_ITS_CATALOGUE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_NODE_START_RESETS_CONTACT:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_PARTICIPANT_ASKS_FOR_WORK_IT_NEED_NOT_PERFORM:cloud.jengu.dbo.promises.DboPromises
@@ -3596,6 +3598,8 @@ cloud.jengu.dbo.runner.http.HttpLane                                   holding(U
 cloud.jengu.dbo.runner.http.HttpLane                                   new(URI,Supplier,String,String,cloud.jengu.dbo.work.Executor,Set,HttpClient)
 cloud.jengu.dbo.runner.http.HttpLane                                   new(URI,Supplier,String,String,cloud.jengu.dbo.work.Executor,Set,HttpClient,PrivateKey,PrivateKey)
 cloud.jengu.dbo.runner.http.HttpLane                                   to(URI,Supplier,String,String,cloud.jengu.dbo.work.Executor):cloud.jengu.dbo.runner.http.HttpLane
+cloud.jengu.dbo.runner.http.LaneCredential                             interface
+cloud.jengu.dbo.runner.http.LaneCredential                             refused(String):void
 cloud.jengu.dbo.runner.http.LaneHandler                                class
 cloud.jengu.dbo.runner.http.LaneHandler                                handle(HttpExchange):void
 cloud.jengu.dbo.runner.http.LaneHandler                                new(String,cloud.jengu.dbo.runner.transport.Grants,cloud.jengu.dbo.runner.transport.Lanes)

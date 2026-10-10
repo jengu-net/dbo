@@ -82,6 +82,10 @@ public final class HttpLane extends WireLane {
             try {
                 HttpResponse<String> response =
                         http.send(request.build(), HttpResponse.BodyHandlers.ofString());
+                if (response.statusCode() == 401 && token != null
+                        && bearer instanceof LaneCredential credential) {
+                    credential.refused(token);
+                }
                 return new Reply(response.statusCode(), response.body());
             } catch (java.io.IOException unreachable) {
                 // Not a decision about the caller: the far side never said
