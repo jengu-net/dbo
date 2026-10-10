@@ -541,6 +541,49 @@ class ATenantOpensAndItsPeopleGetInIT {
 
     @Test
     @Order(16)
+    @DisplayName("the clinician signs in with a PIN only where the authority serves a place, "
+            + "and the token says it was a PIN")
+    @Proving(DboPromises.AUTH_A_PLACE_SIGNS_IN_WITH_A_PIN)
+    void aPinSignsInOnlyWhereAPlaceIsServed() throws Exception {
+        authority(second).setFactor("hermione", "pin", "4711");
+        Proves.that(DboPromises.AUTH_A_PLACE_SIGNS_IN_WITH_A_PIN,
+                pinLogin("4711", verifier()).statusCode() == 401,
+                "an authority serving no place signed somebody in with a PIN");
+
+        // What serving a place turns on, turned on here for the one leg: the
+        // story's tenant is in the cloud, where nobody signs in with a PIN.
+        authority(second).signsInWith(java.util.Set.of("pin"));
+        try {
+            String verifier = verifier();
+            HttpResponse<String> login = pinLogin("4711", verifier);
+            assertEquals(302, login.statusCode(), login.body());
+            HttpResponse<String> tokens = formPost(oidc(second) + "/token",
+                    "grant_type=authorization_code&client_id=" + webApp() + "&code="
+                            + codeIn(login) + "&redirect_uri=" + encoded(REDIRECT)
+                            + "&code_verifier=" + verifier);
+            assertEquals(200, tokens.statusCode(), tokens.body());
+            String claims = claimsOf(dbo.says(tokens).one("access_token").orElseThrow());
+            Proves.that(DboPromises.AUTH_A_PLACE_SIGNS_IN_WITH_A_PIN,
+                    claims.contains("\"amr\":[\"pin\"]"),
+                    "the token does not say the clinician signed in with a PIN: " + claims);
+            Proves.that(DboPromises.AUTH_A_PLACE_SIGNS_IN_WITH_A_PIN,
+                    pinLogin("0000", verifier()).statusCode() == 401,
+                    "a wrong PIN signed the clinician in");
+        } finally {
+            authority(second).signsInWith(java.util.Set.of());
+        }
+    }
+
+    /** The sign-in form, posted with a PIN where a password would be. */
+    private HttpResponse<String> pinLogin(String pin, String verifier) throws Exception {
+        return formPost(oidc(second) + "/authorize/login",
+                "client_id=" + webApp() + "&redirect_uri=" + encoded(REDIRECT)
+                        + "&state=xyz&code_challenge=" + challenge(verifier)
+                        + "&login=hermione&pin=" + pin);
+    }
+
+    @Test
+    @Order(17)
     @DisplayName("the role's scopes are the whole of the clinician's reach, the trail names "
             + "the pseudonym, and a code is refused to anybody without its proof")
     @Proving({DboPromises.AUTH_ORG_MODEL_IS_THE_AUTH_MODEL, DboPromises.AUTH_SMART_SHAPED_SCOPES})
@@ -580,7 +623,7 @@ class ATenantOpensAndItsPeopleGetInIT {
     }
 
     @Test
-    @Order(17)
+    @Order(18)
     @DisplayName("ending the role's period on the clinical record is what revokes, and the "
             + "next refresh is refused for it")
     @Proving(DboPromises.AUTH_ORG_MODEL_IS_THE_AUTH_MODEL)
@@ -611,7 +654,7 @@ class ATenantOpensAndItsPeopleGetInIT {
     }
 
     @Test
-    @Order(18)
+    @Order(19)
     @DisplayName("a confidential application gets an identity token addressed to it, and the "
             + "provisioning surface answers only the clinic's own machine credential")
     void theClinicsApplicationAndItsProvisioning() {
@@ -654,7 +697,7 @@ class ATenantOpensAndItsPeopleGetInIT {
     }
 
     @Test
-    @Order(19)
+    @Order(20)
     @DisplayName("a clinician changes their own secret and nobody learns who exists by trying; "
             + "retiring a credential and putting one back are the operator's")
     @Proving({DboPromises.AUTH_DEACTIVATION_RETIRES_CREDENTIALS,
@@ -688,7 +731,7 @@ class ATenantOpensAndItsPeopleGetInIT {
     }
 
     @Test
-    @Order(20)
+    @Order(21)
     @DisplayName("a new clinician sets their own first secret from a grant that works once, "
             + "and the grant tells its asker nothing about who exists")
     @Proving({DboPromises.AUTH_FIRST_SECRET_BY_ONE_TIME_GRANT,
@@ -721,7 +764,7 @@ class ATenantOpensAndItsPeopleGetInIT {
     }
 
     @Test
-    @Order(21)
+    @Order(22)
     @DisplayName("a grant authorises its own redemption and nothing else: it is neither a "
             + "client secret nor a password")
     @Proving(DboPromises.AUTH_FIRST_SECRET_BY_ONE_TIME_GRANT)
@@ -745,7 +788,7 @@ class ATenantOpensAndItsPeopleGetInIT {
     // ── and a clinic takes its FHIR version from a root, as records ──
 
     @Test
-    @Order(22)
+    @Order(23)
     @DisplayName("a clinic on a face holds its version's definitions as records the instant "
             + "it is served, and validates its writes against them")
     @Proving(DboPromises.VER_FACE_ROOT_HOLDS_THE_VERSION_AS_RECORDS)
@@ -768,7 +811,7 @@ class ATenantOpensAndItsPeopleGetInIT {
     }
 
     @Test
-    @Order(23)
+    @Order(24)
     @DisplayName("a code outside a required binding is refused by name, answered from the code "
             + "system the clinic took from its root, and the terminology arrived the same way")
     @Proving(DboPromises.TERM_BINDINGS_ANSWERED_FROM_RECORDS)
@@ -795,7 +838,7 @@ class ATenantOpensAndItsPeopleGetInIT {
     }
 
     @Test
-    @Order(24)
+    @Order(25)
     @DisplayName("another clinic declared on the same root is served already holding the "
             + "version, and searches by what the root defined")
     @Proving(DboPromises.VER_FACE_ROOT_HOLDS_THE_VERSION_AS_RECORDS)
@@ -822,7 +865,7 @@ class ATenantOpensAndItsPeopleGetInIT {
     }
 
     @Test
-    @Order(25)
+    @Order(26)
     @DisplayName("a clinic whose chain does not carry the code systems is not served, and the "
             + "node says what it lacks; nor is one taking its version from another face's root")
     @Proving({DboPromises.TEN_READY_WHEN_ITS_CRITICAL_DEFINITIONS_ARRIVED,
@@ -861,7 +904,7 @@ class ATenantOpensAndItsPeopleGetInIT {
     // ── and the grants converge on what the clinic's configuration names ──
 
     @Test
-    @Order(26)
+    @Order(27)
     @DisplayName("what was granted reads back with the organisation it was granted at and the "
             + "scopes it was granted, and a withdrawn grant only when asked for")
     @Proving(DboPromises.AUTH_GRANTS_ARE_READABLE_TO_CONVERGE)
@@ -887,7 +930,7 @@ class ATenantOpensAndItsPeopleGetInIT {
     }
 
     @Test
-    @Order(27)
+    @Order(28)
     @DisplayName("a client converges the clinic on its configuration: read what is granted, "
             + "withdraw what configuration no longer names, read back agreement")
     @Proving(DboPromises.AUTH_GRANTS_ARE_READABLE_TO_CONVERGE)
@@ -908,7 +951,7 @@ class ATenantOpensAndItsPeopleGetInIT {
     }
 
     @Test
-    @Order(28)
+    @Order(29)
     @DisplayName("the read stands behind the same scope as the writes, and a status it does "
             + "not know is refused by name")
     @Proving(DboPromises.AUTH_GRANTS_ARE_READABLE_TO_CONVERGE)
@@ -929,7 +972,7 @@ class ATenantOpensAndItsPeopleGetInIT {
     // ── and a directory is only ever opened behind the membrane ──
 
     @Test
-    @Order(29)
+    @Order(30)
     @DisplayName("a clinic declaring a staff directory over identity held in the clear is not "
             + "opened, and the deployment leaves a card saying the directory needs the membrane")
     @Proving(DboPromises.SCIM_DECLARED_PER_TENANT)
@@ -957,7 +1000,7 @@ class ATenantOpensAndItsPeopleGetInIT {
     // ── and a partner who runs clinics follows their work without reading it ──
 
     @Test
-    @Order(30)
+    @Order(31)
     @DisplayName("a partner's credential reads a managed clinic's journey by run, is refused by "
             + "a clinic it does not manage, and never receives a document or a purpose")
     @Proving(DboPromises.TEN_A_PARTNER_MANAGES_TENANTS)
@@ -1043,7 +1086,7 @@ class ATenantOpensAndItsPeopleGetInIT {
     // ── and a clinic's life: its database, its retraction, its name ──
 
     @Test
-    @Order(31)
+    @Order(32)
     @DisplayName("a token one clinic's authority issues validates there and nowhere else")
     @Proving(DboPromises.AUTH_TENANT_SCOPED_ISSUER)
     void aTokenIsValidatedOnlyByItsIssuer() {
@@ -1059,7 +1102,7 @@ class ATenantOpensAndItsPeopleGetInIT {
     }
 
     @Test
-    @Order(32)
+    @Order(33)
     @DisplayName("a clinic's database is provisioned with the timeouts that keep one stuck "
             + "transaction from holding it, and its own vocabulary arrived as a recorded pass")
     @Proving(DboPromises.PROC_CONFIG_APPLIES_AS_A_SWEEP)
@@ -1085,7 +1128,7 @@ class ATenantOpensAndItsPeopleGetInIT {
     }
 
     @Test
-    @Order(33)
+    @Order(34)
     @DisplayName("retracting a clinic stops serving it and keeps its data, so declaring it "
             + "again brings back what it held")
     void retractingIsNotErasing() throws InterruptedException {
@@ -1114,7 +1157,7 @@ class ATenantOpensAndItsPeopleGetInIT {
     }
 
     @Test
-    @Order(34)
+    @Order(35)
     @DisplayName("a clinic on a face nothing serves gets no database, and a long hyphenated "
             + "code is a clinic like any other")
     void whatCannotBeServedIsNotProvisioned() throws Exception {
@@ -1144,7 +1187,7 @@ class ATenantOpensAndItsPeopleGetInIT {
     }
 
     @Test
-    @Order(35)
+    @Order(36)
     @DisplayName("a zone that names no identity broker is its own: it runs the ceremony its "
             + "members federate to, and its members serve")
     @Proving(DboPromises.AUTH_A_ZONE_IS_ITS_OWN_BROKER)
@@ -1168,7 +1211,7 @@ class ATenantOpensAndItsPeopleGetInIT {
     }
 
     @Test
-    @Order(36)
+    @Order(37)
     @DisplayName("a clinic declared only in the application's memory comes up, and one it "
             + "stops declaring is withdrawn, with no file written anywhere")
     void aClinicNobodyWroteDownComesUpAndGoes() throws Exception {
@@ -1222,7 +1265,7 @@ class ATenantOpensAndItsPeopleGetInIT {
     }
 
     @Test
-    @Order(37)
+    @Order(38)
     @DisplayName("the hospital's people sign in on the page its application draws, with its "
             + "broker and its password form on it, and a clinic it draws nothing for signs in "
             + "on the store's own")
@@ -1262,7 +1305,7 @@ class ATenantOpensAndItsPeopleGetInIT {
     }
 
     @Test
-    @Order(38)
+    @Order(39)
     @DisplayName("a mistyped password shows the hospital's page again with the error, and "
             + "somebody it knows and grants nothing is answered to the application")
     @Proving(DboPromises.AUTH_A_WRONG_PASSWORD_STAYS_ON_THE_PAGE)
@@ -1322,7 +1365,7 @@ class ATenantOpensAndItsPeopleGetInIT {
     }
 
     @Test
-    @Order(39)
+    @Order(40)
     @DisplayName("the identity token says who signed in and which roles they hold where, each "
             + "against the organisation it is held at, and the access token says neither")
     @Proving({DboPromises.AUTH_THE_ID_TOKEN_SAYS_WHO_SIGNED_IN_AND_WHAT_THEY_HOLD,
@@ -1385,7 +1428,7 @@ class ATenantOpensAndItsPeopleGetInIT {
     }
 
     @Test
-    @Order(40)
+    @Order(41)
     @DisplayName("a refresh mints a new identity token, with the same sign-in and the roles as "
             + "they stand")
     @Proving(DboPromises.AUTH_THE_ID_TOKEN_SAYS_WHO_SIGNED_IN_AND_WHAT_THEY_HOLD)
@@ -1410,7 +1453,7 @@ class ATenantOpensAndItsPeopleGetInIT {
     }
 
     @Test
-    @Order(41)
+    @Order(42)
     @DisplayName("UserInfo answers what the identity token says, over HTTP and in-process, and "
             + "its signed answer is verified against the clinic's own keys")
     @Proving(DboPromises.AUTH_USERINFO_ANSWERS_WHAT_THE_ID_TOKEN_SAYS)
@@ -1444,7 +1487,7 @@ class ATenantOpensAndItsPeopleGetInIT {
     }
 
     @Test
-    @Order(42)
+    @Order(43)
     @DisplayName("reading who signed in is recorded once, at sign-in, as the person's own "
             + "access, and neither a refresh nor UserInfo reads it again")
     @Proving(DboPromises.AUTH_A_PERSON_READING_THEIR_OWN_IDENTITY_IS_RECORDED_AS_THEIRS)

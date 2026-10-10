@@ -1573,6 +1573,18 @@ public enum DboPromises implements Promise {
             "A local credential holds factors named by kind (RFC 8176 `amr`): a "
             + "PIN, a password and a passkey are different kinds, setting one leaves the "
             + "others alone, and a kind is never a field named after the first case."),
+    AUTH_A_SITE_KEEPS_A_FACTOR_IT_WAS_HANDED_AS_A_HASH("A site keeps a factor its tenant "
+            + "handed it already hashed, as a local credential of its own: one for a login it "
+            + "never held is made with that factor and no password, and one it holds keeps its "
+            + "other factors while this one is replaced or taken away. The tenant names the "
+            + "person each login belongs to beside its hash, and hands out no credential that "
+            + "is not active. A hash this store would not produce is refused, a password is "
+            + "never kept from one, and a login is never moved to another person."),
+    AUTH_A_PLACE_SIGNS_IN_WITH_A_PIN("An authority serving a place of its tenant signs "
+            + "people in with the PIN they set at the tenant, through the same sign-in as a "
+            + "password, and the token says it was a PIN. Nowhere else does a PIN sign anybody "
+            + "in: the tenant keeps its people's PINs only to hand them to its sites, and a "
+            + "PIN offered there is answered as a wrong secret is."),
     AUTH_PASSWORD_ONLY_WHERE_WE_ARE_THE_IDP(
             "A password is held only where the tenant is the identity provider for that "
             + "subject. Signing in through the hub records that the hub identifies this "

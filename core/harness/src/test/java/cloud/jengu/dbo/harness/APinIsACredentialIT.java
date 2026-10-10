@@ -46,6 +46,8 @@ class APinIsACredentialIT {
 
     static TenantAuthority authority;
     static PgObjectStore store;
+    /** A site serving a place of the same tenant, with a database and an authority of its own. */
+    static TenantAuthority site;
 
     @BeforeAll
     void up() throws Exception {
@@ -65,6 +67,28 @@ class APinIsACredentialIT {
         store = new PgObjectStore(ds, IdentityModel.registrations());
         authority = new TenantAuthority(store, "http://127.0.0.1:1/oidc", new KeyProtector(kek));
         authority.ensureLocalCredential("albus@hogwarts.scot", "test1234", "prac-1");
+
+        try (Connection c = DriverManager.getConnection(jdbcUrl,
+                SharedPostgres.get().getUsername(), SharedPostgres.get().getPassword());
+             var st = c.createStatement()) {
+            st.execute("CREATE DATABASE pin_factor_site");
+        }
+        PGSimpleDataSource siteDs = new PGSimpleDataSource();
+        siteDs.setUrl(jdbcUrl.substring(0, jdbcUrl.lastIndexOf('/') + 1) + "pin_factor_site");
+        siteDs.setUser(SharedPostgres.get().getUsername());
+        siteDs.setPassword(SharedPostgres.get().getPassword());
+        byte[] siteKek = new byte[32];
+        new SecureRandom().nextBytes(siteKek);
+        PgObjectStore siteStore = new PgObjectStore(siteDs, IdentityModel.registrations());
+        site = new TenantAuthority(siteStore, "http://127.0.0.1:2/oidc", new KeyProtector(siteKek));
+
+    }
+
+    /** What the tenant hands its sites for this factor, as each site would take it. */
+    private static void handedToTheSite(String amr) {
+        for (TenantAuthority.FactorHolder holder : authority.holdersOf(amr)) {
+            site.keepFactor(holder.login(), holder.personId(), amr, holder.hash());
+        }
     }
 
     @Test
@@ -179,5 +203,133 @@ class APinIsACredentialIT {
                 "and an export carrying them hands somebody a way in");
         assertFalse(handling.isWritableBy(Handling.Authority.CONFIG_LANE),
                 "configuration does not own a credential somebody set for themselves");
+    }
+
+    @Test
+    @Timeout(300)
+    @DisplayName("the tenant says whose each login holding a factor is, and hands out no "
+            + "credential that is not active")
+    @Proving(DboPromises.AUTH_A_SITE_KEEPS_A_FACTOR_IT_WAS_HANDED_AS_A_HASH)
+    void theTenantSaysWhoseEachLoginIs() {
+        authority.ensureLocalCredential("minerva@hogwarts.scot", "test1234", "prac-3");
+        authority.setFactor("minerva@hogwarts.scot", "pin", "1066");
+        authority.setFactor("albus@hogwarts.scot", "pin", "4815");
+
+        java.util.Map<String, String> whose = new java.util.TreeMap<>();
+        authority.holdersOf("pin").forEach(h -> whose.put(h.login(), h.personId()));
+        assertEquals("prac-1", whose.get("albus@hogwarts.scot"));
+        assertEquals("prac-3", whose.get("minerva@hogwarts.scot"));
+
+        authority.retireCredential("minerva@hogwarts.scot");
+        assertTrue(authority.holdersOf("pin").stream()
+                        .noneMatch(h -> h.login().equals("minerva@hogwarts.scot")),
+                "a retired credential's factor was handed out");
+    }
+
+    @Test
+    @Timeout(300)
+    @DisplayName("a site keeps a factor it was handed as a hash, for a login it never held, and "
+            + "the matching secret verifies there and a wrong one does not")
+    @Proving(DboPromises.AUTH_A_SITE_KEEPS_A_FACTOR_IT_WAS_HANDED_AS_A_HASH)
+    void aSiteKeepsAFactorItWasHandedAsAHash() {
+        authority.setFactor("albus@hogwarts.scot", "pin", "4815");
+
+        handedToTheSite("pin");
+
+        assertTrue(site.verifyFactor("albus@hogwarts.scot", "pin", "4815"),
+                "the site did not keep the PIN it was handed");
+        assertFalse(site.verifyFactor("albus@hogwarts.scot", "pin", "1234"));
+        assertTrue(site.holdersOf("pin").stream().anyMatch(h ->
+                        h.login().equals("albus@hogwarts.scot") && h.personId().equals("prac-1")),
+                "the site's credential does not belong to the person the tenant named");
+    }
+
+    @Test
+    @Timeout(300)
+    @DisplayName("handed a new hash, a site replaces the factor and keeps the login's others")
+    @Proving(DboPromises.AUTH_A_SITE_KEEPS_A_FACTOR_IT_WAS_HANDED_AS_A_HASH)
+    void aNewHashReplacesTheFactor() {
+        authority.setFactor("albus@hogwarts.scot", "pin", "4815");
+        authority.setFactor("albus@hogwarts.scot", "otp", "162342");
+        handedToTheSite("pin");
+        handedToTheSite("otp");
+
+        authority.setFactor("albus@hogwarts.scot", "pin", "2718");
+        handedToTheSite("pin");
+
+        assertFalse(site.verifyFactor("albus@hogwarts.scot", "pin", "4815"),
+                "the old PIN still signs in at the site");
+        assertTrue(site.verifyFactor("albus@hogwarts.scot", "pin", "2718"));
+        assertTrue(site.verifyFactor("albus@hogwarts.scot", "otp", "162342"),
+                "replacing one factor took another with it");
+    }
+
+    @Test
+    @Timeout(300)
+    @DisplayName("a site refuses a hash this store would not produce, never keeps a password "
+            + "from one, and does not move a login to another person")
+    @Proving(DboPromises.AUTH_A_SITE_KEEPS_A_FACTOR_IT_WAS_HANDED_AS_A_HASH)
+    void whatASiteWillNotKeep() {
+        assertThrows(IllegalArgumentException.class,
+                () -> site.keepFactor("severus@hogwarts.scot", "prac-4", "pin", "4815"));
+        assertThrows(IllegalArgumentException.class,
+                () -> site.keepFactor("severus@hogwarts.scot", "prac-4", "pin",
+                        "pbkdf2$100000$c2hvcnQ=$c2hvcnQ="));
+        authority.setFactor("albus@hogwarts.scot", "pin", "4815");
+        String hash = authority.holdersOf("pin").stream()
+                .filter(h -> h.login().equals("albus@hogwarts.scot")).findFirst().orElseThrow()
+                .hash();
+        assertThrows(IllegalArgumentException.class,
+                () -> site.keepFactor("severus@hogwarts.scot", "prac-4", "pwd", hash),
+                "a site kept a password from a hash");
+
+        site.keepFactor("albus@hogwarts.scot", "prac-1", "pin", hash);
+        assertThrows(IllegalArgumentException.class,
+                () -> site.keepFactor("albus@hogwarts.scot", "prac-9", "pin", hash),
+                "a hash handed for a login moved it to another person");
+    }
+
+    @Test
+    @Timeout(300)
+    @DisplayName("a factor a site forgets no longer verifies there, and its other factors still do")
+    @Proving(DboPromises.AUTH_A_SITE_KEEPS_A_FACTOR_IT_WAS_HANDED_AS_A_HASH)
+    void aForgottenFactorNoLongerVerifies() {
+        authority.setFactor("albus@hogwarts.scot", "pin", "4815");
+        authority.setFactor("albus@hogwarts.scot", "otp", "162342");
+        handedToTheSite("pin");
+        handedToTheSite("otp");
+
+        site.forgetFactor("albus@hogwarts.scot", "pin");
+
+        assertFalse(site.verifyFactor("albus@hogwarts.scot", "pin", "4815"));
+        assertTrue(site.verifyFactor("albus@hogwarts.scot", "otp", "162342"));
+    }
+
+    @Test
+    @Timeout(300)
+    @DisplayName("a wrong PIN is not recognised where the authority serves a place, and the "
+            + "tenant does not recognise even the right one")
+    @Proving(DboPromises.AUTH_A_PLACE_SIGNS_IN_WITH_A_PIN)
+    void aPinSignsInOnlyWhereAPlaceIsServed() {
+        String app = "a-sign-in-app";
+        String back = "http://127.0.0.1/back";
+        // A public client proves it asked: without a challenge it is turned away
+        // before any secret is looked at, and every refusal would look alike.
+        String CHALLENGE = "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM";
+        for (TenantAuthority either : List.of(authority, site)) {
+            either.ensureClient(app, null, List.of("user/*.read"), "public-pkce", List.of(back));
+        }
+        authority.setFactor("albus@hogwarts.scot", "pin", "4815");
+        handedToTheSite("pin");
+        site.signsInWith(java.util.Set.of("pin"));
+
+        // That the right one signs somebody in, with what it grants and the
+        // token it issues, is the sign-in story's: nobody here holds a role.
+        assertTrue(site.completeLoginWith(app, back, CHALLENGE, null, "albus@hogwarts.scot", "pin",
+                        "1234") instanceof TenantAuthority.LoginResult.NotRecognised,
+                "the site recognised a wrong PIN");
+        assertTrue(authority.completeLoginWith(app, back, CHALLENGE, null, "albus@hogwarts.scot",
+                        "pin", "4815") instanceof TenantAuthority.LoginResult.NotRecognised,
+                "the tenant, which keeps PINs only to hand them out, signed somebody in with one");
     }
 }

@@ -236,17 +236,19 @@ public final class AuthorityHandler implements HttpHandler {
     private void signInPage(HttpExchange exchange, int status, Map<String, String> request,
             java.util.Optional<String> error, boolean password,
             List<LoginPage.Provider> providers) throws IOException {
+        String action = LoginPage.escaped(basePath + "/authorize/login");
+        String carried = hidden("client_id", request.get("client_id"))
+                + hidden("redirect_uri", request.get("redirect_uri"))
+                + hidden("state", request.getOrDefault("state", ""))
+                + hidden("code_challenge", request.getOrDefault("code_challenge", ""))
+                + hidden("nonce", request.getOrDefault("nonce", ""));
         LoginPage.Form form = new LoginPage.Form(tenant, error,
-                password ? java.util.Optional.of(new LoginPage.Password(
-                        LoginPage.escaped(basePath + "/authorize/login"),
-                        hidden("client_id", request.get("client_id"))
-                                + hidden("redirect_uri", request.get("redirect_uri"))
-                                + hidden("state", request.getOrDefault("state", ""))
-                                + hidden("code_challenge",
-                                        request.getOrDefault("code_challenge", ""))
-                                + hidden("nonce", request.getOrDefault("nonce", ""))))
+                password ? java.util.Optional.of(new LoginPage.Password(action, carried))
                         : java.util.Optional.empty(),
-                providers);
+                providers,
+                authority.signsInWith("pin")
+                        ? java.util.Optional.of(new LoginPage.Pin(action, carried))
+                        : java.util.Optional.empty());
         String drawn;
         try {
             drawn = page.get().render(form).orElseGet(() -> LoginPage.BARE.render(form).orElseThrow());
@@ -297,9 +299,15 @@ public final class AuthorityHandler implements HttpHandler {
             respond(exchange, 401, "{\"error\":\"" + rejected.error() + "\"}");
             return;
         }
-        switch (authority.completeLogin(form.get("client_id"), form.get("redirect_uri"),
-                emptyToNull(form.get("code_challenge")), form.getOrDefault("nonce", ""),
-                form.get("login"), form.get("password"))) {
+        String pin = emptyToNull(form.get("pin"));
+        TenantAuthority.LoginResult result = pin != null
+                ? authority.completeLoginWith(form.get("client_id"), form.get("redirect_uri"),
+                        emptyToNull(form.get("code_challenge")), form.getOrDefault("nonce", ""),
+                        form.get("login"), "pin", pin)
+                : authority.completeLogin(form.get("client_id"), form.get("redirect_uri"),
+                        emptyToNull(form.get("code_challenge")), form.getOrDefault("nonce", ""),
+                        form.get("login"), form.get("password"));
+        switch (result) {
             // Nobody by that login and secret: the same page again, so they
             // can correct a typing mistake where they made it. Sending them
             // back to the application instead would start the whole sign-in
