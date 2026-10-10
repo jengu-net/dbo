@@ -55,7 +55,14 @@ public enum LaneVerbs {
      * The tenant's own declaration, as the tenant serves it now: what a place
      * of it serves, unchanged, so the two never drift.
      */
-    DECLARATION("declaration");
+    DECLARATION("declaration"),
+    /** Where the tenant holds this place's trail: what the place hands from next. */
+    TRAIL_POSITION("trail-position"),
+    /**
+     * Entries the place recorded, in its order, handed to the tenant to be
+     * recorded as the place's. Filed by the credential that hands them.
+     */
+    TRAIL_PUSH("trail-push");
 
     /** Who is asking, as a feed consumer: this participant's own cursor. */
     public static final String PARTICIPANT = "participant";
@@ -131,6 +138,12 @@ public enum LaneVerbs {
     public static final String WITHOUT_FACE = "withoutFace";
     /** A declaration's text, as the tenant was declared with it. */
     public static final String DECLARATION_TEXT = "declaration";
+    /** Which trail a position is in: a place's trail that started over is another. */
+    public static final String FEED = "feed";
+    /** The position after the last entry handed. */
+    public static final String THROUGH = "through";
+    /** The entries handed: id, version, when recorded, and the entry as written. */
+    public static final String ENTRIES = "entries";
 
     private final String path;
 

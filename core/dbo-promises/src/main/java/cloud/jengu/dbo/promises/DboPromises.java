@@ -2536,6 +2536,13 @@ public enum DboPromises implements Promise {
             + "the declaration last kept; a place stops being served only when that kept "
             + "declaration is removed on the site; and a place with nothing kept and no origin "
             + "to ask makes the read fail rather than answer that the site serves nothing."),
+    SYNC_A_PLACE_HANDS_ITS_TRAIL_TO_ITS_TENANT("A place hands its own trail to its "
+            + "tenant over the link it reads through, and the tenant records each entry as the "
+            + "place recorded it, named as the place's by the credential that handed it. The "
+            + "tenant keeps where each place's trail was taken up to, so a place that was cut "
+            + "off hands what it recorded meanwhile once it is back, all of it and each entry "
+            + "once. In the tenant the place's entries are read with the tenant's own, as one "
+            + "trail; a place reads no trail."),
     SYNC_A_PLACE_TAKES_ITS_FACE_FROM_A_ROOT_BESIDE_IT(
             "A site runs a face root of its own beside each place, from its own release and "
             + "under the code the place's declaration names, unless the deployment declares "

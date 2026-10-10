@@ -24,10 +24,20 @@ import java.util.Set;
  *                        tenant cannot say one
  * @param fromTheFace     of the objects named, those the tenant took from its face root:
  *                        what a place with a face root of its own is not sent
+ * @param trailOf         a participant's trail as the tenant takes it, or null for a
+ *                        tenant that takes none
  */
 public record Place(ChangeFeed records, ChangeFeed definitions, Set<String> readableRecords,
         GrainCodec grain, java.util.function.Supplier<String> declaration,
-        java.util.function.Function<java.util.Collection<String>, Set<String>> fromTheFace) {
+        java.util.function.Function<java.util.Collection<String>, Set<String>> fromTheFace,
+        java.util.function.Function<String, Trail> trailOf) {
+
+    /** A place whose trail the tenant does not take. */
+    public Place(ChangeFeed records, ChangeFeed definitions, Set<String> readableRecords,
+            GrainCodec grain, java.util.function.Supplier<String> declaration,
+            java.util.function.Function<java.util.Collection<String>, Set<String>> fromTheFace) {
+        this(records, definitions, readableRecords, grain, declaration, fromTheFace, null);
+    }
 
     /** A place whose declaration is not handed out: it is read for content alone. */
     public Place(ChangeFeed records, ChangeFeed definitions, Set<String> readableRecords,

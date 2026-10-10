@@ -407,7 +407,27 @@ public class WireLane implements Lane {
         cloud.jengu.dbo.core.api.feed.ChangeFeed definitions =
                 placeFeed(cloud.jengu.dbo.runner.transport.Place.DEFINITIONS);
         cloud.jengu.dbo.core.api.feed.ChangeFeed withoutTheFace = definitionsWithoutTheFace();
+        cloud.jengu.dbo.runner.transport.Trail trail = new cloud.jengu.dbo.runner.transport.Trail() {
+            @Override
+            public Position position() {
+                return positionIn(post(LaneVerbs.TRAIL_POSITION, verb()));
+            }
+
+            @Override
+            public Position handed(String feed, List<Entry> entries, String through) {
+                Map<String, Object> body = verb();
+                body.put(LaneVerbs.FEED, feed);
+                body.put(LaneVerbs.THROUGH, through);
+                body.put(LaneVerbs.ENTRIES, RecordWire.encode(List.copyOf(entries)));
+                return positionIn(post(LaneVerbs.TRAIL_PUSH, body));
+            }
+        };
         return new cloud.jengu.dbo.runner.transport.Origin() {
+            @Override
+            public cloud.jengu.dbo.runner.transport.Trail trail() {
+                return trail;
+            }
+
             @Override
             public cloud.jengu.dbo.core.api.feed.ChangeFeed definitionsWithoutTheFace() {
                 return withoutTheFace;
@@ -439,6 +459,18 @@ public class WireLane implements Lane {
                 return definitions;
             }
         };
+    }
+
+    /** Where the tenant said it holds the trail, or null when it has taken none. */
+    private static cloud.jengu.dbo.runner.transport.Trail.Position positionIn(Object answer) {
+        Map<?, ?> said = answer instanceof Map<?, ?> map ? map : Map.of();
+        Object feed = said.get(LaneVerbs.FEED);
+        if (feed == null) {
+            return null;
+        }
+        Object through = said.get(LaneVerbs.THROUGH);
+        return new cloud.jengu.dbo.runner.transport.Trail.Position(String.valueOf(feed),
+                through == null ? null : String.valueOf(through));
     }
 
     private final class PlaceFeed implements cloud.jengu.dbo.core.api.feed.ChangeFeed {

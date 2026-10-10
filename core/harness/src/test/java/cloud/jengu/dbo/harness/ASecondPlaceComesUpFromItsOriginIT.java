@@ -1,6 +1,9 @@
 package cloud.jengu.dbo.harness;
 
 import cloud.jengu.dbo.auth.TenantAuthority;
+import cloud.jengu.dbo.core.api.feed.FeedChunk;
+import cloud.jengu.dbo.core.api.feed.FeedItem;
+import cloud.jengu.dbo.core.api.feed.FeedSelection;
 import cloud.jengu.dbo.promises.DboPromises;
 import cloud.jengu.dbo.promises.Proving;
 import cloud.jengu.dbo.runner.http.HttpLane;
@@ -56,7 +59,7 @@ class ASecondPlaceComesUpFromItsOriginIT {
     private static final String CLINIC = "jaam";
 
     private static final String CLINIC_DECLARATION = """
-            {"code":"%s","face":"r4","audit":{"level":"none"},
+            {"code":"%s","face":"r4","audit":{"level":"writes"},
              "dependencies":[{"name":"%s","face":true,
                               "types":["StructureDefinition","SearchParameter","ValueSet","CodeSystem"]},
                              {"name":"%s","types":["Organization","CodeSystem"]}],
@@ -222,6 +225,29 @@ class ASecondPlaceComesUpFromItsOriginIT {
 
     @Test
     @Order(4)
+    @DisplayName("what the site does is in its tenant's trail in the cloud, as the site recorded "
+            + "it and named as the site's")
+    @Proving(DboPromises.SYNC_A_PLACE_HANDS_ITS_TRAIL_TO_ITS_TENANT)
+    void whatTheSiteDoesReachesTheTenantsTrail() throws Exception {
+        assertEquals(201, post(site, CLINIC, "Observation", OBSERVATION));
+
+        site.syncRound();
+
+        List<com.fasterxml.jackson.databind.JsonNode> here = writesOfObservations(site, "");
+        List<com.fasterxml.jackson.databind.JsonNode> there =
+                writesOfObservations(cloud, "site=site");
+        assertTrue(!here.isEmpty(),
+                "the site recorded nothing of its own writes, so there was nothing to hand");
+        assertEquals(asRecorded(here), asRecorded(there),
+                "the cloud does not hold the site's writes as the site recorded them");
+        for (com.fasterxml.jackson.databind.JsonNode event : there) {
+            assertEquals("site", event.path("source").path("observer").path("identifier")
+                    .path("value").asText(), "an entry from the site is not named as the site's");
+        }
+    }
+
+    @Test
+    @Order(5)
     @DisplayName("with its origin away the site serves what it holds, and carries on from where "
             + "it acknowledged once it can read again")
     @Proving(DboPromises.SYNC_A_PLACE_SERVES_WHAT_IT_HOLDS_WHILE_ITS_ORIGIN_IS_AWAY)
@@ -245,7 +271,66 @@ class ASecondPlaceComesUpFromItsOriginIT {
     }
 
     @Test
-    @Order(5)
+    @Order(6)
+    @DisplayName("a site that was cut off hands what it recorded meanwhile once it is back, all of "
+            + "it and each entry once, even when it hands its whole trail again")
+    @Proving({DboPromises.SYNC_A_PLACE_HANDS_ITS_TRAIL_TO_ITS_TENANT,
+            DboPromises.PROC_AUDIT_REPLICATES_AS_RECORDED})
+    void aSiteCatchesUpWithoutGapsOrDuplicates() throws Exception {
+        int before = writesOfObservations(cloud, "site=site").size();
+        site.readsItsOriginThrough(CLINIC, null);
+        for (int write = 0; write < 3; write++) {
+            assertEquals(201, post(site, CLINIC, "Observation", OBSERVATION));
+        }
+        site.syncRound();
+        assertEquals(before, writesOfObservations(cloud, "site=site").size(),
+                "the site handed its trail while it was cut off");
+
+        site.readsItsOriginThrough(CLINIC, connected());
+        site.syncRound();
+
+        List<com.fasterxml.jackson.databind.JsonNode> caughtUp =
+                writesOfObservations(cloud, "site=site");
+        assertEquals(before + 3, caughtUp.size(),
+                "what the site recorded while cut off did not all arrive, or arrived twice");
+        assertEquals(asRecorded(writesOfObservations(site, "")), asRecorded(caughtUp),
+                "the cloud's copy of the site's trail is not the site's trail");
+
+        // The tenant's position now names a trail that is not the site's, as
+        // it would after the site was rebuilt: the site hands everything again.
+        lane.origin().trail().handed("not-the-site's-trail", List.of(), "0");
+        site.syncRound();
+
+        assertEquals(before + 3, writesOfObservations(cloud, "site=site").size(),
+                "an entry the site handed again was recorded twice");
+    }
+
+    @Test
+    @Order(7)
+    @DisplayName("a place reads no trail: not through the tenant's FHIR door, and not on what the "
+            + "tenant replicates to it")
+    @Proving(DboPromises.SYNC_A_PLACE_HANDS_ITS_TRAIL_TO_ITS_TENANT)
+    void aPlaceReadsNoTrail() throws Exception {
+        HttpResponse<String> asked = http.send(HttpRequest.newBuilder(
+                        URI.create(base(cloud, CLINIC) + "/fhir/AuditEvent"))
+                        .header("Authorization", "Bearer "
+                                + clientToken(cloud, CLINIC, "site", "site-secret"))
+                        .GET().build(),
+                HttpResponse.BodyHandlers.ofString());
+        assertTrue(asked.statusCode() == 401 || asked.statusCode() == 403,
+                "a place read its tenant's trail: " + asked.statusCode());
+
+        FeedChunk<FeedItem> offered =
+                lane.placeFeed(Place.RECORDS).readFor("site", 500,
+                        FeedSelection.ofTypes(
+                                java.util.Set.of("AuditEntry")));
+        assertTrue(offered.items().stream().noneMatch(item -> "AuditEntry".equals(
+                        item.typeName())),
+                "a place was offered its tenant's trail on what the tenant replicates");
+    }
+
+    @Test
+    @Order(8)
     @DisplayName("a site restarted with its origin away comes up from what it holds")
     @Proving(DboPromises.SYNC_A_PLACE_SERVES_WHAT_IT_HOLDS_WHILE_ITS_ORIGIN_IS_AWAY)
     void aPlaceRestartedOfflineServesWhatItHolds() throws Exception {
@@ -298,9 +383,43 @@ class ASecondPlaceComesUpFromItsOriginIT {
                 new TenantRuntimeManager.AuthorityConfig(kek, null));
     }
 
+    private static final String OBSERVATION = """
+            {"resourceType":"Observation","status":"final",
+             "code":{"coding":[{"system":"http://loinc.org","code":"8867-4"}]}}""";
+
+    /** The trail's entries for writes of observations on that node's clinic. */
+    private static List<com.fasterxml.jackson.databind.JsonNode> writesOfObservations(
+            TenantRuntimeManager node, String query) throws Exception {
+        List<com.fasterxml.jackson.databind.JsonNode> found = new java.util.ArrayList<>();
+        com.fasterxml.jackson.databind.JsonNode bundle =
+                new com.fasterxml.jackson.databind.ObjectMapper().readTree(read(node, CLINIC,
+                        "AuditEvent?_count=1000" + (query.isEmpty() ? "" : "&" + query)));
+        for (com.fasterxml.jackson.databind.JsonNode entry : bundle.path("entry")) {
+            com.fasterxml.jackson.databind.JsonNode event = entry.path("resource");
+            if (event.toString().contains("Observation/") && "C".equals(
+                    event.path("action").asText())) {
+                found.add(event);
+            }
+        }
+        return found;
+    }
+
+    /** Each entry as it was recorded: when, by whom, about what. */
+    private static java.util.Set<String> asRecorded(
+            List<com.fasterxml.jackson.databind.JsonNode> events) {
+        java.util.Set<String> said = new java.util.TreeSet<>();
+        for (com.fasterxml.jackson.databind.JsonNode event : events) {
+            said.add(event.path("recorded").asText() + " "
+                    + event.path("agent").path(0).path("who").path("identifier").path("value")
+                            .asText() + " " + event.path("entity").toString());
+        }
+        return said;
+    }
+
     private static TenantRuntimeManager.OriginFeeds connected() {
         return new TenantRuntimeManager.OriginFeeds(lane.placeFeed(Place.RECORDS),
-                lane.placeFeed(Place.DEFINITIONS), lane.definitionsWithoutTheFace());
+                lane.placeFeed(Place.DEFINITIONS), lane.definitionsWithoutTheFace(),
+                lane.origin().trail());
     }
 
     private static String canonical(String name) {

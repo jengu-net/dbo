@@ -117,7 +117,8 @@ public final class LaneVerbService {
         // named in the body and never the machinery's own name. Set for the
         // verb and cleared after it, because a door's thread is reused.
         if (verb == LaneVerbs.FEED_READ || verb == LaneVerbs.FEED_ACK
-                || verb == LaneVerbs.DECLARATION) {
+                || verb == LaneVerbs.DECLARATION || verb == LaneVerbs.TRAIL_POSITION
+                || verb == LaneVerbs.TRAIL_PUSH) {
             return placed(grant, participant, verb, body);
         }
         cloud.jengu.dbo.core.api.Caller.set(grant.clientId());
@@ -163,6 +164,9 @@ public final class LaneVerbService {
                 return new Answer.Refused("this tenant has no declaration to hand a place");
             }
             return new Answer.Ok(Map.of(LaneVerbs.DECLARATION_TEXT, declaration));
+        }
+        if (verb == LaneVerbs.TRAIL_POSITION || verb == LaneVerbs.TRAIL_PUSH) {
+            return trail(served.get(), grant, verb, body);
         }
         String domain = string(body, LaneVerbs.DOMAIN);
         if (!Place.RECORDS.equals(domain) && !Place.DEFINITIONS.equals(domain)) {
@@ -230,6 +234,64 @@ public final class LaneVerbService {
             return new Answer.Denied(400, null, String.valueOf(malformed.getMessage()));
         }
     }
+
+    /**
+     * A place's trail, taken by the tenant as the place's.
+     *
+     * <p>Whose it is comes from the credential: the participant the identity
+     * check above has tied to it, never a name in the entries. A place can file
+     * entries as itself and as nobody else.
+     */
+    private Answer trail(Place place, Access.Grant grant, LaneVerbs verb, Object body) {
+        if (place.trailOf() == null) {
+            return new Answer.Refused("this tenant takes no trail from its places");
+        }
+        Trail trail = place.trailOf().apply(grant.clientId());
+        try {
+            if (verb == LaneVerbs.TRAIL_POSITION) {
+                return new Answer.Ok(position(trail.position()));
+            }
+            String feed = string(body, LaneVerbs.FEED);
+            String through = string(body, LaneVerbs.THROUGH);
+            Object named = field(body, LaneVerbs.ENTRIES);
+            List<Trail.Entry> entries = named == null ? List.of()
+                    : RecordWire.decodeList(named, Trail.Entry.class);
+            if (feed == null || through == null) {
+                return new Answer.Denied(400, null, "a trail is handed with the trail it is "
+                        + "from and the position it runs through");
+            }
+            // Bounded here, as a read is: one push is one message in memory on
+            // both sides, and the far side's batch is a wish.
+            long bytes = 0;
+            for (Trail.Entry entry : entries) {
+                bytes += entry.payload() == null ? 0 : entry.payload().length;
+            }
+            if (entries.size() > MOST_IN_ONE_CHUNK || bytes > MOST_TRAIL_BYTES) {
+                return new Answer.Denied(400, null, "a trail is handed at most "
+                        + MOST_IN_ONE_CHUNK + " entries and " + MOST_TRAIL_BYTES
+                        + " bytes at a time, and this was " + entries.size() + " and " + bytes);
+            }
+            return new Answer.Ok(position(trail.handed(feed, entries, through)));
+        } catch (IllegalStateException refused) {
+            return new Answer.Refused(String.valueOf(refused.getMessage()));
+        } catch (IllegalArgumentException malformed) {
+            return new Answer.Denied(400, null, String.valueOf(malformed.getMessage()));
+        }
+    }
+
+    private static Map<String, Object> position(Trail.Position held) {
+        Map<String, Object> answer = new java.util.LinkedHashMap<>();
+        if (held != null) {
+            answer.put(LaneVerbs.FEED, held.feed());
+            if (held.through() != null) {
+                answer.put(LaneVerbs.THROUGH, held.through());
+            }
+        }
+        return answer;
+    }
+
+    /** The most one push of a trail carries, in the entries' own bytes. */
+    private static final long MOST_TRAIL_BYTES = 1024L * 1024;
 
     /**
      * The most one read carries. A chunk is one answer in memory on both
@@ -361,8 +423,9 @@ public final class LaneVerbService {
             }
             // Served beside the lane, never through it: a place is not a
             // participant act, and serve() takes them before a lane is built.
-            case FEED_READ, FEED_ACK, DECLARATION -> throw new IllegalStateException(
-                    "'" + verb.path() + "' is a place's verb and is not dispatched to a lane");
+            case FEED_READ, FEED_ACK, DECLARATION, TRAIL_POSITION, TRAIL_PUSH ->
+                    throw new IllegalStateException("'" + verb.path()
+                            + "' is a place's verb and is not dispatched to a lane");
         };
     }
 
