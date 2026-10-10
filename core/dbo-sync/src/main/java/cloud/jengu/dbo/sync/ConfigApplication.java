@@ -359,7 +359,7 @@ public final class ConfigApplication {
         // Everything a declaration writes is written for this pass's run, so
         // the trail of a configured record names the application it came from.
         cloud.jengu.dbo.core.api.Caller.InRun recorded =
-                cloud.jengu.dbo.core.api.Caller.underRun(sweep.key());
+                cloud.jengu.dbo.core.api.Caller.writingFor(sweep.key());
         try {
             while (!pending.isEmpty()) {
                 java.util.List<Declared> again = new java.util.ArrayList<>();

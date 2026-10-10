@@ -390,9 +390,11 @@ public final class PolicyObjectStore implements ObjectStore,
         // "who has read this" is answerable from the document by somebody who
         // need not know work exists, and "what did this task open" from the
         // run. Carrying the work is not this: a hop leaves a travel entry on
-        // the task, never a reading on the document.
+        // the task, never a reading on the document. Nor is the store's own
+        // machinery under a run of its own: it names the run on what it
+        // writes, and reads nothing on anybody's behalf.
         if (policies.auditsReads() || cloud.jengu.dbo.core.api.Disclosure.purpose() != null
-                || Caller.run() != null) {
+                || Caller.readingForWork()) {
             record(interaction, typeName, targetId, null);
         }
     }

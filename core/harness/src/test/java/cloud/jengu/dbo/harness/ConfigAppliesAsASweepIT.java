@@ -333,5 +333,15 @@ class ConfigAppliesAsASweepIT {
             assertTrue(said.contains("\"run\":\"" + run + "\""),
                     "a configured write does not name the application it came from: " + said);
         }
+        // And what the application read to decide what to write is its own
+        // bookkeeping, handed to nobody: no reading of it is recorded.
+        for (cloud.jengu.dbo.core.api.StoredObject entry : engine.select(
+                Criteria.of("AuditEntry"))) {
+            String said = new String(entry.payload(), StandardCharsets.UTF_8);
+            assertFalse(said.contains("\"run\":\"" + run + "\"")
+                            && (said.contains("\"interaction\":\"read\"")
+                                    || said.contains("\"interaction\":\"search\"")),
+                    "the machinery's own reads were recorded as disclosures: " + said);
+        }
     }
 }
