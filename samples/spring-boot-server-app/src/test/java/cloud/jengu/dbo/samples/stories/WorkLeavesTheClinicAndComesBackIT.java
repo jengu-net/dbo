@@ -1484,6 +1484,89 @@ class WorkLeavesTheClinicAndComesBackIT {
     }
 
     @Test
+    @Order(48)
+    @DisplayName("a run the ward starts for one porter is offered to that porter alone, says so "
+            + "as its owner, and the other porter's claim on it is refused")
+    @Proving(DboPromises.PROC_A_RUN_NAMES_WHO_MAY_TAKE_IT)
+    void aRunForOnePorterIsThatPortersAlone() {
+        assertTrue(dbo.until(WARD, true, Duration.ofMinutes(10)),
+                "the ward never came up: " + dbo.serving());
+        TenantAuthority ward = tenants.authority(WARD).orElseThrow();
+        String first = NAMES.value("porter-a");
+        String second = NAMES.value("porter-b");
+        HttpLane firstLane = porterLane(ward, first);
+        HttpLane secondLane = porterLane(ward, second);
+        String patient = dbo.write(WARD, "Patient",
+                "{\"resourceType\":\"Patient\",\"name\":[{\"family\":\"Lovegood\"}]}").idOrFail();
+        String asker = dbo.workToken(WARD);
+
+        HttpResponse<String> forFirst = startFetch(patient,
+                ",\"for\":{\"client\":\"" + first + "\"}", asker);
+        String addressed = dbo.says(forFirst).one("key").orElseThrow();
+        // Started after it and naming nobody: once the second porter has
+        // been offered this one, its cursor is past the run for the first.
+        String behind = dbo.says(startFetch(patient, "", asker)).one("key").orElseThrow();
+
+        List<String> secondSaw = offeredUntil(secondLane, behind);
+        Proves.that(DboPromises.PROC_A_RUN_NAMES_WHO_MAY_TAKE_IT,
+                secondSaw.contains(behind) && !secondSaw.contains(addressed),
+                "the other porter was offered a run started for the first: " + secondSaw);
+        IllegalStateException refused = assertThrows(IllegalStateException.class,
+                () -> secondLane.claim(Run.named(addressed), Duration.ofMinutes(5)),
+                "the other porter claimed a run started for the first");
+        Proves.that(DboPromises.PROC_A_RUN_NAMES_WHO_MAY_TAKE_IT,
+                refused.getMessage().contains(first),
+                "the refusal does not say who the run is for: " + refused.getMessage());
+
+        String id = dbo.says(forFirst).one("run").orElseThrow();
+        HttpResponse<String> task = dbo.get(dbo.at(WARD) + "/run/" + id, asker);
+        assertEquals(200, task.statusCode(), task.body());
+        Proves.that(DboPromises.PROC_A_RUN_NAMES_WHO_MAY_TAKE_IT,
+                List.of(first).equals(dbo.says(task).at("owner.identifier.value")),
+                "the run's Task does not name the porter it waits for: " + task.body());
+
+        Proves.that(DboPromises.PROC_A_RUN_NAMES_WHO_MAY_TAKE_IT,
+                offeredUntil(firstLane, addressed).contains(addressed),
+                "the porter the run was started for was not offered it");
+        Proves.that(DboPromises.PROC_A_RUN_NAMES_WHO_MAY_TAKE_IT,
+                firstLane.claim(Run.named(addressed), Duration.ofMinutes(5)).isPresent(),
+                "the porter the run was started for could not claim it");
+    }
+
+    /** A porter of the ward on a lane of its own, working as itself. */
+    private HttpLane porterLane(TenantAuthority ward, String porter) {
+        ward.ensureClient(porter, porter + "-secret", List.of(cloud.jengu.dbo.auth.Scopes.WORK));
+        return HttpLane.to(URI.create(dbo.at(WARD) + "/work"), () -> {
+            if (ward.token(porter, porter + "-secret", null)
+                    instanceof TenantAuthority.TokenResult.Issued minted) {
+                return minted.accessToken();
+            }
+            throw new IllegalStateException("the ward would not issue " + porter + " a token");
+        }, WARD, porter, executor(porter));
+    }
+
+    private HttpResponse<String> startFetch(String patient, String more, String token) {
+        HttpResponse<String> started = dbo.send(HttpRequest.newBuilder(
+                        URI.create(dbo.at(WARD) + "/step/" + FETCH))
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(
+                        "{\"inputs\":{\"patient\":\"Patient/" + patient + "\"}" + more + "}")),
+                token);
+        assertEquals(201, started.statusCode(), started.body());
+        return started;
+    }
+
+    /** Every run a lane is offered for the ward's step, until it is offered the one named. */
+    private static List<String> offeredUntil(HttpLane lane, String key) {
+        List<String> offered = new ArrayList<>();
+        long giveUp = System.nanoTime() + Duration.ofMinutes(1).toNanos();
+        while (!offered.contains(key) && System.nanoTime() < giveUp) {
+            lane.poll(Set.of("fetch"), 50).forEach(run -> offered.add(run.key()));
+        }
+        return offered;
+    }
+
+    @Test
     @Order(33)
     @DisplayName("a second porter at the ward, holding a credential for work and the id of the "
             + "run the first porter holds, reads nothing through it and cannot end it — it is "

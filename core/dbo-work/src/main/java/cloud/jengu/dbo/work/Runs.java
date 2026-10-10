@@ -177,6 +177,18 @@ public final class Runs {
     }
 
     /**
+     * A run addressed to another participant, refused naming who it is for.
+     *
+     * <p>Settled as {@link ClosedToAutomation} is: nothing this participant
+     * does makes the run its own, and it waits for the one it names.
+     */
+    public static final class NotForThisParticipant extends IllegalStateException {
+        NotForThisParticipant(Run run) {
+            super("run '" + run.key() + "' is for " + run.addressee() + " alone");
+        }
+    }
+
+    /**
      * Whether this step admits an executor at that scope.
      *
      * <p>The baseline always may — it is not an override, it is the rule — and
@@ -338,6 +350,19 @@ public final class Runs {
     public Run filling(cloud.jengu.dbo.core.process.StepDeclaration step, RunKind kind,
             String scope, Map<String, RunSlot> inputs, String requester,
             String forPeopleBecause, java.time.Duration collect) {
+        return filling(step, kind, scope, inputs, requester, forPeopleBecause, collect, null);
+    }
+
+    /**
+     * The same, for work only one participant can do: offered to the one
+     * named and taken by no other, whatever else holds the step.
+     *
+     * @param addressee who alone may take it, as a {@link ContactListener}
+     *                  named the worker; null for whoever holds the step
+     */
+    public Run filling(cloud.jengu.dbo.core.process.StepDeclaration step, RunKind kind,
+            String scope, Map<String, RunSlot> inputs, String requester,
+            String forPeopleBecause, java.time.Duration collect, Run.Addressee addressee) {
         for (String slot : inputs.keySet()) {
             if (!step.slots().containsKey(slot)) {
                 throw new IllegalArgumentException(step.id() + " declares no slot '" + slot
@@ -359,7 +384,8 @@ public final class Runs {
         return byKey(key).orElseGet(() -> write(new State(key, step.id().processId(),
                 step.id().step(), kind, (forPeopleBecause == null ? Standing.OPEN
                         : Standing.OPEN.openTo(false).because(forPeopleBecause))
-                        .retrying(step.retry()), null, null, null, Map.of(), null,
+                        .retrying(step.retry()).addressedTo(addressee), null, null, null,
+                Map.of(), null,
                 List.copyOf(step.writes()),
                 requester == null ? null : new Run.Assignment(null, null, null, null, requester),
                 Run.Produced.NOTHING, step.version(),
@@ -565,6 +591,12 @@ public final class Runs {
             // run, and it was checked here as well as at the poll because a
             // run's eligibility can change between the two.
             throw new ClosedToAutomation(current);
+        }
+        if (!current.forParticipant(claimant, by.name())) {
+            // Refused rather than empty, and here as well as at the poll: a
+            // participant on the fleet's path is offered every run of its
+            // step, and this is the one check every claim passes.
+            throw new NotForThisParticipant(current);
         }
         if (current.notBefore() != null && current.notBefore().isAfter(now)) {
             return Optional.empty();
@@ -1755,42 +1787,54 @@ public final class Runs {
      * @param statusReason why it stands so, in words, or null
      * @param attempts     how many times automation has failed it in a way the
      *                     step declared would pass
+     * @param addressee    who alone may take it, or null for whoever holds its step
      */
     record Standing(Status status, boolean automation, java.time.Instant notBefore,
             String statusReason, int attempts,
-            cloud.jengu.dbo.core.process.RetryPolicy retry) {
+            cloud.jengu.dbo.core.process.RetryPolicy retry, Run.Addressee addressee) {
 
         /** Open, unclaimed, and anybody's to take. */
-        static final Standing OPEN = new Standing(Status.READY, true, null, null, 0, null);
+        static final Standing OPEN = new Standing(Status.READY, true, null, null, 0, null, null);
 
         static Standing of(Run run) {
             return new Standing(run.status() == null ? Status.READY : run.status(),
                     run.automation(), run.notBefore(), run.statusReason(), run.attempts(),
-                    run.retry());
+                    run.retry(), run.addressee());
         }
 
         Standing as(Status status) {
-            return new Standing(status, automation, notBefore, statusReason, attempts, retry);
+            return new Standing(status, automation, notBefore, statusReason, attempts, retry,
+                    addressee);
         }
 
         Standing because(String reason) {
-            return new Standing(status, automation, notBefore, reason, attempts, retry);
+            return new Standing(status, automation, notBefore, reason, attempts, retry,
+                    addressee);
         }
 
         Standing openTo(boolean automation) {
-            return new Standing(status, automation, notBefore, statusReason, attempts, retry);
+            return new Standing(status, automation, notBefore, statusReason, attempts, retry,
+                    addressee);
         }
 
         Standing notBefore(java.time.Instant when) {
-            return new Standing(status, automation, when, statusReason, attempts, retry);
+            return new Standing(status, automation, when, statusReason, attempts, retry,
+                    addressee);
         }
 
         Standing attempted(int attempts) {
-            return new Standing(status, automation, notBefore, statusReason, attempts, retry);
+            return new Standing(status, automation, notBefore, statusReason, attempts, retry,
+                    addressee);
+        }
+
+        Standing addressedTo(Run.Addressee addressee) {
+            return new Standing(status, automation, notBefore, statusReason, attempts, retry,
+                    addressee);
         }
 
         Standing retrying(cloud.jengu.dbo.core.process.RetryPolicy retry) {
-            return new Standing(status, automation, notBefore, statusReason, attempts, retry);
+            return new Standing(status, automation, notBefore, statusReason, attempts, retry,
+                    addressee);
         }
 
         /**
@@ -1901,6 +1945,19 @@ public final class Runs {
                     .append(",\"status\":").append(Json.quoted(standing.status().wire()))
                     .append(",\"performerType\":").append(standing.automation()
                             ? "[\"automation\",\"person\"]" : "[\"person\"]");
+            if (standing.addressee() != null) {
+                json.append(",\"for\":{");
+                String comma = "";
+                if (standing.addressee().client() != null) {
+                    json.append("\"client\":").append(Json.quoted(standing.addressee().client()));
+                    comma = ",";
+                }
+                if (standing.addressee().executor() != null) {
+                    json.append(comma).append("\"executor\":")
+                            .append(Json.quoted(standing.addressee().executor()));
+                }
+                json.append('}');
+            }
             if (standing.notBefore() != null) {
                 json.append(",\"notBefore\":")
                         .append(Json.quoted(standing.notBefore().toString()));

@@ -303,6 +303,12 @@ public enum DboPromises implements Promise {
             + "step is declared, naming what stopped it. A step that says nothing is open to "
             + "automation."),
 
+    PROC_A_RUN_NAMES_WHO_MAY_TAKE_IT("A host starting a run may name the one participant "
+            + "that may take it, by its client, its executor's name or both, as contact names "
+            + "a worker. Only that participant is offered the run and may claim it, whatever "
+            + "else holds the step; while it is away the run waits for it, through releases "
+            + "and returns, and its Task names it as the owner until it is taken. A run naming "
+            + "nobody is offered to every participant holding its step, as before."),
     PROC_CLAIM_IS_THE_INTERSECTION("What a participant may claim is the intersection of "
             + "what its credential covers, the scope the step admits, and whether the task is "
             + "open to automation: the lane narrows the work it offers and refuses a claim "

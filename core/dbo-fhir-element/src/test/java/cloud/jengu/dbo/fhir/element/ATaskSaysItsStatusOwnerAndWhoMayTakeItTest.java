@@ -56,6 +56,30 @@ class ATaskSaysItsStatusOwnerAndWhoMayTakeItTest {
     }
 
     @Test
+    @DisplayName("a run for one participant is owned by it until it is taken, and then by "
+            + "the executor that took it")
+    @Proving(DboPromises.PROC_A_RUN_NAMES_WHO_MAY_TAKE_IT)
+    void aRunForOneParticipantIsOwnedByIt() {
+        String waiting = """
+                {"key":"fleet.appliance.report/one","process":"fleet.appliance","step":"report",
+                 "kind":"pipeline","status":"ready","performerType":["automation","person"],
+                 "for":{"client":"ward-1","executor":"ward-1"}}""";
+        for (String code : List.of("r4", "r5")) {
+            assertEquals(Map.of("type", "Device",
+                            "identifier", Map.of("system", "urn:dbo:auth:client-id",
+                                    "value", "ward-1"),
+                            "display", "ward-1 as ward-1"),
+                    rendered(code, waiting).get("owner"), code);
+        }
+
+        String taken = waiting.replace("\"status\":\"ready\"", "\"status\":\"in-progress\","
+                + "\"executor\":{\"name\":\"ward-1\",\"version\":\"7\",\"provider\":\"hogwarts\"}");
+        Map<?, ?> owner = (Map<?, ?>) rendered("r5", taken).get("owner");
+        assertEquals(Map.of("system", "urn:dbo:executor", "value", "ward-1"),
+                owner.get("identifier"), "a taken run is not owned by the executor that took it");
+    }
+
+    @Test
     @DisplayName("a run a person holds is in progress and owned by the role they took it as")
     @Proving(DboPromises.PROC_A_PERSON_CLAIMS_AS_A_PRACTITIONER_ROLE)
     void aPersonsRunIsOwnedByTheirRole() {

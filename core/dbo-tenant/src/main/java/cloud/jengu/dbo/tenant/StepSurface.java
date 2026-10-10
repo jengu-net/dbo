@@ -346,9 +346,12 @@ final class StepSurface implements HttpHandler {
      * act in work for this step, and a caller in this process is the tenant's
      * own.
      *
-     * @param body      the request, parsed: {@code inputs} and an optional
+     * @param body      the request, parsed: {@code inputs}, an optional
      *                  {@code scope}, which makes the run's key and so finds
-     *                  a run already started under it rather than another
+     *                  a run already started under it rather than another,
+     *                  and an optional {@code for}, naming the one participant
+     *                  that may take it by {@code client}, {@code executor} or
+     *                  both
      * @param requester recorded as the client the run answers, or null
      */
     Started starting(String stepCode, Object body, String requester) {
@@ -416,6 +419,18 @@ final class StepSurface implements HttpHandler {
                 return refused(400, "invalid_request", wrong.getMessage());
             }
         }
+        cloud.jengu.dbo.work.Run.Addressee addressee = null;
+        if (Json.objOpt(body, "for") instanceof Map<?, ?> named) {
+            Object client = named.get("client");
+            Object executor = named.get("executor");
+            if (client == null && executor == null) {
+                return refused(400, "invalid_request", "'for' names a client, an executor or "
+                        + "both; a run for nobody in particular leaves 'for' out");
+            }
+            addressee = new cloud.jengu.dbo.work.Run.Addressee(
+                    client == null ? null : String.valueOf(client),
+                    executor == null ? null : String.valueOf(executor));
+        }
         String scope = Optional.ofNullable(Json.strOpt(body, "scope"))
                 .orElseGet(cloud.jengu.dbo.core.UuidV7::newId);
         StepDeclaration declaration = declaration(stepCode, slots);
@@ -429,7 +444,8 @@ final class StepSurface implements HttpHandler {
                         : forPeopleBecause(step.automate(), inputs),
                 // The asker's window, recorded as the run is authored so the
                 // close that opens it needs nothing but the run.
-                step == null || step.answer() == null ? null : step.answer().collect());
+                step == null || step.answer() == null ? null : step.answer().collect(),
+                addressee);
         // The key as well as the id, because they answer different questions
         // and only one of them is this surface's. The id addresses the
         // context; the key is the name the rest of the work model is asked by

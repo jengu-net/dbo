@@ -156,6 +156,29 @@ public interface RunInitiator {
      */
     Started starting(String tenant, String step, Map<String, Slot> inputs, String key);
 
+    /**
+     * The same, for work only one participant can do: offered to the one
+     * named and taken by no other, and waiting for it while it is away.
+     *
+     * <p>Name it as a {@link ContactListener} told you of it — its
+     * {@link ContactListener.Worker#client() client} and
+     * {@link ContactListener.Worker#name() name}.
+     *
+     * <p>Refused, not ignored, where an initiator cannot carry it: started
+     * without it, the run would go to whoever polled first.
+     *
+     * @param addressee who alone may take the run, or null for whoever holds
+     *                  its step
+     */
+    default Started starting(String tenant, String step, Map<String, Slot> inputs, String key,
+            Run.Addressee addressee) {
+        if (addressee == null) {
+            return starting(tenant, step, inputs, key);
+        }
+        throw new UnsupportedOperationException(getClass().getName()
+                + " cannot start a run for one participant");
+    }
+
     /** Asks a run how it stands. */
     Answer answer(String tenant, String run);
 
@@ -198,5 +221,20 @@ public interface RunInitiator {
     /** A string as JSON. */
     static String quoted(String value) {
         return "\"" + value.replace("\\", "\\\\").replace("\"", "\\\"") + "\"";
+    }
+
+    /**
+     * The step door's {@code for}, as a member to append to a request body
+     * after another: empty for a run naming nobody.
+     */
+    static String addressed(Run.Addressee addressee) {
+        if (addressee == null) {
+            return "";
+        }
+        return ",\"for\":{" + (addressee.client() == null ? ""
+                : "\"client\":" + quoted(addressee.client())
+                        + (addressee.executor() == null ? "" : ","))
+                + (addressee.executor() == null ? ""
+                        : "\"executor\":" + quoted(addressee.executor())) + "}";
     }
 }

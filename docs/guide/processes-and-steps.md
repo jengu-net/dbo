@@ -118,6 +118,25 @@ claims; a person takes a task with their own token from the tenant's identity
 provider, as the role they hold there
 ([what automation may not take, a nurse does](work-leaves-and-comes-back.md#what-automation-may-not-take-a-nurse-does)).
 
+### A run for one participant
+
+Some work only one participant can do: report on the appliance it is, read
+the instrument plugged into it. The application starting the run names that
+participant, as a `ContactListener` named the worker when it was heard: its
+`client`, its executor's name, or both.
+
+```json
+{ "inputs": { "patient": "Patient/7" }, "for": { "client": "hogwarts.ward-1" } }
+```
+
+`RunInitiator.starting(tenant, step, inputs, key, addressee)` says the same
+from inside an application. Only that participant is offered the run and may
+claim it; any other holding the step is refused by name. While it is away the
+run waits for it, through releases and returns, and its `Task` names it as the
+`owner`, a `Device` identified under `urn:dbo:auth:client-id`, until it is
+taken. A run naming nobody is open to every participant holding its step, and
+the first claim wins.
+
 ## A result
 
 A step answers with an `Outcome`:

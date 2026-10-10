@@ -3063,6 +3063,7 @@ cloud.jengu.dbo.promises.DboPromises                                   PROC_A_RU
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_RUN_IS_COLLECTED_BY_ITS_ASKER:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_RUN_KEEPS_STATUS_CLAIMANT_AND_ELIGIBILITY_APART:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_RUN_NAMES_WHAT_IT_PRODUCED:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   PROC_A_RUN_NAMES_WHO_MAY_TAKE_IT:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_SLOT_IS_REFERRED_OR_GIVEN_AND_MAY_REPEAT:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_STEP_CODE_BELONGS_TO_ONE_LEVEL:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_STEP_GRANTS_THE_RIGHT_TO_OVERRIDE:cloud.jengu.dbo.promises.DboPromises
@@ -5004,6 +5005,7 @@ cloud.jengu.dbo.work.Participation                                     class
 cloud.jengu.dbo.work.Participation                                     cursor():String
 cloud.jengu.dbo.work.Participation                                     lag():long
 cloud.jengu.dbo.work.Participation                                     new(cloud.jengu.dbo.work.Runs,cloud.jengu.dbo.core.api.feed.ChangeFeed,String,Set,cloud.jengu.dbo.work.Executor)
+cloud.jengu.dbo.work.Participation                                     new(cloud.jengu.dbo.work.Runs,cloud.jengu.dbo.core.api.feed.ChangeFeed,String,Set,cloud.jengu.dbo.work.Executor,String)
 cloud.jengu.dbo.work.Participation                                     poll(int):List
 cloud.jengu.dbo.work.Participation                                     releaseLapsed(cloud.jengu.dbo.work.Runs):int
 cloud.jengu.dbo.work.Resolution                                        automated():boolean
@@ -5018,6 +5020,7 @@ cloud.jengu.dbo.work.Resolution                                        refused()
 cloud.jengu.dbo.work.Resolution                                        refusedOverride():Optional
 cloud.jengu.dbo.work.Resolution                                        selected():Optional
 cloud.jengu.dbo.work.Resolution                                        toString():String
+cloud.jengu.dbo.work.Run                                               addressee():cloud.jengu.dbo.work.Run.Addressee
 cloud.jengu.dbo.work.Run                                               assignment():cloud.jengu.dbo.work.Run.Assignment
 cloud.jengu.dbo.work.Run                                               attempts():int
 cloud.jengu.dbo.work.Run                                               automation():boolean
@@ -5030,6 +5033,7 @@ cloud.jengu.dbo.work.Run                                               domains()
 cloud.jengu.dbo.work.Run                                               equals(Object):boolean
 cloud.jengu.dbo.work.Run                                               fellThrough():boolean
 cloud.jengu.dbo.work.Run                                               forAutomation(Instant):boolean
+cloud.jengu.dbo.work.Run                                               forParticipant(String,String):boolean
 cloud.jengu.dbo.work.Run                                               hashCode():int
 cloud.jengu.dbo.work.Run                                               heldBy(String,Instant):boolean
 cloud.jengu.dbo.work.Run                                               heldBy(cloud.jengu.dbo.work.Executor):boolean
@@ -5046,6 +5050,7 @@ cloud.jengu.dbo.work.Run                                               named(Str
 cloud.jengu.dbo.work.Run                                               needsAPerson():boolean
 cloud.jengu.dbo.work.Run                                               new(String,long,String,String,String,cloud.jengu.dbo.work.RunKind,String,String,String,Map,cloud.jengu.dbo.work.Run.Item,List,cloud.jengu.dbo.work.Run.Assignment,cloud.jengu.dbo.work.Run.Produced,String,Map,cloud.jengu.dbo.work.Run.Milestone,String,String,cloud.jengu.dbo.work.Status,boolean,Instant,String,int,cloud.jengu.dbo.core.process.RetryPolicy)
 cloud.jengu.dbo.work.Run                                               new(String,long,String,String,String,cloud.jengu.dbo.work.RunKind,String,String,String,Map,cloud.jengu.dbo.work.Run.Item,List,cloud.jengu.dbo.work.Run.Assignment,cloud.jengu.dbo.work.Run.Produced,String,Map,cloud.jengu.dbo.work.Run.Milestone,String,String,cloud.jengu.dbo.work.Status,boolean,Instant,String,int,cloud.jengu.dbo.core.process.RetryPolicy,cloud.jengu.dbo.work.Run.Window)
+cloud.jengu.dbo.work.Run                                               new(String,long,String,String,String,cloud.jengu.dbo.work.RunKind,String,String,String,Map,cloud.jengu.dbo.work.Run.Item,List,cloud.jengu.dbo.work.Run.Assignment,cloud.jengu.dbo.work.Run.Produced,String,Map,cloud.jengu.dbo.work.Run.Milestone,String,String,cloud.jengu.dbo.work.Status,boolean,Instant,String,int,cloud.jengu.dbo.core.process.RetryPolicy,cloud.jengu.dbo.work.Run.Window,cloud.jengu.dbo.work.Run.Addressee)
 cloud.jengu.dbo.work.Run                                               notBefore():Instant
 cloud.jengu.dbo.work.Run                                               of(cloud.jengu.dbo.core.api.StoredObject):cloud.jengu.dbo.work.Run
 cloud.jengu.dbo.work.Run                                               open():boolean
@@ -5066,6 +5071,14 @@ cloud.jengu.dbo.work.Run                                               trace():S
 cloud.jengu.dbo.work.Run                                               traceContext():Optional
 cloud.jengu.dbo.work.Run                                               versionId():long
 cloud.jengu.dbo.work.Run                                               window():cloud.jengu.dbo.work.Run.Window
+cloud.jengu.dbo.work.Run.Addressee                                     client():String
+cloud.jengu.dbo.work.Run.Addressee                                     equals(Object):boolean
+cloud.jengu.dbo.work.Run.Addressee                                     executor():String
+cloud.jengu.dbo.work.Run.Addressee                                     hashCode():int
+cloud.jengu.dbo.work.Run.Addressee                                     names(String,String):boolean
+cloud.jengu.dbo.work.Run.Addressee                                     new(String,String)
+cloud.jengu.dbo.work.Run.Addressee                                     record
+cloud.jengu.dbo.work.Run.Addressee                                     toString():String
 cloud.jengu.dbo.work.Run.Assignment                                    at():cloud.jengu.dbo.work.Scope
 cloud.jengu.dbo.work.Run.Assignment                                    claimant():String
 cloud.jengu.dbo.work.Run.Assignment                                    equals(Object):boolean
@@ -5142,6 +5155,7 @@ cloud.jengu.dbo.work.RunChain.Verdict                                  new(Strin
 cloud.jengu.dbo.work.RunChain.Verdict                                  record
 cloud.jengu.dbo.work.RunChain.Verdict                                  toString():String
 cloud.jengu.dbo.work.RunChain.Verdict                                  unchained():boolean
+cloud.jengu.dbo.work.RunInitiator                                      addressed(cloud.jengu.dbo.work.Run.Addressee):String
 cloud.jengu.dbo.work.RunInitiator                                      answer(String,String):cloud.jengu.dbo.work.RunInitiator.Answer
 cloud.jengu.dbo.work.RunInitiator                                      awaiting(String,String,Duration):cloud.jengu.dbo.work.RunInitiator.Answer
 cloud.jengu.dbo.work.RunInitiator                                      field(String,String):String
@@ -5150,6 +5164,7 @@ cloud.jengu.dbo.work.RunInitiator                                      quoted(St
 cloud.jengu.dbo.work.RunInitiator                                      start(String,String,Map):cloud.jengu.dbo.work.RunInitiator.Started
 cloud.jengu.dbo.work.RunInitiator                                      starting(String,String,Map):cloud.jengu.dbo.work.RunInitiator.Started
 cloud.jengu.dbo.work.RunInitiator                                      starting(String,String,Map,String):cloud.jengu.dbo.work.RunInitiator.Started
+cloud.jengu.dbo.work.RunInitiator                                      starting(String,String,Map,String,cloud.jengu.dbo.work.Run.Addressee):cloud.jengu.dbo.work.RunInitiator.Started
 cloud.jengu.dbo.work.RunInitiator.Answer                               answered():boolean
 cloud.jengu.dbo.work.RunInitiator.Answer                               body():String
 cloud.jengu.dbo.work.RunInitiator.Answer                               equals(Object):boolean
@@ -5276,6 +5291,7 @@ cloud.jengu.dbo.work.Runs                                              filling(c
 cloud.jengu.dbo.work.Runs                                              filling(cloud.jengu.dbo.core.process.StepDeclaration,cloud.jengu.dbo.work.RunKind,String,Map,String):cloud.jengu.dbo.work.Run
 cloud.jengu.dbo.work.Runs                                              filling(cloud.jengu.dbo.core.process.StepDeclaration,cloud.jengu.dbo.work.RunKind,String,Map,String,String):cloud.jengu.dbo.work.Run
 cloud.jengu.dbo.work.Runs                                              filling(cloud.jengu.dbo.core.process.StepDeclaration,cloud.jengu.dbo.work.RunKind,String,Map,String,String,Duration):cloud.jengu.dbo.work.Run
+cloud.jengu.dbo.work.Runs                                              filling(cloud.jengu.dbo.core.process.StepDeclaration,cloud.jengu.dbo.work.RunKind,String,Map,String,String,Duration,cloud.jengu.dbo.work.Run.Addressee):cloud.jengu.dbo.work.Run
 cloud.jengu.dbo.work.Runs                                              forPeople(cloud.jengu.dbo.work.Run,String):cloud.jengu.dbo.work.Run
 cloud.jengu.dbo.work.Runs                                              forPeople(cloud.jengu.dbo.work.Run,cloud.jengu.dbo.work.Executor,String):cloud.jengu.dbo.work.Run
 cloud.jengu.dbo.work.Runs                                              handBack(cloud.jengu.dbo.work.Run,Instant):Optional
@@ -5319,6 +5335,7 @@ cloud.jengu.dbo.work.Runs.Contended                                    new(Strin
 cloud.jengu.dbo.work.Runs.NotAMilestone                                class
 cloud.jengu.dbo.work.Runs.NotAdmitted                                  class
 cloud.jengu.dbo.work.Runs.NotAnAction                                  class
+cloud.jengu.dbo.work.Runs.NotForThisParticipant                        class
 cloud.jengu.dbo.work.Runs.NotHeld                                      class
 cloud.jengu.dbo.work.Runs.NotHeld                                      new(String)
 cloud.jengu.dbo.work.Runs.NotHeld                                      new(String,cloud.jengu.dbo.work.Executor,String)
