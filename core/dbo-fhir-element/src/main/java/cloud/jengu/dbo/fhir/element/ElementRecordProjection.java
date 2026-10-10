@@ -645,7 +645,8 @@ final class ElementRecordProjection implements RecordProjection {
     /**
      * Who holds the task, or held it last: a person as the
      * {@code PractitionerRole} they took it as, an executor as a
-     * {@code Device}. A task nobody has taken names no owner.
+     * {@code Device}. A task nobody has taken names no owner, unless it is
+     * for one participant alone, which owns it until somebody takes it.
      *
      * <p>The executor is named by what resolution chose: the name identifies
      * it, and the display carries the version and the provider, because a
@@ -659,6 +660,21 @@ final class ElementRecordProjection implements RecordProjection {
             return;
         }
         if (!(run.get("executor") instanceof Map<?, ?>)) {
+            if (run.get("for") instanceof Map<?, ?> addressee) {
+                // Nobody holds it, and only one participant may: the device
+                // it waits for is the one responsible for it meanwhile.
+                Object client = addressee.get("client");
+                json.append(",\"owner\":{\"type\":\"Device\",\"identifier\":{\"system\":\"")
+                        .append(client != null ? AUTH_CLIENT_ID : EXECUTOR)
+                        .append("\",\"value\":").append(Json.quoted(String.valueOf(
+                                client != null ? client : addressee.get("executor"))))
+                        .append('}');
+                if (client != null && addressee.get("executor") != null) {
+                    json.append(",\"display\":").append(Json.quoted(
+                            client + " as " + addressee.get("executor")));
+                }
+                json.append('}');
+            }
             return;
         }
         json.append(",\"owner\":{\"type\":\"Device\"");

@@ -40,6 +40,7 @@ public final class Participation {
     private final String participant;
     private final Set<String> steps;
     private final Executor identity;
+    private final String client;
 
     /**
      * @param participant the feed consumer name — this participant's own
@@ -52,11 +53,23 @@ public final class Participation {
      */
     public Participation(Runs runs, ChangeFeed feed, String participant, Set<String> steps,
             Executor identity) {
+        this(runs, feed, participant, steps, identity, null);
+    }
+
+    /**
+     * @param client the credential this participant asks under, as the
+     *               authority read it, or null for one in the node's own
+     *               process. With the executor's name it is who a run
+     *               addressed to one participant is for.
+     */
+    public Participation(Runs runs, ChangeFeed feed, String participant, Set<String> steps,
+            Executor identity, String client) {
         this.runs = runs;
         this.feed = feed;
         this.participant = participant;
         this.steps = Set.copyOf(steps);
         this.identity = identity;
+        this.client = client;
     }
 
     /**
@@ -86,6 +99,11 @@ public final class Participation {
                     // to people alone was offered here too, and the claim
                     // that followed made it automation's.
                     .filter(run -> run.forAutomation(now))
+                    // And only what is for this participant. Passed over for
+                    // good on this cursor, which is right: it never becomes
+                    // this participant's, and the one it names reads it on
+                    // its own cursor whenever it comes back.
+                    .filter(run -> run.forParticipant(client, identity.name()))
                     .ifPresent(mine::add);
         }
         feed.ack(participant, chunk.nextCursor());
@@ -99,7 +117,8 @@ public final class Participation {
      *                to do the work, short enough that its death is noticed.
      */
     public Optional<Run> claim(Run run, Duration holdFor) {
-        return runs.claim(run, identity, holdFor);
+        return client == null ? runs.claim(run, identity, holdFor)
+                : runs.claim(run, identity, holdFor, client);
     }
 
     /**

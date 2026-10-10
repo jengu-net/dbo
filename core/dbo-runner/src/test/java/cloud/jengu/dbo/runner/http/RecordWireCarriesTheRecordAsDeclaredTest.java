@@ -68,7 +68,10 @@ class RecordWireCarriesTheRecordAsDeclaredTest {
             // one: a run whose step answers its asker could not be offered
             // to anybody, and sat ready.
             new Run.Window(java.time.Duration.ofMinutes(15),
-                    Instant.parse("2026-08-29T10:31:30Z")));
+                    Instant.parse("2026-08-29T10:31:30Z")),
+            // Who alone may take it, which a participant's runner reads to
+            // know the run it was offered is its own.
+            new Run.Addressee("client-7", "worker-7"));
 
     @Test
     @DisplayName("every component a run declares survives the wire, and a new one fails here")

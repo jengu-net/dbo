@@ -711,8 +711,10 @@ public interface Lane {
                 if (mine.isEmpty()) {
                     return List.of();
                 }
-                return new Participation(runs, feed, participant, mine, identity)
-                        .poll(limit);
+                // The client as the claim records it, so what is offered here
+                // is what a claim from here is admitted to.
+                return new Participation(runs, feed, participant, mine, identity,
+                        cloud.jengu.dbo.core.api.Caller.authenticated()).poll(limit);
             }
 
             @Override

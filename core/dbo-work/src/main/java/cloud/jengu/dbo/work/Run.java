@@ -31,7 +31,21 @@ public record Run(String id, long versionId, String key, String process, String 
         Map<String, RunSlot> inputs, Milestone milestone, String requester,
         String refused, Status status, boolean automation, java.time.Instant notBefore,
         String statusReason, int attempts, cloud.jengu.dbo.core.process.RetryPolicy retry,
-        Window window) {
+        Window window, Addressee addressee) {
+
+    /** A run open to whoever holds its step. */
+    public Run(String id, long versionId, String key, String process, String step,
+            RunKind kind, String parent, String correlation, String trace,
+            Map<String, Long> tally, Item item, java.util.List<String> domains,
+            Assignment assignment, Produced produced, String stepVersion,
+            Map<String, RunSlot> inputs, Milestone milestone, String requester,
+            String refused, Status status, boolean automation, java.time.Instant notBefore,
+            String statusReason, int attempts, cloud.jengu.dbo.core.process.RetryPolicy retry,
+            Window window) {
+        this(id, versionId, key, process, step, kind, parent, correlation, trace, tally, item,
+                domains, assignment, produced, stepVersion, inputs, milestone, requester, refused,
+                status, automation, notBefore, statusReason, attempts, retry, window, null);
+    }
 
     /** A run whose asker collects nothing. */
     public Run(String id, long versionId, String key, String process, String step,
@@ -43,7 +57,54 @@ public record Run(String id, long versionId, String key, String process, String 
             String statusReason, int attempts, cloud.jengu.dbo.core.process.RetryPolicy retry) {
         this(id, versionId, key, process, step, kind, parent, correlation, trace, tally, item,
                 domains, assignment, produced, stepVersion, inputs, milestone, requester, refused,
-                status, automation, notBefore, statusReason, attempts, retry, null);
+                status, automation, notBefore, statusReason, attempts, retry, null, null);
+    }
+
+    /**
+     * Who may take this run, named as a {@link ContactListener.Worker} names
+     * a worker: the credential it works under, and its executor's name.
+     *
+     * <p>For work only one participant can do — report on the appliance it
+     * is, read the instrument plugged into it. A run naming nobody is open to
+     * every participant holding its step, and the first claim wins; a run
+     * naming one is offered to that one alone and waits for it while it is
+     * away, rather than being taken by whoever polls first.
+     *
+     * <p>Kept on the run and not in its {@link Assignment}: the assignment is
+     * who holds it, replaced when it is released or reopened, and who may
+     * take it outlives every holder.
+     *
+     * @param client   the client the run is for, or null for any
+     * @param executor the executor's name, or null for any
+     */
+    public record Addressee(String client, String executor) {
+
+        public Addressee {
+            if (client == null && executor == null) {
+                throw new IllegalArgumentException("a run addressed to nobody in particular "
+                        + "is a run addressed to nobody: name a client, an executor, or both");
+            }
+        }
+
+        @Override
+        public String toString() {
+            return client == null ? "the executor '" + executor + "'"
+                    : "'" + client + "'" + (executor == null ? "" : " as '" + executor + "'");
+        }
+
+        /** Whether a participant asking as that client and executor is the one named. */
+        public boolean names(String askingClient, String askingExecutor) {
+            return (client == null || client.equals(askingClient))
+                    && (executor == null || executor.equals(askingExecutor));
+        }
+    }
+
+    /**
+     * Whether a participant asking as that client and executor may take this
+     * run: anybody, unless it names who may.
+     */
+    public boolean forParticipant(String client, String executor) {
+        return addressee == null || addressee.names(client, executor);
     }
 
     /**
@@ -86,7 +147,7 @@ public record Run(String id, long versionId, String key, String process, String 
     public static Run named(String key) {
         return new Run(null, 0, key, null, null, null, null, null, null,
                 Map.of(), null, java.util.List.of(), null, Produced.NOTHING, null,
-                Map.of(), null, null, null, null, false, null, null, 0, null, null);
+                Map.of(), null, null, null, null, false, null, null, 0, null, null, null);
     }
 
     /**
@@ -467,7 +528,17 @@ public record Run(String id, long versionId, String key, String process, String 
                 notBefore == null ? null : java.time.Instant.parse(notBefore.toString()),
                 optional(json, "statusReason"),
                 attempts instanceof Number count ? count.intValue() : 0, retry(json),
-                window(json));
+                window(json), addressee(json));
+    }
+
+    /** Who the run is for, as it recorded them, or null where it names nobody. */
+    private static Addressee addressee(Object json) {
+        if (((Map<?, ?>) json).get("for") instanceof Map<?, ?> named) {
+            String client = str(named, "client");
+            String executor = str(named, "executor");
+            return client == null && executor == null ? null : new Addressee(client, executor);
+        }
+        return null;
     }
 
     /** The asker's window, as the run recorded it, or null where it has none. */

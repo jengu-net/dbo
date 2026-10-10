@@ -85,6 +85,13 @@ public final class DboInitiator implements cloud.jengu.dbo.work.RunInitiator {
     @Override
     public Started starting(String tenant, String step, Map<String, Slot> inputs,
             String key) {
+        return starting(tenant, step, inputs, key, null);
+    }
+
+    /** The same, for one participant alone: see {@link cloud.jengu.dbo.work.RunInitiator}. */
+    @Override
+    public Started starting(String tenant, String step, Map<String, Slot> inputs,
+            String key, cloud.jengu.dbo.work.Run.Addressee addressee) {
         DboWorkerProperties.Lane lane = askable(tenant);
         Supplier<String> token = tokens.get(tenant);
         StringBuilder named = new StringBuilder();
@@ -99,7 +106,8 @@ public final class DboInitiator implements cloud.jengu.dbo.work.RunInitiator {
                                 + "/step/" + step))
                 .header("Content-Type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString("{\"inputs\":{" + named + "}"
-                        + (key == null ? "" : ",\"scope\":" + quote(key)) + "}"));
+                        + (key == null ? "" : ",\"scope\":" + quote(key))
+                        + cloud.jengu.dbo.work.RunInitiator.addressed(addressee) + "}"));
         if (token != null) {
             // THE WORK CREDENTIAL, the same one the lane polls with. A
             // participant that may take work of a step may ask for work of it;
