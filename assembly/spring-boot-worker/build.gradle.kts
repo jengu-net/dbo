@@ -131,7 +131,7 @@ dependencies {
     testImplementation("org.springframework:spring-test:7.0.9")
     // ApplicationContextRunner's own assertions are AssertJ-typed, so the
     // context it hands back will not even compile without it on the path.
-    testImplementation("org.assertj:assertj-core:3.27.3")
+    testImplementation("org.assertj:assertj-core:3.27.7")
     // @Proving citations only.
     testImplementation(project(":core:dbo-promises"))
     testAnnotationProcessor(project(":promise"))
