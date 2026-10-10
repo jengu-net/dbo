@@ -3541,6 +3541,13 @@ public final class TenantRuntimeManager implements AutoCloseable {
                     issuerBase + oidcPath,
                     new cloud.jengu.dbo.auth.KeyProtector(authorityConfig.kek()));
             authority.ensureSigningKey();
+            // A place signs its people in with the PIN they set at the tenant,
+            // whose verifier it was handed: its link to the tenant may be down
+            // when somebody needs to sign in. Nowhere else does a PIN sign
+            // anybody in.
+            if (places.contains(spec.code())) {
+                authority.signsInWith(java.util.Set.of("pin"));
+            }
             // A place federates through no zone: the zone's ceremony runs
             // where the zone does, and a site holding its tenant offline has
             // no way to it.

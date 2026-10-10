@@ -30,9 +30,21 @@ public interface LoginPage {
      * @param password  the password form, empty where nobody at this tenant
      *                  holds a password
      * @param providers the brokers this tenant accepts, contracted one first
+     * @param pin       the PIN form, empty where people do not sign in with one —
+     *                  everywhere but a site serving a place of its tenant
      */
     record Form(String tenant, Optional<String> error, Optional<Password> password,
-            List<Provider> providers) {}
+            List<Provider> providers, Optional<Pin> pin) {
+
+        /** A page where nobody signs in with a PIN. */
+        public Form(String tenant, Optional<String> error, Optional<Password> password,
+                List<Provider> providers) {
+            this(tenant, error, password, providers, Optional.empty());
+        }
+    }
+
+    /** Post {@code login} and {@code pin} to {@code action} with these fields. */
+    record Pin(String action, String hiddenFields) {}
 
     /** Post {@code login} and {@code password} to {@code action} with these fields. */
     record Password(String action, String hiddenFields) {}
@@ -55,6 +67,13 @@ public interface LoginPage {
                 .append("<input name=\"password\" type=\"password\""
                         + " autocomplete=\"current-password\">")
                 .append("<button type=\"submit\">Sign in</button></form>"));
+        form.pin().ifPresent(pin -> page
+                .append("<form method=\"post\" action=\"").append(pin.action()).append("\">")
+                .append(pin.hiddenFields())
+                .append("<input name=\"login\" autocomplete=\"username\">")
+                .append("<input name=\"pin\" type=\"password\" inputmode=\"numeric\""
+                        + " autocomplete=\"one-time-code\">")
+                .append("<button type=\"submit\">Sign in with PIN</button></form>"));
         return Optional.of(page.append("</body></html>").toString());
     };
 

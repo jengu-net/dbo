@@ -188,7 +188,9 @@ cloud.jengu.dbo.auth.LoginPage.Form                                    equals(Ob
 cloud.jengu.dbo.auth.LoginPage.Form                                    error():Optional
 cloud.jengu.dbo.auth.LoginPage.Form                                    hashCode():int
 cloud.jengu.dbo.auth.LoginPage.Form                                    new(String,Optional,Optional,List)
+cloud.jengu.dbo.auth.LoginPage.Form                                    new(String,Optional,Optional,List,Optional)
 cloud.jengu.dbo.auth.LoginPage.Form                                    password():Optional
+cloud.jengu.dbo.auth.LoginPage.Form                                    pin():Optional
 cloud.jengu.dbo.auth.LoginPage.Form                                    providers():List
 cloud.jengu.dbo.auth.LoginPage.Form                                    record
 cloud.jengu.dbo.auth.LoginPage.Form                                    tenant():String
@@ -200,6 +202,13 @@ cloud.jengu.dbo.auth.LoginPage.Password                                hiddenFie
 cloud.jengu.dbo.auth.LoginPage.Password                                new(String,String)
 cloud.jengu.dbo.auth.LoginPage.Password                                record
 cloud.jengu.dbo.auth.LoginPage.Password                                toString():String
+cloud.jengu.dbo.auth.LoginPage.Pin                                     action():String
+cloud.jengu.dbo.auth.LoginPage.Pin                                     equals(Object):boolean
+cloud.jengu.dbo.auth.LoginPage.Pin                                     hashCode():int
+cloud.jengu.dbo.auth.LoginPage.Pin                                     hiddenFields():String
+cloud.jengu.dbo.auth.LoginPage.Pin                                     new(String,String)
+cloud.jengu.dbo.auth.LoginPage.Pin                                     record
+cloud.jengu.dbo.auth.LoginPage.Pin                                     toString():String
 cloud.jengu.dbo.auth.LoginPage.Provider                                broker():String
 cloud.jengu.dbo.auth.LoginPage.Provider                                equals(Object):boolean
 cloud.jengu.dbo.auth.LoginPage.Provider                                hashCode():int
@@ -229,6 +238,7 @@ cloud.jengu.dbo.auth.Scopes                                            workSteps
 cloud.jengu.dbo.auth.Scopes                                            worksAsTheTenant(List):boolean
 cloud.jengu.dbo.auth.SecretHash                                        class
 cloud.jengu.dbo.auth.SecretHash                                        hash(String):String
+cloud.jengu.dbo.auth.SecretHash                                        isWellFormed(String):boolean
 cloud.jengu.dbo.auth.SecretHash                                        verify(String,String):boolean
 cloud.jengu.dbo.auth.SecretHashProbe                                   class
 cloud.jengu.dbo.auth.SecretHashProbe                                   verifies(String,String):boolean
@@ -292,6 +302,7 @@ cloud.jengu.dbo.auth.TenantAuthority                                   class
 cloud.jengu.dbo.auth.TenantAuthority                                   clientScopes(String):Optional
 cloud.jengu.dbo.auth.TenantAuthority                                   completeFederated(String,String):cloud.jengu.dbo.auth.TenantAuthority.FederatedOutcome
 cloud.jengu.dbo.auth.TenantAuthority                                   completeLogin(String,String,String,String,String,String):cloud.jengu.dbo.auth.TenantAuthority.LoginResult
+cloud.jengu.dbo.auth.TenantAuthority                                   completeLoginWith(String,String,String,String,String,String,String):cloud.jengu.dbo.auth.TenantAuthority.LoginResult
 cloud.jengu.dbo.auth.TenantAuthority                                   continueWith(String,String):Optional
 cloud.jengu.dbo.auth.TenantAuthority                                   createDelegation(String,String,String,List,long):Optional
 cloud.jengu.dbo.auth.TenantAuthority                                   discoveryJson():String
@@ -314,10 +325,13 @@ cloud.jengu.dbo.auth.TenantAuthority                                   externalI
 cloud.jengu.dbo.auth.TenantAuthority                                   factorsFor(String):List
 cloud.jengu.dbo.auth.TenantAuthority                                   federation():cloud.jengu.dbo.auth.TenantAuthority.Federation
 cloud.jengu.dbo.auth.TenantAuthority                                   federation(cloud.jengu.dbo.auth.TenantAuthority.Federation):void
+cloud.jengu.dbo.auth.TenantAuthority                                   forgetFactor(String,String):void
+cloud.jengu.dbo.auth.TenantAuthority                                   holdersOf(String):List
 cloud.jengu.dbo.auth.TenantAuthority                                   holdsPassword(String):boolean
 cloud.jengu.dbo.auth.TenantAuthority                                   humanAuthenticator(cloud.jengu.dbo.auth.HumanAuthenticator):void
 cloud.jengu.dbo.auth.TenantAuthority                                   issuer():String
 cloud.jengu.dbo.auth.TenantAuthority                                   jwksJson():String
+cloud.jengu.dbo.auth.TenantAuthority                                   keepFactor(String,String,String,String):void
 cloud.jengu.dbo.auth.TenantAuthority                                   linkedOfType(String,String):List
 cloud.jengu.dbo.auth.TenantAuthority                                   mintSecretGrant(String,Duration):String
 cloud.jengu.dbo.auth.TenantAuthority                                   new(cloud.jengu.dbo.core.api.ObjectStore,String,cloud.jengu.dbo.auth.KeyProtector)
@@ -334,6 +348,8 @@ cloud.jengu.dbo.auth.TenantAuthority                                   rotateSig
 cloud.jengu.dbo.auth.TenantAuthority                                   setFactor(String,String,String):void
 cloud.jengu.dbo.auth.TenantAuthority                                   signers():List
 cloud.jengu.dbo.auth.TenantAuthority                                   signingKey(String):Optional
+cloud.jengu.dbo.auth.TenantAuthority                                   signsInWith(Set):void
+cloud.jengu.dbo.auth.TenantAuthority                                   signsInWith(String):boolean
 cloud.jengu.dbo.auth.TenantAuthority                                   token(String,String,String):cloud.jengu.dbo.auth.TenantAuthority.TokenResult
 cloud.jengu.dbo.auth.TenantAuthority                                   token(String,String,String,String):cloud.jengu.dbo.auth.TenantAuthority.TokenResult
 cloud.jengu.dbo.auth.TenantAuthority                                   trust(String,Supplier,String):void
@@ -375,6 +391,14 @@ cloud.jengu.dbo.auth.TenantAuthority.AuthorizeResult.Rejected          hashCode(
 cloud.jengu.dbo.auth.TenantAuthority.AuthorizeResult.Rejected          new(String)
 cloud.jengu.dbo.auth.TenantAuthority.AuthorizeResult.Rejected          record
 cloud.jengu.dbo.auth.TenantAuthority.AuthorizeResult.Rejected          toString():String
+cloud.jengu.dbo.auth.TenantAuthority.FactorHolder                      equals(Object):boolean
+cloud.jengu.dbo.auth.TenantAuthority.FactorHolder                      hash():String
+cloud.jengu.dbo.auth.TenantAuthority.FactorHolder                      hashCode():int
+cloud.jengu.dbo.auth.TenantAuthority.FactorHolder                      login():String
+cloud.jengu.dbo.auth.TenantAuthority.FactorHolder                      new(String,String,String)
+cloud.jengu.dbo.auth.TenantAuthority.FactorHolder                      personId():String
+cloud.jengu.dbo.auth.TenantAuthority.FactorHolder                      record
+cloud.jengu.dbo.auth.TenantAuthority.FactorHolder                      toString():String
 cloud.jengu.dbo.auth.TenantAuthority.FederatedOutcome                  interface
 cloud.jengu.dbo.auth.TenantAuthority.FederatedOutcome.Denied           equals(Object):boolean
 cloud.jengu.dbo.auth.TenantAuthority.FederatedOutcome.Denied           error():String
@@ -2885,6 +2909,8 @@ cloud.jengu.dbo.promises.DboFeatures                                   values():
 cloud.jengu.dbo.promises.DboPromises                                   AUTH_AN_APPLICATIONS_API_ACCEPTS_WHAT_ITS_TENANTS_DOORS_ACCEPT:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   AUTH_AN_APPLICATION_ADDS_TO_WHAT_A_PERSON_CARRIES:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   AUTH_A_PERSON_READING_THEIR_OWN_IDENTITY_IS_RECORDED_AS_THEIRS:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   AUTH_A_PLACE_SIGNS_IN_WITH_A_PIN:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   AUTH_A_SITE_KEEPS_A_FACTOR_IT_WAS_HANDED_AS_A_HASH:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   AUTH_A_WRONG_PASSWORD_STAYS_ON_THE_PAGE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   AUTH_A_ZONE_IS_ITS_OWN_BROKER:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   AUTH_BEARER_LOCAL_VALIDATION:cloud.jengu.dbo.promises.DboPromises

@@ -984,6 +984,16 @@ public final class TenantAuthority {
                     login);
         }
         String json = new String(existing.payload(), StandardCharsets.UTF_8);
+        store.put(PutRequest.update("LocalCredential", existing.id(), existing.versionId(),
+                withFactor(json, amr, SecretHash.hash(rawSecret))
+                        .getBytes(StandardCharsets.UTF_8)));
+    }
+
+    /**
+     * The credential with this factor set to this hash, or taken away when the
+     * hash is null, and everything else as it was.
+     */
+    private static String withFactor(String json, String amr, String hash) {
         Object node = Json.parse(json);
         Object factors = node instanceof java.util.Map<?, ?> m ? m.get("factors") : null;
         StringBuilder rebuilt = new StringBuilder("{");
@@ -995,17 +1005,95 @@ public final class TenantAuthority {
                 }
             });
         }
-        rebuilt.append(rebuilt.length() > 1 ? "," : "")
-                .append('"').append(amr).append("\":\"")
-                .append(SecretHash.hash(rawSecret)).append("\"}");
-
+        if (hash != null) {
+            rebuilt.append(rebuilt.length() > 1 ? "," : "")
+                    .append('"').append(amr).append("\":\"").append(hash).append('"');
+        }
+        rebuilt.append('}');
         // Remove only the factors block. Truncating everything after it took
         // the fields that followed — status among them — and the store refused
         // the write rather than storing a credential with a hole in it.
         String withoutFactors = removeFactors(json);
         String stripped = withoutFactors.substring(0, withoutFactors.lastIndexOf('}'));
-        store.put(PutRequest.update("LocalCredential", existing.id(), existing.versionId(),
-                (stripped + ",\"factors\":" + rebuilt + "}").getBytes(StandardCharsets.UTF_8)));
+        return stripped + ",\"factors\":" + rebuilt + "}";
+    }
+
+    /**
+     * Keeps a factor this authority was handed already hashed — what a site
+     * receives from its tenant, which sets the factor where sign-in is strong
+     * and hands out only what verifies it.
+     *
+     * <p>A site never holds the secret, and a person has no credential at the
+     * site until one is made there. So a login that has none gets one, holding
+     * this factor and no password; one that has one keeps its other factors,
+     * and this one is replaced. Either way it is an ordinary
+     * {@code LocalCredential}: store-authored, in every backup, in no export,
+     * and never overwritten by configuration.
+     *
+     * <p><b>Active, as the tenant says it is.</b> A site keeps what its tenant
+     * hands it, and the tenant hands only the factors of credentials that are
+     * active there; one it stops handing is the site's to retire.
+     *
+     * @param personId whose login this is: the person the tenant names, which
+     *                 a login keeps — handed a login under another person, this
+     *                 refuses rather than moving it
+     * @throws IllegalArgumentException for a hash {@link SecretHash} would not
+     *         have produced, an {@code amr} that is not one, or a password,
+     *         which is never handed out
+     */
+    public void keepFactor(String login, String personId, String amr, String hash) {
+        if (login == null || login.isBlank() || personId == null || personId.isBlank()) {
+            throw new IllegalArgumentException("a factor is kept for a login and the person "
+                    + "it belongs to");
+        }
+        if (amr == null || !amr.matches("[a-z]{2,10}")) {
+            throw new IllegalArgumentException("not an amr value: " + amr);
+        }
+        if ("pwd".equals(amr)) {
+            throw new IllegalArgumentException("a password is never handed out, so none is "
+                    + "kept from a hash: " + login);
+        }
+        if (!SecretHash.isWellFormed(hash)) {
+            throw new IllegalArgumentException("not a hash this store produces, for " + login
+                    + "'s " + amr);
+        }
+        Optional<StoredObject> existing = store.getByIdentifier("LocalCredential",
+                List.of(new Identifier(IdentityModel.LOGIN_SYSTEM, login))).stream().findFirst();
+        if (existing.isEmpty()) {
+            String payload = "{\"login\":" + Json.quote(login)
+                    + ",\"factors\":{" + Json.quote(amr) + ":" + Json.quote(hash) + "}"
+                    + ",\"personId\":" + Json.quote(personId)
+                    + ",\"status\":\"active\"}";
+            store.putIfAbsent(IdentityRef.identifier(IdentityModel.LOGIN_SYSTEM, login),
+                    PutRequest.create("LocalCredential", payload.getBytes(StandardCharsets.UTF_8)));
+            return;
+        }
+        String json = new String(existing.get().payload(), StandardCharsets.UTF_8);
+        String holder = Json.strOpt(Json.parse(json), "personId");
+        if (holder != null && !holder.equals(personId)) {
+            throw new IllegalArgumentException(login + " belongs to another person here, and a "
+                    + "factor handed for it does not move it");
+        }
+        String kept = withFactor(json, amr, hash)
+                .replace("\"status\":\"retired\"", "\"status\":\"active\"");
+        store.put(PutRequest.update("LocalCredential", existing.get().id(),
+                existing.get().versionId(), kept.getBytes(StandardCharsets.UTF_8)));
+    }
+
+    /**
+     * Takes one factor away from a login, leaving its others: a PIN the
+     * person removed at their tenant. What says nothing about whether the
+     * login was here, as {@link #retireCredential} says nothing.
+     */
+    public void forgetFactor(String login, String amr) {
+        store.getByIdentifier("LocalCredential",
+                        List.of(new Identifier(IdentityModel.LOGIN_SYSTEM, login)))
+                .stream().findFirst()
+                .filter(stored -> factorHash(stored, amr) != null)
+                .ifPresent(stored -> store.put(PutRequest.update("LocalCredential", stored.id(),
+                        stored.versionId(), withFactor(new String(stored.payload(),
+                                StandardCharsets.UTF_8), amr, null)
+                                .getBytes(StandardCharsets.UTF_8))));
     }
 
     /**
@@ -1031,6 +1119,35 @@ public final class TenantAuthority {
                 continue;
             }
             holders.add(Map.entry(field(credential, "login"), hash));
+        }
+        return holders;
+    }
+
+    /**
+     * One login holding a factor: whose it is, and what verifies it.
+     *
+     * @param personId the person the login belongs to — the id a token's
+     *                 {@code sub} names, and what the person's records are
+     *                 found from
+     */
+    public record FactorHolder(String login, String personId, String hash) {}
+
+    /**
+     * The same as {@link #factorsFor}, saying whose each login is. A site
+     * handed a verifier has to know whom it signs in, and the link from a
+     * login to its person is on the credential, which nothing outside this
+     * authority can read.
+     */
+    public List<FactorHolder> holdersOf(String amr) {
+        List<FactorHolder> holders = new java.util.ArrayList<>();
+        for (StoredObject credential : store.select(
+                cloud.jengu.dbo.core.api.Criteria.of("LocalCredential"))) {
+            String hash = factorHash(credential, amr);
+            if (hash == null || !"active".equals(field(credential, "status"))) {
+                continue;
+            }
+            holders.add(new FactorHolder(field(credential, "login"),
+                    field(credential, "personId"), hash));
         }
         return holders;
     }
@@ -1477,15 +1594,78 @@ public final class TenantAuthority {
         if (person.isEmpty()) {
             return new LoginResult.NotRecognised();
         }
-        Grants grants = evaluateGrants(person.get());
+        return issued(clientId, redirectUri, codeChallenge, nonce, login, person.get(), "pwd");
+    }
+
+    /**
+     * The same, with a factor other than a password — a PIN at a site whose
+     * link to its tenant may be down.
+     *
+     * <p><b>Only where this authority signs in with that factor</b>
+     * ({@link #signsInWith(java.util.Set)}). A tenant keeps its people's PINs
+     * so it can hand them to its sites, and a PIN is far weaker than the
+     * sign-in the tenant itself offers: accepted everywhere it is held, it
+     * would be a short way into the tenant. A factor this authority does not
+     * sign in with is answered as a wrong secret is, so the answer says
+     * nothing about which factors anybody holds.
+     */
+    public LoginResult completeLoginWith(String clientId, String redirectUri,
+            String codeChallenge, String nonce, String login, String amr, String secret) {
+        if (beginAuthorization(clientId, redirectUri, codeChallenge)
+                instanceof AuthorizeResult.Rejected rejected) {
+            return new LoginResult.Denied(rejected.error());
+        }
+        Optional<StoredObject> credential = signInFactors.contains(amr)
+                ? store.getByIdentifier("LocalCredential",
+                        List.of(new Identifier(IdentityModel.LOGIN_SYSTEM, login))).stream()
+                        .filter(c -> "active".equals(field(c, "status")))
+                        .findFirst()
+                : Optional.empty();
+        String hash = credential.map(c -> factorHash(c, amr)).orElse(null);
+        // Verified against something either way, so a login that holds no
+        // such factor takes as long to refuse as a wrong secret does.
+        boolean verified = SecretHash.verify(secret == null ? "" : secret,
+                hash == null ? DECOY_HASH : hash) && hash != null;
+        if (!verified) {
+            return new LoginResult.NotRecognised();
+        }
+        return issued(clientId, redirectUri, codeChallenge, nonce, login,
+                field(credential.get(), "personId"), amr);
+    }
+
+    /** The factors other than a password this authority signs people in with. */
+    private volatile java.util.Set<String> signInFactors = java.util.Set.of();
+
+    /**
+     * Which factors other than a password sign people in here: a PIN on an
+     * authority that serves a place of its tenant, and nothing anywhere else.
+     */
+    public void signsInWith(java.util.Set<String> factors) {
+        for (String amr : factors) {
+            if (amr == null || !amr.matches("[a-z]{2,10}") || "pwd".equals(amr)) {
+                throw new IllegalArgumentException("not a factor besides a password: " + amr);
+            }
+        }
+        signInFactors = java.util.Set.copyOf(factors);
+    }
+
+    /** Whether people sign in here with this factor. */
+    public boolean signsInWith(String amr) {
+        return signInFactors.contains(amr);
+    }
+
+    /** Grants evaluated for whoever was authenticated, and the one-time code minted. */
+    private LoginResult issued(String clientId, String redirectUri, String codeChallenge,
+            String nonce, String login, String person, String amr) {
+        Grants grants = evaluateGrants(person);
         if (grants.scopes().isEmpty()) {
             return new LoginResult.Denied("access_denied");
         }
         String code = UuidV7.newId() + UuidV7.newId().substring(0, 8);
         pendingCodes.put(code, new PendingAuthorization(clientId, redirectUri, codeChallenge,
-                person.get(), String.join(" ", grants.scopes()),
+                person, String.join(" ", grants.scopes()),
                 String.join(",", grants.roles()), nonce == null ? "" : nonce,
-                System.currentTimeMillis() + 60_000, login, List.of("pwd"),
+                System.currentTimeMillis() + 60_000, login, List.of(amr),
                 System.currentTimeMillis() / 1000));
         return new LoginResult.Redirect(code);
     }

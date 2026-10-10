@@ -28,6 +28,30 @@ public final class SecretHash {
                 + "$" + Base64.getEncoder().encodeToString(hash);
     }
 
+    /**
+     * Whether this is a hash in the form {@link #hash} produces: the scheme,
+     * a positive iteration count, a salt and a derived key of the lengths
+     * written here. What a site is handed from its tenant is held to it, so a
+     * value that could never verify anything is refused when it arrives
+     * rather than at the first sign-in.
+     */
+    public static boolean isWellFormed(String encoded) {
+        if (encoded == null) {
+            return false;
+        }
+        String[] parts = encoded.split("\\$");
+        if (parts.length != 4 || !"pbkdf2".equals(parts[0])) {
+            return false;
+        }
+        try {
+            return Integer.parseInt(parts[1]) > 0
+                    && Base64.getDecoder().decode(parts[2]).length == 16
+                    && Base64.getDecoder().decode(parts[3]).length == KEY_BITS / 8;
+        } catch (IllegalArgumentException malformed) {
+            return false;
+        }
+    }
+
     public static boolean verify(String secret, String encoded) {
         try {
             String[] parts = encoded.split("\\$");
