@@ -11,6 +11,8 @@ public final class Caller {
     private static final ThreadLocal<String> CURRENT = new ThreadLocal<>();
     private static final ThreadLocal<String> ON_BEHALF_OF = new ThreadLocal<>();
     private static final ThreadLocal<String> RUN = new ThreadLocal<>();
+    /** Whether the run in progress is the store's own machinery rather than work. */
+    private static final ThreadLocal<Boolean> MACHINERY = new ThreadLocal<>();
 
     private Caller() {
     }
@@ -42,6 +44,7 @@ public final class Caller {
      */
     public static void setRun(String runKey) {
         RUN.set(runKey);
+        MACHINERY.remove();
     }
 
     /** The run in progress on this thread, or null outside one. */
@@ -51,6 +54,61 @@ public final class Caller {
 
     public static void clearRun() {
         RUN.remove();
+        MACHINERY.remove();
+    }
+
+    /**
+     * The run in progress on this thread until the answer is closed, and then
+     * whichever run was in progress before it: a pass that calls into work of
+     * its own hands the thread back as it found it.
+     */
+    public static InRun underRun(String runKey) {
+        return marked(runKey, null);
+    }
+
+    /**
+     * The same, for the store's own machinery: what it writes names the run,
+     * and what it reads is not a disclosure. A stream reads what it is about
+     * to write to and a configuration pass what it is about to replace; nobody
+     * is handed anything, and recording those reads would fill the trail with
+     * the machinery's own bookkeeping.
+     */
+    public static InRun writingFor(String runKey) {
+        return marked(runKey, Boolean.TRUE);
+    }
+
+    /**
+     * Whether a read now is made for a piece of work, and so is recorded as a
+     * disclosure: there is a run, and it is not the machinery's own.
+     */
+    public static boolean readingForWork() {
+        return RUN.get() != null && !Boolean.TRUE.equals(MACHINERY.get());
+    }
+
+    private static InRun marked(String runKey, Boolean machinery) {
+        String outer = RUN.get();
+        Boolean outerMachinery = MACHINERY.get();
+        RUN.set(runKey);
+        MACHINERY.set(machinery);
+        return () -> {
+            if (outer == null) {
+                RUN.remove();
+            } else {
+                RUN.set(outer);
+            }
+            if (outerMachinery == null) {
+                MACHINERY.remove();
+            } else {
+                MACHINERY.set(outerMachinery);
+            }
+        };
+    }
+
+    /** A run marked in progress, until closed. */
+    @FunctionalInterface
+    public interface InRun extends AutoCloseable {
+        @Override
+        void close();
     }
 
     /** Never null: outside an authenticated request the actor is "system". */
@@ -76,5 +134,6 @@ public final class Caller {
         CURRENT.remove();
         ON_BEHALF_OF.remove();
         RUN.remove();
+        MACHINERY.remove();
     }
 }
