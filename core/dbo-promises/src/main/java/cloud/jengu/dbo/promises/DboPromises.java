@@ -303,6 +303,12 @@ public enum DboPromises implements Promise {
             + "step is declared, naming what stopped it. A step that says nothing is open to "
             + "automation."),
 
+    PROC_A_PASS_THAT_CHANGES_NOTHING_WRITES_NOTHING("An advance of a run that leaves it as "
+            + "it stood writes nothing, so a sweep's round that carried nothing and changed "
+            + "nothing about its standing adds no event to the tenant's work feed, and a "
+            + "participant enrolled after hours of idle uptime reaches new work at once. A "
+            + "round that carried something, a stream that fails and one that recovers each "
+            + "still show on the run."),
     PROC_A_RUN_NAMES_WHO_MAY_TAKE_IT("A host starting a run may name the one participant "
             + "that may take it, by its client, its executor's name or both, as contact names "
             + "a worker. Only that participant is offered the run and may claim it, whatever "

@@ -1742,7 +1742,19 @@ public final class Runs {
             if (!stillSo.test(current)) {
                 return Optional.empty();
             }
-            State state = change.apply(state(current));
+            State before = state(current);
+            State state = change.apply(before);
+            // Compared as state, never as bytes: the payload is stamped with
+            // the moment it is written, and a tally's counts come out in no
+            // fixed order.
+            if (state.equals(before)) {
+                // Nothing to say. Every write is an event each participant of
+                // the tenant reads through, and a sweep is advanced once a
+                // round whether or not its round found anything: written all
+                // the same, an idle stream put a second's bookkeeping in front
+                // of every run a participant had yet to reach.
+                return Optional.of(current);
+            }
             try {
                 store.put(new PutRequest(WorkModel.TYPE, current.id(), current.versionId(),
                         state.payload()));
