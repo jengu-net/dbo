@@ -2530,12 +2530,6 @@ public enum DboPromises implements Promise {
             + "the declaration last kept; a place stops being served only when that kept "
             + "declaration is removed on the site; and a place with nothing kept and no origin "
             + "to ask makes the read fail rather than answer that the site serves nothing."),
-    SYNC_A_FACE_CARRIES_WHAT_THE_DEPENDENT_NEEDS("A tenant taking its face from a root is "
-            + "sent the definitions the types it declares need — their structures and what "
-            + "those reach, the value sets their required bindings name, the code systems "
-            + "those draw on, and the parameters the types are searched by — and not the rest "
-            + "of the face. What it needs is worked out again when the root's definitions "
-            + "move, and not on every read."),
     SYNC_A_PLACE_TAKES_ITS_FACE_FROM_A_ROOT_BESIDE_IT(
             "A site runs a face root of its own beside each place, from its own release and "
             + "under the code the place's declaration names, unless the deployment declares "
