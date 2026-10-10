@@ -548,6 +548,56 @@ public final class ContentSyncEngine {
     }
 
     /**
+     * Of the objects named, those this stream put here: one query for a whole
+     * chunk, where asking {@link #isStreamedOrigin} of each would be one per
+     * item.
+     */
+    public java.util.Set<String> streamedAmong(java.util.Collection<String> objectIds) {
+        if (objectIds.isEmpty()) {
+            return java.util.Set.of();
+        }
+        try (Connection c = targetDs.getConnection();
+             PreparedStatement ps = c.prepareStatement(
+                     ("SELECT object_id FROM %s_sync_origin WHERE dependency = ? "
+                             + "AND object_id = ANY(?)").formatted(Domains.tables(targetDomain)))) {
+            ps.setString(1, dependency.name());
+            ps.setArray(2, c.createArrayOf("uuid", objectIds.stream()
+                    .map(UUID::fromString).toArray()));
+            java.util.Set<String> streamed = new java.util.HashSet<>();
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    streamed.add(rs.getString(1));
+                }
+            }
+            return streamed;
+        } catch (SQLException e) {
+            throw new IllegalStateException("origin lookup failed", e);
+        }
+    }
+
+    /**
+     * Whether this stream has ever applied anything here.
+     *
+     * <p>What a dependent that cannot reach its upstream asks before serving:
+     * one that already holds what it was given may serve it while the link is
+     * down, and one that holds nothing has nothing to serve yet. One row, so
+     * the question costs the same for a face as for a single code system.
+     */
+    public boolean holdsAnything() {
+        try (Connection c = targetDs.getConnection();
+             PreparedStatement ps = c.prepareStatement(
+                     ("SELECT 1 FROM %s_sync_origin WHERE dependency = ? LIMIT 1")
+                             .formatted(Domains.tables(targetDomain)))) {
+            ps.setString(1, dependency.name());
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
+        } catch (SQLException e) {
+            throw new IllegalStateException("origin lookup failed", e);
+        }
+    }
+
+    /**
      * Whether THIS stream put that object here.
      *
      * <p>This dependency, not any of them. A tenant can take the same

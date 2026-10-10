@@ -241,12 +241,37 @@ resolves per request rather than registering routes once.
 |---|---|
 | `dbo.mount` | `servlet` or `own-port` |
 | `dbo.tenants.directory` | the world this deployment serves |
+| `dbo.tenants.places` | where a site keeps the declarations of the places it serves — see [A site](#a-site) |
 | `dbo.management-spec` | the tenant the store keeps its own history in |
 | `dbo.admin.jdbc-url`, `.user`, `.password` | the server the store provisions tenant databases on |
 | `dbo.auth.kek` | the key everything the store seals for itself derives from |
 | `dbo.auth.issuer-base` | what a tenant's authority calls itself |
 | `dbo.http.host`, `.port` | `own-port` only |
 | `dbo.framework.*` | passed through to the container, for a property this class has no name for |
+
+## A site
+
+**A node with `dbo.tenants.places` set is a site.** Beside whatever its own
+directory declares, it serves a second place of every cloud tenant its
+worker's lanes reach with sync on (see the worker's README), declared exactly
+as that tenant is declared in the cloud.
+
+**Each declaration is kept in that directory**, so a site restarted with its
+link down still knows what it serves and serves it from what it holds.
+A link that is down, refused or switched off does not withdraw a place, which
+serves what it last received. **Deleting its kept declaration does.**
+
+**The face is read from this node's own release.** A face is most of a
+tenant's definitions — about ninety-five thousand rows for R4 — so the site
+runs a face root of its own beside each place, under the code the declaration
+names. A site on another release than the cloud
+serves its own release's face. The face root is declared for you unless the
+site's directory declares it.
+
+**The cloud has to know the site may hold a place**: the client the site's
+lane signs in with carries the `place` scope. What the place may read is
+decided in the cloud, from the tenant's own declaration — its definitions, and
+the records of the types it takes from upstream.
 
 ## The one thing worth knowing before you ship
 

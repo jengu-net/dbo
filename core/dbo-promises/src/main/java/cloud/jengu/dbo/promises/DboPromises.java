@@ -332,6 +332,11 @@ public enum DboPromises implements Promise {
             + "to nobody at all leaves the cause in no place anybody can reach, which is "
             + "an outage whose diagnosis costs a reproduction."),
 
+    PROC_A_LANE_IS_ATTACHED_WHILE_THE_APPLICATION_RUNS("A worker holds a lane from the "
+            + "moment its application attaches one, with a credential asked for on every call "
+            + "and written down nowhere, and lets it go when told. While it holds the lane it "
+            + "can keep a place of that tenant up to date or stop, and stopping withdraws the "
+            + "place's link and nothing else: the lane goes on carrying work."),
     PROC_A_HOST_HOLDS_A_LANE_WHEREVER_IT_IS("A host that reaches the store over HTTP "
             + "obtains the same lane as one that holds the store in-process: the tenant "
             + "serves the participation verbs on its own private surface, guarded by its "
@@ -2486,6 +2491,32 @@ public enum DboPromises implements Promise {
             + "feed, and moves it forward only. A place reads from where it last acknowledged, "
             + "two places never share a position, and a place can neither rewind its "
             + "position nor read from one of its own choosing."),
+    SYNC_A_PLACE_COMES_UP_FROM_ITS_ORIGIN(
+            "A tenant served as a second place of a tenant elsewhere comes up from that "
+            + "tenant's feeds alone, read over the lane: its face, the content its declaration "
+            + "takes from upstream and its own definitions, already composed where it came "
+            + "from. Its declaration is the origin's own, unchanged, and none of the upstreams "
+            + "it names runs beside it. What the origin authors does not arrive, and what "
+            + "arrived is the place's to serve and not to change."),
+    SYNC_A_PLACE_IS_DECLARED_AS_ITS_ORIGIN_IS(
+            "A site serves a place of each tenant elsewhere that it reaches, declared as that "
+            + "tenant is declared there, and keeps each declaration it reads. An origin that "
+            + "cannot be reached, or no longer answers the site, leaves its place served from "
+            + "the declaration last kept; a place stops being served only when that kept "
+            + "declaration is removed on the site; and a place with nothing kept and no origin "
+            + "to ask makes the read fail rather than answer that the site serves nothing."),
+    SYNC_A_PLACE_TAKES_ITS_FACE_FROM_A_ROOT_BESIDE_IT(
+            "A site runs a face root of its own beside each place, from its own release and "
+            + "under the code the place's declaration names, unless the deployment declares "
+            + "that root itself. The place takes its face from that root as any subscriber "
+            + "takes one, and reads from its origin only the definitions that are not the "
+            + "face, so the face is never carried across the link."),
+    SYNC_A_PLACE_SERVES_WHAT_IT_HOLDS_WHILE_ITS_ORIGIN_IS_AWAY(
+            "A place that cannot read its origin, because the link is down or synchronisation "
+            + "is off, keeps serving what it holds, a restart included, and says once that it "
+            + "cannot read rather than on every round. When it can read again it carries on "
+            + "from where it last acknowledged. A place that has never received anything has "
+            + "nothing to serve, and waits for its origin as a tenant waits for an upstream."),
 
     // ── VAL — migrated from hand-written prose (2026-08-27) ──
 

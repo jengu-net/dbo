@@ -370,6 +370,21 @@ public final class TenantRuntimeManager implements AutoCloseable {
         return named == null || named.isBlank() ? null : java.nio.file.Path.of(named);
     }
     private final Map<String, cloud.jengu.dbo.auth.IdentityHub> zoneHubs = new ConcurrentHashMap<>();
+    /**
+     * The tenants served here as a second place of the tenant of the same code
+     * elsewhere. Named by the code alone: the origin is that tenant, and its
+     * copies here say they came from it.
+     */
+    private final java.util.Set<String> places = ConcurrentHashMap.newKeySet();
+    /** How each place reads its origin right now; absent while it cannot. */
+    private final Map<String, OriginFeeds> originFeeds = new ConcurrentHashMap<>();
+    /**
+     * Each tenant's declaration as it was last read, by code: what a place of
+     * it elsewhere is handed, so the two are declared with the same text.
+     */
+    private final Map<String, String> declaredAs = new ConcurrentHashMap<>();
+    /** The streams whose upstream could not be reached on their last round, said once. */
+    private final java.util.Set<String> unreached = ConcurrentHashMap.newKeySet();
     private final Map<String, cloud.jengu.dbo.policy.RetentionSweep> sweeps = new ConcurrentHashMap<>();
     /**
      * The tenants' authorities, kept so the sweep can reach them: a retired
@@ -2271,6 +2286,8 @@ public final class TenantRuntimeManager implements AutoCloseable {
             try {
                 TenantSpec spec = TenantSpec.parse(new String(declaration.payload(),
                         java.nio.charset.StandardCharsets.UTF_8));
+                declaredAs.put(spec.code(), new String(declaration.payload(),
+                        java.nio.charset.StandardCharsets.UTF_8));
                 // DECLARED FIRST, REFUSED SECOND, and the order is the whole
                 // of whether a refusal can be read. A file that declares a
                 // tenant declares it whether or not the store will serve it,
@@ -3423,6 +3440,17 @@ public final class TenantRuntimeManager implements AutoCloseable {
      * one anybody can stream from yet.
      */
     private void upstreamsAreServing(TenantSpec spec) {
+        if (places.contains(spec.code())) {
+            // A place's upstreams are its origin's, and run there: what it
+            // takes from them arrives already composed, on the origin's feed.
+            // All but the face root, which a site runs beside its places so
+            // that the face is not carried across the link.
+            TenantSpec.Dependency face = faceChainOf(spec);
+            if (face != null && !runtimes.containsKey(face.name())) {
+                throw new UpstreamNotReady(spec.code(), face.name());
+            }
+            return;
+        }
         for (TenantSpec.Dependency dependency : spec.dependencies()) {
             // The declared upstream, which has to be up whichever way this
             // tenant ends up reading it: a projection of a zone is brought up
@@ -3503,8 +3531,11 @@ public final class TenantRuntimeManager implements AutoCloseable {
                     issuerBase + oidcPath,
                     new cloud.jengu.dbo.auth.KeyProtector(authorityConfig.kek()));
             authority.ensureSigningKey();
+            // A place federates through no zone: the zone's ceremony runs
+            // where the zone does, and a site holding its tenant offline has
+            // no way to it.
             cloud.jengu.dbo.auth.IdentityHub hub = spec.zone() != null
-                    ? zoneHub(spec) : identityHub;
+                    && !places.contains(spec.code()) ? zoneHub(spec) : identityHub;
             if (hub != null) {
                 // The hub's default named rather than left for the hub to
                 // pick, so a sign-in page has a broker to put on its button.
@@ -4155,8 +4186,237 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 }
             }
         }
+        String faceChain = serving.spec().dependencies().stream()
+                .filter(TenantSpec.Dependency::face).map(TenantSpec.Dependency::name)
+                .findFirst().map(root -> "sync." + root + "." + code + ".definitions")
+                .orElse(null);
         return java.util.Optional.of(new cloud.jengu.dbo.runner.transport.Place(
-                serving.feed(), serving.definitionsFeed(), takenFromUpstream, serving.grain()));
+                serving.feed(), serving.definitionsFeed(), takenFromUpstream, serving.grain(),
+                () -> declaredAs.get(code),
+                ids -> syncEngines.getOrDefault(code, java.util.List.of()).stream()
+                        .filter(engine -> engine.name().equals(faceChain))
+                        .findFirst()
+                        .map(engine -> engine.streamedAmong(ids))
+                        .orElse(java.util.Set.of())));
+    }
+
+    /**
+     * How a place reads its origin: the origin's records, and its definitions
+     * both whole and without the face — the place reads the second when it
+     * has a face root of its own beside it, and the first when it has none.
+     */
+    public record OriginFeeds(ChangeFeed records, ChangeFeed definitions,
+            ChangeFeed definitionsWithoutTheFace) {}
+
+    /**
+     * Serves a tenant here as a second place of the tenant of the same code
+     * elsewhere.
+     *
+     * <p>Said before the tenant is declared, by whatever brings its
+     * declaration: a place is brought up from its origin rather than from the
+     * upstreams its declaration names, which run where the origin does. Its
+     * declaration is the origin's own, unchanged — what makes it a place is
+     * where it came from.
+     */
+    public void servesAPlaceOf(String code) {
+        places.add(code);
+    }
+
+    /**
+     * How a place reads its origin from now on, or null when it cannot — the
+     * link is down or synchronisation is off.
+     *
+     * <p>A place that cannot read its origin keeps serving what it holds; a
+     * place serving already is rewired at once, so the change needs no
+     * redeclaration and moves no position: the origin keeps it.
+     */
+    public void readsItsOriginThrough(String code, OriginFeeds feeds) {
+        if (feeds == null) {
+            originFeeds.remove(code);
+        } else {
+            originFeeds.put(code, feeds);
+        }
+        TenantRuntime serving = runtimes.get(code);
+        javax.sql.DataSource on = tenantDataSources.get(code);
+        if (serving != null && on != null && places.contains(code)) {
+            wirePlace(serving.spec(), serving, on);
+        }
+    }
+
+    /**
+     * A place's streams: every type its declaration takes from upstream, read
+     * from its origin, which holds them already composed; and its
+     * definitions, which carry the face.
+     *
+     * <p><b>The face from a root beside it, where there is one.</b> A face is
+     * most of a tenant's definitions and is the same rows wherever the
+     * release is the same, so a site runs a face root of its own and the
+     * place takes the face from it through the ordinary chain — images
+     * included — and reads from its origin only the definitions that are not
+     * the face: its own types and what its upstreams publish. With no root
+     * beside it, the place takes the face from its origin with the rest.
+     *
+     * <p>No grain at the origin and no manifest: the origin reassembles what
+     * it stores in parts before it answers, and has already narrowed its
+     * definitions to what this tenant validates against.
+     */
+    private void wirePlace(TenantSpec spec, TenantRuntime runtime, javax.sql.DataSource on) {
+        String origin = spec.code();
+        OriginFeeds feeds = originFeeds.getOrDefault(spec.code(), new OriginFeeds(
+                new Unreachable(origin), new Unreachable(origin), new Unreachable(origin)));
+        FhirVersion version = versions.require(spec.face());
+        TenantSpec.Dependency face = faceChainOf(spec);
+        TenantRuntime root = face == null ? null : runtimes.get(face.name());
+        java.util.Set<String> definitions = new java.util.LinkedHashSet<>(CRITICAL_ON_THE_FACE);
+        java.util.Set<String> records = new java.util.LinkedHashSet<>();
+        for (TenantSpec.Dependency dependency : spec.dependencies()) {
+            for (String type : dependency.types()) {
+                (cloud.jengu.dbo.fhir.common.FaceDefinitions.isDefinition(type)
+                        ? definitions : records).add(type);
+            }
+        }
+        java.util.List<cloud.jengu.dbo.sync.ContentSyncEngine> engines = new java.util.ArrayList<>();
+        if (root != null) {
+            // The face chain as any subscriber of a root has it: same stream,
+            // same name, same consumer on the root's feed.
+            engines.add(withRuns(spec, new cloud.jengu.dbo.sync.ContentSyncEngine(
+                    new cloud.jengu.dbo.sync.ContentDependency(face.name(),
+                            java.util.Set.copyOf(face.types()), manifestFrom(face.name(), spec)),
+                    root.definitionsFeed(), runtime.engine(), on,
+                    cloud.jengu.dbo.core.api.Domains.DEFINITIONS, version.payloadVersion(),
+                    CONVERTERS, "sync." + face.name() + "." + spec.code() + ".definitions",
+                    root.grain(), runtime.grain())));
+        }
+        if (!records.isEmpty()) {
+            engines.add(withRuns(spec, new cloud.jengu.dbo.sync.ContentSyncEngine(
+                    new cloud.jengu.dbo.sync.ContentDependency(origin, java.util.Set.copyOf(records)),
+                    feeds.records(), runtime.engine(), on, version.domain(),
+                    version.payloadVersion(), CONVERTERS,
+                    "sync." + origin + "." + spec.code(), null, runtime.grain())));
+        }
+        engines.add(withRuns(spec, new cloud.jengu.dbo.sync.ContentSyncEngine(
+                new cloud.jengu.dbo.sync.ContentDependency(origin,
+                        java.util.Set.copyOf(definitions), java.util.Set::<String>of),
+                root != null ? feeds.definitionsWithoutTheFace() : feeds.definitions(),
+                runtime.engine(), on,
+                cloud.jengu.dbo.core.api.Domains.DEFINITIONS, version.payloadVersion(),
+                CONVERTERS, "sync." + origin + "." + spec.code() + ".definitions",
+                null, runtime.grain())));
+        syncEngines.put(spec.code(), java.util.List.copyOf(engines));
+    }
+
+    /** The dependency a tenant takes its face through, or null when it names none. */
+    private static TenantSpec.Dependency faceChainOf(TenantSpec spec) {
+        return spec.dependencies().stream().filter(TenantSpec.Dependency::face)
+                .findFirst().orElse(null);
+    }
+
+    /**
+     * A place is ready when it has taken what its origin holds — or, when the
+     * origin cannot be reached, when it holds what it was given before.
+     *
+     * <p>The second is the reason a place exists: a site restarted while the
+     * link is down serves what it last received, and is behind by a distance
+     * its origin can read. A place that has never received anything has
+     * nothing to serve, and waits for its origin as any tenant waits for an
+     * upstream.
+     */
+    private void readyAsAPlace(TenantSpec spec, TenantRuntime runtime) {
+        String origin = spec.code();
+        TenantSpec.Dependency face = faceChainOf(spec);
+        if (face != null && runtimes.containsKey(face.name())) {
+            // The face first, from the root beside it, exactly as a subscriber
+            // of that root takes it — image, chain and all.
+            readyOnItsFaceChain(spec, runtime);
+        }
+        long began = System.currentTimeMillis();
+        int carried = 0;
+        String fromTheOrigin = "sync." + origin + "." + spec.code();
+        java.util.List<cloud.jengu.dbo.sync.ContentSyncEngine> streams =
+                syncEngines.getOrDefault(spec.code(), java.util.List.of()).stream()
+                        .filter(engine -> engine.name().equals(fromTheOrigin)
+                                || engine.name().startsWith(fromTheOrigin + "."))
+                        .toList();
+        try {
+            for (cloud.jengu.dbo.sync.ContentSyncEngine stream : streams) {
+                int events;
+                do {
+                    events = stream.syncOnce(500);
+                    carried += events;
+                } while (events > 0);
+            }
+        } catch (RuntimeException away) {
+            if (!unreachable(away)) {
+                throw away;
+            }
+            boolean holds = streams.stream().anyMatch(
+                    cloud.jengu.dbo.sync.ContentSyncEngine::holdsAnything);
+            if (!holds) {
+                throw new UpstreamNotReady(spec.code(), origin);
+            }
+            LOG.warn("tenant {} cannot reach its origin {} ({}); serving what it holds",
+                    spec.code(), origin, away.getMessage());
+        }
+        runtime.store().shapesChanged();
+        LOG.info("tenant {} is a place of {}: events={} in {}ms", spec.code(), origin, carried,
+                System.currentTimeMillis() - began);
+    }
+
+    /** Whether this failure is the far side not answering, rather than anything it said. */
+    private static boolean unreachable(Throwable failure) {
+        for (Throwable cause = failure; cause != null; cause = cause.getCause()) {
+            if (cause instanceof cloud.jengu.dbo.core.api.StoreUnreachableException) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * The feed of an origin this place cannot read right now. Every read says
+     * so as the link going quiet says it, so the place is treated exactly as
+     * one whose link went quiet: it serves what it holds, and the round
+     * tries again.
+     */
+    private record Unreachable(String origin) implements ChangeFeed {
+
+        private cloud.jengu.dbo.core.api.StoreUnreachableException away() {
+            return new cloud.jengu.dbo.core.api.StoreUnreachableException(
+                    "the origin " + origin + " is not being read: no link, or synchronisation "
+                            + "is off");
+        }
+
+        @Override
+        public cloud.jengu.dbo.core.api.feed.FeedChunk<cloud.jengu.dbo.core.api.feed.FeedItem> read(
+                String cursor, int limit) {
+            throw away();
+        }
+
+        @Override
+        public cloud.jengu.dbo.core.api.feed.FeedChunk<cloud.jengu.dbo.core.api.feed.FeedItem> readFor(
+                String consumer, int limit) {
+            throw away();
+        }
+
+        @Override
+        public void ack(String consumer, String cursor) {
+            throw away();
+        }
+
+        @Override
+        public void resetConsumer(String consumer, String cursor) {
+            throw away();
+        }
+
+        @Override
+        public String cursorOf(String consumer) {
+            throw away();
+        }
+
+        @Override
+        public long lag(String consumer) {
+            throw away();
+        }
     }
 
     /**
@@ -4170,6 +4430,10 @@ public final class TenantRuntimeManager implements AutoCloseable {
      */
     private void wireDependencies(TenantSpec spec, TenantRuntime runtime,
             javax.sql.DataSource on) {
+        if (places.contains(spec.code())) {
+            wirePlace(spec, runtime, on);
+            return;
+        }
         if (spec.dependencies().isEmpty()) {
             // Nothing to wire, and nothing to clear: a tenant whose streams
             // have to go is one being taken down or rebuilt, and both go
@@ -4493,6 +4757,14 @@ public final class TenantRuntimeManager implements AutoCloseable {
      * declaration disagreeing with itself.
      */
     private void readyOnItsFace(TenantSpec spec, TenantRuntime runtime) {
+        if (places.contains(spec.code())) {
+            readyAsAPlace(spec, runtime);
+            return;
+        }
+        readyOnItsFaceChain(spec, runtime);
+    }
+
+    private void readyOnItsFaceChain(TenantSpec spec, TenantRuntime runtime) {
         java.util.Optional<TenantSpec.Dependency> face = spec.dependencies().stream()
                 .filter(TenantSpec.Dependency::face).findFirst();
         if (face.isEmpty()) {
@@ -4795,11 +5067,25 @@ public final class TenantRuntimeManager implements AutoCloseable {
                     LOG.info("stream {} carried events={} in {}ms", engine.name(), carried,
                             System.currentTimeMillis() - began);
                 }
+                if (unreached.remove(engine.name())) {
+                    LOG.info("stream {} reaches its upstream again", engine.name());
+                }
             } catch (RuntimeException e) {
                 // one stream's failure never blocks the others; the
                 // next round retries from the acked cursor
-                LOG.warn("sync round failed for one stream; retrying from the "
-                        + "acked cursor next round", e);
+                if (unreachable(e)) {
+                    // An upstream across a network is away for hours, and a
+                    // line every round would bury the one that said so. Said
+                    // when it goes, and again when it comes back.
+                    if (unreached.add(engine.name())) {
+                        LOG.warn("stream {} cannot reach its upstream ({}); serving what it "
+                                + "holds and retrying from the acked cursor", engine.name(),
+                                e.getMessage());
+                    }
+                } else {
+                    LOG.warn("sync round failed for one stream; retrying from the "
+                            + "acked cursor next round", e);
+                }
             }
         });
         return seen.get();

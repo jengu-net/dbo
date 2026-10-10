@@ -116,7 +116,8 @@ public final class LaneVerbService {
         // the credential the authority validated, never the participant
         // named in the body and never the machinery's own name. Set for the
         // verb and cleared after it, because a door's thread is reused.
-        if (verb == LaneVerbs.FEED_READ || verb == LaneVerbs.FEED_ACK) {
+        if (verb == LaneVerbs.FEED_READ || verb == LaneVerbs.FEED_ACK
+                || verb == LaneVerbs.DECLARATION) {
             return placed(grant, participant, verb, body);
         }
         cloud.jengu.dbo.core.api.Caller.set(grant.clientId());
@@ -156,6 +157,13 @@ public final class LaneVerbService {
         if (served.isEmpty()) {
             return new Answer.Refused("this tenant serves no place yet");
         }
+        if (verb == LaneVerbs.DECLARATION) {
+            String declaration = served.get().declaration().get();
+            if (declaration == null) {
+                return new Answer.Refused("this tenant has no declaration to hand a place");
+            }
+            return new Answer.Ok(Map.of(LaneVerbs.DECLARATION_TEXT, declaration));
+        }
         String domain = string(body, LaneVerbs.DOMAIN);
         if (!Place.RECORDS.equals(domain) && !Place.DEFINITIONS.equals(domain)) {
             return new Answer.Denied(400, null, "a place reads '" + Place.RECORDS + "' or '"
@@ -189,8 +197,20 @@ public final class LaneVerbService {
             cloud.jengu.dbo.core.api.feed.FeedChunk<cloud.jengu.dbo.core.api.feed.FeedItem> chunk =
                     feed.readFor(consumer, chunkOf(number(body, LaneVerbs.LIMIT)),
                             cloud.jengu.dbo.core.api.feed.FeedSelection.ofTypes(readable));
+            // A place with a face root of its own takes the face from it, and
+            // is not sent the face a second time: it is most of a tenant's
+            // definitions, and every row of it is the same row the place's
+            // own root already holds. Asked once per chunk, not per item.
+            Set<String> fromTheFace = Place.DEFINITIONS.equals(domain)
+                    && Boolean.TRUE.equals(field(body, LaneVerbs.WITHOUT_FACE))
+                    ? place.fromTheFace().apply(chunk.items().stream()
+                            .map(cloud.jengu.dbo.core.api.feed.FeedItem::objectId).toList())
+                    : Set.of();
             List<cloud.jengu.dbo.core.api.feed.FeedItem> items = new java.util.ArrayList<>();
             for (cloud.jengu.dbo.core.api.feed.FeedItem item : chunk.items()) {
+                if (fromTheFace.contains(item.objectId())) {
+                    continue;
+                }
                 // KEPT, though the feed was asked to narrow: a feed that
                 // cannot narrow answers with everything, and nothing outside
                 // what a place may read leaves here whatever the feed did.
@@ -341,7 +361,7 @@ public final class LaneVerbService {
             }
             // Served beside the lane, never through it: a place is not a
             // participant act, and serve() takes them before a lane is built.
-            case FEED_READ, FEED_ACK -> throw new IllegalStateException(
+            case FEED_READ, FEED_ACK, DECLARATION -> throw new IllegalStateException(
                     "'" + verb.path() + "' is a place's verb and is not dispatched to a lane");
         };
     }

@@ -38,6 +38,7 @@ ADeploymentIsEquippedBeforeItStartsIT                    deployment — an image
 AHostHoldsALaneByInstallingABundleIT                     container
 AParticipantHoldsItsLaneOnTheStreamIT                    whole plane
 ARollingUpgradeReadsAsOneStepIT                          deployment — two nodes, each built with a step catalogue of its own carrying one step at two versions; the sample world is one node
+ASecondPlaceComesUpFromItsOriginIT                       lifecycle — a place of a tenant coming up on a second node from its origin over the lane, with the link down and across a restart; a site is a second node with a database server of its own, which the sample world is not
 AStepIsRunForTheFleetIT                                  deployment — its management tenant declares fleet steps the sample world cannot: a required step, one not until approved, one withdrawn, two on one substrate, and a named processor; a fleet step is declared for the whole deployment and cannot be scoped to tenants a leg makes, so any of these on the world would change every shared tenant
 AStoreWithoutSuperuserStillMountsIT                      sweep
 ATenantSubscribesToItsVersionIT                          lifecycle

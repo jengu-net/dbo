@@ -44,7 +44,7 @@ public final class DboWorker implements SmartLifecycle {
     private final Map<String, Supplier<String>> tokens;
     private final List<cloud.jengu.dbo.runner.HeartbeatStatistics> statistics;
 
-    private final List<DboRegistrar.Registration> lanes = new ArrayList<>();
+    private final List<Attached> attachedLanes = new java.util.concurrent.CopyOnWriteArrayList<>();
     private final List<DboRegistrar.Registration> performing = new ArrayList<>();
     private volatile boolean running;
 
@@ -76,9 +76,117 @@ public final class DboWorker implements SmartLifecycle {
         return said;
     }
 
-    /** The tenants this worker is offered work by. */
+    /** The tenants this worker is offered work by, configured or attached since. */
     public List<String> lanes() {
-        return properties.getLanes().stream().map(DboWorkerProperties.Lane::getTenant).toList();
+        List<String> tenants = new ArrayList<>(properties.getLanes().stream()
+                .filter(DboWorkerProperties.Lane::overTheSubstrate)
+                .map(DboWorkerProperties.Lane::getTenant).toList());
+        attachedLanes.forEach(attached -> tenants.add(attached.tenant()));
+        return List.copyOf(tenants);
+    }
+
+    /**
+     * Holds a lane to a tenant from now on: its work is offered to this
+     * worker's steps, and the lane can be told to keep a place of the tenant
+     * up to date as well.
+     *
+     * <p><b>For a credential that arrives while the application runs.</b> A
+     * site is enrolled by somebody acting in the cloud, so its lane exists
+     * only once that happened; the lanes configured in properties are this
+     * same call made at start. The credential is asked for on every call
+     * rather than held, so one that is rotated needs no second attach — and
+     * it is never written anywhere by this: a host that wants the lane back
+     * after a restart attaches it again, from wherever it keeps secrets.
+     *
+     * @param base  where the tenant answers, for example {@code https://host/t/code/}
+     * @param token the credential, asked for on every call
+     */
+    public synchronized Attached attach(String tenant, java.net.URI base,
+            Supplier<String> token) {
+        // The baseline unless this application said otherwise. A step is
+        // not overridable by default and the baseline is the only scope
+        // every step admits, so a worker scoped to an organisation by
+        // default is one whose claims are refused by every step that never
+        // opened itself to being varied.
+        Executor identity = new Executor(properties.getIdentity().getName(),
+                properties.getIdentity().getVersion(), tenant,
+                properties.getIdentity().getScope() == DboWorkerProperties.Scope.ORGANISATION
+                        ? Scope.organisation(tenant)
+                        : Scope.BASELINE);
+        HttpLane lane = HttpLane.to(base.resolve("work"), token, tenant,
+                properties.getIdentity().getName(), identity);
+        // Said on the registration, so whatever reads the whiteboard can tell
+        // a lane to a tenant elsewhere from one to a tenant served here under
+        // the same code — which is exactly what a site holds.
+        Map<String, String> remote = Map.of("dbo.lane.tenant", tenant,
+                "dbo.lane.base", base.toString());
+        Attached attached = new Attached(tenant, lane, remote,
+                runtime.registrar().register(Lane.class, lane, remote));
+        attachedLanes.add(attached);
+        return attached;
+    }
+
+    /**
+     * A lane this worker holds, and whether the tenant it reaches is also
+     * served here as a place of it.
+     */
+    public final class Attached {
+
+        private final String tenant;
+        private final HttpLane lane;
+        private final Map<String, String> remote;
+        private final DboRegistrar.Registration work;
+        private DboRegistrar.Registration origin;
+        private boolean detached;
+
+        private Attached(String tenant, HttpLane lane, Map<String, String> remote,
+                DboRegistrar.Registration work) {
+            this.tenant = tenant;
+            this.lane = lane;
+            this.remote = remote;
+            this.work = work;
+        }
+
+        public String tenant() {
+            return tenant;
+        }
+
+        /**
+         * Turns keeping the place up to date on or off.
+         *
+         * <p>Off is a pause. The place goes on serving what it holds, its
+         * position stays where the tenant keeps it, and on again carries on
+         * from there; nothing a place serves is withdrawn by this. Work is not
+         * touched either way.
+         */
+        public synchronized void sync(boolean on) {
+            if (detached || on == (origin != null)) {
+                return;
+            }
+            if (on) {
+                origin = runtime.registrar().register(
+                        cloud.jengu.dbo.runner.transport.Origin.class, lane.origin(), remote);
+            } else {
+                origin.close();
+                origin = null;
+            }
+            LOG.info("place of {} is {}kept up to date over its lane", tenant, on ? "" : "not ");
+        }
+
+        public synchronized boolean syncing() {
+            return origin != null;
+        }
+
+        /** Lets the lane go: no more work from it, and the place stops being kept up to date. */
+        public synchronized void detach() {
+            if (detached) {
+                return;
+            }
+            sync(false);
+            work.close();
+            detached = true;
+            attachedLanes.remove(this);
+        }
     }
 
     @Override
@@ -115,15 +223,9 @@ public final class DboWorker implements SmartLifecycle {
             // every step admits, so a worker scoped to an organisation by
             // default is one whose claims are refused by every step that never
             // opened itself to being varied.
-            Executor identity = new Executor(properties.getIdentity().getName(),
-                    properties.getIdentity().getVersion(), declared.getTenant(),
-                    properties.getIdentity().getScope() == DboWorkerProperties.Scope.ORGANISATION
-                            ? Scope.organisation(declared.getTenant())
-                            : Scope.BASELINE);
-            Lane lane = HttpLane.to(declared.getBase().resolve("work"),
-                    tokens.get(declared.getTenant()), declared.getTenant(),
-                    properties.getIdentity().getName(), identity);
-            lanes.add(registrar.register(Lane.class, lane, Map.of()));
+            Attached attached = attach(declared.getTenant(), declared.getBase(),
+                    tokens.get(declared.getTenant()));
+            attached.sync(declared.isSync());
         }
         running = true;
         LOG.info("starting: component=dbo-worker steps={} lanes={} poll={}ms",
@@ -141,8 +243,7 @@ public final class DboWorker implements SmartLifecycle {
         // stops being able to perform it. The other order takes work it can
         // no longer do anything with, and the run is released with a reason
         // nobody wrote.
-        lanes.forEach(DboRegistrar.Registration::close);
-        lanes.clear();
+        List.copyOf(attachedLanes).forEach(Attached::detach);
         performing.forEach(DboRegistrar.Registration::close);
         performing.clear();
     }

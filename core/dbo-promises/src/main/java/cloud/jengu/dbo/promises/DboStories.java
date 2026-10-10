@@ -530,6 +530,14 @@ public enum DboStories implements Story {
                     DboPromises.ZONE_SUBJECT_DOMAINS,
                     DboPromises.ZONE_BROKER_CHOICE,
                     DboPromises.ZONE_SESSIONS_ACCUMULATE,
+                    // A site: the second place served from its origin over a lane.
+                    DboPromises.SYNC_A_PLACE_READS_ONLY_WHAT_THE_TENANT_DID_NOT_AUTHOR,
+                    DboPromises.SYNC_A_PLACE_READS_ON_FROM_WHERE_IT_ACKNOWLEDGED,
+                    DboPromises.SYNC_A_PLACE_IS_DECLARED_AS_ITS_ORIGIN_IS,
+                    DboPromises.SYNC_A_PLACE_COMES_UP_FROM_ITS_ORIGIN,
+                    DboPromises.SYNC_A_PLACE_TAKES_ITS_FACE_FROM_A_ROOT_BESIDE_IT,
+                    DboPromises.SYNC_A_PLACE_SERVES_WHAT_IT_HOLDS_WHILE_ITS_ORIGIN_IS_AWAY,
+                    DboPromises.PROC_A_LANE_IS_ATTACHED_WHILE_THE_APPLICATION_RUNS,
                     // And the second place: the other bound, deliberately different.
                     DboPromises.PROC_THE_LANE_HAS_TWO_BOUNDS,
                     DboPromises.PROC_WORK_DRIVEN_ARRIVAL_AND_EXPIRY,

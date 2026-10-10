@@ -73,6 +73,7 @@ public class DboServerProperties {
     public Map<String, String> asFrameworkProperties() {
         Map<String, String> said = new LinkedHashMap<>(framework);
         put(said, "dbo.tenant.dir", tenants.getDirectory());
+        put(said, "dbo.tenant.places", tenants.getPlaces());
         put(said, "dbo.tenant.management.spec", managementSpec);
         put(said, "dbo.tenant.http.host", http.getHost());
         put(said, "dbo.tenant.http.port", http.getPort() == null
@@ -128,6 +129,16 @@ public class DboServerProperties {
     @Data
     public static class Tenants {
         private String directory;
+
+        /**
+         * Where a site keeps the declaration of each tenant it serves as a
+         * second place of a tenant in the cloud. Set, this node serves a
+         * place of every tenant its worker's lanes reach with
+         * synchronisation on, and goes on serving them, from what it kept,
+         * while those lanes are down. Removing a kept declaration is how a
+         * place stops being served.
+         */
+        private String places;
     }
 
     /**

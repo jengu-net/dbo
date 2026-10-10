@@ -50,7 +50,12 @@ public enum LaneVerbs {
      */
     FEED_READ("feed-read"),
     /** How far the place has applied: its position moves forward, never back. */
-    FEED_ACK("feed-ack");
+    FEED_ACK("feed-ack"),
+    /**
+     * The tenant's own declaration, as the tenant serves it now: what a place
+     * of it serves, unchanged, so the two never drift.
+     */
+    DECLARATION("declaration");
 
     /** Who is asking, as a feed consumer: this participant's own cursor. */
     public static final String PARTICIPANT = "participant";
@@ -119,6 +124,13 @@ public enum LaneVerbs {
     /** A feed position, as opaque on the wire as it is in-process. */
     public static final String CURSOR = "cursor";
     public static final String DRAINED = "drained";
+    /**
+     * Beside a read of the definitions: leave out what the tenant took from
+     * its face root, because the place takes its face from a root of its own.
+     */
+    public static final String WITHOUT_FACE = "withoutFace";
+    /** A declaration's text, as the tenant was declared with it. */
+    public static final String DECLARATION_TEXT = "declaration";
 
     private final String path;
 

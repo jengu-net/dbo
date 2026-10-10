@@ -42,6 +42,9 @@ public final class Activator implements BundleActivator {
     private ServiceTracker<HttpServer, HttpServer> servers;
     private ServiceTracker<cloud.jengu.dbo.sync.ConfigSource,
             cloud.jengu.dbo.sync.ConfigSource> sources;
+    /** The origins a link reaches with synchronisation on, while this node is a site. */
+    private ServiceTracker<cloud.jengu.dbo.runner.transport.Origin,
+            cloud.jengu.dbo.runner.transport.Origin> origins;
 
     /** The two the manager cannot be built without, as each arrives. */
     private volatile TenantDatabaseProvisioner provisioner;
@@ -112,6 +115,14 @@ public final class Activator implements BundleActivator {
      * retractions.
      */
     static final String SHARED_DECLARATIONS = "dbo.tenant.declarations.shared";
+
+    /**
+     * Where a site keeps the declaration of each tenant it serves as a place
+     * of that tenant elsewhere. Set, it makes this node a site: it serves a
+     * place of every origin a link registers, and of every one it kept a
+     * declaration for, beside whatever the deployment declares itself.
+     */
+    static final String PLACES = "dbo.tenant.places";
 
     /** How many tenants a node brings up at once, when a deployment says. */
     static final String BRING_UP_TOGETHER = "dbo.tenant.bringup.together";
@@ -815,7 +826,40 @@ public final class Activator implements BundleActivator {
         // Where the declarations are read from, when a host says. Before
         // start, like the substrate below: a source swapped under a running
         // scan would make one round read one deployment and the next another.
-        if (declarations != null) {
+        String places = ctx.getProperty(PLACES);
+        if (places != null && !places.isBlank()) {
+            PlacesConfigSource sited = new PlacesConfigSource(Path.of(places),
+                    declarations != null ? declarations
+                            : new cloud.jengu.dbo.sync.DirectoryConfigSource(dir,
+                                    TenantDeclarationModel.TYPE, ".json"));
+            manager.declaredFrom(sited);
+            sited.servedBy(manager);
+            origins = new ServiceTracker<>(ctx, cloud.jengu.dbo.runner.transport.Origin.class,
+                    new ServiceTrackerCustomizer<>() {
+                        @Override
+                        public cloud.jengu.dbo.runner.transport.Origin addingService(
+                                ServiceReference<cloud.jengu.dbo.runner.transport.Origin> ref) {
+                            cloud.jengu.dbo.runner.transport.Origin origin = ctx.getService(ref);
+                            sited.reaches(origin);
+                            return origin;
+                        }
+
+                        @Override
+                        public void modifiedService(
+                                ServiceReference<cloud.jengu.dbo.runner.transport.Origin> ref,
+                                cloud.jengu.dbo.runner.transport.Origin origin) {
+                        }
+
+                        @Override
+                        public void removedService(
+                                ServiceReference<cloud.jengu.dbo.runner.transport.Origin> ref,
+                                cloud.jengu.dbo.runner.transport.Origin origin) {
+                            sited.letGo(origin);
+                            ctx.ungetService(ref);
+                        }
+                    });
+            origins.open();
+        } else if (declarations != null) {
             manager.declaredFrom(declarations);
         }
         // A runtime can be asked what it is serving, when a deployment has
@@ -904,6 +948,9 @@ public final class Activator implements BundleActivator {
         }
         if (sources != null) {
             sources.close();
+        }
+        if (origins != null) {
+            origins.close();
         }
         // Before the manager, so nothing is selected for a tenant that is on
         // its way down.

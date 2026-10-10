@@ -137,6 +137,7 @@ sets `auto-start: false` and calls `start()` — which is what
 | `dbo.worker.lanes[].base` | where it answers |
 | `dbo.worker.lanes[].token.client-id`, `.client-secret` | a client that tenant issued, refreshed as needed |
 | `dbo.worker.lanes[].token.value` | a bearer token instead, for a deployment that mints them elsewhere |
+| `dbo.worker.lanes[].sync` | also serve this tenant here as a place of it, kept up to date over the lane (default false) — see [A site](#a-site) |
 | `dbo.worker.substrate.url`, `.user`, `.password` | the deployment's own substrate, where a lane is carried by it |
 | `dbo.worker.substrate.participant` | the name this worker enrolled under, which is its cursor on each feed |
 | `dbo.worker.substrate.provider` | whose code this is, which a run records |
@@ -191,6 +192,40 @@ credentials rejected rather than unreachable.
 the runner stops being offered work before it stops being able to perform it.
 A step still running when the grace expires is released with a reason rather
 than dropped: the run returns to the tenant and a later cycle takes it.
+
+## A site
+
+**A site is a worker and a server in one application, whose one connection
+to the cloud is a lane.** It performs the cloud tenant's work and
+serves that tenant on site as a second place of it, so the site's
+own systems keep working while the link is down. What the place serves comes
+over the lane: the tenant's declaration, its definitions and the records it
+takes from upstream. What the tenant authors arrives as work and goes back
+as what the run wrote.
+
+**A site is usually enrolled while it runs**, because somebody in the cloud
+has to approve it. So the lane is attached when the credential arrives rather
+than configured:
+
+```java
+DboWorker.Attached cloud = worker.attach("haru",
+        URI.create("https://cloud.example/t/haru/"), credentials::currentToken);
+cloud.sync(true);    // serve haru here, kept up to date over this lane
+cloud.sync(false);   // pause: the place serves what it holds
+cloud.detach();      // let the lane go
+```
+
+The credential is asked for on every call and written down nowhere, so a
+rotated one needs no second attach and the application attaches the lane again
+after a restart. A lane
+configured under `dbo.worker.lanes` is this same call made at start, and
+`sync: true` there turns the place on.
+
+**Sync needs a credential that holds a place** — the client's scopes include
+`place` — and a server beside this worker told where to keep the declarations
+it serves (`dbo.tenants.places`, in the server's README). **Turning it off is
+a pause**: the place goes on serving what it holds, and turning it on again
+carries on from its position in the cloud. Work is unaffected.
 
 ## Where a worker runs, and which carrier it uses
 

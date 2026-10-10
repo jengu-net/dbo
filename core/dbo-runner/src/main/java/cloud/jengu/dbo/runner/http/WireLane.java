@@ -385,15 +385,70 @@ public class WireLane implements Lane {
      *               {@link cloud.jengu.dbo.runner.transport.Place#DEFINITIONS}
      */
     public cloud.jengu.dbo.core.api.feed.ChangeFeed placeFeed(String domain) {
-        return new PlaceFeed(domain);
+        return new PlaceFeed(domain, false);
+    }
+
+    /**
+     * The tenant's definitions without what it took from its face root: for
+     * a place that takes its face from a root of its own.
+     */
+    public cloud.jengu.dbo.core.api.feed.ChangeFeed definitionsWithoutTheFace() {
+        return new PlaceFeed(cloud.jengu.dbo.runner.transport.Place.DEFINITIONS, true);
+    }
+
+    /**
+     * The tenant this lane reaches, as a place of it reads it: its
+     * declaration and its two feeds, on this lane's carrier and credential.
+     * The credential must hold a place for any of it to answer.
+     */
+    public cloud.jengu.dbo.runner.transport.Origin origin() {
+        cloud.jengu.dbo.core.api.feed.ChangeFeed records =
+                placeFeed(cloud.jengu.dbo.runner.transport.Place.RECORDS);
+        cloud.jengu.dbo.core.api.feed.ChangeFeed definitions =
+                placeFeed(cloud.jengu.dbo.runner.transport.Place.DEFINITIONS);
+        cloud.jengu.dbo.core.api.feed.ChangeFeed withoutTheFace = definitionsWithoutTheFace();
+        return new cloud.jengu.dbo.runner.transport.Origin() {
+            @Override
+            public cloud.jengu.dbo.core.api.feed.ChangeFeed definitionsWithoutTheFace() {
+                return withoutTheFace;
+            }
+
+            @Override
+            public String tenant() {
+                return tenant;
+            }
+
+            @Override
+            public String declaration() {
+                Object answer = post(LaneVerbs.DECLARATION, verb());
+                Object text = answer instanceof Map<?, ?> map
+                        ? map.get(LaneVerbs.DECLARATION_TEXT) : null;
+                if (text == null) {
+                    throw new IllegalStateException(tenant + ": the declaration came back empty");
+                }
+                return String.valueOf(text);
+            }
+
+            @Override
+            public cloud.jengu.dbo.core.api.feed.ChangeFeed records() {
+                return records;
+            }
+
+            @Override
+            public cloud.jengu.dbo.core.api.feed.ChangeFeed definitions() {
+                return definitions;
+            }
+        };
     }
 
     private final class PlaceFeed implements cloud.jengu.dbo.core.api.feed.ChangeFeed {
 
         private final String domain;
+        private final boolean withoutFace;
 
-        private PlaceFeed(String domain) {
+        private PlaceFeed(String domain, boolean withoutFace) {
             this.domain = domain;
+            this.withoutFace = withoutFace;
         }
 
         @Override
@@ -403,6 +458,9 @@ public class WireLane implements Lane {
             body.put(LaneVerbs.DOMAIN, domain);
             body.put(LaneVerbs.TYPES, RecordWire.encode(List.copyOf(wanted.types())));
             body.put(LaneVerbs.LIMIT, limit);
+            if (withoutFace) {
+                body.put(LaneVerbs.WITHOUT_FACE, true);
+            }
             Object answer = post(LaneVerbs.FEED_READ, body);
             Map<?, ?> chunk = answer instanceof Map<?, ?> map ? map : Map.of();
             Object items = chunk.get(LaneVerbs.ITEMS);

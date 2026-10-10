@@ -51,6 +51,22 @@ That asymmetry is not tidiness. Across a link that is merely slow, "the
 deadline passed" and "the checkpoint is in flight" can both be true, and a
 peer acting on the first has the work done twice.
 
+## A site holds its place over one lane
+
+The building's node is a site: one application that performs the cloud's work
+and serves the clinic on site, whose only connection to the cloud is the lane
+its worker holds. Its place of the clinic is declared with the cloud's own
+declaration, read over that lane and kept, so a site restarted while the link
+is down still knows what it serves.
+
+What crosses by type is what the clinic did not author: its definitions, and
+the records of the types it takes from upstream, already composed in the cloud.
+What the clinic authors travels as work, whatever the site asks for. The face
+does not cross: the site reads it from a face root of its own release.
+
+A site that cannot read the cloud, or has synchronisation off, serves what it
+holds and carries on from where it acknowledged.
+
 ## Reconnecting is ordinary
 
 A batch sent twice applies once. A replica that loses its connection,
@@ -91,6 +107,13 @@ citations say it is.
 | `REQ-DBO-ZONE-SUBJECT-DOMAINS` | Subject-resolution identifier systems come from the zone's declared domains — the official national terminology — never from dbo code. | PROVEN |
 | `REQ-DBO-ZONE-BROKER-CHOICE` | The broker set is jurisdictional, the choice organizational: the zone declares the available national brokers; a tenant selects its contracted one and may restrict what it accepts. | PROVEN |
 | `REQ-DBO-ZONE-SESSIONS-ACCUMULATE` | The per-zone hub's session records which broker performed each ceremony and accumulates ceremonies; cross-broker reuse is the default, tenant acceptance policy the restriction — the strictest tenant is satisfied without invalidating anyone else's session. | PROVEN |
+| `REQ-DBO-SYNC-A-PLACE-READS-ONLY-WHAT-THE-TENANT-DID-NOT-AUTHOR` | A second place of a tenant reads, over the lane, the tenant's definitions and the records of the types it takes from upstream, and nothing else. A type the tenant authors is not on that feed whatever the place asks for, because it travels as work; a type stored in parts arrives whole; and a credential that holds no place reads nothing at all. | PROVEN |
+| `REQ-DBO-SYNC-A-PLACE-READS-ON-FROM-WHERE-IT-ACKNOWLEDGED` | The tenant keeps each place's position, under the participant's name and per feed, and moves it forward only. A place reads from where it last acknowledged, two places never share a position, and a place can neither rewind its position nor read from one of its own choosing. | PROVEN |
+| `REQ-DBO-SYNC-A-PLACE-IS-DECLARED-AS-ITS-ORIGIN-IS` | A site serves a place of each tenant elsewhere that it reaches, declared as that tenant is declared there, and keeps each declaration it reads. An origin that cannot be reached, or no longer answers the site, leaves its place served from the declaration last kept; a place stops being served only when that kept declaration is removed on the site; and a place with nothing kept and no origin to ask makes the read fail rather than answer that the site serves nothing. | PROVEN |
+| `REQ-DBO-SYNC-A-PLACE-COMES-UP-FROM-ITS-ORIGIN` | A tenant served as a second place of a tenant elsewhere comes up from that tenant's feeds alone, read over the lane: its face, the content its declaration takes from upstream and its own definitions, already composed where it came from. Its declaration is the origin's own, unchanged, and none of the upstreams it names runs beside it. What the origin authors does not arrive, and what arrived is the place's to serve and not to change. | PROVEN |
+| `REQ-DBO-SYNC-A-PLACE-TAKES-ITS-FACE-FROM-A-ROOT-BESIDE-IT` | A site runs a face root of its own beside each place, from its own release and under the code the place's declaration names, unless the deployment declares that root itself. The place takes its face from that root as any subscriber takes one, and reads from its origin only the definitions that are not the face, so the face is never carried across the link. | PROVEN |
+| `REQ-DBO-SYNC-A-PLACE-SERVES-WHAT-IT-HOLDS-WHILE-ITS-ORIGIN-IS-AWAY` | A place that cannot read its origin, because the link is down or synchronisation is off, keeps serving what it holds, a restart included, and says once that it cannot read rather than on every round. When it can read again it carries on from where it last acknowledged. A place that has never received anything has nothing to serve, and waits for its origin as a tenant waits for an upstream. | PROVEN |
+| `REQ-DBO-PROC-A-LANE-IS-ATTACHED-WHILE-THE-APPLICATION-RUNS` | A worker holds a lane from the moment its application attaches one, with a credential asked for on every call and written down nowhere, and lets it go when told. While it holds the lane it can keep a place of that tenant up to date or stop, and stopping withdraws the place's link and nothing else: the lane goes on carrying work. | PLANNED |
 | `REQ-DBO-PROC-THE-LANE-HAS-TWO-BOUNDS` | What moves between two replicas of one tenant has two bounds, deliberately different: declarations by type — the tenant's own definitions, none of it about anybody — which travel as every version of the types asked for since the peer's position, filed under their source, read-only there, shadowed by a local override and never revoked by work; and patient data by work, which arrives with a task and leaves with it. What a run produced travels with the run as a copy that outlives it. A type the lane does not admit is refused by name, never quietly left out. | PROVEN |
 | `REQ-DBO-PROC-WORK-DRIVEN-ARRIVAL-AND-EXPIRY` | A record travels to a replica because a piece of work names it, and is removed when no open run there still names it. Work-driven arrival without work-driven expiry is a replica accumulating a register one task at a time. | PROVEN |
 | `REQ-DBO-PROC-MIRRORED-RUNS-ARE-FILED-BY-SOURCE` | A run arriving from another replica of the same tenant is stored under that replica, beside the local run of the same key rather than on top of it. | PROVEN |
@@ -105,7 +128,7 @@ citations say it is.
 | `REQ-DBO-ZONE-A-ZONE-IS-SERVED-TO-A-FACE-THROUGH-ONE-PROJECTION` | A zone's definitions and records reach the tenants of a face it was not written in through one projection per zone per face: a tenant that takes the zone and stands on the target face, so the conversion happens once rather than once per tenant. A zone serving a face it was written in has no projection, because there is nothing to convert and one would be a hop, a database and a second copy for nothing. Nobody declares them — they follow from a zone's version and the faces of the tenants that asked for it — and a tenant's declaration still names the zone, since which projection serves it follows from its own face and is not a tenant's to know. | PROVEN |
 | `REQ-DBO-FEED-LEAN-WIRE-OPTION` | Planned — Between DBO-speaking parties, feeds stream lean frames; FHIR Bundles are assembled only at the FHIR surface. | PLANNED |
 
-Coverage: {PROVEN=25, PLANNED=1} — a leg marked PLANNED cites a promise that exists and is not yet cited by any test.
+Coverage: {PROVEN=31, PLANNED=2} — a leg marked PLANNED cites a promise that exists and is not yet cited by any test.
 <!-- story:end -->
 
 ## What the store cannot do yet

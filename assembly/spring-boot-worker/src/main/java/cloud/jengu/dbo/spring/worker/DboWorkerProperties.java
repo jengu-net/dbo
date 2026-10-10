@@ -291,6 +291,15 @@ public class DboWorkerProperties {
         private String carrier;
 
         /**
+         * Whether this node also serves the tenant as a second place of it,
+         * kept up to date over this lane. Takes a credential that holds a
+         * place, and a server beside this worker told where to keep the
+         * declarations it serves ({@code dbo.tenants.places}). Off, the lane
+         * carries work and nothing else.
+         */
+        private boolean sync;
+
+        /**
          * Whether this lane is carried by the substrate rather than by HTTP.
          *
          * <p><b>Inferred from what the lane was given, unless said.</b> A base
@@ -312,6 +321,14 @@ public class DboWorkerProperties {
 
         public String getCarrier() {
             return carrier;
+        }
+
+        public boolean isSync() {
+            return sync;
+        }
+
+        public void setSync(boolean sync) {
+            this.sync = sync;
         }
 
         public void setCarrier(String carrier) {
