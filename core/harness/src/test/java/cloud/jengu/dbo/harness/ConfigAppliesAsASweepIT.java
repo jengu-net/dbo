@@ -44,10 +44,12 @@ class ConfigAppliesAsASweepIT {
     static PgObjectStore store;
     static Runs runs;
     static ConfigApplication configuration;
+    static PGSimpleDataSource ds;
+    static java.util.List<cloud.jengu.dbo.core.api.TypeRegistration> types;
 
     @BeforeAll
     void up() {
-        PGSimpleDataSource ds = new PGSimpleDataSource();
+        ds = new PGSimpleDataSource();
         ds.setUrl(SharedPostgres.urlFor("ConfigAppliesAsASweepIT"));
         ds.setUser(SharedPostgres.get().getUsername());
         ds.setPassword(SharedPostgres.get().getPassword());
@@ -56,8 +58,7 @@ class ConfigAppliesAsASweepIT {
         // A projected type beside the operational one, because the whole
         // question here is what separates them: a ValueSet a tenant may
         // author, and a Projection only the lane may write.
-        java.util.List<cloud.jengu.dbo.core.api.TypeRegistration> types =
-                new ArrayList<>(Registrations.withRuns(personality.registrations()));
+        types = new ArrayList<>(Registrations.withRuns(personality.registrations()));
         types.add(new cloud.jengu.dbo.core.api.TypeRegistration("Projection",
                 R4Personality.DOMAIN, cloud.jengu.dbo.core.api.IdentityClass.IDENTIFIER,
                 java.util.Set.of(PROJECTED_SYSTEM),
@@ -304,5 +305,33 @@ class ConfigAppliesAsASweepIT {
         assertFalse(store.history("Projection", id).isEmpty(),
                 "the record was removed and took its own history with it, so nobody can say "
                         + "what it had been");
+    }
+
+    @Test
+    @Proving(DboPromises.PROC_MACHINERY_WRITES_UNDER_ITS_RUN)
+    @DisplayName("what configuration writes is in the trail under the application that wrote it")
+    void whatConfigurationWritesNamesItsRun() {
+        // The same tenant, keeping a trail of what is written in it.
+        java.util.List<cloud.jengu.dbo.core.api.TypeRegistration> withTrail = new ArrayList<>(types);
+        withTrail.addAll(cloud.jengu.dbo.policy.AuditModel.registrations());
+        PgObjectStore engine = new PgObjectStore(ds, withTrail);
+        cloud.jengu.dbo.policy.PolicyObjectStore trailed = new cloud.jengu.dbo.policy.PolicyObjectStore(
+                engine, cloud.jengu.dbo.policy.TenantPolicies.parse(
+                        java.util.Map.of("audit", java.util.Map.of("level", "writes"))));
+        ConfigApplication applied = new ConfigApplication(trailed, new Runs(trailed),
+                R4Personality.DOMAIN);
+
+        applied.apply("zone/trailed", "commit:trail", List.of(valueSet(900), valueSet(901)));
+
+        String run = ConfigApplication.PROCESS + "/" + ConfigApplication.STEP + "/zone/trailed";
+        List<cloud.jengu.dbo.core.api.StoredObject> written = engine.select(
+                Criteria.of("AuditEntry").eq("targetType",
+                        cloud.jengu.dbo.core.api.EnvelopeValue.of("ValueSet")));
+        assertFalse(written.isEmpty(), "the trail holds nothing of what was applied");
+        for (cloud.jengu.dbo.core.api.StoredObject entry : written) {
+            String said = new String(entry.payload(), StandardCharsets.UTF_8);
+            assertTrue(said.contains("\"run\":\"" + run + "\""),
+                    "a configured write does not name the application it came from: " + said);
+        }
     }
 }

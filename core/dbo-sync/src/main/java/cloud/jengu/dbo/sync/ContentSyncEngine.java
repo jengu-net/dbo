@@ -232,11 +232,23 @@ public final class ContentSyncEngine {
     /** One sync round: read the upstream feed, apply declared changes, ack. Returns events seen. */
     public int syncOnce(int chunkSize) {
         reading.lock();
-        try {
+        try (cloud.jengu.dbo.core.api.Caller.InRun recorded = underItsRun()) {
             return syncOnceHoldingTheStream(chunkSize);
         } finally {
             reading.unlock();
         }
+    }
+
+    /**
+     * What this stream applies is applied for its run, so every write it
+     * makes in the dependent's trail names the work it was done for. The run
+     * is named by its key, which {@link #pass} finds the sweep by: a stream is
+     * read between passes as well as in them, and a key needs no write.
+     */
+    private cloud.jengu.dbo.core.api.Caller.InRun underItsRun() {
+        return runs == null ? () -> { }
+                : cloud.jengu.dbo.core.api.Caller.underRun(PROCESS + "/" + STEP + "/"
+                        + dependency.name());
     }
 
     private int syncOnceHoldingTheStream(int chunkSize) {
@@ -353,7 +365,7 @@ public final class ContentSyncEngine {
     /** Re-attempts parked (shadowed) events — the fallback path after a local override is removed. */
     public int reconcile() {
         reading.lock();
-        try {
+        try (cloud.jengu.dbo.core.api.Caller.InRun recorded = underItsRun()) {
             return reconcileHoldingTheStream();
         } finally {
             reading.unlock();

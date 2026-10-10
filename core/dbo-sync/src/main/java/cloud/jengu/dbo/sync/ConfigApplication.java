@@ -355,68 +355,77 @@ public final class ConfigApplication {
         // reasons — and each is carded with the reason from its last attempt.
         java.util.List<Declared> pending = new java.util.ArrayList<>(declarations);
         java.util.Map<String, RuntimeException> stuck = new java.util.LinkedHashMap<>();
-        while (!pending.isEmpty()) {
-            java.util.List<Declared> again = new java.util.ArrayList<>();
-            stuck.clear();
-            for (Declared declared : pending) {
-                try {
-                    if (applier.apply(declared) == Applier.Verdict.UNCHANGED) {
-                        unchanged++;
-                    } else {
-                        applied++;
-                    }
-                } catch (RuntimeException refused) {
-                    again.add(declared);
-                    stuck.put(declared.name(), refused);
-                }
-            }
-            if (again.size() == pending.size()) {
-                break; // a round that applied nothing will not apply anything
-            }
-            pending = again;
-        }
-        for (Declared declared : pending) {
-            RuntimeException refused = stuck.get(declared.name());
-            skipped++;
-            // A declaration the engine refuses is a person's — no pass will
-            // apply it until somebody changes it. A store that was
-            // unavailable is a retry and nobody's card.
-            pass.item(declared.name(), Failure.of(refused), String.valueOf(refused.getMessage()));
-            cards.add(new Card(declared.name(), String.valueOf(refused.getMessage())));
-        }
         long withdrawn = 0;
-        // A read with a declaration nobody could apply is not a read anything
-        // may be subtracted from. The one that failed is usually the one that
-        // cannot be identified either, so its own record would be the record
-        // taken away — a typo deleting the thing the typo was in. Cards close
-        // by re-evaluation, so the pass after the fix withdraws properly.
-        if (complete && skipped == 0) {
-            // What this scope holds and this read does not name. Keyed on
-            // identity because it is the one key both sides can compute: a
-            // card names the file somebody has to open, and a record is
-            // keyed by what it declares.
-            java.util.Set<cloud.jengu.dbo.core.api.Identifier> stillDeclared =
-                    new java.util.LinkedHashSet<>();
-            for (Declared declared : declarations) {
-                stillDeclared.addAll(identityOf(declared));
-            }
-            for (cloud.jengu.dbo.core.api.Identifier gone : applier.held(scope)) {
-                if (stillDeclared.contains(gone)) {
-                    continue;
+        // Everything a declaration writes is written for this pass's run, so
+        // the trail of a configured record names the application it came from.
+        cloud.jengu.dbo.core.api.Caller.InRun recorded =
+                cloud.jengu.dbo.core.api.Caller.underRun(sweep.key());
+        try {
+            while (!pending.isEmpty()) {
+                java.util.List<Declared> again = new java.util.ArrayList<>();
+                stuck.clear();
+                for (Declared declared : pending) {
+                    try {
+                        if (applier.apply(declared) == Applier.Verdict.UNCHANGED) {
+                            unchanged++;
+                        } else {
+                            applied++;
+                        }
+                    } catch (RuntimeException refused) {
+                        again.add(declared);
+                        stuck.put(declared.name(), refused);
+                    }
                 }
-                try {
-                    applier.withdraw(scope, gone);
-                    withdrawn++;
-                } catch (RuntimeException refused) {
-                    skipped++;
-                    pass.item(gone.value(), Failure.of(refused), String.valueOf(
-                            refused.getMessage()));
-                    // Named by identity rather than by a file, because nobody
-                    // declared this one: it is what the read stopped naming,
-                    // and the declarer's name for it is the thing that is gone.
-                    cards.add(new Card(gone.value(), String.valueOf(refused.getMessage())));
+                if (again.size() == pending.size()) {
+                    break; // a round that applied nothing will not apply anything
+                }
+                pending = again;
+            }
+            for (Declared declared : pending) {
+                RuntimeException refused = stuck.get(declared.name());
+                skipped++;
+                // A declaration the engine refuses is a person's — no pass will
+                // apply it until somebody changes it. A store that was
+                // unavailable is a retry and nobody's card.
+                pass.item(declared.name(), Failure.of(refused),
+                        String.valueOf(refused.getMessage()));
+                cards.add(new Card(declared.name(), String.valueOf(refused.getMessage())));
+            }
+            // A read with a declaration nobody could apply is not a read anything
+            // may be subtracted from. The one that failed is usually the one that
+            // cannot be identified either, so its own record would be the record
+            // taken away — a typo deleting the thing the typo was in. Cards close
+            // by re-evaluation, so the pass after the fix withdraws properly.
+            if (complete && skipped == 0) {
+                // What this scope holds and this read does not name. Keyed on
+                // identity because it is the one key both sides can compute: a
+                // card names the file somebody has to open, and a record is
+                // keyed by what it declares.
+                java.util.Set<cloud.jengu.dbo.core.api.Identifier> stillDeclared =
+                        new java.util.LinkedHashSet<>();
+                for (Declared declared : declarations) {
+                    stillDeclared.addAll(identityOf(declared));
+                }
+                for (cloud.jengu.dbo.core.api.Identifier gone : applier.held(scope)) {
+                    if (stillDeclared.contains(gone)) {
+                        continue;
+                    }
+                    try {
+                        applier.withdraw(scope, gone);
+                        withdrawn++;
+                    } catch (RuntimeException refused) {
+                        skipped++;
+                        pass.item(gone.value(), Failure.of(refused), String.valueOf(
+                                refused.getMessage()));
+                        // Named by identity rather than by a file, because nobody
+                        // declared this one: it is what the read stopped naming,
+                        // and the declarer's name for it is the thing that is gone.
+                        cards.add(new Card(gone.value(), String.valueOf(refused.getMessage())));
+                    }
                 }
             }
+        } finally {
+            recorded.close();
         }
         try {
             pass.counted("read", declarations.size())
