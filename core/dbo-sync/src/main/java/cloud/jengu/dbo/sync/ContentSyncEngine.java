@@ -259,6 +259,19 @@ public final class ContentSyncEngine {
         }
         lastAskedFor = asking.canonicals();
         FeedChunk<FeedItem> chunk = sourceFeed.readFor(consumer(), chunkSize, asking);
+        // AN EMPTY CHUNK IS THE END ONLY WHEN IT SAYS SO. A feed that leaves
+        // rows out after reading them, as a place's origin leaves out the
+        // face, answers a chunk of nothing with a cursor past what it left
+        // out. Stopping there without the ack reads the same rows on every
+        // round, and nothing behind them ever arrives.
+        while (chunk.items().isEmpty() && !chunk.drained() && chunk.nextCursor() != null) {
+            String passed = chunk.nextCursor();
+            sourceFeed.ack(consumer(), passed);
+            chunk = sourceFeed.readFor(consumer(), chunkSize, asking);
+            if (chunk.items().isEmpty() && passed.equals(chunk.nextCursor())) {
+                break;
+            }
+        }
         if (chunk.items().isEmpty()) {
             return 0;
         }
