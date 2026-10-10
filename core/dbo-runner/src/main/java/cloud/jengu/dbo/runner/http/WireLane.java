@@ -369,6 +369,99 @@ public class WireLane implements Lane {
         return java.util.Collections.unmodifiableMap(resolved);
     }
 
+    /**
+     * One of the tenant's feeds, as a place of it reads them: over this lane's
+     * carrier and credential, from the position the tenant keeps for this
+     * participant.
+     *
+     * <p>A {@link cloud.jengu.dbo.core.api.feed.ChangeFeed}, so the engine that
+     * keeps a dependent up to date reads it as it reads a feed beside it.
+     * Only what that engine asks of a feed crosses: a read from where this
+     * place stands, and an acknowledgement. The position is the tenant's to
+     * keep, so the consumer the engine names is not sent — the participant
+     * is the place, and the tenant names the position after it.
+     *
+     * @param domain {@link cloud.jengu.dbo.runner.transport.Place#RECORDS} or
+     *               {@link cloud.jengu.dbo.runner.transport.Place#DEFINITIONS}
+     */
+    public cloud.jengu.dbo.core.api.feed.ChangeFeed placeFeed(String domain) {
+        return new PlaceFeed(domain);
+    }
+
+    private final class PlaceFeed implements cloud.jengu.dbo.core.api.feed.ChangeFeed {
+
+        private final String domain;
+
+        private PlaceFeed(String domain) {
+            this.domain = domain;
+        }
+
+        @Override
+        public cloud.jengu.dbo.core.api.feed.FeedChunk<cloud.jengu.dbo.core.api.feed.FeedItem> readFor(
+                String consumer, int limit, cloud.jengu.dbo.core.api.feed.FeedSelection wanted) {
+            Map<String, Object> body = verb();
+            body.put(LaneVerbs.DOMAIN, domain);
+            body.put(LaneVerbs.TYPES, RecordWire.encode(List.copyOf(wanted.types())));
+            body.put(LaneVerbs.LIMIT, limit);
+            Object answer = post(LaneVerbs.FEED_READ, body);
+            Map<?, ?> chunk = answer instanceof Map<?, ?> map ? map : Map.of();
+            Object items = chunk.get(LaneVerbs.ITEMS);
+            return new cloud.jengu.dbo.core.api.feed.FeedChunk<>(
+                    items == null ? List.of() : RecordWire.decodeList(items,
+                            cloud.jengu.dbo.core.api.feed.FeedItem.class),
+                    chunk.get(LaneVerbs.CURSOR) == null
+                            ? null : String.valueOf(chunk.get(LaneVerbs.CURSOR)),
+                    Boolean.TRUE.equals(chunk.get(LaneVerbs.DRAINED)));
+        }
+
+        @Override
+        public cloud.jengu.dbo.core.api.feed.FeedChunk<cloud.jengu.dbo.core.api.feed.FeedItem> readFor(
+                String consumer, int limit) {
+            return readFor(consumer, limit, cloud.jengu.dbo.core.api.feed.FeedSelection.EVERYTHING);
+        }
+
+        @Override
+        public void ack(String consumer, String cursor) {
+            if (cursor == null) {
+                return;
+            }
+            Map<String, Object> body = verb();
+            body.put(LaneVerbs.DOMAIN, domain);
+            body.put(LaneVerbs.CURSOR, cursor);
+            post(LaneVerbs.FEED_ACK, body);
+        }
+
+        // What a place may not ask, refused by name. Its position is the
+        // tenant's and moves forward only: a place that could rewind it, or
+        // read from a position of its choosing, could read past what it has
+        // been told to apply.
+
+        @Override
+        public cloud.jengu.dbo.core.api.feed.FeedChunk<cloud.jengu.dbo.core.api.feed.FeedItem> read(
+                String cursor, int limit) {
+            throw new UnsupportedOperationException(tenant + ": a place reads from where it "
+                    + "stands, never from a position of its choosing");
+        }
+
+        @Override
+        public void resetConsumer(String consumer, String cursor) {
+            throw new UnsupportedOperationException(tenant + ": a place's position is the "
+                    + "tenant's to keep, and moves forward only");
+        }
+
+        @Override
+        public String cursorOf(String consumer) {
+            throw new UnsupportedOperationException(tenant + ": a place's position is kept "
+                    + "by the tenant, and read there");
+        }
+
+        @Override
+        public long lag(String consumer) {
+            throw new UnsupportedOperationException(tenant + ": how far a place is behind is "
+                    + "read at the tenant, where its position is kept");
+        }
+    }
+
     /** Who is asking and who is working — on every verb, because the surface is stateless. */
     private Map<String, Object> verb() {
         Map<String, Object> body = new LinkedHashMap<>();

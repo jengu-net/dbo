@@ -42,7 +42,15 @@ public enum LaneVerbs {
      * One of the run's documents with its person put back together, sealed to
      * the asker: the reassembly performed at the tenant, where it is recorded.
      */
-    IDENTIFIED("identified");
+    IDENTIFIED("identified"),
+    /**
+     * A chunk of what the tenant replicates to a second place of itself, from
+     * where this participant last acknowledged. Not a participation verb: it
+     * is admitted by the place scope and served beside the lane.
+     */
+    FEED_READ("feed-read"),
+    /** How far the place has applied: its position moves forward, never back. */
+    FEED_ACK("feed-ack");
 
     /** Who is asking, as a feed consumer: this participant's own cursor. */
     public static final String PARTICIPANT = "participant";
@@ -102,6 +110,15 @@ public enum LaneVerbs {
      * refusal is the work going wrong.
      */
     public static final String LOST = "lost";
+
+    /** Which of the tenant's feeds a place reads: {@link Place#RECORDS} or {@link Place#DEFINITIONS}. */
+    public static final String DOMAIN = "domain";
+    /** The types a place asks for; the tenant answers with no more than it replicates. */
+    public static final String TYPES = "types";
+    public static final String ITEMS = "items";
+    /** A feed position, as opaque on the wire as it is in-process. */
+    public static final String CURSOR = "cursor";
+    public static final String DRAINED = "drained";
 
     private final String path;
 

@@ -20,9 +20,16 @@ public sealed interface Access permits Access.Grant, Access.Denied {
      * @param entitlement what it covers, stated rather than defaulted
      * @param isTheTenant whether this credential is the tenant itself, and so
      *                    may serve a lane in another participant's name
+     * @param holdsAPlace whether it may read what the tenant replicates to a
+     *                    second place of itself
      */
-    record Grant(String clientId, Lane.Entitlement entitlement, boolean isTheTenant)
-            implements Access {
+    record Grant(String clientId, Lane.Entitlement entitlement, boolean isTheTenant,
+            boolean holdsAPlace) implements Access {
+
+        /** A grant that holds no place: it works, supervises, or both. */
+        public Grant(String clientId, Lane.Entitlement entitlement, boolean isTheTenant) {
+            this(clientId, entitlement, isTheTenant, false);
+        }
     }
 
     /** Why not, in the terms HTTP answers in, whatever carried the ask. */

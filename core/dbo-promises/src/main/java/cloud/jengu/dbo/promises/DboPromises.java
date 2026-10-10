@@ -2475,6 +2475,17 @@ public enum DboPromises implements Promise {
     SYNC_FULL_HISTORY_CATCH_UP(
             "A newly declared dependency catches up from the upstream's full history; "
             + "pre-existing content arrives the same way live changes do."),
+    SYNC_A_PLACE_READS_ONLY_WHAT_THE_TENANT_DID_NOT_AUTHOR(
+            "A second place of a tenant reads, over the lane, the tenant's definitions and the "
+            + "records of the types it takes from upstream, and nothing else. A type the "
+            + "tenant authors is not on that feed whatever the place asks for, because it "
+            + "travels as work; a type stored in parts arrives whole; and a credential that "
+            + "holds no place reads nothing at all."),
+    SYNC_A_PLACE_READS_ON_FROM_WHERE_IT_ACKNOWLEDGED(
+            "The tenant keeps each place's position, under the participant's name and per "
+            + "feed, and moves it forward only. A place reads from where it last acknowledged, "
+            + "two places never share a position, and a place can neither rewind its "
+            + "position nor read from one of its own choosing."),
 
     // ── VAL — migrated from hand-written prose (2026-08-27) ──
 

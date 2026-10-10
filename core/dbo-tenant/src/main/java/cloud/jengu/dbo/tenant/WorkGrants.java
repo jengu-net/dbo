@@ -50,10 +50,10 @@ final class WorkGrants implements Grants, SignedGrants {
             // is told so rather than being handed an empty one — an empty
             // lane and an unentitled one look identical from the far side.
             return new Access.Denied(403, null,
-                    "this credential carries no participation scope and no supervisory scope");
+                    "this credential carries no participation, supervisory or place scope");
         }
         return new Access.Grant(context.get().clientId(), entitlementOf(granted),
-                Scopes.worksAsTheTenant(granted));
+                Scopes.worksAsTheTenant(granted), Scopes.holdsAPlace(granted));
     }
 
     /**
@@ -78,21 +78,22 @@ final class WorkGrants implements Grants, SignedGrants {
         List<String> granted = authority.clientScopes(participant).orElse(List.of());
         if (!reachesTheLane(granted)) {
             return new Access.Denied(403, null,
-                    "this credential carries no participation scope and no supervisory scope");
+                    "this credential carries no participation, supervisory or place scope");
         }
         return new Access.Grant(participant, entitlementOf(granted),
-                Scopes.worksAsTheTenant(granted));
+                Scopes.worksAsTheTenant(granted), Scopes.holdsAPlace(granted));
     }
 
     /**
      * Whether this credential reaches the lane at all — to work, to supervise,
-     * or both. A supervisor is admitted with no participation scope on
+     * to hold a place, or any of them. A supervisor is admitted with no participation scope on
      * purpose: overturning a closure is not performing a step, and requiring
      * the working scope to reach the supervisory verb would hand every
      * supervisor the right to take work as the price of correcting it.
      */
     private static boolean reachesTheLane(List<String> granted) {
-        return Scopes.admitsWork(granted) || Scopes.admitsSupervision(granted);
+        return Scopes.admitsWork(granted) || Scopes.admitsSupervision(granted)
+                || Scopes.holdsAPlace(granted);
     }
 
     private static Lane.Entitlement entitlementOf(List<String> granted) {

@@ -110,6 +110,19 @@ public final class Scopes {
      */
     public static final String SUPERVISE = "supervise";
 
+    /**
+     * The place scope: admits reading what the tenant replicates to a second
+     * place of itself — its definitions and the records it takes from
+     * upstream — and nothing else. Outside the SMART grammar like the others.
+     *
+     * <p><b>Separate from {@link #WORK}.</b> Taking work is acting on what a
+     * run names; holding a place is being kept up to date with what the
+     * tenant did not author. A site may need either without the other: a
+     * worker with no place serves nobody on site, and a place that takes no
+     * work still serves its copies while the link is down.
+     */
+    public static final String PLACE = "place";
+
     private static final String WORK_STEP = WORK + "/";
     private static final String SUPERVISE_STEP = SUPERVISE + "/";
 
@@ -117,7 +130,7 @@ public final class Scopes {
     public static boolean isValid(String scope) {
         return SCIM.equals(scope) || WORK.equals(scope) || ERASURE.equals(scope)
                 || IDENTITY.equals(scope) || FLEET.equals(scope)
-                || SUPERVISE.equals(scope) || CONFIGURATION.equals(scope)
+                || SUPERVISE.equals(scope) || CONFIGURATION.equals(scope) || PLACE.equals(scope)
                 || isWorkStep(scope) || isSupervisedStep(scope)
                 || SCOPE.matcher(scope).matches();
     }
@@ -145,6 +158,11 @@ public final class Scopes {
 
     private static boolean isWorkStep(String scope) {
         return scope.startsWith(WORK_STEP) && scope.length() > WORK_STEP.length();
+    }
+
+    /** Whether these grants hold a place: read what the tenant replicates to one. */
+    public static boolean holdsAPlace(List<String> granted) {
+        return granted.contains(PLACE);
     }
 
     /** Whether these grants may undo a judgment — reach the supervisory verbs. */

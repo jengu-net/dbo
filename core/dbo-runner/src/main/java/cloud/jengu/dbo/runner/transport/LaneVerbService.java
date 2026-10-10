@@ -57,15 +57,24 @@ public final class LaneVerbService {
     private final Grants grants;
     private final SignedGrants signed;
     private final Lanes lanes;
+    private final Places places;
 
     /**
      * @param grants how a token is read, or null where no token is taken
      * @param signed how a signed ask is read, or null where none is taken
      */
     public LaneVerbService(Grants grants, SignedGrants signed, Lanes lanes) {
+        this(grants, signed, lanes, null);
+    }
+
+    /**
+     * @param places what a place reads, or null where the tenant serves none
+     */
+    public LaneVerbService(Grants grants, SignedGrants signed, Lanes lanes, Places places) {
         this.grants = grants;
         this.signed = signed;
         this.lanes = lanes;
+        this.places = places;
     }
 
     /** One verb, from whoever carries the authorization named, on the body given. */
@@ -107,6 +116,9 @@ public final class LaneVerbService {
         // the credential the authority validated, never the participant
         // named in the body and never the machinery's own name. Set for the
         // verb and cleared after it, because a door's thread is reused.
+        if (verb == LaneVerbs.FEED_READ || verb == LaneVerbs.FEED_ACK) {
+            return placed(grant, participant, verb, body);
+        }
         cloud.jengu.dbo.core.api.Caller.set(grant.clientId());
         try {
             return new Answer.Ok(answer(verb, lanes.laneFor(participant, identity,
@@ -125,6 +137,115 @@ public final class LaneVerbService {
         } finally {
             cloud.jengu.dbo.core.api.Caller.clear();
         }
+    }
+
+    /**
+     * A place's read or acknowledgement, under the participant's own position.
+     *
+     * <p>The participant is the one the verb names, which the identity check
+     * above has already tied to the credential: a place reads as itself, and
+     * a tenant credential speaking for another participant reads as that one.
+     */
+    private Answer placed(Access.Grant grant, String participant, LaneVerbs verb, Object body) {
+        if (!grant.holdsAPlace()) {
+            return new Answer.Denied(403, null, "'" + grant.clientId() + "' holds no place "
+                    + "here, and only a place reads what the tenant replicates");
+        }
+        java.util.Optional<Place> served = places == null
+                ? java.util.Optional.empty() : places.place();
+        if (served.isEmpty()) {
+            return new Answer.Refused("this tenant serves no place yet");
+        }
+        String domain = string(body, LaneVerbs.DOMAIN);
+        if (!Place.RECORDS.equals(domain) && !Place.DEFINITIONS.equals(domain)) {
+            return new Answer.Denied(400, null, "a place reads '" + Place.RECORDS + "' or '"
+                    + Place.DEFINITIONS + "', and this asked for '" + domain + "'");
+        }
+        Place place = served.get();
+        cloud.jengu.dbo.core.api.feed.ChangeFeed feed =
+                Place.RECORDS.equals(domain) ? place.records() : place.definitions();
+        String consumer = Place.consumerOf(participant, domain);
+        try {
+            if (verb == LaneVerbs.FEED_ACK) {
+                String cursor = string(body, LaneVerbs.CURSOR);
+                if (cursor == null) {
+                    throw new IllegalArgumentException("an acknowledgement names the position "
+                            + "it reached");
+                }
+                feed.ack(consumer, cursor);
+                return new Answer.Ok(null);
+            }
+            Object named = field(body, LaneVerbs.TYPES);
+            Set<String> asked = named == null ? Set.of()
+                    : Set.copyOf(RecordWire.decodeList(named, String.class));
+            Set<String> readable = Place.RECORDS.equals(domain)
+                    ? readableOf(asked, place.readableRecords()) : asked;
+            if (Place.RECORDS.equals(domain) && readable.isEmpty()) {
+                // Nothing asked that a place may read. Answered as an empty
+                // chunk at the same position, not a refusal: the far side
+                // asked within its rights, there is simply nothing for it.
+                return new Answer.Ok(Map.of(LaneVerbs.ITEMS, List.of(), LaneVerbs.DRAINED, true));
+            }
+            cloud.jengu.dbo.core.api.feed.FeedChunk<cloud.jengu.dbo.core.api.feed.FeedItem> chunk =
+                    feed.readFor(consumer, chunkOf(number(body, LaneVerbs.LIMIT)),
+                            cloud.jengu.dbo.core.api.feed.FeedSelection.ofTypes(readable));
+            List<cloud.jengu.dbo.core.api.feed.FeedItem> items = new java.util.ArrayList<>();
+            for (cloud.jengu.dbo.core.api.feed.FeedItem item : chunk.items()) {
+                // KEPT, though the feed was asked to narrow: a feed that
+                // cannot narrow answers with everything, and nothing outside
+                // what a place may read leaves here whatever the feed did.
+                if (!readable.isEmpty() && !readable.contains(item.typeName())) {
+                    continue;
+                }
+                items.add(transported(item, place.grain()));
+            }
+            Map<String, Object> answer = new java.util.LinkedHashMap<>();
+            answer.put(LaneVerbs.ITEMS, RecordWire.encode(items));
+            answer.put(LaneVerbs.CURSOR, chunk.nextCursor());
+            answer.put(LaneVerbs.DRAINED, chunk.drained());
+            return new Answer.Ok(answer);
+        } catch (IllegalStateException refused) {
+            return new Answer.Refused(String.valueOf(refused.getMessage()));
+        } catch (IllegalArgumentException malformed) {
+            return new Answer.Denied(400, null, String.valueOf(malformed.getMessage()));
+        }
+    }
+
+    /**
+     * The most one read carries. A chunk is one answer in memory on both
+     * sides and one message on the wire, so the far side's ask is a wish and
+     * this is the bound.
+     */
+    private static final int MOST_IN_ONE_CHUNK = 500;
+
+    private static int chunkOf(long asked) {
+        return asked <= 0 ? MOST_IN_ONE_CHUNK : (int) Math.min(asked, MOST_IN_ONE_CHUNK);
+    }
+
+    /** What was asked, within what a place may read; everything it may read when nothing was named. */
+    private static Set<String> readableOf(Set<String> asked, Set<String> readable) {
+        if (asked.isEmpty()) {
+            return readable;
+        }
+        Set<String> within = new java.util.LinkedHashSet<>(asked);
+        within.retainAll(readable);
+        return Set.copyOf(within);
+    }
+
+    /**
+     * The item as it travels: a type the tenant stores in parts is put back
+     * together from them here, where the parts are, so the far side applies
+     * whole documents and never reaches into this tenant's tables.
+     */
+    private static cloud.jengu.dbo.core.api.feed.FeedItem transported(
+            cloud.jengu.dbo.core.api.feed.FeedItem item, cloud.jengu.dbo.core.face.GrainCodec grain) {
+        if (grain == null || item.payload() == null || !grain.handles(item.typeName())) {
+            return item;
+        }
+        return new cloud.jengu.dbo.core.api.feed.FeedItem(item.seq(), item.objectId(),
+                item.typeName(), item.versionId(), item.kind(), item.committedAt(),
+                grain.forTransport(item.typeName(), item.payload()), item.deleted(),
+                item.payloadVersion(), item.shape());
     }
 
     private static Object answer(LaneVerbs verb, Lane lane, Object body) {
@@ -218,6 +339,10 @@ public final class LaneVerbService {
                                 string(body, LaneVerbs.AUTHOR), reference,
                                 string(body, LaneVerbs.SIGNATURE)));
             }
+            // Served beside the lane, never through it: a place is not a
+            // participant act, and serve() takes them before a lane is built.
+            case FEED_READ, FEED_ACK -> throw new IllegalStateException(
+                    "'" + verb.path() + "' is a place's verb and is not dispatched to a lane");
         };
     }
 

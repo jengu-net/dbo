@@ -3982,9 +3982,10 @@ public final class TenantRuntimeManager implements AutoCloseable {
             // the token's door, the stream's signed asks, and whatever a
             // host carries the verbs over itself.
             WorkGrants workGrants = new WorkGrants(authority);
+            final String placeOf = spec.code();
             cloud.jengu.dbo.runner.transport.LaneVerbService verbs =
                     new cloud.jengu.dbo.runner.transport.LaneVerbService(workGrants,
-                            workGrants, laneFactory);
+                            workGrants, laneFactory, () -> placeServedBy(placeOf));
             verbServices.put(spec.code(), verbs);
             openTheDoorIfWanted(spec.code(), authority, verbs, claimable);
             // And on every carrier a host registered, which chose to carry
@@ -4130,6 +4131,32 @@ public final class TenantRuntimeManager implements AutoCloseable {
             }
         }
         return null;
+    }
+
+    /**
+     * What a second place of this tenant reads: its definitions, and the
+     * records of the types it takes from upstream — read from the declaration
+     * it is serving now, so a redeclared dependency changes what a place may
+     * read without the door being remounted.
+     *
+     * <p>Nothing the tenant authors is on it. That travels as work, to the
+     * place that performs it and back as what the run wrote.
+     */
+    private java.util.Optional<cloud.jengu.dbo.runner.transport.Place> placeServedBy(String code) {
+        TenantRuntime serving = runtimes.get(code);
+        if (serving == null) {
+            return java.util.Optional.empty();
+        }
+        java.util.Set<String> takenFromUpstream = new java.util.LinkedHashSet<>();
+        for (TenantSpec.Dependency dependency : serving.spec().dependencies()) {
+            for (String type : dependency.types()) {
+                if (!cloud.jengu.dbo.fhir.common.FaceDefinitions.isDefinition(type)) {
+                    takenFromUpstream.add(type);
+                }
+            }
+        }
+        return java.util.Optional.of(new cloud.jengu.dbo.runner.transport.Place(
+                serving.feed(), serving.definitionsFeed(), takenFromUpstream, serving.grain()));
     }
 
     /**
