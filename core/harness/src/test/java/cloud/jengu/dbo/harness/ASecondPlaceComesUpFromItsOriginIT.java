@@ -51,9 +51,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class ASecondPlaceComesUpFromItsOriginIT {
 
-    private static final String ROOT = "tuum-r4";
-    private static final String COUNTY = "maakond";
-    private static final String CLINIC = "haru";
+    private static final String ROOT = "saar-r4";
+    private static final String COUNTY = "vallamaa";
+    private static final String CLINIC = "jaam";
 
     private static final String CLINIC_DECLARATION = """
             {"code":"%s","face":"r4","audit":{"level":"none"},

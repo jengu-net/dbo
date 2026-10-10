@@ -73,9 +73,17 @@ val springBootTestTestOutput = project(":assembly:spring-boot-test")
         .extensions.getByType(SourceSetContainer::class.java)
         .getByName("test").output
 
+// The worker assembly's own proof, that a lane attached while the application
+// runs is held and let go. Same index, same trap.
+evaluationDependsOn(":assembly:spring-boot-worker")
+val springBootWorkerTestOutput = project(":assembly:spring-boot-worker")
+        .extensions.getByType(SourceSetContainer::class.java)
+        .getByName("test").output
+
 dependencies {
     testRuntimeOnly(storiesTestOutput.classesDirs)
     testRuntimeOnly(springBootTestTestOutput.classesDirs)
+    testRuntimeOnly(springBootWorkerTestOutput.classesDirs)
     // THE PACKAGES, ON A TEST CLASSPATH. They ship as a fragment of the face,
     // which is a container mechanism: a test runs in a plain JVM and finds
     // resources by classpath, so a test that builds a face out of the
