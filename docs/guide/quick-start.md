@@ -110,7 +110,7 @@ issuing the worker's credentials and leaves its own copy of the steps still:
 --8<-- "samples/spring-boot-server-app/src/main/resources/application-separated.yaml"
 ```
 
-Then start the worker beside it, under `edge` or `substrate`:
+Then start the worker beside it, under `edge`, `substrate` or `websocket`:
 
 ```bash
 --8<-- "samples/check-separated.sh:worker"
@@ -161,6 +161,21 @@ Start the clinic's application with `substrate` set to
 
 [On the stream](on-the-stream.md) is the chapter about why this is safe on a
 plane every tenant's work crosses.
+
+### Over the clinic's own socket
+
+`websocket` carries the same stream over a WebSocket the clinic's application
+opens on its own port, at `/stream/<tenant>`. The enrolment is the substrate's
+— mint the keys the same way — and the clinic's application needs no substrate
+at all. The worker is started with `$mode` as `websocket` and
+`DBO_SOCKET_URL` naming the socket:
+
+```yaml
+--8<-- "samples/spring-boot-worker-app/src/main/resources/application-websocket.yaml"
+```
+
+[Carrying the stream yourself](on-the-stream.md#carrying-the-stream-yourself)
+shows the carrier both ends are built from.
 
 ## What is running
 

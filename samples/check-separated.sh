@@ -5,8 +5,9 @@
 #
 # The stories run the two embedded, in one context, which is a testing economy
 # rather than the only shape: the worker application also runs on its own,
-# under `edge` (an HTTP lane into one tenant) or `substrate` (the deployment's
-# own database). Nothing in the stories can show that, because nothing in one
+# under `edge` (an HTTP lane into one tenant), `substrate` (the deployment's
+# own database) or `websocket` (the store's stream, over the clinic's own
+# WebSocket). Nothing in the stories can show that, because nothing in one
 # JVM crosses a process boundary — so this does, once per mode. And it starts
 # the embedded mode from its distribution too, because that is the guide's
 # quick start and the stories boot the application as a test does instead.
@@ -22,14 +23,14 @@
 # to be read: each is a command a reader types, with the check's own variables
 # standing for the port and the database.
 #
-#   samples/check-separated.sh                      # all three
-#   samples/check-separated.sh edge substrate       # what CI runs
+#   samples/check-separated.sh                      # all four
+#   samples/check-separated.sh edge websocket       # two of them
 #   samples/check-separated.sh embedded             # one of them
 set -euo pipefail
 cd "$(git -C "$(dirname "$0")" rev-parse --show-toplevel)"
 
 MODES=("$@")
-[ ${#MODES[@]} -eq 0 ] && MODES=(embedded edge substrate)
+[ ${#MODES[@]} -eq 0 ] && MODES=(embedded edge substrate websocket)
 
 # Kept after the run, so a failure can be read rather than reproduced.
 WORK="$PWD/build/check-separated"
@@ -142,13 +143,16 @@ run_one() {
     local profile=()
     [ "$mode" = embedded ] || profile=(--spring.profiles.active=separated)
     local substrate=()
-    if [ "$mode" = substrate ]; then
+    if [ "$mode" = substrate ] || [ "$mode" = websocket ]; then
         # The worker makes its keys and keeps the private halves; the public
-        # halves land where the server's separated profile reads them.
+        # halves land where the server's separated profile reads them. The
+        # socket is enrolled the same way: it carries no token either.
         # --8<-- [start:mint]
         (cd samples/spring-boot-worker-app && java -cp "build/install/spring-boot-worker-app/lib/*" \
             cloud.jengu.dbo.samples.worker.MintingAnEnrolment build/enrolment hogwarts)
         # --8<-- [end:mint]
+    fi
+    if [ "$mode" = substrate ]; then
         substrate=(--dbo.substrate.url="$JDBC/dbo_substrate"
             --dbo.substrate.user=postgres --dbo.substrate.password=sample)
     fi
@@ -174,6 +178,7 @@ run_one() {
         (cd samples/spring-boot-worker-app && JAVA_OPTS="-Xmx512m" \
             DBO_TENANT_BASE="$base/" DBO_SUBSTRATE_URL="$JDBC/dbo_substrate" \
             DBO_SUBSTRATE_USER=postgres DBO_SUBSTRATE_PASSWORD=sample \
+            DBO_SOCKET_URL="ws://127.0.0.1:$port/stream/" \
             exec build/install/spring-boot-worker-app/bin/spring-boot-worker-app \
             --spring.profiles.active="$mode") \
             >"$WORK/worker-$mode.log" 2>&1 &
@@ -215,6 +220,11 @@ run_one() {
 "have been performed there"
         fi
         kill -0 "$WORKER_PID" 2>/dev/null || fail "$mode: the worker is not running"
+        if [ "$mode" = websocket ]; then
+            # The lane it holds is the socket's, and nothing else carries one.
+            grep -q "holding a lane over the socket: tenant=hogwarts" "$WORK/worker-$mode.log" \
+                || fail "websocket: the worker never held its lane over the socket"
+        fi
         echo "    the run completed, performed by the worker on the $mode lane"
     fi
     stop

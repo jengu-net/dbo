@@ -1,0 +1,24 @@
+# A worker holding its lane over a WebSocket of the clinic's: the store's
+# stream protocol, carried by a socket this sample brings (AskingOverASocket).
+#
+# The enrolment is the substrate profile's. The socket carries no token, so the
+# worker is admitted by a signature and handed work sealed to it, with the two
+# PRIVATE keys `./gradlew :samples:spring-boot-worker-app:mintEnrolment` made on
+# this side; the tenant holds their public halves. What changes is where the
+# lane goes: a socket URL, instead of the substrate's JDBC URL and credentials.
+# No lane is declared under dbo.worker.lanes, because that list is carried over
+# HTTP or the substrate; this one is put on the whiteboard by
+# HoldingALaneOverASocket.
+sample:
+  socket:
+    url: ${DBO_SOCKET_URL:ws://127.0.0.1:8080/stream/}
+    tenant: hogwarts
+    # Whose code this is: a provider can be withdrawn, so a run names it.
+    provider: cloud.jengu.dbo.samples
+    participant: ${dbo.worker.substrate.participant}
+    sealing-key: ${dbo.worker.substrate.sealing-key}
+    signing-key: ${dbo.worker.substrate.signing-key}
+
+spring:
+  config:
+    import: optional:file:./build/enrolment/worker.properties

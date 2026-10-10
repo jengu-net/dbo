@@ -281,4 +281,10 @@ interpretation of statistics.
   the store knowing what the machine is, and changing it would change every
   tenant's tasks; the record's "never projects onto `Device`" is read as about
   routees.
-
+- **A carrier needed nothing more from the SPI to run over a real socket.**
+  The samples carry the stream over a WebSocket — a door on the clinic's
+  servlet container and an asker on the JDK's client — against
+  `StreamCarrier` as published. Two things are the carrier's own and the SPI
+  leaves them so: a socket that drops is reconnected on the next ask, and a
+  door with no tenant open refuses the connection, which the asker reports as
+  the store being unreachable. Neither needed the store to know.

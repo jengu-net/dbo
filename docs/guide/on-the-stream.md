@@ -16,8 +16,8 @@ substrate is already there. So the service connects to the substrate and to
 nothing else, and its step code cannot tell the difference. The scene is
 [US-DBO-ON-THE-STREAM](../arc42-003-context/user-stories/us-dbo-on-the-stream.md),
 whose legs are proven by the tests its joins table names. The sample worker's
-`substrate` profile holds the same lane, and `samples/check-separated.sh` starts
-it by hand.
+`substrate` profile holds the same lane, its `websocket` profile holds it over
+the clinic's own socket, and `samples/check-separated.sh` starts both by hand.
 
 ## The worker makes its keys
 
@@ -52,6 +52,64 @@ else; a lane with no base is carried by the substrate:
 
 The beans are unchanged. The quick start
 [starts both sides](quick-start.md#beside-the-store-over-its-substrate).
+
+## Carrying the stream yourself
+
+The substrate is one carrier of the stream. An application can carry it over a
+transport of its own, and the samples carry it over a WebSocket on the clinic's
+own port. The store still does everything that decides anything: the lane signs
+each ask over its own bytes with the key the worker enrolled, the door checks
+that signature against the enrolment and the credential's reach, and inputs
+travel sealed. The socket moves text. So it needs no credential of its own, and
+an ask altered on the way is refused as a forgery.
+
+What crosses it is four things: an ask, its answer
+keyed by the ask, an answer too large for one message held until it is
+collected, and a wake-up that says *look again*:
+
+```java
+--8<-- "samples/spring-boot-worker-app/src/main/java/cloud/jengu/dbo/samples/worker/WhatCrossesTheSocket.java:frame"
+```
+
+The clinic's end is a door per tenant. The store opens one on every carrier the
+application registers, and hands it what answers an ask:
+
+```java
+--8<-- "samples/spring-boot-server-app/src/main/java/cloud/jengu/dbo/samples/server/AnsweringOverASocket.java:door"
+```
+
+```java
+--8<-- "samples/spring-boot-server-app/src/main/java/cloud/jengu/dbo/samples/server/AnsweringOverASocket.java:carried"
+```
+
+The socket goes on the servlet container the embedded server already provides,
+and the carrier on the container's whiteboard, where the store looks for it:
+
+```java
+--8<-- "samples/spring-boot-server-app/src/main/java/cloud/jengu/dbo/samples/server/OpeningTheSocket.java:opening"
+```
+
+The worker's end is the JDK's own WebSocket client, under the store's own lane:
+
+```java
+--8<-- "samples/spring-boot-worker-app/src/main/java/cloud/jengu/dbo/samples/worker/AskingOverASocket.java:ask"
+```
+
+```java
+--8<-- "samples/spring-boot-worker-app/src/main/java/cloud/jengu/dbo/samples/worker/HoldingALaneOverASocket.java:holding"
+```
+
+The worker's `websocket` profile needs the substrate profile's enrolment and a
+socket URL in place of the substrate's database:
+
+```yaml
+--8<-- "samples/spring-boot-worker-app/src/main/resources/application-websocket.yaml"
+```
+
+The runner heartbeats over the lane it holds, so the clinic's contact listener
+hears a worker on the socket as it hears any other. When the socket goes, the
+worker goes unknown at the listener's silence; it reconnects on its next ask
+once the socket is back, and appears again.
 
 ## What the store guarantees
 

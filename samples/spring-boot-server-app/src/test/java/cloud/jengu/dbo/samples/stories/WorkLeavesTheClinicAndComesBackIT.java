@@ -2068,17 +2068,274 @@ class WorkLeavesTheClinicAndComesBackIT {
         }
     }
 
+    // ── and over a real socket, the clinic's ──
+
+    /** A worker holding its lane over the clinic's WebSocket. */
+    private static final String SOCKETED = NAMES.value("socketed");
+    private static final StepDeclaration SOCKETED_STEP =
+            StepDeclaration.of(PROCESS + ".socketed", "1.0", WorkModel.DOMAIN)
+                    .taking("specimen", "https://meristem.example/shape/specimen");
+    private final java.security.KeyPair socketedSealing =
+            cloud.jengu.dbo.core.api.seal.KeyWrap.newParticipantKeyPair();
+    private final java.security.KeyPair socketedSigning =
+            cloud.jengu.dbo.core.api.seal.SigningKey.newKeyPair();
+
+    /** The clinic's socket, which the store opens every tenant's door on. */
+    @Autowired
+    cloud.jengu.dbo.samples.server.OpeningTheSocket socket;
+
+    @Test
+    @Order(45)
+    @DisplayName("a worker holds its lane over the clinic's WebSocket, with the worker "
+            + "application's own carrier: the hospital's door opens on the socket, and the same "
+            + "sealed work comes to the same outcome as over HTTP")
+    @Proving({DboPromises.PROC_A_STREAM_RIDES_ANY_CARRIER, DboPromises.PROC_A_LANE_OVER_THE_STREAM})
+    void aWorkerHoldsItsLaneOverASocket() throws Exception {
+        TenantAuthority authority = tenants.authority(HOSPITAL).orElseThrow();
+        authority.ensureClient(SOCKETED, SOCKETED + "-secret",
+                List.of("work/" + SOCKETED_STEP.id(),
+                        "work/" + cloud.jengu.dbo.samples.server.AskingForARegistration.STEP),
+                cloud.jengu.dbo.core.api.seal.ParticipantKey.of(socketedSealing.getPublic()),
+                cloud.jengu.dbo.core.api.seal.SigningKey.of(socketedSigning.getPublic()));
+        try (var overTheSocket = socketedLane()) {
+            overTheSocket.introduce(SOCKETED_STEP);
+            HttpLane overHttp = HttpLane.holding(URI.create(dbo.at(HOSPITAL) + "/work"),
+                    () -> participantToken(SOCKETED), HOSPITAL, SOCKETED, executor(SOCKETED),
+                    socketedSealing.getPrivate(), socketedSigning.getPrivate());
+
+            Run bySocket = performedOver(overTheSocket, SOCKETED_STEP, "carried-by-the-socket");
+            Run byHttp = performedOver(overHttp, SOCKETED_STEP, "carried-by-http-not-socket");
+
+            Proves.that(DboPromises.PROC_A_STREAM_RIDES_ANY_CARRIER,
+                    bySocket.status() == cloud.jengu.dbo.work.Status.COMPLETED
+                            && bySocket.tally().equals(byHttp.tally())
+                            && bySocket.tally().equals(Map.of("read", 1L)),
+                    "the same work over the socket did not come to what it came to over HTTP: "
+                            + bySocket + " / " + byHttp);
+            Proves.that(DboPromises.PROC_A_LANE_OVER_THE_STREAM,
+                    chainOf(bySocket).stream().map(e -> e.get("code")).toList()
+                            .equals(chainOf(byHttp).stream().map(e -> e.get("code")).toList()),
+                    "the trail differs by carrier: " + chainOf(bySocket) + " / "
+                            + chainOf(byHttp));
+        }
+    }
+
+    @Test
+    @Order(46)
+    @DisplayName("an ask altered on its way into the socket reaches the hospital's door altered, "
+            + "and is refused as a forgery")
+    @Proving(DboPromises.PROC_A_STREAM_RIDES_ANY_CARRIER)
+    void anAskAlteredOnTheSocketIsAForgery() {
+        java.util.concurrent.atomic.AtomicInteger altered =
+                new java.util.concurrent.atomic.AtomicInteger();
+        cloud.jengu.dbo.runner.transport.StreamCarrier socketCarrier =
+                new cloud.jengu.dbo.samples.worker.AskingOverASocket(socketUrl());
+        // The socket itself, with one stage in front of it that widens what
+        // the worker asked for: the altered bytes travel the real socket to
+        // the real door.
+        cloud.jengu.dbo.runner.transport.StreamCarrier widening =
+                new cloud.jengu.dbo.runner.transport.StreamCarrier() {
+                    @Override
+                    public Door door(String tenant) {
+                        return socketCarrier.door(tenant);
+                    }
+
+                    @Override
+                    public Asker asker(String tenant, String participant) {
+                        Asker real = socketCarrier.asker(tenant, participant);
+                        return new Asker() {
+                            @Override
+                            public java.util.Optional<String> ask(String id, String ask,
+                                    Duration patience) {
+                                String widened = ask.replace("\"limit\":50", "\"limit\":5000");
+                                if (!widened.equals(ask)) {
+                                    altered.incrementAndGet();
+                                }
+                                return real.ask(id, widened, patience);
+                            }
+
+                            @Override
+                            public java.util.Optional<String> collect(String key) {
+                                return real.collect(key);
+                            }
+
+                            @Override
+                            public AutoCloseable listen(Runnable woken) {
+                                return real.listen(woken);
+                            }
+
+                            @Override
+                            public void close() {
+                                real.close();
+                            }
+                        };
+                    }
+                };
+        try (var forged = cloud.jengu.dbo.stream.StreamLane.holding(widening, HOSPITAL, SOCKETED,
+                executor(SOCKETED), socketedSealing.getPrivate(), socketedSigning.getPrivate());
+             var honest = socketedLane()) {
+            IllegalStateException refused = assertThrows(IllegalStateException.class,
+                    () -> forged.poll(Set.of("socketed"), 50),
+                    "an ask widened on its way into the socket was answered");
+            Proves.that(DboPromises.PROC_A_STREAM_RIDES_ANY_CARRIER,
+                    altered.get() > 0 && refused.getMessage().contains("(401)")
+                            && refused.getMessage().contains("signed by the participant"),
+                    "an altered ask was not refused as a forgery, or nothing was altered: "
+                            + altered.get() + " / " + refused.getMessage());
+            // The same ask, unaltered, over the same socket, is answered.
+            assertTrue(honest.poll(Set.of("socketed"), 50).isEmpty(),
+                    "the honest ask was not answered as an ask for nothing waiting");
+        }
+    }
+
+    @Test
+    @Order(47)
+    @DisplayName("the worker's heartbeats ride the socket: the clinic hears it appear with what "
+            + "it says, hears it unknown at its threshold once the socket is taken down, and "
+            + "hears it appear again when the socket is back")
+    @Proving({DboPromises.PROC_A_STREAM_RIDES_ANY_CARRIER,
+            DboPromises.PROC_A_HEARTBEAT_IS_A_LANE_VERB,
+            DboPromises.PROC_HEARTBEAT_STATISTICS_ARE_OPAQUE_AND_BOUNDED,
+            DboPromises.PROC_A_CONTACT_LISTENER_DECLARES_ITS_SILENCE,
+            DboPromises.PROC_CONTACT_IS_RECORDED_ONLY_THROUGH_WORK})
+    void contactRidesTheSocket() throws Exception {
+        cloud.jengu.dbo.work.Declarations.Declared registers =
+                new cloud.jengu.dbo.work.Declarations.Declared("care.records", "register",
+                        SOCKETED, "1.0", "example.meristem", Scope.BASELINE, SOCKETED);
+        Duration silence = noticing.silence();
+        try (var overTheSocket = socketedLane();
+             cloud.jengu.dbo.runner.StepRunner runner = new cloud.jengu.dbo.runner.StepRunner(
+                     Duration.ofMinutes(5), Duration.ofMillis(500))) {
+            // A worker of the step the clinic listens to, said over the socket.
+            overTheSocket.declare(registers);
+            runner.register(cloud.jengu.dbo.runner.StepService.performing(
+                    SOCKETED_STEP.id().toString(),
+                    work -> cloud.jengu.dbo.runner.Outcome.done(Map.of())));
+            // When each heartbeat was made, which it then carries: the last
+            // one the clinic heard is the earliest the worker may go unknown.
+            runner.contributing(new cloud.jengu.dbo.runner.HeartbeatStatistics() {
+                @Override
+                public String namespace() {
+                    return "example.meristem";
+                }
+
+                @Override
+                public Map<String, Object> statistics() {
+                    return Map.of("said", java.time.Instant.now().toString());
+                }
+            });
+            runner.attach(overTheSocket);
+            runner.start();
+            try {
+                var appeared = notedFor(SOCKETED, "appeared", 0, Duration.ofMinutes(1));
+                Proves.that(DboPromises.PROC_A_HEARTBEAT_IS_A_LANE_VERB, appeared.isPresent(),
+                        "the clinic never heard the worker on the socket appear: "
+                                + noticing.noted());
+                Proves.that(DboPromises.PROC_HEARTBEAT_STATISTICS_ARE_OPAQUE_AND_BOUNDED,
+                        until(() -> noticing.lastSaid(HOSPITAL, SOCKETED)
+                                .map(said -> said.get("example.meristem") instanceof Map<?, ?>
+                                        && said.get("dbo.runner") instanceof Map<?, ?> counts
+                                        && counts.containsKey(SOCKETED_STEP.id().toString()))
+                                .orElse(false), Duration.ofSeconds(30)),
+                        "what the worker said over the socket did not reach the listener: "
+                                + noticing.lastSaid(HOSPITAL, SOCKETED));
+
+                java.time.Instant lastHeard = lastSaidAt(SOCKETED);
+                int before = noticing.noted().size();
+                socket.stop();
+                java.util.Optional<cloud.jengu.dbo.samples.server.NoticingTheWorkers.Noted> unknown;
+                java.time.Instant heard;
+                try {
+                    unknown = notedFor(SOCKETED, "unknown", before,
+                            silence.plus(Duration.ofMinutes(1)));
+                    heard = java.time.Instant.now();
+                } finally {
+                    socket.start();
+                }
+                Proves.that(DboPromises.PROC_A_CONTACT_LISTENER_DECLARES_ITS_SILENCE,
+                        unknown.isPresent(), "the socket was taken down and the worker was "
+                                + "never unknown: " + noticing.noted());
+                Proves.that(DboPromises.PROC_A_CONTACT_LISTENER_DECLARES_ITS_SILENCE,
+                        !heard.isBefore(lastHeard.plus(silence)),
+                        "it was unknown before its silence ran out: last heard " + lastHeard
+                                + ", unknown by " + heard + ", silence " + silence);
+
+                int whenUnknown = noticing.noted().indexOf(unknown.get());
+                var again = notedFor(SOCKETED, "appeared", whenUnknown + 1,
+                        Duration.ofMinutes(1));
+                Proves.that(DboPromises.PROC_A_CONTACT_LISTENER_DECLARES_ITS_SILENCE,
+                        again.isPresent(), "the socket came back and the worker did not appear "
+                                + "again: " + noticing.noted());
+                Proves.that(DboPromises.PROC_CONTACT_IS_RECORDED_ONLY_THROUGH_WORK,
+                        writtenNote(unknown.get().started())
+                                .contains(SOCKETED + " 1.0 unknown on "),
+                        "the silence was not noted by the run the clinic asked for");
+            } finally {
+                runner.close();
+                overTheSocket.withdraw(registers);
+            }
+        }
+    }
+
+    /** A lane into the hospital over the clinic's socket, as the worker application holds one. */
+    private cloud.jengu.dbo.stream.StreamLane socketedLane() {
+        return cloud.jengu.dbo.samples.worker.HoldingALaneOverASocket.over(socketUrl(), HOSPITAL,
+                SOCKETED, executor(SOCKETED), socketedSealing.getPrivate(),
+                socketedSigning.getPrivate());
+    }
+
+    /** Where the clinic's socket answers, on the application's own port. */
+    private URI socketUrl() {
+        String base = dbo.at(HOSPITAL);
+        return URI.create("ws" + base.substring("http".length(), base.indexOf("/t/"))
+                + "/stream/");
+    }
+
+    /** When the worker's last heartbeat the clinic heard was made, as it said. */
+    private java.time.Instant lastSaidAt(String worker) {
+        Object said = noticing.lastSaid(HOSPITAL, worker)
+                .map(last -> last.get("example.meristem"))
+                .filter(Map.class::isInstance)
+                .map(namespace -> ((Map<?, ?>) namespace).get("said"))
+                .orElseThrow(() -> new AssertionError("the clinic holds nothing the worker said"));
+        return java.time.Instant.parse(String.valueOf(said));
+    }
+
+    /** The first note of a transition for this worker at the hospital, from the index given. */
+    private java.util.Optional<cloud.jengu.dbo.samples.server.NoticingTheWorkers.Noted> notedFor(
+            String worker, String transition, int from, Duration give)
+            throws InterruptedException {
+        java.util.function.Supplier<java.util.Optional<
+                cloud.jengu.dbo.samples.server.NoticingTheWorkers.Noted>> found = () -> {
+                    List<cloud.jengu.dbo.samples.server.NoticingTheWorkers.Noted> all =
+                            noticing.noted();
+                    return all.subList(Math.min(from, all.size()), all.size()).stream()
+                            .filter(one -> HOSPITAL.equals(one.tenant())
+                                    && worker.equals(one.worker().name())
+                                    && transition.equals(one.transition()))
+                            .findFirst();
+                };
+        until(() -> found.get().isPresent(), give);
+        return found.get();
+    }
+
     /** One run of the carried step, performed by a real runner over the lane given. */
     private Run performedOver(cloud.jengu.dbo.runner.Lane lane, String marker) throws Exception {
+        return performedOver(lane, CARRIED_STEP, marker);
+    }
+
+    /** One run of the step given, performed by a real runner over the lane given. */
+    private Run performedOver(cloud.jengu.dbo.runner.Lane lane, StepDeclaration step,
+            String marker) throws Exception {
         String specimen = dbo.write(HOSPITAL, "Observation",
                 "{\"resourceType\":\"Observation\",\"status\":\"registered\","
                         + "\"code\":{\"text\":\"" + specimenText(marker) + "\"}}")
                 .idOrFail();
-        Run run = runs.of(CARRIED_STEP, cloud.jengu.dbo.work.RunKind.PIPELINE,
+        Run run = runs.of(step, cloud.jengu.dbo.work.RunKind.PIPELINE,
                 NAMES.value(marker), Map.of("specimen", "Observation/" + specimen));
         try (cloud.jengu.dbo.runner.StepRunner runner = new cloud.jengu.dbo.runner.StepRunner(
                 Duration.ofMinutes(5), Duration.ofMillis(50))) {
-            runner.register(cloud.jengu.dbo.runner.StepService.performing(CARRIED_STEP.id().toString(),
+            runner.register(cloud.jengu.dbo.runner.StepService.performing(step.id().toString(),
                     work -> cloud.jengu.dbo.runner.Outcome.done(Map.of("read",
                             (long) work.all("specimen").size()))));
             runner.attach(lane);

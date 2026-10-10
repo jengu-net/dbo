@@ -16,6 +16,7 @@ Everything a reader is looking for is in these files:
 | [`ServerApplication.java`](src/main/java/cloud/jengu/dbo/samples/server/ServerApplication.java) | a `@SpringBootApplication` that asks for the store and the worker. Nothing else. |
 | [`application.yaml`](src/main/resources/application.yaml) | `mount: servlet`, where the tenants are, which one holds this deployment's own history, and the embedded worker's lanes |
 | [`EnrollingTheWorker.java`](src/main/java/cloud/jengu/dbo/samples/server/EnrollingTheWorker.java) | the worker made known to each tenant as it comes up |
+| [`OpeningTheSocket.java`](src/main/java/cloud/jengu/dbo/samples/server/OpeningTheSocket.java), [`AnsweringOverASocket.java`](src/main/java/cloud/jengu/dbo/samples/server/AnsweringOverASocket.java) | a WebSocket on this application's port, registered as a carrier the store opens every tenant's door on |
 | [`build.gradle.kts`](build.gradle.kts) | the dependency on the store, and the one on the worker |
 
 ## What it needs
@@ -92,9 +93,20 @@ docker exec dbo-sample-db createdb -U postgres dbo_substrate
 ./gradlew :samples:spring-boot-worker-app:run --args='--spring.profiles.active=substrate'
 ```
 
+**Over this application's socket.** The same keys, and the stream carried over
+a WebSocket this application opens at `/stream/<tenant>` instead of over the
+substrate:
+
+```bash
+./gradlew :samples:spring-boot-worker-app:mintEnrolment
+./gradlew :samples:spring-boot-server-app:run --args='<the four above>
+            --spring.profiles.active=separated'
+./gradlew :samples:spring-boot-worker-app:run --args='--spring.profiles.active=websocket'
+```
+
 Either way, a step asked of `hogwarts` is performed in the other JVM.
 [`../check-separated.sh`](../check-separated.sh) does exactly this, embedded
-and then under each profile in turn, and CI runs all three.
+and then under each profile in turn, and CI runs all four.
 
 ## Asking it something
 

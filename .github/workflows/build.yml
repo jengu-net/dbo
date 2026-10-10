@@ -205,8 +205,8 @@ jobs:
 
   samples-separated:
     # The clinic's application and its worker as two JVMs, under each of the
-    # worker's profiles: an HTTP lane into one tenant, and the deployment's
-    # own substrate. The stories run the two embedded in one context, so a
+    # worker's profiles: an HTTP lane into one tenant, the deployment's own
+    # substrate, and the store's stream over the clinic's WebSocket. The stories run the two embedded in one context, so a
     # process boundary is the one thing they cannot show; this starts both
     # the way a reader does and has one step performed across it. The
     # guide's quick start quotes these commands, so this is also what keeps
@@ -226,7 +226,7 @@ jobs:
           java-version: "25"
       - uses: gradle/actions/setup-gradle@v4
       - name: The clinic's application by hand, embedded and separated
-        run: ./samples/check-separated.sh embedded edge substrate
+        run: ./samples/check-separated.sh embedded edge substrate websocket
 
   publish:
     needs: build
