@@ -2916,6 +2916,7 @@ cloud.jengu.dbo.promises.DboPromises                                   AUTH_THE_
 cloud.jengu.dbo.promises.DboPromises                                   AUTH_USERINFO_ANSWERS_WHAT_THE_ID_TOKEN_SAYS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   CONT_A_HOST_ASKS_FOR_THE_STORE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   CONT_A_HOST_MAY_OWN_THE_CONTAINER:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   CONT_A_PROCESS_KEEPS_ITS_CONTAINER_CACHE_TO_ITSELF:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   CONT_DYNAMIC_TENANT_SERVICES:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   CONT_EMBEDDED_IN_JVM:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   CONT_FAST_COLD_START:cloud.jengu.dbo.promises.DboPromises

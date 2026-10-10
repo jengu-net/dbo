@@ -1227,6 +1227,10 @@ public enum DboPromises implements Promise {
     CONT_EMBEDDED_IN_JVM(
             "A host application can boot the full store inside its own JVM for "
             + "dev/test; the only shared dependencies are Felix and the OSGi API. (R2)"),
+    CONT_A_PROCESS_KEEPS_ITS_CONTAINER_CACHE_TO_ITSELF(
+            "Each process keeps its container's bundle cache in a directory of its own, "
+            + "removed when the process ends, so two applications on one host, or two test "
+            + "runs at once, never install into each other's cache."),
     CONT_A_HOST_MAY_OWN_THE_CONTAINER(
             "An application that owns an OSGi framework — because bundles of its own belong "
             + "in the store's class space — creates it with the launch properties the store "

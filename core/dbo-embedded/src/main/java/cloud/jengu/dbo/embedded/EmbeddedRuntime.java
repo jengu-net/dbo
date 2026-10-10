@@ -555,6 +555,25 @@ public final class EmbeddedRuntime implements AutoCloseable {
         }
     }
 
+    /** The directories this process was given, each removed once when it ends. */
+    private static final java.util.Set<Path> STORED =
+            java.util.concurrent.ConcurrentHashMap.newKeySet();
+
+    /** Best effort: the process is ending, and a leftover cache is cleared on next use anyway. */
+    private static void removeQuietly(Path directory) {
+        try (java.util.stream.Stream<Path> walk = Files.walk(directory)) {
+            walk.sorted(java.util.Comparator.reverseOrder()).forEach(path -> {
+                try {
+                    Files.deleteIfExists(path);
+                } catch (IOException ignored) {
+                    // a file still held open; the rest goes regardless
+                }
+            });
+        } catch (IOException | RuntimeException ignored) {
+            // nothing left to remove, or nothing that can be
+        }
+    }
+
     private static String rootOf(Throwable thrown) {
         Throwable cause = thrown;
         while (cause.getCause() != null && cause.getCause() != cause) {
@@ -563,10 +582,24 @@ public final class EmbeddedRuntime implements AutoCloseable {
         return cause.getMessage() == null ? cause.toString() : cause.getMessage();
     }
 
-    /** A storage directory of this application's own, under its temp area. */
+    /**
+     * A storage directory of this process's own, under its temp area, removed
+     * when the process ends.
+     *
+     * <p><b>Of this process, not of this name.</b> Two processes given one
+     * directory install into one bundle cache, and whichever starts second
+     * finds the other's half-written jars: "could not be installed", in a
+     * build that runs two modules' tests at once, or on a host that runs two
+     * applications. Nothing is lost by keeping them apart, because the
+     * container clears its cache on first start whatever it finds there.
+     */
     public static Path storageUnder(Path parent, String named) {
         try {
-            Path under = parent.resolve(named);
+            Path under = parent.resolve(named + "-" + ProcessHandle.current().pid());
+            if (STORED.add(under)) {
+                Runtime.getRuntime().addShutdownHook(new Thread(() -> removeQuietly(under),
+                        "dbo-embedded-storage-removal"));
+            }
             Files.createDirectories(under);
             return under;
         } catch (IOException noRoom) {
