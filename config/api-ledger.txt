@@ -3104,6 +3104,7 @@ cloud.jengu.dbo.promises.DboPromises                                   PROC_MAND
 cloud.jengu.dbo.promises.DboPromises                                   PROC_MILESTONES_ARE_DECLARED:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_MIRRORED_RUNS_ARE_FILED_BY_SOURCE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_NETWORK_MAP:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   PROC_NO_LANE_WAITS_ON_ANOTHER:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_NUMBERS_LEAVE_AS_LABELS_NEVER_AS_TEXT:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_ONE_BEAN_PERFORMS_FOR_EVERY_TENANT:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_ONE_ID_ONE_DEFINITION:cloud.jengu.dbo.promises.DboPromises
@@ -3565,6 +3566,7 @@ cloud.jengu.dbo.runner.StepRunner                                      close():v
 cloud.jengu.dbo.runner.StepRunner                                      contributing(cloud.jengu.dbo.runner.HeartbeatStatistics):cloud.jengu.dbo.runner.StepRunner
 cloud.jengu.dbo.runner.StepRunner                                      cycle():int
 cloud.jengu.dbo.runner.StepRunner                                      detach(String):void
+cloud.jengu.dbo.runner.StepRunner                                      detach(cloud.jengu.dbo.runner.Lane):void
 cloud.jengu.dbo.runner.StepRunner                                      new(Duration,Duration)
 cloud.jengu.dbo.runner.StepRunner                                      new(Duration,Duration,cloud.jengu.dbo.telemetry.Telemetry)
 cloud.jengu.dbo.runner.StepRunner                                      register(cloud.jengu.dbo.runner.StepService):cloud.jengu.dbo.runner.StepRunner

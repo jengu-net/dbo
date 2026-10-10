@@ -44,10 +44,21 @@ import java.util.concurrent.atomic.AtomicLong;
  * rule is not about counters — it is about the next thing somebody keys by
  * step because a lane felt like an implementation detail.
  *
- * <p>One loop thread, deliberately: a runner scales by being <b>deployed</b>
- * more — a pod per step, replicas up — never by relaxing the claim; a pool
- * inside one runner is the first step of the coordination the claim exists
- * to make unnecessary. The claim race is the scheduler.
+ * <p><b>One loop per lane, and no pool.</b> A runner scales by being
+ * <b>deployed</b> more — a pod per step, replicas up — never by relaxing the
+ * claim; a pool inside one runner is the first step of the coordination the
+ * claim exists to make unnecessary. The claim race is the scheduler. Each lane
+ * is cycled on a thread of its own for the same reason: lanes sharing one loop
+ * waited on each other, so a node's own tenants queued behind a slow round
+ * over the WAN to its cloud. Two loops share nothing but the services they
+ * perform, which is why a {@link StepService} may be called on several threads
+ * at once.
+ *
+ * <p><b>A lane is told apart by being itself</b>, never by its tenant. A site
+ * holds two lanes to one tenant code — to the tenant in its cloud, and to its
+ * own place of it — and may give both the same executor name; keyed by tenant,
+ * attaching the second replaced the first and leaked its wake-ups, and
+ * detaching either withdrew whichever held the key.
  */
 public final class StepRunner implements AutoCloseable {
 
@@ -66,47 +77,20 @@ public final class StepRunner implements AutoCloseable {
      */
     private final Telemetry telemetry;
     private final Map<String, StepService> services = new ConcurrentHashMap<>();
-    private final Map<String, Lane> lanes = new ConcurrentHashMap<>();
     /**
-     * Soft accounting, <b>per lane</b> and then per step.
+     * Every lane attached, with everything this runner keeps about it.
      *
-     * <p>The nesting is the invariant above made structural: there is no key
-     * under which a number from two lanes could meet. Keyed by the same thing
-     * {@link #lanes} is, so a lane going away takes its accounting with it
-     * rather than leaving a count a re-attached lane would inherit.
+     * <p>Found by identity, never by equality: a lane's own {@code equals} is
+     * whatever its carrier says, and two lanes to one tenant must stay two.
      */
-    private final Map<String, Map<String, Counts>> counts = new ConcurrentHashMap<>();
-    /**
-     * What each lane was last told about each step, so a declaration is said
-     * again only when it changed or did not land. Keyed per lane, like
-     * everything here.
-     */
-    private final Map<String, Map<String, Declarations.Declared>> declaredOn =
-            new ConcurrentHashMap<>();
+    private final List<Attached> lanes = new java.util.concurrent.CopyOnWriteArrayList<>();
+    /** Names each lane's loop thread apart from another lane's to the same tenant. */
+    private final AtomicLong attachments = new AtomicLong();
     /** Whoever adds to a heartbeat, beside the runner's own counts. */
     private final List<HeartbeatStatistics> contributors =
             new java.util.concurrent.CopyOnWriteArrayList<>();
     /** The namespace the runner's own counts travel under, which no contributor may use. */
     public static final String RUNNER_STATISTICS = "dbo.runner";
-    /**
-     * What a lane's wake-ups are listened to through, per lane, so detaching
-     * one stops its listening — keyed like everything else here, because a
-     * subscription outliving its lane would wake a runner on behalf of a
-     * tenant it no longer serves.
-     */
-    private final Map<String, AutoCloseable> listening = new ConcurrentHashMap<>();
-    /**
-     * The loop's sleep, endable.
-     *
-     * <p>One permit counter for every lane together, not one per lane: the
-     * cycle sweeps them all, so being told twice and being told by two tenants
-     * are the same instruction — look again. Permits are drained after the
-     * wait for that reason, or a burst of six wake-ups would buy six immediate
-     * cycles over the same empty lanes.
-     */
-    private final java.util.concurrent.Semaphore woken =
-            new java.util.concurrent.Semaphore(0);
-    private volatile Thread loop;
     private volatile boolean running;
     /** The steps the loop waits for before it asks any lane for work; empty waits for none. */
     private volatile java.util.Set<String> awaited = java.util.Set.of();
@@ -133,7 +117,7 @@ public final class StepRunner implements AutoCloseable {
                     + "' in one runner — a collision, not an override, exactly as two "
                     + "modules declaring one id would be");
         }
-        lanes.values().forEach(lane -> declare(lane, service.step()));
+        lanes.forEach(lane -> declare(lane, service.step()));
         LOG.info("step service registered: step={}", service.step());
         return this;
     }
@@ -141,56 +125,84 @@ public final class StepRunner implements AutoCloseable {
     /** The whiteboard's other half: the declaration is withdrawn everywhere. */
     public synchronized void unregister(String step) {
         if (services.remove(step) != null) {
-            lanes.values().forEach(lane -> lane.withdraw(declared(lane, step)));
-            declaredOn.values().forEach(said -> said.remove(step));
+            lanes.forEach(attached -> {
+                attached.lane.withdraw(declared(attached.lane, step));
+                attached.declaredOn.remove(step);
+            });
             LOG.info("step service withdrawn: step={}", step);
         }
     }
 
-    /** A tenant arriving. Every registered service is declared on it. */
+    /**
+     * A lane arriving. Every registered service is declared on it, and while
+     * the runner runs, the lane is cycled on a loop of its own from now on.
+     * Attaching a lane already attached changes nothing.
+     */
     public synchronized StepRunner attach(Lane lane) {
-        lanes.put(lane.tenant(), lane);
-        services.keySet().forEach(step -> declare(lane, step));
+        if (find(lane) != null) {
+            return this;
+        }
+        Attached attached = new Attached(lane, attachments.incrementAndGet());
+        lanes.add(attached);
+        services.keySet().forEach(step -> declare(attached, step));
         // A lane that can say when it has work is listened to; one that
-        // cannot is not, and the loop then waits out its tick for it exactly
-        // as it always did. A failure to subscribe is logged and not fatal
-        // for the same reason: the poll is underneath this, so the worst it
-        // costs is the latency the runner had before.
+        // cannot is not, and its loop then waits out its tick exactly as it
+        // always did. A failure to subscribe is logged and not fatal for the
+        // same reason: the poll is underneath this, so the worst it costs is
+        // the latency the runner had before.
         lane.wakeups().ifPresent(wakeups -> {
             try {
-                listening.put(lane.tenant(), wakeups.wake(woken::release));
+                attached.listening = wakeups.wake(attached.woken::release);
             } catch (RuntimeException notListening) {
                 LOG.warn("lane attached without wake-ups, falling back to the poll: "
                         + "tenant={} {}", lane.tenant(), notListening.getMessage());
             }
         });
+        if (running) {
+            attached.start();
+        }
         LOG.info("lane attached: tenant={}", lane.tenant());
         return this;
     }
 
-    /** A tenant going away — its declarations with it. */
-    public synchronized void detach(String tenant) {
-        Lane lane = lanes.remove(tenant);
-        if (lane != null) {
-            services.keySet().forEach(step -> lane.withdraw(declared(lane, step)));
-            counts.remove(tenant);
-            declaredOn.remove(tenant);
-            stopListening(tenant);
-            LOG.info("lane detached: tenant={}", tenant);
+    /** A lane going away — its declarations, its loop and its accounting with it. */
+    public synchronized void detach(Lane lane) {
+        Attached attached = find(lane);
+        if (attached != null) {
+            detaching(attached);
         }
     }
 
-    private void stopListening(String tenant) {
-        AutoCloseable subscription = listening.remove(tenant);
-        if (subscription == null) {
-            return;
+    /**
+     * Every lane to that tenant going away.
+     *
+     * <p>Every one, where a node holds several: to the tenant in its cloud and
+     * to its own place of it. A host letting go of one of them says which,
+     * with {@link #detach(Lane)}.
+     */
+    public synchronized void detach(String tenant) {
+        for (Attached attached : lanes) {
+            if (attached.lane.tenant().equals(tenant)) {
+                detaching(attached);
+            }
         }
-        try {
-            subscription.close();
-        } catch (Exception stopping) {
-            LOG.warn("a lane's wake-ups did not stop: tenant={} {}",
-                    tenant, stopping.getMessage());
+    }
+
+    private void detaching(Attached attached) {
+        lanes.remove(attached);
+        attached.stop();
+        services.keySet().forEach(step -> attached.lane.withdraw(declared(attached.lane, step)));
+        attached.stopListening();
+        LOG.info("lane detached: tenant={}", attached.lane.tenant());
+    }
+
+    private Attached find(Lane lane) {
+        for (Attached attached : lanes) {
+            if (attached.lane == lane) {
+                return attached;
+            }
         }
+        return null;
     }
 
     /**
@@ -241,23 +253,23 @@ public final class StepRunner implements AutoCloseable {
         return services.keySet().containsAll(awaited);
     }
 
-    /** Starts the loop. Registering and attaching while running is fine. */
+    /**
+     * Starts a loop for every lane attached, and for each lane attached from
+     * now on. Registering and attaching while running is fine.
+     */
     public synchronized StepRunner start() {
         if (running) {
             return this;
         }
         running = true;
-        loop = Thread.ofPlatform().name("dbo-step-runner").daemon(true).start(this::run);
+        lanes.forEach(Attached::start);
         return this;
     }
 
     @Override
     public synchronized void close() {
         running = false;
-        Thread current = loop;
-        if (current != null) {
-            current.interrupt();
-        }
+        lanes.forEach(Attached::stop);
     }
 
     /**
@@ -267,19 +279,26 @@ public final class StepRunner implements AutoCloseable {
      */
     public int cycle() {
         int performed = 0;
-        for (Lane lane : lanes.values()) {
-            try {
-                performed += cycle(lane);
-            } catch (RuntimeException laneFailed) {
-                // One tenant's bad day must not starve the rest of the fleet.
-                LOG.warn("lane cycle failed: tenant={} {}",
-                        lane.tenant(), laneFailed.getMessage());
-            }
+        for (Attached attached : lanes) {
+            performed += cycling(attached);
         }
         return performed;
     }
 
-    private int cycle(Lane lane) {
+    /** One lane's cycle, whose failure is that lane's and nobody else's. */
+    private int cycling(Attached attached) {
+        try {
+            return cycle(attached);
+        } catch (RuntimeException laneFailed) {
+            // One tenant's bad day must not starve the rest of the fleet.
+            LOG.warn("lane cycle failed: tenant={} {}",
+                    attached.lane.tenant(), laneFailed.getMessage());
+            return 0;
+        }
+    }
+
+    private int cycle(Attached attached) {
+        Lane lane = attached.lane;
         // The tenant's housekeeping first: anybody may hand back lapsed
         // claims, and the participant that needed noticing cannot.
         lane.releaseLapsed();
@@ -312,23 +331,23 @@ public final class StepRunner implements AutoCloseable {
             if (claimed.isEmpty()) {
                 continue; // raced; somebody else holds it — the claim is the scheduler
             }
-            perform(lane, service, claimed.get());
+            perform(attached, service, claimed.get());
             performed++;
         }
         // Said again only where it changed or did not land: "still here,
         // nothing waiting" is the heartbeat's to say, and it writes nothing.
         services.keySet().forEach(step -> {
-            if (!declared(lane, step).equals(declaredOn.getOrDefault(lane.tenant(), Map.of())
-                    .get(step))) {
-                declare(lane, step);
+            if (!declared(lane, step).equals(attached.declaredOn.get(step))) {
+                declare(attached, step);
             }
         });
-        heartbeat(lane);
+        heartbeat(attached);
         return performed;
     }
 
-    private void perform(Lane lane, StepService service, Run claimed) {
-        Counts sign = countsOf(lane, service.step());
+    private void perform(Attached attached, StepService service, Run claimed) {
+        Lane lane = attached.lane;
+        Counts sign = attached.countsOf(service.step());
         long began = System.nanoTime();
         // Every report answers with the run as it now stands, and the next one
         // must be built on THAT rather than on the run as claimed. A report
@@ -373,22 +392,24 @@ public final class StepRunner implements AutoCloseable {
         }
     }
 
-    private void run() {
-        while (running) {
+    /** One lane's loop: its cycle in a sleep, until the runner closes or the lane goes. */
+    private void run(Attached attached) {
+        while (running && attached.looping) {
             try {
                 if (holdsWhatItAwaits()) {
-                    cycle();
+                    cycling(attached);
                 }
-                // The tick, or less if a lane said to look again. The poll is
-                // the FALLBACK and not the mechanism: a wake-up that never
+                // The tick, or less if the lane said to look again. The poll
+                // is the FALLBACK and not the mechanism: a wake-up that never
                 // arrives costs the latency a runner had before wake-ups
                 // existed, and loses nothing — which is what keeps a silent
                 // delivery failure from being invisible in the way that
                 // matters.
-                woken.tryAcquire(pollEvery.toMillis(), java.util.concurrent.TimeUnit.MILLISECONDS);
+                attached.woken.tryAcquire(pollEvery.toMillis(),
+                        java.util.concurrent.TimeUnit.MILLISECONDS);
                 // Being told six times is the same instruction as being told
-                // once, and the cycle that follows sweeps every lane.
-                woken.drainPermits();
+                // once, and the cycle that follows looks at everything.
+                attached.woken.drainPermits();
             } catch (InterruptedException interrupted) {
                 Thread.currentThread().interrupt();
                 return;
@@ -396,12 +417,14 @@ public final class StepRunner implements AutoCloseable {
                 // The loop survives a bad cycle: a runner that died on the
                 // first refused write would be an outage where a lagging
                 // cursor was available.
-                LOG.warn("runner cycle failed: {}", cycleFailed.getMessage());
+                LOG.warn("runner cycle failed: tenant={} {}", attached.lane.tenant(),
+                        cycleFailed.getMessage());
             }
         }
     }
 
-    private void declare(Lane lane, String step) {
+    private void declare(Attached attached, String step) {
+        Lane lane = attached.lane;
         try {
             // A service that brings its own step introduces it BESIDE its
             // candidacy, so the catalogue learns the step the moment
@@ -414,8 +437,7 @@ public final class StepRunner implements AutoCloseable {
             }
             Declarations.Declared declaring = declared(lane, step);
             lane.declare(declaring);
-            declaredOn.computeIfAbsent(lane.tenant(), tenant -> new ConcurrentHashMap<>())
-                    .put(step, declaring);
+            attached.declaredOn.put(step, declaring);
         } catch (RuntimeException declineFailed) {
             LOG.warn("declaration failed: tenant={} step={} {}",
                     lane.tenant(), step, declineFailed.getMessage());
@@ -449,7 +471,8 @@ public final class StepRunner implements AutoCloseable {
      * node refuses is said once per cycle, like a declaration that did not
      * land.
      */
-    private void heartbeat(Lane lane) {
+    private void heartbeat(Attached attached) {
+        Lane lane = attached.lane;
         Map<String, Object> statistics = new java.util.LinkedHashMap<>();
         for (HeartbeatStatistics contributor : contributors) {
             try {
@@ -463,7 +486,7 @@ public final class StepRunner implements AutoCloseable {
             }
         }
         Map<String, Object> runner = new java.util.LinkedHashMap<>();
-        services.keySet().forEach(step -> runner.put(step, countsOf(lane, step).said()));
+        services.keySet().forEach(step -> runner.put(step, attached.countsOf(step).said()));
         statistics.put(RUNNER_STATISTICS, runner);
         try {
             lane.heartbeat(statistics);
@@ -473,10 +496,75 @@ public final class StepRunner implements AutoCloseable {
         }
     }
 
-    /** This lane's counters for this step, and no other lane's. */
-    private Counts countsOf(Lane lane, String step) {
-        return counts.computeIfAbsent(lane.tenant(), t -> new ConcurrentHashMap<>())
-                .computeIfAbsent(step, s -> new Counts());
+    /**
+     * One lane, attached: everything this runner keeps about it, and its loop.
+     *
+     * <p>Held here and nowhere else, which is the invariant above made
+     * structural: there is no key under which a number, a declaration or a
+     * wake-up from two lanes could meet, and a lane going away takes all of it
+     * with it rather than leaving a count a re-attached lane would inherit.
+     */
+    private final class Attached {
+
+        final Lane lane;
+        final long number;
+        /** Soft accounting, per step. */
+        final Map<String, Counts> counts = new ConcurrentHashMap<>();
+        /**
+         * What this lane was last told about each step, so a declaration is
+         * said again only when it changed or did not land.
+         */
+        final Map<String, Declarations.Declared> declaredOn = new ConcurrentHashMap<>();
+        /**
+         * This loop's sleep, endable, and by this lane alone: a lane saying
+         * it has work wakes its own loop, never another lane's.
+         */
+        final java.util.concurrent.Semaphore woken = new java.util.concurrent.Semaphore(0);
+        /** Its wake-ups, listened to until it goes. */
+        volatile AutoCloseable listening;
+        volatile boolean looping;
+        volatile Thread loop;
+
+        Attached(Lane lane, long number) {
+            this.lane = lane;
+            this.number = number;
+        }
+
+        Counts countsOf(String step) {
+            return counts.computeIfAbsent(step, s -> new Counts());
+        }
+
+        void start() {
+            if (loop != null) {
+                return;
+            }
+            looping = true;
+            loop = Thread.ofPlatform().name("dbo-step-runner-" + lane.tenant() + "-" + number)
+                    .daemon(true).start(() -> run(this));
+        }
+
+        void stop() {
+            looping = false;
+            Thread current = loop;
+            loop = null;
+            if (current != null) {
+                current.interrupt();
+            }
+        }
+
+        void stopListening() {
+            AutoCloseable subscription = listening;
+            listening = null;
+            if (subscription == null) {
+                return;
+            }
+            try {
+                subscription.close();
+            } catch (Exception stopping) {
+                LOG.warn("a lane's wake-ups did not stop: tenant={} {}",
+                        lane.tenant(), stopping.getMessage());
+            }
+        }
     }
 
     private static String bareStep(String fullId) {

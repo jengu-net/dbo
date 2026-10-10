@@ -95,7 +95,10 @@ public final class Activator implements BundleActivator {
 
                     @Override
                     public void removedService(ServiceReference<Lane> ref, Lane lane) {
-                        runner.detach(lane.tenant());
+                        // This lane, not its tenant: a site holds a lane to
+                        // the tenant in its cloud and one to its own place of
+                        // it, and either may go while the other stays.
+                        runner.detach(lane);
                         context.ungetService(ref);
                     }
                 });

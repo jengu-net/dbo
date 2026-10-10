@@ -16,6 +16,9 @@ import java.util.Map;
  * outside any sealed work, and the store cannot check what it says, so this
  * is the contributor's rule to keep: anything about a person travels only as
  * work.
+ *
+ * <p><b>Asked on several threads at once</b>: each lane's loop heartbeats on
+ * its own.
  */
 public interface HeartbeatStatistics {
 
