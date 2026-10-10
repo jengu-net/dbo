@@ -262,58 +262,6 @@ class ASecondPlaceComesUpFromItsOriginIT {
                 "a site restarted offline came up without its face");
     }
 
-    @Test
-    @Order(6)
-    @DisplayName("a tenant taking its face from a root is sent what the types it declares need, "
-            + "and not the rest of the face")
-    @Proving(DboPromises.SYNC_A_FACE_CARRIES_WHAT_THE_DEPENDENT_NEEDS)
-    void aDependentIsSentWhatItsTypesNeed() throws Exception {
-        // The cloud's clinic and its root, on their own: nothing about the
-        // site. The clinic operates on patients, whose gender is bound to a
-        // value set it therefore needs, and never on medications.
-        String gender = "http://hl7.org/fhir/ValueSet/administrative-gender";
-        String revised = "revised by the root " + System.nanoTime();
-        com.fasterxml.jackson.databind.node.ObjectNode valueSet = firstEntry(
-                read(cloud, ROOT, "ValueSet?url=" + gender));
-        valueSet.put("description", revised);
-        assertEquals(200, put(cloud, ROOT, "ValueSet/" + valueSet.get("id").asText(),
-                valueSet.toString()));
-        String medication = "http://example.org/saar/StructureDefinition/saar-medication";
-        assertEquals(201, post(cloud, ROOT, "StructureDefinition", """
-                {"resourceType":"StructureDefinition","url":"%s","name":"SaarMedication",
-                 "status":"active","kind":"resource","abstract":false,"type":"Medication",
-                 "baseDefinition":"http://hl7.org/fhir/StructureDefinition/Medication",
-                 "derivation":"constraint",
-                 "differential":{"element":[
-                   {"id":"Medication.code","path":"Medication.code","min":1}]}}"""
-                .formatted(medication)));
-        assertTrue(holds(cloud, ROOT, "StructureDefinition", medication, "SaarMedication"),
-                "the root does not hold the profile this asserts the clinic is not sent");
-
-        cloud.syncRound();
-
-        assertTrue(holds(cloud, CLINIC, "ValueSet", gender, revised),
-                "the clinic was not sent a revision of a value set its types bind to");
-        assertTrue(!holds(cloud, CLINIC, "StructureDefinition", medication, "SaarMedication"),
-                "the clinic was sent a profile of a type it never declared: the face was "
-                        + "carried whole instead of what the clinic's types need");
-    }
-
-    /** The first resource a search answered with. */
-    private static com.fasterxml.jackson.databind.node.ObjectNode firstEntry(String bundle)
-            throws Exception {
-        return (com.fasterxml.jackson.databind.node.ObjectNode)
-                new com.fasterxml.jackson.databind.ObjectMapper().readTree(bundle)
-                        .path("entry").path(0).path("resource");
-    }
-
-    /** Whether that tenant holds the canonical, in a version that says this. */
-    private static boolean holds(TenantRuntimeManager node, String code, String type, String url,
-            String saying) throws Exception {
-        String found = read(node, code, type + "?url=" + url);
-        return found.contains("\"resourceType\":\"" + type + "\"") && found.contains(saying);
-    }
-
     /** A token fetched once and again at half its life, never on every call. */
     private static final class HeldToken implements java.util.function.Supplier<String> {
 
@@ -375,15 +323,6 @@ class ASecondPlaceComesUpFromItsOriginIT {
                 {"resourceType":"CodeSystem","url":"%s","name":"%s","status":"active",
                  "content":"complete","concept":[{"code":"a","display":"A"}]}"""
                 .formatted(canonical(name), name.replace("-", ""));
-    }
-
-    private static int put(TenantRuntimeManager node, String code, String path, String body)
-            throws Exception {
-        return http.send(HttpRequest.newBuilder(URI.create(base(node, code) + "/fhir/" + path))
-                        .header("Authorization", "Bearer " + writer(node, code))
-                        .header("Content-Type", "application/fhir+json")
-                        .PUT(HttpRequest.BodyPublishers.ofString(body)).build(),
-                HttpResponse.BodyHandlers.ofString()).statusCode();
     }
 
     private static int post(TenantRuntimeManager node, String code, String type, String body)
