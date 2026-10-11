@@ -30,10 +30,35 @@ public final class LocalDatabasePerTenantProvisioner implements TenantDatabasePr
     private volatile java.util.List<String> rpRedirectUris = java.util.List.of();
     private volatile String rpClientId;
 
+    /**
+     * The namespace every database this node makes, opens and drops is named
+     * under, or null for the names every node has always used.
+     */
+    private final String namespace;
+
     public LocalDatabasePerTenantProvisioner(String adminUrl, String user, String password) {
+        this(adminUrl, user, password, null);
+    }
+
+    /**
+     * A node whose databases are named as its own, so nodes sharing one
+     * server never make, open or drop each other's.
+     *
+     * @throws IllegalArgumentException for a namespace a database cannot be
+     *         named under, said when the node is set up rather than at its
+     *         first tenant
+     */
+    public LocalDatabasePerTenantProvisioner(String adminUrl, String user, String password,
+            String namespace) {
+        if (namespace != null && !TenantSpec.isNamespace(namespace)) {
+            throw new IllegalArgumentException("a node's databases are named under a namespace "
+                    + "of a code's characters and at most " + TenantSpec.MOST_IN_A_NAMESPACE
+                    + " of them, and this was '" + namespace + "'");
+        }
         this.adminUrl = adminUrl;
         this.user = user;
         this.password = password;
+        this.namespace = namespace;
     }
 
     /**
@@ -47,7 +72,7 @@ public final class LocalDatabasePerTenantProvisioner implements TenantDatabasePr
      */
     @Override
     public DataSource stepSubstrate(String substrate) {
-        String dbName = TenantSpec.substrateDatabaseName(substrate);
+        String dbName = TenantSpec.substrateDatabaseName(namespace, substrate);
         createIfAbsent(dbName, "the substrate for fleet step queues '" + substrate + "'");
         // Keyed by the DATABASE and not by the step, because several steps may
         // name one substrate and each of them asking would otherwise open a
@@ -74,7 +99,7 @@ public final class LocalDatabasePerTenantProvisioner implements TenantDatabasePr
 
     @Override
     public TenantDatabase provision(TenantSpec spec) {
-        String dbName = spec.databaseName(); // Postgres-safe, collision-free
+        String dbName = TenantSpec.databaseName(namespace, spec.code());
         createIfAbsent(dbName, "tenant '" + spec.code() + "'");
         applyTimeouts(dbName);
         DataSource pool = pools.computeIfAbsent(spec.code(), code -> {
@@ -252,7 +277,7 @@ public final class LocalDatabasePerTenantProvisioner implements TenantDatabasePr
         if (!TenantSpec.isCode(tenantCode)) {
             throw new IllegalArgumentException("invalid tenant code: " + tenantCode);
         }
-        String dbName = TenantSpec.databaseName(tenantCode);
+        String dbName = TenantSpec.databaseName(namespace, tenantCode);
         try (Connection c = adminConnection();
              PreparedStatement ps = c.prepareStatement(
                      "DROP DATABASE IF EXISTS " + dbName + " WITH (FORCE)")) {
