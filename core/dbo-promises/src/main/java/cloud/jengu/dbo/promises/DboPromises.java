@@ -380,6 +380,13 @@ public enum DboPromises implements Promise {
     // so in its own first word, which is the only place that cannot drift
     // from the thing it describes.
 
+    PROC_A_RESTARTED_NODE_WAITS_OUT_NO_DOOR_IT_LEFT("A node started again over its own "
+            + "substrate is answered within seconds: the door a run that is gone left open is "
+            + "closed by the door that replaces it, and an ask sent to it is asked again of the "
+            + "door now open rather than waited out."),
+    PROC_STARTING_WAITS_ON_NO_LANE("Registering a step, or attaching a lane, while the runner "
+            + "runs never waits on a lane: each lane is told of the steps by its own loop, so "
+            + "a framework starting is never held by a tenant that is slow to answer."),
     PROC_NO_LANE_WAITS_ON_ANOTHER("A runner cycles each lane it holds on a loop of its own, "
             + "so a step performing over one lane, or a slow round to a tenant far away, never "
             + "delays a poll, a claim or a step over another. A lane is told apart by being "

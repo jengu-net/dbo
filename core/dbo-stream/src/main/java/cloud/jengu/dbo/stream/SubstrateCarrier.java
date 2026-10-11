@@ -67,6 +67,8 @@ public final class SubstrateCarrier implements StreamCarrier {
 
     /** How long one wait for a wake-up lasts before it is asked again. */
     private static final Duration WAKEUP = Duration.ofSeconds(30);
+    /** How often an ask waiting for its answer looks whether the door it asked is still open. */
+    private static final Duration ASKED_AGAIN = Duration.ofSeconds(2);
     /** How long to pause when there is no door to listen to at all. */
     private static final Duration WAKEUP_IDLE = Duration.ofSeconds(2);
 
@@ -168,6 +170,7 @@ public final class SubstrateCarrier implements StreamCarrier {
 
         private void keep() {
             int generation = nextGeneration();
+            closeWhatWasLeft(generation);
             while (!closing.get()) {
                 final int opening = generation;
                 nudges.set(0);
@@ -184,6 +187,26 @@ public final class SubstrateCarrier implements StreamCarrier {
                     // flight, which its asker times out on and asks again.
                 }
                 generation++;
+            }
+        }
+
+        /**
+         * Closes every earlier generation still standing open.
+         *
+         * <p>A door is one per tenant on a substrate — its workflows are named
+         * by the tenant alone — so a generation this door did not open and
+         * that is still open belongs to a run that is gone: one stopped
+         * without closing its door, whose workflow nothing will ever recover,
+         * because each run serves under an executor of its own. Left open, it
+         * is the door an asker finds, sends to, and waits out its patience on.
+         */
+        private void closeWhatWasLeft(int opening) {
+            for (int earlier = 1; earlier < opening; earlier++) {
+                String id = workflowId(tenant, earlier);
+                Optional<WorkflowStatus> status = dbos.getWorkflowStatus(id);
+                if (status.isPresent() && isOpen(status.get())) {
+                    dbos.cancelWorkflow(id);
+                }
             }
         }
 
@@ -315,14 +338,35 @@ public final class SubstrateCarrier implements StreamCarrier {
                         tenant + ": no door is open on the stream — generations seen: "
                                 + generationsSeen());
             }
-            dbos.send(door, framed(id, ask), TOPIC, id);
-            Optional<String> answer = dbos.getEvent(door, id, patience);
-            if (answer.isEmpty()) {
-                // A generation closed under the ask, or the container is
-                // away: the next ask probes again.
-                generation = 0;
+            dbos.send(door, framed(id, ask), TOPIC, id + "@" + door);
+            long until = System.nanoTime() + patience.toNanos();
+            while (true) {
+                long left = until - System.nanoTime();
+                if (left <= 0) {
+                    // The container is away: the next ask probes again.
+                    generation = 0;
+                    return Optional.empty();
+                }
+                Optional<String> answer = dbos.getEvent(door, id,
+                        Duration.ofNanos(Math.min(left, ASKED_AGAIN.toNanos())));
+                if (answer.isPresent()) {
+                    return answer;
+                }
+                // Asked of a door that has since closed — the one a run that
+                // is gone left open, closed by the door that replaced it — is
+                // asked again of the door now open, rather than waited out.
+                // Nothing is answered twice: a door that closed without
+                // answering never will, and the answer is keyed by the ask.
+                Optional<WorkflowStatus> asked = dbos.getWorkflowStatus(door);
+                if (asked.isPresent() && !isOpen(asked.get())) {
+                    generation = 0;
+                    String open = door();
+                    if (open != null && !open.equals(door)) {
+                        door = open;
+                        dbos.send(door, framed(id, ask), TOPIC, id + "@" + door);
+                    }
+                }
             }
-            return answer;
         }
 
         @Override
@@ -418,14 +462,15 @@ public final class SubstrateCarrier implements StreamCarrier {
             return found;
         }
 
-        private boolean isOpen(WorkflowStatus status) {
-            String state = String.valueOf(status.status());
-            return "PENDING".equals(state) || "ENQUEUED".equals(state);
-        }
-
         @Override
         public void close() {
             dbos.shutdown();
         }
+    }
+
+    /** Whether a generation is still standing open: begun, and neither finished nor cancelled. */
+    private static boolean isOpen(WorkflowStatus status) {
+        String state = String.valueOf(status.status());
+        return "PENDING".equals(state) || "ENQUEUED".equals(state);
     }
 }

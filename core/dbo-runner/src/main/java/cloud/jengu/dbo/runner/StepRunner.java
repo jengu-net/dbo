@@ -117,7 +117,15 @@ public final class StepRunner implements AutoCloseable {
                     + "' in one runner — a collision, not an override, exactly as two "
                     + "modules declaring one id would be");
         }
-        lanes.forEach(lane -> declare(lane, service.step()));
+        if (running) {
+            // Said by each lane's own loop, which declares what a lane has not
+            // been told: registering is done on whatever thread found the
+            // service — a framework starting — and a lane whose tenant is slow
+            // to answer held that thread once per step.
+            lanes.forEach(lane -> lane.woken.release());
+        } else {
+            lanes.forEach(lane -> declare(lane, service.step()));
+        }
         LOG.info("step service registered: step={}", service.step());
         return this;
     }
@@ -144,7 +152,12 @@ public final class StepRunner implements AutoCloseable {
         }
         Attached attached = new Attached(lane, attachments.incrementAndGet());
         lanes.add(attached);
-        services.keySet().forEach(step -> declare(attached, step));
+        if (!running) {
+            // A runner that is running leaves this to the lane's own loop, which
+            // declares before it is long started; one driven by its caller says
+            // it here, as it always has.
+            services.keySet().forEach(step -> declare(attached, step));
+        }
         // A lane that can say when it has work is listened to; one that
         // cannot is not, and its loop then waits out its tick exactly as it
         // always did. A failure to subscribe is logged and not fatal for the

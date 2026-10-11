@@ -3085,6 +3085,7 @@ cloud.jengu.dbo.promises.DboPromises                                   PROC_A_PE
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_PROCESSOR_IS_ENROLLED_PER_TENANT:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_REFERENCE_MAY_BE_A_SEARCH:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_REFUSED_RESULT_ENDS_THE_RUN:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   PROC_A_RESTARTED_NODE_WAITS_OUT_NO_DOOR_IT_LEFT:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_RESULT_IS_WRITTEN_BY_THE_TENANT:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_ROUTED_TREE_TRAVELS_AS_A_LANE_VERB:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_RUNNER_ASKS_ONCE_IT_HOLDS_ITS_STEPS:cloud.jengu.dbo.promises.DboPromises
@@ -3155,6 +3156,7 @@ cloud.jengu.dbo.promises.DboPromises                                   PROC_RUN_
 cloud.jengu.dbo.promises.DboPromises                                   PROC_RUN_NAMES_THE_STEP_VERSION:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_RUN_NAMES_WHAT_RAN_IT:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_RUN_TALLY_AND_ITEM_OUTCOMES:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   PROC_STARTING_WAITS_ON_NO_LANE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_STEPS_ARRIVE_BY_INTRODUCTION:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_STEP_DECLARES_ITSELF:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_STEP_DECLARES_ITS_SLOTS:cloud.jengu.dbo.promises.DboPromises
