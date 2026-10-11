@@ -4387,17 +4387,82 @@ public final class TenantRuntimeManager implements AutoCloseable {
             if (!unreachable(away)) {
                 throw away;
             }
-            boolean holds = streams.stream().anyMatch(
+            // Served before is the test, by whatever path the place came to
+            // hold what it holds: its origin's streams, the runs a lane brings
+            // it, its own people's writes. Whether a stream applied anything
+            // answers only the first, and a place seeded by runs was taken for
+            // one that had never received anything.
+            boolean holds = hasServed(spec.code()) || streams.stream().anyMatch(
                     cloud.jengu.dbo.sync.ContentSyncEngine::holdsAnything);
             if (!holds) {
+                if (placesWaiting.add(spec.code())) {
+                    LOG.warn("tenant {} is a place of {} that has never served, and its origin "
+                            + "cannot be reached ({}); it waits for its origin", spec.code(),
+                            origin, away.getMessage());
+                }
                 throw new UpstreamNotReady(spec.code(), origin);
             }
             LOG.warn("tenant {} cannot reach its origin {} ({}); serving what it holds",
                     spec.code(), origin, away.getMessage());
         }
+        placesWaiting.remove(spec.code());
+        hasServedNow(spec.code());
         runtime.store().shapesChanged();
         LOG.info("tenant {} is a place of {}: events={} in {}ms", spec.code(), origin, carried,
                 System.currentTimeMillis() - began);
+    }
+
+    /** Places said once to be waiting for an origin they have never served without. */
+    private final java.util.Set<String> placesWaiting = ConcurrentHashMap.newKeySet();
+
+    /**
+     * Whether this place has come up before, from its origin or from what it
+     * held. Kept in the place's own database, beside what it serves, so a
+     * site switched on with its link down knows it from its own disk.
+     */
+    private boolean hasServed(String code) {
+        javax.sql.DataSource on = tenantDataSources.get(code);
+        if (on == null) {
+            return false;
+        }
+        try (java.sql.Connection c = on.getConnection()) {
+            servedTable(c);
+            try (java.sql.PreparedStatement ps = c.prepareStatement(
+                    "SELECT 1 FROM state.place_served LIMIT 1");
+                    java.sql.ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
+        } catch (java.sql.SQLException unreadable) {
+            return false;
+        }
+    }
+
+    /** Recorded as this place comes up, once. */
+    private void hasServedNow(String code) {
+        javax.sql.DataSource on = tenantDataSources.get(code);
+        if (on == null) {
+            return;
+        }
+        try (java.sql.Connection c = on.getConnection()) {
+            servedTable(c);
+            try (java.sql.PreparedStatement ps = c.prepareStatement("""
+                    INSERT INTO state.place_served (since)
+                    SELECT now() WHERE NOT EXISTS (SELECT 1 FROM state.place_served)""")) {
+                ps.executeUpdate();
+            }
+        } catch (java.sql.SQLException notKept) {
+            // Said and carried on: the place is up, and what is lost is only
+            // that the next bring-up with the link down knows it served.
+            LOG.warn("tenant {} came up, and that it has served could not be kept: {}", code,
+                    notKept.getMessage());
+        }
+    }
+
+    private static void servedTable(java.sql.Connection c) throws java.sql.SQLException {
+        try (java.sql.PreparedStatement ps = c.prepareStatement(
+                "CREATE TABLE IF NOT EXISTS state.place_served (since timestamptz NOT NULL)")) {
+            ps.execute();
+        }
     }
 
     /** Whether this failure is the far side not answering, rather than anything it said. */
