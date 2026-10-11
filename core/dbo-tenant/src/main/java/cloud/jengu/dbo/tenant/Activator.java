@@ -32,6 +32,8 @@ import java.util.concurrent.ConcurrentHashMap;
  *
  * Framework properties: dbo.tenant.dir, dbo.tenant.http.host/.port,
  * dbo.tenant.admin.url/.user/.password (optional — enables the default).
+ * dbo.tenant.database.namespace (optional — names this node's databases as its
+ * own, so nodes can share one server).
  */
 public final class Activator implements BundleActivator {
 
@@ -446,7 +448,8 @@ public final class Activator implements BundleActivator {
         if (adminUrl != null) {
             localProvisioner = new LocalDatabasePerTenantProvisioner(adminUrl,
                     ctx.getProperty("dbo.tenant.admin.user"),
-                    ctx.getProperty("dbo.tenant.admin.password"));
+                    ctx.getProperty("dbo.tenant.admin.password"),
+                    ctx.getProperty("dbo.tenant.database.namespace"));
             // Custody, where there is no operator to hold it: the secrets
             // this deployment already decided on, so the tenant's bootstrap
             // client is one somebody can actually present.

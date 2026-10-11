@@ -85,6 +85,7 @@ public class DboServerProperties {
         put(said, "dbo.tenant.admin.url", admin.getJdbcUrl());
         put(said, "dbo.tenant.admin.user", admin.getUser());
         put(said, "dbo.tenant.admin.password", admin.getPassword());
+        put(said, "dbo.tenant.database.namespace", admin.getDatabaseNamespace());
         put(said, "dbo.substrate.url", substrate.getUrl());
         put(said, "dbo.substrate.user", substrate.getUser());
         put(said, "dbo.substrate.password", substrate.getPassword());
@@ -228,5 +229,11 @@ public class DboServerProperties {
 
         @ToString.Exclude
         private String password;
+
+        /**
+         * What this node's databases are named under, so several nodes can
+         * share the server; unset keeps the names every node has always used.
+         */
+        private String databaseNamespace;
     }
 }

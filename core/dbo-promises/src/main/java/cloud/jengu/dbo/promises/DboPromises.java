@@ -1307,6 +1307,11 @@ public enum DboPromises implements Promise {
     // ── TEN — migrated from hand-written prose (2026-08-27) ──
 
     /** TODO: prove it in a test. */
+    TEN_NODES_SHARE_A_SERVER_UNDER_NAMESPACES("A node told a database namespace names "
+            + "every database it makes, opens and drops under it, so nodes sharing one Postgres "
+            + "server never touch each other's — two serving the same tenant code each keep "
+            + "their own, and one letting the tenant go leaves the other's in place. A node told "
+            + "none names its databases exactly as every node always has."),
     TEN_SERVED_FROM_WHAT_WAS_APPLIED("A deployment serves the declarations that were "
             + "applied, not a listing it takes itself — so a tenant stops being served "
             + "because somebody withdrew it, never because a read went wrong. A source "

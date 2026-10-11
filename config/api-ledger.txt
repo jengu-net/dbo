@@ -3258,6 +3258,7 @@ cloud.jengu.dbo.promises.DboPromises                                   TEN_DEDIC
 cloud.jengu.dbo.promises.DboPromises                                   TEN_ERASURE_BY_DROP:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_ERASURE_HAS_A_DOOR_OF_ITS_OWN:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_FAIRNESS_QUOTAS:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   TEN_NODES_SHARE_A_SERVER_UNDER_NAMESPACES:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_READY_WHEN_ITS_CRITICAL_DEFINITIONS_ARRIVED:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_REGISTRY_SCOPED_ACCESS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_SERVED_FROM_WHAT_WAS_APPLIED:cloud.jengu.dbo.promises.DboPromises
@@ -4363,6 +4364,7 @@ cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner               class
 cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner               close():void
 cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner               deprovision(String):void
 cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner               new(String,String,String)
+cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner               new(String,String,String,String)
 cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner               provision(cloud.jengu.dbo.tenant.TenantSpec):cloud.jengu.dbo.tenant.TenantDatabaseProvisioner.TenantDatabase
 cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner               provisioned():Set
 cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner               release(String):void
@@ -4580,12 +4582,14 @@ cloud.jengu.dbo.tenant.TenantRuntimeManager.TenantRuntime              replicati
 cloud.jengu.dbo.tenant.TenantRuntimeManager.TenantRuntime              spec():cloud.jengu.dbo.tenant.TenantSpec
 cloud.jengu.dbo.tenant.TenantRuntimeManager.TenantRuntime              store():cloud.jengu.dbo.fhir.common.FhirStoreFacade
 cloud.jengu.dbo.tenant.TenantRuntimeManager.TenantRuntime              toString():String
+cloud.jengu.dbo.tenant.TenantSpec                                      MOST_IN_A_NAMESPACE:int
 cloud.jengu.dbo.tenant.TenantSpec                                      acceptedBrokers():List
 cloud.jengu.dbo.tenant.TenantSpec                                      authorised():Set
 cloud.jengu.dbo.tenant.TenantSpec                                      broker():String
 cloud.jengu.dbo.tenant.TenantSpec                                      code():String
 cloud.jengu.dbo.tenant.TenantSpec                                      databaseName():String
 cloud.jengu.dbo.tenant.TenantSpec                                      databaseName(String):String
+cloud.jengu.dbo.tenant.TenantSpec                                      databaseName(String,String):String
 cloud.jengu.dbo.tenant.TenantSpec                                      declines():Set
 cloud.jengu.dbo.tenant.TenantSpec                                      dependencies():List
 cloud.jengu.dbo.tenant.TenantSpec                                      equals(Object):boolean
@@ -4595,6 +4599,7 @@ cloud.jengu.dbo.tenant.TenantSpec                                      fleetStep
 cloud.jengu.dbo.tenant.TenantSpec                                      hashCode():int
 cloud.jengu.dbo.tenant.TenantSpec                                      indexFace():boolean
 cloud.jengu.dbo.tenant.TenantSpec                                      isCode(String):boolean
+cloud.jengu.dbo.tenant.TenantSpec                                      isNamespace(String):boolean
 cloud.jengu.dbo.tenant.TenantSpec                                      managedBy():String
 cloud.jengu.dbo.tenant.TenantSpec                                      mandatorySteps():List
 cloud.jengu.dbo.tenant.TenantSpec                                      new(String,String,List)
@@ -4620,6 +4625,7 @@ cloud.jengu.dbo.tenant.TenantSpec                                      record
 cloud.jengu.dbo.tenant.TenantSpec                                      scim():cloud.jengu.dbo.tenant.TenantSpec.Scim
 cloud.jengu.dbo.tenant.TenantSpec                                      steps():List
 cloud.jengu.dbo.tenant.TenantSpec                                      substrateDatabaseName(String):String
+cloud.jengu.dbo.tenant.TenantSpec                                      substrateDatabaseName(String,String):String
 cloud.jengu.dbo.tenant.TenantSpec                                      toString():String
 cloud.jengu.dbo.tenant.TenantSpec                                      types():List
 cloud.jengu.dbo.tenant.TenantSpec                                      zone():String

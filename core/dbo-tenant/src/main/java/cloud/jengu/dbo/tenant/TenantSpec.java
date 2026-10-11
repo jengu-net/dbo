@@ -989,21 +989,20 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
      * provisioner and every restart derives the same name.
      */
     public static String databaseName(String code) {
-        String name = "tenant_" + code.replace('-', '_');
-        if (name.length() <= 63) {
-            return name;
-        }
-        try {
-            byte[] digest = java.security.MessageDigest.getInstance("SHA-256")
-                    .digest(code.getBytes(java.nio.charset.StandardCharsets.UTF_8));
-            StringBuilder hash = new StringBuilder();
-            for (int i = 0; i < 6; i++) {
-                hash.append(String.format("%02x", digest[i]));
-            }
-            return name.substring(0, 50) + "_" + hash;
-        } catch (java.security.NoSuchAlgorithmException e) {
-            throw new IllegalStateException(e);
-        }
+        return databaseName(null, code);
+    }
+
+    /**
+     * The same, for a node that names its databases as its own: {@code
+     * <namespace>_tenant_<code>}. Two nodes serving one tenant code on one
+     * server — a face root on each, a tenant's own place on each of its sites
+     * — otherwise make, open and drop one database between them.
+     *
+     * @param namespace the node's, or null for the names every node has always
+     *                  used
+     */
+    public static String databaseName(String namespace, String code) {
+        return named(namespace, "tenant_" + code.replace('-', '_'), code);
     }
 
     public String databaseName() {
@@ -1025,13 +1024,46 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
      * authority. Nothing here derives a tenant's anything from it.
      */
     public static String substrateDatabaseName(String substrate) {
-        String name = "step_" + substrate.replace('-', '_').replace('.', '_');
+        return substrateDatabaseName(null, substrate);
+    }
+
+    /** The same, for a node that names its databases as its own. */
+    public static String substrateDatabaseName(String namespace, String substrate) {
+        return named(namespace, "step_" + substrate.replace('-', '_').replace('.', '_'),
+                substrate);
+    }
+
+    /** The most a namespace may be, so a name keeps room for what it is of. */
+    public static final int MOST_IN_A_NAMESPACE = 24;
+
+    /**
+     * Whether a namespace is one a node may name its databases under: a code's
+     * characters, and short enough to leave room for what each database is.
+     */
+    public static boolean isNamespace(String namespace) {
+        return isCode(namespace) && namespace.length() <= MOST_IN_A_NAMESPACE;
+    }
+
+    /**
+     * One derivation for every database a node makes, opens and drops.
+     *
+     * <p>Folded past 63 characters with a digest of everything that names it,
+     * the namespace kept at the front: {@code \l} still says whose a database
+     * is. Without a namespace, exactly the names there have always been.
+     */
+    private static String named(String namespace, String what, String of) {
+        if (namespace != null && !isNamespace(namespace)) {
+            throw new IllegalArgumentException("not a namespace a node may name its databases "
+                    + "under: " + namespace);
+        }
+        String name = namespace == null ? what : namespace.replace('-', '_') + "_" + what;
         if (name.length() <= 63) {
             return name;
         }
         try {
             byte[] digest = java.security.MessageDigest.getInstance("SHA-256")
-                    .digest(substrate.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                    .digest((namespace == null ? of : namespace + "/" + of)
+                            .getBytes(java.nio.charset.StandardCharsets.UTF_8));
             StringBuilder hash = new StringBuilder();
             for (int i = 0; i < 6; i++) {
                 hash.append(String.format("%02x", digest[i]));
