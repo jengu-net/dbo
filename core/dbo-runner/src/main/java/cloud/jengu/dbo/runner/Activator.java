@@ -136,8 +136,11 @@ public final class Activator implements BundleActivator {
                 });
         services.open();
         statistics.open();
-        lanes.open();
+        // Running before any lane arrives, so a lane is declared on by its own
+        // loop and never on the thread starting the framework: a lane whose
+        // tenant is slow to answer would otherwise hold the whole start.
         runner.start();
+        lanes.open();
     }
 
     @Override

@@ -126,4 +126,52 @@ class NoLaneWaitsOnAnotherTest {
                     }
                 });
     }
+
+    @Test
+    @DisplayName("registering a step while a lane's tenant is slow to answer returns at once, and "
+            + "the lane is told of the step by its own loop")
+    @Proving(DboPromises.PROC_STARTING_WAITS_ON_NO_LANE)
+    void registeringWaitsOnNoLane() throws Exception {
+        CountDownLatch answering = new CountDownLatch(1);
+        List<String> declaredOn = new CopyOnWriteArrayList<>();
+        ProvingLane slow = ProvingLane.offering(LOCAL_STEP).lane();
+        Lane lane = (Lane) Proxy.newProxyInstance(Lane.class.getClassLoader(),
+                new Class<?>[] {Lane.class}, (proxy, method, arguments) -> {
+                    if ("declare".equals(method.getName())) {
+                        // A tenant whose door does not answer until it does.
+                        answering.await(30, TimeUnit.SECONDS);
+                        declaredOn.add(Thread.currentThread().getName());
+                        return null;
+                    }
+                    if ("withdraw".equals(method.getName())) {
+                        return null;
+                    }
+                    try {
+                        return method.invoke(slow, arguments);
+                    } catch (InvocationTargetException thrown) {
+                        throw thrown.getCause();
+                    }
+                });
+        StepRunner runner = new StepRunner(Duration.ofMinutes(1), Duration.ofMillis(50))
+                .start()
+                .attach(lane);
+        try {
+            long began = System.nanoTime();
+            runner.register(StepService.performing(LOCAL_STEP, work -> Outcome.done()));
+            long took = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - began);
+            assertTrue(took < 1_000, "registering waited on a lane's tenant: " + took + "ms");
+
+            answering.countDown();
+            long giveUp = System.nanoTime() + Duration.ofSeconds(10).toNanos();
+            while (declaredOn.isEmpty() && System.nanoTime() < giveUp) {
+                Thread.sleep(20);
+            }
+            assertTrue(!declaredOn.isEmpty(), "the lane was never told of the step");
+            assertTrue(declaredOn.get(0).startsWith("dbo-step-runner-"),
+                    "the lane was told on a thread not its own: " + declaredOn);
+        } finally {
+            answering.countDown();
+            runner.close();
+        }
+    }
 }
