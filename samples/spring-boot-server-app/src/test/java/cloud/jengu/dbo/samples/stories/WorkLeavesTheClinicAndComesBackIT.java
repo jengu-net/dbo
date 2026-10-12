@@ -1440,6 +1440,28 @@ class WorkLeavesTheClinicAndComesBackIT {
                         + atZone);
     }
 
+    @Test
+    @Order(57)
+    @DisplayName("the clinic's asker closes its run once it has opened the answer, on one chain "
+            + "from the task through the carrier, the answer and its own openings")
+    @Proving(DboPromises.POL_A_RUNS_TRAIL_IS_CHAINED_FROM_THE_TASK)
+    void theAskerClosesOnTheWholeJourney() throws Exception {
+        AnsweredBack back = askedAndAnsweredBack(NAMES.value("closed-back"));
+        HttpLane reader = HttpLane.holding(URI.create(dbo.at(CLINIC) + "/work"),
+                this::askerToken, CLINIC, ASKER, executor(ASKER),
+                askerSealing.getPrivate(), askerSigning.getPrivate());
+        Runs clinicRuns = new Runs(tenants.store(CLINIC).orElseThrow());
+        Run held = reader.claim(clinicRuns.byKey(back.key()).orElseThrow(),
+                Duration.ofMinutes(5)).orElseThrow();
+        reader.inputs(held);
+        reader.closed(held);
+        Run closed = clinicRuns.byKey(back.key()).orElseThrow();
+        Proves.that(DboPromises.POL_A_RUNS_TRAIL_IS_CHAINED_FROM_THE_TASK,
+                !closed.open() && closed.status() == cloud.jengu.dbo.work.Status.COMPLETED,
+                "the clinic's run that went across and came back could not close on its "
+                        + "chain: " + closed.status());
+    }
+
     /** What the clinic asked, the hospital answered, and the answer back on the clinic's run. */
     private record AnsweredBack(String key, String shared) {}
 
