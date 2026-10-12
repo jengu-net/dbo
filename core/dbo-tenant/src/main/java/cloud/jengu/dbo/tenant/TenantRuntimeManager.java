@@ -2639,6 +2639,49 @@ public final class TenantRuntimeManager implements AutoCloseable {
         }
         lastDeclared = declared;
         settle();
+        carryWhatWasAsked();
+    }
+
+    /** What carries work between tenants, through the zones they share. */
+    private final Crossings crossings = new Crossings(new Crossings.Plane() {
+        @Override
+        public Set<String> serving() {
+            return Set.copyOf(runtimes.keySet());
+        }
+
+        @Override
+        public ZoneTree zones() {
+            return zones;
+        }
+
+        @Override
+        public Optional<cloud.jengu.dbo.runner.Lane> lane(String tenant, String step) {
+            return fleetLane(tenant, step, Crossings.CARRIER);
+        }
+
+        @Override
+        public Optional<cloud.jengu.dbo.policy.PolicyObjectStore> store(String tenant) {
+            TenantRuntime serving = runtimes.get(tenant);
+            return serving != null
+                    && serving.engine() instanceof cloud.jengu.dbo.policy.PolicyObjectStore store
+                    ? Optional.of(store) : Optional.empty();
+        }
+    });
+
+    /**
+     * Each pass carries what tenants asked of each other since the last.
+     *
+     * <p>On the pass because it is the deployment's beat and the one place
+     * every tenant and zone is read together. A crossing that cannot be
+     * carried is released with why and tried again on a later pass; one that
+     * throws is said and does not stop the pass that found it.
+     */
+    private void carryWhatWasAsked() {
+        try {
+            crossings.crossOnce();
+        } catch (RuntimeException failed) {
+            LOG.error("carrying work between tenants failed this pass", failed);
+        }
     }
 
     /** What the last pass found declared, which is what the states are kept to. */

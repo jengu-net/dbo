@@ -74,6 +74,24 @@ final class ZoneTree {
         return java.util.Optional.empty();
     }
 
+    /** Every exchange step the zones above this tenant offer it, nearest zone first. */
+    List<TenantSpec.Step> exchangeSteps(String tenant) {
+        List<TenantSpec.Step> offered = new ArrayList<>();
+        Set<String> seen = new java.util.HashSet<>();
+        for (String zone : chainOf(tenant)) {
+            TenantSpec spec = declared.get(zone);
+            if (spec == null) {
+                continue;
+            }
+            for (TenantSpec.Step step : spec.steps()) {
+                if (spec.exchanges().contains(processOf(step.code())) && seen.add(step.code())) {
+                    offered.add(step);
+                }
+            }
+        }
+        return offered;
+    }
+
     /** The process a step code is part of: its two leading parts. */
     static String processOf(String stepCode) {
         int last = stepCode.lastIndexOf('.');

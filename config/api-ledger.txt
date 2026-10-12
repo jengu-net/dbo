@@ -3418,6 +3418,7 @@ cloud.jengu.dbo.promises.DboPromises                                   ZONE_SUBJ
 cloud.jengu.dbo.promises.DboPromises                                   ZONE_WHAT_CONVERSION_CANNOT_CARRY_IS_REFUSED_BY_NAME:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   ZONE_WORK_CROSSES_THROUGH_THE_LOWEST_ZONE_TWO_TENANTS_SHARE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   ZONE_WORK_FOR_ANOTHER_TENANT_IS_ASKED_FOR_AT_ONES_OWN_DOOR:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   ZONE_WORK_IS_CARRIED_THROUGH_THE_ZONES_THAT_KEEP_NO_COPY:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   enum
 cloud.jengu.dbo.promises.DboPromises                                   text():String
 cloud.jengu.dbo.promises.DboPromises                                   valueOf(String):cloud.jengu.dbo.promises.DboPromises
@@ -5456,9 +5457,11 @@ cloud.jengu.dbo.work.Run.Window                                        toString(
 cloud.jengu.dbo.work.Run.Window                                        until():Instant
 cloud.jengu.dbo.work.RunChain                                          accessLink(String,String,String,String):String
 cloud.jengu.dbo.work.RunChain                                          class
+cloud.jengu.dbo.work.RunChain                                          crossingRoot(String):String
 cloud.jengu.dbo.work.RunChain                                          head(cloud.jengu.dbo.work.Run,List):Optional
 cloud.jengu.dbo.work.RunChain                                          root(cloud.jengu.dbo.work.Run):String
 cloud.jengu.dbo.work.RunChain                                          travelLink(String,String,String):String
+cloud.jengu.dbo.work.RunChain                                          verify(String,List):cloud.jengu.dbo.work.RunChain.Verdict
 cloud.jengu.dbo.work.RunChain                                          verify(cloud.jengu.dbo.work.Run,List):cloud.jengu.dbo.work.RunChain.Verdict
 cloud.jengu.dbo.work.RunChain.Link                                     author():String
 cloud.jengu.dbo.work.RunChain.Link                                     code():String

@@ -26,9 +26,14 @@ final class TrailLinks {
     private TrailLinks() {}
 
     static List<RunChain.Link> of(ObjectStore engine, Run run) {
+        return of(engine, run.key());
+    }
+
+    /** The chain recorded under one key: a run's, or a crossing a zone carried. */
+    static List<RunChain.Link> of(ObjectStore engine, String key) {
         List<RunChain.Link> links = new ArrayList<>();
         for (StoredObject entry : engine.select(Criteria.of("AuditEntry")
-                .eq("run", EnvelopeValue.of(run.key())))) {
+                .eq("run", EnvelopeValue.of(key)))) {
             Object node = Json.parse(new String(entry.payload(), StandardCharsets.UTF_8));
             if (!(node instanceof Map<?, ?> map) || !(map.get("detail") instanceof Map<?, ?> detail)
                     || detail.get("link") == null) {
