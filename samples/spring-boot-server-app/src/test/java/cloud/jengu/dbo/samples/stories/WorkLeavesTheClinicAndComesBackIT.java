@@ -1260,6 +1260,78 @@ class WorkLeavesTheClinicAndComesBackIT {
                 "rl keeps a run of work it only carried");
     }
 
+    /** The hospital's participant that answers what other tenants ask of it. */
+    private static final String RECORDS_DESK = NAMES.value("records-desk");
+
+    @Test
+    @Order(53)
+    @DisplayName("the hospital answers what the clinic asked: its own participant takes the "
+            + "run, decides, and commits a list of what it shares, kept in its own store")
+    @Proving(DboPromises.ZONE_THE_OWNER_ANSWERS_WITH_WHAT_IT_SHARES)
+    void theHospitalAnswersWithWhatItShares() throws InterruptedException {
+        Run answering = hospitalRunAnswering(askAcross(HOSPITAL));
+        String shared = dbo.write(HOSPITAL, "Observation", """
+                {"resourceType":"Observation","status":"final",
+                 "code":{"text":"%s"}}""".formatted(NAMES.value("shared-result")))
+                .idOrFail();
+
+        HttpLane desk = recordsDesk();
+        Run held = desk.claim(answering, Duration.ofMinutes(5)).orElseThrow();
+        Map<String, List<StoredObject>> asked = desk.inputs(held);
+        assertTrue(new String(asked.get("query").get(0).payload(),
+                        java.nio.charset.StandardCharsets.UTF_8)
+                        .contains(NAMES.value("asked-for")),
+                "the hospital's participant could not read what was asked of it");
+        Run answered = desk.committed(held, null, List.of(cloud.jengu.dbo.runner.Outcome.Write
+                .create("""
+                        {"resourceType":"List","status":"current","mode":"snapshot",
+                         "entry":[{"item":{"reference":"Observation/%s"}}]}"""
+                        .formatted(shared))));
+
+        Proves.that(DboPromises.ZONE_THE_OWNER_ANSWERS_WITH_WHAT_IT_SHARES,
+                !answered.open() && answered.produced().versions().size() == 1,
+                "the hospital's answer did not end its run with the list it wrote: "
+                        + answered.produced());
+        java.util.regex.Matcher list = java.util.regex.Pattern.compile("List/[0-9a-f-]{36}")
+                .matcher(answered.produced().versions().get(0));
+        assertTrue(list.find(), "the run names no list: " + answered.produced());
+        HttpResponse<String> kept = dbo.get(dbo.at(HOSPITAL) + "/fhir/" + list.group(),
+                dbo.token(HOSPITAL));
+        Proves.that(DboPromises.ZONE_THE_OWNER_ANSWERS_WITH_WHAT_IT_SHARES,
+                kept.statusCode() == 200 && kept.body().contains("Observation/" + shared),
+                "the hospital does not keep the list of what it shared: " + kept.statusCode()
+                        + " " + kept.body());
+    }
+
+    /** The run the hospital was carried for what the clinic asked, once it arrives. */
+    private Run hospitalRunAnswering(HttpResponse<String> asked) throws InterruptedException {
+        assertEquals(201, asked.statusCode(), asked.body());
+        String key = dbo.says(asked).one("key").orElseThrow();
+        String crossing = new Runs(tenants.store(CLINIC).orElseThrow()).byKey(key)
+                .orElseThrow().crossing().id();
+        Runs hospitalRuns = new Runs(tenants.store(HOSPITAL).orElseThrow());
+        long giveUp = System.nanoTime() + Duration.ofMinutes(2).toNanos();
+        while (System.nanoTime() < giveUp) {
+            java.util.Optional<Run> found =
+                    hospitalRuns.byKey(REQUEST + "/crossing-" + crossing);
+            if (found.isPresent()) {
+                return found.get();
+            }
+            Thread.sleep(500);
+        }
+        throw new AssertionError("the request never reached the hospital");
+    }
+
+    /** A participant of the hospital's own, entitled to answer the exchange. */
+    private HttpLane recordsDesk() {
+        TenantAuthority authority = tenants.authority(HOSPITAL).orElseThrow();
+        authority.ensureClient(RECORDS_DESK, RECORDS_DESK + "-secret",
+                List.of("work/" + REQUEST));
+        return HttpLane.to(URI.create(dbo.at(HOSPITAL) + "/work"),
+                () -> participantToken(RECORDS_DESK), HOSPITAL, RECORDS_DESK,
+                executor(RECORDS_DESK));
+    }
+
     private HttpResponse<String> askAcross(String to) {
         return askAt(REQUEST, "{\"inputs\":{\"query\":" + query() + "},\"crossing\":"
                 + "{\"to\":\"" + to + "\"}}");

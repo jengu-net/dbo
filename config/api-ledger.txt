@@ -3348,6 +3348,7 @@ cloud.jengu.dbo.promises.DboPromises                                   ZONE_BROK
 cloud.jengu.dbo.promises.DboPromises                                   ZONE_DECLARATIONS_AS_RECORDS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   ZONE_SESSIONS_ACCUMULATE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   ZONE_SUBJECT_DOMAINS:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   ZONE_THE_OWNER_ANSWERS_WITH_WHAT_IT_SHARES:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   ZONE_WHAT_CONVERSION_CANNOT_CARRY_IS_REFUSED_BY_NAME:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   ZONE_WORK_CROSSES_THROUGH_THE_LOWEST_ZONE_TWO_TENANTS_SHARE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   ZONE_WORK_FOR_ANOTHER_TENANT_IS_ASKED_FOR_AT_ONES_OWN_DOOR:cloud.jengu.dbo.promises.DboPromises

@@ -902,7 +902,8 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
                     // A type this tenant holds, checked where it was written:
                     // a step declared to write what the tenant cannot hold
                     // would come up and have every result refused.
-                    if (!held.contains(String.valueOf(type))) {
+                    if (!held.contains(String.valueOf(type)) && !(zone
+                            && exchanged.contains(ZoneTree.processOf(stepCode)))) {
                         throw new IllegalArgumentException(code + ": step '" + stepCode
                                 + "' writes '" + type + "', and this tenant does not declare "
                                 + "that type. It holds: " + new java.util.TreeSet<>(held));

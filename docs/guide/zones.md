@@ -60,8 +60,13 @@ carries the run asked for up to the lowest zone the two tenants share and down
 to the one whose data it is: it takes the asker's run as a participant would,
 so the asker's trail records the hand-over, and authors a run at the owner over
 the same inputs, naming the run it answers. Every zone on the way records that
-the crossing passed, from where and to where, and keeps no run of it. Answering
-is not built yet.
+the crossing passed, from where and to where, and keeps no run of it.
+
+**The owner answers.** A participant of the owner's takes the run the request
+was carried to, decides, and commits its answer as the exchange declares it:
+`rl`'s answer is a `List` naming the records the owner shares, written in the
+owner's own store, so the owner keeps the account of what it shared and for
+which run. Carrying the answer back to the asker is not built yet.
 
 ## The zone runs its own ceremony
 

@@ -4095,7 +4095,10 @@ public final class TenantRuntimeManager implements AutoCloseable {
             // Where a step's result becomes this tenant's records: through
             // the same face a posted transaction bundle goes through, and
             // only for the types each step declared it writes.
-            RunResults runResults = new RunResults(spec.code(), spec.steps(), store);
+            final String answering = spec.code();
+            RunResults runResults = new RunResults(spec.code(), spec.steps(), store,
+                    step -> zones.exchangeStep(answering, step)
+                            .map(TenantSpec.Step::writes).orElse(Set.of()));
             cloud.jengu.dbo.runner.transport.Lanes laneFactory =
                     (participant, identity, entitlement) -> {
                         // WHOSE KEYS the asker's own are: the credential the
