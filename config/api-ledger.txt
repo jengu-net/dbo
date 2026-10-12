@@ -3162,6 +3162,7 @@ cloud.jengu.dbo.promises.DboPromises                                   PROC_A_PA
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_PERSON_CLAIMS_AS_A_PRACTITIONER_ROLE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_PLACES_RUN_IS_LISTED_AT_HOME_UNDER_ITS_PLACE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_PROCESSOR_IS_ENROLLED_PER_TENANT:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   PROC_A_PROVIDERS_PARTNERS_ARE_NAMED_ON_THE_REGISTER:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_REFERENCE_MAY_BE_A_SEARCH:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_REFUSED_RESULT_ENDS_THE_RUN:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_RESTARTED_NODE_WAITS_OUT_NO_DOOR_IT_LEFT:cloud.jengu.dbo.promises.DboPromises
@@ -4816,8 +4817,10 @@ cloud.jengu.dbo.tenant.TenantSpec                                      new(Strin
 cloud.jengu.dbo.tenant.TenantSpec                                      new(String,String,List,boolean,cloud.jengu.dbo.policy.TenantPolicies,String,String,List,List,cloud.jengu.dbo.tenant.TenantSpec.Scim,List,String,boolean,List,boolean,boolean,List,Set)
 cloud.jengu.dbo.tenant.TenantSpec                                      new(String,String,List,boolean,cloud.jengu.dbo.policy.TenantPolicies,String,String,List,List,cloud.jengu.dbo.tenant.TenantSpec.Scim,List,String,boolean,List,boolean,boolean,List,Set,Set)
 cloud.jengu.dbo.tenant.TenantSpec                                      new(String,String,List,boolean,cloud.jengu.dbo.policy.TenantPolicies,String,String,List,List,cloud.jengu.dbo.tenant.TenantSpec.Scim,List,String,boolean,List,boolean,boolean,List,Set,Set,Set)
+cloud.jengu.dbo.tenant.TenantSpec                                      new(String,String,List,boolean,cloud.jengu.dbo.policy.TenantPolicies,String,String,List,List,cloud.jengu.dbo.tenant.TenantSpec.Scim,List,String,boolean,List,boolean,boolean,List,Set,Set,Set,String)
 cloud.jengu.dbo.tenant.TenantSpec                                      onlyTheDeploymentDeclaresFleetSteps(cloud.jengu.dbo.tenant.TenantSpec):void
 cloud.jengu.dbo.tenant.TenantSpec                                      parse(String):cloud.jengu.dbo.tenant.TenantSpec
+cloud.jengu.dbo.tenant.TenantSpec                                      partnerOf():String
 cloud.jengu.dbo.tenant.TenantSpec                                      pdi():boolean
 cloud.jengu.dbo.tenant.TenantSpec                                      policies():cloud.jengu.dbo.policy.TenantPolicies
 cloud.jengu.dbo.tenant.TenantSpec                                      record
@@ -4850,10 +4853,12 @@ cloud.jengu.dbo.tenant.TenantSpec.Dependency                           record
 cloud.jengu.dbo.tenant.TenantSpec.Dependency                           toString():String
 cloud.jengu.dbo.tenant.TenantSpec.Dependency                           types():Set
 cloud.jengu.dbo.tenant.TenantSpec.FleetStep                            code():String
+cloud.jengu.dbo.tenant.TenantSpec.FleetStep                            delegatesTo():Set
 cloud.jengu.dbo.tenant.TenantSpec.FleetStep                            equals(Object):boolean
 cloud.jengu.dbo.tenant.TenantSpec.FleetStep                            hashCode():int
 cloud.jengu.dbo.tenant.TenantSpec.FleetStep                            isProcessor():boolean
 cloud.jengu.dbo.tenant.TenantSpec.FleetStep                            new(String,Map,Set,boolean,cloud.jengu.dbo.tenant.TenantSpec.FleetStep.Posture,String)
+cloud.jengu.dbo.tenant.TenantSpec.FleetStep                            new(String,Map,Set,boolean,cloud.jengu.dbo.tenant.TenantSpec.FleetStep.Posture,String,Set)
 cloud.jengu.dbo.tenant.TenantSpec.FleetStep                            opens():Set
 cloud.jengu.dbo.tenant.TenantSpec.FleetStep                            posture():cloud.jengu.dbo.tenant.TenantSpec.FleetStep.Posture
 cloud.jengu.dbo.tenant.TenantSpec.FleetStep                            record

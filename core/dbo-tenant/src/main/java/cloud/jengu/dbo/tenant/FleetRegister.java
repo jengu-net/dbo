@@ -204,7 +204,9 @@ public final class FleetRegister {
             // which is what lets a tenant see a change as a comparison.
             step.slots().forEach((slot, type) -> {
                 if (step.opens().contains(slot)) {
-                    rows.add(new Row(step.code(), slot, type, step.required(), step.posture()));
+                    rows.add(new Row(step.code(), slot, type, step.required(), step.posture(),
+                            Authority.PROVIDER, null,
+                            List.copyOf(new java.util.TreeSet<>(step.delegatesTo()))));
                 }
             });
         }
