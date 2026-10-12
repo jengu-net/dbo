@@ -2248,6 +2248,13 @@ public enum DboPromises implements Promise {
             + "reports each opening before it reads, so the asker's trail records the access "
             + "as the reader's, under the run, naming what was opened. Nobody but that "
             + "reader is handed it."),
+    ZONE_AN_OPENING_ACROSS_IS_THE_OWNERS_TO_SEE(
+            "When the asker's reader opens what came back, the owner learns of it: the "
+            + "access is recorded on the owner's own document, under the owner's run, "
+            + "naming the reader, the tenant it was opened in and the run it was opened "
+            + "for, with the reader's signed link as evidence — and every zone on the way "
+            + "records that the answer was opened and by whom, never which document. Each "
+            + "report is recorded once, however often it is carried."),
     ZONE_A_ZONE_IS_SERVED_TO_A_FACE_THROUGH_ONE_PROJECTION(
             "A zone's definitions and records reach the tenants of a face it was not "
             + "written in through one projection per zone per face: a tenant that takes "

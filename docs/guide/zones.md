@@ -78,6 +78,13 @@ and is handed the answer as it came back; it opens it with its own key and
 reports each opening before it reads, so the asker's trail records the access
 as the reader's, under the run, naming what was opened.
 
+**And the owner sees it opened.** The opening is reported back along the route:
+the owner records the access on its own document, under its own run, naming
+the reader, the tenant it was opened in and the run it was opened for, with the
+reader's signed link as evidence; every zone on the way records that the
+answer was opened and by whom, never which document. Each report is recorded
+once, however often it is carried.
+
 ## The zone runs its own ceremony
 
 A zone that names no external identity broker is its own: every tenant carries

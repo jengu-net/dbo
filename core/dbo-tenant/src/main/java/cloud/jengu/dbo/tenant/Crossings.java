@@ -85,6 +85,11 @@ final class Crossings {
         }
         for (String asker : plane.serving()) {
             for (TenantSpec.Step step : zones.exchangeSteps(asker)) {
+                carried += reportOpenings(zones, asker, step);
+            }
+        }
+        for (String asker : plane.serving()) {
+            for (TenantSpec.Step step : zones.exchangeSteps(asker)) {
                 Optional<Lane> lane = plane.lane(asker, step.code());
                 if (lane.isEmpty()) {
                     continue;
@@ -183,6 +188,88 @@ final class Crossings {
             carried++;
         }
         return carried;
+    }
+
+    /**
+     * What the asker's reader opened, reported to every zone on the way and
+     * to the owner.
+     *
+     * <p>Read from the asker's own trail, where the opening was recorded
+     * before the reader read anything, and reported from there on every pass
+     * until each side holds it — once, because each report is keyed by the
+     * opening as the asker recorded it. The owner records the access on its
+     * own document, under its own run, naming the reader and the run it was
+     * opened for, with the reader's signed link as evidence; it is a report
+     * of what happened elsewhere, so it is on the owner's trail and not a
+     * link of its run's chain.
+     */
+    private int reportOpenings(ZoneTree zones, String asker, TenantSpec.Step step) {
+        Optional<cloud.jengu.dbo.policy.PolicyObjectStore> askerStore = plane.store(asker);
+        if (askerStore.isEmpty()) {
+            return 0;
+        }
+        int dot = step.code().lastIndexOf('.');
+        int reported = 0;
+        for (Run asking : new Runs(askerStore.get()).matching(step.code().substring(0, dot),
+                step.code().substring(dot + 1), null, 50)) {
+            Run.Crossing crossing = asking.crossing();
+            if (crossing == null || crossing.askerRun() != null || crossing.arrived() == null) {
+                continue;
+            }
+            Optional<cloud.jengu.dbo.policy.PolicyObjectStore> ownerStore =
+                    plane.store(crossing.to());
+            if (ownerStore.isEmpty()) {
+                continue;
+            }
+            List<String> path;
+            try {
+                path = zones.route(asker, crossing.to()).zones();
+            } catch (IllegalArgumentException noLongerAWay) {
+                continue;
+            }
+            String ownerRun = step.code() + "/crossing-" + crossing.id();
+            for (cloud.jengu.dbo.core.api.StoredObject entry : askerStore.get().select(
+                    cloud.jengu.dbo.core.api.Criteria.of("AuditEntry").eq("run",
+                            cloud.jengu.dbo.core.api.EnvelopeValue.of(asking.key())))) {
+                Object node = cloud.jengu.dbo.core.wire.RecordWire.read(new String(
+                        entry.payload(), java.nio.charset.StandardCharsets.UTF_8));
+                if (!(node instanceof java.util.Map<?, ?> said)
+                        || !"access".equals(said.get("code"))
+                        || !(said.get("detail") instanceof java.util.Map<?, ?> detail)
+                        || !(detail.get("link") instanceof String link)
+                        || !crossing.reader().equals(detail.get("by"))) {
+                    continue;
+                }
+                for (String zone : path) {
+                    Optional<cloud.jengu.dbo.policy.PolicyObjectStore> zoneStore =
+                            plane.store(zone);
+                    if (zoneStore.isPresent()) {
+                        ZoneTrail.opened(zoneStore.get(), crossing.id(), crossing.reader(),
+                                asker, link);
+                    }
+                }
+                java.util.Map<String, String> owned = new java.util.LinkedHashMap<>();
+                owned.put("by", crossing.reader());
+                owned.put("in", asker);
+                owned.put("run", ownerRun);
+                owned.put("askerRun", asking.key());
+                owned.put("crossing", crossing.id());
+                owned.put("evidence", link);
+                if (detail.get("signature") instanceof String signature) {
+                    owned.put("signature", signature);
+                }
+                try (cloud.jengu.dbo.core.api.Caller.InRun named =
+                        cloud.jengu.dbo.core.api.Caller.writingFor(ownerRun)) {
+                    if (ownerStore.get().recordForwarded("access",
+                            String.valueOf(said.get("targetType")),
+                            String.valueOf(said.get("targetId")), owned, null,
+                            "crossing:" + crossing.id() + ":opened:" + link).created()) {
+                        reported++;
+                    }
+                }
+            }
+        }
+        return reported;
     }
 
     /**
