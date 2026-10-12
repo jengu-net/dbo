@@ -2534,6 +2534,17 @@ public enum DboPromises implements Promise {
     SYNC_PROVENANCE_COPIES(
             "Streamed copies are read-only and provenance-tagged with source tenant and "
             + "version; updates and retirements propagate through the same stream."),
+    SYNC_A_TYPE_IS_RECEIVED_AND_AUTHORED_RECORD_BY_RECORD(
+            "A tenant may take a type from its upstream and author records of it too: what "
+            + "decides whether a write is accepted is whose the record is, not the type's "
+            + "handling. A copy streamed from upstream is read-only to everything but the "
+            + "stream that delivered it — an update or a delete is refused naming the "
+            + "read-only-here rule — while the tenant's own records of the type are its own "
+            + "to create, change and delete. Writing a record that claims a copy's identity "
+            + "shadows it, explicitly: the copy is set aside behind it, the stream keeps it "
+            + "current, and it comes back when the tenant's record goes. A search can ask "
+            + "for the upstream's copies — from one dependency, or any — or for the tenant's "
+            + "own."),
     SYNC_LOCAL_SHADOWING(
             "A tenant's own object with the same base identity overrides the streamed "
             + "copy — version-neutrally, across FHIR versions and business versions; "
