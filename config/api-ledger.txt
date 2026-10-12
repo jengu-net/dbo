@@ -317,6 +317,7 @@ cloud.jengu.dbo.auth.Subject.Role                                      new(Strin
 cloud.jengu.dbo.auth.Subject.Role                                      organization():Optional
 cloud.jengu.dbo.auth.Subject.Role                                      record
 cloud.jengu.dbo.auth.Subject.Role                                      toString():String
+cloud.jengu.dbo.auth.TenantAuthority                                   PARTNER_AUDIENCE:String
 cloud.jengu.dbo.auth.TenantAuthority                                   PARTNER_SCOPES:List
 cloud.jengu.dbo.auth.TenantAuthority                                   TOKEN_TTL_SECONDS:long
 cloud.jengu.dbo.auth.TenantAuthority                                   activeRoleCodes():List
@@ -381,7 +382,7 @@ cloud.jengu.dbo.auth.TenantAuthority                                   signsInWi
 cloud.jengu.dbo.auth.TenantAuthority                                   signsInWith(String):boolean
 cloud.jengu.dbo.auth.TenantAuthority                                   token(String,String,String):cloud.jengu.dbo.auth.TenantAuthority.TokenResult
 cloud.jengu.dbo.auth.TenantAuthority                                   token(String,String,String,String):cloud.jengu.dbo.auth.TenantAuthority.TokenResult
-cloud.jengu.dbo.auth.TenantAuthority                                   trust(String,Supplier,String):void
+cloud.jengu.dbo.auth.TenantAuthority                                   trust(String,Supplier,Function):void
 cloud.jengu.dbo.auth.TenantAuthority                                   userInfo(String):Optional
 cloud.jengu.dbo.auth.TenantAuthority                                   userInfoJwt(String):Optional
 cloud.jengu.dbo.auth.TenantAuthority                                   validate(String):Optional

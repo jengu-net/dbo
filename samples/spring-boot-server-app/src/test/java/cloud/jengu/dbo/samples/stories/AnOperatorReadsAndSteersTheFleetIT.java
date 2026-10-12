@@ -1181,6 +1181,35 @@ class AnOperatorReadsAndSteersTheFleetIT {
         }
     }
 
+    @Test
+    @Order(29)
+    @DisplayName("a tenant naming its own partner is refused by name, because a partner follows "
+            + "a tenant only through the provider and the tenant's register")
+    @Proving(DboPromises.TEN_A_PARTNER_MANAGES_TENANTS)
+    void aTenantDoesNotNameItsOwnPartner() throws InterruptedException {
+        String managed = NAMES.tenant("self-managed");
+        dbo.declare(managed, """
+                {"code":"%s","face":"r5","managedBy":"%s",
+                 "types":[
+                  {"name":"Basic","identity":"internal","handling":"operational"}]}"""
+                .formatted(managed, HOSPITAL));
+        try {
+            String why = "";
+            long giveUp = System.nanoTime() + Duration.ofMinutes(3).toNanos();
+            while (!why.contains("managedBy") && System.nanoTime() < giveUp) {
+                Thread.sleep(1000);
+                why = String.valueOf(rowFor(managed).get("why"));
+            }
+            Proves.that(DboPromises.TEN_A_PARTNER_MANAGES_TENANTS,
+                    why.contains(managed) && why.contains("delegatesTo")
+                            && !dbo.serving().contains(managed),
+                    "a tenant naming its own partner was not refused by name, or was served "
+                            + "anyway: " + why);
+        } finally {
+            dbo.retract(managed);
+        }
+    }
+
     /** The node's row for one tenant, read as a record. */
     @SuppressWarnings("unchecked")
     private Map<String, Object> rowFor(String code) {

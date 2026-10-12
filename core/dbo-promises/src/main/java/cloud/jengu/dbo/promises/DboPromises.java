@@ -1634,13 +1634,17 @@ public enum DboPromises implements Promise {
             + "credentials exist only as platform secrets and are never readable by "
             + "tenant-manager code. (R5, §4)"),
     TEN_A_PARTNER_MANAGES_TENANTS(
-            "A partner is a tenant that manages other tenants, declared when the managed "
-            + "tenant is created. The relation says which tenants the partner may read at "
-            + "all; within each, the partner is a declared audience saying what of each — "
-            + "runs and their journey, never documents, purposes only if the managed tenant "
-            + "opts in. What the partner is shown is assembled outside the store: a store "
-            + "instance is one tenant's store, and no cross-tenant query is grown to serve "
-            + "a support desk."),
+            "A partner follows a tenant's work only through the service provider: it is a "
+            + "tenant that says it is the provider's partner, named by the provider's "
+            + "process on the tenant's register, and it reaches the tenant on a credential "
+            + "the provider's authority issued — the one authority a tenant trusts for its "
+            + "partners, admitting one only while a row of its register names it and the "
+            + "tenant has neither declined nor withheld that row. Within the tenant the "
+            + "partner is a declared audience saying what it sees — runs and their journey, "
+            + "never documents, purposes only if the tenant opts in. A tenant naming its own "
+            + "partner is refused by name. What the partner is shown is assembled outside "
+            + "the store: a store instance is one tenant's store, and no cross-tenant query "
+            + "is grown to serve a support desk."),
     TEN_REGISTRY_SCOPED_ACCESS(
             "Application code obtains a tenant's data services from the service "
             + "registry and can use them without ever seeing credentials. (R5, §4)"),
