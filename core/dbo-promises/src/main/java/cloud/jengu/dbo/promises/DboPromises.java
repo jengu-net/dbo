@@ -2228,6 +2228,13 @@ public enum DboPromises implements Promise {
             + "any participant taking work, and every zone on the way records that the "
             + "crossing passed, from where and to where, on a chain of its own rooted in the "
             + "crossing, and keeps no run of it."),
+    ZONE_THE_OWNER_ANSWERS_WITH_WHAT_IT_SHARES(
+            "The tenant whose data is asked for answers it: a participant of its own takes "
+            + "the run the request was carried to, decides, and commits its answer as the "
+            + "record its zone's exchange declares — a List naming what it shares — written "
+            + "in its own store, so the owner keeps the account of what it shared, when and "
+            + "for which run. A step the owner did not declare may write what the exchange "
+            + "declares and nothing else."),
     ZONE_A_ZONE_IS_SERVED_TO_A_FACE_THROUGH_ONE_PROJECTION(
             "A zone's definitions and records reach the tenants of a face it was not "
             + "written in through one projection per zone per face: a tenant that takes "

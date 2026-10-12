@@ -4,7 +4,8 @@
   "zoneRoot": true,
   "exchanges": ["care.records"],
   "steps": [
-    { "code": "care.records.request", "slots": { "query": "Parameters" } }
+    { "code": "care.records.request", "slots": { "query": "Parameters" },
+      "writes": ["List"] }
   ],
   "types": [
     { "name": "CodeSystem", "identity": "canonical", "handling": "operational" },

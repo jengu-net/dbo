@@ -30,22 +30,32 @@ final class RunResults implements Lane.Results {
 
     private final String tenant;
     private final Map<String, Set<String>> writesByStep;
+    private final java.util.function.Function<String, Set<String>> exchanged;
     private final FhirStoreFacade face;
     /** The tenant's own way of starting work, which a part is started through. */
     private final java.util.function.Supplier<StepSurface> starter;
 
     /** Results for a tenant that starts no runs as parts of another. */
     RunResults(String tenant, List<TenantSpec.Step> steps, FhirStoreFacade face) {
-        this(tenant, steps, face, () -> null);
+        this(tenant, steps, face, step -> Set.of(), () -> null);
     }
 
+    /**
+     * @param exchanged what an exchange its zone declares writes, by step: the
+     *                  owner answering what another tenant asked of it writes
+     *                  what the jurisdiction declared the answer to be
+     * @param starter   the tenant's own way of starting work, which a part a
+     *                  result names is started through
+     */
     RunResults(String tenant, List<TenantSpec.Step> steps, FhirStoreFacade face,
+            java.util.function.Function<String, Set<String>> exchanged,
             java.util.function.Supplier<StepSurface> starter) {
         this.tenant = tenant;
         this.starter = starter;
         Map<String, Set<String>> writes = new java.util.HashMap<>();
         steps.forEach(step -> writes.put(step.code(), step.writes()));
         this.writesByStep = Map.copyOf(writes);
+        this.exchanged = exchanged;
         this.face = face;
     }
 
@@ -119,7 +129,8 @@ final class RunResults implements Lane.Results {
     @Override
     public List<String> commit(Run run, List<Outcome.Write> result) {
         String step = run.process() + "." + run.step();
-        Set<String> declared = writesByStep.getOrDefault(step, Set.of());
+        Set<String> declared = writesByStep.containsKey(step) ? writesByStep.get(step)
+                : exchanged.apply(step);
         StringBuilder entries = new StringBuilder();
         for (int at = 0; at < result.size(); at++) {
             Outcome.Write write = result.get(at);
