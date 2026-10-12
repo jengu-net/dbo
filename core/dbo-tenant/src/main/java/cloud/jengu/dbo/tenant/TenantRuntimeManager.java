@@ -2660,6 +2660,13 @@ public final class TenantRuntimeManager implements AutoCloseable {
         }
 
         @Override
+        public Optional<cloud.jengu.dbo.core.api.seal.ParticipantKey> sealedTo(String tenant,
+                String participant) {
+            cloud.jengu.dbo.auth.TenantAuthority authority = authorities.get(tenant);
+            return authority == null ? Optional.empty() : authority.participantKey(participant);
+        }
+
+        @Override
         public Optional<cloud.jengu.dbo.policy.PolicyObjectStore> store(String tenant) {
             TenantRuntime serving = runtimes.get(tenant);
             return serving != null

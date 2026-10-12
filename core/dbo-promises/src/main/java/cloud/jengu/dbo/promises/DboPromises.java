@@ -2235,6 +2235,13 @@ public enum DboPromises implements Promise {
             + "in its own store, so the owner keeps the account of what it shared, when and "
             + "for which run. A step the owner did not declare may write what the exchange "
             + "declares and nothing else."),
+    ZONE_THE_ANSWER_COMES_BACK_SEALED_TO_THE_READER_ALONE(
+            "What the owner's answer names is carried back to the run that asked, sealed to "
+            + "the reader the asker named — under the key the asker's own authority holds "
+            + "for it — and to nobody else: nothing the carrier holds opens it, and the zones "
+            + "on the way back record only that the crossing passed again. The run that asked "
+            + "is then offered to that reader alone. A reader that offered no key is sent "
+            + "nothing, and its run says why."),
     ZONE_A_ZONE_IS_SERVED_TO_A_FACE_THROUGH_ONE_PROJECTION(
             "A zone's definitions and records reach the tenants of a face it was not "
             + "written in through one projection per zone per face: a tenant that takes "

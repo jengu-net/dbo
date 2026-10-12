@@ -3415,6 +3415,7 @@ cloud.jengu.dbo.promises.DboPromises                                   ZONE_BROK
 cloud.jengu.dbo.promises.DboPromises                                   ZONE_DECLARATIONS_AS_RECORDS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   ZONE_SESSIONS_ACCUMULATE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   ZONE_SUBJECT_DOMAINS:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   ZONE_THE_ANSWER_COMES_BACK_SEALED_TO_THE_READER_ALONE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   ZONE_THE_OWNER_ANSWERS_WITH_WHAT_IT_SHARES:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   ZONE_WHAT_CONVERSION_CANNOT_CARRY_IS_REFUSED_BY_NAME:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   ZONE_WORK_CROSSES_THROUGH_THE_LOWEST_ZONE_TWO_TENANTS_SHARE:cloud.jengu.dbo.promises.DboPromises
@@ -5413,12 +5414,15 @@ cloud.jengu.dbo.work.Run.Assignment                                    record
 cloud.jengu.dbo.work.Run.Assignment                                    role():String
 cloud.jengu.dbo.work.Run.Assignment                                    toString():String
 cloud.jengu.dbo.work.Run.Assignment                                    until():Instant
+cloud.jengu.dbo.work.Run.Crossing                                      answered(String):cloud.jengu.dbo.work.Run.Crossing
+cloud.jengu.dbo.work.Run.Crossing                                      arrived():String
 cloud.jengu.dbo.work.Run.Crossing                                      askerRun():String
 cloud.jengu.dbo.work.Run.Crossing                                      equals(Object):boolean
 cloud.jengu.dbo.work.Run.Crossing                                      from():String
 cloud.jengu.dbo.work.Run.Crossing                                      hashCode():int
 cloud.jengu.dbo.work.Run.Crossing                                      id():String
 cloud.jengu.dbo.work.Run.Crossing                                      new(String,String,String,String,String)
+cloud.jengu.dbo.work.Run.Crossing                                      new(String,String,String,String,String,String)
 cloud.jengu.dbo.work.Run.Crossing                                      reader():String
 cloud.jengu.dbo.work.Run.Crossing                                      record
 cloud.jengu.dbo.work.Run.Crossing                                      to():String
@@ -5600,6 +5604,7 @@ cloud.jengu.dbo.work.Runs                                              ACTS:Stri
 cloud.jengu.dbo.work.Runs                                              NAMED_VERSIONS:int
 cloud.jengu.dbo.work.Runs                                              accepted(cloud.jengu.dbo.work.Run,String,String):cloud.jengu.dbo.work.Run
 cloud.jengu.dbo.work.Runs                                              act(cloud.jengu.dbo.work.Run,String,String,String,String,String):cloud.jengu.dbo.work.Run
+cloud.jengu.dbo.work.Runs                                              answered(cloud.jengu.dbo.work.Run,cloud.jengu.dbo.work.Executor,String):cloud.jengu.dbo.work.Run
 cloud.jengu.dbo.work.Runs                                              asRecord(cloud.jengu.dbo.work.Run):cloud.jengu.dbo.core.face.RecordProjection.Record
 cloud.jengu.dbo.work.Runs                                              awaiting(cloud.jengu.dbo.work.Awaits):List
 cloud.jengu.dbo.work.Runs                                              backlog(String,String,cloud.jengu.dbo.work.Scope):long

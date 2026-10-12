@@ -66,7 +66,14 @@ the crossing passed, from where and to where, and keeps no run of it.
 was carried to, decides, and commits its answer as the exchange declares it:
 `rl`'s answer is a `List` naming the records the owner shares, written in the
 owner's own store, so the owner keeps the account of what it shared and for
-which run. Carrying the answer back to the asker is not built yet.
+which run.
+
+**The answer comes back sealed to the asker's reader alone.** What the
+owner's answer names is sealed to the reader the asker named, under the key the
+asker's own authority holds for it, and carried back the way it came: nothing
+that carries it holds a key that opens it, and every zone records that the
+crossing passed again. The run that asked is then offered to that reader and
+nobody else. Opening it on the asker's lane is not built yet.
 
 ## The zone runs its own ceremony
 

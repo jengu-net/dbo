@@ -109,14 +109,28 @@ public record Run(String id, long versionId, String key, String process, String 
      * @param askerRun the asking run's key, on the run performed; null on the
      *                 run that asked
      * @param reader   the client in the asking tenant the answer is for
+     * @param arrived  on the run that asked, the owner's answer as it arrived:
+     *                 sealed to the reader and nobody else, in its wire form;
+     *                 null until it does
      */
-    public record Crossing(String id, String from, String to, String askerRun, String reader) {
+    public record Crossing(String id, String from, String to, String askerRun, String reader,
+            String arrived) {
 
         public Crossing {
             if (id == null || from == null || to == null) {
                 throw new IllegalArgumentException("a crossing names itself, where it came "
                         + "from and where it goes");
             }
+        }
+
+        /** A crossing nothing has come back on yet. */
+        public Crossing(String id, String from, String to, String askerRun, String reader) {
+            this(id, from, to, askerRun, reader, null);
+        }
+
+        /** The same crossing, with what came back. */
+        public Crossing answered(String sealed) {
+            return new Crossing(id, from, to, askerRun, reader, sealed);
         }
     }
 
@@ -635,7 +649,7 @@ public record Run(String id, long versionId, String key, String process, String 
     private static Crossing crossing(Object json) {
         if (((Map<?, ?>) json).get("crossing") instanceof Map<?, ?> named) {
             return new Crossing(str(named, "id"), str(named, "from"), str(named, "to"),
-                    str(named, "askerRun"), str(named, "reader"));
+                    str(named, "askerRun"), str(named, "reader"), str(named, "arrived"));
         }
         return null;
     }
