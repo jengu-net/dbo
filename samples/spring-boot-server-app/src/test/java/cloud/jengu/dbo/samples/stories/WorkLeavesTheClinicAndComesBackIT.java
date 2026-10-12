@@ -1303,6 +1303,64 @@ class WorkLeavesTheClinicAndComesBackIT {
                         + " " + kept.body());
     }
 
+    @Test
+    @Order(54)
+    @DisplayName("what the hospital shares comes back sealed to the clinic's asker alone, the "
+            + "clinic's run is the asker's to take, and rl records the way back as it did the "
+            + "way out")
+    @Proving(DboPromises.ZONE_THE_ANSWER_COMES_BACK_SEALED_TO_THE_READER_ALONE)
+    void theAnswerComesBackSealedToTheAsker() throws Exception {
+        HttpResponse<String> asked = askAcross(HOSPITAL);
+        String key = dbo.says(asked).one("key").orElseThrow();
+        Run answering = hospitalRunAnswering(asked);
+        String marker = NAMES.value("shared-back");
+        String shared = dbo.write(HOSPITAL, "Observation", """
+                {"resourceType":"Observation","status":"final","code":{"text":"%s"}}"""
+                .formatted(marker)).idOrFail();
+        HttpLane desk = recordsDesk();
+        Run held = desk.claim(answering, Duration.ofMinutes(5)).orElseThrow();
+        desk.inputs(held);
+        desk.committed(held, null, List.of(cloud.jengu.dbo.runner.Outcome.Write.create("""
+                {"resourceType":"List","status":"current","mode":"snapshot",
+                 "entry":[{"item":{"reference":"Observation/%s"}}]}""".formatted(shared))));
+
+        Runs clinicRuns = new Runs(tenants.store(CLINIC).orElseThrow());
+        Run back = clinicRuns.byKey(key).orElseThrow();
+        long giveUp = System.nanoTime() + Duration.ofMinutes(2).toNanos();
+        while (back.crossing().arrived() == null && System.nanoTime() < giveUp) {
+            Thread.sleep(500);
+            back = clinicRuns.byKey(key).orElseThrow();
+        }
+        cloud.jengu.dbo.work.SealedWork work = back.crossing().arrived() == null ? null
+                : cloud.jengu.dbo.core.wire.RecordWire.decode(cloud.jengu.dbo.core.wire
+                        .RecordWire.read(back.crossing().arrived()),
+                        cloud.jengu.dbo.work.SealedWork.class);
+        Proves.that(DboPromises.ZONE_THE_ANSWER_COMES_BACK_SEALED_TO_THE_READER_ALONE,
+                work != null && work.payload().size() == 1
+                        && work.payload().get(0).wrapped().keySet().equals(java.util.Set.of(ASKER))
+                        && !back.crossing().arrived().contains(marker),
+                "what the hospital shared did not come back sealed to the asker alone: "
+                        + back.crossing().arrived());
+        StoredObject opened = work.payload().get(0).open(ASKER, askerSealing.getPrivate());
+        assertTrue(new String(opened.payload(), java.nio.charset.StandardCharsets.UTF_8)
+                .contains(marker), "the asker, holding its key, could not read the answer");
+        Proves.that(DboPromises.ZONE_THE_ANSWER_COMES_BACK_SEALED_TO_THE_READER_ALONE,
+                back.open() && back.addressee() != null
+                        && ASKER.equals(back.addressee().client()),
+                "the clinic's run is not offered to its asker alone: " + back.addressee());
+
+        String crossing = back.crossing().id();
+        List<StoredObject> passed = tenants.store("rl").orElseThrow().select(
+                cloud.jengu.dbo.core.api.Criteria.of("AuditEntry").eq("run",
+                        cloud.jengu.dbo.core.api.EnvelopeValue.of("crossing:" + crossing)));
+        String said = passed.stream().map(entry -> new String(entry.payload(),
+                java.nio.charset.StandardCharsets.UTF_8)).toList().toString();
+        Proves.that(DboPromises.ZONE_THE_ANSWER_COMES_BACK_SEALED_TO_THE_READER_ALONE,
+                passed.size() == 2 && said.contains("\"to\":\"" + CLINIC + "\"")
+                        && !said.contains(marker),
+                "rl did not record the way back, or recorded what was shared: " + said);
+    }
+
     /** The run the hospital was carried for what the clinic asked, once it arrives. */
     private Run hospitalRunAnswering(HttpResponse<String> asked) throws InterruptedException {
         assertEquals(201, asked.statusCode(), asked.body());
@@ -1350,10 +1408,18 @@ class WorkLeavesTheClinicAndComesBackIT {
     }
 
     /** A client of the clinic's, entitled to ask for the exchange and its own step. */
+    /** The keys the clinic's asker enrolled with, so what comes back can be sealed to it. */
+    private final java.security.KeyPair askerSealing =
+            cloud.jengu.dbo.core.api.seal.KeyWrap.newParticipantKeyPair();
+    private final java.security.KeyPair askerSigning =
+            cloud.jengu.dbo.core.api.seal.SigningKey.newKeyPair();
+
     private String askerToken() {
         TenantAuthority authority = tenants.authority(CLINIC).orElseThrow();
         authority.ensureClient(ASKER, ASKER + "-secret",
-                List.of("work/" + REQUEST, "work/care.contact.record"));
+                List.of("work/" + REQUEST, "work/care.contact.record"),
+                cloud.jengu.dbo.core.api.seal.ParticipantKey.of(askerSealing.getPublic()),
+                cloud.jengu.dbo.core.api.seal.SigningKey.of(askerSigning.getPublic()));
         if (authority.token(ASKER, ASKER + "-secret", null)
                 instanceof TenantAuthority.TokenResult.Issued minted) {
             return minted.accessToken();

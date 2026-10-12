@@ -907,6 +907,30 @@ public final class Runs {
      * @throws NotHeld when the run no longer names {@code holder} as holding
      *                 it; nothing is written
      */
+    /**
+     * What the owner answered arrived, and the run that asked is the reader's
+     * to take: the carrier's claim is let go, the answer kept on the crossing,
+     * and the run offered to the client it was asked for and nobody else — in
+     * one version, so it is never offered without what it is for.
+     *
+     * @param sealed the answer, sealed to the reader, in its wire form
+     * @throws NotHeld when the run no longer names {@code holder} as holding
+     *                 it; nothing is written
+     */
+    public Run answered(Run run, Executor holder, String sealed) {
+        if (run.crossing() == null || run.crossing().reader() == null) {
+            throw new IllegalArgumentException("run '" + run.key() + "' asked nobody across, "
+                    + "so nothing can come back on it");
+        }
+        Run.Addressee reader = new Run.Addressee(run.crossing().reader(), null);
+        return advanceHeld(run, holder, "answered", snapshot -> snapshot
+                .withCrossing(snapshot.crossing().answered(sealed))
+                .withAssignment(new Run.Assignment(
+                        snapshot.assignment() == null ? null : snapshot.assignment().at(),
+                        null, "answered", null))
+                .withStanding(snapshot.standing().as(Status.READY).addressedTo(reader)));
+    }
+
     public Run released(Run run, Executor holder, String because, Failure failure) {
         return advanceHeld(run, holder, "released", releasing(run, because, failure));
     }
@@ -1971,6 +1995,12 @@ public final class Runs {
                     window, crossing);
         }
 
+        State withCrossing(Run.Crossing crossing) {
+            return new State(key, process, step, kind, standing, parent, correlation, trace, tally, item,
+                    domains, assignment, produced, stepVersion, inputs, milestone, requester, refused,
+                    window, crossing);
+        }
+
         State withRefused(String refused) {
             return new State(key, process, step, kind, standing, parent, correlation, trace, tally, item,
                     domains, assignment, produced, stepVersion, inputs, milestone, requester, refused, window, crossing);
@@ -2084,6 +2114,9 @@ public final class Runs {
                 }
                 if (crossing.reader() != null) {
                     json.append(",\"reader\":").append(Json.quoted(crossing.reader()));
+                }
+                if (crossing.arrived() != null) {
+                    json.append(",\"arrived\":").append(Json.quoted(crossing.arrived()));
                 }
                 json.append('}');
             }
