@@ -1155,6 +1155,88 @@ class WorkLeavesTheClinicAndComesBackIT {
                 "the routee in front of the bench opened what was sealed past it");
     }
 
+    // ── work that leaves the tenant it was asked for in ──
+
+    // The clinic asks the hospital, through the jurisdiction both are in.
+    private static final String REQUEST = "care.records.request";
+    private static final String ASKER = NAMES.value("asker");
+
+    @Test
+    @Order(50)
+    @DisplayName("the clinic asks for the hospital's records at its own door, on the exchange "
+            + "its zone declares, and the run it asked for says where the work goes")
+    @Proving(DboPromises.ZONE_WORK_FOR_ANOTHER_TENANT_IS_ASKED_FOR_AT_ONES_OWN_DOOR)
+    void theClinicAsksTheHospitalThroughTheZone() {
+        HttpResponse<String> asked = askAcross(HOSPITAL);
+        Proves.that(DboPromises.ZONE_WORK_FOR_ANOTHER_TENANT_IS_ASKED_FOR_AT_ONES_OWN_DOOR,
+                asked.statusCode() == 201,
+                "the clinic could not ask for the hospital's records through rl: "
+                        + asked.statusCode() + " " + asked.body());
+        Run run = new Runs(tenants.store(CLINIC).orElseThrow())
+                .byKey(dbo.says(asked).one("key").orElseThrow()).orElseThrow();
+        Proves.that(DboPromises.ZONE_WORK_FOR_ANOTHER_TENANT_IS_ASKED_FOR_AT_ONES_OWN_DOOR,
+                run.crossing() != null && CLINIC.equals(run.crossing().from())
+                        && HOSPITAL.equals(run.crossing().to())
+                        && ASKER.equals(run.crossing().reader())
+                        && run.crossing().askerRun() == null,
+                "the run asked for does not say where the work goes, or who it is for: "
+                        + run.crossing());
+    }
+
+    @Test
+    @Order(51)
+    @DisplayName("asked for a tenant it shares no zone with, for a crossing it says the store's "
+            + "part of, or on its own work, the clinic's door refuses by name and authors "
+            + "nothing")
+    @Proving(DboPromises.ZONE_WORK_FOR_ANOTHER_TENANT_IS_ASKED_FOR_AT_ONES_OWN_DOOR)
+    void aCrossingWithNoWayIsRefused() {
+        HttpResponse<String> nowhere = askAcross("fhir-r5");
+        HttpResponse<String> forged = askAt(REQUEST, "{\"inputs\":{\"query\":" + query()
+                + "},\"crossing\":{\"to\":\"" + HOSPITAL + "\",\"from\":\"rl\"}}");
+        HttpResponse<String> own = askAt("care.contact.record", "{\"inputs\":{\"note\":"
+                + "{\"resourceType\":\"Observation\",\"status\":\"final\","
+                + "\"code\":{\"text\":\"x\"}}},\"crossing\":{\"to\":\"" + HOSPITAL
+                + "\"}}");
+        Proves.that(DboPromises.ZONE_WORK_FOR_ANOTHER_TENANT_IS_ASKED_FOR_AT_ONES_OWN_DOOR,
+                nowhere.statusCode() == 409 && nowhere.body().contains("fhir-r5")
+                        && nowhere.body().contains("no zone")
+                        && forged.statusCode() == 400 && forged.body().contains("store")
+                        && own.statusCode() == 400 && own.body().contains("does not cross"),
+                "a crossing with no way to go, or one the asker forged, was not refused by "
+                        + "name: " + nowhere.statusCode() + " " + nowhere.body() + " / "
+                        + forged.statusCode() + " " + forged.body() + " / "
+                        + own.statusCode() + " " + own.body());
+    }
+
+    private HttpResponse<String> askAcross(String to) {
+        return askAt(REQUEST, "{\"inputs\":{\"query\":" + query() + "},\"crossing\":"
+                + "{\"to\":\"" + to + "\"}}");
+    }
+
+    private HttpResponse<String> askAt(String step, String body) {
+        return dbo.send(HttpRequest.newBuilder(
+                        URI.create(dbo.at(CLINIC) + "/step/" + step))
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(body)), askerToken());
+    }
+
+    private static String query() {
+        return "{\"resourceType\":\"Parameters\",\"parameter\":[{\"name\":\"code\","
+                + "\"valueString\":\"" + NAMES.value("asked-for") + "\"}]}";
+    }
+
+    /** A client of the clinic's, entitled to ask for the exchange and its own step. */
+    private String askerToken() {
+        TenantAuthority authority = tenants.authority(CLINIC).orElseThrow();
+        authority.ensureClient(ASKER, ASKER + "-secret",
+                List.of("work/" + REQUEST, "work/care.contact.record"));
+        if (authority.token(ASKER, ASKER + "-secret", null)
+                instanceof TenantAuthority.TokenResult.Issued minted) {
+            return minted.accessToken();
+        }
+        throw new IllegalStateException("the clinic would not issue its asker a token");
+    }
+
     @Test
     @Order(26)
     @DisplayName("a router whose routee never answers waits, the claim lapses, the run reads "

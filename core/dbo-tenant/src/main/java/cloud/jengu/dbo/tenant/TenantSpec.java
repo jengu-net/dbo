@@ -983,6 +983,12 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
                     .map(cloud.jengu.dbo.fhir.common.FhirTypeConfig::typeName)
                     .collect(java.util.stream.Collectors.toSet());
             java.util.Set<String> seen = new java.util.HashSet<>();
+            // A ZONE'S EXCHANGES ARE OVER ITS MEMBERS' DATA. A step a zone
+            // declares within a process it permits is where its members ask
+            // each other for work, so what it takes is a type the members
+            // hold, which the jurisdiction itself has no reason to.
+            boolean zone = Json.bool(root, "zoneRoot");
+            java.util.Set<String> exchanged = exchangesOf(root);
             for (Object step : Json.array(root, "steps")) {
                 String stepCode = Json.str(step, "code");
                 // A step's name is the engine's, so it is checked against the
@@ -1007,7 +1013,8 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
                     // said anything beyond a bare type.
                     cloud.jengu.dbo.core.process.SlotShape shape =
                             cloud.jengu.dbo.core.process.SlotShape.of(slot.getValue());
-                    if (!held.contains(shape.type())) {
+                    if (!held.contains(shape.type()) && !(zone
+                            && exchanged.contains(ZoneTree.processOf(stepCode)))) {
                         throw new IllegalArgumentException(code + ": step '" + stepCode
                                 + "' takes '" + shape.type() + "' in slot '" + slot.getKey()
                                 + "', and this tenant does not declare that type. It holds: "

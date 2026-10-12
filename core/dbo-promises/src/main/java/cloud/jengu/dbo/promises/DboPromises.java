@@ -2208,6 +2208,14 @@ public enum DboPromises implements Promise {
             + "says whose partner it is, and it is the provider's or nobody's — naming "
             + "anything else is refused by name, and so is a step naming partners that "
             + "opens nothing they could be named against."),
+    ZONE_WORK_FOR_ANOTHER_TENANT_IS_ASKED_FOR_AT_ONES_OWN_DOOR(
+            "Work for another tenant is asked for at the asker's own step door, on an "
+            + "exchange a zone above it declares within a process it permits, by naming the "
+            + "tenant whose data it is. The run asked for records where it goes. Where the "
+            + "two share no zone, or a zone on the way does not permit the process, nothing "
+            + "is authored and the refusal says why; a request saying where the work came "
+            + "from or which run it answers is refused, because those are the store's to "
+            + "write, and a tenant's own step does not cross."),
     ZONE_A_ZONE_IS_SERVED_TO_A_FACE_THROUGH_ONE_PROJECTION(
             "A zone's definitions and records reach the tenants of a face it was not "
             + "written in through one projection per zone per face: a tenant that takes "

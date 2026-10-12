@@ -54,6 +54,32 @@ final class ZoneTree {
         return chain;
     }
 
+    /**
+     * A step a zone above this tenant declares within a process it permits:
+     * where its members ask for an exchange, nearest zone first.
+     */
+    java.util.Optional<TenantSpec.Step> exchangeStep(String tenant, String stepCode) {
+        for (String zone : chainOf(tenant)) {
+            TenantSpec spec = declared.get(zone);
+            if (spec == null) {
+                continue;
+            }
+            for (TenantSpec.Step step : spec.steps()) {
+                if (step.code().equals(stepCode)
+                        && spec.exchanges().contains(processOf(stepCode))) {
+                    return java.util.Optional.of(step);
+                }
+            }
+        }
+        return java.util.Optional.empty();
+    }
+
+    /** The process a step code is part of: its two leading parts. */
+    static String processOf(String stepCode) {
+        int last = stepCode.lastIndexOf('.');
+        return last < 0 ? stepCode : stepCode.substring(0, last);
+    }
+
     /** What a zone permits its members to do for each other; nothing, if it says nothing. */
     Set<String> permitted(String zone) {
         TenantSpec spec = declared.get(zone);

@@ -3,6 +3,9 @@
   "face": "r5",
   "zoneRoot": true,
   "exchanges": ["care.records"],
+  "steps": [
+    { "code": "care.records.request", "slots": { "query": "Parameters" } }
+  ],
   "types": [
     { "name": "CodeSystem", "identity": "canonical", "handling": "operational" },
     { "name": "ValueSet", "identity": "canonical", "handling": "operational" }
