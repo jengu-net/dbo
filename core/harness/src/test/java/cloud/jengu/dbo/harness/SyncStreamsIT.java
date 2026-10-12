@@ -34,6 +34,7 @@ import java.util.Set;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -332,6 +333,61 @@ class SyncStreamsIT {
      * collects "the other tenant was down" stops being read, and then the
      * override that needed a person is sitting in it.
      */
+    /**
+     * A catalogue both received and authored: the zone publishes value sets,
+     * and the leaf keeps them intact while writing its own beside them.
+     */
+    @Test
+    @Order(8)
+    @Proving({DboPromises.SYNC_A_TYPE_IS_RECEIVED_AND_AUTHORED_RECORD_BY_RECORD,
+            DboPromises.SYNC_LOCAL_SHADOWING})
+    void aTenantKeepsItsUpstreamsCopiesAndWritesItsOwn() {
+        String zoneUrl = "https://zone.test/vs/catalogue";
+        PutResult upstream = zone.putCanonical(valueSet(zoneUrl, "ZoneCatalogue"));
+        syncAll();
+        assertTrue(leafEngine.get("ValueSet", upstream.id()).isPresent(), "nothing streamed");
+
+        // The copy is upstream's: neither changed nor removed here.
+        cloud.jengu.dbo.core.api.HandlingRefusedException edited = assertThrows(
+                cloud.jengu.dbo.core.api.HandlingRefusedException.class,
+                () -> leaf.update(upstream.id(), null, valueSet(zoneUrl, "EditedHere")));
+        assertTrue(edited.getMessage().contains("read-only-here")
+                        && edited.getMessage().contains("mid"),
+                "an edit of the copy was not refused by the rule, naming where it came from: "
+                        + edited.getMessage());
+        assertThrows(cloud.jengu.dbo.core.api.HandlingRefusedException.class,
+                () -> leaf.delete("ValueSet", upstream.id(), null),
+                "the copy was removed by somebody other than its stream");
+
+        // The leaf's own value sets are its own.
+        PutResult own = leaf.putCanonical(valueSet("https://leaf.test/vs/own", "LeafOwn"));
+        leaf.update(own.id(), null, valueSet("https://leaf.test/vs/own", "LeafOwnChanged"));
+
+        // And a search tells them apart.
+        String copies = leaf.search("ValueSet", java.util.Map.of("_source",
+                "urn:dbo:upstream:mid"), null);
+        String owned = leaf.search("ValueSet", java.util.Map.of("_source:missing", "true"),
+                null);
+        assertTrue(copies.contains(upstream.id()) && !copies.contains(own.id()),
+                "asking for the upstream's copies did not answer with them alone: " + copies);
+        assertTrue(owned.contains(own.id()) && !owned.contains(upstream.id()),
+                "asking for the leaf's own did not answer with them alone: " + owned);
+
+        // Writing the copy's canonical is shadowing it: an act, and undone by
+        // deleting what was written.
+        PutResult shadow = leaf.putCanonical(valueSet(zoneUrl, "LeafShadow"));
+        assertNotEquals(upstream.id(), shadow.id(), "the copy was edited rather than shadowed");
+        assertTrue(leafEngine.get("ValueSet", upstream.id()).isEmpty(),
+                "the copy is still served beside the record shadowing it");
+        assertTrue(new String(leafEngine.get("ValueSet", shadow.id()).orElseThrow().payload(),
+                StandardCharsets.UTF_8).contains("LeafShadow"));
+        leaf.delete("ValueSet", shadow.id(), null);
+        midToLeafDefinitions.reconcile();
+        assertTrue(new String(leafEngine.get("ValueSet", upstream.id()).orElseThrow()
+                        .payload(), StandardCharsets.UTF_8).contains("ZoneCatalogue"),
+                "deleting the shadow did not bring the upstream's copy back");
+    }
+
     @Test
     @Order(7)
     void anUnreachableUpstreamIsARetryRatherThanACard() {

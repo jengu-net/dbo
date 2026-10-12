@@ -582,6 +582,7 @@ cloud.jengu.dbo.core.api.Criteria                                      chainedPr
 cloud.jengu.dbo.core.api.Criteria                                      class
 cloud.jengu.dbo.core.api.Criteria                                      eq(String,cloud.jengu.dbo.core.api.EnvelopeValue):cloud.jengu.dbo.core.api.Criteria
 cloud.jengu.dbo.core.api.Criteria                                      equalsPredicates():List
+cloud.jengu.dbo.core.api.Criteria                                      fromUpstream(String):cloud.jengu.dbo.core.api.Criteria
 cloud.jengu.dbo.core.api.Criteria                                      idEquals(String):cloud.jengu.dbo.core.api.Criteria
 cloud.jengu.dbo.core.api.Criteria                                      idEqualsValue():String
 cloud.jengu.dbo.core.api.Criteria                                      lastUpdated(cloud.jengu.dbo.core.api.Criteria.RangeOp,Instant):cloud.jengu.dbo.core.api.Criteria
@@ -594,6 +595,8 @@ cloud.jengu.dbo.core.api.Criteria                                      missingPr
 cloud.jengu.dbo.core.api.Criteria                                      notEq(String,cloud.jengu.dbo.core.api.EnvelopeValue):cloud.jengu.dbo.core.api.Criteria
 cloud.jengu.dbo.core.api.Criteria                                      notEqualsPredicates():List
 cloud.jengu.dbo.core.api.Criteria                                      of(String):cloud.jengu.dbo.core.api.Criteria
+cloud.jengu.dbo.core.api.Criteria                                      origin():cloud.jengu.dbo.core.api.Criteria.Origin
+cloud.jengu.dbo.core.api.Criteria                                      ownOnly():cloud.jengu.dbo.core.api.Criteria
 cloud.jengu.dbo.core.api.Criteria                                      range(String,cloud.jengu.dbo.core.api.ValueKind,cloud.jengu.dbo.core.api.Criteria.RangeOp,String):cloud.jengu.dbo.core.api.Criteria
 cloud.jengu.dbo.core.api.Criteria                                      rangePredicates():List
 cloud.jengu.dbo.core.api.Criteria                                      refMissing(String,boolean):cloud.jengu.dbo.core.api.Criteria
@@ -672,6 +675,13 @@ cloud.jengu.dbo.core.api.Criteria.NotEq                                path():St
 cloud.jengu.dbo.core.api.Criteria.NotEq                                record
 cloud.jengu.dbo.core.api.Criteria.NotEq                                toString():String
 cloud.jengu.dbo.core.api.Criteria.NotEq                                value():cloud.jengu.dbo.core.api.EnvelopeValue
+cloud.jengu.dbo.core.api.Criteria.Origin                               dependency():String
+cloud.jengu.dbo.core.api.Criteria.Origin                               equals(Object):boolean
+cloud.jengu.dbo.core.api.Criteria.Origin                               hashCode():int
+cloud.jengu.dbo.core.api.Criteria.Origin                               new(boolean,String)
+cloud.jengu.dbo.core.api.Criteria.Origin                               record
+cloud.jengu.dbo.core.api.Criteria.Origin                               toString():String
+cloud.jengu.dbo.core.api.Criteria.Origin                               upstream():boolean
 cloud.jengu.dbo.core.api.Criteria.Range                                equals(Object):boolean
 cloud.jengu.dbo.core.api.Criteria.Range                                hashCode():int
 cloud.jengu.dbo.core.api.Criteria.Range                                kind():cloud.jengu.dbo.core.api.ValueKind
@@ -3255,6 +3265,7 @@ cloud.jengu.dbo.promises.DboPromises                                   SYNC_A_PL
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_A_PLACE_SERVES_WHAT_IT_HOLDS_WHILE_ITS_ORIGIN_IS_AWAY:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_A_PLACE_TAKES_ITS_FACE_FROM_A_ROOT_BESIDE_IT:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_A_STREAM_APPLIES_EACH_CHANGE_ONCE:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   SYNC_A_TYPE_IS_RECEIVED_AND_AUTHORED_RECORD_BY_RECORD:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_CONVERT_ON_APPLY:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_DECLARED_ONLY:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_DIRECT_UPSTREAM_ONLY:cloud.jengu.dbo.promises.DboPromises

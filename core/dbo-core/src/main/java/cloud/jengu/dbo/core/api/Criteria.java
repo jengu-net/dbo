@@ -109,6 +109,7 @@ public final class Criteria {
     private final List<Missing> missing = new ArrayList<>();
     private final List<Range> ranges = new ArrayList<>();
     private final List<Shape> shapes = new ArrayList<>();
+    private Origin origin;
     private final List<LastUpdatedRange> lastUpdated = new ArrayList<>();
     private final List<Referencing> referencing = new ArrayList<>();
     private final List<ReferencingAny> referencingAny = new ArrayList<>();
@@ -125,6 +126,33 @@ public final class Criteria {
 
     public static Criteria of(String typeName) {
         return new Criteria(typeName);
+    }
+
+    /**
+     * Whose the records are: copies a dependency streamed here, or the
+     * tenant's own.
+     *
+     * @param upstream true for copies, false for the tenant's own
+     * @param dependency for copies, the one dependency they came from, or
+     *                   null for any
+     */
+    public record Origin(boolean upstream, String dependency) {}
+
+    /** Only copies streamed from upstream: from that dependency, or from any when null. */
+    public Criteria fromUpstream(String dependency) {
+        origin = new Origin(true, dependency);
+        return this;
+    }
+
+    /** Only the tenant's own records, none a dependency streamed here. */
+    public Criteria ownOnly() {
+        origin = new Origin(false, null);
+        return this;
+    }
+
+    /** Whose records are asked for, or null for both. */
+    public Origin origin() {
+        return origin;
     }
 
     /** Objects stamped below {@code major} for {@code profile}. */

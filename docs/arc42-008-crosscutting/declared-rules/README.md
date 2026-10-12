@@ -40,6 +40,8 @@ It says four kinds of thing:
   `operational`, which the tenant owns and may edit, or `replicated`, which
   belongs to whoever published it and is read-only here. **There is no default
   for that**, because a default is a silent decision about a hospital's data.
+  An `operational` type a dependency also streams holds both, and each record
+  is its author's: a copy is read-only here, the tenant's own records are not.
 - **Where it gets things** — the tenants it depends on, and per dependency the
   types that stream from it.
 - **What it must do** — its audit level, its write discipline, its retention,
