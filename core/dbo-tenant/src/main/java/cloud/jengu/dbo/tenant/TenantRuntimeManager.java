@@ -2283,6 +2283,11 @@ public final class TenantRuntimeManager implements AutoCloseable {
         java.util.List<cloud.jengu.dbo.sync.ConfigApplication.Declared> declarations =
                 new java.util.ArrayList<>(declaredNow());
         declarations.addAll(ZoneProjections.neededBy(declarations));
+        // THE JURISDICTIONS, read from every declaration at once. A zone is a
+        // relation between files — what one names, another must be — so it is
+        // judged over all of them here, before any is begun, rather than by
+        // each bring-up against whatever happens to be serving.
+        ZoneTree tree = ZoneTree.of(parsedOf(declarations));
         // What is declared is known before anything is begun, because the
         // retraction below reads it and the work no longer finishes first.
         // The same codes the work itself would add: a parsed spec's, or the
@@ -2319,6 +2324,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 TenantSpec.onlyTheDeploymentDeclaresFleetSteps(spec);
                 aStepCodeBelongsToOneLevel(spec);
                 aRequiredStepCannotBeDeclined(spec);
+                tree.refuse(spec);
                 // It parsed and it is being served, so a later refusal of the
                 // same file is news rather than a repeat.
                 refusals.applied(named);
@@ -3001,6 +3007,21 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 + "a setting. It is declared required in the management tenant '"
                 + managementCode + "', which is where the set of them can be read before "
                 + "anybody joins.");
+    }
+
+    /** The declarations that parse; one that does not is refused where it is begun. */
+    private static List<TenantSpec> parsedOf(
+            List<cloud.jengu.dbo.sync.ConfigApplication.Declared> declarations) {
+        List<TenantSpec> parsed = new java.util.ArrayList<>();
+        for (cloud.jengu.dbo.sync.ConfigApplication.Declared declaration : declarations) {
+            try {
+                parsed.add(TenantSpec.parse(new String(declaration.payload(),
+                        java.nio.charset.StandardCharsets.UTF_8)));
+            } catch (RuntimeException refusedWhereItIsBegun) {
+                // Said by the bring-up that parses it again, by name.
+            }
+        }
+        return parsed;
     }
 
     /** The tenant a spec file declares, when it parses — for a state to belong to. */

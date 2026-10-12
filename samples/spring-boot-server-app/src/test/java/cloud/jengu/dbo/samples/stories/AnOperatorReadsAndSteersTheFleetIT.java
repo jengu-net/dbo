@@ -1120,6 +1120,38 @@ class AnOperatorReadsAndSteersTheFleetIT {
                 + "\",\"audit\":{\"level\":\"none\"},\"types\":[" + declared + "]}";
     }
 
+    @Test
+    @Order(27)
+    @DisplayName("a zone declared under the guide's jurisdiction that permits more than it "
+            + "does is refused by name, and the node says which zone and which process")
+    @Proving(DboPromises.ZONE_A_ZONE_ONLY_NARROWS_THE_ZONE_IT_BELONGS_TO)
+    void aZoneIsBoundByTheOneItBelongsTo() throws InterruptedException {
+        // A county of rl's, looser than rl: rl permits its members to share
+        // care records with each other, and nothing about gossip.
+        String county = NAMES.tenant("county");
+        dbo.declare(county, """
+                {"code":"%s","face":"r5","zoneRoot":true,"zone":"rl",
+                 "exchanges":["care.records","care.gossip"],
+                 "types":[
+                  {"name":"ValueSet","identity":"canonical","handling":"operational"}]}"""
+                .formatted(county));
+        try {
+            String why = "";
+            long giveUp = System.nanoTime() + Duration.ofMinutes(3).toNanos();
+            while (!why.contains("care.gossip") && System.nanoTime() < giveUp) {
+                Thread.sleep(1000);
+                why = String.valueOf(rowFor(county).get("why"));
+            }
+            Proves.that(DboPromises.ZONE_A_ZONE_ONLY_NARROWS_THE_ZONE_IT_BELONGS_TO,
+                    why.contains(county) && why.contains("rl") && why.contains("care.gossip")
+                            && !dbo.serving().contains(county),
+                    "a zone looser than the one it belongs to was not refused by name, or "
+                            + "was served anyway: " + why);
+        } finally {
+            dbo.retract(county);
+        }
+    }
+
     /** The node's row for one tenant, read as a record. */
     @SuppressWarnings("unchecked")
     private Map<String, Object> rowFor(String code) {

@@ -31,6 +31,22 @@ can take a zone's code systems without being in it, and be in it without
 taking them, because *whose rules apply to me* and *what content do I hold* are
 different questions.
 
+## A zone belongs to a zone
+
+A zone names the zone it belongs to the way a member does, with `"zone"`:
+a Land is in its country, and the country in the EU. Zones form a tree, so a
+chain of them that leads back to one of its own is refused by name, listing
+every zone on the way round. A deployment may hold several roots.
+
+**A zone says what its members may do for each other**, by process. `rl`
+permits `care.records`, and nothing else. A zone that lists nothing permits
+nothing, and only a zone may list anything.
+
+**A zone is bound by the one it belongs to.** A Land may permit only what its
+country does, so a zone listing a process its parent does not is refused at
+its declaration, naming both zones and the process. A jurisdiction may be
+stricter than the one above it, never looser.
+
 ## The zone runs its own ceremony
 
 A zone that names no external identity broker is its own: every tenant carries

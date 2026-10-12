@@ -2,6 +2,7 @@
   "code": "rl",
   "face": "r5",
   "zoneRoot": true,
+  "exchanges": ["care.records"],
   "types": [
     { "name": "CodeSystem", "identity": "canonical", "handling": "operational" },
     { "name": "ValueSet", "identity": "canonical", "handling": "operational" }
