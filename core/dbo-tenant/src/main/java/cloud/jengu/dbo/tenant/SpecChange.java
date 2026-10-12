@@ -177,6 +177,12 @@ public record SpecChange(Kind kind, List<String> fields) {
             // so keeps the members it has until each of them comes up again.
             hot.add("zoneRoot");
         }
+        if (!Objects.equals(serving.exchanges(), declared.exchanges())) {
+            // Hot, and like zoneRoot its effect is on others: what members may
+            // do for each other, read wherever a route or a register is worked
+            // out, and nothing this zone serves itself.
+            hot.add("exchanges");
+        }
         if (serving.faceRoot() != declared.faceRoot()) {
             // Hot both ways. Becoming a root loads the version into a tenant
             // that keeps serving — an arrival like any profile's, rebuilding

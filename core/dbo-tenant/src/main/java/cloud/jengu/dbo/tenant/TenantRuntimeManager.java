@@ -3478,7 +3478,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
         }
         // The zone a member federates through: its hub is built from the
         // zone's own records and authority.
-        if (authorityConfig != null && spec.zone() != null && !spec.zone().equals(spec.code())
+        if (authorityConfig != null && spec.zone() != null
                 && !zoneHubs.containsKey(spec.zone()) && !runtimes.containsKey(spec.zone())) {
             throw new UpstreamNotReady(spec.code(), spec.zone());
         }

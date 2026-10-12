@@ -2053,6 +2053,25 @@ public enum DboPromises implements Promise {
             + "records too. What it ends is the answer to `which tenants are zones` being "
             + "obtainable only by reading every other file and taking the union of what "
             + "they point at."),
+    ZONE_A_ZONE_NAMES_THE_ZONE_IT_BELONGS_TO(
+            "Zones form a tree. A zone's own zone is the jurisdiction it belongs to — "
+            + "Estonia's is the EU — and a chain of zones that leads back to one of its own "
+            + "is refused by name, listing every zone on it, a zone naming itself "
+            + "included: a jurisdiction above its own is bound by nothing. A deployment "
+            + "may hold several roots."),
+    ZONE_A_ZONE_ONLY_NARROWS_THE_ZONE_IT_BELONGS_TO(
+            "What members may do for each other is a jurisdiction's to permit, by process, "
+            + "and only a zone permits it: a zone that lists none permits none, and a "
+            + "tenant that is not a zone listing any is refused. A zone permitting a "
+            + "process the zone it belongs to does not is refused at its declaration, "
+            + "naming both zones and the process, because a jurisdiction is bound by the "
+            + "one above it and may be stricter, never looser."),
+    ZONE_WORK_CROSSES_THROUGH_THE_LOWEST_ZONE_TWO_TENANTS_SHARE(
+            "Two tenants never deal with each other directly. Work between them is "
+            + "carried up from the asker to the lowest zone both belong to and down to the "
+            + "owner, that zone's rules govern it, and it is permitted only where every "
+            + "zone on the way permits the process. Tenants under no shared zone, or in "
+            + "none, have no route, and are told so by name."),
     ZONE_A_ZONE_IS_SERVED_TO_A_FACE_THROUGH_ONE_PROJECTION(
             "A zone's definitions and records reach the tenants of a face it was not "
             + "written in through one projection per zone per face: a tenant that takes "
