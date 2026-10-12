@@ -62,7 +62,12 @@ public enum LaneVerbs {
      * Entries the place recorded, in its order, handed to the tenant to be
      * recorded as the place's. Filed by the credential that hands them.
      */
-    TRAIL_PUSH("trail-push");
+    TRAIL_PUSH("trail-push"),
+    /**
+     * Runs the place performed and what they produced, handed to the tenant
+     * as one replication batch, filed by the credential that hands them.
+     */
+    RUNS_PUSH("runs-push");
 
     /** Who is asking, as a feed consumer: this participant's own cursor. */
     public static final String PARTICIPANT = "participant";
@@ -144,6 +149,11 @@ public enum LaneVerbs {
     public static final String THROUGH = "through";
     /** The entries handed: id, version, when recorded, and the entry as written. */
     public static final String ENTRIES = "entries";
+    /** A replication batch, in its wire form. */
+    public static final String BATCH = "batch";
+    /** What the tenant applied of a batch, held already, and refused. */
+    public static final String APPLIED = "applied";
+    public static final String SKIPPED = "skipped";
 
     private final String path;
 
