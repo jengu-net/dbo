@@ -102,6 +102,13 @@ deployment processes, which rows it may decline, and **whether anything has
 changed since it last looked**. A change in what a deployment does with data is
 one comparison rather than a diff somebody has to assemble.
 
+**A row says whose process it is.** A tenant has two authorities: the service
+provider, whose rows are what the deployment does, and the jurisdiction it is
+in. Every zone above a tenant puts the processes it permits its members on the
+tenant's register, naming the zone, nearest first — a tenant in Estonia reads
+Estonia's and the EU's. A jurisdiction's row is required and applied, because
+membership is the agreement, so declining one is refused by name.
+
 
 ### Declaring is not the same as being recorded
 

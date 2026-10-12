@@ -2072,6 +2072,12 @@ public enum DboPromises implements Promise {
             + "owner, that zone's rules govern it, and it is permitted only where every "
             + "zone on the way permits the process. Tenants under no shared zone, or in "
             + "none, have no route, and are told so by name."),
+    ZONE_A_TENANTS_ZONES_ARE_ON_ITS_REGISTER(
+            "A tenant reads on one register everyone whose process may touch its data: the "
+            + "service provider's processes and, below them, one row for each process every "
+            + "zone above it permits, naming the zone, nearest first. A jurisdiction's row "
+            + "is required and applied — membership is the agreement — so declining one is "
+            + "refused by name, naming the zone that declares it."),
     ZONE_A_ZONE_IS_SERVED_TO_A_FACE_THROUGH_ONE_PROJECTION(
             "A zone's definitions and records reach the tenants of a face it was not "
             + "written in through one projection per zone per face: a tenant that takes "

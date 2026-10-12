@@ -655,6 +655,27 @@ class OneStepIsPerformedForEveryTenantIT {
                         + "opens, or does not say it declined: " + register.body());
     }
 
+    @Test
+    @Order(14)
+    @DisplayName("the hospital's register names its jurisdiction too: what rl permits its "
+            + "members is a required row of rl's, beside what the deployment does")
+    @Proving(DboPromises.ZONE_A_TENANTS_ZONES_ARE_ON_ITS_REGISTER)
+    void theHospitalReadsItsZoneOnTheRegister() {
+        HttpResponse<String> register = dbo.get(dbo.at(HOSPITAL) + "/register",
+                configurationToken(HOSPITAL));
+        List<Map<?, ?>> rows = rowsOf(register.body(), "rows");
+        Map<?, ?> zones = rows.stream()
+                .filter(row -> "zone".equals(row.get("authority")))
+                .findFirst().orElse(Map.of());
+        Proves.that(DboPromises.ZONE_A_TENANTS_ZONES_ARE_ON_ITS_REGISTER,
+                "care.records".equals(zones.get("step")) && "rl".equals(zones.get("by"))
+                        && Boolean.TRUE.equals(zones.get("required"))
+                        && rows.stream().anyMatch(row -> STEP.equals(row.get("step"))
+                                && "provider".equals(row.get("authority"))),
+                "the hospital's register does not name what its jurisdiction permits beside "
+                        + "what the deployment does: " + register.body());
+    }
+
     /**
      * A credential the tenant issued for saying what it agrees to: the
      * configuration scope, the one a register is authorised with and read by.

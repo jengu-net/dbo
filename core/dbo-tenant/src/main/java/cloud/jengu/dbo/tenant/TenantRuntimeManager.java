@@ -849,6 +849,8 @@ public final class TenantRuntimeManager implements AutoCloseable {
     private volatile Set<String> requiredStepCodes = Set.of();
     /** The declarations themselves, which the register is a reading of. */
     private volatile List<TenantSpec.FleetStep> declaredFleetSteps = List.of();
+    /** The jurisdictions as the last pass read them, from every declaration at once. */
+    private volatile ZoneTree zones = ZoneTree.of(List.of());
     /**
      * The substrate each declared fleet step's queue lives on, by step code.
      *
@@ -1922,7 +1924,10 @@ public final class TenantRuntimeManager implements AutoCloseable {
      * describes cannot drift apart.
      */
     public List<FleetRegister.Row> fleetRegister(String tenant) {
-        return FleetRegister.of(declaredFleetSteps, declinedBy(tenant));
+        List<FleetRegister.Row> rows = new java.util.ArrayList<>(
+                FleetRegister.of(declaredFleetSteps, declinedBy(tenant)));
+        rows.addAll(FleetRegister.ofZones(zones.chainOf(tenant), zones::permitted));
+        return List.copyOf(rows);
     }
 
     /**
@@ -2288,6 +2293,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
         // judged over all of them here, before any is begun, rather than by
         // each bring-up against whatever happens to be serving.
         ZoneTree tree = ZoneTree.of(parsedOf(declarations));
+        zones = tree;
         // What is declared is known before anything is begun, because the
         // retraction below reads it and the work no longer finishes first.
         // The same codes the work itself would add: a parsed spec's, or the
@@ -2699,7 +2705,9 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 fleetRegisterChanged(code).ifPresent(changed ->
                         row.put("changedSinceAuthorised", changed));
                 row.put("unapproved", unapprovedRows(code).stream()
-                        .map(unapproved -> unapproved.step() + "/" + unapproved.slot())
+                        .map(unapproved -> unapproved.slot() == null
+                                ? unapproved.step() + " (" + unapproved.by() + ")"
+                                : unapproved.step() + "/" + unapproved.slot())
                         .toList());
                 row.put("withheld", List.copyOf(withheldFrom(code)));
                 row.put("unauthorisedIncidents", unapprovedProcessing(code).size());

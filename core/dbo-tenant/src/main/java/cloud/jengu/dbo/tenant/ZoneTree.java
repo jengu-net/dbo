@@ -71,6 +71,16 @@ final class ZoneTree {
         if (spec.zone() == null) {
             return;
         }
+        for (String zone : chainOf(spec.code())) {
+            Set<String> obliged = new TreeSet<>(spec.declines());
+            obliged.retainAll(permitted(zone));
+            if (!obliged.isEmpty()) {
+                throw new IllegalArgumentException(spec.code() + ": declines " + obliged
+                        + ", and its zone " + zone + " declares "
+                        + (obliged.size() == 1 ? "it" : "them") + ". A jurisdiction's process "
+                        + "binds its members, and is not a member's to decline");
+            }
+        }
         TenantSpec parent = declared.get(spec.zone());
         if (parent != null) {
             TenantRuntimeManager.aZoneIsDeclaredByItself(spec, parent);
