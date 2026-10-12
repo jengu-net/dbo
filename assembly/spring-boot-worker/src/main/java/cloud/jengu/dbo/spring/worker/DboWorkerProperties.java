@@ -194,6 +194,13 @@ public class DboWorkerProperties {
         /** The private half of the key it signs its asks with. */
         private String signingKey;
 
+        /**
+         * Where this participant's identity is kept, in the documented
+         * directory form, instead of the two keys above: adopted if a process
+         * beside the worker made it first, made there if nothing has.
+         */
+        private String keysDir;
+
         public String getUrl() {
             return url;
         }
@@ -248,6 +255,14 @@ public class DboWorkerProperties {
 
         public void setSigningKey(String signingKey) {
             this.signingKey = signingKey;
+        }
+
+        public String getKeysDir() {
+            return keysDir;
+        }
+
+        public void setKeysDir(String keysDir) {
+            this.keysDir = keysDir;
         }
     }
 

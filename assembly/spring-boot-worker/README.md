@@ -142,6 +142,7 @@ sets `auto-start: false` and calls `start()` — which is what
 | `dbo.worker.substrate.participant` | the name this worker enrolled under, which is its cursor on each feed |
 | `dbo.worker.substrate.provider` | whose code this is, which a run records |
 | `dbo.worker.substrate.sealing-key`, `.signing-key` | the PRIVATE halves of the pair this worker enrolled with |
+| `dbo.worker.substrate.keys-dir` | instead of the two keys: where this worker's identity is kept, [in the documented form](../../docs/arc42-008-crosscutting/processes-and-work/participant-keys.md), made there if it holds none |
 
 **A lane with no `base` is carried by the substrate**, and that is inferred
 rather than named: a base and a credential is a lane into somebody else's

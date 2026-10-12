@@ -94,7 +94,9 @@ signs. The store is the party the signature is shown to. A store able to
 produce that signature is a store whose evidence means nothing, including
 against itself. So where an application reads its private halves from — an
 environment variable, a mounted secret, a file — is a deployment's business,
-and the store's business is never to be told. From then on each payload sent to it is sealed
+and the store's business is never to be told. What it can be told is a
+directory to keep them in, in [a form others can make](participant-keys.md),
+so whatever installs the participant holds the same identity. From then on each payload sent to it is sealed
 under a data key of its own, wrapped to that participant — and to nobody who
 merely carries it. That is the store's usual answer applied to transport: a
 carrier that holds no key cannot read what it moves, whatever it is told it may

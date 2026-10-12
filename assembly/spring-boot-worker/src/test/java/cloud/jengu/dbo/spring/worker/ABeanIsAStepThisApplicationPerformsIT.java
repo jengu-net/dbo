@@ -138,6 +138,34 @@ class ABeanIsAStepThisApplicationPerformsIT {
                 });
     }
 
+    @Test
+    @DisplayName("a worker's identity is named by the directory it is kept in or by its two keys, "
+            + "and naming both is refused at context refresh as two identities")
+    void anIdentityIsNamedOnce() {
+        ApplicationContextRunner overTheSubstrate = application
+                .withUserConfiguration(AnApplication.class)
+                .withPropertyValues("dbo.worker.lanes[0].tenant=hogwarts",
+                        "dbo.worker.substrate.url=jdbc:postgresql://127.0.0.1:1/substrate",
+                        "dbo.worker.substrate.provider=cloud.jengu.test",
+                        "dbo.worker.substrate.keys-dir=/var/lib/worker/keys");
+        overTheSubstrate.withPropertyValues("dbo.worker.substrate.sealing-key=AAAA")
+                .run(context -> {
+                    assertNotNull(context.getStartupFailure(),
+                            "a worker named two identities and started as one of them");
+                    String said = rootOf(context.getStartupFailure()).getMessage();
+                    assertTrue(said.contains("keys-dir") && said.contains("two identities"),
+                            said);
+                });
+        // Left without a participant, so it is refused — for that alone.
+        overTheSubstrate.run(context -> {
+            String said = rootOf(context.getStartupFailure()).getMessage();
+            assertTrue(said.contains("substrate.participant"), said);
+            assertFalse(said.contains("sealing-key") || said.contains("signing-key"),
+                    "a worker naming where its identity is kept was told its keys are missing: "
+                            + said);
+        });
+    }
+
     private static Throwable rootOf(Throwable thrown) {
         Throwable cause = thrown;
         while (cause.getCause() != null && cause.getCause() != cause) {

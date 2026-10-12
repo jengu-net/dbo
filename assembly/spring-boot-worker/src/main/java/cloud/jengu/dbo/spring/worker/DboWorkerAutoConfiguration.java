@@ -108,14 +108,19 @@ public class DboWorkerAutoConfiguration {
                 // tenants it is a host for; naming none is how it stays inert.
                 return framework;
             }
+            // The framework is built before the worker, so an enrolment
+            // missing a part is refused by name here, before it is copied
+            // into a framework that would fail on the absence and say nothing.
+            refuseALaneThatCannotBeUsed(properties);
             DboWorkerProperties.Substrate on = properties.getSubstrate();
             framework.put("dbo.substrate.url", on.getUrl());
             put(framework, "dbo.substrate.user", on.getUser());
             put(framework, "dbo.substrate.password", on.getPassword());
             framework.put("dbo.lane.tenants", properties.tenantsOverTheSubstrate());
             framework.put("dbo.lane.participant", on.getParticipant());
-            framework.put("dbo.lane.sealing.key", on.getSealingKey());
-            framework.put("dbo.lane.signing.key", on.getSigningKey());
+            put(framework, "dbo.lane.sealing.key", on.getSealingKey());
+            put(framework, "dbo.lane.signing.key", on.getSigningKey());
+            put(framework, "dbo.lane.keys.dir", on.getKeysDir());
             // The worker's own name, not the enrolment's. A run records who
             // performed it, and over HTTP that is this same field — so a lane
             // the substrate carries has to write the same word on the run or
@@ -374,13 +379,24 @@ public class DboWorkerAutoConfiguration {
             missing.add("dbo.worker.substrate.provider names whose code this is, which a run "
                     + "records because a provider can be withdrawn");
         }
-        if (on.getSealingKey() == null || on.getSealingKey().isBlank()) {
-            missing.add("dbo.worker.substrate.sealing-key is the private half of the key this "
-                    + "participant is sealed to, and that plane hands nothing over in the clear");
-        }
-        if (on.getSigningKey() == null || on.getSigningKey().isBlank()) {
-            missing.add("dbo.worker.substrate.signing-key is the private half of the key it "
-                    + "signs asks with, and that plane carries no token to present instead");
+        boolean inADirectory = on.getKeysDir() != null && !on.getKeysDir().isBlank();
+        boolean asKeys = on.getSealingKey() != null && !on.getSealingKey().isBlank()
+                || on.getSigningKey() != null && !on.getSigningKey().isBlank();
+        if (inADirectory && asKeys) {
+            missing.add("dbo.worker.substrate.keys-dir and the sealing-key/signing-key pair are "
+                    + "two identities for one participant: name one");
+        } else if (!inADirectory) {
+            if (on.getSealingKey() == null || on.getSealingKey().isBlank()) {
+                missing.add("dbo.worker.substrate.sealing-key is the private half of the key "
+                        + "this participant is sealed to, and that plane hands nothing over in "
+                        + "the clear — or dbo.worker.substrate.keys-dir, where its identity is "
+                        + "kept");
+            }
+            if (on.getSigningKey() == null || on.getSigningKey().isBlank()) {
+                missing.add("dbo.worker.substrate.signing-key is the private half of the key it "
+                        + "signs asks with, and that plane carries no token to present instead "
+                        + "— or dbo.worker.substrate.keys-dir, where its identity is kept");
+            }
         }
         return missing;
     }

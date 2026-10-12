@@ -2,9 +2,7 @@ package cloud.jengu.dbo.harness;
 
 import cloud.jengu.dbo.core.api.ObjectStore;
 import cloud.jengu.dbo.core.api.PutRequest;
-import cloud.jengu.dbo.core.api.seal.KeyWrap;
-import cloud.jengu.dbo.core.api.seal.ParticipantKey;
-import cloud.jengu.dbo.core.api.seal.SigningKey;
+import cloud.jengu.dbo.core.api.seal.ParticipantKeys;
 import cloud.jengu.dbo.core.process.StepDeclaration;
 import cloud.jengu.dbo.promises.DboPromises;
 import cloud.jengu.dbo.promises.Proving;
@@ -38,9 +36,7 @@ import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.security.KeyPair;
 import java.time.Duration;
-import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -67,7 +63,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * stream bundle installed into it, a bundle contributing a step, and
  * the deployment's configuration — the substrate it already shares with the
  * store, the tenant it holds a lane into, the participant it enrolled as and
- * the private halves of that enrolment. Nothing here constructs a lane,
+ * where the identity it enrolled with is kept. Nothing here constructs a lane,
  * attaches one, or names {@code StreamLane} at all. If the work is performed
  * and lands on the tenant's own store, the only thing that can have carried
  * it is a lane the container built from what it was told.
@@ -133,13 +129,14 @@ class AHostHoldsALaneByInstallingABundleIT {
         runs = new Runs(engine);
 
         // The participant this host enrolled as, and the work it is entitled
-        // to. The private halves go to the container as configuration and
-        // never leave it.
-        KeyPair sealing = KeyWrap.newParticipantKeyPair();
-        KeyPair signing = SigningKey.newKeyPair();
+        // to. Its identity is kept in a directory in the documented form,
+        // made before the host first runs by whatever installs it; the tenant
+        // is told the public halves, and the container only where the
+        // directory is.
+        Path identity = dir.resolve("assayer-keys");
+        ParticipantKeys keys = ParticipantKeys.adoptOrMake(identity);
         manager.authority(TENANT).ensureClient("assayer", "assayer-secret",
-                List.of("work/" + STEP), ParticipantKey.of(sealing.getPublic()),
-                SigningKey.of(signing.getPublic()));
+                List.of("work/" + STEP), keys.sealingKey(), keys.signingKey());
         // The declaration arrives the way declarations arrive — over a lane,
         // from whoever introduced the step. Not the host's job, and not this
         // test pretending it is.
@@ -166,10 +163,7 @@ class AHostHoldsALaneByInstallingABundleIT {
         config.put("dbo.substrate.password", postgres.getPassword());
         config.put("dbo.lane.tenants", TENANT);
         config.put("dbo.lane.participant", "assayer");
-        config.put("dbo.lane.sealing.key",
-                Base64.getEncoder().encodeToString(sealing.getPrivate().getEncoded()));
-        config.put("dbo.lane.signing.key",
-                Base64.getEncoder().encodeToString(signing.getPrivate().getEncoded()));
+        config.put("dbo.lane.keys.dir", identity.toString());
         config.put("dbo.lane.executor.version", "1.0");
         config.put("dbo.lane.executor.provider", "cloud.jengu.test");
         // The probe keeps its step and gives up its lane: see the class note.
@@ -210,10 +204,11 @@ class AHostHoldsALaneByInstallingABundleIT {
 
     @Test
     @DisplayName("a container told where the substrate is, which tenant it holds a lane into "
-            + "and who it enrolled as performs that tenant's work — with no code of its own, "
-            + "and no connection opened into the tenant")
+            + "and where the identity it enrolled with is kept performs that tenant's work — "
+            + "with no code of its own, and no connection opened into the tenant")
     @Proving({DboPromises.PROC_A_LANE_OVER_THE_STREAM,
-            DboPromises.PROC_A_HOST_HOLDS_A_LANE_WHEREVER_IT_IS})
+            DboPromises.PROC_A_HOST_HOLDS_A_LANE_WHEREVER_IT_IS,
+            DboPromises.PROC_A_PARTICIPANTS_KEYS_ARE_KEPT_IN_A_DOCUMENTED_FORM})
     void installingTheBundleIsTheWholeHost() {
         // Its own wait. Nothing nudges the runner: it polls on its own thread
         // over a lane the container built, and a nudge from here would be the

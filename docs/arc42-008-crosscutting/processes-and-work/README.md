@@ -55,6 +55,7 @@ reaches whoever does it. Four documents beside it carry the rest.
 | | |
 |---|---|
 | [Participants, and what they may see](participants.md) | who is out there, how presence is worked out, and what is readable against what is sealed past them |
+| [A participant's keys](participant-keys.md) | the form a participant's identity is kept in, its public halves and signatures as text, and what it signs before it is admitted |
 | [How work is watched](watching-the-work.md) | what is true now, what happened, and whether anything is wrong — three questions, three answers |
 | [One lane for the fleet](one-lane-for-the-fleet.md) | **intended, not built**: a step defined once that performs for every tenant, and what joins their work into one place |
 | [What a tenant agreed to, and what happened](processing-and-consent.md) | **intended, not built**: the register of processing a tenant reads, and what a disagreement with the trail means |
