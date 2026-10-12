@@ -2120,6 +2120,12 @@ public enum DboPromises implements Promise {
             + "on the way back record only that the crossing passed again. The run that asked "
             + "is then offered to that reader alone. A reader that offered no key is sent "
             + "nothing, and its run says why."),
+    ZONE_THE_ASKERS_READER_OPENS_THE_ANSWER_ON_ITS_OWN_LANE(
+            "The reader takes the run it asked for on its own tenant's lane and is handed "
+            + "the answer as it came back, sealed to it; it opens it with its own key, and "
+            + "reports each opening before it reads, so the asker's trail records the access "
+            + "as the reader's, under the run, naming what was opened. Nobody but that "
+            + "reader is handed it."),
     ZONE_A_ZONE_IS_SERVED_TO_A_FACE_THROUGH_ONE_PROJECTION(
             "A zone's definitions and records reach the tenants of a face it was not "
             + "written in through one projection per zone per face: a tenant that takes "

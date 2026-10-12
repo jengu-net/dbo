@@ -73,7 +73,10 @@ owner's answer names is sealed to the reader the asker named, under the key the
 asker's own authority holds for it, and carried back the way it came: nothing
 that carries it holds a key that opens it, and every zone records that the
 crossing passed again. The run that asked is then offered to that reader and
-nobody else. Opening it on the asker's lane is not built yet.
+nobody else. The reader takes it on its own tenant's lane, as it takes any work,
+and is handed the answer as it came back; it opens it with its own key and
+reports each opening before it reads, so the asker's trail records the access
+as the reader's, under the run, naming what was opened.
 
 ## The zone runs its own ceremony
 
