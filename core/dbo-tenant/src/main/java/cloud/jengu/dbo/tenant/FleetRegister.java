@@ -43,9 +43,35 @@ public final class FleetRegister {
      * @param required whether this tenant may decline the step at all
      * @param posture  what happens to work whose processing is not yet
      *                 authorised
+     * @param authority whose process it is: the service provider's, which the
+     *                 tenant agreed to by joining and may decline unless it is
+     *                 required, or a jurisdiction's, which binds it
+     * @param by       the zone whose process it is, or null for the provider,
+     *                 of which a deployment has one
+     * @param subProcessors the partners the provider's process is carried out
+     *                 by on its behalf, named so that the tenant knows who
+     *                 handles its data; empty when the provider does it itself
      */
     public record Row(String step, String slot, String type, boolean required,
-            TenantSpec.FleetStep.Posture posture) {
+            TenantSpec.FleetStep.Posture posture, Authority authority, String by,
+            List<String> subProcessors) {
+
+        public Row {
+            if (authority == null) {
+                throw new IllegalArgumentException(step + ": a row names whose process it is");
+            }
+            if ((authority == Authority.ZONE) != (by != null)) {
+                throw new IllegalArgumentException(step + ": a zone's row names the zone, and "
+                        + "the provider's names none");
+            }
+            subProcessors = List.copyOf(subProcessors);
+        }
+
+        /** The provider's own process, carried out by nobody else. */
+        public Row(String step, String slot, String type, boolean required,
+                TenantSpec.FleetStep.Posture posture) {
+            this(step, slot, type, required, posture, Authority.PROVIDER, null, List.of());
+        }
 
         /**
          * This row as one value, which is what a tenant authorises.
@@ -63,9 +89,29 @@ public final class FleetRegister {
          * would approve its own widening.
          */
         public String digest() {
-            return digestOver(step + '\u0000' + slot + '\u0000' + type + '\u0000'
-                    + required + '\u0000' + posture);
+            // The provider's own row is written as it always was, so that what
+            // a tenant authorised before rows named their authority still
+            // matches; anything a row says beyond that is appended, and so
+            // moves the digest.
+            StringBuilder canonical = new StringBuilder(step + '\u0000' + slot + '\u0000'
+                    + type + '\u0000' + required + '\u0000' + posture);
+            if (authority == Authority.ZONE) {
+                canonical.append("\u0000zone\u0000").append(by);
+            }
+            if (!subProcessors.isEmpty()) {
+                canonical.append("\u0000sub\u0000")
+                        .append(String.join(",", new java.util.TreeSet<>(subProcessors)));
+            }
+            return digestOver(canonical.toString());
         }
+    }
+
+    /** Whose process a row is. */
+    public enum Authority {
+        /** The service provider's: what the deployment does for every tenant. */
+        PROVIDER,
+        /** A jurisdiction's: what a zone above the tenant obliges or permits. */
+        ZONE
     }
 
     private FleetRegister() {
