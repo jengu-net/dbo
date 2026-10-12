@@ -109,6 +109,13 @@ tenant's register, naming the zone, nearest first — a tenant in Estonia reads
 Estonia's and the EU's. A jurisdiction's row is required and applied, because
 membership is the agreement, so declining one is refused by name.
 
+**A row names the partners who carry it out.** The provider may hand a
+process to partners, which are tenants that say whose partner they are — the
+provider's, since a deployment has one and a regular tenant trusts nobody it
+has not been told of. The step names them with `delegatesTo`, every row it
+opens names them, and adding one moves the row, so a partner added behind it
+reads as a widened row.
+
 
 ### Declaring is not the same as being recorded
 

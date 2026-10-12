@@ -1152,6 +1152,35 @@ class AnOperatorReadsAndSteersTheFleetIT {
         }
     }
 
+    @Test
+    @Order(28)
+    @DisplayName("a tenant saying it is the partner of anybody but the deployment's provider "
+            + "is refused by name, and the node says who the provider is")
+    @Proving(DboPromises.PROC_A_PROVIDERS_PARTNERS_ARE_NAMED_ON_THE_REGISTER)
+    void aPartnerIsTheProvidersOrNobodys() throws InterruptedException {
+        String stray = NAMES.tenant("stray-partner");
+        dbo.declare(stray, """
+                {"code":"%s","face":"r5","partnerOf":"%s",
+                 "types":[
+                  {"name":"Basic","identity":"internal","handling":"operational"}]}"""
+                .formatted(stray, HOSPITAL));
+        try {
+            String why = "";
+            long giveUp = System.nanoTime() + Duration.ofMinutes(3).toNanos();
+            while (!why.contains("partner") && System.nanoTime() < giveUp) {
+                Thread.sleep(1000);
+                why = String.valueOf(rowFor(stray).get("why"));
+            }
+            Proves.that(DboPromises.PROC_A_PROVIDERS_PARTNERS_ARE_NAMED_ON_THE_REGISTER,
+                    why.contains(stray) && why.contains(HOSPITAL) && why.contains("mom")
+                            && !dbo.serving().contains(stray),
+                    "a tenant claiming a partnership the deployment does not have was not "
+                            + "refused by name, or was served anyway: " + why);
+        } finally {
+            dbo.retract(stray);
+        }
+    }
+
     /** The node's row for one tenant, read as a record. */
     @SuppressWarnings("unchecked")
     private Map<String, Object> rowFor(String code) {

@@ -2078,6 +2078,14 @@ public enum DboPromises implements Promise {
             + "zone above it permits, naming the zone, nearest first. A jurisdiction's row "
             + "is required and applied — membership is the agreement — so declining one is "
             + "refused by name, naming the zone that declares it."),
+    PROC_A_PROVIDERS_PARTNERS_ARE_NAMED_ON_THE_REGISTER(
+            "The service provider may hand a process to partners, and names them on the "
+            + "step it hands: every register row that step opens names them, so a tenant "
+            + "reads who handles its data on the provider's behalf, and a partner added "
+            + "behind a row moves what the tenant authorised. A partner is a tenant that "
+            + "says whose partner it is, and it is the provider's or nobody's — naming "
+            + "anything else is refused by name, and so is a step naming partners that "
+            + "opens nothing they could be named against."),
     ZONE_A_ZONE_IS_SERVED_TO_A_FACE_THROUGH_ONE_PROJECTION(
             "A zone's definitions and records reach the tenants of a face it was not "
             + "written in through one projection per zone per face: a tenant that takes "

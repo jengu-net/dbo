@@ -25,7 +25,7 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
         List<Dependency> dependencies, Scim scim, List<String> mandatorySteps,
         String managedBy, boolean faceRoot, List<Step> steps, boolean zoneRoot,
         boolean indexFace, List<FleetStep> fleetSteps, Set<String> declines,
-        Set<String> authorised, Set<String> exchanges) {
+        Set<String> authorised, Set<String> exchanges, String partnerOf) {
 
     /**
      * A step this tenant offers, and the documents a run of it is over.
@@ -195,7 +195,14 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
      *                  deployment's own. Several steps may name one
      */
     public record FleetStep(String code, java.util.Map<String, String> slots,
-            Set<String> opens, boolean required, Posture posture, String substrate) {
+            Set<String> opens, boolean required, Posture posture, String substrate,
+            Set<String> delegatesTo) {
+
+        /** Carried out by the provider itself, handed to no partner. */
+        public FleetStep(String code, java.util.Map<String, String> slots,
+                Set<String> opens, boolean required, Posture posture, String substrate) {
+            this(code, slots, opens, required, posture, substrate, Set.of());
+        }
 
         /**
          * What a deployment does with work it has not been approved to process.
@@ -272,6 +279,22 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
             if (posture == null) {
                 posture = Posture.PROCESSED_AND_NAMED;
             }
+            delegatesTo = Set.copyOf(delegatesTo);
+            if (!delegatesTo.isEmpty() && opens.isEmpty()) {
+                // A partner is named so that a tenant knows who handles its
+                // data, on the register row for what is opened. A step that
+                // opens nothing has no row to name it on.
+                throw new IllegalArgumentException(code + ": hands its work to "
+                        + new java.util.TreeSet<>(delegatesTo) + " and opens nothing, so no "
+                        + "tenant's register could say so. A partner is named on a step that "
+                        + "opens what it handles");
+            }
+            for (String partner : delegatesTo) {
+                if (!isCode(partner)) {
+                    throw new IllegalArgumentException(code + ": a partner is a tenant, and '"
+                            + partner + "' is not a tenant code");
+                }
+            }
         }
 
         /**
@@ -330,6 +353,22 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
     }
 
     /**
+     * Without a provider to be a partner of: what every tenant was while a
+     * deployment carried out all of its processes itself.
+     */
+    public TenantSpec(String code, String face, List<FhirTypeConfig> types,
+            boolean pdi, cloud.jengu.dbo.policy.TenantPolicies policies,
+            String zone, String broker, List<String> acceptedBrokers,
+            List<Dependency> dependencies, Scim scim, List<String> mandatorySteps,
+            String managedBy, boolean faceRoot, List<Step> steps, boolean zoneRoot,
+            boolean indexFace, List<FleetStep> fleetSteps, Set<String> declines,
+            Set<String> authorised, Set<String> exchanges) {
+        this(code, face, types, pdi, policies, zone, broker, acceptedBrokers,
+                dependencies, scim, mandatorySteps, managedBy, faceRoot, steps, zoneRoot,
+                indexFace, fleetSteps, declines, authorised, exchanges, null);
+    }
+
+    /**
      * Without exchanges: what every zone was while a jurisdiction only said
      * what was true in it, and nothing about what its members may do for each
      * other.
@@ -343,7 +382,7 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
             Set<String> authorised) {
         this(code, face, types, pdi, policies, zone, broker, acceptedBrokers,
                 dependencies, scim, mandatorySteps, managedBy, faceRoot, steps, zoneRoot,
-                indexFace, fleetSteps, declines, authorised, Set.of());
+                indexFace, fleetSteps, declines, authorised, Set.of(), null);
     }
 
     /**
@@ -590,6 +629,10 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
                     + "zone's zone is the jurisdiction it belongs to");
         }
         exchanges = Set.copyOf(exchanges);
+        if (partnerOf != null && (partnerOf.equals(code) || !CODE.matcher(partnerOf).matches())) {
+            throw new IllegalArgumentException(code + ": is a partner of '" + partnerOf
+                    + "', and a partner is a partner of the service provider, another tenant");
+        }
         if (!exchanges.isEmpty() && !zoneRoot) {
             throw new IllegalArgumentException(code + ": declares exchanges "
                     + new java.util.TreeSet<>(exchanges) + " and is not a zone. What "
@@ -923,7 +966,8 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
                         Set.copyOf(Json.strings(one, "opens")),
                         Json.bool(one, "required"),
                         FleetStep.Posture.of(Json.strOpt(one, "posture"), stepCode),
-                        Json.strOpt(one, "substrate")));
+                        Json.strOpt(one, "substrate"),
+                        Set.copyOf(Json.strings(one, "delegatesTo"))));
             }
         }
         return new TenantSpec(code, face, types, pdi, policies,
@@ -966,7 +1010,12 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
                 // process. Permitted by declaration and never assumed: a zone
                 // that lists none permits none, and a zone below another may
                 // list only what the one above it does.
-                exchangesOf(root));
+                exchangesOf(root),
+                // A PARTNER SAYS WHOSE IT IS. The service provider hands part
+                // of its work to partners, and a tenant is one because its own
+                // file says so — the same rule as a zone — never because the
+                // provider named it.
+                Json.strOpt(root, "partnerOf"));
     }
 
     private static Set<String> exchangesOf(Object root) {

@@ -2331,6 +2331,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 aStepCodeBelongsToOneLevel(spec);
                 aRequiredStepCannotBeDeclined(spec);
                 tree.refuse(spec);
+                aPartnerIsTheProvidersPartner(spec);
                 // It parsed and it is being served, so a later refusal of the
                 // same file is news rather than a repeat.
                 refusals.applied(named);
@@ -3015,6 +3016,26 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 + "a setting. It is declared required in the management tenant '"
                 + managementCode + "', which is where the set of them can be read before "
                 + "anybody joins.");
+    }
+
+    /**
+     * A partner is the service provider's, and a deployment has one provider.
+     *
+     * <p>Every partner of this deployment is carried work through its
+     * provider, and a regular tenant trusts the provider and nobody it has
+     * not been told of — so a tenant naming anything else as whose partner it
+     * is names a relation this deployment does not have.
+     */
+    private void aPartnerIsTheProvidersPartner(TenantSpec spec) {
+        if (spec.partnerOf() == null || spec.partnerOf().equals(managementCode)) {
+            return;
+        }
+        throw new IllegalArgumentException("tenant '" + spec.code() + "' says it is a partner "
+                + "of '" + spec.partnerOf() + "', and "
+                + (managementCode == null ? "this deployment has no service provider"
+                        : "this deployment's service provider is '" + managementCode + "'")
+                + ". A partner is carried work by the provider, so it is the provider's "
+                + "partner or nobody's");
     }
 
     /** The declarations that parse; one that does not is refused where it is begun. */

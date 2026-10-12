@@ -82,6 +82,54 @@ class WhatARegisterSaysTest {
     }
 
     @Test
+    @DisplayName("a step the provider hands to partners names them on every row it opens, "
+            + "and one that opens nothing may not name any")
+    @Proving(DboPromises.PROC_A_PROVIDERS_PARTNERS_ARE_NAMED_ON_THE_REGISTER)
+    void aProvidersPartnersAreNamedOnTheRows() {
+        String provider = """
+                {"code":"mom","face":"r5",
+                 "types":[{"name":"Organization","identity":"identifier",
+                           "systems":["urn:orgs"],"handling":"operational"}],
+                 "fleetSteps":[{"code":"fleet.directory.check",
+                   "slots":{"org":"Reference(Organization)","note":"Basic"},
+                   "opens":["org","note"]%s}]}""";
+        List<FleetRegister.Row> itself = FleetRegister.of(
+                TenantSpec.parse(provider.formatted("")).fleetSteps(), Set.of());
+        List<FleetRegister.Row> handed = FleetRegister.of(TenantSpec.parse(provider.formatted(
+                ",\"delegatesTo\":[\"support-desk\"]")).fleetSteps(), Set.of());
+
+        assertEquals(2, handed.size());
+        assertTrue(handed.stream().allMatch(row -> row.subProcessors()
+                        .equals(List.of("support-desk"))),
+                "a row the partner handles does not name it: " + handed);
+        assertFalse(itself.get(0).digest().equals(handed.get(0).digest()),
+                "a partner added behind a row left what the tenant authorised standing");
+
+        assertTrue(assertThrowsIllegal(() -> TenantSpec.parse("""
+                {"code":"mom","face":"r5",
+                 "types":[{"name":"Organization","identity":"internal",
+                           "handling":"operational"}],
+                 "fleetSteps":[{"code":"fleet.directory.route",
+                   "slots":{"org":"Reference(Organization)"},
+                   "delegatesTo":["support-desk"]}]}""")),
+                "a step that opens nothing named a partner no register could show");
+        assertTrue(assertThrowsIllegal(() -> TenantSpec.parse("""
+                {"code":"support-desk","face":"r5","partnerOf":"support-desk",
+                 "types":[{"name":"Basic","identity":"internal",
+                           "handling":"operational"}]}""")),
+                "a tenant was taken as its own partner");
+    }
+
+    private static boolean assertThrowsIllegal(Runnable parsing) {
+        try {
+            parsing.run();
+            return false;
+        } catch (IllegalArgumentException refused) {
+            return true;
+        }
+    }
+
+    @Test
     @DisplayName("moving a row's posture changes the register too, so a deployment cannot "
             + "approve its own widening")
     @Proving(DboPromises.PROC_A_TENANT_AUTHORISES_A_REGISTER_AND_SEES_IT_CHANGE)

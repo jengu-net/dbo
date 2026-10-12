@@ -177,6 +177,12 @@ public record SpecChange(Kind kind, List<String> fields) {
             // so keeps the members it has until each of them comes up again.
             hot.add("zoneRoot");
         }
+        if (!Objects.equals(serving.partnerOf(), declared.partnerOf())) {
+            // Hot: being a partner changes what this tenant may be handed by
+            // the provider, which is read where work is handed, and nothing
+            // this tenant serves itself.
+            hot.add("partnerOf");
+        }
         if (!Objects.equals(serving.exchanges(), declared.exchanges())) {
             // Hot, and like zoneRoot its effect is on others: what members may
             // do for each other, read wherever a route or a register is worked
