@@ -5537,6 +5537,7 @@ cloud.jengu.dbo.work.TrackableModel                                    registrat
 cloud.jengu.dbo.work.Trackables                                        behind(String):List
 cloud.jengu.dbo.work.Trackables                                        byId(String):Optional
 cloud.jengu.dbo.work.Trackables                                        class
+cloud.jengu.dbo.work.Trackables                                        isBehind(String,String):boolean
 cloud.jengu.dbo.work.Trackables                                        new(cloud.jengu.dbo.core.api.ObjectStore)
 cloud.jengu.dbo.work.Trackables                                        routes(String,List):int
 cloud.jengu.dbo.work.Work                                              correlation():String

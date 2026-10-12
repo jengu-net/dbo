@@ -113,6 +113,15 @@ class WorkLeavesTheClinicAndComesBackIT {
             cloud.jengu.dbo.core.api.seal.KeyWrap.newParticipantKeyPair();
     private final java.security.KeyPair routeeSigning =
             cloud.jengu.dbo.core.api.seal.SigningKey.newKeyPair();
+    /** Behind the keyed routee, which routes it in turn: a bench behind a desk. */
+    private static final String DEEP_ROUTEE = NAMES.value("routee-7-bench");
+    private final java.security.KeyPair deepSealing =
+            cloud.jengu.dbo.core.api.seal.KeyWrap.newParticipantKeyPair();
+    /** Everything the router routes, as each of its reports says it whole. */
+    private static final List<cloud.jengu.dbo.work.Trackable> ROUTED = List.of(
+            cloud.jengu.dbo.work.Trackable.routed(KEYED_ROUTEE, ROUTER),
+            cloud.jengu.dbo.work.Trackable.routed(KEYLESS_ROUTEE, ROUTER),
+            cloud.jengu.dbo.work.Trackable.routed(DEEP_ROUTEE, KEYED_ROUTEE));
     private HttpLane routerLane;
     private static final String ASSAYER = NAMES.value("assayer");
     private static final String COURIER = NAMES.value("courier");
@@ -216,12 +225,14 @@ class WorkLeavesTheClinicAndComesBackIT {
                 cloud.jengu.dbo.core.api.seal.ParticipantKey.of(routeeSealing.getPublic()),
                 cloud.jengu.dbo.core.api.seal.SigningKey.of(routeeSigning.getPublic()));
         authority.ensureClient(KEYLESS_ROUTEE, KEYLESS_ROUTEE + "-secret", List.of());
+        authority.ensureClient(DEEP_ROUTEE, DEEP_ROUTEE + "-secret", List.of(),
+                cloud.jengu.dbo.core.api.seal.ParticipantKey.of(deepSealing.getPublic()),
+                cloud.jengu.dbo.core.api.seal.SigningKey.of(
+                        cloud.jengu.dbo.core.api.seal.SigningKey.newKeyPair().getPublic()));
         routerLane = HttpLane.to(URI.create(dbo.at(HOSPITAL) + "/work"),
                 () -> participantToken(ROUTER), HOSPITAL, ROUTER, executor(ROUTER));
         routerLane.introduce(ROUTED_STEP);
-        routerLane.routes(List.of(
-                cloud.jengu.dbo.work.Trackable.routed(KEYED_ROUTEE, ROUTER),
-                cloud.jengu.dbo.work.Trackable.routed(KEYLESS_ROUTEE, ROUTER)));
+        routerLane.routes(ROUTED);
 
         var written = dbo.write(HOSPITAL, "Observation", """
                 {"resourceType":"Observation","status":"registered",
@@ -1118,6 +1129,30 @@ class WorkLeavesTheClinicAndComesBackIT {
                         + itself.getMessage() + " / " + forged.getMessage());
         assertTrue(chainOf(held).stream().noneMatch(e -> KEYLESS_ROUTEE.equals(e.get("to"))),
                 "a refused seal handed something on");
+    }
+
+    @Test
+    @Order(49)
+    @DisplayName("a router seals to a routee behind its own routee as it does to one directly "
+            + "behind it, and neither the router nor the routee between them can open it")
+    @Proving({DboPromises.PROC_A_TRACKABLE_MAY_ROUTE_OTHERS,
+            DboPromises.PROC_THE_ROUTER_HOLDS_THE_CLAIM})
+    void aRouteeMaySitBehindAnother() throws Exception {
+        String marker = NAMES.value("bench-specimen");
+        Run held = routerLane.claim(routedRun("bench", marker), Duration.ofMinutes(5))
+                .orElseThrow();
+        cloud.jengu.dbo.work.SealedWork work = routerLane.sealed(held, List.of(DEEP_ROUTEE));
+
+        StoredObject opened = work.payload().get(0).open(DEEP_ROUTEE, deepSealing.getPrivate());
+        Proves.that(DboPromises.PROC_A_TRACKABLE_MAY_ROUTE_OTHERS,
+                work.manifest().recipients().equals(List.of(DEEP_ROUTEE))
+                        && new String(opened.payload(), java.nio.charset.StandardCharsets.UTF_8)
+                                .contains(marker),
+                "the work was not sealed to the routee two routers deep: "
+                        + work.manifest().recipients());
+        assertThrows(Exception.class, () -> work.payload().get(0).open(KEYED_ROUTEE,
+                        routeeSealing.getPrivate()),
+                "the routee in front of the bench opened what was sealed past it");
     }
 
     @Test
@@ -2070,9 +2105,7 @@ class WorkLeavesTheClinicAndComesBackIT {
             assertTrue(chainOf(held).stream().noneMatch(e -> KEYED_ROUTEE.equals(e.get("to"))),
                     "a refused seal handed the work on");
         } finally {
-            routerLane.routes(List.of(
-                    cloud.jengu.dbo.work.Trackable.routed(KEYED_ROUTEE, ROUTER),
-                    cloud.jengu.dbo.work.Trackable.routed(KEYLESS_ROUTEE, ROUTER)));
+            routerLane.routes(ROUTED);
         }
         Proves.that(DboPromises.PROC_A_DROPPED_ROUTEE_IS_NOT_SEALED_TO,
                 routerLane.sealed(held, List.of(KEYED_ROUTEE)).manifest().recipients()

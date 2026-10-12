@@ -1285,10 +1285,9 @@ public interface Lane {
                 return link.link();
             }
 
-            /** Whether this participant has declared the named thing directly behind it. */
+            /** Whether this participant has declared the named thing behind it, at any depth. */
             private boolean routee(String name) {
-                return trackables != null && trackables.behind(participant).stream()
-                        .anyMatch(behind -> name.equals(behind.id()));
+                return trackables != null && trackables.isBehind(participant, name);
             }
 
             /** The chain's head as the trail holds it; the root when the trail holds nothing. */
