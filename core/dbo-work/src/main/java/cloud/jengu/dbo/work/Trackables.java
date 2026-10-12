@@ -70,6 +70,26 @@ public final class Trackables {
         return held(id).map(Trackables::of);
     }
 
+    /**
+     * Whether a routee sits behind this router, however many routers stand
+     * between them.
+     *
+     * <p>Walked up from the routee, one edge at a time, because each routee
+     * is held once and names the one in front of it: the answer costs the
+     * depth, never the size of what the router reports.
+     */
+    public boolean isBehind(String router, String routee) {
+        Set<String> seen = new HashSet<>();
+        Optional<Trackable> at = byId(routee);
+        while (at.isPresent() && at.get().routedBy() != null && seen.add(at.get().id())) {
+            if (router.equals(at.get().routedBy())) {
+                return true;
+            }
+            at = byId(at.get().routedBy());
+        }
+        return false;
+    }
+
     /** What sits directly behind one participant. */
     public List<Trackable> behind(String router) {
         return store.select(Criteria.of(TrackableModel.TYPE)
