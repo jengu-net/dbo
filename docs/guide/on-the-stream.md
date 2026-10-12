@@ -32,6 +32,12 @@ two private keys and the tenant holds their public halves:
 The private halves never leave the worker's side. The second file is the whole
 of the enrolment, and it is safe to send.
 
+A worker can instead name a directory, `dbo.worker.substrate.keys-dir`, and
+its identity is made there the first time and kept. The directory is in
+[a documented form](../arc42-008-crosscutting/processes-and-work/participant-keys.md),
+so whatever installs the worker can make the keys with OpenSSL first, or read
+the public halves out of it to enrol.
+
 ## The tenant enrols the public halves
 
 Issuing a credential is the tenant's to do. The clinic's application asks each

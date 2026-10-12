@@ -68,6 +68,12 @@ public final class Activator implements BundleActivator {
     static final String SEALING_KEY = "dbo.lane.sealing.key";
     /** The private half of the key the participant signs with, base64 PKCS#8. */
     static final String SIGNING_KEY = "dbo.lane.signing.key";
+    /**
+     * Where the participant's identity is kept, in the documented directory
+     * form — adopted if a process beside the store made it first, made there
+     * if nothing has. Instead of the two keys above, never beside them.
+     */
+    static final String KEYS_DIR = "dbo.lane.keys.dir";
     /** Which behaviour this host's steps are, recorded on every run it closes. */
     static final String EXECUTOR_VERSION = "dbo.lane.executor.version";
     /** Whose code that is — a provider can be withdrawn, so a run has to name it. */
@@ -90,8 +96,25 @@ public final class Activator implements BundleActivator {
                 executor == null || executor.isBlank() ? participant : executor,
                 required(context, EXECUTOR_VERSION),
                 required(context, EXECUTOR_PROVIDER), scope(context.getProperty(SCOPE)));
-        PrivateKey sealing = privateKey("X25519", required(context, SEALING_KEY), SEALING_KEY);
-        PrivateKey signing = privateKey("Ed25519", required(context, SIGNING_KEY), SIGNING_KEY);
+        PrivateKey sealing;
+        PrivateKey signing;
+        String keysDir = context.getProperty(KEYS_DIR);
+        if (keysDir != null && !keysDir.isBlank()) {
+            if (context.getProperty(SEALING_KEY) != null
+                    || context.getProperty(SIGNING_KEY) != null) {
+                throw new IllegalStateException("'" + KEYS_DIR + "' and '" + SEALING_KEY
+                        + "'/'" + SIGNING_KEY + "' are two identities for one participant: "
+                        + "name one");
+            }
+            cloud.jengu.dbo.core.api.seal.ParticipantKeys keys =
+                    cloud.jengu.dbo.core.api.seal.ParticipantKeys.adoptOrMake(
+                            java.nio.file.Path.of(keysDir));
+            sealing = keys.sealing();
+            signing = keys.signing();
+        } else {
+            sealing = privateKey("X25519", required(context, SEALING_KEY), SEALING_KEY);
+            signing = privateKey("Ed25519", required(context, SIGNING_KEY), SIGNING_KEY);
+        }
         // The deployment's own substrate, under the name the serving side
         // already reads it by: there is one of these per deployment, and a
         // host pointed at a second one would be reaching a different store.

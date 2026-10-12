@@ -746,6 +746,21 @@ public enum DboPromises implements Promise {
             + "comes back sealed to the asker alone, because the plane it may cross holds "
             + "nothing readable and reassembled identity is the last thing that should be "
             + "the exception."),
+    PROC_A_PARTICIPANTS_KEYS_ARE_KEPT_IN_A_DOCUMENTED_FORM("A participant's identity is "
+            + "kept in a directory in a documented, versioned form — its X25519 and Ed25519 "
+            + "private keys as PKCS#8 PEM, and a FORMAT line naming the version — which the "
+            + "store adopts where it finds one whole and makes where it finds none. A "
+            + "directory holding part of one, or one in a form the store does not know, is "
+            + "refused by name and never made over."),
+    PROC_A_PARTICIPANTS_KEYS_ARE_READ_AS_STANDARD_TOOLS_MAKE_THEM("What the store reads and "
+            + "renders of a participant's keys is what standard tools make: keys OpenSSL "
+            + "writes are adopted, a public key's JWK and thumbprint and a signature are what "
+            + "the documented OpenSSL commands compute, and a JWK reads the same whatever the "
+            + "order and spacing of its members."),
+    PROC_A_PARTICIPANT_SIGNS_BEFORE_IT_IS_ADMITTED("A statement a participant signs with its "
+            + "own key, in the documented form, is verified against the key its request to be "
+            + "admitted carries, before it is admitted: it verifies against that key and no "
+            + "other, not once altered, and nothing else the participant signs passes as one."),
     PROC_A_PARTICIPANT_OFFERS_ITS_KEY_AT_ENROLMENT(
             "A participant generates its keypair before it is enrolled and offers the "
             + "public half as part of enrolling; the private half never crosses. Payload "
