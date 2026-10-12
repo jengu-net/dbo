@@ -74,6 +74,19 @@ final class ElementSearch {
                 case "_tag:not" -> token(criteria, "_tag", value, true);
                 case "_profile" -> anyValue(criteria, "_profile", commaValues(value).stream()
                         .map(EnvelopeValue::of).toList());
+                case "_source" -> source(criteria, typeName, value);
+                case "_source:missing" -> {
+                    // Missing is the tenant's own: a record it wrote has no
+                    // upstream, and one it received carries where from.
+                    if ("true".equals(value)) {
+                        criteria.ownOnly();
+                    } else if ("false".equals(value)) {
+                        criteria.fromUpstream(null);
+                    } else {
+                        throw new UnknownSearchParameterException(typeName,
+                                "_source:missing=" + value + " (true or false)");
+                    }
+                }
                 case "_shape-below" -> shapeBound(criteria, typeName, value, true);
                 case "_shape-at-least" -> shapeBound(criteria, typeName, value, false);
                 case "_offset" -> throw new UnknownSearchParameterException(typeName,
@@ -82,6 +95,23 @@ final class ElementSearch {
             }
         }
         return new Compiled(criteria, countOnly, elements, includes, byId);
+    }
+
+    /**
+     * {@code _source}: the copies one upstream streamed here, named as a
+     * record's {@code meta.source} names it — {@code urn:dbo:upstream:<name>}.
+     * A source no record here could carry is refused rather than answered
+     * with nothing, because an empty answer reads as "there are none".
+     */
+    private static void source(Criteria criteria, String typeName, String value) {
+        String prefix = "urn:dbo:upstream:";
+        if (!value.startsWith(prefix) || value.length() == prefix.length()
+                || value.contains(",")) {
+            throw new UnknownSearchParameterException(typeName, "_source=" + value
+                    + " (a source here is one upstream, " + prefix + "<dependency>; "
+                    + "_source:missing=true asks for this tenant's own)");
+        }
+        criteria.fromUpstream(value.substring(prefix.length()));
     }
 
     /**
