@@ -2098,6 +2098,14 @@ public enum DboPromises implements Promise {
             + "is authored and the refusal says why; a request saying where the work came "
             + "from or which run it answers is refused, because those are the store's to "
             + "write, and a tenant's own step does not cross."),
+    ZONE_WORK_IS_CARRIED_THROUGH_THE_ZONES_THAT_KEEP_NO_COPY(
+            "Work asked for across is carried up to the lowest zone the two tenants share "
+            + "and down to the one whose data it is, where the run that does it is authored "
+            + "over the same inputs, naming the run it answers — once, however often it is "
+            + "carried. The asker's trail records the hand-over to the carrier as it records "
+            + "any participant taking work, and every zone on the way records that the "
+            + "crossing passed, from where and to where, on a chain of its own rooted in the "
+            + "crossing, and keeps no run of it."),
     ZONE_A_ZONE_IS_SERVED_TO_A_FACE_THROUGH_ONE_PROJECTION(
             "A zone's definitions and records reach the tenants of a face it was not "
             + "written in through one projection per zone per face: a tenant that takes "

@@ -714,7 +714,7 @@ final class StepSurface implements HttpHandler {
     }
 
     /** What the engine is handed: the slots, with the face type as the shape. */
-    private StepDeclaration declaration(String code, Map<String, String> slots) {
+    static StepDeclaration declaration(String code, Map<String, String> slots) {
         StepDeclaration declaration = StepDeclaration.of(code, "1", "r5");
         for (Map.Entry<String, String> slot : slots.entrySet()) {
             // THE TYPE. What the engine holds per slot is the shape a payload

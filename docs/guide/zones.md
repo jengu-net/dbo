@@ -53,7 +53,15 @@ deployment's steps are: `rl` declares `care.records.request`. A member asks it
 naming the tenant whose data it is, `"crossing": {"to": "hogwarts"}`, and the
 run it asks for records where the work goes. Tenants that share no zone, or a
 process a zone on the way does not permit, are refused at the asker's door by
-name. Carrying the work to the other tenant is not built yet.
+name.
+
+**What was asked is carried, and the zones keep no copy.** The deployment
+carries the run asked for up to the lowest zone the two tenants share and down
+to the one whose data it is: it takes the asker's run as a participant would,
+so the asker's trail records the hand-over, and authors a run at the owner over
+the same inputs, naming the run it answers. Every zone on the way records that
+the crossing passed, from where and to where, and keeps no run of it. Answering
+is not built yet.
 
 ## The zone runs its own ceremony
 

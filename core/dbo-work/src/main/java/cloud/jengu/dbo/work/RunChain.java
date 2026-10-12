@@ -59,6 +59,16 @@ public final class RunChain {
         return digest("dbo:task:" + run.id());
     }
 
+    /**
+     * The root of a crossing's segment in a zone it passes through: the
+     * crossing itself, which the store minted at the asker's door. A zone
+     * that only carries work holds no run of it, and its entries chain from
+     * this instead.
+     */
+    public static String crossingRoot(String crossing) {
+        return digest("dbo:crossing:" + crossing);
+    }
+
     /** A hop: who the work was handed to, committing to what came before. */
     public static String travelLink(String previous, String runKey, String to) {
         return digest(previous + "\ntravel\n" + runKey + "\n" + to);
@@ -78,7 +88,11 @@ public final class RunChain {
      * verdict names what is missing.
      */
     public static Verdict verify(Run run, List<Link> links) {
-        String root = root(run);
+        return verify(root(run), links);
+    }
+
+    /** The same, from any root: a run's, or a crossing's segment in a zone. */
+    public static Verdict verify(String root, List<Link> links) {
         if (links.isEmpty()) {
             return new Verdict(root, null, false, 0);
         }

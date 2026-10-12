@@ -1208,6 +1208,58 @@ class WorkLeavesTheClinicAndComesBackIT {
                         + own.statusCode() + " " + own.body());
     }
 
+    @Test
+    @Order(52)
+    @DisplayName("what the clinic asked for is carried through rl to the hospital, which gets a "
+            + "run of its own answering the clinic's, while rl records only that it passed")
+    @Proving(DboPromises.ZONE_WORK_IS_CARRIED_THROUGH_THE_ZONES_THAT_KEEP_NO_COPY)
+    void whatTheClinicAskedIsCarriedToTheHospital() throws InterruptedException {
+        HttpResponse<String> asked = askAcross(HOSPITAL);
+        assertEquals(201, asked.statusCode(), asked.body());
+        String key = dbo.says(asked).one("key").orElseThrow();
+        Runs clinicRuns = new Runs(tenants.store(CLINIC).orElseThrow());
+        String crossing = clinicRuns.byKey(key).orElseThrow().crossing().id();
+
+        Runs hospitalRuns = new Runs(tenants.store(HOSPITAL).orElseThrow());
+        java.util.Optional<Run> answering = java.util.Optional.empty();
+        long giveUp = System.nanoTime() + Duration.ofMinutes(2).toNanos();
+        while (answering.isEmpty() && System.nanoTime() < giveUp) {
+            Thread.sleep(500);
+            answering = hospitalRuns.byKey(REQUEST + "/crossing-" + crossing);
+        }
+        Proves.that(DboPromises.ZONE_WORK_IS_CARRIED_THROUGH_THE_ZONES_THAT_KEEP_NO_COPY,
+                answering.isPresent() && key.equals(answering.get().crossing().askerRun())
+                        && CLINIC.equals(answering.get().crossing().from())
+                        && ASKER.equals(answering.get().crossing().reader())
+                        && answering.get().inputs().get("query").one()
+                                .contains(NAMES.value("asked-for")),
+                "the hospital got no run answering the clinic's, over what the clinic asked: "
+                        + answering);
+
+        Run held = clinicRuns.byKey(key).orElseThrow();
+        Proves.that(DboPromises.ZONE_WORK_IS_CARRIED_THROUGH_THE_ZONES_THAT_KEEP_NO_COPY,
+                held.assignment() != null && held.assignment().executor() != null
+                        && "dbo-crossings".equals(held.assignment().executor().name()),
+                "the clinic's run is not held by what carries it: " + held.assignment());
+
+        cloud.jengu.dbo.core.api.ObjectStore zone = tenants.store("rl").orElseThrow();
+        List<StoredObject> passed = zone.select(cloud.jengu.dbo.core.api.Criteria
+                .of("AuditEntry").eq("run",
+                        cloud.jengu.dbo.core.api.EnvelopeValue.of("crossing:" + crossing)));
+        String said = passed.stream().map(entry -> new String(entry.payload(),
+                java.nio.charset.StandardCharsets.UTF_8)).toList().toString();
+        Proves.that(DboPromises.ZONE_WORK_IS_CARRIED_THROUGH_THE_ZONES_THAT_KEEP_NO_COPY,
+                passed.size() == 1 && said.contains("\"from\":\"" + CLINIC + "\"")
+                        && said.contains("\"to\":\"" + HOSPITAL + "\"")
+                        && !said.contains(NAMES.value("asked-for")),
+                "rl did not record that the crossing passed, from where to where, or recorded "
+                        + "what was asked: " + said);
+        Proves.that(DboPromises.ZONE_WORK_IS_CARRIED_THROUGH_THE_ZONES_THAT_KEEP_NO_COPY,
+                new Runs(zone).byKey(REQUEST + "/crossing-" + crossing).isEmpty()
+                        && new Runs(zone).byKey(key).isEmpty(),
+                "rl keeps a run of work it only carried");
+    }
+
     private HttpResponse<String> askAcross(String to) {
         return askAt(REQUEST, "{\"inputs\":{\"query\":" + query() + "},\"crossing\":"
                 + "{\"to\":\"" + to + "\"}}");
