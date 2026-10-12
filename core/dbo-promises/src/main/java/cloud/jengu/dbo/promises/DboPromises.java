@@ -2534,6 +2534,14 @@ public enum DboPromises implements Promise {
     SYNC_PROVENANCE_COPIES(
             "Streamed copies are read-only and provenance-tagged with source tenant and "
             + "version; updates and retirements propagate through the same stream."),
+    SYNC_A_PLACE_HANDS_ITS_WORK_TO_ITS_TENANT(
+            "A place's runs, and what each produced, reach its tenant by the node itself: up "
+            + "the lane the place already holds, in its sync round, with no host and no "
+            + "credential beyond the place's own, filed under that credential and never "
+            + "under a name the batch carries. The runs are mirrored beside the tenant's own "
+            + "and what they produced is read at the tenant with the place as its source. "
+            + "What the place wrote outside any run stays on the place. While the link is "
+            + "down the work waits on the place; once it is back all of it goes, each once."),
     SYNC_LOCAL_SHADOWING(
             "A tenant's own object with the same base identity overrides the streamed "
             + "copy — version-neutrally, across FHIR versions and business versions; "

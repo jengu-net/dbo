@@ -10,6 +10,15 @@ import cloud.jengu.dbo.runner.http.HttpLane;
 import cloud.jengu.dbo.runner.transport.Place;
 import cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner;
 import cloud.jengu.dbo.tenant.TenantRuntimeManager;
+import cloud.jengu.dbo.core.process.StepDeclaration;
+import cloud.jengu.dbo.runner.Lane;
+import cloud.jengu.dbo.runner.Outcome;
+import cloud.jengu.dbo.sync.Lanes;
+import cloud.jengu.dbo.work.Declarations;
+import cloud.jengu.dbo.work.Run;
+import cloud.jengu.dbo.work.RunKind;
+import cloud.jengu.dbo.work.RunSlot;
+import cloud.jengu.dbo.work.Runs;
 import cloud.jengu.dbo.work.Executor;
 import cloud.jengu.dbo.work.Scope;
 import org.junit.jupiter.api.AfterAll;
@@ -63,6 +72,8 @@ class ASecondPlaceComesUpFromItsOriginIT {
              "dependencies":[{"name":"%s","face":true,
                               "types":["StructureDefinition","SearchParameter","ValueSet","CodeSystem"]},
                              {"name":"%s","types":["Organization","CodeSystem"]}],
+             "steps":[{"code":"%s","slots":{"specimen":"Observation"},
+                       "writes":["Observation"]}],
              "types":[
               {"name":"StructureDefinition","identity":"canonical","handling":"replicated"},
               {"name":"SearchParameter","identity":"canonical","handling":"replicated"},
@@ -71,7 +82,10 @@ class ASecondPlaceComesUpFromItsOriginIT {
               {"name":"Organization","identity":"internal","handling":"replicated"},
               {"name":"Observation","identity":"internal","handling":"operational"},
               {"name":"Patient","identity":"internal","handling":"operational"}]}"""
-            .formatted(CLINIC, ROOT, COUNTY);
+            .formatted(CLINIC, ROOT, COUNTY, "jaam.lab.record");
+
+    /** The step the site performs on its own runners: a result captured from an instrument. */
+    private static final String RECORD = "jaam.lab.record";
 
     /** The face root, declared alike on both nodes: the site reads its face from its own. */
     private static final String ROOT_DECLARATION = """
@@ -331,6 +345,50 @@ class ASecondPlaceComesUpFromItsOriginIT {
 
     @Test
     @Order(8)
+    @DisplayName("what a run on the site wrote is held by its tenant within a sync round, filed "
+            + "under the site, while what the site wrote outside any run stays on the site")
+    @Proving(DboPromises.SYNC_A_PLACE_HANDS_ITS_WORK_TO_ITS_TENANT)
+    void whatASitesRunWroteReachesItsTenant() throws Exception {
+        performedOnTheSite("hba1c-on-the-site");
+        assertEquals(201, post(site, CLINIC, "Observation", """
+                {"resourceType":"Observation","status":"final","code":{"text":"kept-on-the-site"}}"""));
+        site.syncRound();
+
+        String atTheTenant = read(cloud, CLINIC, "Observation");
+        assertTrue(atTheTenant.contains("hba1c-on-the-site")
+                        && atTheTenant.contains("urn:dbo:upstream:site"),
+                "what the site's run wrote is not at the tenant, filed under the site: "
+                        + atTheTenant);
+        assertTrue(!atTheTenant.contains("kept-on-the-site"),
+                "what the site wrote outside any run reached the tenant");
+        assertTrue(new Runs(cloud.runtime(CLINIC).orElseThrow().engine())
+                        .byKey("site" + Lanes.MIRROR_SEPARATOR + RECORD
+                                + "/hba1c-on-the-site").isPresent(),
+                "the site's run is not mirrored beside the tenant's own");
+    }
+
+    @Test
+    @Order(9)
+    @DisplayName("what a site's runs wrote while it was cut off reaches its tenant once it is "
+            + "back, and once")
+    @Proving(DboPromises.SYNC_A_PLACE_HANDS_ITS_WORK_TO_ITS_TENANT)
+    void whatASiteDidCutOffArrivesOnceItIsBack() throws Exception {
+        site.readsItsOriginThrough(CLINIC, null);
+        performedOnTheSite("glucose-cut-off");
+        site.syncRound();
+        assertTrue(!read(cloud, CLINIC, "Observation").contains("glucose-cut-off"),
+                "the site handed its work while it was cut off");
+
+        site.readsItsOriginThrough(CLINIC, connected());
+        site.syncRound();
+        site.syncRound();
+        assertEquals(1, times("glucose-cut-off", read(cloud, CLINIC, "Observation")),
+                "what the site did while cut off did not arrive once it was back, or arrived "
+                        + "twice");
+    }
+
+    @Test
+    @Order(10)
     @DisplayName("a site restarted with its origin away comes up from what it holds")
     @Proving(DboPromises.SYNC_A_PLACE_SERVES_WHAT_IT_HOLDS_WHILE_ITS_ORIGIN_IS_AWAY)
     void aPlaceRestartedOfflineServesWhatItHolds() throws Exception {
@@ -348,7 +406,7 @@ class ASecondPlaceComesUpFromItsOriginIT {
     }
 
     @Test
-    @Order(9)
+    @Order(11)
     @DisplayName("what the clinic's stream applies from the county is in the clinic's trail "
             + "under the stream's run")
     @Proving(DboPromises.PROC_MACHINERY_WRITES_UNDER_ITS_RUN)
@@ -437,7 +495,39 @@ class ASecondPlaceComesUpFromItsOriginIT {
     private static TenantRuntimeManager.OriginFeeds connected() {
         return new TenantRuntimeManager.OriginFeeds(lane.placeFeed(Place.RECORDS),
                 lane.placeFeed(Place.DEFINITIONS), lane.definitionsWithoutTheFace(),
-                lane.origin().trail());
+                lane.origin().trail(), lane.origin().work());
+    }
+
+    /**
+     * A run of the site's own step, performed on the site: it takes a
+     * specimen and its result writes the observation it found.
+     */
+    private static void performedOnTheSite(String found) {
+        StepDeclaration declared =
+                StepDeclaration.of(RECORD, "1", "r4")
+                        .taking("specimen", "Observation");
+        Runs runs = new Runs(
+                site.runtime(CLINIC).orElseThrow().engine());
+        Run run = runs.filling(declared,
+                RunKind.PIPELINE, found,
+                java.util.Map.of("specimen", RunSlot.given(
+                        "{\"resourceType\":\"Observation\",\"status\":\"registered\","
+                                + "\"code\":{\"text\":\"specimen\"}}")));
+        Executor analyser = new Executor("analyser", "1", "example.site", Scope.BASELINE);
+        Lane analysing =
+                site.fleetLane(CLINIC, RECORD, analyser).orElseThrow();
+        analysing.declare(new Declarations.Declared("jaam.lab", "record",
+                analyser.name(), analyser.version(), analyser.provider(), analyser.scope(),
+                analyser.name()));
+        Run held = analysing.claim(run, java.time.Duration.ofMinutes(5))
+                .orElseThrow();
+        analysing.committed(held, null, List.of(Outcome.Write.create("""
+                {"resourceType":"Observation","status":"final","code":{"text":"%s"}}"""
+                .formatted(found))));
+    }
+
+    private static int times(String found, String in) {
+        return in.split(java.util.regex.Pattern.quote(found), -1).length - 1;
     }
 
     private static String canonical(String name) {
