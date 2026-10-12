@@ -31,7 +31,49 @@ public record Run(String id, long versionId, String key, String process, String 
         Map<String, RunSlot> inputs, Milestone milestone, String requester,
         String refused, Status status, boolean automation, java.time.Instant notBefore,
         String statusReason, int attempts, cloud.jengu.dbo.core.process.RetryPolicy retry,
-        Window window, Addressee addressee) {
+        Window window, Addressee addressee, Crossing crossing) {
+
+    /** A run that stays in the tenant it was asked for in. */
+    public Run(String id, long versionId, String key, String process, String step,
+            RunKind kind, String parent, String correlation, String trace,
+            Map<String, Long> tally, Item item, java.util.List<String> domains,
+            Assignment assignment, Produced produced, String stepVersion,
+            Map<String, RunSlot> inputs, Milestone milestone, String requester,
+            String refused, Status status, boolean automation, java.time.Instant notBefore,
+            String statusReason, int attempts, cloud.jengu.dbo.core.process.RetryPolicy retry,
+            Window window, Addressee addressee) {
+        this(id, versionId, key, process, step, kind, parent, correlation, trace, tally, item,
+                domains, assignment, produced, stepVersion, inputs, milestone, requester, refused,
+                status, automation, notBefore, statusReason, attempts, retry, window, addressee,
+                null);
+    }
+
+    /**
+     * Work that leaves the tenant it was asked for in, for the tenant whose
+     * data it is.
+     *
+     * <p>Two tenants never deal with each other directly: what crosses goes
+     * up to the lowest zone both belong to and down again. The run asked for
+     * and the run performed are two runs, one in each tenant, joined by this
+     * — kept apart from {@code correlation}, which the store echoes and never
+     * reads, and from {@code parent}, which never crosses a boundary.
+     *
+     * @param id       the crossing both runs carry
+     * @param from     the tenant that asked
+     * @param to       the tenant whose data it is, which performs it
+     * @param askerRun the asking run's key, on the run performed; null on the
+     *                 run that asked
+     * @param reader   the client in the asking tenant the answer is for
+     */
+    public record Crossing(String id, String from, String to, String askerRun, String reader) {
+
+        public Crossing {
+            if (id == null || from == null || to == null) {
+                throw new IllegalArgumentException("a crossing names itself, where it came "
+                        + "from and where it goes");
+            }
+        }
+    }
 
     /** A run open to whoever holds its step. */
     public Run(String id, long versionId, String key, String process, String step,
@@ -528,7 +570,16 @@ public record Run(String id, long versionId, String key, String process, String 
                 notBefore == null ? null : java.time.Instant.parse(notBefore.toString()),
                 optional(json, "statusReason"),
                 attempts instanceof Number count ? count.intValue() : 0, retry(json),
-                window(json), addressee(json));
+                window(json), addressee(json), crossing(json));
+    }
+
+    /** The crossing the run recorded, or null for a run that stays where it is. */
+    private static Crossing crossing(Object json) {
+        if (((Map<?, ?>) json).get("crossing") instanceof Map<?, ?> named) {
+            return new Crossing(str(named, "id"), str(named, "from"), str(named, "to"),
+                    str(named, "askerRun"), str(named, "reader"));
+        }
+        return null;
     }
 
     /** Who the run is for, as it recorded them, or null where it names nobody. */

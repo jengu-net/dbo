@@ -3349,6 +3349,7 @@ cloud.jengu.dbo.promises.DboPromises                                   ZONE_SESS
 cloud.jengu.dbo.promises.DboPromises                                   ZONE_SUBJECT_DOMAINS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   ZONE_WHAT_CONVERSION_CANNOT_CARRY_IS_REFUSED_BY_NAME:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   ZONE_WORK_CROSSES_THROUGH_THE_LOWEST_ZONE_TWO_TENANTS_SHARE:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   ZONE_WORK_FOR_ANOTHER_TENANT_IS_ASKED_FOR_AT_ONES_OWN_DOOR:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   enum
 cloud.jengu.dbo.promises.DboPromises                                   text():String
 cloud.jengu.dbo.promises.DboPromises                                   valueOf(String):cloud.jengu.dbo.promises.DboPromises
@@ -5151,6 +5152,7 @@ cloud.jengu.dbo.work.Run                                               claimed(I
 cloud.jengu.dbo.work.Run                                               collectableBy(String,Instant):boolean
 cloud.jengu.dbo.work.Run                                               correlated():Optional
 cloud.jengu.dbo.work.Run                                               correlation():String
+cloud.jengu.dbo.work.Run                                               crossing():cloud.jengu.dbo.work.Run.Crossing
 cloud.jengu.dbo.work.Run                                               domains():List
 cloud.jengu.dbo.work.Run                                               equals(Object):boolean
 cloud.jengu.dbo.work.Run                                               fellThrough():boolean
@@ -5173,6 +5175,7 @@ cloud.jengu.dbo.work.Run                                               needsAPer
 cloud.jengu.dbo.work.Run                                               new(String,long,String,String,String,cloud.jengu.dbo.work.RunKind,String,String,String,Map,cloud.jengu.dbo.work.Run.Item,List,cloud.jengu.dbo.work.Run.Assignment,cloud.jengu.dbo.work.Run.Produced,String,Map,cloud.jengu.dbo.work.Run.Milestone,String,String,cloud.jengu.dbo.work.Status,boolean,Instant,String,int,cloud.jengu.dbo.core.process.RetryPolicy)
 cloud.jengu.dbo.work.Run                                               new(String,long,String,String,String,cloud.jengu.dbo.work.RunKind,String,String,String,Map,cloud.jengu.dbo.work.Run.Item,List,cloud.jengu.dbo.work.Run.Assignment,cloud.jengu.dbo.work.Run.Produced,String,Map,cloud.jengu.dbo.work.Run.Milestone,String,String,cloud.jengu.dbo.work.Status,boolean,Instant,String,int,cloud.jengu.dbo.core.process.RetryPolicy,cloud.jengu.dbo.work.Run.Window)
 cloud.jengu.dbo.work.Run                                               new(String,long,String,String,String,cloud.jengu.dbo.work.RunKind,String,String,String,Map,cloud.jengu.dbo.work.Run.Item,List,cloud.jengu.dbo.work.Run.Assignment,cloud.jengu.dbo.work.Run.Produced,String,Map,cloud.jengu.dbo.work.Run.Milestone,String,String,cloud.jengu.dbo.work.Status,boolean,Instant,String,int,cloud.jengu.dbo.core.process.RetryPolicy,cloud.jengu.dbo.work.Run.Window,cloud.jengu.dbo.work.Run.Addressee)
+cloud.jengu.dbo.work.Run                                               new(String,long,String,String,String,cloud.jengu.dbo.work.RunKind,String,String,String,Map,cloud.jengu.dbo.work.Run.Item,List,cloud.jengu.dbo.work.Run.Assignment,cloud.jengu.dbo.work.Run.Produced,String,Map,cloud.jengu.dbo.work.Run.Milestone,String,String,cloud.jengu.dbo.work.Status,boolean,Instant,String,int,cloud.jengu.dbo.core.process.RetryPolicy,cloud.jengu.dbo.work.Run.Window,cloud.jengu.dbo.work.Run.Addressee,cloud.jengu.dbo.work.Run.Crossing)
 cloud.jengu.dbo.work.Run                                               notBefore():Instant
 cloud.jengu.dbo.work.Run                                               of(cloud.jengu.dbo.core.api.StoredObject):cloud.jengu.dbo.work.Run
 cloud.jengu.dbo.work.Run                                               open():boolean
@@ -5217,6 +5220,16 @@ cloud.jengu.dbo.work.Run.Assignment                                    record
 cloud.jengu.dbo.work.Run.Assignment                                    role():String
 cloud.jengu.dbo.work.Run.Assignment                                    toString():String
 cloud.jengu.dbo.work.Run.Assignment                                    until():Instant
+cloud.jengu.dbo.work.Run.Crossing                                      askerRun():String
+cloud.jengu.dbo.work.Run.Crossing                                      equals(Object):boolean
+cloud.jengu.dbo.work.Run.Crossing                                      from():String
+cloud.jengu.dbo.work.Run.Crossing                                      hashCode():int
+cloud.jengu.dbo.work.Run.Crossing                                      id():String
+cloud.jengu.dbo.work.Run.Crossing                                      new(String,String,String,String,String)
+cloud.jengu.dbo.work.Run.Crossing                                      reader():String
+cloud.jengu.dbo.work.Run.Crossing                                      record
+cloud.jengu.dbo.work.Run.Crossing                                      to():String
+cloud.jengu.dbo.work.Run.Crossing                                      toString():String
 cloud.jengu.dbo.work.Run.Item                                          equals(Object):boolean
 cloud.jengu.dbo.work.Run.Item                                          failure():cloud.jengu.dbo.work.Failure
 cloud.jengu.dbo.work.Run.Item                                          hashCode():int
@@ -5414,6 +5427,7 @@ cloud.jengu.dbo.work.Runs                                              filling(c
 cloud.jengu.dbo.work.Runs                                              filling(cloud.jengu.dbo.core.process.StepDeclaration,cloud.jengu.dbo.work.RunKind,String,Map,String,String):cloud.jengu.dbo.work.Run
 cloud.jengu.dbo.work.Runs                                              filling(cloud.jengu.dbo.core.process.StepDeclaration,cloud.jengu.dbo.work.RunKind,String,Map,String,String,Duration):cloud.jengu.dbo.work.Run
 cloud.jengu.dbo.work.Runs                                              filling(cloud.jengu.dbo.core.process.StepDeclaration,cloud.jengu.dbo.work.RunKind,String,Map,String,String,Duration,cloud.jengu.dbo.work.Run.Addressee):cloud.jengu.dbo.work.Run
+cloud.jengu.dbo.work.Runs                                              filling(cloud.jengu.dbo.core.process.StepDeclaration,cloud.jengu.dbo.work.RunKind,String,Map,String,String,Duration,cloud.jengu.dbo.work.Run.Addressee,cloud.jengu.dbo.work.Run.Crossing):cloud.jengu.dbo.work.Run
 cloud.jengu.dbo.work.Runs                                              forPeople(cloud.jengu.dbo.work.Run,String):cloud.jengu.dbo.work.Run
 cloud.jengu.dbo.work.Runs                                              forPeople(cloud.jengu.dbo.work.Run,cloud.jengu.dbo.work.Executor,String):cloud.jengu.dbo.work.Run
 cloud.jengu.dbo.work.Runs                                              handBack(cloud.jengu.dbo.work.Run,Instant):Optional

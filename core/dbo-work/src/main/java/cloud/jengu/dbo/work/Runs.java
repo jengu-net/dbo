@@ -363,6 +363,23 @@ public final class Runs {
     public Run filling(cloud.jengu.dbo.core.process.StepDeclaration step, RunKind kind,
             String scope, Map<String, RunSlot> inputs, String requester,
             String forPeopleBecause, java.time.Duration collect, Run.Addressee addressee) {
+        return filling(step, kind, scope, inputs, requester, forPeopleBecause, collect,
+                addressee, null);
+    }
+
+    /**
+     * The same, for work that leaves this tenant for the one whose data it
+     * is, or arrives here from the one that asked: the crossing is fixed as
+     * the run is authored, like the requester, because where the work goes
+     * is part of what it is.
+     *
+     * @param crossing the crossing it is one end of, or null for work that
+     *                 stays here
+     */
+    public Run filling(cloud.jengu.dbo.core.process.StepDeclaration step, RunKind kind,
+            String scope, Map<String, RunSlot> inputs, String requester,
+            String forPeopleBecause, java.time.Duration collect, Run.Addressee addressee,
+            Run.Crossing crossing) {
         for (String slot : inputs.keySet()) {
             if (!step.slots().containsKey(slot)) {
                 throw new IllegalArgumentException(step.id() + " declares no slot '" + slot
@@ -390,7 +407,7 @@ public final class Runs {
                 requester == null ? null : new Run.Assignment(null, null, null, null, requester),
                 Run.Produced.NOTHING, step.version(),
                 java.util.Collections.unmodifiableMap(ordered), null, requester, null,
-                collect == null ? null : new Run.Window(collect, null))));
+                collect == null ? null : new Run.Window(collect, null), crossing)));
     }
 
     /**
@@ -1545,7 +1562,7 @@ public final class Runs {
                 run.parent(), run.correlation(), run.trace(), run.tally(), run.item(),
                 run.domains(),
                 run.assignment(), run.produced(), run.stepVersion(), run.inputs(),
-                run.milestone(), run.requester(), run.refused(), run.window());
+                run.milestone(), run.requester(), run.refused(), run.window(), run.crossing());
     }
 
     /**
@@ -1865,7 +1882,18 @@ public final class Runs {
             String parent, String correlation, String trace, Map<String, Long> tally, Run.Item item,
             List<String> domains, Run.Assignment assignment, Run.Produced produced,
             String stepVersion, Map<String, RunSlot> inputs, Run.Milestone milestone,
-            String requester, String refused, Run.Window window) {
+            String requester, String refused, Run.Window window, Run.Crossing crossing) {
+
+        /** A run that stays in the tenant it was asked for in. */
+        State(String key, String process, String step, RunKind kind, Standing standing,
+                String parent, String correlation, String trace, Map<String, Long> tally,
+                Run.Item item, List<String> domains, Run.Assignment assignment,
+                Run.Produced produced, String stepVersion, Map<String, RunSlot> inputs,
+                Run.Milestone milestone, String requester, String refused, Run.Window window) {
+            this(key, process, step, kind, standing, parent, correlation, trace, tally, item,
+                    domains, assignment, produced, stepVersion, inputs, milestone, requester,
+                    refused, window, null);
+        }
 
         /** A run whose asker collects nothing. */
         State(String key, String process, String step, RunKind kind, Standing standing,
@@ -1903,49 +1931,49 @@ public final class Runs {
 
         State withStanding(Standing standing) {
             return new State(key, process, step, kind, standing, parent, correlation, trace, tally, item,
-                    domains, assignment, produced, stepVersion, inputs, milestone, requester, refused, window);
+                    domains, assignment, produced, stepVersion, inputs, milestone, requester, refused, window, crossing);
         }
 
         State withTally(Map<String, Long> tally) {
             return new State(key, process, step, kind, standing, parent, correlation, trace,
                     Map.copyOf(tally), item, domains, assignment, produced, stepVersion,
-                    inputs, milestone, requester, refused, window);
+                    inputs, milestone, requester, refused, window, crossing);
         }
 
         State withAssignment(Run.Assignment assignment) {
             return new State(key, process, step, kind, standing, parent, correlation, trace, tally, item,
-                    domains, assignment, produced, stepVersion, inputs, milestone, requester, refused, window);
+                    domains, assignment, produced, stepVersion, inputs, milestone, requester, refused, window, crossing);
         }
 
         State withProduced(Run.Produced produced) {
             return new State(key, process, step, kind, standing, parent, correlation, trace, tally, item,
-                    domains, assignment, produced, stepVersion, inputs, milestone, requester, refused, window);
+                    domains, assignment, produced, stepVersion, inputs, milestone, requester, refused, window, crossing);
         }
 
         State withTrace(String trace) {
             return new State(key, process, step, kind, standing, parent, correlation, trace,
-                    tally, item, domains, assignment, produced, stepVersion, inputs, milestone, requester, refused, window);
+                    tally, item, domains, assignment, produced, stepVersion, inputs, milestone, requester, refused, window, crossing);
         }
 
         State withCorrelation(String correlation) {
             return new State(key, process, step, kind, standing, parent, correlation, trace, tally, item,
-                    domains, assignment, produced, stepVersion, inputs, milestone, requester, refused, window);
+                    domains, assignment, produced, stepVersion, inputs, milestone, requester, refused, window, crossing);
         }
 
         State withMilestone(Run.Milestone milestone) {
             return new State(key, process, step, kind, standing, parent, correlation, trace, tally, item,
-                    domains, assignment, produced, stepVersion, inputs, milestone, requester, refused, window);
+                    domains, assignment, produced, stepVersion, inputs, milestone, requester, refused, window, crossing);
         }
 
         State withWindow(Run.Window window) {
             return new State(key, process, step, kind, standing, parent, correlation, trace, tally, item,
                     domains, assignment, produced, stepVersion, inputs, milestone, requester, refused,
-                    window);
+                    window, crossing);
         }
 
         State withRefused(String refused) {
             return new State(key, process, step, kind, standing, parent, correlation, trace, tally, item,
-                    domains, assignment, produced, stepVersion, inputs, milestone, requester, refused, window);
+                    domains, assignment, produced, stepVersion, inputs, milestone, requester, refused, window, crossing);
         }
 
         byte[] payload() {
@@ -2046,6 +2074,18 @@ public final class Runs {
             }
             if (requester != null) {
                 json.append(",\"requester\":").append(Json.quoted(requester));
+            }
+            if (crossing != null) {
+                json.append(",\"crossing\":{\"id\":").append(Json.quoted(crossing.id()))
+                        .append(",\"from\":").append(Json.quoted(crossing.from()))
+                        .append(",\"to\":").append(Json.quoted(crossing.to()));
+                if (crossing.askerRun() != null) {
+                    json.append(",\"askerRun\":").append(Json.quoted(crossing.askerRun()));
+                }
+                if (crossing.reader() != null) {
+                    json.append(",\"reader\":").append(Json.quoted(crossing.reader()));
+                }
+                json.append('}');
             }
             if (refused != null) {
                 json.append(",\"refused\":").append(Json.quoted(refused));

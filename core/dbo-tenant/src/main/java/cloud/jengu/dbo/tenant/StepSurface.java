@@ -169,6 +169,19 @@ final class StepSurface implements HttpHandler {
          */
         Offer offer(String tenant, String stepCode);
 
+        /**
+         * A step a jurisdiction above this tenant declares for its members'
+         * exchanges, asked for to go to the tenant named.
+         *
+         * @param to the tenant whose data it is, or null where the request
+         *           named none
+         * @return what the step takes and whether it may go there, or null
+         *         where no zone above this tenant declares the step
+         */
+        default Offer exchange(String tenant, String stepCode, String to) {
+            return null;
+        }
+
         /** The step's slots, and why it is not startable here if it is not. */
         record Offer(Map<String, String> slots, String refusedBecause) {
         }
@@ -356,6 +369,19 @@ final class StepSurface implements HttpHandler {
      */
     Started starting(String stepCode, Object body, String requester) {
         TenantSpec.Step step = declared.get(stepCode);
+        // WHERE WORK GOES IS NAMED, AND ONLY THAT. Where it came from and which
+        // run it answers are the store's to write as it carries the work, so a
+        // request saying them would be the asker inventing a crossing.
+        String crossingTo = null;
+        if (Json.objOpt(body, "crossing") instanceof Map<?, ?> named) {
+            if (named.size() != 1 || !(named.get("to") instanceof String to)) {
+                return refused(400, "invalid_request", "a crossing is asked for by naming the "
+                        + "tenant whose data it is, crossing.to, and nothing else: where it "
+                        + "came from and which run it answers are the store's to say");
+            }
+            crossingTo = to;
+        }
+        cloud.jengu.dbo.work.Run.Crossing crossing = null;
         Map<String, String> slots;
         if (step != null) {
             slots = step.slots();
@@ -373,6 +399,22 @@ final class StepSurface implements HttpHandler {
             // own record, before any participant said anything.
             Fleet.Offer offered = fleet.offer(tenant, stepCode);
             if (offered == null) {
+                // A JURISDICTION'S, for work that leaves this tenant. Asked for
+                // here, by the tenant that wants it, and carried up to the
+                // lowest zone it shares with the tenant whose data it is.
+                offered = fleet.exchange(tenant, stepCode, crossingTo);
+                if (offered != null && crossingTo == null) {
+                    return refused(400, "invalid_request", stepCode + " is an exchange its "
+                            + "zone declares, and goes to the tenant whose data it is: name "
+                            + "it as crossing.to");
+                }
+                if (offered != null && offered.refusedBecause() == null) {
+                    crossing = new cloud.jengu.dbo.work.Run.Crossing(
+                            cloud.jengu.dbo.core.UuidV7.newId(), tenant, crossingTo, null,
+                            requester);
+                }
+            }
+            if (offered == null) {
                 return refused(404, "not_found", "this tenant offers no step '" + stepCode
                         + "'; it offers: " + declared.keySet());
             }
@@ -383,6 +425,11 @@ final class StepSurface implements HttpHandler {
                 return refused(409, "refused", offered.refusedBecause());
             }
             slots = offered.slots();
+        }
+        if (crossingTo != null && crossing == null) {
+            return refused(400, "invalid_request", stepCode + " is this tenant's own work and "
+                    + "does not cross; a crossing is asked for on an exchange a zone above "
+                    + "this tenant declares");
         }
         Map<String, Object> given = new LinkedHashMap<>();
         if (Json.objOpt(body, "inputs") instanceof Map<?, ?> named) {
@@ -445,7 +492,7 @@ final class StepSurface implements HttpHandler {
                 // The asker's window, recorded as the run is authored so the
                 // close that opens it needs nothing but the run.
                 step == null || step.answer() == null ? null : step.answer().collect(),
-                addressee);
+                addressee, crossing);
         // The key as well as the id, because they answer different questions
         // and only one of them is this surface's. The id addresses the
         // context; the key is the name the rest of the work model is asked by

@@ -1485,7 +1485,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
                     starters.put(code, new StepSurface(bearer -> java.util.Optional.empty(),
                             tenant.laneRuns(), tenant.runtime().store(),
                             tenant.runtime().engine(), tenant.spec().steps(),
-                            "/t/" + code + "/run", true, code, this::offerOf, rendered));
+                            "/t/" + code + "/run", true, code, offeredAtDoors, rendered));
                     return () -> starters.remove(code);
                 });
 
@@ -1511,11 +1511,11 @@ public final class TenantRuntimeManager implements AutoCloseable {
                     sharedServer.createContext(startPath, new StepSurface(tenant.authority(),
                             tenant.laneRuns(), tenant.runtime().store(),
                             tenant.runtime().engine(), tenant.spec().steps(),
-                            runPath, true, code, this::offerOf, rendered));
+                            runPath, true, code, offeredAtDoors, rendered));
                     sharedServer.createContext(runPath, new StepSurface(tenant.authority(),
                             tenant.laneRuns(), tenant.runtime().store(),
                             tenant.runtime().engine(), tenant.spec().steps(),
-                            runPath, false, code, this::offerOf, rendered));
+                            runPath, false, code, offeredAtDoors, rendered));
                     stepContexts.put(code, java.util.List.of(startPath, runPath));
                     return null;
                 });
@@ -2095,6 +2095,52 @@ public final class TenantRuntimeManager implements AutoCloseable {
      * the three into a 404 would leave a tenant unable to tell "the
      * deployment does not do this" from "you told us not to".
      */
+    /** What this deployment offers at a tenant's door beyond the tenant's own steps. */
+    private final StepSurface.Fleet offeredAtDoors = new StepSurface.Fleet() {
+        @Override
+        public StepSurface.Fleet.Offer offer(String tenant, String stepCode) {
+            return offerOf(tenant, stepCode);
+        }
+
+        @Override
+        public StepSurface.Fleet.Offer exchange(String tenant, String stepCode, String to) {
+            return exchangeOf(tenant, stepCode, to);
+        }
+    };
+
+    /**
+     * An exchange a jurisdiction above this tenant declares, asked for to go
+     * to the tenant named.
+     *
+     * <p>Refused, with the tree's own words, where there is no way to go: the
+     * two tenants share no zone, or a zone on the way does not permit the
+     * process. Nothing is authored for a crossing that could not be carried.
+     */
+    private StepSurface.Fleet.Offer exchangeOf(String tenant, String stepCode, String to) {
+        ZoneTree tree = zones;
+        Optional<TenantSpec.Step> step = tree.exchangeStep(tenant, stepCode);
+        if (step.isEmpty()) {
+            return null;
+        }
+        if (to == null) {
+            return new StepSurface.Fleet.Offer(step.get().slots(), null);
+        }
+        try {
+            ZoneTree.Route route = tree.route(tenant, to);
+            String process = ZoneTree.processOf(stepCode);
+            if (!route.permits(process)) {
+                List<String> refusing = route.zones().stream()
+                        .filter(zone -> !tree.permitted(zone).contains(process)).toList();
+                return new StepSurface.Fleet.Offer(step.get().slots(), "'" + process
+                        + "' is not permitted by " + refusing + " on the way from " + tenant
+                        + " to " + to + " through " + route.zones());
+            }
+        } catch (IllegalArgumentException noWay) {
+            return new StepSurface.Fleet.Offer(step.get().slots(), noWay.getMessage());
+        }
+        return new StepSurface.Fleet.Offer(step.get().slots(), null);
+    }
+
     private StepSurface.Fleet.Offer offerOf(String tenant, String stepCode) {
         TenantSpec.FleetStep declared = declaredFleetSteps.stream()
                 .filter(step -> step.code().equals(stepCode))

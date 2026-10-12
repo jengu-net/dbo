@@ -47,6 +47,14 @@ country does, so a zone listing a process its parent does not is refused at
 its declaration, naming both zones and the process. A jurisdiction may be
 stricter than the one above it, never looser.
 
+**A zone also says where its members ask.** A step a zone declares within a
+process it permits is offered at every member's own door, the way the
+deployment's steps are: `rl` declares `care.records.request`. A member asks it
+naming the tenant whose data it is, `"crossing": {"to": "hogwarts"}`, and the
+run it asks for records where the work goes. Tenants that share no zone, or a
+process a zone on the way does not permit, are refused at the asker's door by
+name. Carrying the work to the other tenant is not built yet.
+
 ## The zone runs its own ceremony
 
 A zone that names no external identity broker is its own: every tenant carries
