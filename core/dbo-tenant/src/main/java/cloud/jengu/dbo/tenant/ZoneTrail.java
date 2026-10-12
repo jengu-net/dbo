@@ -53,6 +53,33 @@ final class ZoneTrail {
         }
     }
 
+    /**
+     * The zone heard that the crossing's answer was opened: who opened it and
+     * in which tenant, and nothing of what — the owner's references are not
+     * the zone's to keep. Recorded once however often it is reported, keyed
+     * by the opening as the tenant it happened in recorded it.
+     */
+    static void opened(cloud.jengu.dbo.policy.PolicyObjectStore zone, String crossing,
+            String reader, String where, String reported) {
+        String key = keyOf(crossing);
+        String previous = RunChain.verify(RunChain.crossingRoot(crossing),
+                TrailLinks.of(zone, key)).head();
+        if (previous == null) {
+            throw new IllegalStateException("crossing " + crossing + ": the zone's segment "
+                    + "of it does not chain, and an opening is not added to a broken chain");
+        }
+        Map<String, String> detail = new LinkedHashMap<>();
+        detail.put("by", reader);
+        detail.put("in", where);
+        detail.put("key", key);
+        detail.put("previous", previous);
+        detail.put("link", RunChain.accessLink(previous, key, "answer", reader));
+        try (Caller.InRun named = Caller.writingFor(key)) {
+            zone.recordForwarded("access", "Crossing", crossing, detail, null,
+                    key + ":opened:" + reported);
+        }
+    }
+
     /** The zone's segment of a crossing, as its trail holds it. */
     static List<RunChain.Link> of(ObjectStore zone, String crossing) {
         return TrailLinks.of(zone, keyOf(crossing));

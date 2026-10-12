@@ -3338,6 +3338,7 @@ cloud.jengu.dbo.promises.DboPromises                                   WF_HOPS_A
 cloud.jengu.dbo.promises.DboPromises                                   WF_PLATFORM_COORDINATED_HOPS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   WF_POSTGRES_SUBSTRATE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   WF_TWO_PLANES:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   ZONE_AN_OPENING_ACROSS_IS_THE_OWNERS_TO_SEE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   ZONE_AN_UNSERVABLE_ZONE_IS_SAID_AT_BRING_UP:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   ZONE_A_TENANTS_ZONES_ARE_ON_ITS_REGISTER:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   ZONE_A_ZONE_IS_DECLARED_BY_THE_TENANT_THAT_IS_ONE:cloud.jengu.dbo.promises.DboPromises

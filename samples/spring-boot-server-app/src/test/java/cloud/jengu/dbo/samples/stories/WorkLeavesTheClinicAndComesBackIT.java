@@ -1394,6 +1394,52 @@ class WorkLeavesTheClinicAndComesBackIT {
                         + said);
     }
 
+    @Test
+    @Order(56)
+    @DisplayName("when the clinic's asker opens what the hospital shared, the hospital's own "
+            + "trail says who opened its record and for which run, and rl that it was opened, "
+            + "never which record")
+    @Proving(DboPromises.ZONE_AN_OPENING_ACROSS_IS_THE_OWNERS_TO_SEE)
+    void theHospitalSeesItsRecordOpenedAcross() throws Exception {
+        AnsweredBack back = askedAndAnsweredBack(NAMES.value("seen-opened"));
+        HttpLane reader = HttpLane.holding(URI.create(dbo.at(CLINIC) + "/work"),
+                this::askerToken, CLINIC, ASKER, executor(ASKER),
+                askerSealing.getPrivate(), askerSigning.getPrivate());
+        Run run = new Runs(tenants.store(CLINIC).orElseThrow()).byKey(back.key()).orElseThrow();
+        reader.inputs(reader.claim(run, Duration.ofMinutes(5)).orElseThrow());
+        String crossing = run.crossing().id();
+        String ownerRun = REQUEST + "/crossing-" + crossing;
+
+        String atHospital = "";
+        long giveUp = System.nanoTime() + Duration.ofMinutes(2).toNanos();
+        while (!atHospital.contains("\"access\"") && System.nanoTime() < giveUp) {
+            Thread.sleep(500);
+            atHospital = tenants.store(HOSPITAL).orElseThrow().select(
+                            cloud.jengu.dbo.core.api.Criteria.of("AuditEntry").eq("run",
+                                    cloud.jengu.dbo.core.api.EnvelopeValue.of(ownerRun)))
+                    .stream().map(entry -> new String(entry.payload(),
+                            java.nio.charset.StandardCharsets.UTF_8)).toList().toString();
+        }
+        Proves.that(DboPromises.ZONE_AN_OPENING_ACROSS_IS_THE_OWNERS_TO_SEE,
+                atHospital.contains("\"access\"") && atHospital.contains(back.shared())
+                        && atHospital.contains("\"by\":\"" + ASKER + "\"")
+                        && atHospital.contains("\"in\":\"" + CLINIC + "\"")
+                        && atHospital.contains(back.key()),
+                "the hospital's trail does not say its record was opened across, by whom and "
+                        + "for which run: " + atHospital);
+
+        String atZone = tenants.store("rl").orElseThrow().select(
+                        cloud.jengu.dbo.core.api.Criteria.of("AuditEntry").eq("run",
+                                cloud.jengu.dbo.core.api.EnvelopeValue.of("crossing:" + crossing)))
+                .stream().map(entry -> new String(entry.payload(),
+                        java.nio.charset.StandardCharsets.UTF_8)).toList().toString();
+        Proves.that(DboPromises.ZONE_AN_OPENING_ACROSS_IS_THE_OWNERS_TO_SEE,
+                atZone.contains("\"access\"") && atZone.contains("\"by\":\"" + ASKER + "\"")
+                        && !atZone.contains(back.shared()),
+                "rl does not record that the answer was opened, or records which record: "
+                        + atZone);
+    }
+
     /** What the clinic asked, the hospital answered, and the answer back on the clinic's run. */
     private record AnsweredBack(String key, String shared) {}
 
