@@ -49,6 +49,39 @@ class WhatARegisterSaysTest {
     }
 
     @Test
+    @DisplayName("a row says whose process it is and who carries it out, and saying either "
+            + "moves what the tenant authorised — while a row saying neither is authorised "
+            + "by the value it always was")
+    @Proving(DboPromises.PROC_A_TENANT_AUTHORISES_A_REGISTER_AND_SEES_IT_CHANGE)
+    void whoseProcessAndWhoDoesItAreAuthorisedToo() {
+        // What a tenant wrote down before rows named their authority. Pinned,
+        // because a digest that moved under every tenant on upgrade would read
+        // as every row unapproved, and withhold work that was agreed to.
+        assertEquals("RRvksb4I5ACcIIr1", CHECKED.digest(),
+                "the provider's own row no longer digests as it did");
+
+        FleetRegister.Row delegated = new FleetRegister.Row(CHECKED.step(), CHECKED.slot(),
+                CHECKED.type(), CHECKED.required(), CHECKED.posture(),
+                FleetRegister.Authority.PROVIDER, null, List.of("support-desk", "archive"));
+        assertFalse(CHECKED.digest().equals(delegated.digest()),
+                "a partner handling the tenant's data went unnoticed by its authorisation");
+        assertEquals(delegated.digest(), new FleetRegister.Row(CHECKED.step(), CHECKED.slot(),
+                        CHECKED.type(), CHECKED.required(), CHECKED.posture(),
+                        FleetRegister.Authority.PROVIDER, null,
+                        List.of("archive", "support-desk")).digest(),
+                "the same partners in another order read as a different row");
+
+        FleetRegister.Row zones = new FleetRegister.Row("care.records", null, null, true,
+                TenantSpec.FleetStep.Posture.APPLIED, FleetRegister.Authority.ZONE, "rl",
+                List.of());
+        FleetRegister.Row otherZone = new FleetRegister.Row("care.records", null, null, true,
+                TenantSpec.FleetStep.Posture.APPLIED, FleetRegister.Authority.ZONE, "ee",
+                List.of());
+        assertFalse(zones.digest().equals(otherZone.digest()),
+                "one jurisdiction's obligation was authorised as another's");
+    }
+
+    @Test
     @DisplayName("moving a row's posture changes the register too, so a deployment cannot "
             + "approve its own widening")
     @Proving(DboPromises.PROC_A_TENANT_AUTHORISES_A_REGISTER_AND_SEES_IT_CHANGE)
