@@ -1001,33 +1001,36 @@ class ATenantOpensAndItsPeopleGetInIT {
 
     @Test
     @Order(31)
-    @DisplayName("a partner's credential reads a managed clinic's journey by run, is refused by "
-            + "a clinic it does not manage, and never receives a document or a purpose")
+    @DisplayName("a partner the provider hands its work to reads a clinic's journey by run on "
+            + "the provider's credential, never a document or a purpose, and not once the "
+            + "clinic declines what the partner is named on")
     @Proving(DboPromises.TEN_A_PARTNER_MANAGES_TENANTS)
-    void aPartnerFollowsTheWorkAndNothingElse() {
-        // The relation is declared when the managed clinic is created, so the
-        // partner is serving first.
-        String partner = names.tenant("partner");
+    void aPartnerFollowsTheWorkAndNothingElse() throws InterruptedException {
+        // The provider hands its directory check to this partner (mom.json),
+        // and the partner says whose it is. It is serving first, so the
+        // deployment has read it as a partner before anything is asked.
+        String partner = "sample-support-desk";
         String managed = names.tenant("managed");
         String basic = """
                 [{"name":"Basic","identity":"internal","handling":"operational"}]""";
         dbo.declare(partner, """
-                {"code":"%s","face":"r4","audit":{"level":"none"},"types":%s}"""
-                .formatted(partner, basic));
+                {"code":"%s","face":"r4","partnerOf":"mom","audit":{"level":"none"},
+                 "types":%s}""".formatted(partner, basic));
         try {
             assertTrue(dbo.until(partner, true, Duration.ofMinutes(10)), "no partner");
-            dbo.declare(managed, """
-                    {"code":"%s","face":"r4","managedBy":"%s","audit":{"level":"writes"},
-                     "types":%s}""".formatted(managed, partner, basic));
-            assertTrue(dbo.until(managed, true, Duration.ofMinutes(10)), "no managed clinic");
+            String clinic = """
+                    {"code":"%s","face":"r4","audit":{"level":"writes"},"types":%s%s}""";
+            dbo.declare(managed, clinic.formatted(managed, basic, ""));
+            assertTrue(dbo.until(managed, true, Duration.ofMinutes(10)), "no clinic");
 
             String step = names.prefix() + "-" + names.run() + ".lab.assay";
             var assay = cloud.jengu.dbo.core.process.StepDeclaration.of(step, "1.0",
                             cloud.jengu.dbo.work.WorkModel.DOMAIN)
                     .taking("specimen", "https://meristem.example/shape/specimen");
-            authority(partner).ensureClient(names.value("support"), "support-secret",
-                    List.of("system/*.read"));
-            String partnerToken = token(partner, names.value("support"), "support-secret");
+            // ISSUED BY THE PROVIDER. For the clinic the provider is the
+            // service, and its authority the one trusted for its partners.
+            authority("mom").ensureClient(partner, "support-secret", List.of("system/*.read"));
+            String partnerToken = token("mom", partner, "support-secret");
             authority(managed).ensureClient(names.value("assayer"), "assayer-secret",
                     List.of("work/" + step));
 
@@ -1068,15 +1071,26 @@ class ATenantOpensAndItsPeopleGetInIT {
                     (document.statusCode() == 404 || document.statusCode() == 403)
                             && !document.body().contains("specimen-3f9a"),
                     "the partner read a document: " + document.statusCode());
-            Proves.that(DboPromises.TEN_A_PARTNER_MANAGES_TENANTS,
-                    dbo.get(fhir(second) + "/AuditEvent?run=" + encoded(held.key()),
-                            partnerToken).statusCode() == 401,
-                    "a clinic that declared no partner knew the partner's credential");
             HttpResponse<String> own = dbo.get(fhir(managed) + "/AuditEvent?entity="
                     + specimen.idOrFail(), dbo.token(managed));
             Proves.that(DboPromises.TEN_A_PARTNER_MANAGES_TENANTS,
                     own.statusCode() == 200 && own.body().contains("TREAT"),
                     "the clinic does not read its own trail whole: " + own.body());
+
+            // Declining the process the partner is named on is the whole of
+            // withdrawing: one line in the clinic's declaration.
+            dbo.declare(managed, clinic.formatted(managed, basic,
+                    ",\"declines\":[\"fleet.directory.check\"]"));
+            int after = 200;
+            long giveUp = System.nanoTime() + Duration.ofMinutes(2).toNanos();
+            while (after != 401 && System.nanoTime() < giveUp) {
+                Thread.sleep(500);
+                after = dbo.get(fhir(managed) + "/AuditEvent?run=" + encoded(held.key()),
+                        partnerToken).statusCode();
+            }
+            Proves.that(DboPromises.TEN_A_PARTNER_MANAGES_TENANTS, after == 401,
+                    "the clinic declined what the partner is named on and the partner still "
+                            + "read its journey: " + after);
         } finally {
             dbo.retract(managed);
             dbo.retract(partner);

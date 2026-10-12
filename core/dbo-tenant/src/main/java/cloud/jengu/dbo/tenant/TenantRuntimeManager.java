@@ -851,6 +851,8 @@ public final class TenantRuntimeManager implements AutoCloseable {
     private volatile List<TenantSpec.FleetStep> declaredFleetSteps = List.of();
     /** The jurisdictions as the last pass read them, from every declaration at once. */
     private volatile ZoneTree zones = ZoneTree.of(List.of());
+    /** The tenants that declare themselves the provider's partners, as the last pass read them. */
+    private volatile Set<String> partners = Set.of();
     /**
      * The substrate each declared fleet step's queue lives on, by step code.
      *
@@ -2248,10 +2250,11 @@ public final class TenantRuntimeManager implements AutoCloseable {
      * at all; this says what of each.
      */
     static cloud.jengu.dbo.policy.TenantPolicies policiesOf(TenantSpec spec) {
-        if (spec.managedBy() == null) {
-            return spec.policies();
-        }
-        return spec.policies().withAudienceUnlessDeclared(spec.managedBy(),
+        // What a partner sees, unless the tenant says otherwise: the journey
+        // of its runs, never their documents. Who is a partner here is the
+        // authority's to decide, per token.
+        return spec.policies().withAudienceUnlessDeclared(
+                cloud.jengu.dbo.auth.TenantAuthority.PARTNER_AUDIENCE,
                 new cloud.jengu.dbo.policy.TenantPolicies.Audience(
                         Set.of(cloud.jengu.dbo.work.WorkModel.TYPE, "AuditEntry"),
                         cloud.jengu.dbo.core.api.Disclosure.Mode.OMIT));
@@ -2338,8 +2341,14 @@ public final class TenantRuntimeManager implements AutoCloseable {
         // relation between files — what one names, another must be — so it is
         // judged over all of them here, before any is begun, rather than by
         // each bring-up against whatever happens to be serving.
-        ZoneTree tree = ZoneTree.of(parsedOf(declarations));
+        List<TenantSpec> parsed = parsedOf(declarations);
+        ZoneTree tree = ZoneTree.of(parsed);
         zones = tree;
+        partners = parsed.stream()
+                .filter(spec -> spec.partnerOf() != null
+                        && spec.partnerOf().equals(managementCode))
+                .map(TenantSpec::code)
+                .collect(java.util.stream.Collectors.toUnmodifiableSet());
         // What is declared is known before anything is begun, because the
         // retraction below reads it and the work no longer finishes first.
         // The same codes the work itself would add: a parsed spec's, or the
@@ -2378,6 +2387,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 aRequiredStepCannotBeDeclined(spec);
                 tree.refuse(spec);
                 aPartnerIsTheProvidersPartner(spec);
+                aPartnerIsNotDeclaredByTheTenantItFollows(spec);
                 // It parsed and it is being served, so a later refusal of the
                 // same file is news rather than a repeat.
                 refusals.applied(named);
@@ -3082,6 +3092,46 @@ public final class TenantRuntimeManager implements AutoCloseable {
                         : "this deployment's service provider is '" + managementCode + "'")
                 + ". A partner is carried work by the provider, so it is the provider's "
                 + "partner or nobody's");
+    }
+
+    /**
+     * A tenant no longer names who may follow its work. A partner follows a
+     * tenant only because the provider's process hands it work, named on the
+     * tenant's register where the tenant may decline it — so a tenant naming
+     * its own would be a second way in that the register does not show.
+     */
+    private static void aPartnerIsNotDeclaredByTheTenantItFollows(TenantSpec spec) {
+        if (spec.managedBy() == null) {
+            return;
+        }
+        throw new IllegalArgumentException("tenant '" + spec.code() + "' names '"
+                + spec.managedBy() + "' under managedBy, which is retired: a partner follows a "
+                + "tenant only as one the service provider's process hands work to, named on "
+                + "the tenant's register by the provider's delegatesTo. Remove managedBy");
+    }
+
+    /**
+     * Which partner a token the provider's authority issued is, for this
+     * tenant, or empty where this tenant does not admit it.
+     *
+     * <p>Asked per token rather than decided when the trust was made, because
+     * every part of the answer moves under a serving tenant: a provider names
+     * or drops a partner, a tenant declines a step or has not authorised a
+     * row that may not run until it has. A service's credential only — the
+     * client is the subject — and only a tenant that declares itself the
+     * provider's partner, named on a row of this tenant's register that its
+     * work is not withheld from.
+     */
+    private Optional<String> admittedPartner(String tenant, Object claims) {
+        if (!(claims instanceof Map<?, ?> said) || !(said.get("sub") instanceof String client)
+                || !client.equals(said.get("client_id")) || !partners.contains(client)) {
+            return Optional.empty();
+        }
+        Set<String> withheld = withheldFrom(tenant);
+        boolean named = fleetRegister(tenant).stream()
+                .filter(row -> !withheld.contains(row.step()))
+                .anyMatch(row -> row.subProcessors().contains(client));
+        return named ? Optional.of(client) : Optional.empty();
     }
 
     /** The declarations that parse; one that does not is refused where it is begun. */
@@ -4135,30 +4185,19 @@ public final class TenantRuntimeManager implements AutoCloseable {
             // And on every carrier a host registered, which chose to carry
             // the stream and so is not asked whether anybody can use it.
             carried.keySet().forEach(carrier -> openOn(carrier, spec.code()));
-            if (spec.managedBy() != null) {
-                // The relation, made true at the door: the partner's own
-                // authority is trusted here because this tenant declared it,
-                // and its tokens arrive as the partner audience. The keys
-                // come from the partner's runtime when it is served beside
-                // this one, and from its published JWKS when it is not.
-                String partner = spec.managedBy();
-                String partnerIssuer = partnerIssuer(authority.issuer(), spec.code(), partner);
-                authority.trust(partnerIssuer, () -> {
-                    cloud.jengu.dbo.auth.TenantAuthority local = authorities.get(partner);
-                    if (local != null) {
-                        return local.jwksJson();
-                    }
-                    try {
-                        return java.net.http.HttpClient.newHttpClient().send(
-                                java.net.http.HttpRequest.newBuilder(java.net.URI.create(
-                                        partnerIssuer + "/.well-known/jwks.json")).build(),
-                                java.net.http.HttpResponse.BodyHandlers.ofString()).body();
-                    } catch (java.io.IOException | InterruptedException unreachable) {
-                        throw new IllegalStateException(spec.code() + ": the partner '"
-                                + partner + "' published no keys at " + partnerIssuer,
-                                unreachable);
-                    }
-                }, partner);
+            String provider = managementCode;
+            if (provider != null && !provider.equals(spec.code())) {
+                // A PARTNER COMES THROUGH THE PROVIDER. For a tenant the
+                // provider is the service, so its authority is the one trusted
+                // here, and nobody it has not vouched for: a token it issued
+                // is admitted as the partner it names, and only while this
+                // tenant's register names that partner on a row it has not
+                // declined or withheld — asked per token, so that withdrawing
+                // is a line in this tenant's declaration and nothing more.
+                final String code = spec.code();
+                authority.trust(partnerIssuer(authority.issuer(), code, provider),
+                        () -> authorities.get(provider).jwksJson(),
+                        claims -> admittedPartner(code, claims));
             }
             sharedServer.createContext(workPath, new cloud.jengu.dbo.runner.http.LaneHandler(
                     workPath, verbs));

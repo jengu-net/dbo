@@ -43,15 +43,23 @@ public final class TenantAuthority {
     private final String issuer;
     private final KeyProtector protector;
     private final Map<String, RSAPublicKey> keyCache = new ConcurrentHashMap<>();
-    /** Issuers trusted because of a declared relation, by issuer: the partner tenants that manage this one. */
+    /** Issuers trusted because of a relation, by issuer: the provider whose partners follow this tenant's work. */
     private final Map<String, Trusted> trusted = new ConcurrentHashMap<>();
 
+    /** The audience every admitted partner reaches this tenant as. */
+    public static final String PARTNER_AUDIENCE = "partner";
+
     /**
-     * A partner tenant's authority, trusted for what the relation grants and
-     * nothing else: its tokens reach this tenant as the audience named, with
-     * a fixed read reach over runs and the trail.
+     * Another authority, trusted for what a relation grants and nothing else:
+     * a token it issued reaches this tenant only as a partner the gate admits,
+     * under the partner audience, with a fixed read reach over runs and the
+     * trail.
+     *
+     * @param admits which partner a verified token's claims are, asked each
+     *               time, or empty for a token this tenant does not admit
      */
-    private record Trusted(java.util.function.Supplier<String> jwks, String audience,
+    private record Trusted(java.util.function.Supplier<String> jwks,
+            java.util.function.Function<Object, Optional<String>> admits,
             Map<String, RSAPublicKey> keys) {}
 
     /** What a partner may ask of a managed tenant: the journey, never the documents. */
@@ -59,16 +67,18 @@ public final class TenantAuthority {
             List.of("system/Task.read", "system/AuditEvent.read");
 
     /**
-     * Trusts another tenant's authority because this tenant declared it as
-     * its partner. Cross-tenant confusion stays unrepresentable: a token
-     * from anybody else still fails at signature verification, and a
-     * partner's token fails everywhere it was not declared. What the
-     * relation grants is only the audience — the managed tenant's own
-     * declaration of what a partner sees — and a read reach fixed here.
+     * Trusts another authority for the partners it vouches for: the service
+     * provider's, whose partners carry out its processes. Cross-tenant
+     * confusion stays unrepresentable: a token from anybody else still fails
+     * at signature verification, and one this authority issued is admitted
+     * only as a partner the gate names — asked per token, so a relation this
+     * tenant withdraws is withdrawn at the next request. What admission grants
+     * is the partner audience, this tenant's own declaration of what a
+     * partner sees, and a read reach fixed here.
      */
-    public void trust(String partnerIssuer, java.util.function.Supplier<String> partnerJwks,
-            String audience) {
-        trusted.put(partnerIssuer, new Trusted(partnerJwks, audience, new ConcurrentHashMap<>()));
+    public void trust(String issuer, java.util.function.Supplier<String> jwks,
+            java.util.function.Function<Object, Optional<String>> admits) {
+        trusted.put(issuer, new Trusted(jwks, admits, new ConcurrentHashMap<>()));
     }
     /** §16: the tenant's main store — subjects and grants are ITS records. */
     private volatile ObjectStore subjectStore;
@@ -2370,8 +2380,14 @@ public final class TenantAuthority {
         if ("refresh".equals(Json.strOpt(claims, "typ"))) {
             return Optional.empty();
         }
-        return Optional.of(new AuthContext(partner.audience() + ":" + Json.str(claims, "sub"),
-                null, null, PARTNER_SCOPES, null, null, partner.audience()));
+        Optional<String> admitted = partner.admits().apply(claims);
+        if (admitted.isEmpty()) {
+            return Optional.empty();
+        }
+        // The partner is named on every entry it leaves, as whose credential
+        // it was: the provider's authority issued it, and the partner used it.
+        return Optional.of(new AuthContext(PARTNER_AUDIENCE + ":" + admitted.get(),
+                null, null, PARTNER_SCOPES, null, null, PARTNER_AUDIENCE));
     }
 
     /**
