@@ -101,6 +101,36 @@ class ZonesFormATreeTest {
     }
 
     @Test
+    @Proving(DboPromises.ZONE_A_TENANTS_ZONES_ARE_ON_ITS_REGISTER)
+    @DisplayName("every zone above a tenant puts what it permits on the tenant's register, "
+            + "nearest first, and a member declining one is refused, naming the zone")
+    void aTenantsZonesAreOnItsRegister() {
+        ZoneTree europe = ZoneTree.of(List.of(
+                zone("eu", null, "care.records", "care.registers"),
+                zone("ee", "eu", "care.records"),
+                member("tallinn", "ee")));
+
+        List<FleetRegister.Row> rows =
+                FleetRegister.ofZones(europe.chainOf("tallinn"), europe::permitted);
+        assertEquals(List.of("care.records@ee", "care.records@eu", "care.registers@eu"),
+                rows.stream().map(row -> row.step() + "@" + row.by()).toList());
+        assertTrue(rows.stream().allMatch(row -> row.required()
+                        && row.authority() == FleetRegister.Authority.ZONE),
+                "a jurisdiction's process read as an offer: " + rows);
+
+        TenantSpec declining = TenantSpec.parse("""
+                {"code":"tallinn","face":"r5","zone":"ee","declines":["care.registers"],
+                 "types":[{"name":"Observation","identity":"internal",
+                           "handling":"operational"}]}""");
+        IllegalArgumentException refused = assertThrows(IllegalArgumentException.class,
+                () -> europe.refuse(declining));
+        assertTrue(refused.getMessage().contains("care.registers")
+                        && refused.getMessage().contains("eu"),
+                "the refusal does not name the process and the zone declaring it: "
+                        + refused.getMessage());
+    }
+
+    @Test
     @Proving(DboPromises.ZONE_WORK_CROSSES_THROUGH_THE_LOWEST_ZONE_TWO_TENANTS_SHARE)
     @DisplayName("work between two tenants goes up to the lowest zone they share and down, "
             + "and between tenants that share none it has no way to go")

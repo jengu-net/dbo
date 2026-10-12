@@ -162,6 +162,29 @@ public final class FleetRegister {
     }
 
     /**
+     * The rows the jurisdictions above a tenant put on its register: one per
+     * process each zone permits, nearest zone first.
+     *
+     * <p><b>Required, and applied.</b> A jurisdiction's process is an
+     * obligation of membership rather than an offer, so it cannot be declined
+     * and nothing waits on its approval; it is on the register so that the
+     * tenant reads, in one place, everyone whose process may touch its data.
+     * Each zone of the chain is named, because each is a jurisdiction whose
+     * rules apply, and a tenant in Estonia is bound by the EU's as well.
+     */
+    public static List<Row> ofZones(List<String> chain,
+            java.util.function.Function<String, Set<String>> permitted) {
+        List<Row> rows = new ArrayList<>();
+        for (String zone : chain) {
+            for (String process : new java.util.TreeSet<>(permitted.apply(zone))) {
+                rows.add(new Row(process, null, null, true,
+                        TenantSpec.FleetStep.Posture.APPLIED, Authority.ZONE, zone, List.of()));
+            }
+        }
+        return List.copyOf(rows);
+    }
+
+    /**
      * The rows this tenant would read, from the deployment's declaration and
      * its own.
      *
