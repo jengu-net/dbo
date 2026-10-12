@@ -30,7 +30,17 @@ import java.util.Set;
 public record Place(ChangeFeed records, ChangeFeed definitions, Set<String> readableRecords,
         GrainCodec grain, java.util.function.Supplier<String> declaration,
         java.util.function.Function<java.util.Collection<String>, Set<String>> fromTheFace,
-        java.util.function.Function<String, Trail> trailOf) {
+        java.util.function.Function<String, Trail> trailOf,
+        java.util.function.Function<String, Handover> workOf) {
+
+    /** A tenant that takes no work from its places. */
+    public Place(ChangeFeed records, ChangeFeed definitions, Set<String> readableRecords,
+            GrainCodec grain, java.util.function.Supplier<String> declaration,
+            java.util.function.Function<java.util.Collection<String>, Set<String>> fromTheFace,
+            java.util.function.Function<String, Trail> trailOf) {
+        this(records, definitions, readableRecords, grain, declaration, fromTheFace, trailOf,
+                null);
+    }
 
     /** A place whose trail the tenant does not take. */
     public Place(ChangeFeed records, ChangeFeed definitions, Set<String> readableRecords,

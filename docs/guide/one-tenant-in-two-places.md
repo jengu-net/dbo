@@ -55,7 +55,14 @@ that use it.
 - **A replica is the same tenant in a second place.** What a run produced
   there lands on the cloud filed under the place that made it, a batch sent
   twice applies once, and a peer resuming a cursor another lane issued is
-  refused rather than replayed. A lane admits every declared type except the
+  refused rather than replayed.
+- **A place sends its work home by itself.** In its sync round a site hands
+  its runs, what each produced and their trail up the lane it already holds,
+  on its own credential, and the cloud files them under that credential: the
+  runs mirrored beside its own, the records read with the site as their
+  source, `urn:dbo:upstream:<place>`. What the site wrote outside any run
+  stays on the site. While the link is down the work waits on the site, and
+  once it is back it all goes, each once. A lane admits every declared type except the
   ones about a person, which travel by work or not at all.
 
 The [joins table](../arc42-003-context/user-stories/us-dbo-two-places.md#joins)
@@ -63,8 +70,10 @@ names the test behind each.
 
 ## What the store cannot do yet
 
-- **The store builds no channel.** It hands a caller a batch and accepts one
-  back; something outside carries the bytes, authenticates and reconnects. The
+- **Beyond a place's own lane, the store builds no channel.** A place hands
+  its work and its trail up the lane it holds; between any other two
+  replicas the store hands a caller a batch and accepts one back, and
+  something outside carries the bytes, authenticates and reconnects. The
   sample applications carry none, so the story drives the hospital's lane
   itself.
 - **Moving work between places is a person's act.** A replica that dies

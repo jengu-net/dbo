@@ -422,10 +422,29 @@ public class WireLane implements Lane {
                 return positionIn(post(LaneVerbs.TRAIL_PUSH, body));
             }
         };
+        cloud.jengu.dbo.runner.transport.Handover work = batch -> {
+            Map<String, Object> body = verb();
+            body.put(LaneVerbs.BATCH, batch);
+            Object answer = post(LaneVerbs.RUNS_PUSH, body);
+            Map<?, ?> said = answer instanceof Map<?, ?> map ? map : Map.of();
+            List<String> refused = new java.util.ArrayList<>();
+            if (said.get(LaneVerbs.REFUSED) instanceof List<?> named) {
+                named.forEach(one -> refused.add(String.valueOf(one)));
+            }
+            return new cloud.jengu.dbo.runner.transport.Handover.Taken(
+                    said.get(LaneVerbs.APPLIED) instanceof Number n ? n.longValue() : 0,
+                    said.get(LaneVerbs.SKIPPED) instanceof Number n ? n.longValue() : 0,
+                    refused);
+        };
         return new cloud.jengu.dbo.runner.transport.Origin() {
             @Override
             public cloud.jengu.dbo.runner.transport.Trail trail() {
                 return trail;
+            }
+
+            @Override
+            public cloud.jengu.dbo.runner.transport.Handover work() {
+                return work;
             }
 
             @Override

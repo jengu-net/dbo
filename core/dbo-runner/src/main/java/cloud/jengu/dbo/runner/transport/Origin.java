@@ -44,4 +44,9 @@ public interface Origin {
     default Trail trail() {
         return null;
     }
+
+    /** Where this place hands the work it did, or null for a link that carries none. */
+    default Handover work() {
+        return null;
+    }
 }

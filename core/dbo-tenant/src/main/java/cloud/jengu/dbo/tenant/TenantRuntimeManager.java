@@ -380,6 +380,8 @@ public final class TenantRuntimeManager implements AutoCloseable {
     private final Map<String, OriginFeeds> originFeeds = new ConcurrentHashMap<>();
     /** Each place's own trail, handed to its tenant over the link it reads through. */
     private final Map<String, TrailPusher> trailPushers = new ConcurrentHashMap<>();
+    /** Each place's work, handed up the link it reads through, as its trail is. */
+    private final Map<String, RunsPusher> runsPushers = new ConcurrentHashMap<>();
     /**
      * Each tenant's declaration as it was last read, by code: what a place of
      * it elsewhere is handed, so the two are declared with the same text.
@@ -3762,6 +3764,20 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 new PgChangeFeed(db.dataSource(), version.domain()),
                 new PgChangeFeed(db.dataSource(), cloud.jengu.dbo.core.api.Domains.DEFINITIONS),
                 declarationTypes(spec));
+        // WHICH PLACE MADE IT, kept where every other copy's source is kept:
+        // a record a place's run produced is read here with the place it came
+        // from as its source, as a record a dependency streamed is read with
+        // the dependency.
+        java.util.Map<String, String> domainOf = new java.util.HashMap<>();
+        declared.registrations().forEach(registration ->
+                domainOf.put(registration.typeName(), registration.domain()));
+        replication.recordingWhence((item, from) -> {
+            String domain = domainOf.get(item.typeName());
+            if (domain != null) {
+                PlaceOrigins.note(db.dataSource(), domain, item.id(), from, item.typeName(),
+                        item.version());
+            }
+        });
         TenantRuntime runtime = new TenantRuntime(spec, engine, store,
                 new PgChangeFeed(db.dataSource(), version.domain()),
                 new PgChangeFeed(db.dataSource(), cloud.jengu.dbo.core.api.Domains.DEFINITIONS),
@@ -4221,7 +4237,23 @@ public final class TenantRuntimeManager implements AutoCloseable {
                         && tenantDataSources.get(code) != null
                         ? participant -> PlaceTrails.of(tenantDataSources.get(code), replay,
                                 participant)
-                        : null));
+                        : null,
+                // The runs a place performed and what they produced, applied as
+                // the place's: filed under the credential that hands them, the
+                // runs mirrored beside this tenant's own.
+                participant -> batch -> {
+                    cloud.jengu.dbo.sync.Lanes.Batch handed = cloud.jengu.dbo.core.wire.RecordWire
+                            .decode(batch, cloud.jengu.dbo.sync.Lanes.Batch.class);
+                    // FILED BY THE CREDENTIAL, never by the name the batch
+                    // carries: a place hands its work as itself and as nobody
+                    // else, exactly as it hands its trail.
+                    cloud.jengu.dbo.sync.Lanes.Applied applied = serving.replication().apply(
+                            participant, new cloud.jengu.dbo.sync.Lanes.Batch(handed.epoch(),
+                                    participant, handed.cursor(), handed.items(),
+                                    handed.contentCursor()));
+                    return new cloud.jengu.dbo.runner.transport.Handover.Taken(
+                            applied.applied(), applied.skipped(), applied.refused());
+                }));
     }
 
     /**
@@ -4232,12 +4264,21 @@ public final class TenantRuntimeManager implements AutoCloseable {
     public record OriginFeeds(ChangeFeed records, ChangeFeed definitions,
             ChangeFeed definitionsWithoutTheFace,
             /** Where the place hands its own trail, or null for a link that carries none. */
-            cloud.jengu.dbo.runner.transport.Trail trail) {
+            cloud.jengu.dbo.runner.transport.Trail trail,
+            /** Where the place hands the work it did, or null for a link that carries none. */
+            cloud.jengu.dbo.runner.transport.Handover work) {
 
         /** A link that carries no trail: the place keeps its own. */
         public OriginFeeds(ChangeFeed records, ChangeFeed definitions,
                 ChangeFeed definitionsWithoutTheFace) {
-            this(records, definitions, definitionsWithoutTheFace, null);
+            this(records, definitions, definitionsWithoutTheFace, null, null);
+        }
+
+        /** A link that carries the trail and no work. */
+        public OriginFeeds(ChangeFeed records, ChangeFeed definitions,
+                ChangeFeed definitionsWithoutTheFace,
+                cloud.jengu.dbo.runner.transport.Trail trail) {
+            this(records, definitions, definitionsWithoutTheFace, trail, null);
         }
     }
 
@@ -4301,6 +4342,12 @@ public final class TenantRuntimeManager implements AutoCloseable {
             trailPushers.put(spec.code(), new TrailPusher(on, feeds.trail()));
         } else {
             trailPushers.remove(spec.code());
+        }
+        if (feeds.work() != null) {
+            runsPushers.put(spec.code(), new RunsPusher(runtime.replication(), feeds.work(),
+                    RunsPusher.processesOf(spec)));
+        } else {
+            runsPushers.remove(spec.code());
         }
         FhirVersion version = versions.require(spec.face());
         TenantSpec.Dependency face = faceChainOf(spec);
@@ -5114,6 +5161,35 @@ public final class TenantRuntimeManager implements AutoCloseable {
         // Each place's own trail, up the link it reads through. What is not
         // taken waits in the place's own trail, and the tenant says where to
         // hand on from.
+        // And each place's work: the runs it performed and what they
+        // produced, which wait here while the link is down and go, once,
+        // when it is back.
+        runsPushers.forEach((code, pusher) -> {
+            if (closing || !runtimes.containsKey(code)) {
+                return;
+            }
+            String name = "runs." + code;
+            try {
+                int handed = pusher.round();
+                if (handed > 0) {
+                    LOG.info("place {} handed its tenant items={} of its work", code, handed);
+                }
+                if (unreached.remove(name)) {
+                    LOG.info("place {} hands its work to its tenant again", code);
+                }
+            } catch (RuntimeException e) {
+                if (unreachable(e)) {
+                    if (unreached.add(name)) {
+                        LOG.warn("place {} cannot hand its work to its tenant ({}); it waits "
+                                + "here and goes when the tenant can be reached", code,
+                                e.getMessage());
+                    }
+                } else {
+                    LOG.warn("place {} could not hand its work to its tenant this round; it "
+                            + "goes again next round", code, e);
+                }
+            }
+        });
         trailPushers.forEach((code, pusher) -> {
             if (closing || !runtimes.containsKey(code)) {
                 return;

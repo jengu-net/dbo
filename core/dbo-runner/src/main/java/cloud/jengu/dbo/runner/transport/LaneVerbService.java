@@ -118,7 +118,7 @@ public final class LaneVerbService {
         // verb and cleared after it, because a door's thread is reused.
         if (verb == LaneVerbs.FEED_READ || verb == LaneVerbs.FEED_ACK
                 || verb == LaneVerbs.DECLARATION || verb == LaneVerbs.TRAIL_POSITION
-                || verb == LaneVerbs.TRAIL_PUSH) {
+                || verb == LaneVerbs.TRAIL_PUSH || verb == LaneVerbs.RUNS_PUSH) {
             return placed(grant, participant, verb, body);
         }
         cloud.jengu.dbo.core.api.Caller.set(grant.clientId());
@@ -167,6 +167,9 @@ public final class LaneVerbService {
         }
         if (verb == LaneVerbs.TRAIL_POSITION || verb == LaneVerbs.TRAIL_PUSH) {
             return trail(served.get(), grant, verb, body);
+        }
+        if (verb == LaneVerbs.RUNS_PUSH) {
+            return work(served.get(), grant, body);
         }
         String domain = string(body, LaneVerbs.DOMAIN);
         if (!Place.RECORDS.equals(domain) && !Place.DEFINITIONS.equals(domain)) {
@@ -272,6 +275,34 @@ public final class LaneVerbService {
                         + " bytes at a time, and this was " + entries.size() + " and " + bytes);
             }
             return new Answer.Ok(position(trail.handed(feed, entries, through)));
+        } catch (IllegalStateException refused) {
+            return new Answer.Refused(String.valueOf(refused.getMessage()));
+        } catch (IllegalArgumentException malformed) {
+            return new Answer.Denied(400, null, String.valueOf(malformed.getMessage()));
+        }
+    }
+
+    /**
+     * The runs a place performed, and what they produced, handed to be
+     * applied as the place's — filed by the credential that hands them, never
+     * by a name in the batch, so a place can file work as itself and as
+     * nobody else.
+     */
+    private Answer work(Place place, Access.Grant grant, Object body) {
+        if (place.workOf() == null) {
+            return new Answer.Refused("this tenant takes no work from its places");
+        }
+        Object batch = field(body, LaneVerbs.BATCH);
+        if (batch == null) {
+            return new Answer.Denied(400, null, "work is handed as a batch");
+        }
+        try {
+            Handover.Taken taken = place.workOf().apply(grant.clientId()).handed(batch);
+            Map<String, Object> answer = new java.util.LinkedHashMap<>();
+            answer.put(LaneVerbs.APPLIED, taken.applied());
+            answer.put(LaneVerbs.SKIPPED, taken.skipped());
+            answer.put(LaneVerbs.REFUSED, taken.refused());
+            return new Answer.Ok(answer);
         } catch (IllegalStateException refused) {
             return new Answer.Refused(String.valueOf(refused.getMessage()));
         } catch (IllegalArgumentException malformed) {
@@ -423,7 +454,7 @@ public final class LaneVerbService {
             }
             // Served beside the lane, never through it: a place is not a
             // participant act, and serve() takes them before a lane is built.
-            case FEED_READ, FEED_ACK, DECLARATION, TRAIL_POSITION, TRAIL_PUSH ->
+            case FEED_READ, FEED_ACK, DECLARATION, TRAIL_POSITION, TRAIL_PUSH, RUNS_PUSH ->
                     throw new IllegalStateException("'" + verb.path()
                             + "' is a place's verb and is not dispatched to a lane");
         };
