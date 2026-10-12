@@ -25,7 +25,7 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
         List<Dependency> dependencies, Scim scim, List<String> mandatorySteps,
         String managedBy, boolean faceRoot, List<Step> steps, boolean zoneRoot,
         boolean indexFace, List<FleetStep> fleetSteps, Set<String> declines,
-        Set<String> authorised) {
+        Set<String> authorised, Set<String> exchanges) {
 
     /**
      * A step this tenant offers, and the documents a run of it is over.
@@ -455,6 +455,23 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
     }
 
     /**
+     * Without exchanges: what every zone was while a jurisdiction only said
+     * what was true in it, and nothing about what its members may do for each
+     * other.
+     */
+    public TenantSpec(String code, String face, List<FhirTypeConfig> types,
+            boolean pdi, cloud.jengu.dbo.policy.TenantPolicies policies,
+            String zone, String broker, List<String> acceptedBrokers,
+            List<Dependency> dependencies, Scim scim, List<String> mandatorySteps,
+            String managedBy, boolean faceRoot, List<Step> steps, boolean zoneRoot,
+            boolean indexFace, List<FleetStep> fleetSteps, Set<String> declines,
+            Set<String> authorised) {
+        this(code, face, types, pdi, policies, zone, broker, acceptedBrokers,
+                dependencies, scim, mandatorySteps, managedBy, faceRoot, steps, zoneRoot,
+                indexFace, fleetSteps, declines, authorised, Set.of());
+    }
+
+    /**
      * Without an authorisation on record: what every tenant was before a
      * deployment could open anything of its data, and what one still is until
      * it has read the register once.
@@ -655,6 +672,9 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
     // 128 is generous headroom; databaseName() folds ANY length into a
     // Postgres-safe identifier. Underscores stay accepted for old specs.
     private static final Pattern CODE = Pattern.compile("[a-z][a-z0-9_-]{0,127}");
+    // A process id: the two leading parts of a step id, StepId.processId().
+    private static final Pattern PROCESS =
+            Pattern.compile("[a-z][a-z0-9-]*\\.[a-z][a-z0-9-]*");
 
     /**
      * Whether a string is a tenant code at all.
@@ -686,6 +706,26 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
         types = List.copyOf(types);
         if (types.isEmpty()) {
             throw new IllegalArgumentException(code + ": at least one type required");
+        }
+        // A ZONE IS NOT ITS OWN PARENT. Zones form a tree, and naming itself
+        // is the shortest cycle in one: a jurisdiction bound by its own rules
+        // is bound by nothing above it.
+        if (zone != null && zone.equals(code)) {
+            throw new IllegalArgumentException(code + ": names itself as its zone, and a "
+                    + "zone's zone is the jurisdiction it belongs to");
+        }
+        exchanges = Set.copyOf(exchanges);
+        if (!exchanges.isEmpty() && !zoneRoot) {
+            throw new IllegalArgumentException(code + ": declares exchanges "
+                    + new java.util.TreeSet<>(exchanges) + " and is not a zone. What "
+                    + "members may do for each other is a jurisdiction's to permit, said in "
+                    + "a file that also says \"zoneRoot\": true");
+        }
+        for (String process : exchanges) {
+            if (!PROCESS.matcher(process).matches()) {
+                throw new IllegalArgumentException(code + ": an exchange is a process, "
+                        + "<module>.<process>, and this one is: " + process);
+            }
         }
         dependencies = List.copyOf(dependencies);
         for (Dependency dependency : dependencies) {
@@ -1054,7 +1094,22 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
                 //
                 // Empty means it has read none, which is a real state and a
                 // different answer from having read a different one.
-                Set.copyOf(Json.strings(root, "authorised")));
+                Set.copyOf(Json.strings(root, "authorised")),
+                // WHAT THIS ZONE PERMITS ITS MEMBERS TO DO FOR EACH OTHER, by
+                // process. Permitted by declaration and never assumed: a zone
+                // that lists none permits none, and a zone below another may
+                // list only what the one above it does.
+                exchangesOf(root));
+    }
+
+    private static Set<String> exchangesOf(Object root) {
+        Set<String> once = new java.util.HashSet<>();
+        for (String process : Json.strings(root, "exchanges")) {
+            if (!once.add(process)) {
+                throw new IllegalArgumentException("exchanges names " + process + " twice");
+            }
+        }
+        return once;
     }
 
     /**

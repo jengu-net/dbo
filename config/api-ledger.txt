@@ -3406,11 +3406,14 @@ cloud.jengu.dbo.promises.DboPromises                                   WF_TWO_PL
 cloud.jengu.dbo.promises.DboPromises                                   ZONE_AN_UNSERVABLE_ZONE_IS_SAID_AT_BRING_UP:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   ZONE_A_ZONE_IS_DECLARED_BY_THE_TENANT_THAT_IS_ONE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   ZONE_A_ZONE_IS_SERVED_TO_A_FACE_THROUGH_ONE_PROJECTION:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   ZONE_A_ZONE_NAMES_THE_ZONE_IT_BELONGS_TO:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   ZONE_A_ZONE_ONLY_NARROWS_THE_ZONE_IT_BELONGS_TO:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   ZONE_BROKER_CHOICE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   ZONE_DECLARATIONS_AS_RECORDS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   ZONE_SESSIONS_ACCUMULATE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   ZONE_SUBJECT_DOMAINS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   ZONE_WHAT_CONVERSION_CANNOT_CARRY_IS_REFUSED_BY_NAME:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   ZONE_WORK_CROSSES_THROUGH_THE_LOWEST_ZONE_TWO_TENANTS_SHARE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   enum
 cloud.jengu.dbo.promises.DboPromises                                   text():String
 cloud.jengu.dbo.promises.DboPromises                                   valueOf(String):cloud.jengu.dbo.promises.DboPromises
@@ -4776,6 +4779,7 @@ cloud.jengu.dbo.tenant.TenantSpec                                      databaseN
 cloud.jengu.dbo.tenant.TenantSpec                                      declines():Set
 cloud.jengu.dbo.tenant.TenantSpec                                      dependencies():List
 cloud.jengu.dbo.tenant.TenantSpec                                      equals(Object):boolean
+cloud.jengu.dbo.tenant.TenantSpec                                      exchanges():Set
 cloud.jengu.dbo.tenant.TenantSpec                                      face():String
 cloud.jengu.dbo.tenant.TenantSpec                                      faceRoot():boolean
 cloud.jengu.dbo.tenant.TenantSpec                                      fleetSteps():List
@@ -4800,6 +4804,7 @@ cloud.jengu.dbo.tenant.TenantSpec                                      new(Strin
 cloud.jengu.dbo.tenant.TenantSpec                                      new(String,String,List,boolean,cloud.jengu.dbo.policy.TenantPolicies,String,String,List,List,cloud.jengu.dbo.tenant.TenantSpec.Scim,List,String,boolean,List,boolean,boolean,List)
 cloud.jengu.dbo.tenant.TenantSpec                                      new(String,String,List,boolean,cloud.jengu.dbo.policy.TenantPolicies,String,String,List,List,cloud.jengu.dbo.tenant.TenantSpec.Scim,List,String,boolean,List,boolean,boolean,List,Set)
 cloud.jengu.dbo.tenant.TenantSpec                                      new(String,String,List,boolean,cloud.jengu.dbo.policy.TenantPolicies,String,String,List,List,cloud.jengu.dbo.tenant.TenantSpec.Scim,List,String,boolean,List,boolean,boolean,List,Set,Set)
+cloud.jengu.dbo.tenant.TenantSpec                                      new(String,String,List,boolean,cloud.jengu.dbo.policy.TenantPolicies,String,String,List,List,cloud.jengu.dbo.tenant.TenantSpec.Scim,List,String,boolean,List,boolean,boolean,List,Set,Set,Set)
 cloud.jengu.dbo.tenant.TenantSpec                                      onlyTheDeploymentDeclaresFleetSteps(cloud.jengu.dbo.tenant.TenantSpec):void
 cloud.jengu.dbo.tenant.TenantSpec                                      parse(String):cloud.jengu.dbo.tenant.TenantSpec
 cloud.jengu.dbo.tenant.TenantSpec                                      pdi():boolean
