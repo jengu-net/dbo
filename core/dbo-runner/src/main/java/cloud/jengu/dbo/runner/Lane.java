@@ -450,7 +450,23 @@ public interface Lane {
      */
     private static boolean names(Run run, String reference) {
         return run.inputs().entrySet().stream()
-                .anyMatch(slot -> slot.getValue().tokens(slot.getKey()).contains(reference));
+                .anyMatch(slot -> slot.getValue().tokens(slot.getKey()).contains(reference))
+                || answeredWith(run).stream()
+                        .anyMatch(sealed -> sealed.reference().equals(reference));
+    }
+
+    /**
+     * What came back on a crossing this run asked across: the owner's answer,
+     * sealed to the run's reader. Empty for a run that stays where it is, or
+     * one nothing has come back on yet.
+     */
+    private static java.util.List<cloud.jengu.dbo.work.SealedPayload> answeredWith(Run run) {
+        if (run.crossing() == null || run.crossing().arrived() == null) {
+            return java.util.List.of();
+        }
+        return cloud.jengu.dbo.core.wire.RecordWire.decode(
+                cloud.jengu.dbo.core.wire.RecordWire.read(run.crossing().arrived()),
+                cloud.jengu.dbo.work.SealedWork.class).payload();
     }
 
     private static Map<String, java.util.List<String>> named(Run run) {
@@ -1156,6 +1172,28 @@ public interface Lane {
             @Override
             public cloud.jengu.dbo.work.SealedWork sealed(Run run, List<String> named) {
                 Run current = readableByThisIdentity(run);
+                java.util.List<cloud.jengu.dbo.work.SealedPayload> answer = answeredWith(current);
+                if (!answer.isEmpty()) {
+                    // WHAT CAME BACK, as it came: sealed by the owner to the
+                    // reader and nobody else, so nothing is sealed here and
+                    // nobody but the reader is given it. The manifest is made
+                    // now, because the head it names is the run's as it
+                    // stands when the reader opens it.
+                    String reader = current.crossing().reader();
+                    if (!named.equals(List.of(identity.name())) || !reader.equals(participant)) {
+                        throw new IllegalStateException(tenant + ": run '" + current.key()
+                                + "' came back sealed to '" + reader + "', and is opened by "
+                                + "that reader alone");
+                    }
+                    return new cloud.jengu.dbo.work.SealedWork(
+                            new cloud.jengu.dbo.work.Manifest(tenant,
+                                    current.process() + "." + current.step(), current.key(),
+                                    Map.of("shared", answer.stream()
+                                            .map(cloud.jengu.dbo.work.SealedPayload::reference)
+                                            .toList()),
+                                    List.of(reader), head(current)),
+                            answer);
+                }
                 if (named == null || named.isEmpty()) {
                     throw new IllegalStateException(tenant + ": a payload is sealed to somebody, "
                             + "and nobody was named");

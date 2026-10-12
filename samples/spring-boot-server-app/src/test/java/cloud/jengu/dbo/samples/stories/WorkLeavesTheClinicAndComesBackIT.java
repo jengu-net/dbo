@@ -1361,6 +1361,66 @@ class WorkLeavesTheClinicAndComesBackIT {
                 "rl did not record the way back, or recorded what was shared: " + said);
     }
 
+    @Test
+    @Order(55)
+    @DisplayName("the clinic's asker takes its run on the clinic's own lane, opens what the "
+            + "hospital shared with its own key, and the clinic's trail records that it did")
+    @Proving(DboPromises.ZONE_THE_ASKERS_READER_OPENS_THE_ANSWER_ON_ITS_OWN_LANE)
+    void theAskerOpensTheAnswerOnItsOwnLane() throws Exception {
+        String marker = NAMES.value("opened-back");
+        AnsweredBack back = askedAndAnsweredBack(marker);
+
+        HttpLane reader = HttpLane.holding(URI.create(dbo.at(CLINIC) + "/work"),
+                this::askerToken, CLINIC, ASKER, executor(ASKER),
+                askerSealing.getPrivate(), askerSigning.getPrivate());
+        Run run = new Runs(tenants.store(CLINIC).orElseThrow()).byKey(back.key()).orElseThrow();
+        Run held = reader.claim(run, Duration.ofMinutes(5)).orElseThrow();
+        Map<String, List<StoredObject>> shared = reader.inputs(held);
+        Proves.that(DboPromises.ZONE_THE_ASKERS_READER_OPENS_THE_ANSWER_ON_ITS_OWN_LANE,
+                shared.get("shared") != null && shared.get("shared").size() == 1
+                        && new String(shared.get("shared").get(0).payload(),
+                                java.nio.charset.StandardCharsets.UTF_8).contains(marker),
+                "the asker was not handed what the hospital shared: " + shared.keySet());
+
+        List<StoredObject> trail = tenants.store(CLINIC).orElseThrow().select(
+                cloud.jengu.dbo.core.api.Criteria.of("AuditEntry").eq("run",
+                        cloud.jengu.dbo.core.api.EnvelopeValue.of(back.key())));
+        String said = trail.stream().map(entry -> new String(entry.payload(),
+                java.nio.charset.StandardCharsets.UTF_8)).toList().toString();
+        Proves.that(DboPromises.ZONE_THE_ASKERS_READER_OPENS_THE_ANSWER_ON_ITS_OWN_LANE,
+                said.contains("\"access\"") && said.contains("\"by\":\"" + ASKER + "\"")
+                        && said.contains(back.shared()),
+                "the clinic's trail does not record that its asker opened what came back: "
+                        + said);
+    }
+
+    /** What the clinic asked, the hospital answered, and the answer back on the clinic's run. */
+    private record AnsweredBack(String key, String shared) {}
+
+    private AnsweredBack askedAndAnsweredBack(String marker) throws InterruptedException {
+        HttpResponse<String> asked = askAcross(HOSPITAL);
+        String key = dbo.says(asked).one("key").orElseThrow();
+        Run answering = hospitalRunAnswering(asked);
+        String shared = dbo.write(HOSPITAL, "Observation", """
+                {"resourceType":"Observation","status":"final","code":{"text":"%s"}}"""
+                .formatted(marker)).idOrFail();
+        HttpLane desk = recordsDesk();
+        Run held = desk.claim(answering, Duration.ofMinutes(5)).orElseThrow();
+        desk.inputs(held);
+        desk.committed(held, null, List.of(cloud.jengu.dbo.runner.Outcome.Write.create("""
+                {"resourceType":"List","status":"current","mode":"snapshot",
+                 "entry":[{"item":{"reference":"Observation/%s"}}]}""".formatted(shared))));
+        Runs clinicRuns = new Runs(tenants.store(CLINIC).orElseThrow());
+        long giveUp = System.nanoTime() + Duration.ofMinutes(2).toNanos();
+        while (System.nanoTime() < giveUp) {
+            if (clinicRuns.byKey(key).orElseThrow().crossing().arrived() != null) {
+                return new AnsweredBack(key, shared);
+            }
+            Thread.sleep(500);
+        }
+        throw new AssertionError("the hospital's answer never came back to the clinic");
+    }
+
     /** The run the hospital was carried for what the clinic asked, once it arrives. */
     private Run hospitalRunAnswering(HttpResponse<String> asked) throws InterruptedException {
         assertEquals(201, asked.statusCode(), asked.body());
