@@ -3,6 +3,7 @@ package cloud.jengu.dbo.harness;
 import cloud.jengu.dbo.asking.Asking;
 import cloud.jengu.dbo.asking.Ongoing;
 import cloud.jengu.dbo.work.RunInitiator;
+import cloud.jengu.dbo.work.Status;
 
 import cloud.jengu.dbo.auth.TenantAuthority;
 import cloud.jengu.dbo.core.api.feed.FeedChunk;
@@ -78,6 +79,8 @@ class ASecondPlaceComesUpFromItsOriginIT {
                              {"name":"%s","types":["Organization","CodeSystem"]}],
              "steps":[{"code":"%s","slots":{"specimen":"Observation"},
                        "writes":["Observation"]},
+                      {"code":"jaam.lab.order","slots":{"order":"Reference(Observation)"},
+                       "lasts":true},
                       {"code":"jaam.lab.calibrate",
                        "starts":{"every":"0 * * * * *","missed":"skip","keep":"P1D",
                                  "where":"places"}}],
@@ -641,6 +644,32 @@ class ASecondPlaceComesUpFromItsOriginIT {
         }
         assertEquals(List.of("site" + Lanes.MIRROR_SEPARATOR + RECORD + "/the-part"), parts,
                 "the part the site started is not its run's part at the tenant");
+    }
+
+    @Test
+    @Order(15)
+    @DisplayName("work that lasts opened on the site reads the same at its tenant, filed under "
+            + "the site, and is moved only where it is")
+    @Proving(DboPromises.PROC_WORK_THAT_LASTS_IS_OPENED_FOR_ITS_REQUEST)
+    void workThatLastsComesHomeUnderTheSite() throws Exception {
+        StepDeclaration ordering = StepDeclaration.of("jaam.lab.order", "1", "r4")
+                .taking("order", "Observation");
+        Runs onTheSite = new Runs(site.runtime(CLINIC).orElseThrow().engine());
+        Run opened = onTheSite.opening(ordering, "order", "Observation/the-order", null, null);
+        onTheSite.accepted(opened, "the-bench", "taken on at the site");
+        site.syncRound();
+
+        Runs home = new Runs(cloud.runtime(CLINIC).orElseThrow().engine());
+        Run atHome = home.byKey("site" + Lanes.MIRROR_SEPARATOR + "jaam.lab.order/Observation/"
+                + "the-order").orElseThrow(() -> new AssertionError(
+                        "the site's lasting work did not reach its tenant"));
+        assertTrue(atHome.lasting(), atHome.toString());
+        assertEquals("accepted", atHome.status().wire(), atHome.toString());
+        assertEquals("site", atHome.place(), atHome.toString());
+        assertTrue(org.junit.jupiter.api.Assertions.assertThrows(RuntimeException.class,
+                        () -> home.ended(atHome, Status.CANCELLED,
+                                "home", "not ours to end")).getMessage() != null,
+                "the tenant moved work that lasts on its site");
     }
 
     private static int times(String found, String in) {

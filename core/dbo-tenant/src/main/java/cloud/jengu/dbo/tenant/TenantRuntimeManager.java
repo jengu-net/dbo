@@ -665,6 +665,25 @@ public final class TenantRuntimeManager implements AutoCloseable {
             }
 
             @Override
+            public Started saying(String tenant, String run, String act,
+                    Map<String, String> said) {
+                StepSurface starter = starters.get(tenant);
+                if (starter == null) {
+                    return new Started(404, null, null, "{\"error\":\"not_found\"}");
+                }
+                StringBuilder body = new StringBuilder();
+                said.forEach((name, value) -> body.append(body.isEmpty() ? "" : ",")
+                        .append(cloud.jengu.dbo.work.RunInitiator.quoted(name)).append(':')
+                        .append(cloud.jengu.dbo.work.RunInitiator.quoted(value)));
+                StepSurface.Started answered = starter.saying(run, act,
+                        Json.parse("{" + body + "}"), "in-process");
+                return new Started(answered.status(),
+                        cloud.jengu.dbo.work.RunInitiator.field(answered.body(), "run"),
+                        cloud.jengu.dbo.work.RunInitiator.field(answered.body(), "key"),
+                        answered.body());
+            }
+
+            @Override
             public Answer answer(String tenant, String run) {
                 StepSurface starter = starters.get(tenant);
                 if (starter == null) {

@@ -303,6 +303,29 @@ public interface Lane {
     }
 
     /**
+     * The same, also saying something of the lasting work this run is a
+     * part of: checked before anything is written, said once its records and
+     * parts are.
+     */
+    default Run committed(Run run, String head, List<Outcome.Write> result,
+            List<Outcome.Part> parts, Outcome.Said said) {
+        if (said == null) {
+            return committed(run, head, result, parts);
+        }
+        throw new UnsupportedOperationException(getClass().getName()
+                + " cannot say anything of the work a run is a part of");
+    }
+
+    /**
+     * The run this one is a part of, as it stands, for the holder of this
+     * one: what lasting work's parts read of it — the request it fulfils and
+     * its stage. Empty for a run that is a part of nothing.
+     */
+    default java.util.Optional<Run> partOf(Run run) {
+        return java.util.Optional.empty();
+    }
+
+    /**
      * A closed run, deliberately open again, with the reason recorded
      * (REQ-DBO-PROC-CLOSED-CAN-BE-REOPENED).
      *
@@ -853,7 +876,26 @@ public interface Lane {
             @Override
             public Run committed(Run run, String head, List<Outcome.Write> result,
                     List<Outcome.Part> parts) {
-                if (result.isEmpty() && parts.isEmpty()) {
+                return committed(run, head, result, parts, null);
+            }
+
+            @Override
+            public java.util.Optional<Run> partOf(Run run) {
+                Run current = runs.byKey(run.key()).orElseThrow(() -> new IllegalStateException(
+                        tenant + ": no run '" + run.key() + "'"));
+                if (!heldByThisIdentity(current)) {
+                    throw new Runs.NotHeld(tenant + ": run '" + run.key()
+                            + "' is not claimed by " + identity.name()
+                            + " — what it is a part of is read with a claim");
+                }
+                return current.parent() == null ? java.util.Optional.empty()
+                        : runs.byKey(current.parent());
+            }
+
+            @Override
+            public Run committed(Run run, String head, List<Outcome.Write> result,
+                    List<Outcome.Part> parts, Outcome.Said said) {
+                if (result.isEmpty() && parts.isEmpty() && said == null) {
                     closed(run, head);
                     return runs.byKey(run.key()).orElse(run);
                 }
@@ -878,12 +920,23 @@ public interface Lane {
                     // The parts first, while a refusal still strands nothing:
                     // a result is refused whole, records and parts together.
                     results.requireStartable(current, parts);
+                    Run lasting = said == null ? null : lastingOf(current);
                     versions = result.isEmpty() ? List.of() : results.commit(current, result);
                     // Then started, once what the run wrote is there to read.
                     // Not in the records' commit — runs are the work's and the
                     // records the tenant's — and so keyed: a result given again
                     // after a failure between the two finds its parts started.
                     results.start(current, parts);
+                    // And what it says of the work it is a part of, as the
+                    // part that said it.
+                    if (lasting != null && said.stage() != null) {
+                        lasting = runs.reached(lasting, said.stage(), identity.name(),
+                                said.because());
+                    }
+                    if (lasting != null && said.ending() != null) {
+                        runs.ended(lasting, cloud.jengu.dbo.work.Status.of(said.ending()),
+                                identity.name(), said.because());
+                    }
                 } catch (Results.Refused refused) {
                     // ENDED, with the tenant's words: the same result would be
                     // refused the same way next time, so nobody is asked to
@@ -901,6 +954,26 @@ public interface Lane {
                 // what a lost claim refuses is the run's account of them,
                 // because the run is somebody else's to finish.
                 return runs.closed(run, identity, versions);
+            }
+
+            /**
+             * The lasting work a run is a part of, as what its result may say
+             * something of: refused whole where there is none to say it of.
+             */
+            private Run lastingOf(Run current) {
+                Run parent = current.parent() == null ? null
+                        : runs.byKey(current.parent()).orElse(null);
+                if (parent == null || !parent.lasting()) {
+                    throw new Results.Refused(tenant + ": run '" + current.key() + "' says "
+                            + "something of the work it is a part of, and it is a part of "
+                            + "no work that lasts");
+                }
+                if (parent.status().over()) {
+                    throw new Results.Refused(tenant + ": run '" + current.key() + "' says "
+                            + "something of '" + parent.key() + "', which is over ("
+                            + parent.status().wire() + ")");
+                }
+                return parent;
             }
 
             /**

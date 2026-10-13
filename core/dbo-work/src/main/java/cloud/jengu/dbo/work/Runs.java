@@ -424,6 +424,19 @@ public final class Runs {
         Map<String, RunSlot> ordered = new LinkedHashMap<>();
         step.slots().keySet().forEach(slot -> ordered.put(slot, inputs.get(slot)));
         String key = step.id() + "/" + scope;
+        Optional<Run> already = byKey(key);
+        if (already.isPresent()) {
+            return already.get();
+        }
+        Run written = writeFilling(step, kind, key, ordered, requester, forPeopleBecause,
+                collect, addressee, parent);
+        partStarted(parent);
+        return written;
+    }
+
+    private Run writeFilling(cloud.jengu.dbo.core.process.StepDeclaration step, RunKind kind,
+            String key, Map<String, RunSlot> ordered, String requester, String forPeopleBecause,
+            java.time.Duration collect, Run.Addressee addressee, Run parent) {
         return byKey(key).orElseGet(() -> write(new State(key, step.id().processId(),
                 step.id().step(), kind, (forPeopleBecause == null ? Standing.OPEN
                         : Standing.OPEN.openTo(false).because(forPeopleBecause))
@@ -437,6 +450,137 @@ public final class Runs {
                 Run.Produced.NOTHING, step.version(),
                 java.util.Collections.unmodifiableMap(ordered), null, requester, null,
                 collect == null ? null : new Run.Window(collect, null))));
+    }
+
+    /**
+     * Work that lasts, opened for the request in its one slot: found again
+     * when the same request is handed in again, because what it fulfils is
+     * what makes it this work.
+     *
+     * <p>Received, held by nobody and offered to nobody: what moves it is the
+     * runs that are its parts and the acts said of it.
+     *
+     * @param request   the request it fulfils, as {@code Type/id}
+     * @param requester who asked, or null
+     * @param parent    the run it is a part of, or null
+     */
+    public Run opening(cloud.jengu.dbo.core.process.StepDeclaration step, String slot,
+            String request, String requester, Run parent) {
+        if (!step.slots().keySet().equals(java.util.Set.of(slot))) {
+            throw new IllegalArgumentException(step.id() + " lasts, and is opened for the one "
+                    + "request in its one slot; it takes " + step.slots().keySet());
+        }
+        String key = step.id() + "/" + request;
+        Optional<Run> already = byKey(key);
+        if (already.isPresent()) {
+            return already.get();
+        }
+        partStarted(parent);
+        return byKey(key).orElseGet(() -> write(new State(key, step.id().processId(),
+                step.id().step(), RunKind.LASTING,
+                Standing.OPEN.as(Status.RECEIVED).openTo(false),
+                parent == null ? null : parent.key(),
+                parent == null ? null : parent.correlation(),
+                parent == null ? null : parent.trace(),
+                Map.of(), null, List.copyOf(step.writes()),
+                requester == null ? null : new Run.Assignment(null, null, null, null, requester),
+                Run.Produced.NOTHING, step.version(),
+                Map.of(slot, RunSlot.referring(request)), null, requester, null, null)));
+    }
+
+    /** The process an act said of lasting work is recorded under. */
+    public static final String ACTS = "dbo.run.act";
+
+    /**
+     * Lasting work said to be taken on. Only while it is received: once
+     * work has started, or it is over, there is nothing left to accept.
+     */
+    public Run accepted(Run lasting, String by, String because) {
+        return said(lasting, "accepted", by, because, Status.RECEIVED,
+                snapshot -> snapshot.withStanding(snapshot.standing().as(Status.ACCEPTED)));
+    }
+
+    /** Lasting work said not to be taken on, and why: over before it began. */
+    public Run rejected(Run lasting, String by, String because) {
+        requireBecause("rejected", because);
+        return said(lasting, "rejected", by, because, Status.RECEIVED,
+                snapshot -> snapshot.withStanding(snapshot.standing().as(Status.REJECTED)
+                        .because(because)));
+    }
+
+    /**
+     * The stage lasting work has reached, kept as its current stage — the one
+     * a reader of it is shown — and said as an act, so the stages it went
+     * through are its trail.
+     */
+    public Run reached(Run lasting, String stage, String by, String because) {
+        if (stage == null || stage.isBlank()) {
+            throw new IllegalArgumentException("a stage is named");
+        }
+        return said(lasting, "reached", by, "reached " + stage
+                        + (because == null ? "" : ": " + because), null,
+                snapshot -> snapshot.withMilestone(new Run.Milestone(stage, 0, 0)));
+    }
+
+    /**
+     * Lasting work ended: completed, failed or cancelled, and why — always
+     * why, because work that lasted days ends for a reason somebody reads.
+     */
+    public Run ended(Run lasting, Status how, String by, String because) {
+        if (how != Status.COMPLETED && how != Status.FAILED && how != Status.CANCELLED) {
+            throw new IllegalArgumentException("lasting work ends completed, failed or "
+                    + "cancelled, not " + how.wire());
+        }
+        requireBecause("ended", because);
+        return said(lasting, "ended", by, how.wire() + ": " + because, null,
+                snapshot -> snapshot.withStanding(snapshot.standing().as(how).because(because)));
+    }
+
+    private static void requireBecause(String act, String because) {
+        if (because == null || because.isBlank()) {
+            throw new IllegalArgumentException("lasting work " + act + " says why");
+        }
+    }
+
+    /**
+     * One act said of lasting work: the work moved, and the act recorded
+     * under it naming who and why — refused for a run that is not lasting,
+     * one that is over, or one not standing where the act needs it.
+     */
+    private Run said(Run lasting, String act, String by, String because, Status only,
+            java.util.function.UnaryOperator<State> change) {
+        Run current = byKey(lasting.key()).orElseThrow(
+                () -> new IllegalArgumentException("no run '" + lasting.key() + "' here"));
+        if (!current.lasting()) {
+            throw new IllegalArgumentException("'" + current.key() + "' is not work that "
+                    + "lasts, and is " + act + " by whoever holds it, not said to be");
+        }
+        if (current.status().over()) {
+            throw new IllegalStateException("'" + current.key() + "' is over ("
+                    + current.status().wire() + "), and nothing more is said of it");
+        }
+        if (only != null && current.status() != only) {
+            throw new IllegalStateException("'" + current.key() + "' is "
+                    + current.status().wire() + ", and is " + act + " only while "
+                    + only.wire());
+        }
+        Run moved = update(current, change);
+        act(moved, ACTS, act, current.id() + "/" + UuidV7.newId(), by, because);
+        return moved;
+    }
+
+    /**
+     * Lasting work one of whose parts has started: in progress, from here,
+     * where it was received or accepted. Said by the part, not by anybody.
+     */
+    private void partStarted(Run parent) {
+        if (parent == null || !parent.lasting()) {
+            return;
+        }
+        advanceIf(parent, "in progress",
+                current -> current.status() == Status.RECEIVED
+                        || current.status() == Status.ACCEPTED,
+                snapshot -> snapshot.withStanding(snapshot.standing().as(Status.IN_PROGRESS)));
     }
 
     /**
@@ -652,7 +796,7 @@ public final class Runs {
         requireAdmits(seen, by);
         Run current = byKey(seen.key()).orElse(null);
         java.time.Instant now = clock.instant();
-        if (current == null || !current.open() || current.claimed(now)) {
+        if (current == null || !current.open() || current.claimed(now) || current.lasting()) {
             return Optional.empty();
         }
         if (!current.automation()) {
@@ -743,7 +887,8 @@ public final class Runs {
                     + role + "' is not one");
         }
         Run current = byKey(seen.key()).orElse(null);
-        if (current == null || !current.open() || current.claimed(clock.instant())) {
+        if (current == null || !current.open() || current.claimed(clock.instant())
+                || current.lasting()) {
             return Optional.empty();
         }
         java.time.Instant until = deadline.apply(clock.instant());

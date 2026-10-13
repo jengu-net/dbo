@@ -361,7 +361,9 @@ public final class Across implements Questions {
                     Bundles.beside(member, "urn:dbo:run", "value"),
                     emptyToNull(Bundles.beside(member, "urn:dbo:process", "code")),
                     Bundles.beside(member, "urn:dbo:step", "code"),
-                    awaits(status, automation),
+                    // Lasting work names what it instantiates, and is nobody's card.
+                    member.contains("\"instantiatesCanonical\"") ? Awaits.NOTHING
+                            : awaits(status, automation),
                     emptyToNull(correlation),
                     emptyToNull(milestone),
                     emptyToNull(status),

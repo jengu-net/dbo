@@ -34,6 +34,8 @@ public enum LaneVerbs {
     WITHDRAW("withdraw"),
     ROUTES("routes"),
     INPUTS("inputs"),
+    /** The run a held run is a part of, as it stands. */
+    PART_OF("part-of"),
     /** The same run's inputs, sealed to the asker's enrolment key: what a keyed participant gets. */
     SEALED("sealed"),
     /** The asker opened one sealed document — the access entry, from where the key was used. */
@@ -110,6 +112,8 @@ public enum LaneVerbs {
     public static final String WRITES = "writes";
     /** The runs a result starts as parts of the run it is the result of. */
     public static final String PARTS = "parts";
+    /** What a result says of the lasting work its run is a part of. */
+    public static final String SAID = "said";
     public static final String PREVIOUS = "previous";
     public static final String LINK = "link";
     public static final String SIGNATURE = "signature";

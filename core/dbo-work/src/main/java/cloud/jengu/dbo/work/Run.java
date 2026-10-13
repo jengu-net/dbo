@@ -409,7 +409,7 @@ public record Run(String id, long versionId, String key, String process, String 
      * question there is.
      */
     public boolean forAutomation(java.time.Instant now) {
-        return open() && automation && !claimed(now)
+        return open() && kind != RunKind.LASTING && automation && !claimed(now)
                 && (notBefore == null || !notBefore.isAfter(now));
     }
 
@@ -468,13 +468,20 @@ public record Run(String id, long versionId, String key, String process, String 
      * (REQ-DBO-PROC-WHO-OWES-THE-NEXT-ACT-IS-DERIVED).
      */
     public Awaits awaits(java.time.Instant now) {
-        if (!open()) {
+        // Lasting work waits for its parts, which are each somebody's card;
+        // it is nobody's own.
+        if (!open() || kind == RunKind.LASTING) {
             return Awaits.NOTHING;
         }
         if (status == Status.IN_PROGRESS && claimed(now)) {
             return Awaits.OWNER;
         }
         return automation ? Awaits.MACHINE : Awaits.PERSON;
+    }
+
+    /** Whether this is work that lasts: opened, moved by its parts, held by nobody. */
+    public boolean lasting() {
+        return kind == RunKind.LASTING;
     }
 
     /** Whether a person holds this run: claimed as a {@code PractitionerRole}. */

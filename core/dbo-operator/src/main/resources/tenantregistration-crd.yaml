@@ -180,6 +180,11 @@ spec:
                       # after). A calendar step says what a missed tick
                       # becomes; every one says how long its runs are kept
                       # and where it starts.
+                      # Whether a run of the step is work that lasts: opened
+                      # for the one request its one slot names, held by
+                      # nobody, moved and ended by the runs that are its parts.
+                      lasts:
+                        type: boolean
                       starts:
                         type: object
                         required: [keep, where]

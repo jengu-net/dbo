@@ -28,7 +28,16 @@ public enum Status {
     FAILED("failed"),
 
     /** Ended without being done. */
-    CANCELLED("cancelled");
+    CANCELLED("cancelled"),
+
+    /** Lasting work, opened and not yet said to be taken on. */
+    RECEIVED("received"),
+
+    /** Lasting work said to be taken on, before any of it has started. */
+    ACCEPTED("accepted"),
+
+    /** Lasting work said not to be taken on, and why: over before it began. */
+    REJECTED("rejected");
 
     private final String wire;
 
@@ -43,7 +52,7 @@ public enum Status {
 
     /** Whether nothing more is owed: done, refused or abandoned. */
     public boolean over() {
-        return this == COMPLETED || this == FAILED || this == CANCELLED;
+        return this == COMPLETED || this == FAILED || this == CANCELLED || this == REJECTED;
     }
 
     /** The status a word names, or null for none. */

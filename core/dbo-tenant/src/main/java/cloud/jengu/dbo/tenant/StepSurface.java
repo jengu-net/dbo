@@ -469,6 +469,11 @@ final class StepSurface implements HttpHandler {
             // routed by what this tenant declared wherever it is performed.
             declaration = declaration.retrying(step.retry());
         }
+        if (step != null && step.lasts()) {
+            Run opened = opened(step, declaration, inputs, requester, parent);
+            return new Started(201, "{\"run\":" + quote(opened.id()) + ",\"key\":"
+                    + quote(opened.key()) + ",\"step\":" + quote(stepCode) + "}");
+        }
         Run run = runs.filling(declaration, RunKind.PIPELINE, scope, inputs, requester,
                 step == null || step.automate() == null ? null
                         : forPeopleBecause(step.automate(), inputs),
@@ -708,6 +713,9 @@ final class StepSurface implements HttpHandler {
     Run startedOn(TenantSpec.Step step, String occasion,
             Map<String, cloud.jengu.dbo.work.RunSlot> inputs, Run parent, String by) {
         StepDeclaration declaration = declaration(step.code(), step.slots());
+        if (step.lasts()) {
+            return opened(step, declaration, inputs, by, parent);
+        }
         if (step.retry() != null) {
             declaration = declaration.retrying(step.retry());
         }
@@ -737,6 +745,62 @@ final class StepSurface implements HttpHandler {
                     declaredShape), given.getValue()));
         }
         return inputs;
+    }
+
+    /**
+     * Lasting work, opened for the one request its slot names, whatever the
+     * occasion: the request is what makes it this work, so handing it in
+     * again, or changing it again, finds the same.
+     */
+    private Run opened(TenantSpec.Step step, StepDeclaration declaration,
+            Map<String, cloud.jengu.dbo.work.RunSlot> inputs, String requester, Run parent) {
+        String slot = step.slots().keySet().iterator().next();
+        cloud.jengu.dbo.work.RunSlot filled = inputs.get(slot);
+        if (filled == null || filled.values().size() != 1) {
+            throw new IllegalArgumentException(step.code() + " lasts, and is opened for the one "
+                    + "request its slot '" + slot + "' names");
+        }
+        return runs.opening(declaration, slot, filled.values().get(0), requester, parent);
+    }
+
+    /** What may be said of lasting work, as the last segment of its address. */
+    static final java.util.Set<String> SAID = java.util.Set.of("accept", "reject", "stage", "end");
+
+    /**
+     * An act said of lasting work, by whoever says it: accepted, rejected and
+     * why, a stage reached, or ended — completed, failed or cancelled — and
+     * why. The door has decided they may; this decides whether the work can
+     * be said to be so.
+     *
+     * @param body {@code because}, and {@code stage} or {@code status} where
+     *             the act names one
+     */
+    Started saying(String runId, String act, Object body, String by) {
+        Optional<Run> found = runs.byId(runId);
+        if (found.isEmpty()) {
+            return refused(404, "not_found", "no such run");
+        }
+        String because = Json.strOpt(body, "because");
+        try {
+            Run moved = switch (act) {
+                case "accept" -> runs.accepted(found.get(), by, because);
+                case "reject" -> runs.rejected(found.get(), by, because);
+                case "stage" -> runs.reached(found.get(), Json.strOpt(body, "stage"), by, because);
+                case "end" -> runs.ended(found.get(), cloud.jengu.dbo.work.Status.of(
+                        Optional.ofNullable(Json.strOpt(body, "status")).orElse("completed")),
+                        by, because);
+                default -> throw new IllegalArgumentException("'" + act + "' is not said of "
+                        + "lasting work; it is accepted, rejected, staged or ended");
+            };
+            return new Started(200, "{\"run\":" + quote(moved.id()) + ",\"key\":"
+                    + quote(moved.key()) + ",\"status\":" + quote(moved.status().wire())
+                    + (moved.milestone() == null ? ""
+                            : ",\"stage\":" + quote(moved.milestone().name())) + "}");
+        } catch (IllegalArgumentException wrong) {
+            return refused(400, "invalid_request", wrong.getMessage());
+        } catch (IllegalStateException standing) {
+            return refused(409, "conflict", standing.getMessage());
+        }
     }
 
     /** What the engine is handed: the slots, with the face type as the shape. */
@@ -770,6 +834,25 @@ final class StepSurface implements HttpHandler {
             TenantAuthority.AuthContext admitted) throws IOException {
         String asking = admitted.clientId();
         String[] segments = relative.split("/");
+        if (segments.length == 2 && SAID.contains(segments[1])) {
+            if (!"POST".equals(exchange.getRequestMethod())) {
+                fail(exchange, 405, "invalid_request", "an act is said by POSTing it");
+                return;
+            }
+            Optional<Run> lasting = runs.byId(segments[0]);
+            if (lasting.isEmpty() || !lasting.get().lasting()
+                    || !covers(admitted, lasting.get().process() + "." + lasting.get().step())) {
+                // As for any run this credential cannot act on: absence.
+                fail(exchange, 404, "not_found", "no such run");
+                return;
+            }
+            Object body = Json.parse(new String(exchange.getRequestBody().readAllBytes(),
+                    StandardCharsets.UTF_8));
+            Started said = saying(segments[0], segments[1], body,
+                    admitted.fhirUser() != null ? admitted.fhirUser() : asking);
+            respond(exchange, said.status(), said.body());
+            return;
+        }
         if (segments.length == 2 && "done".equals(segments[1])) {
             done(exchange, segments[0], asking);
             return;

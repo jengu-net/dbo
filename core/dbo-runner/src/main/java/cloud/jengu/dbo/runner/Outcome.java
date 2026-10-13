@@ -50,14 +50,21 @@ public sealed interface Outcome {
      * @param writes the records the result carries, in the order they are
      *               meant to be written; empty for a step that only decides
      * @param parts  the runs the result starts, as parts of this one
+     * @param said   what the result says of the lasting work this run is a
+     *               part of — a stage reached, or the work ended — or null
      */
-    record Done(Map<String, Long> tally, List<Write> writes, List<Part> parts)
+    record Done(Map<String, Long> tally, List<Write> writes, List<Part> parts, Said said)
             implements Outcome {
 
         public Done {
             tally = Map.copyOf(tally);
             writes = List.copyOf(writes);
             parts = parts == null ? List.of() : List.copyOf(parts);
+        }
+
+        /** A result that says nothing of the work it is a part of. */
+        public Done(Map<String, Long> tally, List<Write> writes, List<Part> parts) {
+            this(tally, writes, parts, null);
         }
 
         /** A result that starts nothing. */
@@ -69,7 +76,26 @@ public sealed interface Outcome {
         public Done writing(Write... more) {
             List<Write> all = new ArrayList<>(writes);
             all.addAll(List.of(more));
-            return new Done(tally, all, parts);
+            return new Done(tally, all, parts, said);
+        }
+
+        /**
+         * The same result, saying the lasting work this run is a part of has
+         * reached a stage: kept as that work's current stage, and said on its
+         * trail.
+         */
+        public Done reaching(String stage, String because) {
+            return new Done(tally, writes, parts, new Said(stage,
+                    said == null ? null : said.ending(), because));
+        }
+
+        /**
+         * The same result, ending the lasting work this run is a part of —
+         * {@code completed}, {@code failed} or {@code cancelled} — and why.
+         */
+        public Done ending(String status, String because) {
+            return new Done(tally, writes, parts, new Said(
+                    said == null ? null : said.stage(), status, because));
         }
 
         /**
@@ -90,8 +116,19 @@ public sealed interface Outcome {
                 String key, cloud.jengu.dbo.work.Run.Addressee addressee) {
             List<Part> all = new ArrayList<>(parts);
             all.add(new Part(step, inputs, key, addressee));
-            return new Done(tally, writes, all);
+            return new Done(tally, writes, all, said);
         }
+    }
+
+    /**
+     * What a result says of the lasting work its run is a part of.
+     *
+     * @param stage   the stage the work has reached, or null
+     * @param ending  how the work ends — completed, failed or cancelled — or
+     *                null where it goes on
+     * @param because why, in words
+     */
+    record Said(String stage, String ending, String because) {
     }
 
     /**

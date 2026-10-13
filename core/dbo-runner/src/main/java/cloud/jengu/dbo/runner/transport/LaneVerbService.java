@@ -396,7 +396,10 @@ public final class LaneVerbService {
                             cloud.jengu.dbo.runner.Outcome.Write.class),
                     field(body, LaneVerbs.PARTS) == null ? List.of()
                             : RecordWire.decodeList(field(body, LaneVerbs.PARTS),
-                                    cloud.jengu.dbo.runner.Outcome.Part.class));
+                                    cloud.jengu.dbo.runner.Outcome.Part.class),
+                    field(body, LaneVerbs.SAID) == null ? null
+                            : RecordWire.decode(field(body, LaneVerbs.SAID),
+                                    cloud.jengu.dbo.runner.Outcome.Said.class));
             case REOPEN -> {
                 lane.reopen(run(body), string(body, LaneVerbs.REASON));
                 yield null;
@@ -432,6 +435,7 @@ public final class LaneVerbService {
             // The one read, and the lane guards it: a run this identity has
             // not claimed is refused there rather than filtered here.
             case INPUTS -> lane.inputs(run(body));
+            case PART_OF -> lane.partOf(run(body)).orElse(null);
             case SEALED -> {
                 Object recipients = field(body, LaneVerbs.RECIPIENTS);
                 yield recipients == null ? lane.sealed(run(body))

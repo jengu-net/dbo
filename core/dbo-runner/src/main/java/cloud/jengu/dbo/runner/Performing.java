@@ -55,6 +55,7 @@ public final class Performing {
         // report against a run that has since moved.
         AtomicReference<Run> latest = new AtomicReference<>(claimed);
         try {
+            Run partOf = claimed.parent() == null ? null : lane.partOf(claimed).orElse(null);
             Work work = new Work(lane.tenant(), claimed, lane.inputs(claimed),
                     new Work.Progress() {
                         @Override
@@ -66,18 +67,19 @@ public final class Performing {
                         public void milestone(String milestone, Map<String, Long> counts) {
                             latest.set(lane.milestone(latest.get(), milestone, counts, holdFor));
                         }
-                    });
+                    }, partOf);
             Outcome outcome = service.perform(work);
             if (outcome instanceof Outcome.Done done) {
                 Run reported = done.tally().isEmpty() ? latest.get()
                         : lane.checkpoint(latest.get(), done.tally(), holdFor);
-                if (done.writes().isEmpty() && done.parts().isEmpty()) {
+                if (done.writes().isEmpty() && done.parts().isEmpty() && done.said() == null) {
                     lane.closed(reported);
                 } else {
                     // The result goes to the tenant whole, and the tenant
                     // answers with the run as it left it: closed over what it
                     // wrote and set going, or ended because it would not.
-                    Run ended = lane.committed(reported, null, done.writes(), done.parts());
+                    Run ended = lane.committed(reported, null, done.writes(), done.parts(),
+                            done.said());
                     if (ended.refused() != null) {
                         return new Outcome.Refused(ended.refused());
                     }

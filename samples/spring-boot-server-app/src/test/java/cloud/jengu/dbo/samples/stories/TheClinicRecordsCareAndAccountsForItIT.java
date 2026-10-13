@@ -1544,6 +1544,46 @@ class TheClinicRecordsCareAndAccountsForItIT {
                 "one task of two, and no link to the other: " + roots.body());
     }
 
+    @Test
+    @Order(37)
+    @DisplayName("an orderer follows work that lasts as FHIR's fulfilment Task: what it "
+            + "fulfils, what it instantiates, where it stands and the stage it has reached")
+    @Proving(DboPromises.PROC_WORK_THAT_LASTS_READS_AS_A_FULFILMENT_TASK)
+    void anOrdererFollowsTheFulfilment() throws Exception {
+        String ordered = recordsDoor.post("/Observation", """
+                {"resourceType":"Observation","status":"registered","code":{"coding":[
+                  {"system":"%s","code":"%s"}]},"subject":{"display":"nobody"}}"""
+                .formatted(ASKED, names.value("ordered"))).headers().firstValue("Location")
+                .orElseThrow().replaceAll(".*/(Observation/[^/]+).*", "$1");
+        String process = names.prefix() + "-" + names.run() + ".lab";
+        var fulfil = cloud.jengu.dbo.core.process.StepDeclaration.of(process + ".fulfil", "1",
+                cloud.jengu.dbo.work.WorkModel.DOMAIN).taking("order", "Observation");
+        var runs = new cloud.jengu.dbo.work.Runs(tenants.store(records).orElseThrow(),
+                cloud.jengu.dbo.core.process.Steps.of(fulfil));
+        var lasting = runs.opening(fulfil, "order", ordered, "the-ward", null);
+        assertEquals(lasting.key(), runs.opening(fulfil, "order", ordered, "the-ward", null)
+                .key(), "the same order opened its work twice");
+
+        String looking = dbo.token(records);
+        String received = dbo.get(dbo.at(records) + "/fhir/Task/" + lasting.id(), looking)
+                .body();
+        assertTrue(received.contains("\"status\":\"received\""), received);
+        assertTrue(received.contains("\"reference\":\"" + ordered + "\""), received);
+        assertTrue(received.contains("\"instantiatesCanonical\":\"urn:dbo:step:" + process
+                + ".fulfil\""), received);
+
+        runs.accepted(lasting, "the-lab", "taken on");
+        runs.reached(lasting, "specimen-received", "the-lab", null);
+        String moving = dbo.get(dbo.at(records) + "/fhir/Task/" + lasting.id(), looking).body();
+        assertTrue(moving.contains("\"status\":\"accepted\""), moving);
+        assertTrue(moving.contains("\"code\":\"specimen-received\""), moving);
+
+        runs.ended(lasting, cloud.jengu.dbo.work.Status.COMPLETED, "the-lab", "released");
+        String ended = dbo.get(dbo.at(records) + "/fhir/Task/" + lasting.id(), looking).body();
+        assertTrue(ended.contains("\"status\":\"completed\"") && ended.contains("released"),
+                ended);
+    }
+
     @org.junit.jupiter.api.AfterAll
     void theRecordsClinicIsWithdrawn() {
         if (records != null) {

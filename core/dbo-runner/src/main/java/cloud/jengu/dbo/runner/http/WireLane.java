@@ -177,6 +177,22 @@ public class WireLane implements Lane {
     @Override
     public Run committed(Run run, String head, List<cloud.jengu.dbo.runner.Outcome.Write> result,
             List<cloud.jengu.dbo.runner.Outcome.Part> parts) {
+        return committed(run, head, result, parts, null);
+    }
+
+    @Override
+    public java.util.Optional<Run> partOf(Run run) {
+        Map<String, Object> body = verb();
+        body.put(LaneVerbs.RUN, RecordWire.encode(run));
+        Object answered = post(LaneVerbs.PART_OF, body);
+        return answered == null ? java.util.Optional.empty()
+                : java.util.Optional.of(RecordWire.decode(answered, Run.class));
+    }
+
+    @Override
+    public Run committed(Run run, String head, List<cloud.jengu.dbo.runner.Outcome.Write> result,
+            List<cloud.jengu.dbo.runner.Outcome.Part> parts,
+            cloud.jengu.dbo.runner.Outcome.Said said) {
         Map<String, Object> body = verb();
         body.put(LaneVerbs.RUN, RecordWire.encode(run));
         // As closed(): a participant that signs commits to the head it last
@@ -188,6 +204,9 @@ public class WireLane implements Lane {
         body.put(LaneVerbs.WRITES, RecordWire.encode(List.copyOf(result)));
         if (!parts.isEmpty()) {
             body.put(LaneVerbs.PARTS, RecordWire.encode(List.copyOf(parts)));
+        }
+        if (said != null) {
+            body.put(LaneVerbs.SAID, RecordWire.encode(said));
         }
         Run ended = RecordWire.decode(post(LaneVerbs.COMMITTED, body), Run.class);
         heads.remove(run.key());

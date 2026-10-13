@@ -64,11 +64,14 @@ class ATickStartsOneRunOnEveryNodeIT {
     private static final String ASSIGN = "ward.messages.assign";
     private static final String CHASE = "ward.messages.chase";
     private static final String WRITE = "ward.messages.write";
+    private static final String FULFIL = "ward.orders.fulfil";
+    private static final String HANDLE = "ward.orders.handle";
     private static final String READ = "ward.messages.read";
     private static final String DECLARED = """
             {"code":"%s","face":"r5","types":[
               {"name":"Basic","identity":"internal","handling":"operational"},
-              {"name":"Communication","identity":"internal","handling":"operational"}],
+              {"name":"Communication","identity":"internal","handling":"operational"},
+              {"name":"CommunicationRequest","identity":"internal","handling":"operational"}],
              "steps":[
               {"code":"ward.rounds.walk",
                "starts":{"every":"0 * * * * *","missed":"once","keep":"P1D","where":"origin"}},
@@ -81,6 +84,11 @@ class ATickStartsOneRunOnEveryNodeIT {
               {"code":"ward.messages.assign","slots":{"message":"Communication"},
                "starts":{"change":"Communication?status=on-hold","keep":"P1D",
                          "where":"origin"}},
+              {"code":"ward.orders.fulfil","slots":{"order":"Reference(CommunicationRequest)"},
+               "lasts":true,
+               "starts":{"change":"CommunicationRequest?status=active","keep":"P1D",
+                         "where":"origin"}},
+              {"code":"ward.orders.handle","slots":{"order":"Reference(CommunicationRequest)"}},
               {"code":"ward.messages.write","slots":{"about":"Reference(Communication)"},
                "writes":["Communication"]},
               {"code":"ward.messages.read","slots":{"message":"Reference(Communication)"}},
@@ -187,7 +195,11 @@ class ATickStartsOneRunOnEveryNodeIT {
         assertEquals(expected, field(entryOf(steps(north, "rounds"), WALK), "lastRun"));
         assertEquals(expected, field(entryOf(steps(south, "rounds"), WALK), "lastRun"),
                 "the other node started a run of its own for the same tick");
-        assertEquals(tick.toString(), field(entryOf(steps(north, "rounds"), WALK), "lastTick"));
+        // At or after it: a minute that turned while the second node came up was
+        // reckoned by that node as missed, since this clock is turned by hand
+        // and told the first node of nothing.
+        assertTrue(!Instant.parse(field(entryOf(steps(north, "rounds"), WALK), "lastTick"))
+                .isBefore(tick), "the tick was not taken");
     }
 
     @Test
@@ -326,6 +338,8 @@ class ATickStartsOneRunOnEveryNodeIT {
         // the minute step's was `tick`, ten minutes back.
         northClock.opened.get(WARD).due(COUNT, hourly);
         String counted = field(entryOf(steps(north, "rounds"), COUNT), "lastRun");
+        Instant walkedLast = Instant.parse(field(entryOf(steps(north, "rounds"), WALK),
+                "lastTick"));
         north.close();
         south.close();
         north = node(northProv, northClock);
@@ -336,7 +350,9 @@ class ATickStartsOneRunOnEveryNodeIT {
         Instant last = Instant.parse(ranFor.substring((WALK + "/tick/").length()));
         assertTrue(last.isAfter(Instant.now().minusSeconds(120)),
                 "the minute step was not run once, for the last tick missed: " + walk);
-        assertTrue(Long.parseLong(number(walk, "missed")) >= 9, walk);
+        long minutesAway = java.time.Duration.between(walkedLast, Instant.now()).toMinutes();
+        assertTrue(Long.parseLong(number(walk, "missed")) >= Math.max(1, minutesAway - 1),
+                "fewer ticks missed than minutes went by since the last one: " + walk);
         assertEquals("0", number(walk, "skipped"), walk);
 
         String count = entryOf(steps(north, "rounds"), COUNT);
@@ -455,12 +471,176 @@ class ATickStartsOneRunOnEveryNodeIT {
         assertEquals(List.of(), partsOf(refusedRun.id()), "a refused result started a part");
     }
 
+    @Test
+    @Order(11)
+    @DisplayName("an order opens work that lasts: received, found again when the order is "
+            + "written again, accepted, in progress once a part starts, never claimed, moved "
+            + "by its parts' results to a stage and to its end, and read as FHIR's fulfilment "
+            + "Task")
+    @Proving({DboPromises.PROC_WORK_THAT_LASTS_IS_OPENED_FOR_ITS_REQUEST,
+            DboPromises.PROC_WORK_THAT_LASTS_IS_MOVED_BY_ITS_PARTS,
+            DboPromises.PROC_WORK_THAT_LASTS_READS_AS_A_FULFILMENT_TASK})
+    void anOrderIsWorkThatLasts() throws Exception {
+        String order = "CommunicationRequest/" + writeAs("CommunicationRequest",
+                "{\"resourceType\":\"CommunicationRequest\",\"status\":\"active\","
+                        + "\"intent\":\"order\"}");
+        String key = FULFIL + "/" + order;
+        var lasting = until(key);
+        assertEquals("received", lasting.status().wire(), lasting.toString());
+        assertTrue(lasting.lasting(), lasting.toString());
+
+        // The order changed and still active: the same work, not a second.
+        update(order, "{\"resourceType\":\"CommunicationRequest\",\"id\":\""
+                + order.substring(order.indexOf('/') + 1) + "\",\"status\":\"active\","
+                + "\"intent\":\"order\",\"priority\":\"urgent\"}");
+        Thread.sleep(3_000);
+        try (var asked = cloud.jengu.dbo.asking.Asking.at(north.runtime(WARD).orElseThrow()
+                .engine()).work().ofStep("fulfil").stream()) {
+            assertEquals(1, asked.filter(run -> run.key().startsWith(FULFIL + "/" + order))
+                    .count(), "the order written again opened its work again");
+        }
+
+        assertEquals(200, say(lasting.id(), "accept", "{\"because\":\"we take it\"}")
+                .statusCode());
+        assertEquals("accepted", runOf(key).status().wire());
+        String open = task(lasting.id());
+        assertTrue(open.contains("\"status\":\"accepted\"")
+                        && !open.contains("requestedPerformer") && !open.contains("performerType"),
+                "work that lasts offered itself to performers while open: " + open);
+
+        // Nobody takes it, not even a participant holding its own step.
+        assertTrue(performing(FULFIL, "fulfil").claim(runOf(key),
+                        java.time.Duration.ofMinutes(5)).isEmpty(),
+                "work that lasts was claimed like a task");
+        cloud.jengu.dbo.runner.Lane handling = performing(HANDLE, "handle");
+
+        var initiator = north.runInitiator();
+        var measuring = initiator.starting(WARD, HANDLE, Map.of("order",
+                cloud.jengu.dbo.work.RunInitiator.Slot.reference(order)), "measure", null, key);
+        assertEquals(201, measuring.status(), measuring.body());
+        assertEquals("in-progress", runOf(key).status().wire(),
+                "a part started and the work did not say it was in progress");
+
+        cloud.jengu.dbo.work.Run held = handling.claim(runOf(measuring.key()),
+                java.time.Duration.ofMinutes(5)).orElseThrow();
+        assertEquals(key, handling.partOf(held).orElseThrow().key(),
+                "the part cannot read the work it is a part of");
+        handling.committed(held, null, List.of(), List.of(),
+                new cloud.jengu.dbo.runner.Outcome.Said("measured", null, "values in"));
+        assertEquals("measured", runOf(key).milestone().name());
+
+        var releasing = initiator.starting(WARD, HANDLE, Map.of("order",
+                cloud.jengu.dbo.work.RunInitiator.Slot.reference(order)), "release", null, key);
+        handling.committed(handling.claim(runOf(releasing.key()),
+                        java.time.Duration.ofMinutes(5)).orElseThrow(), null, List.of(), List.of(),
+                new cloud.jengu.dbo.runner.Outcome.Said(null, "completed", "verified, released"));
+        var ended = runOf(key);
+        assertEquals("completed", ended.status().wire(), ended.toString());
+        assertEquals("verified, released", ended.statusReason(), ended.toString());
+
+        String fulfilment = task(lasting.id());
+        assertTrue(fulfilment.contains("\"status\":\"completed\""), fulfilment);
+        assertTrue(fulfilment.contains("\"reference\":\"" + order + "\""), fulfilment);
+        assertTrue(fulfilment.contains("\"instantiatesCanonical\":\"urn:dbo:step:" + FULFIL
+                + "\""), fulfilment);
+        assertTrue(fulfilment.contains("\"code\":\"measured\""), fulfilment);
+    }
+
+    @Test
+    @Order(12)
+    @DisplayName("work that lasts is rejected only with a reason, said why, and once over is "
+            + "neither accepted nor moved by a part's result")
+    @Proving(DboPromises.PROC_WORK_THAT_LASTS_IS_MOVED_BY_ITS_PARTS)
+    void rejectedWorkSaysWhy() throws Exception {
+        String order = "CommunicationRequest/" + writeAs("CommunicationRequest",
+                "{\"resourceType\":\"CommunicationRequest\",\"status\":\"active\","
+                        + "\"intent\":\"order\"}");
+        String key = FULFIL + "/" + order;
+        var lasting = until(key);
+        assertEquals(400, say(lasting.id(), "reject", "{}").statusCode(),
+                "rejected without a reason");
+        assertEquals(200, say(lasting.id(), "reject",
+                "{\"because\":\"the specimen was haemolysed\"}").statusCode());
+        var rejected = runOf(key);
+        assertEquals("rejected", rejected.status().wire());
+        assertEquals("the specimen was haemolysed", rejected.statusReason());
+        assertEquals(409, say(lasting.id(), "accept", "{\"because\":\"after all\"}")
+                .statusCode(), "rejected work was accepted");
+
+        var late = north.runInitiator().starting(WARD, HANDLE, Map.of("order",
+                cloud.jengu.dbo.work.RunInitiator.Slot.reference(order)), "late", null, key);
+        cloud.jengu.dbo.runner.Lane handling = performing(HANDLE, "handle");
+        var refused = handling.committed(handling.claim(runOf(late.key()),
+                        java.time.Duration.ofMinutes(5)).orElseThrow(), null, List.of(), List.of(),
+                new cloud.jengu.dbo.runner.Outcome.Said("measured", null, "too late"));
+        assertTrue(refused.refused() != null && refused.refused().contains("over"),
+                "a part's result moved work that was over: " + refused);
+        assertEquals(null, runOf(key).milestone(), "rejected work reached a stage");
+    }
+
+    private String task(String id) throws Exception {
+        HttpResponse<String> task = http.send(HttpRequest.newBuilder(URI.create(
+                                "http://127.0.0.1:" + north.port() + "/t/" + WARD + "/fhir/Task/"
+                                        + id))
+                        .header("Authorization", "Bearer " + token(north, "desk")).GET().build(),
+                HttpResponse.BodyHandlers.ofString());
+        assertEquals(200, task.statusCode(), task.body());
+        return task.body();
+    }
+
+    private cloud.jengu.dbo.work.Run until(String key) throws InterruptedException {
+        var runs = new cloud.jengu.dbo.work.Runs(north.runtime(WARD).orElseThrow().engine());
+        long giveUp = System.nanoTime() + java.time.Duration.ofSeconds(60).toNanos();
+        var found = runs.byKey(key);
+        while (found.isEmpty() && System.nanoTime() < giveUp) {
+            Thread.sleep(250);
+            found = runs.byKey(key);
+        }
+        return found.orElseThrow(() -> new AssertionError("no work was opened as " + key));
+    }
+
+    private HttpResponse<String> say(String id, String act, String body) throws Exception {
+        return http.send(HttpRequest.newBuilder(URI.create("http://127.0.0.1:" + north.port()
+                                + "/t/" + WARD + "/run/" + id + "/" + act))
+                        .header("Authorization", "Bearer " + token(north, "rounds"))
+                        .header("Content-Type", "application/json")
+                        .POST(HttpRequest.BodyPublishers.ofString(body)).build(),
+                HttpResponse.BodyHandlers.ofString());
+    }
+
+    private String writeAs(String type, String document) throws Exception {
+        HttpResponse<String> written = http.send(HttpRequest.newBuilder(URI.create(
+                                "http://127.0.0.1:" + north.port() + "/t/" + WARD + "/fhir/" + type))
+                        .header("Authorization", "Bearer " + token(north, "desk"))
+                        .header("Content-Type", "application/fhir+json")
+                        .POST(HttpRequest.BodyPublishers.ofString(document)).build(),
+                HttpResponse.BodyHandlers.ofString());
+        assertEquals(201, written.statusCode(), written.body());
+        return field(written.body(), "id");
+    }
+
+    private void update(String reference, String document) throws Exception {
+        HttpResponse<String> written = http.send(HttpRequest.newBuilder(URI.create(
+                                "http://127.0.0.1:" + north.port() + "/t/" + WARD + "/fhir/"
+                                        + reference))
+                        .header("Authorization", "Bearer " + token(north, "desk"))
+                        .header("Content-Type", "application/fhir+json")
+                        .PUT(HttpRequest.BodyPublishers.ofString(document)).build(),
+                HttpResponse.BodyHandlers.ofString());
+        assertEquals(200, written.statusCode(), written.body());
+    }
+
     /** The ward's own lane for the writing step, as a participant holding it. */
     private cloud.jengu.dbo.runner.Lane performing() {
+        return performing(WRITE, "write");
+    }
+
+    private cloud.jengu.dbo.runner.Lane performing(String stepCode, String step) {
         cloud.jengu.dbo.work.Executor writer = new cloud.jengu.dbo.work.Executor("writer", "1",
                 "example.ward", cloud.jengu.dbo.work.Scope.BASELINE);
-        cloud.jengu.dbo.runner.Lane lane = north.fleetLane(WARD, WRITE, writer).orElseThrow();
-        lane.declare(new cloud.jengu.dbo.work.Declarations.Declared("ward.messages", "write",
+        cloud.jengu.dbo.runner.Lane lane = north.fleetLane(WARD, stepCode, writer).orElseThrow();
+        lane.declare(new cloud.jengu.dbo.work.Declarations.Declared(
+                stepCode.substring(0, stepCode.lastIndexOf('.')), step,
                 writer.name(), writer.version(), writer.provider(), writer.scope(),
                 writer.name()));
         return lane;

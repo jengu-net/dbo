@@ -397,6 +397,26 @@ public enum DboPromises implements Promise {
             + "wrote the version that started it, and of the tenant's system run where no run "
             + "wrote it. A run started on a clock stays the system run's."),
 
+    PROC_WORK_THAT_LASTS_IS_OPENED_FOR_ITS_REQUEST("A step may be declared to last. A run "
+            + "of it is opened, not offered, for the one request its one slot names, and keyed "
+            + "by that request, so the request handed in again, or changed again, finds the "
+            + "same work. It is received when opened, held by nobody, offered to nobody and "
+            + "claimed by nobody: it is nobody's card."),
+
+    PROC_WORK_THAT_LASTS_IS_MOVED_BY_ITS_PARTS("Work that lasts is accepted, or rejected and "
+            + "why, before it starts; is in progress once a run that is its part has started; "
+            + "reaches the stages its parts' results name, kept as its current stage; and ends "
+            + "completed, failed or cancelled, and why, by a part's result or by whoever has "
+            + "the right to act on it. Each is an act recorded under it, naming who and why. "
+            + "Work that is over is neither accepted nor moved, and a part's result that would "
+            + "move it is refused whole."),
+
+    PROC_WORK_THAT_LASTS_READS_AS_A_FULFILMENT_TASK("Work that lasts reads as FHIR's "
+            + "fulfilment Task: its focus is the request it fulfils, it instantiates its step, "
+            + "its status goes from received through accepted or rejected and in progress to "
+            + "completed, failed or cancelled with the reason, its business status is the stage "
+            + "it has reached, it names no performer, and its parts are Tasks part of it."),
+
     PROC_AUTOMATION_TAKES_ONLY_WHAT_ITS_STEP_ADMITS("A step may say when automation may take "
             + "its task, as a condition over the task's inputs, and the store decides it once, "
             + "when the task is authored: a task the condition does not admit is open to people "

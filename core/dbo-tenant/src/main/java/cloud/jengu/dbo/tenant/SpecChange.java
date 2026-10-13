@@ -218,7 +218,7 @@ public record SpecChange(Kind kind, List<String> fields) {
             TenantSpec.Step is = declared.get(i);
             try {
                 if (!Objects.equals(new TenantSpec.Step(was.code(), was.slots(), was.writes(),
-                        was.retry(), was.automate(), was.answer(), is.starts()), is)) {
+                        was.retry(), was.automate(), was.answer(), is.starts(), was.lasts()), is)) {
                     return false;
                 }
             } catch (IllegalArgumentException slotsChangedToo) {

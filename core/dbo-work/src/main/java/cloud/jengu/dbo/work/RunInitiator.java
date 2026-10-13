@@ -198,6 +198,19 @@ public interface RunInitiator {
                 + " cannot start a run as part of another");
     }
 
+    /**
+     * Says something of lasting work: {@code accept}, {@code reject},
+     * {@code stage} or {@code end}, as the run's own door takes it.
+     *
+     * @param run  the run's id
+     * @param said {@code because}, and {@code stage} or {@code status} where
+     *             the act names one
+     */
+    default Started saying(String tenant, String run, String act, Map<String, String> said) {
+        throw new UnsupportedOperationException(getClass().getName()
+                + " cannot say anything of lasting work");
+    }
+
     /** Asks a run how it stands. */
     Answer answer(String tenant, String run);
 

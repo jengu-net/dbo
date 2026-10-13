@@ -24,10 +24,25 @@ import java.util.Map;
  *               was never entitled to.
  */
 public record Work(String tenant, Run run, Map<String, java.util.List<StoredObject>> inputs,
-        Progress progress) {
+        Progress progress, Run partOf) {
 
     public Work {
         inputs = Map.copyOf(inputs);
+    }
+
+    /** Work that is a part of nothing a step needs to read. */
+    public Work(String tenant, Run run, Map<String, java.util.List<StoredObject>> inputs,
+            Progress progress) {
+        this(tenant, run, inputs, progress, null);
+    }
+
+    /**
+     * The run this work is a part of, as it stands — lasting work's request
+     * in its inputs and its stage as its milestone — or empty where it is a
+     * part of none.
+     */
+    public java.util.Optional<Run> parent() {
+        return java.util.Optional.ofNullable(partOf);
     }
 
     /**

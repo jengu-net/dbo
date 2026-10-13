@@ -225,6 +225,44 @@ A run a step starts on a change, or at a moment a record names, is a part of the
 run whose result wrote that version of the record. Where no run wrote it, the
 run is a part of the tenant's system run.
 
+### Work that lasts
+
+Some work lasts hours or weeks and is done by many steps: an order is accepted,
+its specimen handled, measured, verified and released. A step declared to last
+stands for that work:
+
+```json
+{ "code": "lab.orders.fulfil", "slots": { "order": "Reference(ServiceRequest)" },
+  "lasts": true,
+  "starts": { "change": "ServiceRequest?status=active", "keep": "P90D", "where": "origin" } }
+```
+
+A run of it is opened for the one request its slot names, and keyed by it, so
+the same request handed in or changed again finds the same work. Nobody claims
+it. It is `received` when opened and moves by what is said of it:
+
+- `accepted`, or `rejected` and why, before it starts;
+- `in-progress` once a run that is its part has started;
+- a stage, kept as where it stands;
+- `completed`, `failed` or `cancelled`, and why.
+
+Its parts say these through their results, of the work they are part of:
+
+```java
+return Outcome.done().reaching("measured", "values in");
+return Outcome.done().ending("completed", "verified and released");
+```
+
+Whoever holds a `work` credential for the step says them at the run's address:
+`POST /t/<tenant>/run/<id>/accept`, `reject`, `stage` or `end`, each with a
+`because`, and `stage` or `status` where it names one. Each is recorded under the
+work, naming who said it. A part reads the work it is part of, request and stage,
+as `Work.parent()`.
+
+The work reads as FHIR's fulfilment `Task`. `focus` is the request,
+`instantiatesCanonical` the step as `urn:dbo:step:<code>`, `businessStatus` the
+stage, and its parts are `Task`s `partOf` it.
+
 ### A run for one participant
 
 Some work only one participant can do: report on the appliance it is, read

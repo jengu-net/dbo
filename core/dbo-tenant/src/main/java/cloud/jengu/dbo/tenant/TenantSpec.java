@@ -62,11 +62,22 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
      *                 and reads the run's answer alone
      * @param starts   when it starts itself, or null where it starts only when
      *                 somebody asks
+     * @param lasts    whether a run of it is work that lasts: opened for the
+     *                 request in its one slot, held by nobody, moved and ended
+     *                 by the runs that are its parts
      */
     public record Step(String code, java.util.Map<String, String> slots,
             java.util.Set<String> writes, cloud.jengu.dbo.core.process.RetryPolicy retry,
             cloud.jengu.dbo.core.process.AutomationCriterion automate, Answer answer,
-            Starts starts) {
+            Starts starts, boolean lasts) {
+
+        /** A step whose runs are performed, not opened. */
+        public Step(String code, java.util.Map<String, String> slots,
+                java.util.Set<String> writes, cloud.jengu.dbo.core.process.RetryPolicy retry,
+                cloud.jengu.dbo.core.process.AutomationCriterion automate, Answer answer,
+                Starts starts) {
+            this(code, slots, writes, retry, automate, answer, starts, false);
+        }
 
         /** A step that starts only when somebody asks for it. */
         public Step(String code, java.util.Map<String, String> slots,
@@ -108,6 +119,25 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
             }
             slots = java.util.Collections.unmodifiableMap(
                     new java.util.LinkedHashMap<>(slots));
+            if (lasts) {
+                // What it fulfils is what makes it this work, so there is one
+                // thing it is for, named: a request held here, by reference.
+                if (slots.size() != 1 || !cloud.jengu.dbo.core.process.SlotShape.of(
+                        slots.values().iterator().next()).referred()) {
+                    throw new IllegalArgumentException(code + ": lasts, and is opened for the "
+                            + "one request it fulfils — declare one slot, as "
+                            + "Reference(ServiceRequest); it takes " + slots);
+                }
+                if (!writes.isEmpty() || retry != null || automate != null) {
+                    throw new IllegalArgumentException(code + ": lasts, and is performed by "
+                            + "nobody — what it writes, retries and automates is its parts' "
+                            + "to say, not its own");
+                }
+                if (starts != null && starts.every() != null) {
+                    throw new IllegalArgumentException(code + ": lasts, and is opened for a "
+                            + "request — a clock names none");
+                }
+            }
             if (starts != null && starts.every() != null && !slots.isEmpty()) {
                 throw new IllegalArgumentException(code + ": starts on a calendar rule and "
                         + "takes " + slots.keySet() + ", and nothing fills a slot when a tick "
@@ -957,7 +987,7 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
                             + "' — " + wrong.getMessage(), wrong);
                 }
                 steps.add(new Step(stepCode, slots, writes, retry, automate,
-                        answer(code, stepCode, step, policies), starts));
+                        answer(code, stepCode, step, policies), starts, Json.bool(step, "lasts")));
             }
         }
         // The steps the DEPLOYMENT performs, which only the management

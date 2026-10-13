@@ -756,8 +756,10 @@ final class ElementRecordProjection implements RecordProjection {
      * task nobody may take any more — over — says nothing about it.
      */
     private void performers(Map<?, ?> run, StringBuilder json) {
+        // Over, or lasting: nobody is to perform it.
         if (!(run.get("performerType") instanceof List<?> eligible) || eligible.isEmpty()
-                || List.of("completed", "failed", "cancelled").contains(
+                || "lasting".equals(run.get("kind"))
+                || List.of("completed", "failed", "cancelled", "rejected").contains(
                         String.valueOf(run.get("status")))) {
             return;
         }
@@ -800,6 +802,18 @@ final class ElementRecordProjection implements RecordProjection {
      * was over, and most of what work is over is not a resource in this store.
      */
     private void focus(Map<?, ?> run, StringBuilder json) {
+        if ("lasting".equals(run.get("kind")) && run.get("inputs") instanceof Map<?, ?> slots
+                && slots.size() == 1) {
+            // Lasting work is FHIR's fulfilment Task: focus is the request it
+            // fulfils, which resolves, and the step is what it instantiates.
+            String request = Json.quoted(String.valueOf(slots.values().iterator().next()));
+            json.append(focusIsABackbone
+                    ? ",\"focus\":[{\"valueReference\":{\"reference\":" + request + "}}]"
+                    : ",\"focus\":{\"reference\":" + request + "}");
+            json.append(",\"instantiatesCanonical\":").append(Json.quoted(
+                    "urn:dbo:step:" + run.get("process") + "." + run.get("step")));
+            return;
+        }
         if (!(run.get("item") instanceof Map<?, ?> item) || item.get("reference") == null) {
             return;
         }
