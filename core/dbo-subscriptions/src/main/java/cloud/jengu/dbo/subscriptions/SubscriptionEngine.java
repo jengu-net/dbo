@@ -11,6 +11,7 @@ import cloud.jengu.dbo.core.api.feed.ChangeFeed;
 import cloud.jengu.dbo.core.api.feed.ChangeKind;
 import cloud.jengu.dbo.core.api.feed.FeedChunk;
 import cloud.jengu.dbo.core.api.feed.FeedItem;
+import cloud.jengu.dbo.core.api.feed.Watching;
 import dev.dbos.transact.DBOS;
 import dev.dbos.transact.StartWorkflowOptions;
 import dev.dbos.transact.config.DBOSConfig;
@@ -53,6 +54,11 @@ public final class SubscriptionEngine implements AutoCloseable {
 
     public interface DeliveryWorkflows {
         void deliver(String subscriptionId, String endpoint, String notificationJson, long seq);
+    }
+
+    /** What a record matching one of the tenant's own watches is handed over in. */
+    public interface WatchWorkflows {
+        void watched(String watch, String type, String id, long version);
     }
 
     private static final String CONSUMER = "subscriptions.dispatch";
@@ -104,6 +110,13 @@ public final class SubscriptionEngine implements AutoCloseable {
     private final Runs runs;
     private final DBOS dbos;
     private final DeliveryWorkflows deliveryProxy;
+    private final WatchWorkflows watchProxy;
+    /**
+     * The tenant's own watches, once given; a workflow recovered at launch,
+     * before they are, waits for them rather than handing a match to nobody.
+     */
+    private final java.util.concurrent.CompletableFuture<Watching> watching =
+            new java.util.concurrent.CompletableFuture<>();
     private final List<BiConsumer<SubscriptionSpec, String>> localListeners = new CopyOnWriteArrayList<>();
     private volatile TopicSubscriptionSource topicSource;
     private volatile NotificationComposer notificationComposer;
@@ -152,6 +165,7 @@ public final class SubscriptionEngine implements AutoCloseable {
         this.dbos = new DBOS(cfg);
         dbos.registerQueue(new Queue(QUEUE));
         this.deliveryProxy = dbos.registerProxy(DeliveryWorkflows.class, new DeliveryImpl());
+        this.watchProxy = dbos.registerProxy(WatchWorkflows.class, new WatchImpl());
         dbos.launch();
     }
 
@@ -195,6 +209,77 @@ public final class SubscriptionEngine implements AutoCloseable {
         }
     }
 
+    /**
+     * A matched record handed over, and looked at again when it asks to be:
+     * the wait is a durable sleep, so a node going down in it leaves a
+     * workflow another picks up, and the record is searched for again on
+     * waking, so one that stopped matching is handed over no more.
+     */
+    final class WatchImpl implements WatchWorkflows {
+        @Override
+        @Workflow(name = "watched")
+        public void watched(String watch, String type, String id, long version) {
+            java.time.Instant again = dbos.runStep(
+                    () -> watching.join().matched(watch, type, id, version), "matched");
+            while (again != null) {
+                final java.time.Instant at = again;
+                long waitMillis = dbos.runStep(() -> Math.max(0L,
+                        java.time.Duration.between(java.time.Instant.now(), at).toMillis()),
+                        "until");
+                dbos.sleep(java.time.Duration.ofMillis(waitMillis));
+                boolean still = dbos.runStep(() -> {
+                    String search = watching.join().searches().get(watch);
+                    return search != null && matchesSearch(search, type, id);
+                }, "still");
+                if (!still) {
+                    return;
+                }
+                again = dbos.runStep(
+                        () -> watching.join().matched(watch, type, id, version), "matched");
+            }
+        }
+    }
+
+    /**
+     * The tenant's own watches, matched from the next round on. Given before
+     * {@link #start}, so the first round already sees them: one given later
+     * would miss what changed while no node ran.
+     */
+    public SubscriptionEngine watching(Watching watches) {
+        watching.complete(watches);
+        return this;
+    }
+
+    private void dispatchWatches(FeedItem item) {
+        Watching watches = watching.getNow(null);
+        if (watches == null) {
+            return;
+        }
+        for (Map.Entry<String, String> watch : watches.searches().entrySet()) {
+            if (!matchesSearch(watch.getValue(), item.typeName(), item.objectId())) {
+                continue;
+            }
+            // Named by the watch and the version, so the feed's redelivery
+            // and two nodes reading it hand the same change over once.
+            String workflowId = "watch:" + watch.getKey() + ":" + item.objectId() + ":"
+                    + item.versionId();
+            String name = watch.getKey();
+            dbos.startWorkflow(() -> watchProxy.watched(name, item.typeName(),
+                            item.objectId(), item.versionId()),
+                    new StartWorkflowOptions(workflowId).withQueue(QUEUE));
+        }
+    }
+
+    private boolean matchesSearch(String search, String type, String id) {
+        Criteria criteria;
+        try {
+            criteria = criteriaCompiler.apply(search);
+        } catch (RuntimeException e) {
+            return false;
+        }
+        return criteria.typeName().equals(type) && store.count(criteria.idEquals(id)) > 0;
+    }
+
     // ------------------------------------------------------------ dispatch
 
     /** One dispatch round: read, match, enqueue, ack. Public for deterministic tests. */
@@ -209,6 +294,7 @@ public final class SubscriptionEngine implements AutoCloseable {
             if (item.kind() == ChangeKind.DELETED) {
                 continue; // criteria-string rest-hooks notify on create/update
             }
+            dispatchWatches(item);
             for (SubscriptionSpec sub : active) {
                 if (!matches(sub, item)) {
                     continue;

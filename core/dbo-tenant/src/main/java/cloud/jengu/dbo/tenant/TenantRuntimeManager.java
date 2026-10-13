@@ -590,6 +590,32 @@ public final class TenantRuntimeManager implements AutoCloseable {
     /** Each tenant's way of starting work in this process, by code. */
     private final Map<String, StepSurface> starters = new ConcurrentHashMap<>();
 
+    /** What each tenant's steps that start on a change watch its feed for, by code. */
+    private final Map<String, StepWatches> watches = new ConcurrentHashMap<>();
+
+    /** Each tenant's steps that start themselves, by code, where it has any. */
+    private final Map<String, SelfStarting> selfStarting = new ConcurrentHashMap<>();
+
+    /** What tells a tenant a tick is due: the store's own unless a host brought one. */
+    private volatile cloud.jengu.dbo.work.StepScheduler stepScheduler =
+            new cloud.jengu.dbo.stream.DbosStepScheduler();
+
+    /**
+     * The scheduler a hosting framework brings, in place of the store's own,
+     * for every tenant brought up after this. It is trusted with the timing
+     * alone: what a tick starts, whether a step is paused and what a missed
+     * tick becomes stay the store's.
+     */
+    public TenantRuntimeManager stepScheduler(cloud.jengu.dbo.work.StepScheduler scheduler) {
+        this.stepScheduler = java.util.Objects.requireNonNull(scheduler, "scheduler");
+        return this;
+    }
+
+    /** One tenant's self-starting steps, where it has any here. */
+    java.util.Optional<SelfStarting> selfStarting(String code) {
+        return java.util.Optional.ofNullable(selfStarting.get(code));
+    }
+
     /**
      * Starting a run on a tenant this node serves, from inside its process,
      * and hearing back how it ended — the step door's acts without the door.
@@ -1326,7 +1352,8 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 "subscription dispatch",
                 tenant -> tenant.store().dispatchNotifications(
                                 new PgChangeFeed(tenant.dataSource(), tenant.recordDomain()),
-                                tenant.dataSource(), SUBSCRIPTION_POLL.toMillis())
+                                tenant.dataSource(), SUBSCRIPTION_POLL.toMillis(),
+                                watches.get(tenant.facts().code()))
                         .orElse(null));
 
         // Asking to be forgotten. Its own door and its own scope, beside
@@ -1487,6 +1514,49 @@ public final class TenantRuntimeManager implements AutoCloseable {
                             tenant.runtime().engine(), tenant.spec().steps(),
                             "/t/" + code + "/run", true, code, this::offerOf, rendered));
                     return () -> starters.remove(code);
+                });
+
+        // The steps that start themselves, over the starter above: on a clock,
+        // through the scheduler; their runs under the tenant's system run.
+        activities.register(TenantPoint.SURFACES,
+                "(" + TenantFacts.HAS_STEPS + "=true)",
+                "steps that start themselves",
+                tenant -> {
+                    String code = tenant.facts().code();
+                    boolean place = places.contains(code);
+                    // Held wherever a step declares when it starts, even one
+                    // that starts elsewhere, so a cadence redeclared to start
+                    // here is taken where the tenant stands.
+                    if (tenant.spec().steps().stream().allMatch(step -> step.starts() == null)) {
+                        return null;
+                    }
+                    SelfStarting starting = new SelfStarting(code, tenant.dataSource(),
+                            tenant.laneRuns(), starters.get(code), tenant.spec().steps(), place,
+                            stepScheduler, java.time.Clock.systemUTC(),
+                            (type, id) -> tenant.runtime().engine().get(type, id)
+                                    .map(cloud.jengu.dbo.core.api.StoredObject::payload))
+                            .open();
+                    selfStarting.put(code, starting);
+                    StepWatches watching = watches.get(code);
+                    if (watching != null) {
+                        watching.attach(starting);
+                    }
+                    // Read and steered at its own door where the tenant has an
+                    // authority to guard one; in process through the manager
+                    // where it has none.
+                    String stepsPath = "/t/" + code + "/steps";
+                    boolean mounted = tenant.authority() != null;
+                    if (mounted) {
+                        sharedServer.createContext(stepsPath, new StepsSurface(
+                                tenant.authority()::validate, starting, starters.get(code)));
+                    }
+                    return () -> {
+                        if (mounted) {
+                            sharedServer.removeContext(stepsPath);
+                        }
+                        selfStarting.remove(code, starting);
+                        starting.close();
+                    };
                 });
 
         // Work as the way in. A tenant that declares no steps offers no such
@@ -3094,6 +3164,12 @@ public final class TenantRuntimeManager implements AutoCloseable {
                     serving.store(), serving.feed(), serving.definitionsFeed(),
                     serving.endpoint(), serving.grain(), serving.replication(),
                     serving.blobs(), serving.authority()));
+            selfStarting(declared.code())
+                    .ifPresent(starting -> starting.redeclared(declared.steps()));
+            StepWatches watching = watches.get(declared.code());
+            if (watching != null) {
+                watching.redeclared(declared.steps());
+            }
             redeclared.remove(declared.code());
             LOG.info("tenant {} took a change where it stands: {}",
                     declared.code(), change.says());
@@ -3692,6 +3768,13 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 // during bring-up, and the runtime whose declines would be
                 // read is the one being built.
                 !fleetStepCodes.isEmpty() && !spec.declines().containsAll(fleetStepCodes));
+        // What its steps that start on a change watch, known before its feed
+        // is first read; handed to those steps once they stand, at surfaces.
+        StepWatches watching = new StepWatches(spec.steps(), places.contains(spec.code()));
+        if (spec.steps().stream().allMatch(step -> step.starts() == null)) {
+            watching.detached();
+        }
+        watches.put(spec.code(), watching);
         java.util.List<AutoCloseable> leftBehind = new java.util.ArrayList<>(
                 activities.runAt(TenantPoint.DISPATCH,
                         new TenantActivities.Provisioned(facts, db.dataSource(), store,
@@ -6070,6 +6153,17 @@ public final class TenantRuntimeManager implements AutoCloseable {
                     if (System.currentTimeMillis() - lastSweepMillis > 3_600_000) {
                         lastSweepMillis = System.currentTimeMillis();
                         sweeps.values().forEach(cloud.jengu.dbo.policy.RetentionSweep::sweepOnce);
+                        // The runs steps started themselves, under each
+                        // step's own retention, one tenant's failure not
+                        // another's.
+                        selfStarting.forEach((code, starting) -> {
+                            try {
+                                starting.letGo();
+                            } catch (RuntimeException failed) {
+                                LOG.warn("tenant {}: its started runs were not let go",
+                                        code, failed);
+                            }
+                        });
                         // On the same hourly beat: a key retired longer ago
                         // than any token it signed can still be live is gone.
                         // Rotation without this is not rotation.

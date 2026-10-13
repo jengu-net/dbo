@@ -73,7 +73,10 @@ class ASecondPlaceComesUpFromItsOriginIT {
                               "types":["StructureDefinition","SearchParameter","ValueSet","CodeSystem"]},
                              {"name":"%s","types":["Organization","CodeSystem"]}],
              "steps":[{"code":"%s","slots":{"specimen":"Observation"},
-                       "writes":["Observation"]}],
+                       "writes":["Observation"]},
+                      {"code":"jaam.lab.calibrate",
+                       "starts":{"every":"0 * * * * *","missed":"skip","keep":"P1D",
+                                 "where":"places"}}],
              "types":[
               {"name":"StructureDefinition","identity":"canonical","handling":"replicated"},
               {"name":"SearchParameter","identity":"canonical","handling":"replicated"},
@@ -406,6 +409,42 @@ class ASecondPlaceComesUpFromItsOriginIT {
     }
 
     @Test
+    @Order(12)
+    @DisplayName("a step declared to start on the clinic's places starts on the site with its "
+            + "origin away, under the site's own system run, and never in the cloud")
+    @Proving(DboPromises.PROC_A_STEP_STARTS_WHERE_IT_IS_DECLARED_TO)
+    void aSiteStartsItsOwnStepsWithItsOriginAway() throws Exception {
+        site.readsItsOriginThrough(CLINIC, null);
+        try {
+            assertEquals(java.util.Map.of(CALIBRATE, "0 * * * * *"),
+                    CLOCKS.get(siteDir).rules.get(CLINIC));
+            assertTrue(CLOCKS.get(cloudDir).rules.get(CLINIC) == null,
+                    "the cloud was given a step that starts on its places: "
+                            + CLOCKS.get(cloudDir).rules);
+
+            java.time.Instant tick = java.time.Instant.now()
+                    .truncatedTo(java.time.temporal.ChronoUnit.MINUTES);
+            CLOCKS.get(siteDir).opened.get(CLINIC).due(CALIBRATE, tick);
+
+            site.authority(CLINIC).ensureClient("bench", "bench-secret", List.of("work"));
+            HttpResponse<String> steps = http.send(HttpRequest.newBuilder(
+                                    URI.create(base(site, CLINIC) + "/steps"))
+                            .header("Authorization", "Bearer "
+                                    + clientToken(site, CLINIC, "bench", "bench-secret"))
+                            .GET().build(),
+                    HttpResponse.BodyHandlers.ofString());
+            assertEquals(200, steps.statusCode(), steps.body());
+            assertTrue(steps.body().contains("\"lastRun\":\"" + CALIBRATE + "/tick/" + tick
+                    + "\""), "the site started nothing with its origin away: " + steps.body());
+        } finally {
+            site.readsItsOriginThrough(CLINIC, connected());
+        }
+    }
+
+    /** The clinic's step that starts on its places, every minute. */
+    private static final String CALIBRATE = "jaam.lab.calibrate";
+
+    @Test
     @Order(11)
     @DisplayName("what the clinic's stream applies from the county is in the clinic's trail "
             + "under the stream's run")
@@ -456,8 +495,13 @@ class ASecondPlaceComesUpFromItsOriginIT {
             return fresh;
         });
         return new TenantRuntimeManager(dir, databases, "127.0.0.1", 0, null,
-                new TenantRuntimeManager.AuthorityConfig(kek, null));
+                new TenantRuntimeManager.AuthorityConfig(kek, null))
+                .stepScheduler(CLOCKS.computeIfAbsent(dir, ignored -> new HandCrankedScheduler()));
     }
+
+    /** Each node's clock, turned by hand, kept across its restarts. */
+    private static final java.util.Map<Path, HandCrankedScheduler> CLOCKS =
+            new java.util.HashMap<>();
 
     private static final String OBSERVATION = """
             {"resourceType":"Observation","status":"final",

@@ -93,6 +93,63 @@ the trail. The two come together or not at all, an undeclared audience is
 refused, and a step that says neither leaves its asker the answer alone
 ([reading back what was written](care-is-recorded.md#reading-back-what-was-written)).
 
+## `starts`: when a step starts itself
+
+`starts` names the one occasion on which the tenant starts a step itself:
+
+```json
+{ "code": "ward.rounds.walk",
+  "starts": { "every": "0 0 * * * *", "missed": "once", "keep": "P30D", "where": "origin" } }
+{ "code": "ward.orders.assign", "slots": { "order": "ServiceRequest" },
+  "starts": { "change": "ServiceRequest?status=active", "keep": "P7D", "where": "everywhere" } }
+{ "code": "ward.orders.chase", "slots": { "order": "ServiceRequest" },
+  "starts": { "due": "ServiceRequest?status=active", "at": "authoredOn", "after": "PT24H",
+              "keep": "P7D", "where": "origin" } }
+```
+
+- `every` is a calendar rule of six fields, from seconds, firing at most once a
+  minute. The step takes no slots. `missed` says what the ticks missed while no
+  node ran become when one comes back: `once`, one run for the last of them, or
+  `skip`. Either way the step says how many there were.
+- `change` is a search. Each version of a record it finds starts one run, with
+  the record in the step's one slot of that type. A record it does not find
+  starts nothing.
+- `due` is a search too. A record it finds starts one run once the moment its
+  `at` element names, plus `after`, has come. A record the search no longer
+  finds by then starts nothing.
+
+Each run is keyed by what started it: `tick/<instant>`, `change/<id>/<version>`
+or `due/<id>`. However many nodes notice the occasion, there is one run of it.
+Every run started this way is a child of the tenant's **system run**,
+`dbo.tenant.system/serve/<tenant>`, and has no requester.
+
+`keep` is how long those runs are kept once they are over; open ones are never
+removed. `where` says whether the step starts at the tenant's origin, on its
+[places](one-tenant-in-two-places.md), or at both. A place starts its steps on its
+own clock with its origin away. A change to `starts` alone is taken while the
+tenant serves.
+
+The clock is the deployment's durable layer, in the tenant's own database. An
+application hosting the store may bring its own scheduler through
+`TenantRuntimeManager.stepScheduler`. The store decides what a tick starts,
+whether the step is paused, and what a missed tick becomes; the scheduler says
+when a tick is due.
+
+### Reading and steering them
+
+`/t/<tenant>/steps` answers a `GET` with each self-starting step:
+
+- what starts it, and whether it is paused;
+- its last tick, its last run and how that run stands;
+- its next tick, how many runs it has started and how many it has let go;
+- how many ticks were missed and how many of those were skipped.
+
+`POST <step>/now` starts a run now, as the asker's. The next tick still comes
+when it was due. `POST <step>/pause` and `POST <step>/resume`, with a `because`,
+are recorded as acts under the system run, naming who did it. Reading and
+running need a `work` credential. Pausing and resuming need `supervise` over
+the step.
+
 ## A run
 
 Performing a step once is a **run**, and a run is a record in the tenant's own

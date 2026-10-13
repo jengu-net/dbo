@@ -60,10 +60,20 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
      * @param answer   what the application that asked for a run may collect
      *                 once its work is over, or null where it collects nothing
      *                 and reads the run's answer alone
+     * @param starts   when it starts itself, or null where it starts only when
+     *                 somebody asks
      */
     public record Step(String code, java.util.Map<String, String> slots,
             java.util.Set<String> writes, cloud.jengu.dbo.core.process.RetryPolicy retry,
-            cloud.jengu.dbo.core.process.AutomationCriterion automate, Answer answer) {
+            cloud.jengu.dbo.core.process.AutomationCriterion automate, Answer answer,
+            Starts starts) {
+
+        /** A step that starts only when somebody asks for it. */
+        public Step(String code, java.util.Map<String, String> slots,
+                java.util.Set<String> writes, cloud.jengu.dbo.core.process.RetryPolicy retry,
+                cloud.jengu.dbo.core.process.AutomationCriterion automate, Answer answer) {
+            this(code, slots, writes, retry, automate, answer, null);
+        }
 
         /** A step whose asker collects nothing. */
         public Step(String code, java.util.Map<String, String> slots,
@@ -88,13 +98,35 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
             if (code == null || code.isBlank()) {
                 throw new IllegalArgumentException("a step declares a code");
             }
-            if (slots.isEmpty()) {
+            // A step on a clock is the one that may take nothing: what it is
+            // over is whatever it finds when the tick comes, and nobody is
+            // there to hand it a record.
+            if (slots.isEmpty() && (starts == null || starts.every() == null)) {
                 throw new IllegalArgumentException(code + ": a step with no slots is over "
                         + "nothing, and a run of it would reach nothing — declare what it "
                         + "takes, or do not declare the step");
             }
             slots = java.util.Collections.unmodifiableMap(
                     new java.util.LinkedHashMap<>(slots));
+            if (starts != null && starts.every() != null && !slots.isEmpty()) {
+                throw new IllegalArgumentException(code + ": starts on a calendar rule and "
+                        + "takes " + slots.keySet() + ", and nothing fills a slot when a tick "
+                        + "comes — a step on a clock takes nothing and finds what it is over");
+            }
+            if (starts != null && starts.every() == null) {
+                // The record that started it goes into the one slot of its
+                // type; two such slots would leave the run guessing which.
+                long fits = slots.values().stream()
+                        .filter(declared -> cloud.jengu.dbo.core.process.SlotShape.of(declared)
+                                .type().equals(starts.type()))
+                        .count();
+                if (fits != 1) {
+                    throw new IllegalArgumentException(code + ": starts on a " + starts.type()
+                            + ", and " + (fits == 0 ? "takes no slot" : "takes " + fits
+                                    + " slots") + " of that type — the record that starts it "
+                            + "goes into exactly one");
+                }
+            }
             // READ HERE so a malformed form is refused where it was
             // written. Every other reader takes the shape apart again, and a
             // declaration that parses in one place and not another is a
@@ -107,6 +139,69 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
                             + wrong.getMessage(), wrong);
                 }
             });
+        }
+    }
+
+    /**
+     * When a step starts itself, rather than waiting to be asked.
+     *
+     * <p>Exactly one occasion: a calendar rule, a change to a record matching
+     * a search, or a moment a matching record names. Each run it starts is
+     * keyed by the step and that occasion, so however many nodes notice the
+     * same occasion there is one run of it.
+     *
+     * <p><b>The rule is the scheduler's own.</b> A calendar rule is read here
+     * by the parser that will fire it, so a rule it would refuse never gets
+     * past the declaration, and one firing more often than once a minute is
+     * refused too: each tick is a run, kept as history, and a cadence below a
+     * minute is a feed nobody can read.
+     *
+     * <p><b>Where it starts is said</b>, because a tenant served on a site
+     * holds the same declaration as its origin and keys are unique per
+     * database: unsaid, the cloud and every site would each start the same
+     * occasion.
+     *
+     * @param every  a calendar rule, six fields from seconds, or null
+     * @param change a search over one type, as {@code Type?param=value}, whose
+     *               matching changes start it, or null
+     * @param due    a search whose matching records start it at the moment
+     *               they name, or null
+     * @param at     the element of a {@code due} record naming its moment
+     * @param after  how long after that moment it is due, zero for at it
+     * @param missed what a tick missed while no node ran becomes on return;
+     *               only for a calendar rule
+     * @param keep   how long the runs it starts are kept
+     * @param where  where it starts
+     */
+    public record Starts(String every, String change, String due, String at,
+            java.time.Duration after, Missed missed, java.time.Duration keep, Where where) {
+
+        /** What a tick missed while no node ran becomes. */
+        public enum Missed {
+            /** one run on return, for all the ticks missed, and it says how many */
+            ONCE,
+            /** nothing; the next tick comes when due */
+            SKIP
+        }
+
+        /** Where a self-starting step starts. */
+        public enum Where {
+            /** where the tenant is served from its own database, and nowhere else */
+            ORIGIN,
+            /** on each site the tenant is served at, and not at its origin */
+            PLACES,
+            /** at its origin and on each of its sites, each its own occasion */
+            EVERYWHERE
+        }
+
+        /** The type whose records start it, or null for a calendar rule. */
+        public String type() {
+            String search = change != null ? change : due;
+            if (search == null) {
+                return null;
+            }
+            int query = search.indexOf('?');
+            return query < 0 ? search : search.substring(0, query);
         }
     }
 
@@ -853,8 +948,16 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
                                 + "' — " + wrong.getMessage(), wrong);
                     }
                 }
+                Object startsNode = Json.objOpt(step, "starts");
+                Starts starts;
+                try {
+                    starts = starts(startsNode, held);
+                } catch (IllegalArgumentException wrong) {
+                    throw new IllegalArgumentException(code + ": step '" + stepCode
+                            + "' — " + wrong.getMessage(), wrong);
+                }
                 steps.add(new Step(stepCode, slots, writes, retry, automate,
-                        answer(code, stepCode, step, policies)));
+                        answer(code, stepCode, step, policies), starts));
             }
         }
         // The steps the DEPLOYMENT performs, which only the management
@@ -934,6 +1037,106 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
      * a duration that is not one, a purpose that is not a code, and an
      * audience revealing a person whole on a step that says no reason for it.
      */
+    /**
+     * When a step starts itself, read whole here: one occasion and not two,
+     * a rule the scheduler can fire, a search over a type this tenant holds,
+     * a moment and a lag only where a moment is what starts it, a missed-tick
+     * policy only where there are ticks, and a retention and a place always,
+     * because neither has a default anybody chose.
+     */
+    private static Starts starts(Object startsNode, java.util.Set<String> held) {
+        if (startsNode == null) {
+            return null;
+        }
+        String every = Json.strOpt(startsNode, "every");
+        String change = Json.strOpt(startsNode, "change");
+        String due = Json.strOpt(startsNode, "due");
+        long occasions = java.util.stream.Stream.of(every, change, due)
+                .filter(java.util.Objects::nonNull).count();
+        if (occasions != 1) {
+            throw new IllegalArgumentException("starts on " + (occasions == 0 ? "nothing"
+                    : occasions + " occasions") + " — declare exactly one of 'every', "
+                    + "'change' or 'due'");
+        }
+        if (every != null) {
+            cloud.jengu.dbo.stream.StepClock.refuse(every);
+        }
+        String search = change != null ? change : due;
+        if (search != null) {
+            String type = search.contains("?") ? search.substring(0, search.indexOf('?'))
+                    : search;
+            if (!held.contains(type)) {
+                throw new IllegalArgumentException("starts on a change to '" + type
+                        + "', and this tenant does not declare that type. It holds: "
+                        + new java.util.TreeSet<>(held));
+            }
+        }
+        String at = Json.strOpt(startsNode, "at");
+        String after = Json.strOpt(startsNode, "after");
+        if (due == null && (at != null || after != null)) {
+            throw new IllegalArgumentException("names a moment ('at', 'after') and is not "
+                    + "started by one — only a 'due' step is");
+        }
+        if (due != null && at == null) {
+            throw new IllegalArgumentException("is due at a moment its record names, and "
+                    + "does not say which element names it — declare 'at'");
+        }
+        String missed = Json.strOpt(startsNode, "missed");
+        if (every == null && missed != null) {
+            throw new IllegalArgumentException("says what a missed tick becomes, and has no "
+                    + "ticks — 'missed' is only for a step started by 'every'");
+        }
+        if (every != null && missed == null) {
+            throw new IllegalArgumentException("is started by a calendar rule and does not "
+                    + "say what a tick missed while no node ran becomes — declare 'missed' "
+                    + "as 'once' or 'skip'");
+        }
+        String keep = Json.strOpt(startsNode, "keep");
+        if (keep == null) {
+            throw new IllegalArgumentException("starts itself and does not say how long the "
+                    + "runs it starts are kept — declare 'keep', as P30D");
+        }
+        String where = Json.strOpt(startsNode, "where");
+        if (where == null) {
+            throw new IllegalArgumentException("starts itself and does not say where — "
+                    + "declare 'where' as 'origin', 'places' or 'everywhere'");
+        }
+        java.time.Duration kept = duration("keep", keep);
+        if (kept.isNegative() || kept.isZero()) {
+            throw new IllegalArgumentException("keeps the runs it starts for " + keep
+                    + ", and a run kept for no time is never seen");
+        }
+        java.time.Duration lag = after == null ? java.time.Duration.ZERO
+                : duration("after", after);
+        if (lag.isNegative()) {
+            throw new IllegalArgumentException("is due " + after + " after its moment, and "
+                    + "a step is not started before what starts it");
+        }
+        return new Starts(every, change, due, at, lag,
+                missed == null ? null : named(Starts.Missed.class, "missed", missed), kept,
+                named(Starts.Where.class, "where", where));
+    }
+
+    private static java.time.Duration duration(String field, String value) {
+        try {
+            return java.time.Duration.parse(value);
+        } catch (java.time.format.DateTimeParseException wrong) {
+            throw new IllegalArgumentException("'" + field + "' is '" + value + "', which is "
+                    + "not an ISO-8601 duration such as P30D", wrong);
+        }
+    }
+
+    private static <E extends Enum<E>> E named(Class<E> kind, String field, String value) {
+        for (E one : kind.getEnumConstants()) {
+            if (one.name().equalsIgnoreCase(value)) {
+                return one;
+            }
+        }
+        throw new IllegalArgumentException("'" + field + "' is '" + value + "', and is one of "
+                + java.util.Arrays.stream(kind.getEnumConstants())
+                        .map(one -> one.name().toLowerCase(java.util.Locale.ROOT)).toList());
+    }
+
     private static Answer answer(String code, String stepCode, Object step,
             cloud.jengu.dbo.policy.TenantPolicies policies) {
         String answers = Json.strOpt(step, "answers");

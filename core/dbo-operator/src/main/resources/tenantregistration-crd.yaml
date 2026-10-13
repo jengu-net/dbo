@@ -173,6 +173,35 @@ spec:
                       # collecting request states the same code.
                       purpose:
                         type: string
+                      # When the step starts itself: exactly one of a
+                      # calendar rule (every, six fields from seconds), a
+                      # change to a record its search finds (change), or a
+                      # moment a matching record names (due, with at and
+                      # after). A calendar step says what a missed tick
+                      # becomes; every one says how long its runs are kept
+                      # and where it starts.
+                      starts:
+                        type: object
+                        required: [keep, where]
+                        properties:
+                          every:
+                            type: string
+                          change:
+                            type: string
+                          due:
+                            type: string
+                          at:
+                            type: string
+                          after:
+                            type: string
+                          missed:
+                            type: string
+                            enum: [once, skip]
+                          keep:
+                            type: string
+                          where:
+                            type: string
+                            enum: [origin, places, everywhere]
                 # Steps the DEPLOYMENT performs for every tenant that admits
                 # them, declared in the management tenant's registration and
                 # refused in anybody else's. Declared here all the same: the

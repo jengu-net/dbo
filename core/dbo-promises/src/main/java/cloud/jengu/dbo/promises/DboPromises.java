@@ -295,6 +295,74 @@ public enum DboPromises implements Promise {
             + "binds anybody, and what it may take stays the intersection of its scopes "
             + "and what the step admits."),
 
+    PROC_A_STEP_SAYS_WHEN_IT_STARTS_ITSELF("A step may say when it starts itself, as "
+            + "exactly one occasion: a calendar rule, a change to a record matching a search, "
+            + "or a moment a matching record names. The declaration is read whole where it is "
+            + "written: a rule the scheduler would not fire or that fires more often than once "
+            + "a minute, a search over a type the tenant does not hold, a moment with no "
+            + "element naming it, a calendar step that does not say what a missed tick "
+            + "becomes, and one that does not say how long its runs are kept or where it "
+            + "starts are each refused, naming what is missing. A step on a calendar rule is "
+            + "the one step that may take no slots; one started by a record takes exactly one "
+            + "slot of that record's type."),
+
+    PROC_A_CADENCE_CHANGES_WHERE_THE_TENANT_STANDS("A change to when a tenant's steps start "
+            + "themselves alone is taken where the tenant stands: "
+            + "its clock and its watches are brought into line with the new declaration and "
+            + "nothing is rebuilt. A tenant starting its first self-starting step is wired "
+            + "for it, so that change is a rebuild."),
+
+    PROC_A_STARTED_RUN_IS_ONE_PER_OCCASION("A run a step starts itself is keyed by the step "
+            + "and its occasion — the tick's instant, the record and its version, the record "
+            + "whose moment came — so however many nodes are told of the same occasion, one "
+            + "run of it is started. Every one is a child of the tenant's system run, one "
+            + "endless run standing for the work nobody asked for, and has no requester."),
+
+    PROC_A_MISSED_TICK_IS_WHAT_ITS_STEP_SAYS("Ticks missed while no node ran are reckoned "
+            + "when a node opens the tenant's clock, from the last tick its database holds: a "
+            + "step declaring once has one run, for the last of them, and one declaring skip "
+            + "has none. Either way how many were missed is said in an act under the system "
+            + "run and in the step's current entry. A tick that came while the step was "
+            + "paused was not missed."),
+
+    PROC_SELF_STARTING_STEPS_ARE_READ_AND_STEERED_AT_THEIR_DOOR("A tenant's self-starting "
+            + "steps are read at their own door: what starts each, whether it is paused, its "
+            + "last tick, run and that run's outcome, its next tick, and how many ticks were "
+            + "missed and skipped. Run now starts a run outside its occasion, as the asker's "
+            + "and under the system run, and the next tick still comes when due. Pause starts "
+            + "nothing on the step's occasions until resume. Pausing and resuming need the "
+            + "supervisory scope over the step, and each is recorded as an act under the "
+            + "system run naming who did it and why."),
+
+    PROC_A_HOSTS_SCHEDULER_IS_TRUSTED_WITH_TIMING_ALONE("The store's own clock is the "
+            + "durable layer's stored schedules, in the tenant's own database and a schema of "
+            + "their own, and a tick is fired once however many nodes hold the schedule. A "
+            + "framework hosting the store may bring its own scheduler, and it decides only "
+            + "when a tick is due: what a tick starts, whether "
+            + "the step is paused and what a missed tick becomes stay the store's."),
+
+    PROC_A_STEP_STARTS_ON_A_MATCHING_CHANGE("A step declared to start on a change starts one "
+            + "run for each version of a record its search finds, the record in its slot, "
+            + "matched by the store as a subscription's criteria are; a change it does not "
+            + "find starts nothing. The searches are given before the tenant's feed is first "
+            + "read, so nothing written while no node ran is passed over."),
+
+    PROC_A_STEP_STARTS_AT_A_MOMENT_ITS_RECORD_NAMES("A step declared due at a moment a "
+            + "matching record names starts one run of that record once the moment, and the "
+            + "lag it declares, has come, waiting for it in a durable sleep; a record that no "
+            + "longer matches by then starts nothing."),
+
+    PROC_A_STARTED_RUN_IS_KEPT_AS_LONG_AS_ITS_STEP_SAYS("The runs a step started itself are "
+            + "removed, history and all, once they are over and older than the step keeps "
+            + "them, and how many went is counted in the step's current entry, one row "
+            + "updated in place. A run still open is never removed."),
+
+    PROC_A_STEP_STARTS_WHERE_IT_IS_DECLARED_TO("A self-starting step says where it starts: "
+            + "at the tenant's origin, on its places, or everywhere, each its own occasion. A "
+            + "place starts its steps on its own clock and under its own system run, with its "
+            + "origin away as with it there, and the origin never starts a step declared for "
+            + "its places."),
+
     PROC_AUTOMATION_TAKES_ONLY_WHAT_ITS_STEP_ADMITS("A step may say when automation may take "
             + "its task, as a condition over the task's inputs, and the store decides it once, "
             + "when the task is authored: a task the condition does not admit is open to people "

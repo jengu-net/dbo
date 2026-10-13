@@ -153,6 +153,23 @@ public interface FhirStoreFacade {
     }
 
     /**
+     * The same, watching for the tenant's own work as well, from the first
+     * round: a watch added after dispatching began would miss what changed
+     * while no node ran, because the round before it had already passed it.
+     *
+     * <p>A face that serves no subscriptions watches nothing either, and says
+     * so by answering empty.
+     */
+    default java.util.Optional<AutoCloseable> dispatchNotifications(
+            cloud.jengu.dbo.core.api.feed.ChangeFeed feed,
+            javax.sql.DataSource dataSource,
+            long pollMillis,
+            cloud.jengu.dbo.core.api.feed.Watching watching) {
+        return watching == null ? dispatchNotifications(feed, dataSource, pollMillis)
+                : java.util.Optional.empty();
+    }
+
+    /**
      * How this face answers a reference that is a question, for a caller
      * outside the accept path.
      *

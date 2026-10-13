@@ -363,6 +363,43 @@ public final class Runs {
     public Run filling(cloud.jengu.dbo.core.process.StepDeclaration step, RunKind kind,
             String scope, Map<String, RunSlot> inputs, String requester,
             String forPeopleBecause, java.time.Duration collect, Run.Addressee addressee) {
+        return filling(step, kind, scope, inputs, requester, forPeopleBecause, collect,
+                addressee, null);
+    }
+
+    /**
+     * A run of a step the tenant started itself, on an occasion the step
+     * declared, as a child of the run that stands for the tenant's own work.
+     *
+     * <p>Keyed by the occasion, so every node that notices the same tick or
+     * the same version of a record finds the one run of it; and nobody asked,
+     * so it has no requester. Its reason is its parent and its key.
+     *
+     * @param occasion what started it — {@code tick/<instant>},
+     *                 {@code change/<id>/<version>}, {@code due/<id>} or
+     *                 {@code now/<id>} — which is its scope
+     * @param parent   the tenant's system run
+     */
+    public Run started(cloud.jengu.dbo.core.process.StepDeclaration step, String occasion,
+            Map<String, RunSlot> inputs, String forPeopleBecause, Run parent) {
+        return started(step, occasion, inputs, forPeopleBecause, parent, null);
+    }
+
+    /**
+     * The same, started outside its occasion by somebody who asked — the one
+     * a person or a test calls run now, which is the tenant's own work and
+     * theirs both, so it has a parent and a requester.
+     */
+    public Run started(cloud.jengu.dbo.core.process.StepDeclaration step, String occasion,
+            Map<String, RunSlot> inputs, String forPeopleBecause, Run parent, String by) {
+        return filling(step, RunKind.PIPELINE, occasion, inputs, by, forPeopleBecause, null,
+                null, parent);
+    }
+
+    private Run filling(cloud.jengu.dbo.core.process.StepDeclaration step, RunKind kind,
+            String scope, Map<String, RunSlot> inputs, String requester,
+            String forPeopleBecause, java.time.Duration collect, Run.Addressee addressee,
+            Run parent) {
         for (String slot : inputs.keySet()) {
             if (!step.slots().containsKey(slot)) {
                 throw new IllegalArgumentException(step.id() + " declares no slot '" + slot
@@ -384,7 +421,10 @@ public final class Runs {
         return byKey(key).orElseGet(() -> write(new State(key, step.id().processId(),
                 step.id().step(), kind, (forPeopleBecause == null ? Standing.OPEN
                         : Standing.OPEN.openTo(false).because(forPeopleBecause))
-                        .retrying(step.retry()).addressedTo(addressee), null, null, null,
+                        .retrying(step.retry()).addressedTo(addressee),
+                parent == null ? null : parent.key(),
+                parent == null ? null : parent.correlation(),
+                parent == null ? null : parent.trace(),
                 Map.of(), null,
                 List.copyOf(step.writes()),
                 requester == null ? null : new Run.Assignment(null, null, null, null, requester),
@@ -424,6 +464,29 @@ public final class Runs {
         return byKey(key).orElseGet(() -> write(new State(key, process, step, RunKind.SWEEP,
                 Standing.OPEN, null, null, null, Map.of(), null, List.copyOf(domains),
                 null, Run.Produced.NOTHING, null)));
+    }
+
+    /**
+     * An act somebody did to the tenant's own work — a step paused, resumed —
+     * recorded as a run that is over as it is written, under the run it
+     * acted on, saying who and why.
+     *
+     * <p>A run and not a log line, because every change is read for its
+     * reason in the same place: the trail of the work it changed.
+     *
+     * @param scope   what makes this act one — found again rather than written
+     *                twice when the same act is recorded again
+     * @param by      who did it
+     * @param because what they said, or null
+     */
+    public Run act(Run parent, String process, String step, String scope, String by,
+            String because) {
+        String key = process + "/" + step + "/" + scope;
+        return byKey(key).orElseGet(() -> completed(write(new State(key, process, step,
+                RunKind.PIPELINE, Standing.OPEN, parent.key(), parent.correlation(),
+                parent.trace(), Map.of(), null, List.of(),
+                new Run.Assignment(null, null, because, null, by), Run.Produced.NOTHING,
+                null))));
     }
 
     /** A pass over a sweep: what this round found, and what it therefore closes. */
@@ -1410,6 +1473,23 @@ public final class Runs {
                 .eq("process", EnvelopeValue.of(process))
                 .eq("step", EnvelopeValue.of(step))
                 .eq("scope", EnvelopeValue.of(at.wire()))));
+    }
+
+    /**
+     * The children of a run, of one step, that are over and were last changed
+     * before a moment — what a retention over them may remove. Open ones are
+     * never among them, however old: work nobody finished is not history.
+     */
+    public List<String> over(Run parent, String process, String step,
+            java.time.Instant before, int limit) {
+        return store.select(Criteria.of(WorkModel.TYPE)
+                        .eq("parent", EnvelopeValue.of(parent.key()))
+                        .eq("process", EnvelopeValue.of(process))
+                        .eq("step", EnvelopeValue.of(step))
+                        .lastUpdated(Criteria.RangeOp.LT, before)
+                        .limit(limit)).stream()
+                .filter(stored -> !Run.of(stored).open())
+                .map(cloud.jengu.dbo.core.api.StoredObject::id).toList();
     }
 
     /** The items of a run, open and closed. */

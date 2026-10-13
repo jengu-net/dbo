@@ -67,7 +67,16 @@ final class ElementSubscriptions {
                 // dispatcher for every other tenant on this node.
                 return List.of();
             }
-            for (StoredObject held : store.select(active)) {
+            List<StoredObject> subscriptions;
+            try {
+                subscriptions = store.select(active);
+            } catch (cloud.jengu.dbo.core.api.UnknownTypeException notRegistered) {
+                // The same answer where the face knows the type and the tenant
+                // does not hold it: failing here failed every round, and the
+                // tenant's own watches on that feed with it.
+                return List.of();
+            }
+            for (StoredObject held : subscriptions) {
                 Object sub = Json.parse(new String(held.payload(), StandardCharsets.UTF_8));
                 Object channel = ((Map<?, ?>) sub).get("channel");
                 if (channel == null || !"rest-hook".equals(field(channel, "type"))) {
