@@ -743,7 +743,7 @@ class TheStandardMovesUnderTheDataIT {
         String observation = """
                 [{"name":"Observation","identity":"internal","handling":"operational"}]""";
         dbo.declare(zone, """
-                {"code":"%s","face":"r4","audit":{"level":"none"},"types":[
+                {"code":"%s","face":"r4","zoneRoot":true,"audit":{"level":"none"},"types":[
                   {"name":"StructureDefinition","identity":"canonical","handling":"operational"},
                   {"name":"Observation","identity":"internal","handling":"operational"}]}"""
                 .formatted(zone));

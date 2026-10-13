@@ -2139,6 +2139,14 @@ public enum DboPromises implements Promise {
             + "once that run is over it goes — at once, unless the jurisdiction declared the "
             + "exchange's answer may be kept for a time, and then once that has passed — and "
             + "the owner is told once, on its own trail, that the copy it handed over ended."),
+    ZONE_A_TENANT_TAKES_ONLY_FROM_WHAT_STANDS_ABOVE_IT(
+            "A tenant's declared dependencies name only what stands above it: a "
+            + "jurisdiction, a face root, its service provider, or the projection that serves "
+            + "a jurisdiction on another face. A dependency on a tenant beside it — a stream "
+            + "of that tenant's records it never agreed to — is refused by name, naming both, "
+            + "because two tenants never deal with each other directly; what one needs of "
+            + "another is asked for through their zone. An upstream nothing declares yet is a "
+            + "wait, as before."),
     ZONE_A_ZONE_IS_SERVED_TO_A_FACE_THROUGH_ONE_PROJECTION(
             "A zone's definitions and records reach the tenants of a face it was not "
             + "written in through one projection per zone per face: a tenant that takes "

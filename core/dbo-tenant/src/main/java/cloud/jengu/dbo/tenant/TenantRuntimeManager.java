@@ -2386,6 +2386,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 aStepCodeBelongsToOneLevel(spec);
                 aRequiredStepCannotBeDeclined(spec);
                 tree.refuse(spec);
+                tree.refuseTakingFromAPeer(spec, managementCode);
                 aPartnerIsTheProvidersPartner(spec);
                 aPartnerIsNotDeclaredByTheTenantItFollows(spec);
                 // It parsed and it is being served, so a later refusal of the
