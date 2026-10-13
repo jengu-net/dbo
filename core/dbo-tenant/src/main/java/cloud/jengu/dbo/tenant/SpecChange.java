@@ -111,8 +111,17 @@ public record SpecChange(Kind kind, List<String> fields) {
         // when the tenant comes up. Nothing already stored moves, so this is
         // not cold; but a tenant cannot start answering at a path it has not
         // mounted, so it is not hot either.
+        //
+        // Except when the steps differ in when they start themselves alone,
+        // and the tenant already starts some: its clock is brought into line
+        // where it stands, so a cadence changes without an outage. A tenant
+        // starting its first is wired for it, so that one is a rebuild.
         if (!Objects.equals(serving.steps(), declared.steps())) {
-            rewire.add("steps");
+            if (startsAlone(serving.steps(), declared.steps())) {
+                hot.add("starts");
+            } else {
+                rewire.add("steps");
+            }
         }
         if (!Objects.equals(serving.policies(), declared.policies())) {
             rewire.add("policies");
@@ -192,6 +201,31 @@ public record SpecChange(Kind kind, List<String> fields) {
             return new SpecChange(Kind.REWIRE, join(rewire, hot));
         }
         return hot.isEmpty() ? NONE : new SpecChange(Kind.HOT, hot);
+    }
+
+    /**
+     * Whether two step lists differ only in when their steps start
+     * themselves, the serving one already starting some.
+     */
+    private static boolean startsAlone(List<TenantSpec.Step> serving,
+            List<TenantSpec.Step> declared) {
+        if (serving.size() != declared.size()
+                || serving.stream().allMatch(step -> step.starts() == null)) {
+            return false;
+        }
+        for (int i = 0; i < serving.size(); i++) {
+            TenantSpec.Step was = serving.get(i);
+            TenantSpec.Step is = declared.get(i);
+            try {
+                if (!Objects.equals(new TenantSpec.Step(was.code(), was.slots(), was.writes(),
+                        was.retry(), was.automate(), was.answer(), is.starts()), is)) {
+                    return false;
+                }
+            } catch (IllegalArgumentException slotsChangedToo) {
+                return false;
+            }
+        }
+        return true;
     }
 
     @SafeVarargs

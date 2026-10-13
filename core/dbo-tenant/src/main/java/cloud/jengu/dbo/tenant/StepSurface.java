@@ -666,6 +666,49 @@ final class StepSurface implements HttpHandler {
         return admitted ? null : "its step admits automation only when " + when.expression();
     }
 
+    /**
+     * A run of one of this tenant's own steps, started by the tenant itself on
+     * an occasion the step declared — held to the same declaration, retry
+     * and automation decision as one somebody asked for here.
+     *
+     * @param occasion its scope, which says what started it
+     * @param parent   the tenant's system run
+     * @param by       who asked, for a run started now; null for an occasion
+     */
+    Run startedOn(TenantSpec.Step step, String occasion,
+            Map<String, cloud.jengu.dbo.work.RunSlot> inputs, Run parent, String by) {
+        StepDeclaration declaration = declaration(step.code(), step.slots());
+        if (step.retry() != null) {
+            declaration = declaration.retrying(step.retry());
+        }
+        return runs.started(declaration, occasion, inputs,
+                step.automate() == null ? null : forPeopleBecause(step.automate(), inputs),
+                parent, by);
+    }
+
+    /**
+     * A body's {@code inputs} as a run of {@code step} records them, by the
+     * rules the door fills a run with: a slot the step does not declare is
+     * refused by name, and a search is resolved here into what it matched.
+     */
+    Map<String, cloud.jengu.dbo.work.RunSlot> filled(TenantSpec.Step step, Object body) {
+        Map<String, cloud.jengu.dbo.work.RunSlot> inputs = new LinkedHashMap<>();
+        if (!(Json.objOpt(body, "inputs") instanceof Map<?, ?> named)) {
+            return inputs;
+        }
+        for (Map.Entry<?, ?> given : named.entrySet()) {
+            String slot = String.valueOf(given.getKey());
+            String declaredShape = step.slots().get(slot);
+            if (declaredShape == null) {
+                throw new IllegalArgumentException(step.code() + " declares no slot '" + slot
+                        + "'; it takes: " + step.slots().keySet());
+            }
+            inputs.put(slot, fill(slot, cloud.jengu.dbo.core.process.SlotShape.of(
+                    declaredShape), given.getValue()));
+        }
+        return inputs;
+    }
+
     /** What the engine is handed: the slots, with the face type as the shape. */
     private StepDeclaration declaration(String code, Map<String, String> slots) {
         StepDeclaration declaration = StepDeclaration.of(code, "1", "r5");
