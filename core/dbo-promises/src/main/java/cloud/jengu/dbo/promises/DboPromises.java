@@ -2255,6 +2255,12 @@ public enum DboPromises implements Promise {
             + "for, with the reader's signed link as evidence — and every zone on the way "
             + "records that the answer was opened and by whom, never which document. Each "
             + "report is recorded once, however often it is carried."),
+    ZONE_WHAT_CAME_BACK_GOES_WITH_ITS_PURPOSE(
+            "What came back on a crossing is held by the tenant that asked beside the run "
+            + "that asked for it, never in it, so no earlier version of the run keeps a copy; "
+            + "once that run is over it goes — at once, unless the jurisdiction declared the "
+            + "exchange's answer may be kept for a time, and then once that has passed — and "
+            + "the owner is told once, on its own trail, that the copy it handed over ended."),
     ZONE_A_ZONE_IS_SERVED_TO_A_FACE_THROUGH_ONE_PROJECTION(
             "A zone's definitions and records reach the tenants of a face it was not "
             + "written in through one projection per zone per face: a tenant that takes "
