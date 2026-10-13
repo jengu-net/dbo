@@ -363,6 +363,26 @@ public enum DboPromises implements Promise {
             + "origin away as with it there, and the origin never starts a step declared for "
             + "its places."),
 
+    PROC_A_RUN_READS_AS_A_SCREEN_NEEDS_IT("An application embedding the store lists a "
+            + "tenant's runs as a screen of work needs them, without its own HTTP surface: "
+            + "the roots alone or the children of one run, one run by its key, the one that "
+            + "moved last first, a page at a time with a cursor to the next. Each carries "
+            + "where it stands, when it was authored and when it last moved, the run it is "
+            + "part of, who asked for it, what each of its slots names, the place it was "
+            + "performed at, its outcome and its tally. Asked across the tenant's door, the "
+            + "same questions answer the same, from the same fields."),
+
+    PROC_A_TASK_SEARCH_LISTS_ROOTS_AND_PARTS("A run's Task carries when it was authored "
+            + "and when it last moved, who asked for it, what its slots name as references, "
+            + "and the Task it is part of by reference as well as by key. Tasks are searched "
+            + "for the parts of one Task, for those part of none, and newest-moved first; a "
+            + "search that has more than one page says where the next one starts, rather "
+            + "than stopping at its count as if that were everything."),
+
+    PROC_A_PLACES_RUN_IS_LISTED_AT_HOME_UNDER_ITS_PLACE("A run a place performed is listed "
+            + "at home as any other, with the place it was performed at, the time it was "
+            + "authored there, and the run it was started under filed under the same place."),
+
     PROC_AUTOMATION_TAKES_ONLY_WHAT_ITS_STEP_ADMITS("A step may say when automation may take "
             + "its task, as a condition over the task's inputs, and the store decides it once, "
             + "when the task is authored: a task the condition does not admit is open to people "

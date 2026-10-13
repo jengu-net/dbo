@@ -1,5 +1,8 @@
 package cloud.jengu.dbo.harness;
 
+import cloud.jengu.dbo.asking.Asking;
+import cloud.jengu.dbo.asking.Ongoing;
+
 import cloud.jengu.dbo.auth.TenantAuthority;
 import cloud.jengu.dbo.core.api.feed.FeedChunk;
 import cloud.jengu.dbo.core.api.feed.FeedItem;
@@ -424,6 +427,7 @@ class ASecondPlaceComesUpFromItsOriginIT {
 
             java.time.Instant tick = java.time.Instant.now()
                     .truncatedTo(java.time.temporal.ChronoUnit.MINUTES);
+            calibrated = tick;
             CLOCKS.get(siteDir).opened.get(CLINIC).due(CALIBRATE, tick);
 
             site.authority(CLINIC).ensureClient("bench", "bench-secret", List.of("work"));
@@ -443,6 +447,34 @@ class ASecondPlaceComesUpFromItsOriginIT {
 
     /** The clinic's step that starts on its places, every minute. */
     private static final String CALIBRATE = "jaam.lab.calibrate";
+
+    /** The tick the site started its calibration on, with its origin away. */
+    private static java.time.Instant calibrated;
+
+    @Test
+    @Order(13)
+    @DisplayName("a run the site performed is listed at its tenant as any other, with the site "
+            + "it was performed at, when it was authored there, and the run it was started "
+            + "under filed under the site too")
+    @Proving(DboPromises.PROC_A_PLACES_RUN_IS_LISTED_AT_HOME_UNDER_ITS_PLACE)
+    void aSitesRunIsListedAtHomeUnderTheSite() throws Exception {
+        java.time.Instant handed = java.time.Instant.now();
+        site.syncRound();
+
+        String key = "site" + Lanes.MIRROR_SEPARATOR + CALIBRATE + "/tick/" + calibrated;
+        List<Ongoing> listed = Asking
+                .at(cloud.runtime(CLINIC).orElseThrow().engine()).work().key(key)
+                .page(10, null).runs();
+        assertEquals(1, listed.size(), "the site's run is not listed at its tenant: " + listed);
+        Ongoing run = listed.get(0);
+        assertEquals("site", run.place(), run.toString());
+        assertEquals("site" + Lanes.MIRROR_SEPARATOR + "dbo.tenant.system/serve/" + CLINIC,
+                run.parentKey(), "the run it was started under is not filed under the site: "
+                        + run);
+        assertTrue(run.authored() != null && run.authored().isBefore(handed),
+                "the run says it was authored when it arrived, not when the site authored it: "
+                        + run);
+    }
 
     @Test
     @Order(11)

@@ -19,13 +19,14 @@ public interface WorkSurface {
      * filtering.
      *
      * <p>The ones a screen asks about work: where it stands and who may take
-     * it — together, who owes it the next act — which step it is of, and what
-     * case it belongs to. What a run's document
+     * it — together, who owes it the next act — which step it is of, what
+     * case it belongs to, and which run it is part of, or that it is part of
+     * none. What a run's document
      * otherwise carries is the step's business and is not indexed here, so it
      * is not searchable, and leaving it out of this set is how that is said.
      */
     default java.util.Set<String> searchParameters() {
-        return java.util.Set.of("status", "performer-type", "code", "identifier");
+        return java.util.Set.of("status", "performer-type", "code", "identifier", "part-of");
     }
 
     /**

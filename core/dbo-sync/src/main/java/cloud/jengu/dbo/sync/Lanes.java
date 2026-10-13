@@ -635,10 +635,20 @@ public final class Lanes {
         Object json = Json.parse(new String(item.payload(), StandardCharsets.UTF_8));
         String key = Json.str(json, "key");
         String mirrored = WorkModel.mirroredKey(from, key);
-        byte[] payload = new String(item.payload(), StandardCharsets.UTF_8)
+        String text = new String(item.payload(), StandardCharsets.UTF_8)
                 .replaceFirst("\"key\":\"" + java.util.regex.Pattern.quote(key) + "\"",
-                        "\"key\":\"" + java.util.regex.Matcher.quoteReplacement(mirrored) + "\"")
-                .getBytes(StandardCharsets.UTF_8);
+                        "\"key\":\"" + java.util.regex.Matcher.quoteReplacement(mirrored) + "\"");
+        // Its parent filed the same way, so the run it was started under is
+        // found where the two of them are kept here — under the site, beside
+        // the run, and not among this side's own.
+        String parent = ((java.util.Map<?, ?>) json).get("parent") instanceof String named
+                && !WorkModel.authoredElsewhere(named) ? named : null;
+        if (parent != null) {
+            text = text.replaceFirst("\"parent\":\"" + java.util.regex.Pattern.quote(parent) + "\"",
+                    "\"parent\":\"" + java.util.regex.Matcher.quoteReplacement(
+                            WorkModel.mirroredKey(from, parent)) + "\"");
+        }
+        byte[] payload = text.getBytes(StandardCharsets.UTF_8);
         Optional<StoredObject> here = store.getByIdentifier(WorkModel.TYPE,
                 List.of(WorkModel.key(mirrored))).stream().findFirst();
         if (here.isPresent() && here.get().versionId() >= item.version()) {

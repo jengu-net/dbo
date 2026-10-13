@@ -7,6 +7,7 @@ import cloud.jengu.dbo.work.Run;
 
 import java.net.URI;
 import java.time.Instant;
+import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
@@ -155,6 +156,32 @@ public final class Across implements Questions {
                             java.time.Duration.ofNanos(System.nanoTime() - began))));
         }
 
+        /**
+         * One page of members and the cursor its next link carries, or null
+         * when the tenant handed back no next link.
+         */
+        <T> java.util.Map.Entry<java.util.List<T>, String> page(int size, String cursor,
+                Function<byte[], T> as) {
+            long began = System.nanoTime();
+            String separator = search.isEmpty() ? "?" : "&";
+            String bundle = door.get("/" + type + query() + separator + "_count=" + size
+                    + (cursor == null ? "" : "&_cursor=" + encoded(cursor)));
+            java.util.List<T> members = Bundles.members(bundle).stream().map(as).toList();
+            String next = Bundles.next(bundle);
+            String nextCursor = null;
+            if (next != null) {
+                for (String pair : URI.create(next).getRawQuery().split("&")) {
+                    if (pair.startsWith("_cursor=")) {
+                        nextCursor = java.net.URLDecoder.decode(pair.substring(8),
+                                java.nio.charset.StandardCharsets.UTF_8);
+                    }
+                }
+            }
+            watching.asked(new Watching.Asked(vocabulary + ".page", named, members.size(),
+                    java.time.Duration.ofNanos(System.nanoTime() - began)));
+            return new java.util.AbstractMap.SimpleImmutableEntry<>(members, nextCursor);
+        }
+
         long count() {
             long began = System.nanoTime();
             String separator = search.isEmpty() ? "?" : "&";
@@ -229,6 +256,34 @@ public final class Across implements Questions {
         }
 
         @Override
+        public Questions.Work roots() {
+            return new WorkAcross(asked.also("roots", "part-of:missing=true"));
+        }
+
+        @Override
+        public Questions.Work childrenOf(String id) {
+            return new WorkAcross(asked.also("childrenOf", "part-of=" + Asked.encoded("Task/" + id)));
+        }
+
+        @Override
+        public Questions.Work key(String key) {
+            return new WorkAcross(asked.also("key",
+                    "identifier=" + Asked.encoded("urn:dbo:run|" + key)));
+        }
+
+        @Override
+        public Questions.Work newestMovedFirst() {
+            return new WorkAcross(asked.also("newestMovedFirst", "_sort=-_lastUpdated"));
+        }
+
+        @Override
+        public Questions.Page page(int size, String cursor) {
+            java.util.Map.Entry<java.util.List<Ongoing>, String> page =
+                    asked.page(size, cursor, WorkAcross::ongoing);
+            return new Questions.Page(page.getKey(), page.getValue());
+        }
+
+        @Override
         public Stream<Ongoing> stream() {
             return asked.stream(WorkAcross::ongoing);
         }
@@ -260,6 +315,47 @@ public final class Across implements Questions {
                     "\"system\":\"urn:dbo:run:performer\",\"code\":\"automation\"");
             String milestone = Bundles.beside(member, "urn:dbo:run:milestone", "code");
             String correlation = Bundles.beside(member, "urn:dbo:correlation", "value");
+            Map<?, ?> task = (Map<?, ?>) cloud.jengu.dbo.core.wire.RecordWire.read(member);
+            String parentId = null;
+            String parentKey = null;
+            if (task.get("partOf") instanceof java.util.List<?> parts && !parts.isEmpty()
+                    && parts.get(0) instanceof Map<?, ?> part) {
+                Object reference = part.get("reference");
+                parentId = reference != null && reference.toString().startsWith("Task/")
+                        ? reference.toString().substring("Task/".length()) : null;
+                parentKey = part.get("identifier") instanceof Map<?, ?> named
+                        ? text(named.get("value")) : null;
+            }
+            Map<String, java.util.List<String>> inputs = new java.util.LinkedHashMap<>();
+            Map<String, Long> tally = new java.util.LinkedHashMap<>();
+            for (Object one : list(task.get("input"))) {
+                String slot = codeIn(one, "urn:dbo:run:input");
+                Object value = ((Map<?, ?>) one).get("valueReference");
+                if (slot != null && value instanceof Map<?, ?> referred
+                        && referred.get("reference") != null) {
+                    inputs.computeIfAbsent(slot, ignored -> new java.util.ArrayList<>())
+                            .add(referred.get("reference").toString());
+                }
+            }
+            for (Object one : list(task.get("output"))) {
+                String counted = codeIn(one, "urn:dbo:run:tally");
+                if (counted != null && ((Map<?, ?>) one).get("valueInteger") instanceof Number n) {
+                    tally.put(counted, n.longValue());
+                }
+            }
+            String place = null;
+            for (Object one : list(task.get("extension"))) {
+                if ("https://dbo.dev/fhir/StructureDefinition/performed-at".equals(
+                        ((Map<?, ?>) one).get("url"))) {
+                    place = text(((Map<?, ?>) one).get("valueString"));
+                }
+            }
+            String outcome = null;
+            for (Object one : list(task.get("contained"))) {
+                for (Object issue : list(((Map<?, ?>) one).get("issue"))) {
+                    outcome = text(((Map<?, ?>) issue).get("diagnostics"));
+                }
+            }
             return new Ongoing(
                     Bundles.field(member, "id"),
                     Bundles.beside(member, "urn:dbo:run", "value"),
@@ -267,7 +363,49 @@ public final class Across implements Questions {
                     Bundles.beside(member, "urn:dbo:step", "code"),
                     awaits(status, automation),
                     emptyToNull(correlation),
-                    emptyToNull(milestone));
+                    emptyToNull(milestone),
+                    emptyToNull(status),
+                    instant(task.get("authoredOn")),
+                    instant(task.get("lastModified")),
+                    parentId, parentKey,
+                    requester(task.get("requester")),
+                    inputs, place, outcome, tally);
+        }
+
+        /** Who asked, as the rendering names them: by reference, or as a client. */
+        private static String requester(Object requester) {
+            if (!(requester instanceof Map<?, ?> named)) {
+                return null;
+            }
+            if (named.get("reference") != null) {
+                return named.get("reference").toString();
+            }
+            return named.get("identifier") instanceof Map<?, ?> identifier
+                    ? text(identifier.get("value")) : null;
+        }
+
+        /** The code a typed element carries in one system, or null. */
+        private static String codeIn(Object element, String system) {
+            if (((Map<?, ?>) element).get("type") instanceof Map<?, ?> type) {
+                for (Object coding : list(type.get("coding"))) {
+                    if (system.equals(((Map<?, ?>) coding).get("system"))) {
+                        return text(((Map<?, ?>) coding).get("code"));
+                    }
+                }
+            }
+            return null;
+        }
+
+        private static java.util.List<?> list(Object value) {
+            return value instanceof java.util.List<?> many ? many : java.util.List.of();
+        }
+
+        private static String text(Object value) {
+            return value == null ? null : value.toString();
+        }
+
+        private static java.time.Instant instant(Object value) {
+            return value == null ? null : java.time.Instant.parse(value.toString());
         }
 
         /** Who a rendered run waits for, from its status and who may perform it. */

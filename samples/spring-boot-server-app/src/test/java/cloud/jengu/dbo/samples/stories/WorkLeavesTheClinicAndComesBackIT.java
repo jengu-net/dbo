@@ -1772,7 +1772,9 @@ class WorkLeavesTheClinicAndComesBackIT {
         Proves.that(DboPromises.PROC_A_PERSON_CLAIMS_AS_A_PRACTITIONER_ROLE,
                 "in-progress".equals(meanwhile.state())
                         && meanwhile.body().contains(String.valueOf(holding.assignment().role()))
-                        && !meanwhile.body().contains("\"Device\""),
+                        // The owner, and not who asked: a client that asked
+                        // is named as the Device it authenticated as.
+                        && !meanwhile.body().contains("\"owner\":{\"type\":\"Device\""),
                 "the task does not name the nurse's role as its owner: " + meanwhile.body());
 
         assertEquals(200, taking.finish(HOSPITAL, token, alarming.run()).statusCode());

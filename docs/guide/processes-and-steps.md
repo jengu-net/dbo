@@ -165,6 +165,11 @@ where a `Task` keeps them:
 | who may take it | `performerType` (R4), `requestedPerformer` (R5) | `automation` and `person`, or `person` alone |
 | not before | `restriction.period.start` (R4), `requestedPeriod.start` (R5) | for a run held back after a failure that may pass |
 | why | `statusReason` | the failure, or why automation may not take it |
+| when | `authoredOn`, `lastModified`, `meta.lastUpdated` | authored, and last moved, where it was performed |
+| who asked | `requester` | a client as a `Device` under `urn:dbo:auth:client-id`, a person by reference |
+| what it is over | `input` | each value a slot holds, as a reference |
+| what it is part of | `partOf` | the parent's `Task` by reference, and its key under `urn:dbo:run` |
+| where it was performed | extension `performed-at` | the place, for a run a place handed home |
 
 Who owes the next act follows from those: a claimed run waits for its owner, an
 unclaimed one open to automation waits for a machine and is nobody's card, and
@@ -174,6 +179,27 @@ asking vocabulary. A machine is offered nothing on it and is refused when it
 claims; a person takes a task with their own token from the tenant's identity
 provider, as the role they hold there
 ([what automation may not take, a nurse does](work-leaves-and-comes-back.md#what-automation-may-not-take-a-nurse-does)).
+
+### A screen of work
+
+A screen lists the roots and opens each onto its parts:
+
+```
+GET /t/<tenant>/fhir/Task?part-of:missing=true&_sort=-_lastUpdated&_count=20
+GET /t/<tenant>/fhir/Task?part-of=Task/<id>
+```
+
+A page that is not the last links to the next. From inside an application the
+asking vocabulary says the same, and answers with the same fields:
+
+```java
+Questions.Work work = tenants.asking("hogwarts").orElseThrow().work();
+Questions.Page page = work.roots().newestMovedFirst().page(20, null);
+Questions.Page parts = work.childrenOf(page.runs().get(0).id()).page(20, null);
+```
+
+`key(...)` finds one run by its key, and `page.next()` is the cursor for the
+following page.
 
 ### A run for one participant
 

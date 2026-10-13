@@ -2,6 +2,9 @@ package cloud.jengu.dbo.asking;
 
 import cloud.jengu.dbo.work.Awaits;
 
+import java.time.Instant;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -29,9 +32,27 @@ import java.util.Optional;
  * @param correlation the case it was filed under, absent where nobody set one
  * @param milestone   how far it said it had got, absent where it has said
  *                    nothing
+ * @param status      where it stands, in the Task's own words — {@code ready},
+ *                    {@code in-progress}, {@code completed}, …
+ * @param authored    when it was authored
+ * @param moved       when it last moved
+ * @param parentId    the id of the run it is part of, absent for a root or
+ *                    where that run is not held here
+ * @param parentKey   the key of the run it is part of, absent for a root
+ * @param requester   who asked for it: a client, or a person by reference;
+ *                    absent where nobody asked
+ * @param inputs      what each of its slots names, slot to references, in the
+ *                    step's order; an object given whole names nothing
+ * @param place       the place it was performed at, absent for one performed
+ *                    here
+ * @param outcome     why it failed or what it refused, absent where nothing
+ *                    did
+ * @param tally       what it counted
  */
 public record Ongoing(String id, String key, String process, String step, Awaits awaits,
-        String correlation, String milestone) {
+        String correlation, String milestone, String status, Instant authored, Instant moved,
+        String parentId, String parentKey, String requester, Map<String, List<String>> inputs,
+        String place, String outcome, Map<String, Long> tally) {
 
     public Ongoing {
         if (id == null || id.isBlank()) {
@@ -39,6 +60,21 @@ public record Ongoing(String id, String key, String process, String step, Awaits
                     "a run with no id cannot be asked about further, which is the one thing "
                             + "this type promises");
         }
+        inputs = inputs == null ? Map.of() : java.util.Collections.unmodifiableMap(
+                new java.util.LinkedHashMap<>(inputs));
+        tally = tally == null ? Map.of() : Map.copyOf(tally);
+    }
+
+    /** A run as it was answered before a screen asked when, and under what. */
+    public Ongoing(String id, String key, String process, String step, Awaits awaits,
+            String correlation, String milestone) {
+        this(id, key, process, step, awaits, correlation, milestone, null, null, null, null,
+                null, null, null, null, null, null);
+    }
+
+    /** Whether it was started under no other run: the top of a piece of work. */
+    public boolean root() {
+        return parentKey == null;
     }
 
     /** The case it was filed under, where somebody set one. */

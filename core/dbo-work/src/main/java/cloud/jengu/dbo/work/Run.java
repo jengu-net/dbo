@@ -31,7 +31,35 @@ public record Run(String id, long versionId, String key, String process, String 
         Map<String, RunSlot> inputs, Milestone milestone, String requester,
         String refused, Status status, boolean automation, java.time.Instant notBefore,
         String statusReason, int attempts, cloud.jengu.dbo.core.process.RetryPolicy retry,
-        Window window, Addressee addressee) {
+        Window window, Addressee addressee, java.time.Instant authored,
+        java.time.Instant moved) {
+
+    /**
+     * A run as it was described before it said when: authored and last
+     * moved, which only the store's own record of it can say.
+     */
+    public Run(String id, long versionId, String key, String process, String step,
+            RunKind kind, String parent, String correlation, String trace,
+            Map<String, Long> tally, Item item, java.util.List<String> domains,
+            Assignment assignment, Produced produced, String stepVersion,
+            Map<String, RunSlot> inputs, Milestone milestone, String requester,
+            String refused, Status status, boolean automation, java.time.Instant notBefore,
+            String statusReason, int attempts, cloud.jengu.dbo.core.process.RetryPolicy retry,
+            Window window, Addressee addressee) {
+        this(id, versionId, key, process, step, kind, parent, correlation, trace, tally, item,
+                domains, assignment, produced, stepVersion, inputs, milestone, requester,
+                refused, status, automation, notBefore, statusReason, attempts, retry, window,
+                addressee, null, null);
+    }
+
+    /**
+     * The place a run was performed at, for one a place handed home, or null
+     * for one performed here: the name its key is filed under at home.
+     */
+    public String place() {
+        return key == null || !WorkModel.authoredElsewhere(key) ? null
+                : key.substring(0, key.indexOf(WorkModel.AUTHOR_SEPARATOR));
+    }
 
     /** A run open to whoever holds its step. */
     public Run(String id, long versionId, String key, String process, String step,
@@ -528,7 +556,13 @@ public record Run(String id, long versionId, String key, String process, String 
                 notBefore == null ? null : java.time.Instant.parse(notBefore.toString()),
                 optional(json, "statusReason"),
                 attempts instanceof Number count ? count.intValue() : 0, retry(json),
-                window(json), addressee(json));
+                window(json), addressee(json), instant(json, "authored"),
+                instant(json, "at"));
+    }
+
+    private static java.time.Instant instant(Object json, String field) {
+        Object written = ((Map<?, ?>) json).get(field);
+        return written == null ? null : java.time.Instant.parse(written.toString());
     }
 
     /** Who the run is for, as it recorded them, or null where it names nobody. */

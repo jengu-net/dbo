@@ -64,6 +64,24 @@ public interface Questions {
         /** Everything filed under one correlation. */
         Work correlated(String correlation);
 
+        /** Runs started under no other: the top of each piece of work. */
+        Work roots();
+
+        /** The runs started under one, named by its id. */
+        Work childrenOf(String id);
+
+        /** The one run minted under this key. */
+        Work key(String key);
+
+        /** The run that moved last, first. */
+        Work newestMovedFirst();
+
+        /**
+         * One page of the answer: at most {@code size}, from where
+         * {@code cursor} left off, or from the start for null.
+         */
+        Page page(int size, String cursor);
+
         /**
          * The answer, walked as it is produced. Close it.
          *
@@ -77,6 +95,19 @@ public interface Questions {
 
         /** How many, without fetching them. */
         long count();
+    }
+
+    /**
+     * A page of runs, and where the next one starts.
+     *
+     * @param next the cursor for the page after this one, or null when this
+     *             one is the last
+     */
+    record Page(java.util.List<Ongoing> runs, String next) {
+
+        public Page {
+            runs = java.util.List.copyOf(runs);
+        }
     }
 
     /** Records of one type, narrowed the same way. */

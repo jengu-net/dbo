@@ -685,7 +685,7 @@ public final class Runs {
                 .withStanding(Standing.of(current).as(Status.IN_PROGRESS).notBefore(null));
         try {
             store.put(new PutRequest(WorkModel.TYPE, current.id(), current.versionId(),
-                    claimed.payload()));
+                    authored(claimed.payload(), current.authored())));
         } catch (cloud.jengu.dbo.core.api.VersionConflictException lost) {
             // Somebody wrote between the read and the write, which for a claim
             // means somebody else took it. Not an error: it is the answer.
@@ -747,7 +747,7 @@ public final class Runs {
                 .withStanding(Standing.of(current).as(Status.IN_PROGRESS).notBefore(null));
         try {
             store.put(new PutRequest(WorkModel.TYPE, current.id(), current.versionId(),
-                    claimed.payload()));
+                    authored(claimed.payload(), current.authored())));
         } catch (cloud.jengu.dbo.core.api.VersionConflictException lost) {
             return Optional.empty();
         }
@@ -1584,19 +1584,47 @@ public final class Runs {
      * a reference in the payload and is not gathered.
      */
     public cloud.jengu.dbo.core.face.RecordProjection.Record asRecord(Run run) {
+        // Its items, and only those: a run started under another — every run
+        // the tenant starts itself is one, under its system run — is its own
+        // record, read by asking for the children of that run.
         return new cloud.jengu.dbo.core.face.RecordProjection.Record(WorkModel.TYPE, run.id(),
-                run.versionId(), payloadOf(run),
-                items(run).stream().map(item ->
+                run.versionId(), rendered(run),
+                items(run).stream().filter(item -> item.item() != null).map(item ->
                         new cloud.jengu.dbo.core.face.RecordProjection.Record(WorkModel.TYPE,
-                                item.id(), item.versionId(), payloadOf(item), item.domains()))
+                                item.id(), item.versionId(), rendered(item), item.domains()))
                         .toList(),
                 run.domains());
     }
 
-    private byte[] payloadOf(Run run) {
-        return store.get(WorkModel.TYPE, run.id())
+    /**
+     * The run as it is held, with what a reader of it needs and the record
+     * cannot say of itself: the id of the run it is part of, so the reference
+     * resolves; and, for a run written before runs said when they were
+     * authored, the moment its first version was written.
+     */
+    private byte[] rendered(Run run) {
+        byte[] held = store.get(WorkModel.TYPE, run.id())
                 .orElseThrow(() -> new IllegalStateException("run " + run.key() + " has gone"))
                 .payload();
+        StringBuilder facts = new StringBuilder();
+        if (run.parent() != null) {
+            byKey(run.parent()).ifPresent(parent -> facts.append(",\"parentId\":")
+                    .append(Json.quoted(parent.id())));
+        }
+        if (run.authored() == null) {
+            List<cloud.jengu.dbo.core.api.StoredObject> versions =
+                    store.history(WorkModel.TYPE, run.id());
+            if (!versions.isEmpty() && versions.get(0).lastUpdated() != null) {
+                facts.append(",\"authored\":")
+                        .append(Json.quoted(versions.get(0).lastUpdated().toString()));
+            }
+        }
+        if (facts.isEmpty()) {
+            return held;
+        }
+        String json = new String(held, StandardCharsets.UTF_8);
+        return (json.substring(0, json.lastIndexOf('}')) + facts + "}")
+                .getBytes(StandardCharsets.UTF_8);
     }
 
     // ------------------------------------------------------------- writing
@@ -1699,6 +1727,39 @@ public final class Runs {
         // deliberately nothing; see announced()
     }
 
+    /**
+     * The moment a run was authored, written into every version of it: once,
+     * as it is first written, and carried by each write after.
+     *
+     * <p>In the payload and not taken from the store's first version, so a
+     * run a place performed carries its own beginning home rather than the
+     * moment its copy arrived; and so a screen ordering by it reads one field
+     * rather than a history per run. A run written before this was kept has
+     * none, and keeps having none.
+     */
+    private static byte[] authored(byte[] payload, java.time.Instant authored) {
+        if (authored == null) {
+            return payload;
+        }
+        String json = new String(payload, StandardCharsets.UTF_8);
+        return (json.substring(0, json.lastIndexOf('}')) + ",\"authored\":"
+                + Json.quoted(authored.toString()) + "}").getBytes(StandardCharsets.UTF_8);
+    }
+
+    /**
+     * A first version, authored at the moment it says it was written: one
+     * instant for both, so a run never reads as having moved before it began.
+     */
+    private static byte[] authoredAsWritten(byte[] payload) {
+        java.util.regex.Matcher at = java.util.regex.Pattern.compile("\"at\":\"([^\"]+)\"")
+                .matcher(new String(payload, StandardCharsets.UTF_8));
+        String written = null;
+        while (at.find()) {
+            written = at.group(1);
+        }
+        return authored(payload, written == null ? null : java.time.Instant.parse(written));
+    }
+
     private Run write(State state) {
         if (WorkModel.authoredElsewhere(state.key())) {
             // A locally authored key that looked mirrored would be advanceable
@@ -1709,7 +1770,7 @@ public final class Runs {
                     + state.key());
         }
         PutResult result = store.putIfAbsent(IdentityRef.identifier(WorkModel.KEY_SYSTEM,
-                state.key()), PutRequest.create(WorkModel.TYPE, state.payload()));
+                state.key()), PutRequest.create(WorkModel.TYPE, authoredAsWritten(state.payload())));
         return announced(byKey(state.key()).orElseThrow(() -> new IllegalStateException(
                 "a run was written as " + result.id() + " and cannot be read back")));
     }
@@ -1837,7 +1898,7 @@ public final class Runs {
             }
             try {
                 store.put(new PutRequest(WorkModel.TYPE, current.id(), current.versionId(),
-                        state.payload()));
+                        authored(state.payload(), current.authored())));
                 return Optional.of(announced(byKey(state.key()).orElseThrow()));
             } catch (cloud.jengu.dbo.core.api.VersionConflictException lost) {
                 if (attempt == ATTEMPTS) {

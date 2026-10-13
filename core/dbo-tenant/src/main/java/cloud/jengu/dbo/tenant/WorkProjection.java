@@ -48,6 +48,33 @@ final class WorkProjection implements WorkSurface {
         this.face = face;
     }
 
+    /** The result parameters a search of runs takes beside its narrowings. */
+    private static final java.util.Set<String> RESULT_PARAMETERS =
+            java.util.Set.of("_count", "_summary", "_sort", "_cursor");
+
+    /** The system a run's correlation is rendered under. */
+    private static final String CORRELATION_SYSTEM = "urn:dbo:correlation";
+
+    /** A key no run has: what a part-of naming no run narrows to. */
+    private static final String NO_RUN = "";
+
+    /** The same question, from where this page ended. */
+    private static String nextQuery(java.util.Map<String, String> query, String cursor) {
+        StringBuilder next = new StringBuilder();
+        query.forEach((name, value) -> {
+            if (!"_cursor".equals(name)) {
+                next.append(next.isEmpty() ? "" : "&").append(encoded(name)).append('=')
+                        .append(encoded(value));
+            }
+        });
+        return next.append(next.isEmpty() ? "" : "&").append("_cursor=").append(encoded(cursor))
+                .toString();
+    }
+
+    private static String encoded(String value) {
+        return java.net.URLEncoder.encode(value, java.nio.charset.StandardCharsets.UTF_8);
+    }
+
     @Override
     public Optional<String> read(String id) {
         return runs.byId(id).map(this::rendered);
@@ -68,8 +95,8 @@ final class WorkProjection implements WorkSurface {
         // every run in the tenant, which a caller cannot tell from the answer
         // they asked for (REQ-DBO-SRCH-HONEST-CAPABILITY).
         for (String parameter : query.keySet()) {
-            if (!searchParameters().contains(parameter)
-                    && !"_count".equals(parameter) && !"_summary".equals(parameter)) {
+            if (!searchParameters().contains(parameter) && !"part-of:missing".equals(parameter)
+                    && !RESULT_PARAMETERS.contains(parameter)) {
                 throw new cloud.jengu.dbo.fhir.common.UnknownSearchParameterException(
                         WorkModel.TYPE, parameter);
             }
@@ -104,17 +131,63 @@ final class WorkProjection implements WorkSurface {
             criteria.eq("step", cloud.jengu.dbo.core.api.EnvelopeValue.of(query.get("code")));
         }
         if (query.get("identifier") != null) {
-            criteria.eq("correlation",
-                    cloud.jengu.dbo.core.api.EnvelopeValue.of(query.get("identifier")));
+            // A run is identified twice: by its own key, and by the case it is
+            // filed under. Named with the run's system it is the key; bare, or
+            // named with the correlation's, the case — as it always was.
+            String identifier = query.get("identifier");
+            if (identifier.startsWith(WorkModel.KEY_SYSTEM + "|")) {
+                criteria.eq("key", cloud.jengu.dbo.core.api.EnvelopeValue.of(
+                        identifier.substring(WorkModel.KEY_SYSTEM.length() + 1)));
+            } else {
+                criteria.eq("correlation", cloud.jengu.dbo.core.api.EnvelopeValue.of(
+                        identifier.startsWith(CORRELATION_SYSTEM + "|")
+                                ? identifier.substring(CORRELATION_SYSTEM.length() + 1)
+                                : identifier));
+            }
+        }
+        if (query.get("part-of") != null) {
+            // Named as a Task is, by id; a run's parent is kept as its key,
+            // so the id is read once into the key. A Task that is no run has
+            // no parts, and is answered as none rather than refused.
+            String named = query.get("part-of");
+            String id = named.startsWith(SURFACE_TYPE + "/")
+                    ? named.substring(SURFACE_TYPE.length() + 1) : named;
+            criteria.eq("parent", cloud.jengu.dbo.core.api.EnvelopeValue.of(
+                    runs.byId(id).map(Run::key).orElse(NO_RUN)));
+        }
+        if (query.get("part-of:missing") != null) {
+            String missing = query.get("part-of:missing");
+            if (!"true".equals(missing) && !"false".equals(missing)) {
+                throw new cloud.jengu.dbo.fhir.common.UnknownSearchParameterException(
+                        WorkModel.TYPE, "part-of:missing=" + missing);
+            }
+            criteria.missing("parent", Boolean.parseBoolean(missing));
+        }
+        if (query.get("_sort") != null) {
+            // The one order a screen of work asks for: when each run last
+            // moved. Anything else would be an order this surface does not
+            // keep, and answering in some other one would look like it did.
+            switch (query.get("_sort")) {
+                case "_lastUpdated" -> criteria.sortByLastUpdated(true);
+                case "-_lastUpdated" -> criteria.sortByLastUpdated(false);
+                default -> throw new cloud.jengu.dbo.fhir.common.UnknownSearchParameterException(
+                        WorkModel.TYPE, "_sort=" + query.get("_sort"));
+            }
         }
 
         long total = store.count(criteria);
-        List<StoredObject> found = countOnly ? List.of() : store.select(criteria);
+        // A page, and where the next one starts: a search that stopped at its
+        // count without saying so read as every run there was.
+        cloud.jengu.dbo.core.api.feed.FeedChunk<StoredObject> page = countOnly ? null
+                : store.page(criteria, query.get("_cursor"));
+        List<StoredObject> found = page == null ? List.of() : page.items();
+        String next = page == null || page.drained() || page.nextCursor() == null ? null
+                : baseUrl + "/" + SURFACE_TYPE + "?" + nextQuery(query, page.nextCursor());
         cloud.jengu.dbo.core.face.PayloadFraming framing =
                 face.require(cloud.jengu.dbo.core.face.PayloadFraming.class);
         cloud.jengu.dbo.core.face.PayloadFraming.Frame frame = framing.frame("searchset",
                 new cloud.jengu.dbo.core.face.PayloadFraming.Facts(
-                        total, baseUrl + "/" + SURFACE_TYPE, null));
+                        total, baseUrl + "/" + SURFACE_TYPE, next));
         java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream(512);
         try {
             out.write(frame.prologue());

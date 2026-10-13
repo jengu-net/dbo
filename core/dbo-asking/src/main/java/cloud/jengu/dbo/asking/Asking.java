@@ -6,8 +6,10 @@ import cloud.jengu.dbo.core.api.EnvelopeValue;
 import cloud.jengu.dbo.core.api.ObjectStore;
 import cloud.jengu.dbo.work.Awaits;
 import cloud.jengu.dbo.work.Run;
+import cloud.jengu.dbo.work.Runs;
 import cloud.jengu.dbo.work.WorkModel;
 
+import java.util.Map;
 import java.util.stream.Stream;
 
 /**
@@ -189,6 +191,77 @@ public final class Asking implements Questions {
             return also("correlated", criteria -> criteria.eq("correlation", EnvelopeValue.of(correlation)));
         }
 
+        /** Runs started under no other. */
+        public Work roots() {
+            return also("roots", criteria -> criteria.missing("parent", true));
+        }
+
+        /**
+         * The runs started under one. Its parent is kept as its key, so the id
+         * is read into one once; an id that is no run has no children.
+         */
+        public Work childrenOf(String id) {
+            String parent = new Runs(store).byId(id).map(Run::key).orElse("");
+            return also("childrenOf", criteria -> criteria.eq("parent", EnvelopeValue.of(parent)));
+        }
+
+        /** The one run minted under this key. */
+        public Work key(String key) {
+            return also("key", criteria -> criteria.eq("key", EnvelopeValue.of(key)));
+        }
+
+        /** The run that moved last, first. */
+        public Work newestMovedFirst() {
+            return also("newestMovedFirst", criteria -> criteria.sortByLastUpdated(false));
+        }
+
+        /** One page, from where the cursor left off. */
+        public Page page(int size, String cursor) {
+            long began = System.nanoTime();
+            cloud.jengu.dbo.core.api.feed.FeedChunk<cloud.jengu.dbo.core.api.StoredObject> chunk =
+                    store.page(asked().limit(size), cursor);
+            Map<String, String> parents = new java.util.HashMap<>();
+            java.util.List<Ongoing> runs = chunk.items().stream().map(Run::of)
+                    .map(run -> ongoing(run, parents)).toList();
+            watching.asked(new Watching.Asked("work.page", named, runs.size(),
+                    java.time.Duration.ofNanos(System.nanoTime() - began)));
+            return new Page(runs, chunk.drained() ? null : chunk.nextCursor());
+        }
+
+        /**
+         * A run as a screen reads it — the same fields the binding that holds
+         * its rendering fills, so neither can tell which it was handed.
+         *
+         * @param parents parent keys already read into ids, for this answer
+         */
+        private Ongoing ongoing(Run run, Map<String, String> parents) {
+            Map<String, java.util.List<String>> inputs = new java.util.LinkedHashMap<>();
+            run.inputs().forEach((slot, filled) -> {
+                if (filled.referred()) {
+                    inputs.put(slot, java.util.List.copyOf(filled.values()));
+                }
+            });
+            String parentId = run.parent() == null ? null : parents.computeIfAbsent(
+                    run.parent(), key -> new Runs(store).byKey(key).map(Run::id).orElse(null));
+            java.time.Instant authored = run.authored() != null ? run.authored()
+                    : firstWritten(run.id());
+            return new Ongoing(run.id(), run.key(), run.process(), run.step(),
+                    run.awaits(java.time.Instant.now()), run.correlation(),
+                    run.milestone() == null ? null : run.milestone().name(),
+                    run.status().wire(), authored, run.moved(), parentId, run.parent(),
+                    run.requester(), inputs, run.place(),
+                    run.refused() != null ? run.refused()
+                            : run.item() == null ? null : run.item().message(),
+                    run.tally());
+        }
+
+        /** When a run written before runs said so was first written. */
+        private java.time.Instant firstWritten(String id) {
+            java.util.List<cloud.jengu.dbo.core.api.StoredObject> versions =
+                    store.history(WorkModel.TYPE, id);
+            return versions.isEmpty() ? null : versions.get(0).lastUpdated();
+        }
+
         /**
          * The answer, walked as it is produced.
          *
@@ -199,14 +272,13 @@ public final class Asking implements Questions {
             long began = System.nanoTime();
             java.util.concurrent.atomic.AtomicLong produced =
                     new java.util.concurrent.atomic.AtomicLong();
+            Map<String, String> parents = new java.util.HashMap<>();
             return Answered.pagedBy(store::page, asked())
                     .map(Run::of)
                     // Narrowed here rather than at the seam, so the binding
                     // that holds the whole run hands over exactly what the one
                     // that holds a rendering can.
-                    .map(run -> new Ongoing(run.id(), run.key(), run.process(), run.step(),
-                            run.awaits(java.time.Instant.now()), run.correlation(),
-                            run.milestone() == null ? null : run.milestone().name()))
+                    .map(run -> ongoing(run, parents))
                     .peek(run -> produced.incrementAndGet())
                     // Told at the close rather than at the open: a walk's
                     // length and its cost are not known until somebody has

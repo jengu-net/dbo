@@ -1450,6 +1450,100 @@ class TheClinicRecordsCareAndAccountsForItIT {
                 "a type the clinic does not serve was answered with a verdict");
     }
 
+    @Test
+    @Order(36)
+    @DisplayName("the clinic's screen of work lists its root runs newest-moved first, a page at a "
+            + "time, each with its times, who asked and what its slots name, opens each onto "
+            + "its parts, and reads the same from inside, across the wire and as Tasks")
+    @Proving({DboPromises.PROC_A_RUN_READS_AS_A_SCREEN_NEEDS_IT,
+            DboPromises.PROC_A_TASK_SEARCH_LISTS_ROOTS_AND_PARTS})
+    void aScreenOfWorkReadsAsItNeeds() throws Exception {
+        String weighed = names.value("weighed");
+        String observation = recordsDoor.post("/Observation", """
+                {"resourceType":"Observation","status":"final","code":{"coding":[
+                  {"system":"%s","code":"%s"}]},"subject":{"display":"nobody"}}"""
+                .formatted(ASKED, weighed)).headers().firstValue("Location").orElseThrow()
+                .replaceAll(".*/(Observation/[^/]+).*", "$1");
+        String process = names.prefix() + "-" + names.run() + ".screen";
+        var weigh = cloud.jengu.dbo.core.process.StepDeclaration.of(process + ".weigh", "1",
+                cloud.jengu.dbo.work.WorkModel.DOMAIN).taking("weighed", "Observation");
+        var runs = new cloud.jengu.dbo.work.Runs(tenants.store(records).orElseThrow(),
+                cloud.jengu.dbo.core.process.Steps.of(weigh));
+        var older = runs.filling(weigh, cloud.jengu.dbo.work.RunKind.PIPELINE,
+                names.value("older"), java.util.Map.of("weighed",
+                        cloud.jengu.dbo.work.RunSlot.referring(observation)), "the-desk");
+        var root = runs.filling(weigh, cloud.jengu.dbo.work.RunKind.PIPELINE,
+                names.value("root"), java.util.Map.of("weighed",
+                        cloud.jengu.dbo.work.RunSlot.referring(observation)), "the-desk");
+        var first = runs.started(weigh, names.value("part-1"), java.util.Map.of("weighed",
+                cloud.jengu.dbo.work.RunSlot.referring(observation)), null, root);
+        var second = runs.started(weigh, names.value("part-2"), java.util.Map.of("weighed",
+                cloud.jengu.dbo.work.RunSlot.referring(observation)), null, root);
+
+        var inside = dbo.asking(records).work();
+        String looking = dbo.token(records);
+        var across = cloud.jengu.dbo.asking.Across.through(pathAndQuery ->
+                dbo.get(dbo.at(records) + "/fhir" + pathAndQuery, looking).body()).work();
+
+        // The two newest roots, a page at a time: the root before the older one,
+        // and the parts nowhere among them.
+        var page = inside.roots().ofStep("weigh").newestMovedFirst().page(1, null);
+        assertEquals(List.of(root.key()), page.runs().stream()
+                .map(cloud.jengu.dbo.asking.Ongoing::key).toList(), "newest root first: " + page);
+        assertTrue(page.next() != null, "a page that is not the last said nothing of the next");
+        var next = inside.roots().ofStep("weigh").newestMovedFirst()
+                .page(1, page.next());
+        assertEquals(List.of(older.key()), next.runs().stream()
+                .map(cloud.jengu.dbo.asking.Ongoing::key).toList(), "the next page: " + next);
+
+        var listed = page.runs().get(0);
+        assertEquals("ready", listed.status(), listed.toString());
+        assertTrue(listed.authored() != null && listed.moved() != null
+                && !listed.moved().isBefore(listed.authored()), listed.toString());
+        assertEquals("the-desk", listed.requester(), listed.toString());
+        assertEquals(java.util.Map.of("weighed", List.of(observation)), listed.inputs(),
+                listed.toString());
+        assertTrue(listed.root() && listed.place() == null, listed.toString());
+
+        // Its parts, by asking for them.
+        var parts = inside.childrenOf(root.id()).newestMovedFirst().page(10, null);
+        assertEquals(List.of(second.key(), first.key()), parts.runs().stream()
+                .map(cloud.jengu.dbo.asking.Ongoing::key).toList(), parts.toString());
+        assertEquals(root.id(), parts.runs().get(0).parentId(), parts.toString());
+        assertEquals(root.key(), parts.runs().get(0).parentKey(), parts.toString());
+        assertTrue(parts.next() == null, "the last page named another: " + parts);
+
+        // The same questions across the wire answer the same, field for field.
+        assertEquals(page, across.roots().ofStep("weigh").newestMovedFirst()
+                .page(1, null), "across the wire, the first page differs");
+        assertEquals(next.runs(), across.roots().ofStep("weigh").newestMovedFirst()
+                .page(1, page.next()).runs(), "across the wire, the next page differs");
+        assertEquals(parts, across.childrenOf(root.id()).newestMovedFirst().page(10, null),
+                "across the wire, the parts differ");
+        assertEquals(List.of(root.key()), across.key(root.key()).stream()
+                .map(cloud.jengu.dbo.asking.Ongoing::key).toList());
+
+        // And as Tasks: the parts of one, and the roots newest-moved first.
+        HttpResponse<String> asTasks = dbo.get(dbo.at(records) + "/fhir/Task?part-of=Task/"
+                + root.id() + "&_sort=-_lastUpdated", looking);
+        assertEquals(200, asTasks.statusCode(), asTasks.body());
+        assertEquals("2", dbo.says(asTasks).one("total").orElse(""), asTasks.body());
+        assertTrue(asTasks.body().contains("\"partOf\":[{\"reference\":\"Task/" + root.id()
+                + "\""), "a part does not name its Task by reference: " + asTasks.body());
+        HttpResponse<String> roots = dbo.get(dbo.at(records) + "/fhir/Task?part-of:missing=true"
+                + "&code=weigh&_sort=-_lastUpdated&_count=1", looking);
+        assertEquals(200, roots.statusCode(), roots.body());
+        String task = roots.body();
+        assertTrue(task.contains("\"authoredOn\":\"") && task.contains("\"lastModified\":\"")
+                && task.contains("\"lastUpdated\":\""), task);
+        assertTrue(task.contains("\"requester\":{\"type\":\"Device\",\"identifier\":"
+                + "{\"system\":\"urn:dbo:auth:client-id\",\"value\":\"the-desk\"}}"), task);
+        assertTrue(task.contains("\"valueReference\":{\"reference\":\"" + observation + "\"}"),
+                task);
+        assertTrue(roots.body().contains("\"relation\":\"next\""),
+                "one task of two, and no link to the other: " + roots.body());
+    }
+
     @org.junit.jupiter.api.AfterAll
     void theRecordsClinicIsWithdrawn() {
         if (records != null) {
