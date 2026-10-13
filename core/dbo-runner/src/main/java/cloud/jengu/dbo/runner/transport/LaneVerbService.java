@@ -393,7 +393,10 @@ public final class LaneVerbService {
             // recovery is the opposite — it must not try again.
             case COMMITTED -> lane.committed(run(body), string(body, LaneVerbs.HEAD),
                     RecordWire.decodeList(field(body, LaneVerbs.WRITES),
-                            cloud.jengu.dbo.runner.Outcome.Write.class));
+                            cloud.jengu.dbo.runner.Outcome.Write.class),
+                    field(body, LaneVerbs.PARTS) == null ? List.of()
+                            : RecordWire.decodeList(field(body, LaneVerbs.PARTS),
+                                    cloud.jengu.dbo.runner.Outcome.Part.class));
             case REOPEN -> {
                 lane.reopen(run(body), string(body, LaneVerbs.REASON));
                 yield null;

@@ -202,7 +202,7 @@ public final class PgChangeFeed implements ChangeFeed {
                         .formatted(tables, tables));
         String sql = """
                 SELECT o.seq, o.object_id, o.type, o.version_id, o.kind, o.committed_at,
-                       h.payload, h.deleted, h.payload_version, o.xact_id::text, h.shape
+                       h.payload, h.deleted, h.payload_version, o.xact_id::text, h.shape, h.run
                 FROM %s_outbox o
                 JOIN %s_history h ON h.id = o.object_id AND h.version_id = o.version_id
                 WHERE (o.xact_id, o.seq) > (?::text::xid8, ?) AND %s%s
@@ -241,7 +241,8 @@ public final class PgChangeFeed implements ChangeFeed {
                             rs.getBytes(7),
                             rs.getBoolean(8),
                             rs.getString(9),
-                            PgObjectStore.shapeOf(rs.getString(11))));
+                            PgObjectStore.shapeOf(rs.getString(11)),
+                            rs.getString(12)));
                     lastXid = Long.parseLong(rs.getString(10));
                     lastSeq = rs.getLong(1);
                 }

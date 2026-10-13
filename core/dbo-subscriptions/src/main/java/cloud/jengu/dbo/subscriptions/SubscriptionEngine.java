@@ -58,7 +58,7 @@ public final class SubscriptionEngine implements AutoCloseable {
 
     /** What a record matching one of the tenant's own watches is handed over in. */
     public interface WatchWorkflows {
-        void watched(String watch, String type, String id, long version);
+        void watched(String watch, String type, String id, long version, String run);
     }
 
     private static final String CONSUMER = "subscriptions.dispatch";
@@ -218,9 +218,9 @@ public final class SubscriptionEngine implements AutoCloseable {
     final class WatchImpl implements WatchWorkflows {
         @Override
         @Workflow(name = "watched")
-        public void watched(String watch, String type, String id, long version) {
+        public void watched(String watch, String type, String id, long version, String run) {
             java.time.Instant again = dbos.runStep(
-                    () -> watching.join().matched(watch, type, id, version), "matched");
+                    () -> watching.join().matched(watch, type, id, version, run), "matched");
             while (again != null) {
                 final java.time.Instant at = again;
                 long waitMillis = dbos.runStep(() -> Math.max(0L,
@@ -235,7 +235,7 @@ public final class SubscriptionEngine implements AutoCloseable {
                     return;
                 }
                 again = dbos.runStep(
-                        () -> watching.join().matched(watch, type, id, version), "matched");
+                        () -> watching.join().matched(watch, type, id, version, run), "matched");
             }
         }
     }
@@ -265,7 +265,7 @@ public final class SubscriptionEngine implements AutoCloseable {
                     + item.versionId();
             String name = watch.getKey();
             dbos.startWorkflow(() -> watchProxy.watched(name, item.typeName(),
-                            item.objectId(), item.versionId()),
+                            item.objectId(), item.versionId(), item.run()),
                     new StartWorkflowOptions(workflowId).withQueue(QUEUE));
         }
     }

@@ -71,13 +71,13 @@ public final class Performing {
             if (outcome instanceof Outcome.Done done) {
                 Run reported = done.tally().isEmpty() ? latest.get()
                         : lane.checkpoint(latest.get(), done.tally(), holdFor);
-                if (done.writes().isEmpty()) {
+                if (done.writes().isEmpty() && done.parts().isEmpty()) {
                     lane.closed(reported);
                 } else {
                     // The result goes to the tenant whole, and the tenant
                     // answers with the run as it left it: closed over what it
-                    // wrote, or ended because it would not write it.
-                    Run ended = lane.committed(reported, null, done.writes());
+                    // wrote and set going, or ended because it would not.
+                    Run ended = lane.committed(reported, null, done.writes(), done.parts());
                     if (ended.refused() != null) {
                         return new Outcome.Refused(ended.refused());
                     }

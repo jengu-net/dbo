@@ -396,7 +396,13 @@ public final class Runs {
                 null, parent);
     }
 
-    private Run filling(cloud.jengu.dbo.core.process.StepDeclaration step, RunKind kind,
+    /**
+     * The same, as a part of another run: started for it, and read as one of
+     * the things it set going.
+     *
+     * @param parent the run this one is part of, or null for a root
+     */
+    public Run filling(cloud.jengu.dbo.core.process.StepDeclaration step, RunKind kind,
             String scope, Map<String, RunSlot> inputs, String requester,
             String forPeopleBecause, java.time.Duration collect, Run.Addressee addressee,
             Run parent) {

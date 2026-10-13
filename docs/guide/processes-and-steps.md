@@ -201,6 +201,30 @@ Questions.Page parts = work.childrenOf(page.runs().get(0).id()).page(20, null);
 `key(...)` finds one run by its key, and `page.next()` is the cursor for the
 following page.
 
+### A run started for another
+
+A run started for another run is its part. An application names that run by its
+key, as `"partOf": "<key>"` in the step door's body, or as the last argument of
+`RunInitiator.starting(tenant, step, inputs, key, addressee, partOf)`. The
+tenant must hold that run, open or over; a key it does not hold is refused.
+
+A step's result starts parts of its own run:
+
+```java
+return Outcome.done().writing(Write.create(panel))
+        .starting("lab.orders.route", Map.of("order", Slot.reference("ServiceRequest/" + id)), null);
+```
+
+Each part is checked before anything is written, so a part the tenant would not
+start refuses the whole result, records included. The parts start once the
+records are written, and then the run closes. A part named without a key is
+keyed by its place among the result's parts, so a result given again finds the
+same parts.
+
+A run a step starts on a change, or at a moment a record names, is a part of the
+run whose result wrote that version of the record. Where no run wrote it, the
+run is a part of the tenant's system run.
+
 ### A run for one participant
 
 Some work only one participant can do: report on the appliance it is, read

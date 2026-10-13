@@ -2,6 +2,7 @@ package cloud.jengu.dbo.harness;
 
 import cloud.jengu.dbo.asking.Asking;
 import cloud.jengu.dbo.asking.Ongoing;
+import cloud.jengu.dbo.work.RunInitiator;
 
 import cloud.jengu.dbo.auth.TenantAuthority;
 import cloud.jengu.dbo.core.api.feed.FeedChunk;
@@ -600,6 +601,46 @@ class ASecondPlaceComesUpFromItsOriginIT {
         analysing.committed(held, null, List.of(Outcome.Write.create("""
                 {"resourceType":"Observation","status":"final","code":{"text":"%s"}}"""
                 .formatted(found))));
+    }
+
+    @Test
+    @Order(14)
+    @DisplayName("a part a run on the site started there reads at the tenant as that run's part, "
+            + "both filed under the site")
+    @Proving(DboPromises.PROC_A_RUN_IS_STARTED_AS_A_PART_OF_ANOTHER)
+    void aSitesTreeReadsTheSameAtHome() throws Exception {
+        StepDeclaration declared = StepDeclaration.of(RECORD, "1", "r4")
+                .taking("specimen", "Observation");
+        Runs runs = new Runs(site.runtime(CLINIC).orElseThrow().engine());
+        String specimen = "{\"resourceType\":\"Observation\",\"status\":\"registered\","
+                + "\"code\":{\"text\":\"specimen\"}}";
+        Run run = runs.filling(declared, RunKind.PIPELINE, "with-a-part",
+                java.util.Map.of("specimen", RunSlot.given(specimen)));
+        Executor analyser = new Executor("analyser", "1", "example.site", Scope.BASELINE);
+        Lane analysing = site.fleetLane(CLINIC, RECORD, analyser).orElseThrow();
+        analysing.declare(new Declarations.Declared("jaam.lab", "record",
+                analyser.name(), analyser.version(), analyser.provider(), analyser.scope(),
+                analyser.name()));
+        Run held = analysing.claim(run, java.time.Duration.ofMinutes(5)).orElseThrow();
+        Run ended = analysing.committed(held, null, List.of(Outcome.Write.create(
+                        "{\"resourceType\":\"Observation\",\"status\":\"final\","
+                                + "\"code\":{\"text\":\"with-a-part\"}}")),
+                List.of(new Outcome.Part(RECORD, java.util.Map.of("specimen",
+                        RunInitiator.Slot.object(specimen)),
+                        "the-part", null)));
+        assertEquals(null, ended.refused(), "the site refused its own result: " + ended);
+        site.syncRound();
+
+        Runs home = new Runs(cloud.runtime(CLINIC).orElseThrow().engine());
+        Run parentAtHome = home.byKey("site" + Lanes.MIRROR_SEPARATOR + RECORD + "/with-a-part")
+                .orElseThrow(() -> new AssertionError("the site's run did not reach its tenant"));
+        List<String> parts;
+        try (var asked = Asking.at(cloud.runtime(CLINIC).orElseThrow().engine()).work()
+                .childrenOf(parentAtHome.id()).stream()) {
+            parts = asked.map(Ongoing::key).toList();
+        }
+        assertEquals(List.of("site" + Lanes.MIRROR_SEPARATOR + RECORD + "/the-part"), parts,
+                "the part the site started is not its run's part at the tenant");
     }
 
     private static int times(String found, String in) {

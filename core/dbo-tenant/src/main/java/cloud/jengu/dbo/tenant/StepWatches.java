@@ -58,7 +58,12 @@ final class StepWatches implements Watching {
 
     @Override
     public Instant matched(String watch, String type, String id, long version) {
+        return matched(watch, type, id, version, null);
+    }
+
+    @Override
+    public Instant matched(String watch, String type, String id, long version, String run) {
         SelfStarting standing = starting.join();
-        return standing == null ? null : standing.matched(watch, type, id, version);
+        return standing == null ? null : standing.matched(watch, type, id, version, run);
     }
 }

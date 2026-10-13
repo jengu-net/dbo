@@ -25,4 +25,12 @@ public interface Watching {
      * @return when to look at it again, or null when nothing more is wanted
      */
     Instant matched(String watch, String type, String id, long version);
+
+    /**
+     * The same, saying which run's result wrote that version, or null where
+     * no run did: what a run started by the change is a part of.
+     */
+    default Instant matched(String watch, String type, String id, long version, String run) {
+        return matched(watch, type, id, version);
+    }
 }

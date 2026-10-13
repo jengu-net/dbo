@@ -272,8 +272,9 @@ public final class PgObjectStore implements ObjectStore {
         replaceIdentifiers(c, domain, types, uuids, envelopes, created);
         replaceReferences(c, domain, uuids, envelopes, created);
         try (PreparedStatement ps = c.prepareStatement("""
-                INSERT INTO %s_history (id, version_id, type, last_updated, payload, deleted, payload_version, chain_hash, shape)
-                VALUES (?, ?, ?, ?, ?, false, ?, ?, ?::jsonb)""".formatted(Domains.historyTables(domain)))) {
+                INSERT INTO %s_history (id, version_id, type, last_updated, payload, deleted, payload_version, chain_hash, shape, run)
+                VALUES (?, ?, ?, ?, ?, false, ?, ?, ?::jsonb, ?)""".formatted(Domains.historyTables(domain)))) {
+            String run = cloud.jengu.dbo.core.api.Caller.run();
             for (int i = 0; i < n; i++) {
                 ps.setObject(1, uuids[i]);
                 ps.setLong(2, versions[i]);
@@ -283,6 +284,7 @@ public final class PgObjectStore implements ObjectStore {
                 ps.setString(6, types.get(i).payloadVersion());
                 ps.setBytes(7, chains[i]);
                 ps.setString(8, shapeJson[i]);
+                ps.setString(9, run);
                 ps.addBatch();
             }
             ps.executeBatch();
@@ -795,8 +797,8 @@ public final class PgObjectStore implements ObjectStore {
             String shapeJson)
             throws SQLException {
         try (PreparedStatement ps = c.prepareStatement("""
-                INSERT INTO %s_history (id, version_id, type, last_updated, payload, deleted, payload_version, chain_hash, shape)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?::jsonb)"""
+                INSERT INTO %s_history (id, version_id, type, last_updated, payload, deleted, payload_version, chain_hash, shape, run)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?::jsonb, ?)"""
                 .formatted(Domains.historyTables(domain)))) {
             ps.setObject(1, id);
             ps.setLong(2, version);
@@ -807,6 +809,9 @@ public final class PgObjectStore implements ObjectStore {
             ps.setString(7, payloadVersion);
             ps.setBytes(8, chainHash);
             ps.setString(9, shapeJson);
+            // Whose result this is, as the run in force says: the one place
+            // every write passes, so no write path can forget to say it.
+            ps.setString(10, cloud.jengu.dbo.core.api.Caller.run());
             ps.executeUpdate();
         }
     }

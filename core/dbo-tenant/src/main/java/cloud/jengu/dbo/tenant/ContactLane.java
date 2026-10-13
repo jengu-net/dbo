@@ -146,6 +146,14 @@ final class ContactLane implements Lane {
     }
 
     @Override
+    public Run committed(Run run, String head, List<Outcome.Write> result,
+            List<Outcome.Part> parts) {
+        Run ended = lane.committed(run, head, result, parts);
+        heard(ended);
+        return ended;
+    }
+
+    @Override
     public void reopen(Run run, String because) {
         lane.reopen(run, because);
     }

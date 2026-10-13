@@ -637,6 +637,13 @@ public final class TenantRuntimeManager implements AutoCloseable {
             public Started starting(String tenant, String step,
                     Map<String, Slot> inputs, String key,
                     cloud.jengu.dbo.work.Run.Addressee addressee) {
+                return starting(tenant, step, inputs, key, addressee, null);
+            }
+
+            @Override
+            public Started starting(String tenant, String step,
+                    Map<String, Slot> inputs, String key,
+                    cloud.jengu.dbo.work.Run.Addressee addressee, String partOf) {
                 StepSurface starter = starters.get(tenant);
                 if (starter == null) {
                     return new Started(404, null, null, "{\"error\":\"not_found\","
@@ -648,7 +655,8 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 Object body = Json.parse("{\"inputs\":{" + named + "}"
                         + (key == null ? "" : ",\"scope\":"
                         + cloud.jengu.dbo.work.RunInitiator.quoted(key))
-                        + cloud.jengu.dbo.work.RunInitiator.addressed(addressee) + "}");
+                        + cloud.jengu.dbo.work.RunInitiator.addressed(addressee)
+                        + cloud.jengu.dbo.work.RunInitiator.partOf(partOf) + "}");
                 StepSurface.Started started = starter.starting(step, body, null);
                 return new Started(started.status(),
                         cloud.jengu.dbo.work.RunInitiator.field(started.body(), "run"),
@@ -4005,7 +4013,8 @@ public final class TenantRuntimeManager implements AutoCloseable {
             // Where a step's result becomes this tenant's records: through
             // the same face a posted transaction bundle goes through, and
             // only for the types each step declared it writes.
-            RunResults runResults = new RunResults(spec.code(), spec.steps(), store);
+            RunResults runResults = new RunResults(spec.code(), spec.steps(), store,
+                    () -> starters.get(spec.code()));
             cloud.jengu.dbo.runner.transport.Lanes laneFactory =
                     (participant, identity, entitlement) -> {
                         // WHOSE KEYS the asker's own are: the credential the

@@ -50,15 +50,23 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class ATickStartsOneRunOnEveryNodeIT {
 
-    private static final String WARD = "ward";
+    /**
+     * A ward of this run's own: a tenant's database is named by its code, so a
+     * ward named the same on every run would be the last run's ward, ticks
+     * and all, wherever the database server outlived it.
+     */
+    private static final String WARD = "ward-" + Long.toString(
+            java.util.concurrent.ThreadLocalRandom.current().nextLong(1L << 40), 36);
     private static final String WALK = "ward.rounds.walk";
     private static final String TIDY = "ward.rounds.tidy";
     private static final String COUNT = "ward.rounds.count";
     private static final String NOTE = "ward.rounds.note";
     private static final String ASSIGN = "ward.messages.assign";
     private static final String CHASE = "ward.messages.chase";
+    private static final String WRITE = "ward.messages.write";
+    private static final String READ = "ward.messages.read";
     private static final String DECLARED = """
-            {"code":"ward","face":"r5","types":[
+            {"code":"%s","face":"r5","types":[
               {"name":"Basic","identity":"internal","handling":"operational"},
               {"name":"Communication","identity":"internal","handling":"operational"}],
              "steps":[
@@ -73,6 +81,9 @@ class ATickStartsOneRunOnEveryNodeIT {
               {"code":"ward.messages.assign","slots":{"message":"Communication"},
                "starts":{"change":"Communication?status=on-hold","keep":"P1D",
                          "where":"origin"}},
+              {"code":"ward.messages.write","slots":{"about":"Reference(Communication)"},
+               "writes":["Communication"]},
+              {"code":"ward.messages.read","slots":{"message":"Reference(Communication)"}},
               {"code":"ward.messages.chase","slots":{"message":"Communication"},
                "starts":{"due":"Communication?status=in-progress","at":"sent",
                          "after":"PT3S","keep":"P1D","where":"origin"}}]}
@@ -124,7 +135,7 @@ class ATickStartsOneRunOnEveryNodeIT {
         TenantRuntimeManager manager = new TenantRuntimeManager(dir, prov, "127.0.0.1", 0, null,
                 new TenantRuntimeManager.AuthorityConfig(kek, null), FhirVersions.installed())
                 .stepScheduler(clock);
-        Files.writeString(dir.resolve(WARD + ".json"), DECLARED);
+        Files.writeString(dir.resolve(WARD + ".json"), DECLARED.formatted(WARD));
         UntilServed.scan(manager, WARD);
         declaredIn.put(manager, dir);
         return manager;
@@ -140,7 +151,7 @@ class ATickStartsOneRunOnEveryNodeIT {
         for (LocalDatabasePerTenantProvisioner p
                 : new LocalDatabasePerTenantProvisioner[] {northProv, southProv}) {
             if (p != null) {
-                p.close();
+                SuiteDatabases.retire(p);
             }
         }
     }
@@ -158,7 +169,7 @@ class ATickStartsOneRunOnEveryNodeIT {
         assertEquals(rules, southClock.rules.get(WARD));
 
         String status = steps(north, "rounds");
-        assertTrue(status.contains("\"system\":\"dbo.tenant.system/serve/ward\""), status);
+        assertTrue(status.contains("\"system\":\"dbo.tenant.system/serve/" + WARD + "\""), status);
         assertTrue(status.contains("\"every\":\"0 * * * * *\""), status);
         assertTrue(status.contains("\"paused\":false"), status);
     }
@@ -189,7 +200,7 @@ class ATickStartsOneRunOnEveryNodeIT {
         HttpResponse<String> now = post(north, WALK + "/now", "{}", "rounds");
         assertEquals(201, now.statusCode(), now.body());
         assertTrue(now.body().contains("\"key\":\"" + WALK + "/now/"), now.body());
-        assertTrue(now.body().contains("\"parent\":\"dbo.tenant.system/serve/ward\""),
+        assertTrue(now.body().contains("\"parent\":\"dbo.tenant.system/serve/" + WARD + "\""),
                 now.body());
         String entry = entryOf(steps(north, "rounds"), WALK);
         assertTrue(field(entry, "lastRun").startsWith(WALK + "/now/"), entry);
@@ -350,7 +361,7 @@ class ATickStartsOneRunOnEveryNodeIT {
     void aCadenceChangesWhereTheWardStands() throws Exception {
         StepScheduler.Tick standing = northClock.opened.get(WARD);
         Files.writeString(declaredIn.get(north).resolve(WARD + ".json"),
-                DECLARED.replace("\"every\":\"0 * * * * *\"", "\"every\":\"0 */2 * * * *\""));
+                DECLARED.formatted(WARD).replace("\"every\":\"0 * * * * *\"", "\"every\":\"0 */2 * * * *\""));
         north.scanOnce();
 
         assertEquals("0 */2 * * * *", northClock.rules.get(WARD).get(WALK),
@@ -358,6 +369,124 @@ class ATickStartsOneRunOnEveryNodeIT {
         assertTrue(standing == northClock.opened.get(WARD),
                 "the ward was rebuilt to take a new cadence: its clock was opened again");
         assertTrue(entryOf(steps(north, "rounds"), WALK).contains("\"every\":\"0 */2 * * * *\""));
+    }
+
+    @Test
+    @Order(9)
+    @DisplayName("an application starts a run as part of another, which reads as that run's "
+            + "part; one naming a run the ward does not hold is refused by name")
+    @Proving(DboPromises.PROC_A_RUN_IS_STARTED_AS_A_PART_OF_ANOTHER)
+    void anApplicationStartsAPart() throws Exception {
+        String about = "Communication/" + write("{\"resourceType\":\"Communication\","
+                + "\"status\":\"preparation\"}");
+        var initiator = north.runInitiator();
+        var asked = initiator.starting(WARD, WRITE, Map.of("about",
+                cloud.jengu.dbo.work.RunInitiator.Slot.reference(about)), "asked-for");
+        assertEquals(201, asked.status(), asked.body());
+        var part = initiator.starting(WARD, READ, Map.of("message",
+                        cloud.jengu.dbo.work.RunInitiator.Slot.reference(about)), "read-for",
+                null, asked.key());
+        assertEquals(201, part.status(), part.body());
+        assertEquals(List.of(part.key()), partsOf(asked.run()),
+                "the run started for another is not its part");
+
+        var stray = initiator.starting(WARD, READ, Map.of("message",
+                        cloud.jengu.dbo.work.RunInitiator.Slot.reference(about)), "stray",
+                null, WRITE + "/no-such-run");
+        assertEquals(422, stray.status(), stray.body());
+        assertTrue(stray.body().contains("no-such-run"), stray.body());
+    }
+
+    @Test
+    @Order(10)
+    @DisplayName("a result starts its parts once its records are written, and a run started by "
+            + "a change that result wrote is its part too; a part the ward would not start "
+            + "refuses the whole result, records and all")
+    @Proving({DboPromises.PROC_A_RUN_IS_STARTED_AS_A_PART_OF_ANOTHER,
+            DboPromises.PROC_A_RUN_STARTED_BY_A_CHANGE_IS_A_PART_OF_THE_RUN_THAT_WROTE_IT})
+    void aResultsPartsAndWhatItsChangeStarted() throws Exception {
+        String about = "Communication/" + write("{\"resourceType\":\"Communication\","
+                + "\"status\":\"preparation\"}");
+        var initiator = north.runInitiator();
+        var writing = initiator.starting(WARD, WRITE, Map.of("about",
+                cloud.jengu.dbo.work.RunInitiator.Slot.reference(about)), "writes-a-hold");
+        assertEquals(201, writing.status(), writing.body());
+
+        cloud.jengu.dbo.runner.Lane lane = performing();
+        cloud.jengu.dbo.work.Run held = lane.claim(runOf(writing.key()),
+                java.time.Duration.ofMinutes(5)).orElseThrow();
+        cloud.jengu.dbo.work.Run ended = lane.committed(held, null,
+                List.of(cloud.jengu.dbo.runner.Outcome.Write.create(
+                        "{\"resourceType\":\"Communication\",\"status\":\"on-hold\"}")),
+                List.of(new cloud.jengu.dbo.runner.Outcome.Part(READ, Map.of("message",
+                        cloud.jengu.dbo.work.RunInitiator.Slot.reference(about)), "read-it",
+                        null)));
+        assertEquals(null, ended.refused(), "the result was refused: " + ended);
+        assertEquals("completed", ended.status().wire(), ended.toString());
+
+        // Its part at once; the run its change started once the feed is read.
+        String part = READ + "/read-it";
+        long giveUp = System.nanoTime() + java.time.Duration.ofSeconds(60).toNanos();
+        List<String> parts = partsOf(ended.id());
+        while (parts.stream().noneMatch(key -> key.startsWith(ASSIGN + "/change/"))
+                && System.nanoTime() < giveUp) {
+            Thread.sleep(250);
+            parts = partsOf(ended.id());
+        }
+        assertTrue(parts.contains(part), "the result's part is not its part: " + parts);
+        assertTrue(parts.stream().anyMatch(key -> key.startsWith(ASSIGN + "/change/")),
+                "the run the result's change started is not its part: " + parts);
+
+        // A part the ward would not start: the result is refused whole.
+        var refusing = initiator.starting(WARD, WRITE, Map.of("about",
+                cloud.jengu.dbo.work.RunInitiator.Slot.reference(about)), "starts-a-stranger");
+        long before = count("Communication?status=entered-in-error");
+        cloud.jengu.dbo.work.Run refusedRun = lane.committed(
+                lane.claim(runOf(refusing.key()), java.time.Duration.ofMinutes(5)).orElseThrow(),
+                null, List.of(cloud.jengu.dbo.runner.Outcome.Write.create(
+                        "{\"resourceType\":\"Communication\",\"status\":\"entered-in-error\"}")),
+                List.of(new cloud.jengu.dbo.runner.Outcome.Part("ward.nobody.declared",
+                        Map.of(), null, null)));
+        assertTrue(refusedRun.refused() != null
+                        && refusedRun.refused().contains("ward.nobody.declared"),
+                "a part the ward does not offer was not refused by name: " + refusedRun);
+        assertEquals(before, count("Communication?status=entered-in-error"),
+                "a refused result's records were written");
+        assertEquals(List.of(), partsOf(refusedRun.id()), "a refused result started a part");
+    }
+
+    /** The ward's own lane for the writing step, as a participant holding it. */
+    private cloud.jengu.dbo.runner.Lane performing() {
+        cloud.jengu.dbo.work.Executor writer = new cloud.jengu.dbo.work.Executor("writer", "1",
+                "example.ward", cloud.jengu.dbo.work.Scope.BASELINE);
+        cloud.jengu.dbo.runner.Lane lane = north.fleetLane(WARD, WRITE, writer).orElseThrow();
+        lane.declare(new cloud.jengu.dbo.work.Declarations.Declared("ward.messages", "write",
+                writer.name(), writer.version(), writer.provider(), writer.scope(),
+                writer.name()));
+        return lane;
+    }
+
+    private cloud.jengu.dbo.work.Run runOf(String key) {
+        return new cloud.jengu.dbo.work.Runs(north.runtime(WARD).orElseThrow().engine())
+                .byKey(key).orElseThrow();
+    }
+
+    /** The keys of a run's parts, as an application embedding the store asks for them. */
+    private List<String> partsOf(String id) {
+        try (var asked = cloud.jengu.dbo.asking.Asking.at(north.runtime(WARD).orElseThrow()
+                .engine()).work().childrenOf(id).stream()) {
+            return asked.map(cloud.jengu.dbo.asking.Ongoing::key).sorted().toList();
+        }
+    }
+
+    private long count(String search) throws Exception {
+        HttpResponse<String> counted = http.send(HttpRequest.newBuilder(URI.create(
+                                "http://127.0.0.1:" + north.port() + "/t/" + WARD + "/fhir/"
+                                        + search + "&_summary=count"))
+                        .header("Authorization", "Bearer " + token(north, "desk")).GET().build(),
+                HttpResponse.BodyHandlers.ofString());
+        assertEquals(200, counted.statusCode(), counted.body());
+        return Long.parseLong(number(counted.body(), "total"));
     }
 
     // ── the door ──

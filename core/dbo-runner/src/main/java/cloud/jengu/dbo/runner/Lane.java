@@ -286,6 +286,23 @@ public interface Lane {
     Run committed(Run run, String head, List<Outcome.Write> result);
 
     /**
+     * The same, also starting the runs the result names as parts of this one:
+     * checked before anything is written, started once the records are, and
+     * then the run closes.
+     *
+     * <p>Refused, not ignored, by a lane that cannot carry them: a result
+     * whose parts were dropped would close a run that set nothing going.
+     */
+    default Run committed(Run run, String head, List<Outcome.Write> result,
+            List<Outcome.Part> parts) {
+        if (parts.isEmpty()) {
+            return committed(run, head, result);
+        }
+        throw new UnsupportedOperationException(getClass().getName()
+                + " cannot start the parts a result names");
+    }
+
+    /**
      * A closed run, deliberately open again, with the reason recorded
      * (REQ-DBO-PROC-CLOSED-CAN-BE-REOPENED).
      *
@@ -595,6 +612,30 @@ public interface Lane {
          */
         List<String> commit(Run run, List<Outcome.Write> result);
 
+        /**
+         * Refuses, before anything is written, a part this tenant would not
+         * start: a step it does not offer, or slots that do not fill it.
+         *
+         * @throws Refused naming the part and why
+         */
+        default void requireStartable(Run run, List<Outcome.Part> parts) {
+            if (!parts.isEmpty()) {
+                throw new Refused("this tenant starts no runs as parts of another, and the "
+                        + "result names " + parts.size());
+            }
+        }
+
+        /**
+         * Starts each part, as a part of the run: found rather than started
+         * again where a result given twice names it twice.
+         *
+         * @return the keys of the parts, in the order the result named them
+         */
+        default List<String> start(Run run, List<Outcome.Part> parts) {
+            requireStartable(run, parts);
+            return List.of();
+        }
+
         /** What the tenant answered a result it will not hold, in its own words. */
         final class Refused extends RuntimeException {
             public Refused(String reason) {
@@ -806,7 +847,13 @@ public interface Lane {
 
             @Override
             public Run committed(Run run, String head, List<Outcome.Write> result) {
-                if (result.isEmpty()) {
+                return committed(run, head, result, List.of());
+            }
+
+            @Override
+            public Run committed(Run run, String head, List<Outcome.Write> result,
+                    List<Outcome.Part> parts) {
+                if (result.isEmpty() && parts.isEmpty()) {
                     closed(run, head);
                     return runs.byKey(run.key()).orElse(run);
                 }
@@ -828,7 +875,15 @@ public interface Lane {
                 String outer = cloud.jengu.dbo.core.api.Caller.run();
                 cloud.jengu.dbo.core.api.Caller.setRun(current.key());
                 try {
-                    versions = results.commit(current, result);
+                    // The parts first, while a refusal still strands nothing:
+                    // a result is refused whole, records and parts together.
+                    results.requireStartable(current, parts);
+                    versions = result.isEmpty() ? List.of() : results.commit(current, result);
+                    // Then started, once what the run wrote is there to read.
+                    // Not in the records' commit — runs are the work's and the
+                    // records the tenant's — and so keyed: a result given again
+                    // after a failure between the two finds its parts started.
+                    results.start(current, parts);
                 } catch (Results.Refused refused) {
                     // ENDED, with the tenant's words: the same result would be
                     // refused the same way next time, so nobody is asked to

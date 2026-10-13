@@ -355,6 +355,20 @@ final class StepSurface implements HttpHandler {
      * @param requester recorded as the client the run answers, or null
      */
     Started starting(String stepCode, Object body, String requester) {
+        return starting(stepCode, body, requester, false);
+    }
+
+    /**
+     * Whether a run of the step would be started over this body: everything
+     * starting it decides, and nothing written. Null where it would be, and
+     * otherwise the refusal it would answer with.
+     */
+    Started refusal(String stepCode, Object body) {
+        Started checked = starting(stepCode, body, null, true);
+        return checked.status() == 200 ? null : checked;
+    }
+
+    private Started starting(String stepCode, Object body, String requester, boolean dry) {
         TenantSpec.Step step = declared.get(stepCode);
         Map<String, String> slots;
         if (step != null) {
@@ -431,8 +445,24 @@ final class StepSurface implements HttpHandler {
                     client == null ? null : String.valueOf(client),
                     executor == null ? null : String.valueOf(executor));
         }
+        // The run this one is started for, by its key: a part of it, read
+        // as one of the things it set going. One this tenant does not hold
+        // is refused by name — a part filed under nothing would read as a
+        // root, and the reason it was started would be lost where it began.
+        Run parent = null;
+        String partOf = Json.strOpt(body, "partOf");
+        if (partOf != null) {
+            parent = runs.byKey(partOf).orElse(null);
+            if (parent == null) {
+                return refused(422, "invalid_request", "'partOf' names the run '" + partOf
+                        + "', and this tenant holds no run by that key");
+            }
+        }
         String scope = Optional.ofNullable(Json.strOpt(body, "scope"))
                 .orElseGet(cloud.jengu.dbo.core.UuidV7::newId);
+        if (dry) {
+            return new Started(200, "{}");
+        }
         StepDeclaration declaration = declaration(stepCode, slots);
         if (step != null && step.retry() != null) {
             // Recorded on the run as it is authored, so its failures are
@@ -445,7 +475,7 @@ final class StepSurface implements HttpHandler {
                 // The asker's window, recorded as the run is authored so the
                 // close that opens it needs nothing but the run.
                 step == null || step.answer() == null ? null : step.answer().collect(),
-                addressee);
+                addressee, parent);
         // The key as well as the id, because they answer different questions
         // and only one of them is this surface's. The id addresses the
         // context; the key is the name the rest of the work model is asked by

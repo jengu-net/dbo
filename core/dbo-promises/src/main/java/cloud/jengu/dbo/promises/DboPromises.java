@@ -383,6 +383,20 @@ public enum DboPromises implements Promise {
             + "at home as any other, with the place it was performed at, the time it was "
             + "authored there, and the run it was started under filed under the same place."),
 
+    PROC_A_RUN_IS_STARTED_AS_A_PART_OF_ANOTHER("A run is started as a part of another, "
+            + "and read as one of the things that run set going: by an application naming the "
+            + "run it is for, which must be one the tenant holds — a run it does not hold is "
+            + "refused by name — and by a step's result, whose parts are checked before "
+            + "anything is written and started once its records are. A part the tenant would "
+            + "not start refuses the whole result, records and parts together; a part is "
+            + "keyed, so a result given again finds its parts rather than starting more."),
+
+    PROC_A_RUN_STARTED_BY_A_CHANGE_IS_A_PART_OF_THE_RUN_THAT_WROTE_IT("Each version of a "
+            + "record says which run's result wrote it, where a run did. A run a step starts "
+            + "on a change, or at a moment a record names, is a part of the run whose result "
+            + "wrote the version that started it, and of the tenant's system run where no run "
+            + "wrote it. A run started on a clock stays the system run's."),
+
     PROC_AUTOMATION_TAKES_ONLY_WHAT_ITS_STEP_ADMITS("A step may say when automation may take "
             + "its task, as a condition over the task's inputs, and the store decides it once, "
             + "when the task is authored: a task the condition does not admit is open to people "

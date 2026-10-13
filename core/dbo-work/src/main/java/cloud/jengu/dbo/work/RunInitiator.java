@@ -179,6 +179,25 @@ public interface RunInitiator {
                 + " cannot start a run for one participant");
     }
 
+    /**
+     * The same, as a part of another run of the tenant's: started for it, and
+     * read as one of the things it set going. The run named must be one the
+     * tenant holds, open or over; one it does not hold is refused.
+     *
+     * <p>Refused, not ignored, where an initiator cannot carry it: started
+     * without it, the run would read as a root and say nothing of why.
+     *
+     * @param partOf the key of the run this one is part of, or null for a root
+     */
+    default Started starting(String tenant, String step, Map<String, Slot> inputs, String key,
+            Run.Addressee addressee, String partOf) {
+        if (partOf == null) {
+            return starting(tenant, step, inputs, key, addressee);
+        }
+        throw new UnsupportedOperationException(getClass().getName()
+                + " cannot start a run as part of another");
+    }
+
     /** Asks a run how it stands. */
     Answer answer(String tenant, String run);
 
@@ -221,6 +240,14 @@ public interface RunInitiator {
     /** A string as JSON. */
     static String quoted(String value) {
         return "\"" + value.replace("\\", "\\\\").replace("\"", "\\\"") + "\"";
+    }
+
+    /**
+     * The step door's {@code partOf}, as a member to append to a request body
+     * after another: empty for a root.
+     */
+    static String partOf(String key) {
+        return key == null ? "" : ",\"partOf\":" + quoted(key);
     }
 
     /**

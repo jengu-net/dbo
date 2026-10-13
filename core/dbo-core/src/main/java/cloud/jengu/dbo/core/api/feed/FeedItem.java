@@ -18,7 +18,19 @@ public record FeedItem(
         byte[] payload,
         boolean deleted,
         String payloadVersion,
-        java.util.List<String> shape) {
+        java.util.List<String> shape,
+        String run) {
+
+    /**
+     * Compatibility with callers that predate {@code run}: the run whose
+     * result wrote this version, where one did, is the store's to say.
+     */
+    public FeedItem(long seq, String objectId, String typeName, long versionId,
+            ChangeKind kind, Instant committedAt, byte[] payload, boolean deleted,
+            String payloadVersion, java.util.List<String> shape) {
+        this(seq, objectId, typeName, versionId, kind, committedAt, payload, deleted,
+                payloadVersion, shape, null);
+    }
 
     /** Compatibility with callers that predate {@code shape}: the
      * written-under stamp travels the wire beside {@code payloadVersion}, so

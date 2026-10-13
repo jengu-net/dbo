@@ -41,22 +41,74 @@ public sealed interface Outcome {
      * encounter. One write may refer to another by the {@code urn:uuid} it
      * was given, and the reference resolves inside that one commit.
      *
+     * <p>The runs it starts are its parts: started for the run that decided
+     * them, and read as what it set going. They are checked before anything
+     * is written, so a part the tenant would refuse refuses the whole result;
+     * and started once the records are, so a part reads what its run wrote.
+     *
      * @param tally  counts, named the step's own way
      * @param writes the records the result carries, in the order they are
      *               meant to be written; empty for a step that only decides
+     * @param parts  the runs the result starts, as parts of this one
      */
-    record Done(Map<String, Long> tally, List<Write> writes) implements Outcome {
+    record Done(Map<String, Long> tally, List<Write> writes, List<Part> parts)
+            implements Outcome {
 
         public Done {
             tally = Map.copyOf(tally);
             writes = List.copyOf(writes);
+            parts = parts == null ? List.of() : List.copyOf(parts);
+        }
+
+        /** A result that starts nothing. */
+        public Done(Map<String, Long> tally, List<Write> writes) {
+            this(tally, writes, List.of());
         }
 
         /** The same result, also carrying these records. */
         public Done writing(Write... more) {
             List<Write> all = new ArrayList<>(writes);
             all.addAll(List.of(more));
-            return new Done(tally, all);
+            return new Done(tally, all, parts);
+        }
+
+        /**
+         * The same result, also starting a run of {@code step} as a part of
+         * this one.
+         *
+         * @param key what makes it this part, so a result given again finds
+         *            the part already started; null for the result's own
+         *            order among its parts
+         */
+        public Done starting(String step, Map<String, cloud.jengu.dbo.work.RunInitiator.Slot> inputs,
+                String key) {
+            return starting(step, inputs, key, null);
+        }
+
+        /** The same, for one participant alone. */
+        public Done starting(String step, Map<String, cloud.jengu.dbo.work.RunInitiator.Slot> inputs,
+                String key, cloud.jengu.dbo.work.Run.Addressee addressee) {
+            List<Part> all = new ArrayList<>(parts);
+            all.add(new Part(step, inputs, key, addressee));
+            return new Done(tally, writes, all);
+        }
+    }
+
+    /**
+     * A run a result starts as a part of the run that produced it.
+     *
+     * @param step      the step it is a run of, by its code
+     * @param inputs    a slot per slot the step declares
+     * @param key       its key within its step, or null for the result's own
+     *                  order among its parts
+     * @param addressee who alone may take it, or null for whoever holds the
+     *                  step
+     */
+    record Part(String step, Map<String, cloud.jengu.dbo.work.RunInitiator.Slot> inputs,
+            String key, cloud.jengu.dbo.work.Run.Addressee addressee) {
+
+        public Part {
+            inputs = inputs == null ? Map.of() : Map.copyOf(inputs);
         }
     }
 

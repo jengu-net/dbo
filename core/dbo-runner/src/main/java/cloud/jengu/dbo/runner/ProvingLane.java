@@ -82,6 +82,7 @@ public final class ProvingLane implements Lane {
     private final List<Map<String, Long>> checkpoints = new ArrayList<>();
     private final List<Ended> endings = new ArrayList<>();
     private final List<Outcome.Write> written = new ArrayList<>();
+    private final List<Outcome.Part> started = new ArrayList<>();
     private final List<Map<String, Object>> heartbeats =
             new java.util.concurrent.CopyOnWriteArrayList<>();
 
@@ -351,9 +352,25 @@ public final class ProvingLane implements Lane {
      */
     @Override
     public Run committed(Run run, String head, List<Outcome.Write> result) {
+        return committed(run, head, result, List.of());
+    }
+
+    /**
+     * Closed, with what the step asked to be written and started kept for the
+     * test to read.
+     */
+    @Override
+    public Run committed(Run run, String head, List<Outcome.Write> result,
+            List<Outcome.Part> parts) {
         written.addAll(result);
+        started.addAll(parts);
         closed(run);
         return run;
+    }
+
+    /** What the step's results asked the tenant to start as parts, in order. */
+    public List<Outcome.Part> started() {
+        return List.copyOf(started);
     }
 
     /** What the step's results asked the tenant to write, in order. */

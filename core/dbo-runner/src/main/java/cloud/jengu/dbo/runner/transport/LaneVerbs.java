@@ -108,6 +108,8 @@ public enum LaneVerbs {
     public static final String HEAD = "head";
     /** The records a result asks the tenant to write. */
     public static final String WRITES = "writes";
+    /** The runs a result starts as parts of the run it is the result of. */
+    public static final String PARTS = "parts";
     public static final String PREVIOUS = "previous";
     public static final String LINK = "link";
     public static final String SIGNATURE = "signature";

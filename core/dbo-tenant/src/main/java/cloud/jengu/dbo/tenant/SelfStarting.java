@@ -161,6 +161,16 @@ final class SelfStarting implements AutoCloseable {
      * started on resuming.
      */
     Instant matched(String code, String type, String id, long version) {
+        return matched(code, type, id, version, null);
+    }
+
+    /**
+     * The same, knowing which run's result wrote that version: the run it
+     * starts is a part of that one, since its occasion was that run's result,
+     * and of the system run where no run wrote it or the run is not held here.
+     */
+    Instant matched(String code, String type, String id, long version, String writtenBy) {
+        Run occasion = writtenBy == null ? system : runs.byKey(writtenBy).orElse(system);
         TenantSpec.Step step = steps.get(code);
         if (step == null || step.starts().every() != null || entry(code).paused()) {
             return null;
@@ -169,7 +179,7 @@ final class SelfStarting implements AutoCloseable {
         Map<String, RunSlot> inputs = Map.of(slotOf(step), RunSlot.referring(type + "/" + id));
         if (starts.change() != null) {
             started(code, surface.startedOn(step, "change/" + id + "/" + version, inputs,
-                    system, null).key());
+                    occasion, null).key());
             return null;
         }
         Instant moment = read.apply(type, id).map(payload -> momentIn(payload, starts.at()))
@@ -183,7 +193,7 @@ final class SelfStarting implements AutoCloseable {
         if (due.isAfter(clock.instant())) {
             return due;
         }
-        started(code, surface.startedOn(step, "due/" + id, inputs, system, null).key());
+        started(code, surface.startedOn(step, "due/" + id, inputs, occasion, null).key());
         return null;
     }
 
