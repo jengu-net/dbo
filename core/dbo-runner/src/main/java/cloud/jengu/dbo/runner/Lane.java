@@ -408,25 +408,28 @@ public interface Lane {
      * check against the object would refuse every opening of something given
      * with the run.
      */
-    private static boolean names(Run run, String reference) {
+    private static boolean names(Run run, String reference, Trail trail) {
         return run.inputs().entrySet().stream()
                 .anyMatch(slot -> slot.getValue().tokens(slot.getKey()).contains(reference))
-                || answeredWith(run).stream()
+                || answeredWith(run, trail).stream()
                         .anyMatch(sealed -> sealed.reference().equals(reference));
     }
 
     /**
      * What came back on a crossing this run asked across: the owner's answer,
-     * sealed to the run's reader. Empty for a run that stays where it is, or
-     * one nothing has come back on yet.
+     * sealed to the run's reader, as the tenant holds it beside the run. Empty
+     * for a run that stays where it is, one nothing has come back on yet, or
+     * one whose answer has gone with its purpose.
      */
-    private static java.util.List<cloud.jengu.dbo.work.SealedPayload> answeredWith(Run run) {
-        if (run.crossing() == null || run.crossing().arrived() == null) {
+    private static java.util.List<cloud.jengu.dbo.work.SealedPayload> answeredWith(Run run,
+            Trail trail) {
+        if (run.crossing() == null || run.crossing().arrived() == null || trail == null) {
             return java.util.List.of();
         }
-        return cloud.jengu.dbo.core.wire.RecordWire.decode(
-                cloud.jengu.dbo.core.wire.RecordWire.read(run.crossing().arrived()),
-                cloud.jengu.dbo.work.SealedWork.class).payload();
+        return trail.held(run).map(answer -> cloud.jengu.dbo.core.wire.RecordWire.decode(
+                        cloud.jengu.dbo.core.wire.RecordWire.read(answer),
+                        cloud.jengu.dbo.work.SealedWork.class).payload())
+                .orElse(java.util.List.of());
     }
 
     private static Map<String, java.util.List<String>> named(Run run) {
@@ -573,6 +576,15 @@ public interface Lane {
 
         /** The run's chain as the trail holds it, in any order; the links say their order. */
         List<cloud.jengu.dbo.work.RunChain.Link> links(Run run);
+
+        /**
+         * What came back on a crossing this run asked across, held beside the
+         * run for as long as its purpose lasts; empty once it has gone, or
+         * where nothing came back.
+         */
+        default Optional<String> held(Run run) {
+            return Optional.empty();
+        }
     }
 
     /**
@@ -1044,7 +1056,8 @@ public interface Lane {
             @Override
             public cloud.jengu.dbo.work.SealedWork sealed(Run run, List<String> named) {
                 Run current = readableByThisIdentity(run);
-                java.util.List<cloud.jengu.dbo.work.SealedPayload> answer = answeredWith(current);
+                java.util.List<cloud.jengu.dbo.work.SealedPayload> answer =
+                        answeredWith(current, trail);
                 if (!answer.isEmpty()) {
                     // WHAT CAME BACK, as it came: sealed by the owner to the
                     // reader and nobody else, so nothing is sealed here and
@@ -1163,7 +1176,7 @@ public interface Lane {
             public cloud.jengu.dbo.work.SealedPayload identified(Run run, String reference,
                     String purpose) {
                 Run current = readableByThisIdentity(run);
-                if (!names(current, reference)) {
+                if (!names(current, reference, trail)) {
                     throw new IllegalStateException(tenant + ": run '" + current.key()
                             + "' names no input '" + reference + "' to identify");
                 }
@@ -1250,7 +1263,7 @@ public interface Lane {
             public String opened(Run run, String reference,
                     cloud.jengu.dbo.work.RunChain.Link link) {
                 Run current = readableByThisIdentity(run);
-                if (!names(current, reference)) {
+                if (!names(current, reference, trail)) {
                     throw new IllegalStateException(tenant + ": run '" + current.key()
                             + "' names no input '" + reference + "' to have opened");
                 }

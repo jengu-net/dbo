@@ -60,7 +60,16 @@ final class Crossings {
          */
         Optional<cloud.jengu.dbo.core.api.seal.ParticipantKey> sealedTo(String tenant,
                 String participant);
+
+        /** Holds what came back on a crossing beside the run that asked, in that tenant. */
+        void hold(String tenant, String crossing, String answer);
+
+        /** Removes what came back on a crossing; whether anything was held. */
+        boolean drop(String tenant, String crossing);
     }
+
+    /** What a run that asked across says once its answer is held beside it. */
+    static final String HELD = "held";
 
     private final Plane plane;
     /** The tenant and step pairs this carrier has said it takes, so it says each once. */
@@ -86,6 +95,7 @@ final class Crossings {
         for (String asker : plane.serving()) {
             for (TenantSpec.Step step : zones.exchangeSteps(asker)) {
                 carried += reportOpenings(zones, asker, step);
+                carried += letGo(asker, step);
             }
         }
         for (String asker : plane.serving()) {
@@ -182,9 +192,10 @@ final class Crossings {
                 }
                 ZoneTrail.passed(zone.get(), crossing.id(), path.get(at - 1), path.get(at + 1));
             }
-            askerRuns.answered(asking.get(), CARRIER, cloud.jengu.dbo.core.wire.RecordWire
+            plane.hold(crossing.from(), crossing.id(), cloud.jengu.dbo.core.wire.RecordWire
                     .write(cloud.jengu.dbo.core.wire.RecordWire.encode(
                             new cloud.jengu.dbo.work.SealedWork(null, sealed))));
+            askerRuns.answered(asking.get(), CARRIER, HELD);
             carried++;
         }
         return carried;
@@ -270,6 +281,57 @@ final class Crossings {
             }
         }
         return reported;
+    }
+
+    /**
+     * What came back, let go once the work it was asked for is over.
+     *
+     * <p>The answer was asked for a purpose, and the run that asked is that
+     * purpose: once it is over the answer goes, at once unless the
+     * jurisdiction declared — as its exchange's answer window — that it may be
+     * kept, and then once that has passed. The owner is told, once, so its
+     * account of what it shared says when the copy it handed over ended.
+     */
+    private int letGo(String asker, TenantSpec.Step step) {
+        Optional<cloud.jengu.dbo.policy.PolicyObjectStore> askerStore = plane.store(asker);
+        if (askerStore.isEmpty()) {
+            return 0;
+        }
+        java.time.Duration kept = step.answer() == null ? null : step.answer().collect();
+        int dot = step.code().lastIndexOf('.');
+        int let = 0;
+        for (Run asking : new Runs(askerStore.get()).matching(step.code().substring(0, dot),
+                step.code().substring(dot + 1), null, 50)) {
+            Run.Crossing crossing = asking.crossing();
+            if (crossing == null || crossing.askerRun() != null
+                    || !HELD.equals(crossing.arrived()) || asking.open()) {
+                continue;
+            }
+            java.time.Instant ended = askerStore.get().get(cloud.jengu.dbo.work.WorkModel.TYPE,
+                    asking.id()).map(cloud.jengu.dbo.core.api.StoredObject::lastUpdated)
+                    .orElse(java.time.Instant.now());
+            if (!HeldAnswers.due(ended, kept, java.time.Instant.now())
+                    || !plane.drop(asker, crossing.id())) {
+                continue;
+            }
+            let++;
+            Optional<cloud.jengu.dbo.policy.PolicyObjectStore> ownerStore =
+                    plane.store(crossing.to());
+            if (ownerStore.isEmpty()) {
+                continue;
+            }
+            String ownerRun = step.code() + "/crossing-" + crossing.id();
+            java.util.Map<String, String> told = new java.util.LinkedHashMap<>();
+            told.put("in", asker);
+            told.put("askerRun", asking.key());
+            told.put("crossing", crossing.id());
+            try (cloud.jengu.dbo.core.api.Caller.InRun named =
+                    cloud.jengu.dbo.core.api.Caller.writingFor(ownerRun)) {
+                ownerStore.get().recordForwarded("erased", "Crossing", crossing.id(), told,
+                        null, "crossing:" + crossing.id() + ":erased");
+            }
+        }
+        return let;
     }
 
     /**

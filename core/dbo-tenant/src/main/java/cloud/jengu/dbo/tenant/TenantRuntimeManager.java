@@ -2561,6 +2561,17 @@ public final class TenantRuntimeManager implements AutoCloseable {
         }
 
         @Override
+        public void hold(String tenant, String crossing, String answer) {
+            HeldAnswers.hold(tenantDataSources.get(tenant), crossing, answer);
+        }
+
+        @Override
+        public boolean drop(String tenant, String crossing) {
+            javax.sql.DataSource on = tenantDataSources.get(tenant);
+            return on != null && HeldAnswers.drop(on, crossing);
+        }
+
+        @Override
         public Optional<cloud.jengu.dbo.core.api.seal.ParticipantKey> sealedTo(String tenant,
                 String participant) {
             cloud.jengu.dbo.auth.TenantAuthority authority = authorities.get(tenant);
@@ -4149,6 +4160,18 @@ public final class TenantRuntimeManager implements AutoCloseable {
                                         public java.util.List<cloud.jengu.dbo.work.RunChain.Link>
                                                 links(cloud.jengu.dbo.work.Run run) {
                                             return TrailLinks.of(engine, run);
+                                        }
+
+                                        // What came back on a crossing, held
+                                        // beside the run and never in it.
+                                        @Override
+                                        public java.util.Optional<String> held(
+                                                cloud.jengu.dbo.work.Run run) {
+                                            javax.sql.DataSource on =
+                                                    tenantDataSources.get(spec.code());
+                                            return run.crossing() == null || on == null
+                                                    ? java.util.Optional.empty()
+                                                    : HeldAnswers.held(on, run.crossing().id());
                                         }
 
                                         // An opening is an access entry on the

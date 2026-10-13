@@ -85,6 +85,14 @@ reader's signed link as evidence; every zone on the way records that the
 answer was opened and by whom, never which document. Each report is recorded
 once, however often it is carried.
 
+**What came back goes with its purpose.** The asker holds the answer beside the
+run that asked for it, never in the run, so no earlier version of the run
+keeps a copy. Once that run is over the answer goes: at once, unless the
+jurisdiction declared — as its exchange's answer window — that it may be kept
+for a time, and then once that has passed. The owner is told, once, on its own
+trail, that the copy it handed over ended. Whatever the asker's people wrote of
+their own from it is the asker's, under the rules of the zone they share.
+
 ## The zone runs its own ceremony
 
 A zone that names no external identity broker is its own: every tenant carries
