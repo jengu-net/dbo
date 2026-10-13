@@ -138,7 +138,7 @@ class ASecondPlaceComesUpFromItsOriginIT {
 
         Files.writeString(cloudDir.resolve(ROOT + ".json"), ROOT_DECLARATION);
         Files.writeString(cloudDir.resolve(COUNTY + ".json"), """
-                {"code":"%s","face":"r4","audit":{"level":"none"},
+                {"code":"%s","face":"r4","zoneRoot":true,"audit":{"level":"none"},
                  "types":[{"name":"Organization","identity":"internal","handling":"operational"},
                           {"name":"CodeSystem","identity":"canonical","handling":"operational"}]}"""
                 .formatted(COUNTY));

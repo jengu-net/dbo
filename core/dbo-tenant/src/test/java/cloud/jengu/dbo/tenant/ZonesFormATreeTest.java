@@ -131,6 +131,41 @@ class ZonesFormATreeTest {
     }
 
     @Test
+    @Proving(DboPromises.ZONE_A_TENANT_TAKES_ONLY_FROM_WHAT_STANDS_ABOVE_IT)
+    @DisplayName("a tenant takes from its jurisdiction, a face root or its provider, and taking "
+            + "from a tenant beside it is refused, naming both")
+    void aTenantTakesOnlyFromWhatStandsAboveIt() {
+        TenantSpec hospital = member("hospital", "rl");
+        TenantSpec clinic = TenantSpec.parse("""
+                {"code":"clinic","face":"r5","zone":"rl",
+                 "dependencies":[{"name":"rl","types":["Organization"]},
+                                 {"name":"mom","types":["Organization"]},
+                                 {"name":"hospital","types":["Observation"]}],
+                 "types":[{"name":"Observation","identity":"internal",
+                           "handling":"replicated"},
+                          {"name":"Organization","identity":"internal",
+                           "handling":"replicated"}]}""");
+        TenantSpec provider = TenantSpec.parse("""
+                {"code":"mom","face":"r5","types":[{"name":"Organization",
+                 "identity":"internal","handling":"operational"}]}""");
+        ZoneTree world = ZoneTree.of(List.of(zone("rl", null), hospital, clinic, provider));
+
+        IllegalArgumentException refused = assertThrows(IllegalArgumentException.class,
+                () -> world.refuseTakingFromAPeer(clinic, "mom"));
+        assertTrue(refused.getMessage().contains("clinic")
+                        && refused.getMessage().contains("hospital"),
+                "the refusal does not name both tenants: " + refused.getMessage());
+
+        TenantSpec waiting = TenantSpec.parse("""
+                {"code":"waiting","face":"r5",
+                 "dependencies":[{"name":"rl","types":["Organization"]},
+                                 {"name":"not-yet","types":["Organization"]}],
+                 "types":[{"name":"Organization","identity":"internal",
+                           "handling":"replicated"}]}""");
+        world.refuseTakingFromAPeer(waiting, "mom");
+    }
+
+    @Test
     @Proving(DboPromises.ZONE_WORK_CROSSES_THROUGH_THE_LOWEST_ZONE_TWO_TENANTS_SHARE)
     @DisplayName("work between two tenants goes up to the lowest zone they share and down, "
             + "and between tenants that share none it has no way to go")

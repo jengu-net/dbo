@@ -92,6 +92,39 @@ final class ZoneTree {
         return offered;
     }
 
+    /**
+     * Refuses a tenant taking content from another tenant beside it.
+     *
+     * <p>Two tenants never deal with each other directly, and a declared
+     * dependency is a stream of the upstream's records into the dependent —
+     * which the upstream never agreed to. So a tenant takes only from what
+     * stands above it: a jurisdiction, a face root, its provider, or the
+     * projection that serves a jurisdiction on another face. A face chain is
+     * judged by its own rule, and an upstream nothing declares yet is a wait
+     * rather than a refusal.
+     */
+    void refuseTakingFromAPeer(TenantSpec spec, String provider) {
+        for (TenantSpec.Dependency dependency : spec.dependencies()) {
+            TenantSpec upstream = declared.get(dependency.name());
+            if (dependency.face() || upstream == null || upstream.zoneRoot()
+                    || upstream.faceRoot() || upstream.code().equals(provider)
+                    || isProjection(upstream)) {
+                continue;
+            }
+            throw new IllegalArgumentException(spec.code() + ": takes "
+                    + new TreeSet<>(dependency.types()) + " from " + upstream.code()
+                    + ", a tenant beside it. Tenants never deal with each other directly: a "
+                    + "tenant takes from its jurisdiction, a face root or its provider, and "
+                    + "what one tenant needs of another is asked for through their zone");
+        }
+    }
+
+    /** Whether a declaration is the one serving a zone on another face. */
+    private static boolean isProjection(TenantSpec spec) {
+        return spec.dependencies().stream().anyMatch(dependency -> !dependency.face()
+                && ZoneProjections.codeFor(dependency.name(), spec.face()).equals(spec.code()));
+    }
+
     /** The process a step code is part of: its two leading parts. */
     static String processOf(String stepCode) {
         int last = stepCode.lastIndexOf('.');

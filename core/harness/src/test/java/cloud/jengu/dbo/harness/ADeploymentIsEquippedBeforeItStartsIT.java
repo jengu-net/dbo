@@ -431,7 +431,7 @@ class ADeploymentIsEquippedBeforeItStartsIT {
 
         // The zone publishes in R5.
         Files.writeString(dir.resolve(PROJECTED_ZONE + ".json"), """
-                {"code":"%s","face":"r5","audit":{"level":"none"},
+                {"code":"%s","face":"r5","zoneRoot":true,"audit":{"level":"none"},
                  "types":[
                   {"name":"StructureDefinition","identity":"canonical","handling":"operational"},
                   {"name":"Observation","identity":"identifier","systems":["%s"],

@@ -3408,6 +3408,7 @@ cloud.jengu.dbo.promises.DboPromises                                   WF_TWO_PL
 cloud.jengu.dbo.promises.DboPromises                                   ZONE_AN_OPENING_ACROSS_IS_THE_OWNERS_TO_SEE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   ZONE_AN_UNSERVABLE_ZONE_IS_SAID_AT_BRING_UP:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   ZONE_A_TENANTS_ZONES_ARE_ON_ITS_REGISTER:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   ZONE_A_TENANT_TAKES_ONLY_FROM_WHAT_STANDS_ABOVE_IT:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   ZONE_A_ZONE_IS_DECLARED_BY_THE_TENANT_THAT_IS_ONE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   ZONE_A_ZONE_IS_SERVED_TO_A_FACE_THROUGH_ONE_PROJECTION:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   ZONE_A_ZONE_NAMES_THE_ZONE_IT_BELONGS_TO:cloud.jengu.dbo.promises.DboPromises

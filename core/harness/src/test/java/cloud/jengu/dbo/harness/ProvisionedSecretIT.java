@@ -83,7 +83,7 @@ class ProvisionedSecretIT {
             // and when the upstream arrives, the next scan brings both up —
             // the wait was a wait, not a permanent failure
             java.nio.file.Files.writeString(dir.resolve("ulemine.json"), """
-                    {"code":"ulemine","face":"r4","types":[
+                    {"code":"ulemine","face":"r4","zoneRoot":true,"types":[
                       {"name":"CodeSystem","identity":"canonical","handling":"operational"}]}""");
 
             // Scanning until it holds, not once: a scan walks the directory in

@@ -9,6 +9,7 @@
   ],
   "types": [
     { "name": "CodeSystem", "identity": "canonical", "handling": "operational" },
-    { "name": "ValueSet", "identity": "canonical", "handling": "operational" }
+    { "name": "ValueSet", "identity": "canonical", "handling": "operational" },
+    { "name": "Organization", "identity": "internal", "handling": "operational" }
   ]
 }

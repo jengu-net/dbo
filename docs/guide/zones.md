@@ -29,7 +29,9 @@ Taking the zone's terminology is a different statement — a dependency, declare
 separately ([one tenant in two places](one-tenant-in-two-places.md)). A tenant
 can take a zone's code systems without being in it, and be in it without
 taking them, because *whose rules apply to me* and *what content do I hold* are
-different questions.
+different questions. A tenant takes only from what stands above it — a zone, a
+face root, its provider — and a dependency on a tenant beside it is refused by
+name: what one tenant needs of another is asked for through their zone.
 
 ## A zone belongs to a zone
 
