@@ -587,6 +587,49 @@ public final class TenantRuntimeManager implements AutoCloseable {
         }
     }
 
+    /**
+     * The steps a tenant starts by itself: its own, and those the deployment
+     * performs for every tenant that start themselves or last, where this
+     * tenant admits them — a required one it cannot decline — held as it
+     * holds its own, so the same clock and watches run them.
+     */
+    List<TenantSpec.Step> selfStartingSteps(TenantSpec spec) {
+        List<TenantSpec.Step> steps = new java.util.ArrayList<>(spec.steps());
+        java.util.Set<String> declined = new java.util.HashSet<>(spec.declines());
+        for (TenantSpec.FleetStep fleet : declaredFleetSteps) {
+            if ((fleet.starts() != null || fleet.lasts())
+                    && (fleet.required() || !declined.contains(fleet.code()))) {
+                steps.add(fleet.asStep());
+            }
+        }
+        return steps;
+    }
+
+    /**
+     * Every serving tenant's self-starting steps brought into line with what
+     * the deployment now performs for them, where they stand: a step declared
+     * after they came up reaches them without a rebuild.
+     */
+    private void fleetStartsChanged() {
+        selfStarting.forEach((code, starting) -> {
+            TenantRuntime serving = runtimes.get(code);
+            if (serving == null) {
+                return;
+            }
+            List<TenantSpec.Step> steps = selfStartingSteps(serving.spec());
+            try {
+                starting.redeclared(steps);
+                StepWatches watching = watches.get(code);
+                if (watching != null) {
+                    watching.redeclared(steps);
+                }
+            } catch (RuntimeException failed) {
+                LOG.warn("tenant {}: what the deployment starts in it could not be brought "
+                        + "into line", code, failed);
+            }
+        });
+    }
+
     /** Each tenant's way of starting work in this process, by code. */
     private final Map<String, StepSurface> starters = new ConcurrentHashMap<>();
 
@@ -1558,11 +1601,13 @@ public final class TenantRuntimeManager implements AutoCloseable {
                     // Held wherever a step declares when it starts, even one
                     // that starts elsewhere, so a cadence redeclared to start
                     // here is taken where the tenant stands.
-                    if (tenant.spec().steps().stream().allMatch(step -> step.starts() == null)) {
+                    if (selfStartingSteps(tenant.spec()).stream()
+                            .allMatch(step -> step.starts() == null)) {
                         return null;
                     }
                     SelfStarting starting = new SelfStarting(code, tenant.dataSource(),
-                            tenant.laneRuns(), starters.get(code), tenant.spec().steps(), place,
+                            tenant.laneRuns(), starters.get(code),
+                            selfStartingSteps(tenant.spec()), place,
                             stepScheduler, java.time.Clock.systemUTC(),
                             (type, id) -> tenant.runtime().engine().get(type, id)
                                     .map(cloud.jengu.dbo.core.api.StoredObject::payload))
@@ -1776,6 +1821,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 .map(TenantSpec.FleetStep::code)
                 .collect(java.util.stream.Collectors.toUnmodifiableSet());
         declaredFleetSteps = spec.fleetSteps();
+        fleetStartsChanged();
         requiredStepCodes = spec.fleetSteps().stream()
                 .filter(TenantSpec.FleetStep::required)
                 .map(TenantSpec.FleetStep::code)
@@ -2939,6 +2985,75 @@ public final class TenantRuntimeManager implements AutoCloseable {
             answer.put("tenants", tenants);
             return cloud.jengu.dbo.core.wire.RecordWire.write(answer);
         }));
+        // One fleet step's work in every tenant, as the deployment answering
+        // for it reads it: for work that lasts, opened for a request the
+        // deployment names, where each tenant stands with it and who said so —
+        // the acts recorded under it, never the tenant's records.
+        sharedServer.createContext("/runtime/fleet/steps/", opsGuardedAt(expected, exchange -> {
+            String step = exchange.getRequestURI().getPath()
+                    .substring("/runtime/fleet/steps/".length());
+            String request = query(exchange, "notice");
+            if (step.isBlank() || request == null || !fleetStepCodes.contains(step)) {
+                return null;
+            }
+            List<Map<String, Object>> tenants = new java.util.ArrayList<>();
+            for (String code : new java.util.TreeSet<>(runtimes.keySet())) {
+                if (code.equals(managementCode)) {
+                    continue;
+                }
+                cloud.jengu.dbo.core.api.ObjectStore held = runStores.get(code);
+                if (held == null) {
+                    continue;
+                }
+                cloud.jengu.dbo.work.Runs runs = new cloud.jengu.dbo.work.Runs(held);
+                Map<String, Object> row = new java.util.LinkedHashMap<>();
+                row.put("tenant", code);
+                java.util.Optional<cloud.jengu.dbo.work.Run> work =
+                        runs.byKey(step + "/" + request);
+                if (work.isEmpty()) {
+                    row.put("status", "not-opened");
+                    tenants.add(row);
+                    continue;
+                }
+                cloud.jengu.dbo.work.Run run = work.get();
+                row.put("status", run.status().wire());
+                if (run.milestone() != null) {
+                    row.put("stage", run.milestone().name());
+                }
+                if (run.statusReason() != null) {
+                    row.put("because", run.statusReason());
+                }
+                if (run.authored() != null) {
+                    row.put("opened", run.authored().toString());
+                }
+                List<Map<String, Object>> said = new java.util.ArrayList<>();
+                for (cloud.jengu.dbo.work.Run act : runs.items(run)) {
+                    if (!cloud.jengu.dbo.work.Runs.ACTS.equals(act.process())) {
+                        continue;
+                    }
+                    Map<String, Object> one = new java.util.LinkedHashMap<>();
+                    one.put("act", act.step());
+                    if (act.assignment() != null && act.assignment().claimant() != null) {
+                        one.put("by", act.assignment().claimant());
+                    }
+                    if (act.assignment() != null && act.assignment().note() != null) {
+                        one.put("because", act.assignment().note());
+                    }
+                    if (act.authored() != null) {
+                        one.put("at", act.authored().toString());
+                    }
+                    said.add(one);
+                }
+                said.sort(java.util.Comparator.comparing(one -> String.valueOf(one.get("at"))));
+                row.put("said", said);
+                tenants.add(row);
+            }
+            Map<String, Object> answer = new java.util.LinkedHashMap<>();
+            answer.put("step", step);
+            answer.put("notice", request);
+            answer.put("tenants", tenants);
+            return cloud.jengu.dbo.core.wire.RecordWire.write(answer);
+        }));
         LOG.info("runtime state: serving /runtime/tenants, /runtime/catalogue and /runtime/fleet");
     }
 
@@ -3097,6 +3212,51 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 exchange.close();
             }
         };
+    }
+
+    /**
+     * The same guard, for an answer that reads its own address: null answers
+     * as nothing found there.
+     */
+    private com.sun.net.httpserver.HttpHandler opsGuardedAt(byte[] expected,
+            java.util.function.Function<com.sun.net.httpserver.HttpExchange, String> answer) {
+        return exchange -> {
+            try {
+                String presented = exchange.getRequestHeaders().getFirst("Authorization");
+                byte[] offered = presented == null || !presented.startsWith("Bearer ")
+                        ? new byte[0]
+                        : presented.substring(7).getBytes(java.nio.charset.StandardCharsets.UTF_8);
+                if (!java.security.MessageDigest.isEqual(expected, offered)) {
+                    respond(exchange, 401, "{\"error\":\"unauthorized\"}");
+                    return;
+                }
+                if (!"GET".equals(exchange.getRequestMethod())) {
+                    respond(exchange, 405, "{\"error\":\"invalid_request\"}");
+                    return;
+                }
+                String body = answer.apply(exchange);
+                respond(exchange, body == null ? 404 : 200,
+                        body == null ? "{\"error\":\"not_found\"}" : body);
+            } finally {
+                exchange.close();
+            }
+        };
+    }
+
+    /** One query parameter, decoded, or null. */
+    private static String query(com.sun.net.httpserver.HttpExchange exchange, String name) {
+        String raw = exchange.getRequestURI().getRawQuery();
+        if (raw == null) {
+            return null;
+        }
+        for (String pair : raw.split("&")) {
+            int at = pair.indexOf('=');
+            if (at > 0 && pair.substring(0, at).equals(name)) {
+                return java.net.URLDecoder.decode(pair.substring(at + 1),
+                        java.nio.charset.StandardCharsets.UTF_8);
+            }
+        }
+        return null;
     }
 
     private static void respond(com.sun.net.httpserver.HttpExchange exchange, int status,
@@ -3400,10 +3560,10 @@ public final class TenantRuntimeManager implements AutoCloseable {
                     serving.endpoint(), serving.grain(), serving.replication(),
                     serving.blobs(), serving.authority()));
             selfStarting(declared.code())
-                    .ifPresent(starting -> starting.redeclared(declared.steps()));
+                    .ifPresent(starting -> starting.redeclared(selfStartingSteps(declared)));
             StepWatches watching = watches.get(declared.code());
             if (watching != null) {
-                watching.redeclared(declared.steps());
+                watching.redeclared(selfStartingSteps(declared));
             }
             redeclared.remove(declared.code());
             LOG.info("tenant {} took a change where it stands: {}",
@@ -4005,8 +4165,9 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 !fleetStepCodes.isEmpty() && !spec.declines().containsAll(fleetStepCodes));
         // What its steps that start on a change watch, known before its feed
         // is first read; handed to those steps once they stand, at surfaces.
-        StepWatches watching = new StepWatches(spec.steps(), places.contains(spec.code()));
-        if (spec.steps().stream().allMatch(step -> step.starts() == null)) {
+        StepWatches watching = new StepWatches(selfStartingSteps(spec),
+                places.contains(spec.code()));
+        if (selfStartingSteps(spec).stream().allMatch(step -> step.starts() == null)) {
             watching.detached();
         }
         watches.put(spec.code(), watching);

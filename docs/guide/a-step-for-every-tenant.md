@@ -96,6 +96,63 @@ the deployment reads, at `/runtime/fleet` under the operator's token, which
 tenants have rows standing and how many incidents each holds, and never which
 records were opened.
 
+## A notice every tenant acknowledges
+
+A provider sometimes has something every tenant must take notice of, such as a
+system update and its maintenance window, and needs to see which tenants have.
+The notice is a record the provider writes once in its own tenant:
+
+```http
+POST /t/mom/fhir/Communication
+{ "resourceType": "Communication", "status": "completed",
+  "category": [{ "coding": [{ "system": "urn:dbo:notice", "code": "system-update" }] }],
+  "payload": [{ "contentCodeableConcept": { "text": "Upgrade on 20 October, 22:00–23:00 UTC" } }] }
+```
+
+Each tenant takes the provider's notices, since a tenant may take content from
+its provider:
+
+```json
+{ "dependencies": [{ "name": "mom", "types": ["Communication"] }] }
+```
+
+The acknowledgement is a fleet step that lasts and starts itself:
+
+```json
+{ "fleetSteps": [{ "code": "fleet.update.acknowledge",
+                   "slots": { "notice": "Reference(Communication)" },
+                   "required": true, "lasts": true,
+                   "starts": { "change": "Communication?category=urn:dbo:notice|system-update",
+                               "keep": "P365D", "where": "everywhere" } }] }
+```
+
+When the notice reaches a tenant, the tenant opens its own acknowledgement,
+[work that lasts](processes-and-steps.md#work-that-lasts) keyed by the notice.
+It does so on every tenant that takes the notices, including one that joins
+afterwards. A tenant cannot decline it, because it is `required`. A step the
+provider declares while its tenants are already serving reaches them as they
+stand.
+
+The tenant's admin acknowledges it at the tenant's own door:
+
+```http
+POST /t/hogwarts/run/<id>/accept   { "because": "read; window agreed" }
+POST /t/hogwarts/run/<id>/end      { "status": "completed", "because": "prepared" }
+```
+
+Under the operator's token, the provider reads who has acknowledged, tenant by
+tenant. For each it shows the status, and the acts said of it with who, when and
+why. A tenant that has not acknowledged reads as `received`, and one that does
+not take the notices as `not-opened`. The view reads the work's state, never the
+tenants' records.
+
+```http
+GET /runtime/fleet/steps/fleet.update.acknowledge?notice=Communication/<id>
+```
+
+A retention such as `keep` is a duration in days, hours or less, so a year is
+`P365D`.
+
 ## What the store guarantees
 
 - **A step code belongs to one level**, checked where it is declared, and the
@@ -123,3 +180,9 @@ names the test behind each.
 - **A deployment cannot name its processor** in configuration, so none is
   enrolled.
 - **A bean whose step nothing declares is noticed only inside the process.**
+- **The provider reads acknowledgements one node at a time.** The view covers
+  the tenants the node it asks serves, so a deployment of several nodes asks
+  each one.
+- **A site's acknowledgement stays on the site.** A tenant served at a place
+  opens its own there as well as at its origin, and the provider reads the
+  origin's.

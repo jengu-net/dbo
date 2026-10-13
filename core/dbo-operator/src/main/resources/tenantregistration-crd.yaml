@@ -267,6 +267,33 @@ spec:
                         type: array
                         items:
                           type: string
+                      # Whether a run of it in each tenant is work that lasts.
+                      lasts:
+                        type: boolean
+                      # When it starts itself in each tenant admitting it, as
+                      # a tenant's own step's starts says.
+                      starts:
+                        type: object
+                        required: [keep, where]
+                        properties:
+                          every:
+                            type: string
+                          change:
+                            type: string
+                          due:
+                            type: string
+                          at:
+                            type: string
+                          after:
+                            type: string
+                          missed:
+                            type: string
+                            enum: [once, skip]
+                          keep:
+                            type: string
+                          where:
+                            type: string
+                            enum: [origin, places, everywhere]
                 # Steps the deployment performs that THIS tenant will not
                 # have done to its data. Admitted by saying nothing, which is
                 # the ordinary case; a step the deployment declares required

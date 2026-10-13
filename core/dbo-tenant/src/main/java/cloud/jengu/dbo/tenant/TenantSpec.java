@@ -321,12 +321,28 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
      */
     public record FleetStep(String code, java.util.Map<String, String> slots,
             Set<String> opens, boolean required, Posture posture, String substrate,
-            Set<String> delegatesTo) {
+            Set<String> delegatesTo, boolean lasts, Starts starts) {
 
         /** Carried out by the provider itself, handed to no partner. */
         public FleetStep(String code, java.util.Map<String, String> slots,
                 Set<String> opens, boolean required, Posture posture, String substrate) {
             this(code, slots, opens, required, posture, substrate, Set.of());
+        }
+
+        /** A step asked for, never starting itself, and performed rather than opened. */
+        public FleetStep(String code, java.util.Map<String, String> slots,
+                Set<String> opens, boolean required, Posture posture, String substrate,
+                Set<String> delegatesTo) {
+            this(code, slots, opens, required, posture, substrate, delegatesTo, false, null);
+        }
+
+        /**
+         * This step as each tenant admitting it holds it, where it starts itself
+         * there or lasts: the same rules a tenant's own such step is held to,
+         * read where the deployment declared it.
+         */
+        public Step asStep() {
+            return new Step(code, slots, Set.of(), null, null, null, starts, lasts);
         }
 
         /**
@@ -381,6 +397,12 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
             }
             slots = java.util.Collections.unmodifiableMap(
                     new java.util.LinkedHashMap<>(slots));
+            if (lasts || starts != null) {
+                // Held to a tenant's own rules for such a step, here, so a
+                // deployment declaring one that cannot hold is refused where it
+                // was written rather than in every tenant that admits it.
+                new Step(code, slots, Set.of(), null, null, null, starts, lasts);
+            }
             // As above: refused where it was written.
             slots.forEach((slot, declared) -> {
                 try {
@@ -1103,12 +1125,24 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
                     named.forEach((slot, type) -> slots.put(String.valueOf(slot),
                             String.valueOf(type)));
                 }
+                // When it starts itself in each tenant admitting it, read by the
+                // rules a tenant's own step is — except the types, which are the
+                // tenants', not the deployment's.
+                Object fleetStartsNode = Json.objOpt(one, "starts");
+                Starts fleetStarts;
+                try {
+                    fleetStarts = starts(fleetStartsNode, null);
+                } catch (IllegalArgumentException wrong) {
+                    throw new IllegalArgumentException(code + ": fleet step '" + stepCode
+                            + "' — " + wrong.getMessage(), wrong);
+                }
                 fleetSteps.add(new FleetStep(stepCode, slots,
                         Set.copyOf(Json.strings(one, "opens")),
                         Json.bool(one, "required"),
                         FleetStep.Posture.of(Json.strOpt(one, "posture"), stepCode),
                         Json.strOpt(one, "substrate"),
-                        Set.copyOf(Json.strings(one, "delegatesTo"))));
+                        Set.copyOf(Json.strings(one, "delegatesTo")),
+                        Json.bool(one, "lasts"), fleetStarts));
             }
         }
         return new TenantSpec(code, face, types, pdi, policies,
@@ -1207,7 +1241,7 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
         if (search != null) {
             String type = search.contains("?") ? search.substring(0, search.indexOf('?'))
                     : search;
-            if (!held.contains(type)) {
+            if (held != null && !held.contains(type)) {
                 throw new IllegalArgumentException("starts on a change to '" + type
                         + "', and this tenant does not declare that type. It holds: "
                         + new java.util.TreeSet<>(held));

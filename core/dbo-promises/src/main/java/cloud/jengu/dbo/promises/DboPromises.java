@@ -417,6 +417,19 @@ public enum DboPromises implements Promise {
             + "completed, failed or cancelled with the reason, its business status is the stage "
             + "it has reached, it names no performer, and its parts are Tasks part of it."),
 
+    PROC_A_FLEET_STEP_MAY_LAST_AND_START_ITSELF_IN_EVERY_TENANT("A step the deployment "
+            + "performs for every tenant may last, and may start itself, held to the rules a "
+            + "tenant's own such step is: each tenant admitting it runs it on its own clock and "
+            + "watches, so a notice the provider writes once opens one acknowledgement in every "
+            + "tenant that takes the provider's notices — a tenant joining afterwards included. "
+            + "A tenant cannot decline one the deployment requires."),
+
+    PROC_THE_PROVIDER_SEES_WHO_ACKNOWLEDGED("The deployment reads, under the operator's "
+            + "token, one fleet step's work that lasts, opened for a request it names, in every "
+            + "tenant: where each stands, and the acts said of it — who, when and why — or that "
+            + "a tenant has not opened it. It reads the work's state, never the tenant's "
+            + "records."),
+
     PROC_AUTOMATION_TAKES_ONLY_WHAT_ITS_STEP_ADMITS("A step may say when automation may take "
             + "its task, as a condition over the task's inputs, and the store decides it once, "
             + "when the task is authored: a task the condition does not admit is open to people "
