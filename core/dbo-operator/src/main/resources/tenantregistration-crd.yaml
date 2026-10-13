@@ -42,6 +42,17 @@ spec:
                 # rather than inferred from who points at it.
                 zoneRoot:
                   type: boolean
+                # What a zone permits its members to do for each other, by
+                # process. A child zone may only narrow its parent's, and a
+                # zone that lists none permits none.
+                exchanges:
+                  type: array
+                  items:
+                    type: string
+                # The provider this tenant is a partner of: it is reached only
+                # through that provider, on credentials the provider issues.
+                partnerOf:
+                  type: string
                 broker:
                   type: string
                 acceptedBrokers:
@@ -250,6 +261,12 @@ spec:
                       # deployment's own; several steps may name one.
                       substrate:
                         type: string
+                      # The partners the provider hands this step's work to;
+                      # adding one widens the step's register row.
+                      delegatesTo:
+                        type: array
+                        items:
+                          type: string
                 # Steps the deployment performs that THIS tenant will not
                 # have done to its data. Admitted by saying nothing, which is
                 # the ordinary case; a step the deployment declares required
