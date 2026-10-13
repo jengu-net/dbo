@@ -199,6 +199,26 @@ public interface RunInitiator {
     }
 
     /**
+     * The same, as work that leaves this tenant for another through their
+     * zone — or for the tenant's own zone, or from a zone to one of its
+     * members — under the rules the tenant's door holds a crossing to.
+     *
+     * <p>Refused, not ignored, where an initiator cannot carry it: started
+     * without it, the work would stay where it was asked for.
+     *
+     * @param crossingTo the tenant the work goes to, or null for work that
+     *                   stays
+     */
+    default Started starting(String tenant, String step, Map<String, Slot> inputs, String key,
+            Run.Addressee addressee, String partOf, String crossingTo) {
+        if (crossingTo == null) {
+            return starting(tenant, step, inputs, key, addressee, partOf);
+        }
+        throw new UnsupportedOperationException(getClass().getName()
+                + " cannot start work that crosses to another tenant");
+    }
+
+    /**
      * Says something of lasting work: {@code accept}, {@code reject},
      * {@code stage} or {@code end}, as the run's own door takes it.
      *
@@ -261,6 +281,14 @@ public interface RunInitiator {
      */
     static String partOf(String key) {
         return key == null ? "" : ",\"partOf\":" + quoted(key);
+    }
+
+    /**
+     * The step door's {@code crossing}, as a member to append to a request
+     * body after another: empty for work that stays.
+     */
+    static String crossing(String to) {
+        return to == null ? "" : ",\"crossing\":{\"to\":" + quoted(to) + "}";
     }
 
     /**

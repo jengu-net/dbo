@@ -123,7 +123,8 @@ final class RunResults implements Lane.Results {
         return Json.parse("{\"inputs\":{" + named + "},\"scope\":"
                 + cloud.jengu.dbo.work.RunInitiator.quoted(key)
                 + cloud.jengu.dbo.work.RunInitiator.addressed(part.addressee())
-                + cloud.jengu.dbo.work.RunInitiator.partOf(run.key()) + "}");
+                + cloud.jengu.dbo.work.RunInitiator.partOf(run.key())
+                + cloud.jengu.dbo.work.RunInitiator.crossing(part.crossingTo()) + "}");
     }
 
     @Override

@@ -65,11 +65,31 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
      * @param lasts    whether a run of it is work that lasts: opened for the
      *                 request in its one slot, held by nobody, moved and ended
      *                 by the runs that are its parts
+     * @param awaits   for an exchange a zone declares, what the asker waits for
+     *                 from the tenant whose data it is
      */
     public record Step(String code, java.util.Map<String, String> slots,
             java.util.Set<String> writes, cloud.jengu.dbo.core.process.RetryPolicy retry,
             cloud.jengu.dbo.core.process.AutomationCriterion automate, Answer answer,
-            Starts starts, boolean lasts) {
+            Starts starts, boolean lasts, Awaits awaits) {
+
+        /** A step whose asker, where it crosses, waits for the records shared. */
+        public Step(String code, java.util.Map<String, String> slots,
+                java.util.Set<String> writes, cloud.jengu.dbo.core.process.RetryPolicy retry,
+                cloud.jengu.dbo.core.process.AutomationCriterion automate, Answer answer,
+                Starts starts, boolean lasts) {
+            this(code, slots, writes, retry, automate, answer, starts, lasts, Awaits.RECORDS);
+        }
+
+        /** What a crossing on an exchange waits for at the end it left. */
+        public enum Awaits {
+            /** The owner's List, sealed to the asker's reader: what it shares. */
+            RECORDS,
+            /** How the owner's run ended, and why: nothing is sealed, nothing read. */
+            OUTCOME,
+            /** Nothing: the work is the owner's once it is authored there. */
+            NONE
+        }
 
         /** A step whose runs are performed, not opened. */
         public Step(String code, java.util.Map<String, String> slots,
@@ -1099,8 +1119,19 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
                     throw new IllegalArgumentException(code + ": step '" + stepCode
                             + "' — " + wrong.getMessage(), wrong);
                 }
+                String awaited = Json.strOpt(step, "awaits");
+                Step.Awaits awaits = Step.Awaits.RECORDS;
+                if (awaited != null) {
+                    try {
+                        awaits = named(Step.Awaits.class, "awaits", awaited);
+                    } catch (IllegalArgumentException wrong) {
+                        throw new IllegalArgumentException(code + ": step '" + stepCode
+                                + "' — " + wrong.getMessage(), wrong);
+                    }
+                }
                 steps.add(new Step(stepCode, slots, writes, retry, automate,
-                        answer(code, stepCode, step, policies), starts, Json.bool(step, "lasts")));
+                        answer(code, stepCode, step, policies), starts, Json.bool(step, "lasts"),
+                        awaits));
             }
         }
         // The steps the DEPLOYMENT performs, which only the management

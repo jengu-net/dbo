@@ -50,3 +50,4 @@ AWriteIsJudgedFromTheIndexIT                             a global dial: the face
 BringUpUnderStrainIT                                     lifecycle
 OperatorIT                                               sweep
 WhatTheLoadedSpecificationCostsIT                        first boot
+WorkCrossesToItsOwnZoneIT                                deployment — a tree two zones deep, with a member directly under the root and one under the lower zone; the sample world has one zone with none above or below it, and a zone added to it would be a jurisdiction every shared tenant belongs to

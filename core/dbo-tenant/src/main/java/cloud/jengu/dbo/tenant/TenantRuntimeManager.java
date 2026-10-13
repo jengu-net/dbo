@@ -687,6 +687,14 @@ public final class TenantRuntimeManager implements AutoCloseable {
             public Started starting(String tenant, String step,
                     Map<String, Slot> inputs, String key,
                     cloud.jengu.dbo.work.Run.Addressee addressee, String partOf) {
+                return starting(tenant, step, inputs, key, addressee, partOf, null);
+            }
+
+            @Override
+            public Started starting(String tenant, String step,
+                    Map<String, Slot> inputs, String key,
+                    cloud.jengu.dbo.work.Run.Addressee addressee, String partOf,
+                    String crossingTo) {
                 StepSurface starter = starters.get(tenant);
                 if (starter == null) {
                     return new Started(404, null, null, "{\"error\":\"not_found\","
@@ -699,7 +707,8 @@ public final class TenantRuntimeManager implements AutoCloseable {
                         + (key == null ? "" : ",\"scope\":"
                         + cloud.jengu.dbo.work.RunInitiator.quoted(key))
                         + cloud.jengu.dbo.work.RunInitiator.addressed(addressee)
-                        + cloud.jengu.dbo.work.RunInitiator.partOf(partOf) + "}");
+                        + cloud.jengu.dbo.work.RunInitiator.partOf(partOf)
+                        + cloud.jengu.dbo.work.RunInitiator.crossing(crossingTo) + "}");
                 StepSurface.Started started = starter.starting(step, body, null);
                 return new Started(started.status(),
                         cloud.jengu.dbo.work.RunInitiator.field(started.body(), "run"),
@@ -1915,6 +1924,15 @@ public final class TenantRuntimeManager implements AutoCloseable {
      */
     public java.util.Optional<cloud.jengu.dbo.runner.Lane> fleetLane(
             String tenant, String stepCode, cloud.jengu.dbo.work.Executor identity) {
+        return fleetLane(tenant, Set.of(stepCode), identity);
+    }
+
+    /**
+     * The same, entitled to several steps at once: one lane, and so one
+     * cursor over the tenant's work, for a participant taking all of them.
+     */
+    java.util.Optional<cloud.jengu.dbo.runner.Lane> fleetLane(
+            String tenant, Set<String> stepCodes, cloud.jengu.dbo.work.Executor identity) {
         cloud.jengu.dbo.runner.transport.Lanes factory = laneFactories.get(tenant);
         if (factory == null) {
             return java.util.Optional.empty();
@@ -1928,7 +1946,8 @@ public final class TenantRuntimeManager implements AutoCloseable {
         cloud.jengu.dbo.core.api.Caller.set(identity.name());
         try {
             return java.util.Optional.of(factory.laneFor(identity.name(), identity,
-                    cloud.jengu.dbo.runner.Lane.Entitlement.ofSteps(stepCode)));
+                    cloud.jengu.dbo.runner.Lane.Entitlement.ofSteps(
+                            stepCodes.toArray(String[]::new))));
         } finally {
             if (outerFor == null) {
                 cloud.jengu.dbo.core.api.Caller.set(outer);
@@ -2270,22 +2289,27 @@ public final class TenantRuntimeManager implements AutoCloseable {
             return null;
         }
         if (to == null) {
-            return new StepSurface.Fleet.Offer(step.get().slots(), null);
+            return new StepSurface.Fleet.Offer(step.get().slots(), null, step.get().awaits());
         }
         try {
             ZoneTree.Route route = tree.route(tenant, to);
             String process = ZoneTree.processOf(stepCode);
             if (!route.permits(process)) {
-                List<String> refusing = route.zones().stream()
-                        .filter(zone -> !tree.permitted(zone).contains(process)).toList();
+                List<String> refusing = new java.util.ArrayList<>();
+                if (!tree.permitted(route.lowest()).contains(process)) {
+                    refusing.add(route.lowest());
+                }
+                route.zones().stream().filter(zone -> !tree.permitted(zone).contains(process))
+                        .forEach(refusing::add);
                 return new StepSurface.Fleet.Offer(step.get().slots(), "'" + process
                         + "' is not permitted by " + refusing + " on the way from " + tenant
-                        + " to " + to + " through " + route.zones());
+                        + " to " + to + " through " + route.zones(), step.get().awaits());
             }
         } catch (IllegalArgumentException noWay) {
-            return new StepSurface.Fleet.Offer(step.get().slots(), noWay.getMessage());
+            return new StepSurface.Fleet.Offer(step.get().slots(), noWay.getMessage(),
+                    step.get().awaits());
         }
-        return new StepSurface.Fleet.Offer(step.get().slots(), null);
+        return new StepSurface.Fleet.Offer(step.get().slots(), null, step.get().awaits());
     }
 
     private StepSurface.Fleet.Offer offerOf(String tenant, String stepCode) {
@@ -2702,8 +2726,8 @@ public final class TenantRuntimeManager implements AutoCloseable {
         }
 
         @Override
-        public Optional<cloud.jengu.dbo.runner.Lane> lane(String tenant, String step) {
-            return fleetLane(tenant, step, Crossings.CARRIER);
+        public Optional<cloud.jengu.dbo.runner.Lane> lane(String tenant, Set<String> steps) {
+            return fleetLane(tenant, steps, Crossings.CARRIER);
         }
 
         @Override
@@ -4162,7 +4186,11 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 // FROM THE SPEC IN HAND, not from the serving runtime: this runs
                 // during bring-up, and the runtime whose declines would be
                 // read is the one being built.
-                !fleetStepCodes.isEmpty() && !spec.declines().containsAll(fleetStepCodes));
+                !fleetStepCodes.isEmpty() && !spec.declines().containsAll(fleetStepCodes)
+                        // Or its jurisdictions': an exchange a zone offers it is
+                        // asked for at its own door, and a member declaring no
+                        // steps of its own would otherwise have none to ask at.
+                        || !zones.exchangeSteps(spec.code()).isEmpty());
         // What its steps that start on a change watch, known before its feed
         // is first read; handed to those steps once they stand, at surfaces.
         StepWatches watching = new StepWatches(selfStartingSteps(spec),

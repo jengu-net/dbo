@@ -183,7 +183,13 @@ final class StepSurface implements HttpHandler {
         }
 
         /** The step's slots, and why it is not startable here if it is not. */
-        record Offer(Map<String, String> slots, String refusedBecause) {
+        record Offer(Map<String, String> slots, String refusedBecause,
+                TenantSpec.Step.Awaits awaits) {
+
+            /** An offer whose asker, where it crosses, waits for the records shared. */
+            Offer(Map<String, String> slots, String refusedBecause) {
+                this(slots, refusedBecause, TenantSpec.Step.Awaits.RECORDS);
+            }
         }
     }
 
@@ -397,6 +403,23 @@ final class StepSurface implements HttpHandler {
         }
         cloud.jengu.dbo.work.Run.Crossing crossing = null;
         Map<String, String> slots;
+        // A ZONE'S OWN EXCHANGE, asked at the zone's door to go to one of its
+        // members: the zone is one end of the crossing, as a member asking it
+        // is.
+        Fleet.Offer exchanged = step != null && crossingTo != null
+                ? fleet.exchange(tenant, stepCode, crossingTo) : null;
+        if (exchanged != null && exchanged.refusedBecause() != null) {
+            return refused(409, "refused", exchanged.refusedBecause());
+        }
+        if (exchanged != null) {
+            crossing = new cloud.jengu.dbo.work.Run.Crossing(cloud.jengu.dbo.core.UuidV7.newId(),
+                    tenant, crossingTo, null, requester);
+            if (exchanged.awaits() == TenantSpec.Step.Awaits.RECORDS && requester == null) {
+                return refused(400, "invalid_request", stepCode + " brings back the records "
+                        + "shared, sealed to the client that asked, and nobody asked here: "
+                        + "ask at the door, or on an exchange that awaits its outcome");
+            }
+        }
         if (step != null) {
             slots = step.slots();
         } else {
@@ -423,6 +446,14 @@ final class StepSurface implements HttpHandler {
                             + "it as crossing.to");
                 }
                 if (offered != null && offered.refusedBecause() == null) {
+                    // What comes back is sealed to the client that asked, so
+                    // records nobody can open are not asked for.
+                    if (offered.awaits() == TenantSpec.Step.Awaits.RECORDS && requester == null) {
+                        return refused(400, "invalid_request", stepCode + " brings back the "
+                                + "records shared, sealed to the client that asked, and nobody "
+                                + "asked here: ask at the door, or on an exchange that awaits "
+                                + "its outcome");
+                    }
                     crossing = new cloud.jengu.dbo.work.Run.Crossing(
                             cloud.jengu.dbo.core.UuidV7.newId(), tenant, crossingTo, null,
                             requester);

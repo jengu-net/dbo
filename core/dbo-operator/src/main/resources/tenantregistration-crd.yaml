@@ -191,6 +191,12 @@ spec:
                       # after). A calendar step says what a missed tick
                       # becomes; every one says how long its runs are kept
                       # and where it starts.
+                      # For an exchange a zone declares, what the asker waits
+                      # for: the records shared, sealed to its reader; how the
+                      # work ended; or nothing once it is authored.
+                      awaits:
+                        type: string
+                        enum: [records, outcome, none]
                       # Whether a run of the step is work that lasts: opened
                       # for the one request its one slot names, held by
                       # nobody, moved and ended by the runs that are its parts.

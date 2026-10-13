@@ -48,8 +48,11 @@ final class Crossings {
         /** The jurisdictions as the deployment last read them. */
         ZoneTree zones();
 
-        /** A lane into a tenant for one step, as the carrier. */
-        Optional<Lane> lane(String tenant, String step);
+        /**
+         * A lane into a tenant for the steps named, as the carrier: one lane,
+         * so one cursor over the tenant's work for all of them.
+         */
+        Optional<Lane> lane(String tenant, Set<String> steps);
 
         /** A tenant's store, for authoring the run that does the work and for a zone's trail. */
         Optional<cloud.jengu.dbo.policy.PolicyObjectStore> store(String tenant);
@@ -99,31 +102,46 @@ final class Crossings {
             }
         }
         for (String asker : plane.serving()) {
+            // EVERY EXCHANGE THIS TENANT ASKS ON, IN ONE POLL. A lane reads
+            // the tenant's work under one cursor per participant, so polling
+            // one step and then the next would read past the second's runs
+            // while looking for the first's, and never offer them again.
+            java.util.Map<String, TenantSpec.Step> asking = new java.util.LinkedHashMap<>();
             for (TenantSpec.Step step : zones.exchangeSteps(asker)) {
-                Optional<Lane> lane = plane.lane(asker, step.code());
-                if (lane.isEmpty()) {
-                    continue;
-                }
-                int dot = step.code().lastIndexOf('.');
-                String process = step.code().substring(0, dot);
-                String bare = step.code().substring(dot + 1);
+                asking.put(step.code(), step);
+            }
+            if (asking.isEmpty()) {
+                continue;
+            }
+            Optional<Lane> lane = plane.lane(asker, asking.keySet());
+            if (lane.isEmpty()) {
+                continue;
+            }
+            Set<String> bare = new java.util.LinkedHashSet<>();
+            for (String code : asking.keySet()) {
+                int dot = code.lastIndexOf('.');
+                bare.add(code.substring(dot + 1));
                 // Announced as any participant announces itself, because a
                 // run is taken only by an executor that said it performs the
                 // step: the carrier performs this one by carrying it.
-                if (declared.add(asker + " " + step.code())) {
-                    lane.get().declare(new cloud.jengu.dbo.work.Declarations.Declared(process,
-                            bare, CARRIER.name(), CARRIER.version(), CARRIER.provider(),
-                            CARRIER.scope(), CARRIER.name()));
+                if (declared.add(asker + " " + code)) {
+                    lane.get().declare(new cloud.jengu.dbo.work.Declarations.Declared(
+                            code.substring(0, dot), code.substring(dot + 1), CARRIER.name(),
+                            CARRIER.version(), CARRIER.provider(), CARRIER.scope(),
+                            CARRIER.name()));
                 }
-                for (Run asked : lane.get().poll(Set.of(bare), 32)) {
-                    // Asked for here, as opposed to arrived here: a run whose
-                    // crossing already names the run it answers is the
-                    // owner's to perform, not this carrier's to take.
-                    if (asked.crossing() != null && asked.crossing().askerRun() == null
-                            && asked.crossing().arrived() == null
-                            && carry(zones, asker, step, lane.get(), asked)) {
-                        carried++;
-                    }
+            }
+            for (Run asked : lane.get().poll(bare, 32)) {
+                // By its whole code: two exchanges may share a step's name.
+                TenantSpec.Step step = asking.get(asked.process() + "." + asked.step());
+                // Asked for here, as opposed to arrived here: a run whose
+                // crossing already names the run it answers is the owner's
+                // to perform, not this carrier's to take.
+                if (step != null && asked.crossing() != null
+                        && asked.crossing().askerRun() == null
+                        && asked.crossing().arrived() == null
+                        && carry(zones, asker, step, lane.get(), asked)) {
+                    carried++;
                 }
             }
         }
@@ -148,8 +166,7 @@ final class Crossings {
         for (Run answered : new Runs(ownerStore.get()).matching(step.code().substring(0, dot),
                 step.code().substring(dot + 1), null, 50)) {
             Run.Crossing crossing = answered.crossing();
-            if (crossing == null || crossing.askerRun() == null
-                    || answered.status() != cloud.jengu.dbo.work.Status.COMPLETED) {
+            if (crossing == null || crossing.askerRun() == null || answered.open()) {
                 continue;
             }
             Optional<cloud.jengu.dbo.policy.PolicyObjectStore> askerStore =
@@ -166,6 +183,19 @@ final class Crossings {
                     || !CARRIER.name().equals(asking.get().assignment().executor().name())) {
                 continue;
             }
+            // NOT ANSWERED, or nothing to bring back but how it ended: the
+            // asker's run ends as the owner's did, and why, so an asker is
+            // never left open because the owner refused.
+            if (answered.status() != cloud.jengu.dbo.work.Status.COMPLETED
+                    || step.awaits() != TenantSpec.Step.Awaits.RECORDS) {
+                passedBack(zones, owner, crossing);
+                String because = answered.refused() != null ? answered.refused()
+                        : answered.statusReason() != null ? answered.statusReason()
+                        : owner + " " + answered.status().wire() + " " + answered.key();
+                askerRuns.endedAcross(asking.get(), CARRIER, answered.status(), because);
+                carried++;
+                continue;
+            }
             Optional<cloud.jengu.dbo.core.api.seal.ParticipantKey> key =
                     plane.sealedTo(crossing.from(), crossing.reader());
             if (key.isEmpty()) {
@@ -178,19 +208,8 @@ final class Crossings {
             }
             List<cloud.jengu.dbo.work.SealedPayload> sealed = sealAnswer(ownerStore.get(),
                     answered, crossing.reader(), key.get());
-            List<String> back = new ArrayList<>(zones.route(crossing.from(), owner).zones());
-            java.util.Collections.reverse(back);
-            List<String> path = new ArrayList<>();
-            path.add(owner);
-            path.addAll(back);
-            path.add(crossing.from());
-            for (int at = 1; at < path.size() - 1; at++) {
-                Optional<cloud.jengu.dbo.policy.PolicyObjectStore> zone =
-                        plane.store(path.get(at));
-                if (zone.isEmpty()) {
-                    return carried;
-                }
-                ZoneTrail.passed(zone.get(), crossing.id(), path.get(at - 1), path.get(at + 1));
+            if (!passedBack(zones, owner, crossing)) {
+                return carried;
             }
             plane.hold(crossing.from(), crossing.id(), cloud.jengu.dbo.core.wire.RecordWire
                     .write(cloud.jengu.dbo.core.wire.RecordWire.encode(
@@ -199,6 +218,27 @@ final class Crossings {
             carried++;
         }
         return carried;
+    }
+
+    /**
+     * Every zone the way back passes records that the crossing passed again;
+     * false where one of them is not serving, and nothing more is carried.
+     */
+    private boolean passedBack(ZoneTree zones, String owner, Run.Crossing crossing) {
+        List<String> back = new ArrayList<>(zones.route(crossing.from(), owner).zones());
+        java.util.Collections.reverse(back);
+        List<String> path = new ArrayList<>();
+        path.add(owner);
+        path.addAll(back);
+        path.add(crossing.from());
+        for (int at = 1; at < path.size() - 1; at++) {
+            Optional<cloud.jengu.dbo.policy.PolicyObjectStore> zone = plane.store(path.get(at));
+            if (zone.isEmpty()) {
+                return false;
+            }
+            ZoneTrail.passed(zone.get(), crossing.id(), path.get(at - 1), path.get(at + 1));
+        }
+        return true;
     }
 
     /**
@@ -420,6 +460,11 @@ final class Crossings {
                 StepSurface.declaration(step.code(), step.slots()), RunKind.PIPELINE,
                 "crossing-" + crossing.id(), held.inputs(), null, null, null, null,
                 new Run.Crossing(crossing.id(), asker, owner, held.key(), crossing.reader()));
+        // Asked for nothing back: the work is the owner's once it is there.
+        if (step.awaits() == TenantSpec.Step.Awaits.NONE) {
+            plane.store(asker).ifPresent(askerStore -> new Runs(askerStore).endedAcross(held,
+                    CARRIER, cloud.jengu.dbo.work.Status.COMPLETED, "authored at " + owner));
+        }
         return true;
     }
 }

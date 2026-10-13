@@ -430,6 +430,27 @@ public enum DboPromises implements Promise {
             + "a tenant has not opened it. It reads the work's state, never the tenant's "
             + "records."),
 
+    ZONE_A_TENANTS_OWN_ZONE_IS_AN_END_OF_A_CROSSING("A tenant's own zone can be an end of a "
+            + "crossing, at any level of the tree: a member asks its zone on an exchange that "
+            + "zone, or one above it, declares, and a zone asks one of its members on one it "
+            + "declares itself. A zone at an end is recorded as that end, and never as a zone the "
+            + "work passed through; a zone above the lowest one the work needs is not on the "
+            + "way."),
+
+    ZONE_AN_ASKER_WAITS_FOR_WHAT_ITS_EXCHANGE_DECLARES("An exchange says what its asker waits "
+            + "for: the records the owner shares, sealed to the asker's reader; how the owner's "
+            + "work ended, the asker's run ending the same way and why, with nothing sealed and "
+            + "no reader's key needed; or nothing, the asker's run completing once the work is "
+            + "authored at the owner. Whatever it waits for, an owner's run that fails or is "
+            + "cancelled ends the asker's run with that status and reason; an asker is never left "
+            + "open because the owner refused."),
+
+    ZONE_A_CROSSING_IS_STARTED_BY_A_HOST_OR_A_RESULT("A crossing is started by a host in "
+            + "process and by a step's result, under the rules the door holds one to: a crossing "
+            + "that would bring back records with nobody to seal them to is refused. One a result "
+            + "starts is a part of the run that started it, so what became of it is read under "
+            + "that run."),
+
     PROC_AUTOMATION_TAKES_ONLY_WHAT_ITS_STEP_ADMITS("A step may say when automation may take "
             + "its task, as a condition over the task's inputs, and the store decides it once, "
             + "when the task is authored: a task the condition does not admit is open to people "

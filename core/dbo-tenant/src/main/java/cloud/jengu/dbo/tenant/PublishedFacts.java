@@ -29,7 +29,7 @@ final class PublishedFacts {
             published.put(TenantFacts.ZONE, spec.zone());
         }
         published.put(TenantFacts.HOLDS_RECORDS_IN_FACE_DOMAIN, resolved.holdsRecordsInFaceDomain());
-        // ITS OWN STEPS OR THE DEPLOYMENT'S. The door exists because something
+        // ITS OWN STEPS, THE DEPLOYMENT'S OR ITS ZONES' EXCHANGES. The door exists because something
         // was declared, and a fleet step is something declared — by the
         // deployment rather than by this tenant, which changes who wrote it
         // down and not whether there is work to ask for. A tenant declaring

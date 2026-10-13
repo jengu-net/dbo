@@ -95,6 +95,40 @@ for a time, and then once that has passed. The owner is told, once, on its own
 trail, that the copy it handed over ended. Whatever the asker's people wrote of
 their own from it is the asker's, under the rules of the zone they share.
 
+**A zone can be an end, not only a way through.** A member often owes its own
+zone something: a laboratory result to register, a notifiable disease, a birth
+or a death. A zone has things for its members too, such as a notice or a
+correction its registry asks for. A member asks its own zone on an exchange that
+zone, or one above it, declares. A zone asks one of its members, at the zone's
+own door, on an exchange it declares itself. Either way the zone is that end of
+the crossing, and it is never recorded as a zone the work passed through. A
+member's step door stands whenever its zones offer it an exchange, even when it
+declares no steps of its own.
+
+**An exchange says what its asker waits for**, as `awaits`:
+
+```json
+{ "code": "reports.lab.notify", "slots": { "result": "Observation" }, "awaits": "outcome" }
+```
+
+- `records`, the default: the owner's `List`, sealed to the asker's reader, as
+  above.
+- `outcome`: the asker's run ends as the owner's did, `completed`, `failed` or
+  `cancelled`, and why. Nothing is sealed, so no reader needs a key.
+- `none`: the asker's run completes once the work is authored at the owner.
+
+Whatever the exchange awaits, an owner's run that fails or is cancelled ends the
+asker's run with that status and reason. An asker is never left open because the
+owner refused.
+
+**A crossing need not start at the door.** An application in process starts one
+with `RunInitiator.starting(tenant, step, inputs, key, addressee, partOf, to)`.
+A step's result starts one as a part of its own run, with
+`Outcome.done().startingAcross(step, inputs, key, to)`, so what became of it is
+read under the run that started it. Both follow the door's rules: an exchange
+that brings back records has to name a reader, so one started with nobody to
+seal them to is refused.
+
 ## The zone runs its own ceremony
 
 A zone that names no external identity broker is its own: every tenant carries

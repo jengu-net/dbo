@@ -3407,8 +3407,11 @@ cloud.jengu.dbo.promises.DboPromises                                   WF_HOPS_A
 cloud.jengu.dbo.promises.DboPromises                                   WF_PLATFORM_COORDINATED_HOPS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   WF_POSTGRES_SUBSTRATE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   WF_TWO_PLANES:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   ZONE_AN_ASKER_WAITS_FOR_WHAT_ITS_EXCHANGE_DECLARES:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   ZONE_AN_OPENING_ACROSS_IS_THE_OWNERS_TO_SEE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   ZONE_AN_UNSERVABLE_ZONE_IS_SAID_AT_BRING_UP:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   ZONE_A_CROSSING_IS_STARTED_BY_A_HOST_OR_A_RESULT:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   ZONE_A_TENANTS_OWN_ZONE_IS_AN_END_OF_A_CROSSING:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   ZONE_A_TENANTS_ZONES_ARE_ON_ITS_REGISTER:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   ZONE_A_TENANT_TAKES_ONLY_FROM_WHAT_STANDS_ABOVE_IT:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   ZONE_A_ZONE_IS_DECLARED_BY_THE_TENANT_THAT_IS_ONE:cloud.jengu.dbo.promises.DboPromises
@@ -3632,6 +3635,7 @@ cloud.jengu.dbo.runner.Outcome.Done                                    record
 cloud.jengu.dbo.runner.Outcome.Done                                    said():cloud.jengu.dbo.runner.Outcome.Said
 cloud.jengu.dbo.runner.Outcome.Done                                    starting(String,Map,String):cloud.jengu.dbo.runner.Outcome.Done
 cloud.jengu.dbo.runner.Outcome.Done                                    starting(String,Map,String,cloud.jengu.dbo.work.Run.Addressee):cloud.jengu.dbo.runner.Outcome.Done
+cloud.jengu.dbo.runner.Outcome.Done                                    startingAcross(String,Map,String,String):cloud.jengu.dbo.runner.Outcome.Done
 cloud.jengu.dbo.runner.Outcome.Done                                    tally():Map
 cloud.jengu.dbo.runner.Outcome.Done                                    toString():String
 cloud.jengu.dbo.runner.Outcome.Done                                    writes():List
@@ -3649,11 +3653,13 @@ cloud.jengu.dbo.runner.Outcome.Lost                                    reason():
 cloud.jengu.dbo.runner.Outcome.Lost                                    record
 cloud.jengu.dbo.runner.Outcome.Lost                                    toString():String
 cloud.jengu.dbo.runner.Outcome.Part                                    addressee():cloud.jengu.dbo.work.Run.Addressee
+cloud.jengu.dbo.runner.Outcome.Part                                    crossingTo():String
 cloud.jengu.dbo.runner.Outcome.Part                                    equals(Object):boolean
 cloud.jengu.dbo.runner.Outcome.Part                                    hashCode():int
 cloud.jengu.dbo.runner.Outcome.Part                                    inputs():Map
 cloud.jengu.dbo.runner.Outcome.Part                                    key():String
 cloud.jengu.dbo.runner.Outcome.Part                                    new(String,Map,String,cloud.jengu.dbo.work.Run.Addressee)
+cloud.jengu.dbo.runner.Outcome.Part                                    new(String,Map,String,cloud.jengu.dbo.work.Run.Addressee,String)
 cloud.jengu.dbo.runner.Outcome.Part                                    record
 cloud.jengu.dbo.runner.Outcome.Part                                    step():String
 cloud.jengu.dbo.runner.Outcome.Part                                    toString():String
@@ -4640,9 +4646,10 @@ cloud.jengu.dbo.tenant.SpecChange.Kind                                 REWIRE:cl
 cloud.jengu.dbo.tenant.SpecChange.Kind                                 enum
 cloud.jengu.dbo.tenant.SpecChange.Kind                                 valueOf(String):cloud.jengu.dbo.tenant.SpecChange.Kind
 cloud.jengu.dbo.tenant.SpecChange.Kind                                 values():cloud.jengu.dbo.tenant.SpecChange.Kind[]
+cloud.jengu.dbo.tenant.StepSurface.Fleet.Offer                         awaits():cloud.jengu.dbo.tenant.TenantSpec.Step.Awaits
 cloud.jengu.dbo.tenant.StepSurface.Fleet.Offer                         equals(Object):boolean
 cloud.jengu.dbo.tenant.StepSurface.Fleet.Offer                         hashCode():int
-cloud.jengu.dbo.tenant.StepSurface.Fleet.Offer                         new(Map,String)
+cloud.jengu.dbo.tenant.StepSurface.Fleet.Offer                         new(Map,String,cloud.jengu.dbo.tenant.TenantSpec.Step.Awaits)
 cloud.jengu.dbo.tenant.StepSurface.Fleet.Offer                         record
 cloud.jengu.dbo.tenant.StepSurface.Fleet.Offer                         refusedBecause():String
 cloud.jengu.dbo.tenant.StepSurface.Fleet.Offer                         slots():Map
@@ -4922,6 +4929,7 @@ cloud.jengu.dbo.tenant.TenantSpec.Starts.Where                         valueOf(S
 cloud.jengu.dbo.tenant.TenantSpec.Starts.Where                         values():cloud.jengu.dbo.tenant.TenantSpec.Starts.Where[]
 cloud.jengu.dbo.tenant.TenantSpec.Step                                 answer():cloud.jengu.dbo.tenant.TenantSpec.Answer
 cloud.jengu.dbo.tenant.TenantSpec.Step                                 automate():cloud.jengu.dbo.core.process.AutomationCriterion
+cloud.jengu.dbo.tenant.TenantSpec.Step                                 awaits():cloud.jengu.dbo.tenant.TenantSpec.Step.Awaits
 cloud.jengu.dbo.tenant.TenantSpec.Step                                 code():String
 cloud.jengu.dbo.tenant.TenantSpec.Step                                 equals(Object):boolean
 cloud.jengu.dbo.tenant.TenantSpec.Step                                 hashCode():int
@@ -4932,12 +4940,19 @@ cloud.jengu.dbo.tenant.TenantSpec.Step                                 new(Strin
 cloud.jengu.dbo.tenant.TenantSpec.Step                                 new(String,Map,Set,cloud.jengu.dbo.core.process.RetryPolicy,cloud.jengu.dbo.core.process.AutomationCriterion,cloud.jengu.dbo.tenant.TenantSpec.Answer)
 cloud.jengu.dbo.tenant.TenantSpec.Step                                 new(String,Map,Set,cloud.jengu.dbo.core.process.RetryPolicy,cloud.jengu.dbo.core.process.AutomationCriterion,cloud.jengu.dbo.tenant.TenantSpec.Answer,cloud.jengu.dbo.tenant.TenantSpec.Starts)
 cloud.jengu.dbo.tenant.TenantSpec.Step                                 new(String,Map,Set,cloud.jengu.dbo.core.process.RetryPolicy,cloud.jengu.dbo.core.process.AutomationCriterion,cloud.jengu.dbo.tenant.TenantSpec.Answer,cloud.jengu.dbo.tenant.TenantSpec.Starts,boolean)
+cloud.jengu.dbo.tenant.TenantSpec.Step                                 new(String,Map,Set,cloud.jengu.dbo.core.process.RetryPolicy,cloud.jengu.dbo.core.process.AutomationCriterion,cloud.jengu.dbo.tenant.TenantSpec.Answer,cloud.jengu.dbo.tenant.TenantSpec.Starts,boolean,cloud.jengu.dbo.tenant.TenantSpec.Step.Awaits)
 cloud.jengu.dbo.tenant.TenantSpec.Step                                 record
 cloud.jengu.dbo.tenant.TenantSpec.Step                                 retry():cloud.jengu.dbo.core.process.RetryPolicy
 cloud.jengu.dbo.tenant.TenantSpec.Step                                 slots():Map
 cloud.jengu.dbo.tenant.TenantSpec.Step                                 starts():cloud.jengu.dbo.tenant.TenantSpec.Starts
 cloud.jengu.dbo.tenant.TenantSpec.Step                                 toString():String
 cloud.jengu.dbo.tenant.TenantSpec.Step                                 writes():Set
+cloud.jengu.dbo.tenant.TenantSpec.Step.Awaits                          NONE:cloud.jengu.dbo.tenant.TenantSpec.Step.Awaits
+cloud.jengu.dbo.tenant.TenantSpec.Step.Awaits                          OUTCOME:cloud.jengu.dbo.tenant.TenantSpec.Step.Awaits
+cloud.jengu.dbo.tenant.TenantSpec.Step.Awaits                          RECORDS:cloud.jengu.dbo.tenant.TenantSpec.Step.Awaits
+cloud.jengu.dbo.tenant.TenantSpec.Step.Awaits                          enum
+cloud.jengu.dbo.tenant.TenantSpec.Step.Awaits                          valueOf(String):cloud.jengu.dbo.tenant.TenantSpec.Step.Awaits
+cloud.jengu.dbo.tenant.TenantSpec.Step.Awaits                          values():cloud.jengu.dbo.tenant.TenantSpec.Step.Awaits[]
 cloud.jengu.dbo.tenant.TenantState                                     code():String
 cloud.jengu.dbo.tenant.TenantState                                     equals(Object):boolean
 cloud.jengu.dbo.tenant.TenantState                                     hashCode():int
@@ -5503,6 +5518,7 @@ cloud.jengu.dbo.work.RunChain.Verdict                                  unchained
 cloud.jengu.dbo.work.RunInitiator                                      addressed(cloud.jengu.dbo.work.Run.Addressee):String
 cloud.jengu.dbo.work.RunInitiator                                      answer(String,String):cloud.jengu.dbo.work.RunInitiator.Answer
 cloud.jengu.dbo.work.RunInitiator                                      awaiting(String,String,Duration):cloud.jengu.dbo.work.RunInitiator.Answer
+cloud.jengu.dbo.work.RunInitiator                                      crossing(String):String
 cloud.jengu.dbo.work.RunInitiator                                      field(String,String):String
 cloud.jengu.dbo.work.RunInitiator                                      interface
 cloud.jengu.dbo.work.RunInitiator                                      partOf(String):String
@@ -5513,6 +5529,7 @@ cloud.jengu.dbo.work.RunInitiator                                      starting(
 cloud.jengu.dbo.work.RunInitiator                                      starting(String,String,Map,String):cloud.jengu.dbo.work.RunInitiator.Started
 cloud.jengu.dbo.work.RunInitiator                                      starting(String,String,Map,String,cloud.jengu.dbo.work.Run.Addressee):cloud.jengu.dbo.work.RunInitiator.Started
 cloud.jengu.dbo.work.RunInitiator                                      starting(String,String,Map,String,cloud.jengu.dbo.work.Run.Addressee,String):cloud.jengu.dbo.work.RunInitiator.Started
+cloud.jengu.dbo.work.RunInitiator                                      starting(String,String,Map,String,cloud.jengu.dbo.work.Run.Addressee,String,String):cloud.jengu.dbo.work.RunInitiator.Started
 cloud.jengu.dbo.work.RunInitiator.Answer                               answered():boolean
 cloud.jengu.dbo.work.RunInitiator.Answer                               body():String
 cloud.jengu.dbo.work.RunInitiator.Answer                               equals(Object):boolean
@@ -5640,6 +5657,7 @@ cloud.jengu.dbo.work.Runs                                              collected
 cloud.jengu.dbo.work.Runs                                              correlated(cloud.jengu.dbo.work.Run,String):cloud.jengu.dbo.work.Run
 cloud.jengu.dbo.work.Runs                                              due(Instant):List
 cloud.jengu.dbo.work.Runs                                              ended(cloud.jengu.dbo.work.Run,cloud.jengu.dbo.work.Status,String,String):cloud.jengu.dbo.work.Run
+cloud.jengu.dbo.work.Runs                                              endedAcross(cloud.jengu.dbo.work.Run,cloud.jengu.dbo.work.Executor,cloud.jengu.dbo.work.Status,String):cloud.jengu.dbo.work.Run
 cloud.jengu.dbo.work.Runs                                              fellThrough(cloud.jengu.dbo.work.Run,cloud.jengu.dbo.work.Scope,String):cloud.jengu.dbo.work.Run
 cloud.jengu.dbo.work.Runs                                              filling(cloud.jengu.dbo.core.process.StepDeclaration,cloud.jengu.dbo.work.RunKind,String,Map):cloud.jengu.dbo.work.Run
 cloud.jengu.dbo.work.Runs                                              filling(cloud.jengu.dbo.core.process.StepDeclaration,cloud.jengu.dbo.work.RunKind,String,Map,String):cloud.jengu.dbo.work.Run

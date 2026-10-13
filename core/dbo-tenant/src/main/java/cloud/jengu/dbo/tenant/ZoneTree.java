@@ -59,7 +59,7 @@ final class ZoneTree {
      * where its members ask for an exchange, nearest zone first.
      */
     java.util.Optional<TenantSpec.Step> exchangeStep(String tenant, String stepCode) {
-        for (String zone : chainOf(tenant)) {
+        for (String zone : withItselfIfAZone(tenant)) {
             TenantSpec spec = declared.get(zone);
             if (spec == null) {
                 continue;
@@ -74,11 +74,15 @@ final class ZoneTree {
         return java.util.Optional.empty();
     }
 
-    /** Every exchange step the zones above this tenant offer it, nearest zone first. */
+    /**
+     * Every exchange step this tenant is an end of, nearest zone first: those
+     * the zones above it offer, and — for a zone — those it declares itself,
+     * since a zone asks its members and is asked by them.
+     */
     List<TenantSpec.Step> exchangeSteps(String tenant) {
         List<TenantSpec.Step> offered = new ArrayList<>();
         Set<String> seen = new java.util.HashSet<>();
-        for (String zone : chainOf(tenant)) {
+        for (String zone : withItselfIfAZone(tenant)) {
             TenantSpec spec = declared.get(zone);
             if (spec == null) {
                 continue;
@@ -90,6 +94,17 @@ final class ZoneTree {
             }
         }
         return offered;
+    }
+
+    /** The zones above a tenant, and the tenant first where it is a zone itself. */
+    private List<String> withItselfIfAZone(String tenant) {
+        List<String> zones = new ArrayList<>();
+        TenantSpec spec = declared.get(tenant);
+        if (spec != null && spec.zoneRoot()) {
+            zones.add(tenant);
+        }
+        zones.addAll(chainOf(tenant));
+        return zones;
     }
 
     /**
@@ -204,7 +219,7 @@ final class ZoneTree {
                 List<String> descending = new ArrayList<>(
                         without(fromOwner.subList(0, down), owner));
                 java.util.Collections.reverse(descending);
-                return new Route(fromAsker.get(up), ascending, descending, this);
+                return new Route(fromAsker.get(up), ascending, descending, this, asker, owner);
             }
         }
         throw new IllegalArgumentException(asker + " and " + owner + " share no zone — "
@@ -246,25 +261,37 @@ final class ZoneTree {
      * @param lowest the zone whose rules govern the exchange
      * @param up     the zones between the asker and it, nearest the asker first
      * @param down   the zones between it and the owner, nearest it first
+     * @param asker  the tenant the work leaves
+     * @param owner  the tenant it goes to
      */
-    record Route(String lowest, List<String> up, List<String> down, ZoneTree tree) {
+    record Route(String lowest, List<String> up, List<String> down, ZoneTree tree,
+            String asker, String owner) {
 
         Route {
             up = List.copyOf(up);
             down = List.copyOf(down);
         }
 
-        /** Every zone the work passes, in the order it passes them. */
+        /**
+         * Every zone the work passes, in the order it passes them. A zone that
+         * is an end of the work — a member asking its own zone, or a zone its
+         * member — is that end, and the work does not pass it.
+         */
         List<String> zones() {
             List<String> all = new ArrayList<>(up);
             all.add(lowest);
             all.addAll(down);
+            all.removeIf(zone -> zone.equals(asker) || zone.equals(owner));
             return all;
         }
 
-        /** Whether every zone on the way permits that process. */
+        /**
+         * Whether the zone whose rules govern the exchange, and every zone on
+         * the way, permit that process.
+         */
         boolean permits(String process) {
-            return zones().stream().allMatch(zone -> tree.permitted(zone).contains(process));
+            return tree.permitted(lowest).contains(process)
+                    && zones().stream().allMatch(zone -> tree.permitted(zone).contains(process));
         }
     }
 }

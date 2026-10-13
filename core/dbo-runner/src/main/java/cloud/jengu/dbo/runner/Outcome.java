@@ -111,6 +111,19 @@ public sealed interface Outcome {
             return starting(step, inputs, key, null);
         }
 
+        /**
+         * The same result, also starting a run of an exchange its zone
+         * declares, crossing to another tenant, as a part of this one: what
+         * became of it is read under the run that started it.
+         */
+        public Done startingAcross(String step,
+                Map<String, cloud.jengu.dbo.work.RunInitiator.Slot> inputs, String key,
+                String crossingTo) {
+            List<Part> all = new ArrayList<>(parts);
+            all.add(new Part(step, inputs, key, null, crossingTo));
+            return new Done(tally, writes, all, said);
+        }
+
         /** The same, for one participant alone. */
         public Done starting(String step, Map<String, cloud.jengu.dbo.work.RunInitiator.Slot> inputs,
                 String key, cloud.jengu.dbo.work.Run.Addressee addressee) {
@@ -140,12 +153,21 @@ public sealed interface Outcome {
      *                  order among its parts
      * @param addressee who alone may take it, or null for whoever holds the
      *                  step
+     * @param crossingTo the tenant the part goes to, through their zone, on an
+     *                   exchange the zone declares — or null for a part that
+     *                   stays here
      */
     record Part(String step, Map<String, cloud.jengu.dbo.work.RunInitiator.Slot> inputs,
-            String key, cloud.jengu.dbo.work.Run.Addressee addressee) {
+            String key, cloud.jengu.dbo.work.Run.Addressee addressee, String crossingTo) {
 
         public Part {
             inputs = inputs == null ? Map.of() : Map.copyOf(inputs);
+        }
+
+        /** A part that stays here. */
+        public Part(String step, Map<String, cloud.jengu.dbo.work.RunInitiator.Slot> inputs,
+                String key, cloud.jengu.dbo.work.Run.Addressee addressee) {
+            this(step, inputs, key, addressee, null);
         }
     }
 

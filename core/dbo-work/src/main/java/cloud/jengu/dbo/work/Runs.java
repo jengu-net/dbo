@@ -1197,6 +1197,24 @@ public final class Runs {
      * @throws NotHeld when the run no longer names {@code holder} as holding
      *                 it; nothing is written
      */
+    /**
+     * A run that asked across, ended by what carries it as the work it asked
+     * for ended at the other end: completed, failed or cancelled, and why —
+     * so an asker never stays open because the owner refused.
+     *
+     * @throws NotHeld when the run no longer stands under the holder's claim
+     */
+    public Run endedAcross(Run run, Executor holder, Status how, String because) {
+        if (!how.over()) {
+            throw new IllegalArgumentException("a run asked across ends as its work did, and "
+                    + how.wire() + " is not an end");
+        }
+        return advanceHeld(run, holder, "ended across", snapshot -> {
+            State ended = snapshot.withStanding(snapshot.standing().as(how).because(because));
+            return how == Status.COMPLETED ? answered(ended) : ended.withRefused(because);
+        });
+    }
+
     public Run refused(Run run, Executor holder, String because) {
         return advanceHeld(run, holder, "ended", snapshot -> snapshot.withStanding(
                 snapshot.standing().as(Status.FAILED).because(because)).withRefused(because));
