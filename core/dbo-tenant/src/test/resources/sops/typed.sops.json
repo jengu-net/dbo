@@ -1,0 +1,20 @@
+{
+	"lab-connection-password": "ENC[AES256_GCM,data:NjpKQOINT2jJ,iv:nZr6GV8DeO0oNVrQ6oX8Zs14XlbwlJmFdi4pJg84WYM=,tag:+WWruM1Vwra7bWAh4Lf/Hw==,type:str]",
+	"port": "ENC[AES256_GCM,data:/QV5Lg==,iv:9aE87mhaJd8H7m9TSoRzryoJ9unYnSqRY3tqGXlBeYg=,tag:roLAt7dC52Yy2l4VgqjpBQ==,type:float]",
+	"enabled": "ENC[AES256_GCM,data:yQYBoA==,iv:etDnb2C1U/g3kvDhKeqOIvLLIHYTwaSNBv+6YsVamYM=,tag:XdfaML47JvDXhJQEUohajg==,type:bool]",
+	"nested": {
+		"user": "ENC[AES256_GCM,data:pgie,iv:JPIZCZnBDrBq8s03FOHOGiuvvcBWFWSR9BU/D/TRxHE=,tag:igSALwenEzgjrinsJ9yDsQ==,type:str]"
+	},
+	"sops": {
+		"age": [
+			{
+				"enc": "-----BEGIN AGE ENCRYPTED FILE-----\nYWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBUMzNZSkl5YW4rSWpPbW1s\nd0JGYVUxMjNoMHFYTWIvVXg3NGxKZEQxS1JjCjIrQXhST1I0M29ydVNqVFdqSG0z\nQ0Y1UWE4anBpNFFOcU5LeWNCcGJXNFEKLS0tIGt0cmFCSmpqc3pjd3pwRm1TNFlP\nalorOGlDblRCelp4SmE3OGRDamNtYW8K+HDcWT5+y4mwcIJhkNfuD+HXPY4sL89X\nm24z8I7K8M1EjZQbIG0RAjCpYncdy619NICow0stycQsnMUWvqPgag==\n-----END AGE ENCRYPTED FILE-----\n",
+				"recipient": "age1rwp8ncugzz833j7zv75plvp9u5fskwpx4d6tavleekhyxjscpyvq3m6hnh"
+			}
+		],
+		"lastmodified": "2026-10-14T16:29:56Z",
+		"mac": "ENC[AES256_GCM,data:Eulzl2lTdJ0ctpbIQOT6ecac8qSaqMkZS2c62EmOy5XMzJkOLaGunQkzqpWIRkUz7IG4VzJS1sq73Lhoy0o5tEzSRNnwJ/8LwJv3kv11TskjanxWtsN7N/jT6kJF0T4b01KNaQTTL/pD1EaF53pub+He3TPTD1I1mtGXF3M6RBA=,iv:9N3p7GAs4/V4hwE7vmmvVmcznqOBQ/VNyR1Ig7r+PKY=,tag:Jz+LOiFktqnHt+9Xo80TMw==,type:str]",
+		"unencrypted_suffix": "_unencrypted",
+		"version": "3.13.1"
+	}
+}

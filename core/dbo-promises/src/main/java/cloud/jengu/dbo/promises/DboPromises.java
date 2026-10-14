@@ -1750,6 +1750,14 @@ public enum DboPromises implements Promise {
             + "is withdrawn and nothing else — so an older commit is a rollback. The run names "
             + "the ref, the commit, its author and message, and who asked."),
 
+    TEN_AN_OWNERS_SECRETS_ARE_SEALED_IN_ITS_REPOSITORY("A tenant owner's secrets are kept in "
+            + "its repository encrypted as SOPS writes them, each value under its name and the "
+            + "file under a MAC, with the data key wrapped by the tenant's own Transit key in "
+            + "the deployment's Vault. Applying one opens it through that Vault alone, refuses "
+            + "a file wrapped by any other key, and hands each secret to the tenant's authority, "
+            + "which keeps it wrapped and never as a record; a secret withdrawn from the "
+            + "repository is forgotten."),
+
     TEN_A_CHANGE_CAN_BE_CLASSIFIED_WITHOUT_APPLYING("What a declaration would do to the "
             + "tenants it names is answerable without doing it — hot, rebuilt in place, or "
             + "refused with what it would need — on the door that applies it and under the "

@@ -38,8 +38,15 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
      *
      * @param git the repository's path, a bare repository or a clone
      * @param ref a branch, a tag or a commit
+     * @param key the Transit key in the deployment's Vault that the
+     *            repository's secrets are wrapped by, or null for
+     *            {@code tenant-<code>}
      */
-    public record Configuration(String git, String ref) {
+    public record Configuration(String git, String ref, String key) {
+
+        public Configuration(String git, String ref) {
+            this(git, ref, null);
+        }
 
         public Configuration {
             if (git == null || git.isBlank()) {
@@ -1275,7 +1282,7 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
             return null;
         }
         return new Configuration(Json.strOpt(configured, "git"),
-                Json.strOpt(configured, "ref"));
+                Json.strOpt(configured, "ref"), Json.strOpt(configured, "key"));
     }
 
     private static Set<String> exchangesOf(Object root) {

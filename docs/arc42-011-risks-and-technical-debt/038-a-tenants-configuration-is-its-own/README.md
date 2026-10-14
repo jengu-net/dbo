@@ -1,9 +1,11 @@
-**Open; the first of three steps is built. A tenant declares a git repository
-its owner keeps, and the store applies it commit by commit, reconciling each
-commit against what each file applied, so a rollback is an apply. Left:
-secrets sealed in the repository and unwrapped through Vault, and a working
-key held where the owner says. No secret a step can reach exists yet, and
-every tenant's keys are still wrapped under the one deployment key.**
+**Open; the git source is built, and a tenant's secrets come from it. A
+tenant declares a repository its owner keeps, and the store applies it commit
+by commit, reconciling each commit against what each file applied, so a
+rollback is an apply. Files of secrets are opened through the deployment's
+Vault under the tenant's own Transit key and kept by its authority. Left: a
+step reaching a secret by name, and a working key held where the owner says;
+every tenant's keys, and its secrets, are still wrapped under the one
+deployment key.**
 
 # A tenant's configuration is its own
 
@@ -18,7 +20,12 @@ store, what each file applied, and `ConfigApplication.reconcile` applies what
 changed and withdraws what a file stopped declaring, as one sweep run of the
 scope `git.<tenant>`, correlated with the commit. Each apply records an act
 under that run. The door takes `{"ref": …}`, and its preview lists the
-changes. `ATenantsConfigurationIsItsOwnIT` proves it.
+changes. `SopsFile` reads files SOPS writes, and `VaultTransit` unwraps their data
+keys under the tenant's own key; the authority keeps each secret as a
+`HeldSecret`, wrapped and without history. `ATenantsConfigurationIsItsOwnIT`
+proves both against a Vault dev server, and
+`ASecretsFileIsReadAsSopsWroteItTest` proves the reader against files `sops`
+itself encrypted.
 
 `SealedArchive` seals an export under an owner key handed in per act.
 `KeyProtector` and `PersonVault` wrap a tenant's signing keys and its people's
@@ -35,7 +42,7 @@ the store talks to.
    applied from it, file by file. The run names the ref asked for, the commit,
    its author and message, the identity that asked, and the counts. The door
    takes `{"ref": …}`; the preview is the same reconciliation, unwritten.
-2. **Secrets.** A secret is a value in a SOPS file in the repository, its data
+2. **Secrets.** Kept from the repository; a step does not reach one yet. A secret is a value in a SOPS file in the repository, its data
    key wrapped for the tenant's Vault Transit key and for the owner's own
    recovery key. The store reads the format itself and unwraps through
    Transit; a value may instead be a reference into Vault. Applied secrets
@@ -107,6 +114,9 @@ the provider's Vault cannot reach.
   withdraws only what its files applied.
 
 ## Not done here
+
+A secret given as a reference into Vault rather than as a value is left for
+when one is asked for.
 
 Fetching, pushing and credentials for remotes; committing edits; a layout for
 the repository's directories beyond what a file's own contents say; the owner

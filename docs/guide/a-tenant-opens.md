@@ -174,6 +174,33 @@ record that names nothing it could be found by again, such as an organisation
 with no identifier, is refused as a card naming its file, because it could
 never be withdrawn.
 
+### Secrets in the repository
+
+A connection's password goes in the repository encrypted, in a file ending
+`.sops.json` written by [SOPS](https://getsops.io). Each value is encrypted
+under its name, and a MAC covers the file. The data key is wrapped by the
+tenant's own key in the deployment's Vault Transit engine: `tenant-<code>`,
+or the `key` the configuration names. The owner adds a recipient of their own,
+such as an age key, so the file opens without the store:
+
+```sh
+sops --encrypt --hc-vault-transit https://vault.example/v1/transit/keys/tenant-clinic \
+     --age age1... secrets/connections.json > secrets/connections.sops.json
+```
+
+Applying the file opens it through the deployment's Vault alone, whatever
+Vault the file names, and only under the tenant's own key. Each top-level
+string becomes a secret by its name, kept by the tenant's authority wrapped
+and never as a record. A changed value replaces the old one, and a name the
+repository stops declaring is forgotten. A file wrapped by another key is a
+card naming the key it needed.
+
+The store logs into Vault as itself: Kubernetes auth when
+`dbo.vault.kubernetes.role` is set, otherwise a token read from
+`dbo.vault.token.file`. `dbo.vault.address` names the Vault, and
+`dbo.vault.transit` the engine's mount (`transit` by default). Whatever
+provisions tenants creates each tenant's key and needs no right to decrypt.
+
 ## What the store cannot do yet
 
 - **No shared tier.** Every tenant is a database. A clinic too small to justify

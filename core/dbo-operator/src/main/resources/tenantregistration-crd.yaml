@@ -64,6 +64,10 @@ spec:
                       type: string
                     ref:
                       type: string
+                    # The Transit key its secrets are wrapped by, when not
+                    # tenant-<code>.
+                    key:
+                      type: string
                 broker:
                   type: string
                 acceptedBrokers:

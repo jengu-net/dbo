@@ -1008,6 +1008,17 @@ public final class TenantRuntimeManager implements AutoCloseable {
             new ConcurrentHashMap<>();
     /** Where each tenant's ask-to-apply door is mounted, for the same teardown. */
     private final Map<String, String> configurationContexts = new ConcurrentHashMap<>();
+    /** The deployment's Vault, where its tenants' secrets are unwrapped; null for none. */
+    private volatile VaultTransit vault;
+
+    /**
+     * The Vault this deployment unwraps its tenants' secrets through: the
+     * only one the store reaches, whatever a file of secrets says.
+     */
+    public void vault(VaultTransit vault) {
+        this.vault = vault;
+    }
+
     /** Each tenant's owner's configuration, where it declares one: one apply at a time. */
     private final Map<String, ConfigurationHandler.Owners> owners = new ConcurrentHashMap<>();
     /** One per tenant whose face delivers notifications; closed when the tenant goes. */
@@ -3921,6 +3932,57 @@ public final class TenantRuntimeManager implements AutoCloseable {
     }
 
     /**
+     * Where a tenant keeps the secrets its owner gives it: opened through the
+     * deployment's Vault under the tenant's own Transit key, and nothing else,
+     * and kept by the tenant's authority.
+     */
+    private OwnersConfiguration.Secrets secretsOf(String code,
+            TenantSpec.Configuration configuration) {
+        String key = configuration.key() != null ? configuration.key() : "tenant-" + code;
+        return new OwnersConfiguration.Secrets() {
+
+            @Override
+            public Map<String, String> open(SopsFile file) {
+                VaultTransit transit = vault;
+                if (transit == null) {
+                    throw new IllegalArgumentException(file.name() + " holds secrets, and "
+                            + "this deployment names no Vault to open them through");
+                }
+                // THE TENANT'S OWN KEY, in the deployment's own engine. A file
+                // wrapped under another tenant's key would otherwise have the
+                // store open what that tenant's owner sealed.
+                SopsFile.VaultRecipient recipient = file.vault().stream()
+                        .filter(one -> one.keyName().equals(key)
+                                && one.enginePath().equals(transit.mount()))
+                        .findFirst().orElseThrow(() -> new IllegalArgumentException(
+                                file.name() + " is not wrapped by this tenant's key '" + key
+                                        + "' in '" + transit.mount() + "'"));
+                return file.open(transit.unwrap(key, recipient.wrapped()));
+            }
+
+            @Override
+            public void keep(String name, String value) {
+                authorityHolding(code, name).keepSecret(name,
+                        value.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            }
+
+            @Override
+            public void forget(String name) {
+                authorityHolding(code, name).forgetSecret(name);
+            }
+        };
+    }
+
+    private cloud.jengu.dbo.auth.TenantAuthority authorityHolding(String code, String secret) {
+        cloud.jengu.dbo.auth.TenantAuthority authority = authorities.get(code);
+        if (authority == null) {
+            throw new IllegalArgumentException("'" + secret + "' is a secret, and " + code
+                    + " has no authority to keep it");
+        }
+        return authority;
+    }
+
+    /**
      * Everything a bring-up mounted, taken back down — with or without a
      * runtime, because a bring-up can fail on either side of the moment one
      * exists. Not a retraction: nothing served, nobody was told, and there is
@@ -4342,7 +4404,8 @@ public final class TenantRuntimeManager implements AutoCloseable {
                                     version.face().capability(
                                             cloud.jengu.dbo.core.face.DocumentEquivalence.class)
                                             .orElse(null),
-                                    store.references().orElse(null)))
+                                    store.references().orElse(null)),
+                            secretsOf(spec.code(), configuration))
                             .apply(ref, by, preview);
                 }
             });

@@ -39,6 +39,27 @@ final class OwnersConfiguration {
     /** The step an apply is recorded as, under the configuration's sweep. */
     static final String COMMIT = "commit";
 
+    /** What a file of secrets declares, in the account of what each file applied. */
+    static final String SECRETS = "Secrets";
+
+    /** A file of secrets, encrypted as SOPS writes them. */
+    static final String SECRETS_SUFFIX = ".sops.json";
+
+    /** Where the tenant keeps the secrets its owner gives it. */
+    interface Secrets {
+
+        /**
+         * A file's secrets, opened through the tenant's own key.
+         *
+         * @throws IllegalArgumentException when it cannot be, naming why
+         */
+        Map<String, String> open(SopsFile file);
+
+        void keep(String name, String value);
+
+        void forget(String name);
+    }
+
     /** What a file came to, on the way to a commit. */
     record Change(String path, String kind) {
     }
@@ -57,14 +78,16 @@ final class OwnersConfiguration {
     private final ObjectStore store;
     private final Runs runs;
     private final ConfigApplication application;
+    private final Secrets secrets;
 
     OwnersConfiguration(String code, TenantSpec.Configuration configuration, ObjectStore store,
-            Runs runs, ConfigApplication application) {
+            Runs runs, ConfigApplication application, Secrets secrets) {
         this.code = code;
         this.configuration = configuration;
         this.store = store;
         this.runs = runs;
         this.application = application;
+        this.secrets = secrets;
     }
 
     /** The scope this source's sweep is keyed by, apart from any other source here. */
@@ -104,7 +127,9 @@ final class OwnersConfiguration {
                 }
                 changes.add(new Change(file.path(), was == null ? "added" : "modified"));
                 byte[] bytes = repository.read(file);
-                declared.add(new ConfigApplication.Declared(typeOf(bytes), file.path(), bytes));
+                declared.add(new ConfigApplication.Declared(
+                        file.path().endsWith(SECRETS_SUFFIX) ? SECRETS : typeOf(bytes),
+                        file.path(), bytes));
             }
             for (String path : applied.keySet()) {
                 if (!byPath.containsKey(path)) {
@@ -120,9 +145,12 @@ final class OwnersConfiguration {
             // and whatever a changed file applied before and names no longer.
             Map<Identifier, String> typeOf = new LinkedHashMap<>();
             Set<Identifier> gone = new LinkedHashSet<>();
-            Map<String, Identifier> claims = new LinkedHashMap<>();
+            Map<String, List<Identifier>> claims = new LinkedHashMap<>();
             for (ConfigApplication.Declared one : declared) {
-                application.claimOf(one).ifPresent(claim -> claims.put(one.name(), claim));
+                List<Identifier> named = claimsOf(one);
+                if (!named.isEmpty()) {
+                    claims.put(one.name(), named);
+                }
             }
             for (ConfigFiles.Entry entry : applied.values()) {
                 for (Identifier identity : entry.identities()) {
@@ -130,7 +158,7 @@ final class OwnersConfiguration {
                     boolean deleted = !byPath.containsKey(entry.path());
                     boolean renamed = byPath.containsKey(entry.path())
                             && !entry.blob().equals(byPath.get(entry.path()).blob())
-                            && !identity.equals(claims.get(entry.path()));
+                            && !claims.getOrDefault(entry.path(), List.of()).contains(identity);
                     if (deleted || renamed) {
                         gone.add(identity);
                     }
@@ -138,7 +166,17 @@ final class OwnersConfiguration {
             }
             // Still declared by another file, after a move between files: the
             // record stays, and is that file's now.
-            claims.values().forEach(gone::remove);
+            claims.values().forEach(gone::removeAll);
+            // A secret's name is the tenant's, whichever file holds it: two
+            // files naming one are refused, the later in the commit.
+            Map<String, String> secretHeldBy = new LinkedHashMap<>();
+            for (ConfigFiles.Entry entry : applied.values()) {
+                if (SECRETS.equals(entry.type()) && byPath.containsKey(entry.path())
+                        && !claims.containsKey(entry.path())) {
+                    entry.identities().forEach(name -> secretHeldBy.put(name.value(),
+                            entry.path()));
+                }
+            }
 
             Set<String> written = new LinkedHashSet<>();
             Set<Identifier> withdrawn = new LinkedHashSet<>();
@@ -149,6 +187,21 @@ final class OwnersConfiguration {
                     if (one.typeName().isEmpty()) {
                         throw new IllegalArgumentException(one.name() + " says no "
                                 + "resourceType, so nothing says what it declares");
+                    }
+                    if (SECRETS.equals(one.typeName())) {
+                        SopsFile file = SopsFile.parse(one.name(), one.payload());
+                        for (Identifier name : claims.getOrDefault(one.name(), List.of())) {
+                            String holder = secretHeldBy.putIfAbsent(name.value(), one.name());
+                            if (holder != null && !holder.equals(one.name())) {
+                                throw new IllegalArgumentException(one.name() + " names the "
+                                        + "secret '" + name.value() + "', which " + holder
+                                        + " already does");
+                            }
+                        }
+                        Map<String, String> opened = secrets.open(file);
+                        opened.forEach(secrets::keep);
+                        written.add(one.name());
+                        return Verdict.APPLIED;
                     }
                     // A record nothing names cannot be found again to withdraw,
                     // so a source that keeps an account of what it applied
@@ -166,6 +219,11 @@ final class OwnersConfiguration {
 
                 @Override
                 public void withdraw(String scope, Identifier identity) {
+                    if (SECRET.equals(identity.system())) {
+                        secrets.forget(identity.value());
+                        withdrawn.add(identity);
+                        return;
+                    }
                     String type = typeOf.get(identity);
                     for (StoredObject record : store.getByIdentifier(type, List.of(identity))) {
                         store.delete(type, record.id(), record.versionId(),
@@ -185,8 +243,7 @@ final class OwnersConfiguration {
                 if (!written.contains(one.name())) {
                     continue;
                 }
-                List<Identifier> holds = new ArrayList<>();
-                holds.add(claims.get(one.name()));
+                List<Identifier> holds = new ArrayList<>(claims.get(one.name()));
                 ConfigFiles.Entry was = applied.get(one.name());
                 if (was != null) {
                     for (Identifier identity : was.identities()) {
@@ -224,6 +281,26 @@ final class OwnersConfiguration {
                 scopeOf(code) + "/" + cloud.jengu.dbo.core.UuidV7.newId(), by,
                 "applied " + asked + " at " + commit.id() + ", by " + commit.author() + ": "
                         + subject);
+    }
+
+    /** How a secret is named in the account of what each file applied. */
+    static final String SECRET = cloud.jengu.dbo.auth.IdentityModel.SECRET_SYSTEM;
+
+    /**
+     * What a file declares, by what it would be found by again: a record's
+     * identity, or the names a file of secrets holds — readable before it is
+     * opened, because SOPS encrypts values and not names.
+     */
+    private List<Identifier> claimsOf(ConfigApplication.Declared one) {
+        if (SECRETS.equals(one.typeName())) {
+            try {
+                return SopsFile.parse(one.name(), one.payload()).names().stream()
+                        .map(name -> new Identifier(SECRET, name)).toList();
+            } catch (IllegalArgumentException unreadable) {
+                return List.of();
+            }
+        }
+        return application.claimOf(one).map(List::of).orElse(List.of());
     }
 
     /** The type a file declares, as it says itself, or empty where it says none. */

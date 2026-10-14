@@ -66,6 +66,8 @@ class ATenantsConfigurationIsItsOwnIT {
     private Git git;
     private RevCommit first;
     private RevCommit second;
+    /** The deployment's Vault: a dev server, its root token the store's. */
+    private org.testcontainers.containers.GenericContainer<?> vault;
 
     @BeforeAll
     void aTenantWhoseOwnerKeepsItsConfiguration() throws Exception {
@@ -79,6 +81,15 @@ class ATenantsConfigurationIsItsOwnIT {
         first = commit("Open the clinic with ward 7 and its triage codes");
         git.tag().setName("opening").call();
 
+        vault = new org.testcontainers.containers.GenericContainer<>("hashicorp/vault:1.17")
+                .withEnv("VAULT_DEV_ROOT_TOKEN_ID", "root").withExposedPorts(8200)
+                .waitingFor(org.testcontainers.containers.wait.strategy.Wait
+                        .forHttp("/v1/sys/health").forStatusCode(200));
+        vault.start();
+        vaultPost("/v1/sys/mounts/transit", "{\"type\":\"transit\"}");
+        vaultPost("/v1/transit/keys/tenant-" + OWNER, "{}");
+        vaultPost("/v1/transit/keys/tenant-someone-else", "{}");
+
         databases = new LocalDatabasePerTenantProvisioner(
                 SharedPostgres.urlFor("ATenantsConfigurationIsItsOwnIT"),
                 SharedPostgres.get().getUsername(), SharedPostgres.get().getPassword());
@@ -87,6 +98,8 @@ class ATenantsConfigurationIsItsOwnIT {
         new java.security.SecureRandom().nextBytes(kek);
         manager = new TenantRuntimeManager(dir, databases, "127.0.0.1", 0, null,
                 new TenantRuntimeManager.AuthorityConfig(kek, null));
+        manager.vault(new cloud.jengu.dbo.tenant.VaultTransit(vaultAddress(), "transit",
+                () -> "root"));
         Files.writeString(dir.resolve(OWNER + ".json"), """
                 {"code":"%s","face":"r5",
                  "configuration":{"git":"%s","ref":"main"},
@@ -107,6 +120,9 @@ class ATenantsConfigurationIsItsOwnIT {
         }
         if (manager != null) {
             manager.close();
+        }
+        if (vault != null) {
+            vault.stop();
         }
         SuiteDatabases.retire(databases);
     }
@@ -229,6 +245,136 @@ class ATenantsConfigurationIsItsOwnIT {
         HttpResponse<String> refused = send("", "");
         assertEquals(422, refused.statusCode(), refused.body());
         assertTrue(refused.body().contains("organisations/elsewhere.json"), refused.body());
+    }
+
+    @Test
+    @Order(6)
+    @DisplayName("a file of secrets wrapped by the tenant's own Transit key is opened through "
+            + "the deployment's Vault and kept by its authority, never as a record; a changed "
+            + "value replaces it, and one withdrawn is forgotten")
+    @Proving(DboPromises.TEN_AN_OWNERS_SECRETS_ARE_SEALED_IN_ITS_REPOSITORY)
+    void aSecretIsKeptFromTheRepository() throws Exception {
+        Files.delete(repository.resolve("organisations/elsewhere.json"));
+        write("secrets/connections.sops.json", sealed("tenant-" + OWNER,
+                java.util.Map.of("lab-connection-password", "first-pa55word")));
+        commit("The lab's connection");
+        String applied = apply("");
+        assertEquals("0", number(applied, "skipped"), applied);
+        assertEquals("first-pa55word", secret("lab-connection-password"));
+        assertFalse(holdsInTheClear("first-pa55word"),
+                "a record holds the secret in the clear");
+
+        write("secrets/connections.sops.json", sealed("tenant-" + OWNER,
+                java.util.Map.of("lab-connection-password", "second-pa55word")));
+        commit("Rotate the lab's password");
+        apply("");
+        assertEquals("second-pa55word", secret("lab-connection-password"));
+
+        git.rm().addFilepattern("secrets/connections.sops.json").call();
+        commit("The lab is gone");
+        String gone = apply("");
+        assertEquals("1", number(gone, "withdrawn"), gone);
+        assertEquals(null, secret("lab-connection-password"), "a withdrawn secret was kept");
+    }
+
+    @Test
+    @Order(7)
+    @DisplayName("a file of secrets wrapped by another tenant's key is refused naming the key, "
+            + "and nothing of it is kept")
+    @Proving(DboPromises.TEN_AN_OWNERS_SECRETS_ARE_SEALED_IN_ITS_REPOSITORY)
+    void anotherTenantsKeyOpensNothing() throws Exception {
+        write("secrets/borrowed.sops.json", sealed("tenant-someone-else",
+                java.util.Map.of("borrowed-token", "not-this-tenants")));
+        commit("A secret sealed for somebody else");
+        String carded = apply("");
+        assertTrue(carded.contains("\"declaration\":\"secrets/borrowed.sops.json\""), carded);
+        assertTrue(carded.contains("tenant-" + OWNER), carded);
+        assertEquals(null, secret("borrowed-token"));
+    }
+
+    // ── secrets ──
+
+    /**
+     * A file of secrets as SOPS writes one: each value under its name, a MAC
+     * over them, and the data key wrapped by a Transit key — naming a Vault
+     * other than the deployment's, which the store must not reach.
+     */
+    private String sealed(String key, java.util.Map<String, String> secrets) throws Exception {
+        byte[] dataKey = new byte[32];
+        new java.security.SecureRandom().nextBytes(dataKey);
+        java.security.MessageDigest mac = java.security.MessageDigest.getInstance("SHA-512");
+        StringBuilder json = new StringBuilder("{");
+        for (var secret : new java.util.TreeMap<>(secrets).entrySet()) {
+            json.append('"').append(secret.getKey()).append("\":\"")
+                    .append(encrypted(dataKey, secret.getValue(), secret.getKey() + ":"))
+                    .append("\",");
+            mac.update(secret.getValue().getBytes(StandardCharsets.UTF_8));
+        }
+        String lastModified = java.time.Instant.now().truncatedTo(
+                java.time.temporal.ChronoUnit.SECONDS).toString();
+        String wrapped = field(vaultPost("/v1/transit/encrypt/" + key, "{\"plaintext\":\""
+                + java.util.Base64.getEncoder().encodeToString(dataKey) + "\"}"), "ciphertext");
+        return json.append("\"sops\":{\"hc_vault\":[{\"vault_address\":"
+                        + "\"http://vault.owner.example:8200\",\"engine_path\":\"transit\","
+                        + "\"key_name\":\"").append(key).append("\",\"created_at\":\"")
+                .append(lastModified).append("\",\"enc\":\"").append(wrapped)
+                .append("\"}],\"lastmodified\":\"").append(lastModified)
+                .append("\",\"mac\":\"").append(encrypted(dataKey, java.util.HexFormat.of()
+                        .withUpperCase().formatHex(mac.digest()), lastModified))
+                .append("\",\"version\":\"3.13.1\"}}").toString();
+    }
+
+    private static String encrypted(byte[] key, String plain, String additional)
+            throws Exception {
+        byte[] iv = new byte[32];
+        new java.security.SecureRandom().nextBytes(iv);
+        javax.crypto.Cipher gcm = javax.crypto.Cipher.getInstance("AES/GCM/NoPadding");
+        gcm.init(javax.crypto.Cipher.ENCRYPT_MODE,
+                new javax.crypto.spec.SecretKeySpec(key, "AES"),
+                new javax.crypto.spec.GCMParameterSpec(128, iv));
+        gcm.updateAAD(additional.getBytes(StandardCharsets.UTF_8));
+        byte[] sealed = gcm.doFinal(plain.getBytes(StandardCharsets.UTF_8));
+        java.util.Base64.Encoder b64 = java.util.Base64.getEncoder();
+        return "ENC[AES256_GCM,data:" + b64.encodeToString(java.util.Arrays.copyOf(sealed,
+                sealed.length - 16)) + ",iv:" + b64.encodeToString(iv) + ",tag:"
+                + b64.encodeToString(java.util.Arrays.copyOfRange(sealed, sealed.length - 16,
+                        sealed.length)) + ",type:str]";
+    }
+
+    private String secret(String name) {
+        return manager.authority(OWNER).secret(name)
+                .map(bytes -> new String(bytes, StandardCharsets.UTF_8)).orElse(null);
+    }
+
+    /** Whether any record the tenant holds about its configuration carries this text. */
+    private boolean holdsInTheClear(String text) {
+        for (String type : List.of("ConfigFile", "Organization", "ValueSet")) {
+            for (StoredObject one : engine().select(cloud.jengu.dbo.core.api.Criteria.of(type))) {
+                if (new String(one.payload(), StandardCharsets.UTF_8).contains(text)) {
+                    return true;
+                }
+            }
+        }
+        for (Run run : acts()) {
+            if (run.toString().contains(text)) {
+                return true;
+            }
+        }
+        return manager.authority(OWNER).toString().contains(text);
+    }
+
+    private java.net.URI vaultAddress() {
+        return java.net.URI.create("http://" + vault.getHost() + ":"
+                + vault.getMappedPort(8200));
+    }
+
+    private String vaultPost(String path, String body) throws Exception {
+        HttpResponse<String> answered = http.send(HttpRequest.newBuilder(
+                        vaultAddress().resolve(path)).header("X-Vault-Token", "root")
+                        .POST(HttpRequest.BodyPublishers.ofString(body)).build(),
+                HttpResponse.BodyHandlers.ofString());
+        assertTrue(answered.statusCode() / 100 == 2, path + ": " + answered.body());
+        return answered.body();
     }
 
     // ── the repository ──

@@ -185,6 +185,7 @@ cloud.jengu.dbo.auth.IdentityModel                                     KID_SYSTE
 cloud.jengu.dbo.auth.IdentityModel                                     LOGIN_SYSTEM:String
 cloud.jengu.dbo.auth.IdentityModel                                     RESOLVED_PERSON_SYSTEM:String
 cloud.jengu.dbo.auth.IdentityModel                                     ROLE_CODE_SYSTEM:String
+cloud.jengu.dbo.auth.IdentityModel                                     SECRET_SYSTEM:String
 cloud.jengu.dbo.auth.IdentityModel                                     class
 cloud.jengu.dbo.auth.IdentityModel                                     identificationRegistrations():List
 cloud.jengu.dbo.auth.IdentityModel                                     registrations():List
@@ -356,12 +357,14 @@ cloud.jengu.dbo.auth.TenantAuthority                                   factorsFo
 cloud.jengu.dbo.auth.TenantAuthority                                   federation():cloud.jengu.dbo.auth.TenantAuthority.Federation
 cloud.jengu.dbo.auth.TenantAuthority                                   federation(cloud.jengu.dbo.auth.TenantAuthority.Federation):void
 cloud.jengu.dbo.auth.TenantAuthority                                   forgetFactor(String,String):void
+cloud.jengu.dbo.auth.TenantAuthority                                   forgetSecret(String):boolean
 cloud.jengu.dbo.auth.TenantAuthority                                   holdersOf(String):List
 cloud.jengu.dbo.auth.TenantAuthority                                   holdsPassword(String):boolean
 cloud.jengu.dbo.auth.TenantAuthority                                   humanAuthenticator(cloud.jengu.dbo.auth.HumanAuthenticator):void
 cloud.jengu.dbo.auth.TenantAuthority                                   issuer():String
 cloud.jengu.dbo.auth.TenantAuthority                                   jwksJson():String
 cloud.jengu.dbo.auth.TenantAuthority                                   keepFactor(String,String,String,String):void
+cloud.jengu.dbo.auth.TenantAuthority                                   keepSecret(String,byte[]):void
 cloud.jengu.dbo.auth.TenantAuthority                                   linkedOfType(String,String):List
 cloud.jengu.dbo.auth.TenantAuthority                                   mintSecretGrant(String,Duration):String
 cloud.jengu.dbo.auth.TenantAuthority                                   new(cloud.jengu.dbo.core.api.ObjectStore,String,cloud.jengu.dbo.auth.KeyProtector)
@@ -375,6 +378,7 @@ cloud.jengu.dbo.auth.TenantAuthority                                   resolveBy
 cloud.jengu.dbo.auth.TenantAuthority                                   retireCredential(String):void
 cloud.jengu.dbo.auth.TenantAuthority                                   roleGrants(boolean):List
 cloud.jengu.dbo.auth.TenantAuthority                                   rotateSigningKey():String
+cloud.jengu.dbo.auth.TenantAuthority                                   secret(String):Optional
 cloud.jengu.dbo.auth.TenantAuthority                                   setFactor(String,String,String):void
 cloud.jengu.dbo.auth.TenantAuthority                                   signers():List
 cloud.jengu.dbo.auth.TenantAuthority                                   signingKey(String):Optional
@@ -3337,6 +3341,7 @@ cloud.jengu.dbo.promises.DboPromises                                   SYNC_SPEC
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_TERMINOLOGY_GRAIN_SURVIVES:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_AN_ACTIVITY_DECLARES_WHERE_IT_APPLIES:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_AN_OWNERS_CONFIGURATION_IS_APPLIED_FROM_ITS_REPOSITORY:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   TEN_AN_OWNERS_SECRETS_ARE_SEALED_IN_ITS_REPOSITORY:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_APPLYING_IS_ASKED_FOR_AND_RECORDED:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_A_CHANGE_CAN_BE_CLASSIFIED_WITHOUT_APPLYING:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_A_CHANGE_IS_NOT_A_RETRACTION:cloud.jengu.dbo.promises.DboPromises
@@ -4765,6 +4770,7 @@ cloud.jengu.dbo.tenant.TenantRuntimeManager                            troubles(
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            unapprovedProcessing(String):List
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            unapprovedRows(String):List
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            userClaims(Supplier,int):void
+cloud.jengu.dbo.tenant.TenantRuntimeManager                            vault(cloud.jengu.dbo.tenant.VaultTransit):void
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            verbs(String):Optional
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            wakeupsFor(String):Optional
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            whatTheVersionCouldNotCarry(String):List
@@ -4886,7 +4892,9 @@ cloud.jengu.dbo.tenant.TenantSpec.Answer                               types():S
 cloud.jengu.dbo.tenant.TenantSpec.Configuration                        equals(Object):boolean
 cloud.jengu.dbo.tenant.TenantSpec.Configuration                        git():String
 cloud.jengu.dbo.tenant.TenantSpec.Configuration                        hashCode():int
+cloud.jengu.dbo.tenant.TenantSpec.Configuration                        key():String
 cloud.jengu.dbo.tenant.TenantSpec.Configuration                        new(String,String)
+cloud.jengu.dbo.tenant.TenantSpec.Configuration                        new(String,String,String)
 cloud.jengu.dbo.tenant.TenantSpec.Configuration                        record
 cloud.jengu.dbo.tenant.TenantSpec.Configuration                        ref():String
 cloud.jengu.dbo.tenant.TenantSpec.Configuration                        toString():String
@@ -5010,6 +5018,10 @@ cloud.jengu.dbo.tenant.UnapprovedProcessing.Incident                   step():St
 cloud.jengu.dbo.tenant.UnapprovedProcessing.Incident                   tenant():String
 cloud.jengu.dbo.tenant.UnapprovedProcessing.Incident                   toString():String
 cloud.jengu.dbo.tenant.UnapprovedProcessing.Incident                   type():String
+cloud.jengu.dbo.tenant.VaultTransit                                    class
+cloud.jengu.dbo.tenant.VaultTransit                                    kubernetes(URI,String,String,Path):Supplier
+cloud.jengu.dbo.tenant.VaultTransit                                    new(URI,String,Supplier)
+cloud.jengu.dbo.tenant.VaultTransit                                    tokenFile(Path):Supplier
 cloud.jengu.dbo.tenant.api.Change                                      committedAt():Instant
 cloud.jengu.dbo.tenant.api.Change                                      content():Optional
 cloud.jengu.dbo.tenant.api.Change                                      deleted():boolean

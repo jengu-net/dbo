@@ -264,6 +264,43 @@ public final class TenantAuthority {
         return new FederatedOutcome.Success(parked.redirectUri(), parked.rpState(), code);
     }
 
+    // ------------------------------------------------------------ secrets
+
+    /**
+     * Keeps a secret the tenant's owner gave it, by name, wrapped as this
+     * authority wraps its signing keys — never in the clear, and never as a
+     * record anybody but this authority reads.
+     */
+    public void keepSecret(String name, byte[] value) {
+        String payload = "{\"name\":" + Json.quote(name) + ",\"wrapped\":\""
+                + Base64.getEncoder().encodeToString(protector.wrap(value)) + "\"}";
+        store.putConditional(cloud.jengu.dbo.core.api.IdentityRef.identifier(
+                        IdentityModel.SECRET_SYSTEM, name),
+                PutRequest.create("HeldSecret", payload.getBytes(StandardCharsets.UTF_8)));
+    }
+
+    /** Forgets a secret; whether there was one. */
+    public boolean forgetSecret(String name) {
+        boolean forgotten = false;
+        for (StoredObject held : heldSecret(name)) {
+            store.delete("HeldSecret", held.id(), held.versionId());
+            forgotten = true;
+        }
+        return forgotten;
+    }
+
+    /** A secret by name, unwrapped, or empty where the tenant holds none by that name. */
+    public Optional<byte[]> secret(String name) {
+        return heldSecret(name).stream().findFirst().map(held -> protector.unwrap(
+                Base64.getDecoder().decode(Json.str(Json.parse(new String(held.payload(),
+                        StandardCharsets.UTF_8)), "wrapped"))));
+    }
+
+    private List<StoredObject> heldSecret(String name) {
+        return store.getByIdentifier("HeldSecret", List.of(
+                new cloud.jengu.dbo.core.api.Identifier(IdentityModel.SECRET_SYSTEM, name)));
+    }
+
     // ------------------------------------------------------------ keys
 
     /** Idempotent: ensures the tenant has an active signing key. */

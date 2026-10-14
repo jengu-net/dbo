@@ -814,6 +814,25 @@ public final class Activator implements BundleActivator {
         // file in the watched directory. A deployment whose management tenant
         // will not come up serves nothing — the one failure with nowhere to be
         // recorded, so it goes to the log and stops the start.
+        // THE DEPLOYMENT'S VAULT, where its tenants' secrets are unwrapped.
+        // Logged in as this store's own workload: Kubernetes auth where a
+        // role is named, a token file otherwise.
+        String vaultAddress = ctx.getProperty("dbo.vault.address");
+        if (vaultAddress != null && !vaultAddress.isBlank()) {
+            java.net.URI address = java.net.URI.create(vaultAddress);
+            String role = ctx.getProperty("dbo.vault.kubernetes.role");
+            java.util.function.Supplier<String> token = role != null && !role.isBlank()
+                    ? VaultTransit.kubernetes(address,
+                            ctx.getProperty("dbo.vault.kubernetes.mount"), role,
+                            Path.of(java.util.Objects.requireNonNullElse(
+                                    ctx.getProperty("dbo.vault.kubernetes.jwt"),
+                                    "/var/run/secrets/kubernetes.io/serviceaccount/token")))
+                    : VaultTransit.tokenFile(Path.of(java.util.Objects.requireNonNullElse(
+                            ctx.getProperty("dbo.vault.token.file"),
+                            System.getProperty("user.home") + "/.vault-token")));
+            manager.vault(new VaultTransit(address, ctx.getProperty("dbo.vault.transit"),
+                    token));
+        }
         String management = ctx.getProperty("dbo.tenant.management.spec");
         if (management != null && !management.isBlank()) {
             try {
