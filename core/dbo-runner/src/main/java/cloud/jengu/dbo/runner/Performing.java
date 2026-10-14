@@ -89,6 +89,12 @@ public final class Performing {
                 // it will pass, so it goes to people unless it threw a fault
                 // the step declared will.
                 lane.released(latest.get(), failed.reason(), Failure.UNKNOWN);
+            } else if (outcome instanceof Outcome.Refusing refusing) {
+                // The participant's decision, so it ends the run rather than
+                // routing it: reported as a refusal, which a runner counts as
+                // its own word and never as an attempt to come.
+                lane.refused(latest.get(), refusing.reason());
+                return new Outcome.Refused(refusing.reason());
             } else if (outcome instanceof Outcome.Refused refused) {
                 // Only the tenant refuses a result. A service saying so on
                 // the tenant's behalf has failed, and is released like one

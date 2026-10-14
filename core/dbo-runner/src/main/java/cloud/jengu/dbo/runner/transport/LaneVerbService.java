@@ -378,6 +378,7 @@ public final class LaneVerbService {
                         cloud.jengu.dbo.work.Failure.ofWire(string(body, LaneVerbs.FAILURE)));
                 yield null;
             }
+            case REFUSE -> lane.refused(run(body), string(body, LaneVerbs.REASON));
             case CLOSED -> {
                 String head = string(body, LaneVerbs.HEAD);
                 if (head == null) {

@@ -451,6 +451,17 @@ public enum DboPromises implements Promise {
             + "starts is a part of the run that started it, so what became of it is read under "
             + "that run."),
 
+    ZONE_EVERY_CROSSING_ASKED_IS_CARRIED("Every crossing asked and still ready at the asker is "
+            + "carried, however close in time to another and however many wait at once: the "
+            + "carrier finds them in the asker's store rather than after a position in its "
+            + "work. One the carrier finds and cannot carry says why on the asker's run by the "
+            + "next pass, so no crossing is lost without a reason."),
+
+    PROC_A_PARTICIPANT_REFUSES_ITS_RUN_WITH_A_REASON("A participant holding a run may end it "
+            + "refused, with its reason: the run fails with that reason, as the participant's "
+            + "act, and is neither handed back, retried nor given to people, as a failure is. "
+            + "A refused crossing ends its asker failed with the same reason."),
+
     PROC_AUTOMATION_TAKES_ONLY_WHAT_ITS_STEP_ADMITS("A step may say when automation may take "
             + "its task, as a condition over the task's inputs, and the store decides it once, "
             + "when the task is authored: a task the condition does not admit is open to people "

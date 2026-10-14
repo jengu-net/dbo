@@ -253,6 +253,105 @@ class WorkCrossesToItsOwnZoneIT {
                 "the crossing's outcome is not read under the run that started it");
     }
 
+    @Test
+    @Order(7)
+    @DisplayName("two crossings on one exchange, started by two results committing at once, "
+            + "are both carried and both end as the zone's work did")
+    @Proving(DboPromises.ZONE_EVERY_CROSSING_ASKED_IS_CARRIED)
+    void twoCrossingsAtOnceAreBothCarried() throws Exception {
+        allCarried(2);
+    }
+
+    @Test
+    @Order(8)
+    @DisplayName("forty crossings started at once, more than a page of work, are all carried")
+    @Proving(DboPromises.ZONE_EVERY_CROSSING_ASKED_IS_CARRIED)
+    void fortyCrossingsAtOnceAreAllCarried() throws Exception {
+        allCarried(40);
+    }
+
+    /**
+     * As many results of the clinic's own step, committed on as many threads
+     * released together, each starting a crossing to the land as its part;
+     * then every one performed there and every asker ended.
+     */
+    private void allCarried(int many) throws Exception {
+        String batch = many + "-" + RUN;
+        Lane clinic = lane(CLINIC, RELEASE);
+        List<Run> held = new java.util.ArrayList<>();
+        for (int i = 0; i < many; i++) {
+            var released = manager.runInitiator().starting(CLINIC, RELEASE,
+                    Map.of("result", RunInitiator.Slot.object(OBSERVATION.formatted("v" + i))),
+                    "release-" + batch + "-" + i);
+            assertEquals(201, released.status(), released.body());
+            held.add(clinic.claim(runAt(CLINIC, released.key()).orElseThrow(),
+                    Duration.ofMinutes(5)).orElseThrow());
+        }
+        var together = new java.util.concurrent.CountDownLatch(1);
+        var threads = java.util.concurrent.Executors.newFixedThreadPool(many);
+        List<java.util.concurrent.Future<Run>> committed = new java.util.ArrayList<>();
+        try {
+            for (int i = 0; i < many; i++) {
+                Run run = held.get(i);
+                String key = "born-" + batch + "-" + i;
+                committed.add(threads.submit(() -> {
+                    together.await();
+                    return clinic.committed(run, null, List.of(), List.of(new Outcome.Part(
+                            BIRTHS, Map.of("birth", RunInitiator.Slot.object(
+                                    OBSERVATION.formatted(key))), key, null, LAND)));
+                }));
+            }
+            together.countDown();
+            for (var each : committed) {
+                assertEquals(null, each.get(2, java.util.concurrent.TimeUnit.MINUTES).refused());
+            }
+        } finally {
+            threads.shutdownNow();
+        }
+        List<String> parts = new java.util.ArrayList<>();
+        for (int i = 0; i < many; i++) {
+            parts.add(BIRTHS + "/born-" + batch + "-" + i);
+        }
+        for (String part : parts) {
+            performed(LAND, BIRTHS, part, null);
+        }
+        for (String part : parts) {
+            Run ended = ended(CLINIC, part);
+            assertEquals("completed", ended.status().wire(), ended.toString());
+        }
+    }
+
+    @Test
+    @Order(9)
+    @DisplayName("a participant refusing the work it was carried ends that run failed with its "
+            + "reason, as its own act and for nobody to take again, and the asker's run fails "
+            + "with the same reason; a participant failing hands the run back instead")
+    @Proving({DboPromises.PROC_A_PARTICIPANT_REFUSES_ITS_RUN_WITH_A_REASON,
+            DboPromises.ZONE_AN_ASKER_WAITS_FOR_WHAT_ITS_EXCHANGE_DECLARES})
+    void aParticipantRefusesWithAReason() throws Exception {
+        String refused = ask(HOSPITAL, NOTIFY, "result", COUNTRY, "magnesium");
+        String at = answered(COUNTRY, NOTIFY, refused,
+                Outcome.refusing("the registry holds no such patient"));
+        Run ended = runAt(COUNTRY, at).orElseThrow();
+        assertEquals("failed", ended.status().wire(), ended.toString());
+        assertEquals("the registry holds no such patient", ended.refused(), ended.toString());
+        assertEquals(PERFORMER.name(), ended.assignment().executor().name(),
+                "the refusal is not the participant's act: " + ended);
+        Run asker = ended(HOSPITAL, refused);
+        assertEquals("failed", asker.status().wire(), asker.toString());
+        assertEquals("the registry holds no such patient", asker.statusReason());
+
+        String failed = ask(HOSPITAL, NOTIFY, "result", COUNTRY, "calcium");
+        String failedAt = answered(COUNTRY, NOTIFY, failed,
+                Outcome.failed("the registry did not answer"));
+        Run handedBack = runAt(COUNTRY, failedAt).orElseThrow();
+        assertTrue(handedBack.open(), "a failure ended the run: " + handedBack);
+        assertEquals(null, handedBack.refused(), handedBack.toString());
+        manager.scanOnce();
+        assertTrue(runAt(HOSPITAL, failed).orElseThrow().open(),
+                "a failure that may pass ended the asker");
+    }
+
     // ── helpers ──
 
     /** Asks at a tenant's own door, with a client holding no key; the run's key. */
@@ -272,11 +371,21 @@ class WorkCrossesToItsOwnZoneIT {
 
     /**
      * The owner's participant taking the work the asker's run was carried to,
-     * and completing it — or failing it, saying why.
+     * and completing it — or refusing it, saying why.
      *
      * @return the owner's run's key
      */
-    private String performed(String owner, String step, String askerKey, String failing)
+    private String performed(String owner, String step, String askerKey, String refusing)
+            throws Exception {
+        return answered(owner, step, askerKey,
+                refusing == null ? Outcome.done() : Outcome.refusing(refusing));
+    }
+
+    /**
+     * The same, the participant's service saying how it went, performed over
+     * the owner's lane as a participant reaches it: across HTTP.
+     */
+    private String answered(String owner, String step, String askerKey, Outcome said)
             throws Exception {
         String asker = askerOf(askerKey);
         String key = step + "/crossing-" + crossingOf(asker, askerKey);
@@ -287,14 +396,33 @@ class WorkCrossesToItsOwnZoneIT {
             throw new AssertionError(none.getMessage() + "; the asker's run stands as "
                     + runAt(asker, askerKey).orElse(null), none);
         }
-        Lane performing = lane(owner, step);
-        Run held = performing.claim(arrived, Duration.ofMinutes(5)).orElseThrow();
-        if (failing == null) {
-            performing.closed(held);
-        } else {
-            new Runs(manager.runtime(owner).orElseThrow().engine())
-                    .refused(held, PERFORMER, failing);
+        if (said instanceof Outcome.Done) {
+            Lane performing = lane(owner, step);
+            performing.closed(performing.claim(arrived, Duration.ofMinutes(5)).orElseThrow());
+            return key;
         }
+        lane(owner, step);
+        Lane overHttp = cloud.jengu.dbo.runner.http.HttpLane.to(URI.create(base(owner) + "/work"),
+                () -> {
+                    try {
+                        return token(owner);
+                    } catch (Exception e) {
+                        throw new IllegalStateException(e);
+                    }
+                }, owner, PERFORMER.name(), PERFORMER);
+        Run held = overHttp.claim(arrived, Duration.ofMinutes(5)).orElseThrow();
+        cloud.jengu.dbo.runner.Performing.performed(overHttp, held,
+                new cloud.jengu.dbo.runner.StepService() {
+                    @Override
+                    public String step() {
+                        return step;
+                    }
+
+                    @Override
+                    public Outcome perform(cloud.jengu.dbo.runner.Work work) {
+                        return said;
+                    }
+                }, Duration.ofMinutes(5));
         return key;
     }
 

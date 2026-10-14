@@ -240,6 +240,16 @@ public interface Lane {
      */
     void released(Run run, String reason, cloud.jengu.dbo.work.Failure failure);
 
+    /**
+     * Will not be done, and why: the run ends failed with the reason, as the
+     * holder's act, rather than being handed to anybody else. Abstract for
+     * the reason {@link #milestone} is: a lane that degraded it to a release
+     * would have the work tried again by somebody who would refuse it too.
+     *
+     * @return the run as it ended
+     */
+    Run refused(Run run, String because);
+
     /** Done. */
     void closed(Run run);
 
@@ -881,6 +891,12 @@ public interface Lane {
                 // nothing to hand back, and a release in its name would undo
                 // what the other did.
                 runs.released(run, identity, reason, failure);
+            }
+
+            @Override
+            public Run refused(Run run, String because) {
+                // Said only by the holder, under its claim, as a release is.
+                return runs.refused(run, identity, because);
             }
 
             @Override

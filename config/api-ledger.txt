@@ -3159,6 +3159,7 @@ cloud.jengu.dbo.promises.DboPromises                                   PROC_A_PA
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_PARTICIPANTS_KEYS_ARE_READ_AS_STANDARD_TOOLS_MAKE_THEM:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_PARTICIPANT_ASKS_FOR_WORK_IT_NEED_NOT_PERFORM:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_PARTICIPANT_OFFERS_ITS_KEY_AT_ENROLMENT:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   PROC_A_PARTICIPANT_REFUSES_ITS_RUN_WITH_A_REASON:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_PARTICIPANT_SIGNS_BEFORE_IT_IS_ADMITTED:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_PASS_THAT_CHANGES_NOTHING_WRITES_NOTHING:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_PERSON_CLAIMS_AS_A_PRACTITIONER_ROLE:cloud.jengu.dbo.promises.DboPromises
@@ -3420,6 +3421,7 @@ cloud.jengu.dbo.promises.DboPromises                                   ZONE_A_ZO
 cloud.jengu.dbo.promises.DboPromises                                   ZONE_A_ZONE_ONLY_NARROWS_THE_ZONE_IT_BELONGS_TO:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   ZONE_BROKER_CHOICE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   ZONE_DECLARATIONS_AS_RECORDS:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   ZONE_EVERY_CROSSING_ASKED_IS_CARRIED:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   ZONE_SESSIONS_ACCUMULATE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   ZONE_SUBJECT_DOMAINS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   ZONE_THE_ANSWER_COMES_BACK_SEALED_TO_THE_READER_ALONE:cloud.jengu.dbo.promises.DboPromises
@@ -3586,6 +3588,7 @@ cloud.jengu.dbo.runner.Lane                                            milestone
 cloud.jengu.dbo.runner.Lane                                            opened(cloud.jengu.dbo.work.Run,String,cloud.jengu.dbo.work.RunChain.Link):String
 cloud.jengu.dbo.runner.Lane                                            partOf(cloud.jengu.dbo.work.Run):Optional
 cloud.jengu.dbo.runner.Lane                                            poll(Set,int):List
+cloud.jengu.dbo.runner.Lane                                            refused(cloud.jengu.dbo.work.Run,String):cloud.jengu.dbo.work.Run
 cloud.jengu.dbo.runner.Lane                                            releaseLapsed():int
 cloud.jengu.dbo.runner.Lane                                            released(cloud.jengu.dbo.work.Run,String,cloud.jengu.dbo.work.Failure):void
 cloud.jengu.dbo.runner.Lane                                            reopen(cloud.jengu.dbo.work.Run,String):void
@@ -3623,6 +3626,7 @@ cloud.jengu.dbo.runner.Outcome                                         done():cl
 cloud.jengu.dbo.runner.Outcome                                         done(Map):cloud.jengu.dbo.runner.Outcome.Done
 cloud.jengu.dbo.runner.Outcome                                         failed(String):cloud.jengu.dbo.runner.Outcome
 cloud.jengu.dbo.runner.Outcome                                         interface
+cloud.jengu.dbo.runner.Outcome                                         refusing(String):cloud.jengu.dbo.runner.Outcome
 cloud.jengu.dbo.runner.Outcome.Done                                    ending(String,String):cloud.jengu.dbo.runner.Outcome.Done
 cloud.jengu.dbo.runner.Outcome.Done                                    equals(Object):boolean
 cloud.jengu.dbo.runner.Outcome.Done                                    hashCode():int
@@ -3669,6 +3673,12 @@ cloud.jengu.dbo.runner.Outcome.Refused                                 new(Strin
 cloud.jengu.dbo.runner.Outcome.Refused                                 reason():String
 cloud.jengu.dbo.runner.Outcome.Refused                                 record
 cloud.jengu.dbo.runner.Outcome.Refused                                 toString():String
+cloud.jengu.dbo.runner.Outcome.Refusing                                equals(Object):boolean
+cloud.jengu.dbo.runner.Outcome.Refusing                                hashCode():int
+cloud.jengu.dbo.runner.Outcome.Refusing                                new(String)
+cloud.jengu.dbo.runner.Outcome.Refusing                                reason():String
+cloud.jengu.dbo.runner.Outcome.Refusing                                record
+cloud.jengu.dbo.runner.Outcome.Refusing                                toString():String
 cloud.jengu.dbo.runner.Outcome.Said                                    because():String
 cloud.jengu.dbo.runner.Outcome.Said                                    ending():String
 cloud.jengu.dbo.runner.Outcome.Said                                    equals(Object):boolean
@@ -3721,6 +3731,7 @@ cloud.jengu.dbo.runner.ProvingLane                                     performed
 cloud.jengu.dbo.runner.ProvingLane                                     poll(Set,int):List
 cloud.jengu.dbo.runner.ProvingLane                                     polls():int
 cloud.jengu.dbo.runner.ProvingLane                                     reason():String
+cloud.jengu.dbo.runner.ProvingLane                                     refused(cloud.jengu.dbo.work.Run,String):cloud.jengu.dbo.work.Run
 cloud.jengu.dbo.runner.ProvingLane                                     releaseLapsed():int
 cloud.jengu.dbo.runner.ProvingLane                                     released(cloud.jengu.dbo.work.Run,String,cloud.jengu.dbo.work.Failure):void
 cloud.jengu.dbo.runner.ProvingLane                                     reopen(cloud.jengu.dbo.work.Run,String):void
@@ -3737,6 +3748,7 @@ cloud.jengu.dbo.runner.ProvingLane                                     workAppea
 cloud.jengu.dbo.runner.ProvingLane                                     written():List
 cloud.jengu.dbo.runner.ProvingLane.Ended                               CLOSED:cloud.jengu.dbo.runner.ProvingLane.Ended
 cloud.jengu.dbo.runner.ProvingLane.Ended                               NOT_YET:cloud.jengu.dbo.runner.ProvingLane.Ended
+cloud.jengu.dbo.runner.ProvingLane.Ended                               REFUSED:cloud.jengu.dbo.runner.ProvingLane.Ended
 cloud.jengu.dbo.runner.ProvingLane.Ended                               RELEASED:cloud.jengu.dbo.runner.ProvingLane.Ended
 cloud.jengu.dbo.runner.ProvingLane.Ended                               enum
 cloud.jengu.dbo.runner.ProvingLane.Ended                               valueOf(String):cloud.jengu.dbo.runner.ProvingLane.Ended
@@ -3822,6 +3834,7 @@ cloud.jengu.dbo.runner.http.WireLane                                   origin():
 cloud.jengu.dbo.runner.http.WireLane                                   partOf(cloud.jengu.dbo.work.Run):Optional
 cloud.jengu.dbo.runner.http.WireLane                                   placeFeed(String):cloud.jengu.dbo.core.api.feed.ChangeFeed
 cloud.jengu.dbo.runner.http.WireLane                                   poll(Set,int):List
+cloud.jengu.dbo.runner.http.WireLane                                   refused(cloud.jengu.dbo.work.Run,String):cloud.jengu.dbo.work.Run
 cloud.jengu.dbo.runner.http.WireLane                                   releaseLapsed():int
 cloud.jengu.dbo.runner.http.WireLane                                   released(cloud.jengu.dbo.work.Run,String,cloud.jengu.dbo.work.Failure):void
 cloud.jengu.dbo.runner.http.WireLane                                   reopen(cloud.jengu.dbo.work.Run,String):void
@@ -3945,6 +3958,7 @@ cloud.jengu.dbo.runner.transport.LaneVerbs                             PURPOSE:S
 cloud.jengu.dbo.runner.transport.LaneVerbs                             REASON:String
 cloud.jengu.dbo.runner.transport.LaneVerbs                             RECIPIENTS:String
 cloud.jengu.dbo.runner.transport.LaneVerbs                             REFERENCE:String
+cloud.jengu.dbo.runner.transport.LaneVerbs                             REFUSE:cloud.jengu.dbo.runner.transport.LaneVerbs
 cloud.jengu.dbo.runner.transport.LaneVerbs                             REFUSED:String
 cloud.jengu.dbo.runner.transport.LaneVerbs                             RELEASED:cloud.jengu.dbo.runner.transport.LaneVerbs
 cloud.jengu.dbo.runner.transport.LaneVerbs                             RELEASE_LAPSED:cloud.jengu.dbo.runner.transport.LaneVerbs
@@ -5634,6 +5648,7 @@ cloud.jengu.dbo.work.Runs                                              accepted(
 cloud.jengu.dbo.work.Runs                                              act(cloud.jengu.dbo.work.Run,String,String,String,String,String):cloud.jengu.dbo.work.Run
 cloud.jengu.dbo.work.Runs                                              answered(cloud.jengu.dbo.work.Run,cloud.jengu.dbo.work.Executor,String):cloud.jengu.dbo.work.Run
 cloud.jengu.dbo.work.Runs                                              asRecord(cloud.jengu.dbo.work.Run):cloud.jengu.dbo.core.face.RecordProjection.Record
+cloud.jengu.dbo.work.Runs                                              askedAcross(String,String,int):List
 cloud.jengu.dbo.work.Runs                                              awaiting(cloud.jengu.dbo.work.Awaits):List
 cloud.jengu.dbo.work.Runs                                              backlog(String,String,cloud.jengu.dbo.work.Scope):long
 cloud.jengu.dbo.work.Runs                                              byId(String):Optional
@@ -5707,6 +5722,7 @@ cloud.jengu.dbo.work.Runs                                              sweep(Str
 cloud.jengu.dbo.work.Runs                                              sweep(String,String,String,List):cloud.jengu.dbo.work.Run
 cloud.jengu.dbo.work.Runs                                              tally(cloud.jengu.dbo.work.Run,Map):cloud.jengu.dbo.work.Run
 cloud.jengu.dbo.work.Runs                                              traced(cloud.jengu.dbo.work.Run,String):cloud.jengu.dbo.work.Run
+cloud.jengu.dbo.work.Runs                                              waiting(cloud.jengu.dbo.work.Run,String):Optional
 cloud.jengu.dbo.work.Runs.Claimable                                    NOBODY:cloud.jengu.dbo.work.Runs.Claimable
 cloud.jengu.dbo.work.Runs.Claimable                                    appeared(cloud.jengu.dbo.work.Run):void
 cloud.jengu.dbo.work.Runs.Claimable                                    interface

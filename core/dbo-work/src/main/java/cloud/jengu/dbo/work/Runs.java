@@ -1215,6 +1215,13 @@ public final class Runs {
         });
     }
 
+    /**
+     * Refused by the holder: its work will not be done, so the run ends
+     * failed with why, as the holder's act — neither handed back, retried
+     * nor given to people, as a release is.
+     *
+     * @throws NotHeld when the run no longer stands under the holder's claim
+     */
     public Run refused(Run run, Executor holder, String because) {
         return advanceHeld(run, holder, "ended", snapshot -> snapshot.withStanding(
                 snapshot.standing().as(Status.FAILED).because(because)).withRefused(because));
@@ -1683,6 +1690,34 @@ public final class Runs {
             who.narrowing(criteria);
         }
         return store.select(criteria).stream().map(Run::of).toList();
+    }
+
+    /**
+     * What was asked across from here at one step and waits to be carried:
+     * open to automation, oldest first, so what waited longest is carried
+     * first and nothing waits behind a position in the tenant's work.
+     */
+    public List<Run> askedAcross(String process, String step, int limit) {
+        return store.select(Awaits.MACHINE.narrowing(Criteria.of(WorkModel.TYPE)
+                        .eq("process", EnvelopeValue.of(process))
+                        .eq("step", EnvelopeValue.of(step))
+                        .eq("crossing", EnvelopeValue.of("asked")))
+                        .sortByLastUpdated(true).limit(limit))
+                .stream().map(Run::of).toList();
+    }
+
+    /**
+     * Why a run that nobody holds is still waiting, said on it without taking
+     * it — and only while it is still ready and nobody's, so a claim landing
+     * first is never overwritten by somebody's account of why there was none.
+     *
+     * @return the run as written, or empty when it moved on first
+     */
+    public Optional<Run> waiting(Run run, String because) {
+        return advanceIf(run, "waiting",
+                current -> current.status() == Status.READY && (current.assignment() == null
+                        || current.assignment().executor() == null),
+                snapshot -> snapshot.withStanding(snapshot.standing().because(because)));
     }
 
     /**

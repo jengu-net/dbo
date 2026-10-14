@@ -127,6 +127,13 @@ final class ContactLane implements Lane {
     }
 
     @Override
+    public Run refused(Run run, String because) {
+        Run ended = lane.refused(run, because);
+        heardAbout(run);
+        return ended;
+    }
+
+    @Override
     public void closed(Run run) {
         lane.closed(run);
         heardAbout(run);

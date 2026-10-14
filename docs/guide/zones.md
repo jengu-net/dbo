@@ -119,7 +119,14 @@ declares no steps of its own.
 
 Whatever the exchange awaits, an owner's run that fails or is cancelled ends the
 asker's run with that status and reason. An asker is never left open because the
-owner refused.
+owner refused. An owner's participant that will not do the work says so with
+`Outcome.refusing(reason)`, which ends the owner's run and so the asker's.
+
+**Every crossing asked is carried.** On every pass the deployment asks each
+tenant's store for the crossings still waiting there, oldest first, however
+many were asked at once. A crossing it finds and cannot carry is handed back
+with why, and one still waiting on the next pass says on the asker's run since
+when and why. None is lost without a reason.
 
 **A crossing need not start at the door.** An application in process starts one
 with `RunInitiator.starting(tenant, step, inputs, key, addressee, partOf, to)`.

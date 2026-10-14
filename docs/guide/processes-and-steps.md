@@ -290,7 +290,10 @@ A step answers with an `Outcome`:
 - `.writing(Write.create(...), Write.update(ref, version, ...))` — the records
   it asks the tenant to write, as one result, committed whole or not at all;
 - `failed(reason)`, or throwing — released with the reason, and routed as
-  below.
+  below;
+- `refusing(reason)` — the work will not be done: no such patient, a request
+  the participant may not answer. The run ends `failed` with the reason, as the
+  participant's own act, and is neither retried nor given to people.
 
 The tenant writes the result under the run, through its own face: the profile
 validates it, identity rules hold, the membrane seals a person's identifying

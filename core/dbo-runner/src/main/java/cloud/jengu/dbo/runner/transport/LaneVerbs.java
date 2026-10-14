@@ -21,6 +21,8 @@ public enum LaneVerbs {
     CHECKPOINT("checkpoint"),
     MILESTONE("milestone"),
     RELEASED("released"),
+    /** Ended by its holder, who will not do the work, with why. */
+    REFUSE("refuse"),
     CLOSED("closed"),
     /** Closed with a result the tenant is asked to write — or ended because it would not. */
     COMMITTED("committed"),

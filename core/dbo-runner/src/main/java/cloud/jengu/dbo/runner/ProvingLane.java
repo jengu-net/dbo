@@ -65,7 +65,10 @@ public final class ProvingLane implements Lane {
         CLOSED,
 
         /** Failed or threw: released with a reason, which is not done. */
-        RELEASED
+        RELEASED,
+
+        /** Refused by the service: ended with its reason, for nobody to take again. */
+        REFUSED
     }
 
     private final String stepId;
@@ -332,6 +335,15 @@ public final class ProvingLane implements Lane {
         this.reason = because;
         this.performed++;
         endings.add(Ended.RELEASED);
+    }
+
+    @Override
+    public Run refused(Run run, String because) {
+        this.ended = Ended.REFUSED;
+        this.reason = because;
+        this.performed++;
+        endings.add(Ended.REFUSED);
+        return run;
     }
 
     @Override

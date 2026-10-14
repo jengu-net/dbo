@@ -48,10 +48,7 @@ final class Crossings {
         /** The jurisdictions as the deployment last read them. */
         ZoneTree zones();
 
-        /**
-         * A lane into a tenant for the steps named, as the carrier: one lane,
-         * so one cursor over the tenant's work for all of them.
-         */
+        /** A lane into a tenant for the steps named, as the carrier. */
         Optional<Lane> lane(String tenant, Set<String> steps);
 
         /** A tenant's store, for authoring the run that does the work and for a zone's trail. */
@@ -74,9 +71,18 @@ final class Crossings {
     /** What a run that asked across says once its answer is held beside it. */
     static final String HELD = "held";
 
+    /** How many waiting crossings of one step are read at a time. */
+    static final int PAGE = 32;
+
     private final Plane plane;
     /** The tenant and step pairs this carrier has said it takes, so it says each once. */
     private final Set<String> declared = java.util.concurrent.ConcurrentHashMap.newKeySet();
+    /**
+     * The crossings a pass found and could not carry, by the asker's run, with
+     * when that was first so: one still waiting on a later pass says so.
+     */
+    private final java.util.Map<String, java.time.Instant> uncarried =
+            new java.util.concurrent.ConcurrentHashMap<>();
 
     Crossings(Plane plane) {
         this.plane = plane;
@@ -102,50 +108,99 @@ final class Crossings {
             }
         }
         for (String asker : plane.serving()) {
-            // EVERY EXCHANGE THIS TENANT ASKS ON, IN ONE POLL. A lane reads
-            // the tenant's work under one cursor per participant, so polling
-            // one step and then the next would read past the second's runs
-            // while looking for the first's, and never offer them again.
-            java.util.Map<String, TenantSpec.Step> asking = new java.util.LinkedHashMap<>();
-            for (TenantSpec.Step step : zones.exchangeSteps(asker)) {
-                asking.put(step.code(), step);
+            carried += carryAsked(zones, asker);
+        }
+        return carried;
+    }
+
+    /**
+     * Every crossing a tenant asked that waits to be carried, carried.
+     *
+     * <p>FOUND IN THE ASKER'S STORE, never after a position in its work. A
+     * participant's poll moves past what it read whether or not it acted on
+     * it, so a crossing the pass did not carry — one whose carrying threw,
+     * or that was read behind one that did — was never offered again, and
+     * the asker's run stayed ready with nothing to say why. What waits is
+     * asked for afresh on every pass instead; the lane is used only to take
+     * it, so the asker's trail records the hand-over as it records any.
+     */
+    private int carryAsked(ZoneTree zones, String asker) {
+        List<TenantSpec.Step> asking = zones.exchangeSteps(asker);
+        if (asking.isEmpty()) {
+            return 0;
+        }
+        Set<String> codes = new java.util.LinkedHashSet<>();
+        asking.forEach(step -> codes.add(step.code()));
+        Optional<Lane> lane = plane.lane(asker, codes);
+        Optional<cloud.jengu.dbo.policy.PolicyObjectStore> askerStore = plane.store(asker);
+        if (lane.isEmpty() || askerStore.isEmpty()) {
+            return 0;
+        }
+        Runs askerRuns = new Runs(askerStore.get());
+        int carried = 0;
+        for (TenantSpec.Step step : asking) {
+            int dot = step.code().lastIndexOf('.');
+            String process = step.code().substring(0, dot);
+            String bare = step.code().substring(dot + 1);
+            // Announced as any participant announces itself, because a run is
+            // taken only by an executor that said it performs the step: the
+            // carrier performs this one by carrying it.
+            if (declared.add(asker + " " + step.code())) {
+                lane.get().declare(new cloud.jengu.dbo.work.Declarations.Declared(process, bare,
+                        CARRIER.name(), CARRIER.version(), CARRIER.provider(), CARRIER.scope(),
+                        CARRIER.name()));
             }
-            if (asking.isEmpty()) {
-                continue;
-            }
-            Optional<Lane> lane = plane.lane(asker, asking.keySet());
-            if (lane.isEmpty()) {
-                continue;
-            }
-            Set<String> bare = new java.util.LinkedHashSet<>();
-            for (String code : asking.keySet()) {
-                int dot = code.lastIndexOf('.');
-                bare.add(code.substring(dot + 1));
-                // Announced as any participant announces itself, because a
-                // run is taken only by an executor that said it performs the
-                // step: the carrier performs this one by carrying it.
-                if (declared.add(asker + " " + code)) {
-                    lane.get().declare(new cloud.jengu.dbo.work.Declarations.Declared(
-                            code.substring(0, dot), code.substring(dot + 1), CARRIER.name(),
-                            CARRIER.version(), CARRIER.provider(), CARRIER.scope(),
-                            CARRIER.name()));
+            // A page at a time, oldest first, for as long as a page is full
+            // and moved: what was carried is no longer waiting, so the next
+            // read starts past it, and a page of what cannot be carried ends
+            // the pass rather than being read again.
+            boolean more = true;
+            while (more) {
+                List<Run> waiting = askerRuns.askedAcross(process, bare, PAGE);
+                int moved = 0;
+                for (Run asked : waiting) {
+                    if (carriedOrSaid(zones, asker, step, lane.get(), askerRuns, asked)) {
+                        moved++;
+                    }
                 }
-            }
-            for (Run asked : lane.get().poll(bare, 32)) {
-                // By its whole code: two exchanges may share a step's name.
-                TenantSpec.Step step = asking.get(asked.process() + "." + asked.step());
-                // Asked for here, as opposed to arrived here: a run whose
-                // crossing already names the run it answers is the owner's
-                // to perform, not this carrier's to take.
-                if (step != null && asked.crossing() != null
-                        && asked.crossing().askerRun() == null
-                        && asked.crossing().arrived() == null
-                        && carry(zones, asker, step, lane.get(), asked)) {
-                    carried++;
-                }
+                carried += moved;
+                more = waiting.size() == PAGE && moved > 0;
             }
         }
         return carried;
+    }
+
+    /**
+     * One crossing carried — or, where it cannot be, the asker's run saying
+     * why once it has waited a pass for it. A crossing whose carrying throws
+     * is handed back with what was thrown, and stops nothing else this pass.
+     */
+    private boolean carriedOrSaid(ZoneTree zones, String asker, TenantSpec.Step step, Lane lane,
+            Runs askerRuns, Run asked) {
+        // Asked for here, as opposed to arrived here: a run whose crossing
+        // already names the run it answers is the owner's to perform, not
+        // this carrier's to take.
+        if (asked.crossing() == null || asked.crossing().askerRun() != null
+                || asked.crossing().arrived() != null) {
+            return false;
+        }
+        String why;
+        try {
+            if (carry(zones, asker, step, lane, asked)) {
+                uncarried.remove(asked.key());
+                return true;
+            }
+            why = "the carrier could not take it";
+        } catch (RuntimeException failed) {
+            why = "carrying it failed: " + failed.getMessage();
+        }
+        java.time.Instant since = uncarried.putIfAbsent(asked.key(), java.time.Instant.now());
+        if (since != null && askerRuns.waiting(asked, "not carried since " + since + ": "
+                + why).isEmpty()) {
+            // Taken meanwhile, by another carrier or a later pass of this one.
+            uncarried.remove(asked.key());
+        }
+        return false;
     }
 
     /**
@@ -423,7 +478,18 @@ final class Crossings {
             return false;
         }
         Run held = claimed.get();
-        Run.Crossing crossing = held.crossing();
+        try {
+            return carry(zones, asker, step, lane, held, held.crossing());
+        } catch (RuntimeException failed) {
+            // Handed back rather than held to its deadline: the next pass
+            // tries again, and the asker reads what went wrong meanwhile.
+            lane.released(held, "carrying it failed: " + failed.getMessage(), null);
+            throw failed;
+        }
+    }
+
+    private boolean carry(ZoneTree zones, String asker, TenantSpec.Step step, Lane lane,
+            Run held, Run.Crossing crossing) {
         String owner = crossing.to();
         ZoneTree.Route route;
         try {

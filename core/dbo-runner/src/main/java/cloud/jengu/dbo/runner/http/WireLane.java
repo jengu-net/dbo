@@ -151,6 +151,14 @@ public class WireLane implements Lane {
     }
 
     @Override
+    public Run refused(Run run, String because) {
+        Map<String, Object> body = verb();
+        body.put(LaneVerbs.RUN, RecordWire.encode(run));
+        body.put(LaneVerbs.REASON, because);
+        return RecordWire.decode(post(LaneVerbs.REFUSE, body), Run.class);
+    }
+
+    @Override
     public void closed(Run run) {
         // A participant that signs closes with the head it commits to — the
         // last link it made or saw — without the runner having to know

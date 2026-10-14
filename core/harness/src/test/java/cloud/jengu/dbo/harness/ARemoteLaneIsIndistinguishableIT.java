@@ -197,6 +197,11 @@ class ARemoteLaneIsIndistinguishableIT {
         }
 
         @Override
+        public Run refused(Run run, String because) {
+            return across("refused", () -> farSide.refused(run, because));
+        }
+
+        @Override
         public void closed(Run run) {
             across("closed", () -> {
                 farSide.closed(run);

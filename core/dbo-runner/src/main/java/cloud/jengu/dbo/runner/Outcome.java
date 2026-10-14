@@ -33,6 +33,14 @@ public sealed interface Outcome {
     }
 
     /**
+     * Will not be done, and why: the run ends failed with the reason, as this
+     * participant's own act, and nobody takes it again.
+     */
+    static Outcome refusing(String reason) {
+        return new Refusing(reason);
+    }
+
+    /**
      * Done: what the step counted, and what it asks the tenant to write.
      *
      * <p>The writes are one unit. The tenant commits all of them or none, the
@@ -172,6 +180,15 @@ public sealed interface Outcome {
     }
 
     record Failed(String reason) implements Outcome {}
+
+    /**
+     * The participant's decision that the work will not be done: no such
+     * patient in the registry, a request it may not answer. Not a failure
+     * that may pass, so the run is neither handed back, retried nor given to
+     * people — it ends, and the asker reads why. Where the run was asked
+     * across, the asker's run ends the same way.
+     */
+    record Refusing(String reason) implements Outcome {}
 
     /**
      * What a result came to when the tenant would not commit it.
