@@ -3362,6 +3362,7 @@ cloud.jengu.dbo.promises.DboPromises                                   TEN_A_RED
 cloud.jengu.dbo.promises.DboPromises                                   TEN_A_REFUSED_DECLARATION_IS_SAID_ONCE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_A_SLOW_BRING_UP_HOLDS_UP_ONLY_ITSELF:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_A_STALE_INDEX_IS_REMEMBERED_UNTIL_IT_IS_REBUILT:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   TEN_A_STEP_REACHES_A_FAMILY_OF_SECRETS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_A_STEP_REACHES_THE_SECRETS_IT_DECLARES:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_A_TENANTS_WORKING_KEY_IS_HELD_WHERE_ITS_DECLARATION_SAYS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_A_TENANT_COMES_UP_FROM_THE_FACE_IMAGE:cloud.jengu.dbo.promises.DboPromises
@@ -3638,7 +3639,7 @@ cloud.jengu.dbo.runner.Lane.Results.Refused                            class
 cloud.jengu.dbo.runner.Lane.Results.Refused                            new(String)
 cloud.jengu.dbo.runner.Lane.Results.Refused                            new(String,Throwable)
 cloud.jengu.dbo.runner.Lane.Secrets                                    interface
-cloud.jengu.dbo.runner.Lane.Secrets                                    reach(String,String):Optional
+cloud.jengu.dbo.runner.Lane.Secrets                                    reach(cloud.jengu.dbo.work.Run,String,String):Optional
 cloud.jengu.dbo.runner.Lane.Trail                                      handedTo(cloud.jengu.dbo.work.Run,String,cloud.jengu.dbo.work.RunChain.Link):void
 cloud.jengu.dbo.runner.Lane.Trail                                      held(cloud.jengu.dbo.work.Run):Optional
 cloud.jengu.dbo.runner.Lane.Trail                                      interface
@@ -4903,6 +4904,7 @@ cloud.jengu.dbo.tenant.TenantSpec                                      parse(Str
 cloud.jengu.dbo.tenant.TenantSpec                                      partnerOf():String
 cloud.jengu.dbo.tenant.TenantSpec                                      pdi():boolean
 cloud.jengu.dbo.tenant.TenantSpec                                      policies():cloud.jengu.dbo.policy.TenantPolicies
+cloud.jengu.dbo.tenant.TenantSpec                                      reaches(Set,String):boolean
 cloud.jengu.dbo.tenant.TenantSpec                                      record
 cloud.jengu.dbo.tenant.TenantSpec                                      scim():cloud.jengu.dbo.tenant.TenantSpec.Scim
 cloud.jengu.dbo.tenant.TenantSpec                                      steps():List

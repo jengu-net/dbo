@@ -640,10 +640,11 @@ public interface Lane {
     interface Secrets {
 
         /**
-         * @param step the step's whole code
-         * @throws IllegalStateException when the step does not declare it
+         * @param run the run reaching it, held by {@code by}
+         * @param by  who reaches it
+         * @throws IllegalStateException when the run's step does not declare it
          */
-        Optional<byte[]> reach(String step, String name);
+        Optional<byte[]> reach(Run run, String by, String name);
     }
 
     /**
@@ -822,7 +823,7 @@ public interface Lane {
                 if (secrets == null) {
                     throw new IllegalStateException(tenant + ": this host keeps no secrets");
                 }
-                return secrets.reach(current.process() + "." + current.step(), name)
+                return secrets.reach(current, identity.name(), name)
                         .orElseThrow(() -> new IllegalStateException(tenant + " holds no "
                                 + "secret '" + name + "'"));
             }

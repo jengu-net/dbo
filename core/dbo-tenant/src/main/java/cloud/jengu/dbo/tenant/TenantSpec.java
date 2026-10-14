@@ -135,6 +135,26 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
      * @param secrets  the secrets of the tenant a run of it may reach, by name:
      *                 a step reaches what it declares and nothing else
      */
+    /**
+     * Whether a step's declared secrets reach a name: one of them is the
+     * name, or a family whose prefix the name extends — connection.* reaches
+     * connection.a.password, and neither connection nor connections.a.
+     */
+    public static boolean reaches(java.util.Set<String> declared, String name) {
+        for (String secret : declared) {
+            if (secret.equals(name)) {
+                return true;
+            }
+            if (secret.endsWith(".*")) {
+                String prefix = secret.substring(0, secret.length() - 1);
+                if (name.startsWith(prefix) && name.length() > prefix.length()) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     public record Step(String code, java.util.Map<String, String> slots,
             java.util.Set<String> writes, cloud.jengu.dbo.core.process.RetryPolicy retry,
             cloud.jengu.dbo.core.process.AutomationCriterion automate, Answer answer,
@@ -203,6 +223,18 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
         public Step {
             writes = java.util.Set.copyOf(writes);
             secrets = secrets == null ? java.util.Set.of() : java.util.Set.copyOf(secrets);
+            for (String secret : secrets) {
+                // A FAMILY IS A TRAILING .* AND NOTHING ELSE: a prefix the
+                // owner's names extend, never a pattern. A star anywhere else
+                // would be a wildcard nobody can read the reach of.
+                String named = secret.endsWith(".*")
+                        ? secret.substring(0, secret.length() - 2) : secret;
+                if (named.isEmpty() || named.contains("*")) {
+                    throw new IllegalArgumentException(code + ": the secret '" + secret
+                            + "' is a name, or a family of names declared as a prefix and a "
+                            + "trailing .* (connection.*); a * anywhere else is not");
+                }
+            }
             if (code == null || code.isBlank()) {
                 throw new IllegalArgumentException("a step declares a code");
             }

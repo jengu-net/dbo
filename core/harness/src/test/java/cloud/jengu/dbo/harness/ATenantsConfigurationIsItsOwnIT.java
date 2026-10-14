@@ -60,6 +60,7 @@ class ATenantsConfigurationIsItsOwnIT {
     private static final String TRIAGE = "http://example.org/ValueSet/triage";
     private static final String CONNECT = "clinic.lab.connect";
     private static final String PEEK = "clinic.lab.peek";
+    private static final String CONNECTIONS = "clinic.lab.connections";
 
     private final HttpClient http = HttpClient.newHttpClient();
     private LocalDatabasePerTenantProvisioner databases;
@@ -112,9 +113,11 @@ class ATenantsConfigurationIsItsOwnIT {
                  "steps":[
                   {"code":"%s","slots":{"organisation":"Organization"},
                    "secrets":["lab-connection-password"]},
-                  {"code":"%s","slots":{"organisation":"Organization"}}]}"""
+                  {"code":"%s","slots":{"organisation":"Organization"}},
+                  {"code":"%s","slots":{"organisation":"Organization"},
+                   "secrets":["connection.*","zone.token"]}]}"""
                 .formatted(OWNER, repository.toString().replace("\\", "\\\\"), ORG, CONNECT,
-                        PEEK));
+                        PEEK, CONNECTIONS));
         UntilServed.scan(manager, OWNER);
         manager.authority(OWNER).ensureClient("owner", "owner-secret",
                 List.of("configuration"));
@@ -338,6 +341,98 @@ class ATenantsConfigurationIsItsOwnIT {
                         cloud.jengu.dbo.work.Scope.BASELINE));
         String refused = reached(declared(keyless, CONNECT), CONNECT, "keyless");
         assertTrue(refused.startsWith("failed:") && refused.contains("holds no key"), refused);
+    }
+
+    @Test
+    @Order(9)
+    @DisplayName("a step declaring a family reaches every secret its prefix extends, in process "
+            + "and sealed, and nothing beside it; the run's trail names the secret it reached")
+    @Proving(DboPromises.TEN_A_STEP_REACHES_A_FAMILY_OF_SECRETS)
+    void aStepReachesAFamilyOfSecrets() throws Exception {
+        java.util.Map<String, String> secrets = new java.util.LinkedHashMap<>();
+        secrets.put("connection.sample-1.password", "sample-pa55");
+        secrets.put("connections.sample-1.password", "not-in-the-family");
+        secrets.put("connection", "not-in-the-family-either");
+        secrets.put("zone.token", "zone-t0ken");
+        write("secrets/connections.sops.json", sealed("tenant-" + OWNER, secrets));
+        commit("The lab's connections");
+        String applied = apply("");
+        assertEquals("0", number(applied, "skipped"), applied);
+
+        cloud.jengu.dbo.work.Executor performer = new cloud.jengu.dbo.work.Executor(
+                "performer", "1", "example.clinic", cloud.jengu.dbo.work.Scope.BASELINE);
+        cloud.jengu.dbo.runner.Lane inProcess = declared(manager.fleetLane(OWNER, CONNECTIONS,
+                performer).orElseThrow(), CONNECTIONS);
+        String[] family = reachedAs(inProcess, "family", "connection.sample-1.password");
+        assertEquals("sample-pa55", family[0]);
+        assertEquals("zone-t0ken", reachedAs(inProcess, "named", "zone.token")[0]);
+        for (String beside : List.of("connections.sample-1.password", "connection")) {
+            String refused = reachedAs(inProcess, "beside", beside)[0];
+            assertTrue(refused.startsWith("failed:") && refused.contains("does not declare"),
+                    beside + ": " + refused);
+        }
+
+        cloud.jengu.dbo.core.api.seal.ParticipantKeys keys =
+                cloud.jengu.dbo.core.api.seal.ParticipantKeys.adoptOrMake(
+                        Files.createTempDirectory("dbo-family"));
+        manager.authority(OWNER).ensureClient("family", "family-secret", List.of("work"),
+                keys.sealingKey(), keys.signingKey());
+        cloud.jengu.dbo.runner.Lane sealedLane = declared(cloud.jengu.dbo.runner.http.HttpLane
+                .holding(URI.create(base() + "/work"), () -> tokenOf("family", "family-secret"),
+                        OWNER, "family", new cloud.jengu.dbo.work.Executor("family", "1",
+                                "example.clinic", cloud.jengu.dbo.work.Scope.BASELINE),
+                        keys.sealing(), keys.signing()), CONNECTIONS);
+        assertEquals("sample-pa55",
+                reachedAs(sealedLane, "sealed", "connection.sample-1.password")[0]);
+
+        List<String> named = new java.util.ArrayList<>();
+        for (StoredObject entry : engine().select(cloud.jengu.dbo.core.api.Criteria.of(
+                "AuditEntry").eq("run", cloud.jengu.dbo.core.api.EnvelopeValue.of(family[1])))) {
+            String said = new String(entry.payload(), StandardCharsets.UTF_8);
+            if (said.contains("\"secret\"")) {
+                named.add(said);
+            }
+        }
+        assertEquals(1, named.size(), "the run's trail does not say once what it reached: "
+                + named);
+        assertTrue(named.get(0).contains("connection.sample-1.password")
+                && !named.get(0).contains("connection.*"), named.get(0));
+        assertFalse(named.get(0).contains("sample-pa55"), "the trail holds the secret itself");
+    }
+
+    /**
+     * A run of the family step performed on a lane by a service that asks for
+     * one secret: what it was handed, or why it failed, and the run's key.
+     */
+    private String[] reachedAs(cloud.jengu.dbo.runner.Lane lane, String key, String name)
+            throws Exception {
+        var started = manager.runInitiator().starting(OWNER, CONNECTIONS, java.util.Map.of(
+                        "organisation", cloud.jengu.dbo.work.RunInitiator.Slot.object(
+                                organisation("lab-" + key + "-" + System.nanoTime(), "The lab"))),
+                key + "-" + System.nanoTime());
+        assertEquals(201, started.status(), started.body());
+        Run run = new Runs(engine()).byKey(started.key()).orElseThrow();
+        Run held = lane.claim(run, java.time.Duration.ofMinutes(5)).orElseThrow(
+                () -> new AssertionError("nothing took " + started.key()));
+        String[] handed = new String[1];
+        cloud.jengu.dbo.runner.Outcome outcome = cloud.jengu.dbo.runner.Performing.performed(
+                lane, held, new cloud.jengu.dbo.runner.StepService() {
+                    @Override
+                    public String step() {
+                        return CONNECTIONS;
+                    }
+
+                    @Override
+                    public cloud.jengu.dbo.runner.Outcome perform(
+                            cloud.jengu.dbo.runner.Work work) {
+                        handed[0] = work.secret(name);
+                        return cloud.jengu.dbo.runner.Outcome.done();
+                    }
+                }, java.time.Duration.ofMinutes(5));
+        if (outcome instanceof cloud.jengu.dbo.runner.Outcome.Failed failed) {
+            return new String[] {"failed: " + failed.reason(), started.key()};
+        }
+        return new String[] {handed[0], started.key()};
     }
 
     private static cloud.jengu.dbo.runner.Lane declared(cloud.jengu.dbo.runner.Lane lane,

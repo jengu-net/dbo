@@ -1766,6 +1766,13 @@ public enum DboPromises implements Promise {
             + "a tenant whose key will not unwrap is taken down within the time it is trusted "
             + "for and does not come up, nothing it keeps opening under the deployment's key."),
 
+    TEN_A_STEP_REACHES_A_FAMILY_OF_SECRETS("A step may declare a family of secrets by a name "
+            + "ending .*, and reaches every secret whose name extends that prefix, at any depth, "
+            + "as it reaches one it names: in process, or sealed to the participant across a "
+            + "wire. Nothing beside the family is reached, a * anywhere but a trailing .* is "
+            + "refused when the tenant is declared, and the run's trail names the secret it "
+            + "reached, never the family."),
+
     TEN_A_STEP_REACHES_THE_SECRETS_IT_DECLARES("A step declares the tenant's secrets a run "
             + "of it may reach, and reaches them by name through its lane, as its work asks: in "
             + "process in the clear, and across a wire only sealed to the participant's "

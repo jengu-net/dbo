@@ -4011,16 +4011,38 @@ public final class TenantRuntimeManager implements AutoCloseable {
      * A secret for a run of a step, where the step declares it: a step
      * reaches what its declaration names and nothing else the tenant holds.
      */
-    private java.util.Optional<byte[]> reachSecret(TenantSpec spec, String step, String name) {
-        boolean declared = spec.steps().stream()
-                .anyMatch(one -> one.code().equals(step) && one.secrets().contains(name));
+    private java.util.Optional<byte[]> reachSecret(TenantSpec spec,
+            cloud.jengu.dbo.policy.PolicyObjectStore engine, cloud.jengu.dbo.work.Run run,
+            String by, String name) {
+        String step = run.process() + "." + run.step();
+        boolean declared = spec.steps().stream().anyMatch(one -> one.code().equals(step)
+                && TenantSpec.reaches(one.secrets(), name));
         if (!declared) {
             throw new IllegalStateException(spec.code() + ": step '" + step + "' does not "
                     + "declare the secret '" + name + "', and a step reaches only the secrets "
                     + "it declares");
         }
         cloud.jengu.dbo.auth.TenantAuthority authority = authorities.get(spec.code());
-        return authority == null ? java.util.Optional.empty() : authority.secret(name);
+        java.util.Optional<byte[]> reached = authority == null ? java.util.Optional.empty()
+                : authority.secret(name);
+        if (reached.isPresent()) {
+            // WHICH SECRET, BY ITS OWN NAME, on the trail of the run that
+            // reached it: a family is what the step may reach, and the
+            // account says what it did.
+            String outer = cloud.jengu.dbo.core.api.Caller.run();
+            cloud.jengu.dbo.core.api.Caller.setRun(run.key());
+            try {
+                engine.recordCustom("secret", "HeldSecret", name,
+                        java.util.Map.of("by", by, "step", step));
+            } finally {
+                if (outer == null) {
+                    cloud.jengu.dbo.core.api.Caller.clearRun();
+                } else {
+                    cloud.jengu.dbo.core.api.Caller.setRun(outer);
+                }
+            }
+        }
+        return reached;
     }
 
     /**
@@ -4789,7 +4811,8 @@ public final class TenantRuntimeManager implements AutoCloseable {
                                     null,
                                     runResults,
                                     // A step reaches the secrets it declares.
-                                    (step, name) -> reachSecret(spec, step, name)),
+                                    (run, by, name) -> reachSecret(spec, engine, run, by,
+                                            name)),
                                 contacts, laneRuns, laneDeclarations, heartbeatLimit, asker);
                     };
             // The same lane on the store's own stream, for a participant that

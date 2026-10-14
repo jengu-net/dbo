@@ -220,6 +220,13 @@ A step reaches a secret it declares, by name:
 String password = work.secret("lab-connection-password");
 ```
 
+A step may also declare a family by a name ending `.*`. `"connection.*"`
+reaches every secret whose name extends `connection.`, at any depth, so an owner
+adds a connection without the provider changing the declaration. It does not
+reach `connection` itself or `connections.x`, and a `*` anywhere else is
+refused when the tenant is declared. Each secret a run reaches is recorded on
+the run's trail by its own name, never the family, with who reached it.
+
 In process the value is handed over as it is. Over HTTP it travels only sealed
 to the participant's enrolment key, and is opened with the key the participant
 holds, so a participant that enrolled no key is refused. A step that does not
