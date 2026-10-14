@@ -28,6 +28,7 @@ final class PublishedFacts {
         if (spec.zone() != null) {
             published.put(TenantFacts.ZONE, spec.zone());
         }
+        published.put(TenantFacts.KIND, spec.kind());
         published.put(TenantFacts.HOLDS_RECORDS_IN_FACE_DOMAIN, resolved.holdsRecordsInFaceDomain());
         // ITS OWN STEPS, THE DEPLOYMENT'S OR ITS ZONES' EXCHANGES. The door exists because something
         // was declared, and a fleet step is something declared — by the

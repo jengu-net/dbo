@@ -192,6 +192,11 @@ public record SpecChange(Kind kind, List<String> fields) {
             // this tenant serves itself.
             hot.add("partnerOf");
         }
+        if (!Objects.equals(serving.kind(), declared.kind())) {
+            // Rewire: what an activity selects on is read as the tenant comes
+            // up, and a tenant of another kind may be one it now applies to.
+            rewire.add("kind");
+        }
         if (!Objects.equals(serving.workingKey(), declared.workingKey())) {
             // Rewire: the working key is unwrapped as the tenant comes up, and
             // rewrapped under what it names now.

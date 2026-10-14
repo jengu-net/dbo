@@ -26,7 +26,7 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
         String managedBy, boolean faceRoot, List<Step> steps, boolean zoneRoot,
         boolean indexFace, List<FleetStep> fleetSteps, Set<String> declines,
         Set<String> authorised, Set<String> exchanges, String partnerOf,
-        Configuration configuration, WorkingKey workingKey) {
+        Configuration configuration, WorkingKey workingKey, String kind) {
 
     /**
      * What wraps the tenant's working key, where it is not the deployment's
@@ -612,6 +612,21 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
                 indexFace, fleetSteps, declines, authorised, exchanges, partnerOf, null);
     }
 
+    /** Of the kind its declaration makes it. */
+    public TenantSpec(String code, String face, List<FhirTypeConfig> types,
+            boolean pdi, cloud.jengu.dbo.policy.TenantPolicies policies,
+            String zone, String broker, List<String> acceptedBrokers,
+            List<Dependency> dependencies, Scim scim, List<String> mandatorySteps,
+            String managedBy, boolean faceRoot, List<Step> steps, boolean zoneRoot,
+            boolean indexFace, List<FleetStep> fleetSteps, Set<String> declines,
+            Set<String> authorised, Set<String> exchanges, String partnerOf,
+            Configuration configuration, WorkingKey workingKey) {
+        this(code, face, types, pdi, policies, zone, broker, acceptedBrokers,
+                dependencies, scim, mandatorySteps, managedBy, faceRoot, steps, zoneRoot,
+                indexFace, fleetSteps, declines, authorised, exchanges, partnerOf,
+                configuration, workingKey, null);
+    }
+
     /** With its working key wrapped by the deployment's own key. */
     public TenantSpec(String code, String face, List<FhirTypeConfig> types,
             boolean pdi, cloud.jengu.dbo.policy.TenantPolicies policies,
@@ -892,6 +907,9 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
         if (face == null || face.isBlank()) {
             throw new IllegalArgumentException(code + ": face is required");
         }
+        // WHAT KIND IT IS, said or made: a label something may select it by,
+        // and one that has to agree with what the declaration makes it.
+        kind = cloud.jengu.dbo.tenant.api.TenantKinds.resolve(code, kind, faceRoot);
         types = List.copyOf(types);
         if (types.isEmpty()) {
             throw new IllegalArgumentException(code + ": at least one type required");
@@ -1335,7 +1353,9 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
                 // owner's.
                 configurationOf(root),
                 // WHAT WRAPS ITS WORKING KEY, where it is not the deployment's.
-                workingKeyOf(root));
+                workingKeyOf(root),
+                // WHAT KIND IT IS, where it says: a label, deciding nothing here.
+                Json.strOpt(root, "kind"));
     }
 
     private static WorkingKey workingKeyOf(Object root) {

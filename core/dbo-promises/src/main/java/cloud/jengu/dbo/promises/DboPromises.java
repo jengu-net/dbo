@@ -1750,6 +1750,13 @@ public enum DboPromises implements Promise {
             + "is withdrawn and nothing else — so an older commit is a rollback. The run names "
             + "the ref, the commit, its author and message, and who asked."),
 
+    TEN_A_TENANT_SAYS_WHAT_KIND_IT_IS("A tenant has a kind: the one it declares, or the one "
+            + "its declaration makes it — an ordinary tenant, a face root, or a projection the "
+            + "store made. It is published as a fact something selects tenants by, and decides "
+            + "nothing in the store, which asks the facts it needs instead; a kind outside dbo. "
+            + "is any name, a dbo. kind the store does not know is refused by name, and a kind "
+            + "that disagrees with what the declaration makes the tenant is refused."),
+
     TEN_A_TENANTS_WORKING_KEY_IS_HELD_WHERE_ITS_DECLARATION_SAYS("Everything a tenant keeps "
             + "secret — its signing keys, its secrets, its people's keys — is wrapped under a "
             + "working key of its own, kept in its database only wrapped, by the deployment's "

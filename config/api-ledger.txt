@@ -3365,6 +3365,7 @@ cloud.jengu.dbo.promises.DboPromises                                   TEN_A_STA
 cloud.jengu.dbo.promises.DboPromises                                   TEN_A_STEP_REACHES_THE_SECRETS_IT_DECLARES:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_A_TENANTS_WORKING_KEY_IS_HELD_WHERE_ITS_DECLARATION_SAYS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_A_TENANT_COMES_UP_FROM_THE_FACE_IMAGE:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   TEN_A_TENANT_SAYS_WHAT_KIND_IT_IS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_A_TYPE_DECLARES_ITS_DOMAIN:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_COMING_UP_AND_KEEPING_UP_ARE_NOT_ONE_QUEUE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_CREDENTIAL_BLIND_PROVISIONING:cloud.jengu.dbo.promises.DboPromises
@@ -4869,6 +4870,7 @@ cloud.jengu.dbo.tenant.TenantSpec                                      hashCode(
 cloud.jengu.dbo.tenant.TenantSpec                                      indexFace():boolean
 cloud.jengu.dbo.tenant.TenantSpec                                      isCode(String):boolean
 cloud.jengu.dbo.tenant.TenantSpec                                      isNamespace(String):boolean
+cloud.jengu.dbo.tenant.TenantSpec                                      kind():String
 cloud.jengu.dbo.tenant.TenantSpec                                      managedBy():String
 cloud.jengu.dbo.tenant.TenantSpec                                      mandatorySteps():List
 cloud.jengu.dbo.tenant.TenantSpec                                      new(String,String,List)
@@ -4890,6 +4892,7 @@ cloud.jengu.dbo.tenant.TenantSpec                                      new(Strin
 cloud.jengu.dbo.tenant.TenantSpec                                      new(String,String,List,boolean,cloud.jengu.dbo.policy.TenantPolicies,String,String,List,List,cloud.jengu.dbo.tenant.TenantSpec.Scim,List,String,boolean,List,boolean,boolean,List,Set,Set,Set,String)
 cloud.jengu.dbo.tenant.TenantSpec                                      new(String,String,List,boolean,cloud.jengu.dbo.policy.TenantPolicies,String,String,List,List,cloud.jengu.dbo.tenant.TenantSpec.Scim,List,String,boolean,List,boolean,boolean,List,Set,Set,Set,String,cloud.jengu.dbo.tenant.TenantSpec.Configuration)
 cloud.jengu.dbo.tenant.TenantSpec                                      new(String,String,List,boolean,cloud.jengu.dbo.policy.TenantPolicies,String,String,List,List,cloud.jengu.dbo.tenant.TenantSpec.Scim,List,String,boolean,List,boolean,boolean,List,Set,Set,Set,String,cloud.jengu.dbo.tenant.TenantSpec.Configuration,cloud.jengu.dbo.tenant.TenantSpec.WorkingKey)
+cloud.jengu.dbo.tenant.TenantSpec                                      new(String,String,List,boolean,cloud.jengu.dbo.policy.TenantPolicies,String,String,List,List,cloud.jengu.dbo.tenant.TenantSpec.Scim,List,String,boolean,List,boolean,boolean,List,Set,Set,Set,String,cloud.jengu.dbo.tenant.TenantSpec.Configuration,cloud.jengu.dbo.tenant.TenantSpec.WorkingKey,String)
 cloud.jengu.dbo.tenant.TenantSpec                                      onlyTheDeploymentDeclaresFleetSteps(cloud.jengu.dbo.tenant.TenantSpec):void
 cloud.jengu.dbo.tenant.TenantSpec                                      parse(String):cloud.jengu.dbo.tenant.TenantSpec
 cloud.jengu.dbo.tenant.TenantSpec                                      partnerOf():String
@@ -5096,6 +5099,7 @@ cloud.jengu.dbo.tenant.api.TenantFacts                                 HAS_STEPS
 cloud.jengu.dbo.tenant.api.TenantFacts                                 HAS_VAULT:String
 cloud.jengu.dbo.tenant.api.TenantFacts                                 HOLDS_IDENTITIES:String
 cloud.jengu.dbo.tenant.api.TenantFacts                                 HOLDS_RECORDS_IN_FACE_DOMAIN:String
+cloud.jengu.dbo.tenant.api.TenantFacts                                 KIND:String
 cloud.jengu.dbo.tenant.api.TenantFacts                                 PREFIX:String
 cloud.jengu.dbo.tenant.api.TenantFacts                                 PUBLISHED:Set
 cloud.jengu.dbo.tenant.api.TenantFacts                                 ZONE:String
@@ -5116,6 +5120,12 @@ cloud.jengu.dbo.tenant.api.TenantFacts.Resolved                        holdsReco
 cloud.jengu.dbo.tenant.api.TenantFacts.Resolved                        new(boolean,boolean,boolean,boolean)
 cloud.jengu.dbo.tenant.api.TenantFacts.Resolved                        record
 cloud.jengu.dbo.tenant.api.TenantFacts.Resolved                        toString():String
+cloud.jengu.dbo.tenant.api.TenantKinds                                 FACE:String
+cloud.jengu.dbo.tenant.api.TenantKinds                                 KNOWN:Set
+cloud.jengu.dbo.tenant.api.TenantKinds                                 PROJECTION:String
+cloud.jengu.dbo.tenant.api.TenantKinds                                 TENANT:String
+cloud.jengu.dbo.tenant.api.TenantKinds                                 class
+cloud.jengu.dbo.tenant.api.TenantKinds                                 resolve(String,String,boolean):String
 cloud.jengu.dbo.tenant.api.TenantLifecycleListener                     interface
 cloud.jengu.dbo.tenant.api.TenantLifecycleListener                     reached(cloud.jengu.dbo.tenant.api.TenantPoint,cloud.jengu.dbo.tenant.api.TenantFacts):void
 cloud.jengu.dbo.tenant.api.TenantObserver                              interface

@@ -53,6 +53,10 @@ spec:
                 # through that provider, on credentials the provider issues.
                 partnerOf:
                   type: string
+                # What kind of tenant it is: a label to select it by. dbo.
+                # kinds are the store's own; any other name is free.
+                kind:
+                  type: string
                 # What wraps the tenant's working key, when not the
                 # deployment's own key: a Transit key in the deployment's
                 # Vault, or in one its owner runs.

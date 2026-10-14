@@ -88,12 +88,26 @@ its screens need.
 ### Selecting tenants
 
 A listener and an observer take the same filter, over facts a tenant publishes
-under `dbo.tenant.`: its code, face and zone, whether it has steps, SCIM, an
-authority, a vault. A filter naming a fact that does not exist is refused where
-it is registered, because `dbo.tenant.hasVualt` would otherwise match nothing,
-for ever, in silence. There is no kind of tenant to filter on, deliberately: a
+under `dbo.tenant.`: its code, face, zone and kind, whether it has steps, SCIM,
+an authority, a vault. A filter naming a fact that does not exist is refused
+where it is registered, because `dbo.tenant.hasVualt` would otherwise match
+nothing, for ever, in silence.
+
+The store's own activities filter on resolved facts and never on a kind. A
 filter on a resolved fact keeps answering correctly for a kind of tenant nobody
-anticipated, and a filter on a label has to be found and edited first.
+anticipated, while a filter on a label has to be found and edited first. A
+kind is for what selects tenants coarsely from outside, such as billing, a hook
+for a sort of tenant, or a policy per kind:
+
+```json
+{ "code": "clinic", "face": "r5", "kind": "clinic.small" }
+```
+
+A tenant that says nothing is `dbo.tenant`. A face root is `dbo.face`, and a
+projection the store makes is `dbo.projection`. Any name outside `dbo.` is
+free and decides nothing in the store. A `dbo.` kind the store does not know is
+refused by name, and so is a kind that disagrees with what the declaration
+makes the tenant. The kind is published as `dbo.tenant.kind`.
 
 A listener that throws is reported by name and cannot stop the tenant serving.
 Nor does it work out its own applicability: where it applies is the filter, so
