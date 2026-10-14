@@ -26,8 +26,10 @@ can still work with an age band. What the main store holds is pseudonymous: a
 sealed blob and a pseudonym, and none of the person in a form an operator, a
 backup or a replica could read.
 
-Each person has a key of their own, stored wrapped under the deployment's
-working key, which comes from custody rather than from the store. A person's
+Each person has a key of their own, stored wrapped under the tenant's working
+key. That key is wrapped in turn by the deployment's key from custody, or by a
+key the tenant's owner holds
+([the owner's key](a-tenant-opens.md#the-tenants-working-key)). A person's
 `Patient` and the `Person` who is them are one human under one key.
 
 ## Reading is unchanged; asking is not

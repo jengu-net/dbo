@@ -192,6 +192,11 @@ public record SpecChange(Kind kind, List<String> fields) {
             // this tenant serves itself.
             hot.add("partnerOf");
         }
+        if (!Objects.equals(serving.workingKey(), declared.workingKey())) {
+            // Rewire: the working key is unwrapped as the tenant comes up, and
+            // rewrapped under what it names now.
+            rewire.add("workingKey");
+        }
         if (!Objects.equals(serving.configuration(), declared.configuration())) {
             // Hot: where the owner's configuration is read from is read when
             // it is next applied, and nothing serving now holds it.

@@ -35,16 +35,76 @@ public final class PersonVault {
     private final DataSource ds;
     private final SecretKeySpec workingKey;
     private final SecretKeySpec indexKey;
+    /** What wrapped the people's keys before, opened while they are moved; null for nothing. */
+    private final SecretKeySpec previous;
 
     public PersonVault(DataSource dataSource, byte[] workingKey) {
+        this(dataSource, workingKey, indexKeyOf(workingKey), null);
+    }
+
+    /**
+     * A vault whose people's keys are wrapped under the tenant's working key,
+     * its index keyed apart from it.
+     *
+     * <p>The index key is its own because an index cannot be rebuilt from
+     * what it indexes — the values are sealed under the people's keys — so
+     * moving the people's keys under another key must leave it as it was.
+     *
+     * @param previous what wrapped the people's keys before, opened until
+     *                 {@link #rewrapAll} has moved them; null for nothing
+     */
+    public PersonVault(DataSource dataSource, byte[] workingKey, byte[] indexKey,
+            byte[] previous) {
         if (workingKey == null || workingKey.length != 32) {
             throw new IllegalArgumentException("working key must be 32 bytes");
         }
         this.ds = dataSource;
         this.workingKey = new SecretKeySpec(workingKey, "AES");
-        this.indexKey = new SecretKeySpec(hmac(new SecretKeySpec(workingKey, "HmacSHA256"),
-                "dbo-pdi-identifier-index".getBytes(StandardCharsets.UTF_8)), "HmacSHA256");
+        this.indexKey = new SecretKeySpec(indexKey, "HmacSHA256");
+        this.previous = previous == null ? null : new SecretKeySpec(previous, "AES");
         ensureSchema();
+    }
+
+    /** The index key a vault keyed only by its working key has always used. */
+    public static byte[] indexKeyOf(byte[] workingKey) {
+        return hmac(new SecretKeySpec(workingKey, "HmacSHA256"),
+                "dbo-pdi-identifier-index".getBytes(StandardCharsets.UTF_8));
+    }
+
+    /**
+     * Every person's key wrapped under the previous key, wrapped again under
+     * the working key; a shredded one stays shredded.
+     *
+     * @return how many moved
+     */
+    public int rewrapAll() {
+        if (previous == null) {
+            return 0;
+        }
+        int moved = 0;
+        try (Connection c = ds.getConnection();
+             PreparedStatement select = c.prepareStatement(
+                     "SELECT id, wrapped_key FROM pdi.person WHERE wrapped_key IS NOT NULL");
+             PreparedStatement update = c.prepareStatement(
+                     "UPDATE pdi.person SET wrapped_key = ? WHERE id = ? AND wrapped_key = ?");
+             ResultSet rs = select.executeQuery()) {
+            while (rs.next()) {
+                byte[] wrapped = rs.getBytes(2);
+                try {
+                    sealWith(workingKey, wrapped, Cipher.DECRYPT_MODE);
+                    continue;
+                } catch (IllegalStateException underThePrevious) {
+                    // moved below
+                }
+                update.setBytes(1, wrap(sealWith(previous, wrapped, Cipher.DECRYPT_MODE)));
+                update.setObject(2, rs.getObject(1));
+                update.setBytes(3, wrapped);
+                moved += update.executeUpdate();
+            }
+        } catch (SQLException e) {
+            throw new IllegalStateException("moving the people's keys failed", e);
+        }
+        return moved;
     }
 
     private void ensureSchema() {
@@ -921,7 +981,14 @@ public final class PersonVault {
     }
 
     private byte[] unwrap(byte[] wrapped) {
-        return sealWith(workingKey, wrapped, Cipher.DECRYPT_MODE);
+        try {
+            return sealWith(workingKey, wrapped, Cipher.DECRYPT_MODE);
+        } catch (IllegalStateException notUnderIt) {
+            if (previous == null) {
+                throw notUnderIt;
+            }
+            return sealWith(previous, wrapped, Cipher.DECRYPT_MODE);
+        }
     }
 
     private static byte[] sealWith(SecretKeySpec kek, byte[] data, int mode) {

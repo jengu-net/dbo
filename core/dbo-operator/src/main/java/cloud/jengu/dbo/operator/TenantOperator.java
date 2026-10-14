@@ -347,6 +347,9 @@ public final class TenantOperator implements AutoCloseable {
         if (spec.get("zone") instanceof String zone) {
             sb.append(",\"zone\":").append(jsonString(zone));
         }
+        if (spec.get("workingKey") instanceof Map<?, ?> workingKey) {
+            sb.append(",\"workingKey\":").append(genericJson(workingKey));
+        }
         if (spec.get("configuration") instanceof Map<?, ?> configuration) {
             sb.append(",\"configuration\":").append(genericJson(configuration));
         }

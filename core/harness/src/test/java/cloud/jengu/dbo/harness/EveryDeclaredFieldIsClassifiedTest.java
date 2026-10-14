@@ -33,7 +33,7 @@ class EveryDeclaredFieldIsClassifiedTest {
             "code", "face", "types", "pdi", "policies", "zone", "broker",
             "acceptedBrokers", "dependencies", "scim", "mandatorySteps", "managedBy", "faceRoot",
             "steps", "zoneRoot", "indexFace", "fleetSteps", "declines", "authorised",
-            "exchanges", "partnerOf", "configuration");
+            "exchanges", "partnerOf", "configuration", "workingKey");
 
     @Test
     @Proving(DboPromises.TEN_A_REDECLARATION_IS_NOTICED)

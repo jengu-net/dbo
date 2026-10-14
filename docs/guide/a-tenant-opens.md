@@ -217,6 +217,43 @@ The store logs into Vault as itself: Kubernetes auth when
 `dbo.vault.transit` the engine's mount (`transit` by default). Whatever
 provisions tenants creates each tenant's key and needs no right to decrypt.
 
+## The tenant's working key
+
+Everything a tenant keeps secret (its signing keys, its secrets, its people's
+keys) is wrapped under a working key of its own. That key is made once and
+kept in the tenant's database only wrapped. By default the deployment's own
+key wraps it. The declaration may name a Transit key instead, in the
+deployment's Vault or in one the owner runs:
+
+```json
+{ "code": "clinic", "face": "r5",
+  "workingKey": { "key": "owner-clinic", "vault": "https://vault.clinic.example",
+                  "auth": { "mount": "jwt", "role": "dbo-clinic" } } }
+```
+
+Without `vault`, the key is in the deployment's Vault. With it, the store
+presents its service account token to the owner's Vault under the role the
+owner grants it, so the owner hands the deployment no secret.
+
+The tenant comes up only once its working key unwraps. While it serves, a key
+held in Vault is asked again every `dbo.tenant.workingkey.recheck` (15 minutes
+by default). A key that will not unwrap takes the tenant down, and the tenant
+does not come up while it stays that way. Each bring-up rewraps the working
+key under the Transit key's latest version, so a rotation reaches it.
+Declaring another key moves the working key under that one, and nothing it
+wraps is touched.
+
+What revoking the key means, said plainly: the tenant's data at rest and in
+backups can no longer be read, and the tenant stops within the recheck time.
+It does not make a running node's memory unreadable to whoever holds root on
+it. A key in the deployment's own Vault can be revoked only by agreement, since
+that Vault's operator can undo it; revocation that holds against the provider
+needs the owner's own Vault or KMS.
+
+A tenant that ran before it had a working key moves its keys under one the
+first time it comes up, and keeps the index its people are looked up by.
+Backups taken before that move still hold keys under the deployment's key.
+
 ## What the store cannot do yet
 
 - **No shared tier.** Every tenant is a database. A clinic too small to justify

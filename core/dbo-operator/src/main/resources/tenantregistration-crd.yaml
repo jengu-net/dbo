@@ -53,6 +53,26 @@ spec:
                 # through that provider, on credentials the provider issues.
                 partnerOf:
                   type: string
+                # What wraps the tenant's working key, when not the
+                # deployment's own key: a Transit key in the deployment's
+                # Vault, or in one its owner runs.
+                workingKey:
+                  type: object
+                  required: [key]
+                  properties:
+                    key:
+                      type: string
+                    vault:
+                      type: string
+                    mount:
+                      type: string
+                    auth:
+                      type: object
+                      properties:
+                        mount:
+                          type: string
+                        role:
+                          type: string
                 # Where the tenant's owner keeps its configuration: a git
                 # repository on a path the deployment can read, and the ref
                 # applied when the tenant comes up.

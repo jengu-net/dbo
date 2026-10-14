@@ -1008,6 +1008,37 @@ public final class TenantRuntimeManager implements AutoCloseable {
             new ConcurrentHashMap<>();
     /** Where each tenant's ask-to-apply door is mounted, for the same teardown. */
     private final Map<String, String> configurationContexts = new ConcurrentHashMap<>();
+    /** Each serving tenant's working key, as its bring-up resolved it. */
+    private final Map<String, WorkingKeys.Held> workingKeys = new ConcurrentHashMap<>();
+
+    /** A serving tenant whose working key is held elsewhere, and when it last unwrapped. */
+    private record HeldElsewhere(cloud.jengu.dbo.core.api.ObjectStore identities,
+            KeyWrapper wrapper, java.time.Instant checked) {
+    }
+
+    private final Map<String, HeldElsewhere> heldElsewhere = new ConcurrentHashMap<>();
+
+    /** How long a working key held elsewhere is trusted unwrapped before it is asked again. */
+    private volatile java.time.Duration workingKeyRecheck = java.time.Duration.ofMinutes(15);
+
+    /** The service account token an owner's Vault takes from this deployment. */
+    private volatile Path serviceAccountToken =
+            Path.of("/var/run/secrets/kubernetes.io/serviceaccount/token");
+
+    /**
+     * How long a tenant whose working key is held elsewhere keeps serving on
+     * it before the key is asked for again — the longest a revoked key leaves
+     * the tenant up.
+     */
+    public void workingKeyRecheck(java.time.Duration every) {
+        this.workingKeyRecheck = every;
+    }
+
+    /** The token this deployment presents to a Vault its tenants' owners run. */
+    public void serviceAccountToken(Path token) {
+        this.serviceAccountToken = token;
+    }
+
     /** The deployment's Vault, where its tenants' secrets are unwrapped; null for none. */
     private volatile VaultTransit vault;
 
@@ -2494,6 +2525,9 @@ public final class TenantRuntimeManager implements AutoCloseable {
      * most one at a time per tenant, and the pass moves on.
      */
     private synchronized void pass() {
+        // A tenant whose owner took its key away stops before anything else is
+        // asked of it.
+        sealWhatNoLongerUnwraps();
         // The declarations first, then what this deployment does about them.
         // Applying is what turns a source into the records the sweep below
         // reads; a deployment with no managing tenant has no records and reads
@@ -3989,6 +4023,75 @@ public final class TenantRuntimeManager implements AutoCloseable {
         return authority == null ? java.util.Optional.empty() : authority.secret(name);
     }
 
+    /**
+     * The tenant's people's keys, wrapped under its working key and looked up
+     * by the index it kept — and, while the tenant is moving its keys, moved
+     * from under the deployment's key here.
+     */
+    private cloud.jengu.dbo.pdi.PersonVault personVault(String code,
+            javax.sql.DataSource dataSource) {
+        WorkingKeys.Held held = workingKeys.get(code);
+        cloud.jengu.dbo.pdi.PersonVault vault = new cloud.jengu.dbo.pdi.PersonVault(dataSource,
+                held.key(), held.index(), held.moving() ? authorityConfig.kek() : null);
+        int moved = vault.rewrapAll();
+        if (moved > 0) {
+            LOG.info("tenant's people's keys moved under its working key: code={} keys={}",
+                    code, moved);
+        }
+        return vault;
+    }
+
+    /**
+     * What wraps a tenant's working key: the deployment's own key, a Transit
+     * key in the deployment's Vault, or one in a Vault the owner runs, reached
+     * with this deployment's service account token under the role it grants.
+     */
+    private KeyWrapper wrapperFor(TenantSpec.WorkingKey declared) {
+        if (declared == null) {
+            return KeyWrapper.deployment(authorityConfig.kek());
+        }
+        if (declared.vault() == null) {
+            VaultTransit deployments = vault;
+            if (deployments == null) {
+                throw new IllegalStateException("the working key is wrapped by '"
+                        + declared.key() + "' in this deployment's Vault, and it names none");
+            }
+            return KeyWrapper.transit(deployments.withMount(declared.mount()), declared.key());
+        }
+        java.net.URI owners = java.net.URI.create(declared.vault());
+        return KeyWrapper.transit(new VaultTransit(owners, declared.mount(),
+                VaultTransit.kubernetes(owners, declared.authMount() == null ? "jwt"
+                        : declared.authMount(), declared.role(), serviceAccountToken)),
+                declared.key());
+    }
+
+    /**
+     * Every serving tenant whose working key is held elsewhere and was last
+     * unwrapped longer ago than it is trusted for, asked again; one whose key
+     * will not unwrap is taken down, and is not brought up again while it
+     * will not.
+     */
+    private void sealWhatNoLongerUnwraps() {
+        java.time.Instant now = java.time.Instant.now();
+        for (Map.Entry<String, HeldElsewhere> one : List.copyOf(heldElsewhere.entrySet())) {
+            HeldElsewhere held = one.getValue();
+            if (held.checked().plus(workingKeyRecheck).isAfter(now)) {
+                continue;
+            }
+            try {
+                WorkingKeys.check(held.identities(), held.wrapper());
+                heldElsewhere.put(one.getKey(), new HeldElsewhere(held.identities(),
+                        held.wrapper(), now));
+            } catch (RuntimeException revoked) {
+                heldElsewhere.remove(one.getKey());
+                LOG.warn("tenant sealed: its working key would not unwrap: code={} reason={}",
+                        one.getKey(), revoked.getMessage());
+                takeDown(one.getKey(), "its working key would not unwrap: "
+                        + revoked.getMessage());
+            }
+        }
+    }
+
     private cloud.jengu.dbo.auth.TenantAuthority authorityHolding(String code, String secret) {
         cloud.jengu.dbo.auth.TenantAuthority authority = authorities.get(code);
         if (authority == null) {
@@ -4113,11 +4216,30 @@ public final class TenantRuntimeManager implements AutoCloseable {
                     ? authorityConfig.issuerBase()
                     : "http://" + host + ":" + port();
             String oidcPath = "/t/" + spec.code() + "/oidc";
+            PgObjectStore identities = new PgObjectStore(db.dataSource(),
+                    cloud.jengu.dbo.auth.IdentityModel.registrations());
+            // THE WORKING KEY FIRST: everything the authority keeps secret is
+            // wrapped under it, and a tenant whose key will not unwrap does
+            // not come up.
+            KeyWrapper wrapper = wrapperFor(spec.workingKey());
+            WorkingKeys.Held held = WorkingKeys.resolve(identities, wrapper, spec.workingKey(),
+                    authorityConfig.kek(), this::wrapperFor);
+            workingKeys.put(spec.code(), held);
             cloud.jengu.dbo.auth.TenantAuthority authority = tenantAuthority = new cloud.jengu.dbo.auth.TenantAuthority(
-                    new PgObjectStore(db.dataSource(), cloud.jengu.dbo.auth.IdentityModel.registrations()),
+                    identities,
                     issuerBase + oidcPath,
-                    new cloud.jengu.dbo.auth.KeyProtector(authorityConfig.kek()));
+                    new cloud.jengu.dbo.auth.KeyProtector(held.key(),
+                            held.moving() ? authorityConfig.kek() : null));
             authority.ensureSigningKey();
+            int moved = authority.rewrapKeys();
+            if (moved > 0) {
+                LOG.info("tenant keys moved under its working key: code={} keys={}",
+                        spec.code(), moved);
+            }
+            if (wrapper.heldElsewhere()) {
+                heldElsewhere.put(spec.code(), new HeldElsewhere(identities, wrapper,
+                        java.time.Instant.now()));
+            }
             // A place signs its people in with the PIN they set at the tenant,
             // whose verifier it was handed: its link to the tenant may be down
             // when somebody needs to sign in. Nowhere else does a PIN sign
@@ -4797,6 +4919,14 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 spec.code(), facadeMillis, System.currentTimeMillis() - vocabularyAt);
         // Published only now: wired, mounted, and safe to be somebody's
         // upstream.
+        // Everything the deployment's key wrapped is under the working key
+        // now, so the deployment's key opens nothing of this tenant's again.
+        WorkingKeys.Held held = workingKeys.get(spec.code());
+        if (held != null && held.moving()) {
+            WorkingKeys.moved(new PgObjectStore(db.dataSource(),
+                    cloud.jengu.dbo.auth.IdentityModel.registrations()));
+            workingKeys.put(spec.code(), new WorkingKeys.Held(held.key(), held.index(), false));
+        }
         runtimes.put(spec.code(), runtime);
         mounting.remove(spec.code());
         cutWhatOthersWillComeUpFrom(spec);
@@ -5866,7 +5996,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
         }
         if (authorityConfig == null) {
             throw new IllegalStateException(spec.code()
-                    + ": pdi requires the tenant authority (the working key derives from its KEK)");
+                    + ": pdi requires the tenant authority, which holds the working key its people's keys are wrapped under");
         }
         cloud.jengu.dbo.pdi.PdiSpec pdiSpec = cloud.jengu.dbo.pdi.PdiSpec.fhir();
         PgObjectStore inner = new PgObjectStore(db.dataSource(),
@@ -5878,7 +6008,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
         // date got none at all, and the capability was published all along
         //.
         cloud.jengu.dbo.pdi.PersonVault vault =
-                new cloud.jengu.dbo.pdi.PersonVault(db.dataSource(), authorityConfig.kek());
+                personVault(spec.code(), db.dataSource());
         vaults.put(spec.code(), vault);
         return new cloud.jengu.dbo.pdi.PdiObjectStore(inner, vault,
                 pdiSpec,
@@ -6248,6 +6378,8 @@ public final class TenantRuntimeManager implements AutoCloseable {
             sharedServer.removeContext(registerPath);
         }
         owners.remove(code);
+        workingKeys.remove(code);
+        heldElsewhere.remove(code);
         String configurationPath = configurationContexts.remove(code);
         if (configurationPath != null) {
             sharedServer.removeContext(configurationPath);

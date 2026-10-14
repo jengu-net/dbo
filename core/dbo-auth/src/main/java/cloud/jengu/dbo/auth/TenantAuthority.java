@@ -296,6 +296,38 @@ public final class TenantAuthority {
                         StandardCharsets.UTF_8)), "wrapped"))));
     }
 
+    /**
+     * Everything this authority keeps wrapped — its signing keys and its
+     * secrets — wrapped again under the key it wraps with now, where the
+     * previous key wrapped it. How a tenant's keys move under its working
+     * key, once; nothing else about any of them changes.
+     *
+     * @return how many moved
+     */
+    public int rewrapKeys() {
+        if (!protector.opensThePrevious()) {
+            return 0;
+        }
+        int moved = 0;
+        for (String[] held : new String[][] {{"SigningKey", "privateEnc"},
+                {"HeldSecret", "wrapped"}}) {
+            for (StoredObject one : store.select(cloud.jengu.dbo.core.api.Criteria.of(held[0]))) {
+                Object node = Json.parse(new String(one.payload(), StandardCharsets.UTF_8));
+                if (!(node instanceof java.util.Map<?, ?> fields)
+                        || !(fields.get(held[1]) instanceof String wrapped)) {
+                    continue;
+                }
+                byte[] again = protector.wrap(protector.unwrap(Base64.getDecoder().decode(wrapped)));
+                java.util.Map<Object, Object> rewritten = new java.util.LinkedHashMap<>(fields);
+                rewritten.put(held[1], Base64.getEncoder().encodeToString(again));
+                store.put(PutRequest.update(held[0], one.id(), one.versionId(),
+                        Json.render(rewritten).getBytes(StandardCharsets.UTF_8)));
+                moved++;
+            }
+        }
+        return moved;
+    }
+
     private List<StoredObject> heldSecret(String name) {
         return store.getByIdentifier("HeldSecret", List.of(
                 new cloud.jengu.dbo.core.api.Identifier(IdentityModel.SECRET_SYSTEM, name)));

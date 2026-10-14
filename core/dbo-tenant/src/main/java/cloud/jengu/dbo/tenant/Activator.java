@@ -833,6 +833,12 @@ public final class Activator implements BundleActivator {
             manager.vault(new VaultTransit(address, ctx.getProperty("dbo.vault.transit"),
                     token));
         }
+        // How long a working key its owner holds is trusted unwrapped: the
+        // longest a revoked key leaves a tenant serving.
+        String recheck = ctx.getProperty("dbo.tenant.workingkey.recheck");
+        if (recheck != null && !recheck.isBlank()) {
+            manager.workingKeyRecheck(java.time.Duration.parse(recheck));
+        }
         String management = ctx.getProperty("dbo.tenant.management.spec");
         if (management != null && !management.isBlank()) {
             try {

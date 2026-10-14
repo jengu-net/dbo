@@ -26,7 +26,40 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
         String managedBy, boolean faceRoot, List<Step> steps, boolean zoneRoot,
         boolean indexFace, List<FleetStep> fleetSteps, Set<String> declines,
         Set<String> authorised, Set<String> exchanges, String partnerOf,
-        Configuration configuration) {
+        Configuration configuration, WorkingKey workingKey) {
+
+    /**
+     * What wraps the tenant's working key, where it is not the deployment's
+     * own key: a Transit key in the deployment's Vault, or in a Vault its
+     * owner runs.
+     *
+     * <p>A key the owner holds is one the tenant cannot come up without: the
+     * deployment never holds it, and revoking it leaves what the tenant keeps
+     * unreadable, to the deployment's operator as to anybody.
+     *
+     * @param key       the Transit key
+     * @param vault     the owner's Vault, or null for the deployment's
+     * @param mount     where Transit is mounted there, or null for
+     *                  {@code transit}
+     * @param authMount where the owner's Vault takes this deployment's service
+     *                  account token, or null for {@code jwt}
+     * @param role      the role the owner's Vault grants this deployment
+     */
+    public record WorkingKey(String key, String vault, String mount, String authMount,
+            String role) {
+
+        public WorkingKey {
+            if (key == null || key.isBlank()) {
+                throw new IllegalArgumentException("a working key held elsewhere names the key "
+                        + "it is wrapped by, as workingKey.key");
+            }
+            if (vault != null && (role == null || role.isBlank())) {
+                throw new IllegalArgumentException("a working key in its owner's Vault is "
+                        + "reached by a role that Vault grants this deployment, as "
+                        + "workingKey.auth.role");
+            }
+        }
+    }
 
     /**
      * Where the tenant's owner keeps its configuration: a git repository on a
@@ -577,6 +610,21 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
         this(code, face, types, pdi, policies, zone, broker, acceptedBrokers,
                 dependencies, scim, mandatorySteps, managedBy, faceRoot, steps, zoneRoot,
                 indexFace, fleetSteps, declines, authorised, exchanges, partnerOf, null);
+    }
+
+    /** With its working key wrapped by the deployment's own key. */
+    public TenantSpec(String code, String face, List<FhirTypeConfig> types,
+            boolean pdi, cloud.jengu.dbo.policy.TenantPolicies policies,
+            String zone, String broker, List<String> acceptedBrokers,
+            List<Dependency> dependencies, Scim scim, List<String> mandatorySteps,
+            String managedBy, boolean faceRoot, List<Step> steps, boolean zoneRoot,
+            boolean indexFace, List<FleetStep> fleetSteps, Set<String> declines,
+            Set<String> authorised, Set<String> exchanges, String partnerOf,
+            Configuration configuration) {
+        this(code, face, types, pdi, policies, zone, broker, acceptedBrokers,
+                dependencies, scim, mandatorySteps, managedBy, faceRoot, steps, zoneRoot,
+                indexFace, fleetSteps, declines, authorised, exchanges, partnerOf,
+                configuration, null);
     }
 
     /**
@@ -1285,7 +1333,21 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
                 // WHERE ITS OWNER KEEPS ITS CONFIGURATION, if anywhere. The
                 // declaration says where to read; what is read there is the
                 // owner's.
-                configurationOf(root));
+                configurationOf(root),
+                // WHAT WRAPS ITS WORKING KEY, where it is not the deployment's.
+                workingKeyOf(root));
+    }
+
+    private static WorkingKey workingKeyOf(Object root) {
+        Object wrapping = Json.objOpt(root, "workingKey");
+        if (!(wrapping instanceof java.util.Map<?, ?>)) {
+            return null;
+        }
+        Object reaching = Json.objOpt(wrapping, "auth");
+        return new WorkingKey(Json.strOpt(wrapping, "key"), Json.strOpt(wrapping, "vault"),
+                Json.strOpt(wrapping, "mount"),
+                reaching == null ? null : Json.strOpt(reaching, "mount"),
+                reaching == null ? null : Json.strOpt(reaching, "role"));
     }
 
     private static Configuration configurationOf(Object root) {

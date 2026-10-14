@@ -1,10 +1,10 @@
-**Open; two of three steps are built. A tenant declares a repository its
-owner keeps, and the store applies it commit by commit, reconciling each
-commit against what each file applied, so a rollback is an apply. Files of
-secrets are opened through the deployment's Vault under the tenant's own
-Transit key, kept by its authority, and reached by name by the steps that
-declare them. Left: a working key held where the owner says; every tenant's
-keys, and its secrets, are still wrapped under the one deployment key.**
+**Open, and down to what was left out. A tenant applies its owner's
+repository commit by commit, its secrets come from it through the deployment's
+Vault, and its working key is wrapped by the key its declaration names,
+sealing the tenant when that key will not unwrap. Left: proving a working key
+in a Vault the owner runs, reached with the deployment's service account
+token, which nothing has exercised; and a secret given as a reference into
+Vault.**
 
 # A tenant's configuration is its own
 
@@ -47,7 +47,7 @@ the store talks to.
    Transit; a value may instead be a reference into Vault. Applied secrets
    are held by the tenant's authority under its working key, never as a
    record, and a step reaches only the ones it declares.
-3. **The working key.** A per-tenant working key wraps the authority's signing
+3. **The working key.** Built. A per-tenant working key wraps the authority's signing
    keys and its people's keys. It is wrapped in turn by a key behind one
    port: the deployment key by default, a per-tenant Transit key in the
    provider's Vault, or a key the owner runs. It is held unwrapped for a

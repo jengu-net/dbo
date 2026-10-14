@@ -124,6 +124,42 @@ public final class VaultTransit {
         return Base64.getDecoder().decode(String.valueOf(data.get("plaintext")));
     }
 
+    /** The same Vault and login, with Transit mounted elsewhere; this one for null. */
+    VaultTransit withMount(String other) {
+        return other == null || other.equals(mount) ? this
+                : new VaultTransit(address, other, token);
+    }
+
+    /** A key wrapped under a Transit key: Vault's ciphertext for it. */
+    String wrap(String key, byte[] plain) {
+        Map<?, ?> answer = send(http, HttpRequest.newBuilder(address.resolve(
+                        "/v1/" + mount + "/encrypt/" + key))
+                .header("X-Vault-Token", token.get())
+                .POST(HttpRequest.BodyPublishers.ofString(RecordWire.write(Map.of(
+                        "plaintext", Base64.getEncoder().encodeToString(plain))))),
+                "wrap under '" + key + "'");
+        return String.valueOf(((Map<?, ?>) answer.get("data")).get("ciphertext"));
+    }
+
+    /**
+     * The same key wrapped again under the Transit key's latest version,
+     * without it leaving Vault: how a rotation reaches what was wrapped before.
+     */
+    String rewrap(String key, String wrapped) {
+        Map<?, ?> answer = send(http, HttpRequest.newBuilder(address.resolve(
+                        "/v1/" + mount + "/rewrap/" + key))
+                .header("X-Vault-Token", token.get())
+                .POST(HttpRequest.BodyPublishers.ofString(
+                        RecordWire.write(Map.of("ciphertext", wrapped)))),
+                "rewrap under '" + key + "'");
+        return String.valueOf(((Map<?, ?>) answer.get("data")).get("ciphertext"));
+    }
+
+    /** The Vault this reaches. */
+    URI address() {
+        return address;
+    }
+
     /** Where this Transit engine is mounted, as a file of secrets names it. */
     String mount() {
         return mount;

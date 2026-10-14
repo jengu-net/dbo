@@ -1750,6 +1750,15 @@ public enum DboPromises implements Promise {
             + "is withdrawn and nothing else — so an older commit is a rollback. The run names "
             + "the ref, the commit, its author and message, and who asked."),
 
+    TEN_A_TENANTS_WORKING_KEY_IS_HELD_WHERE_ITS_DECLARATION_SAYS("Everything a tenant keeps "
+            + "secret — its signing keys, its secrets, its people's keys — is wrapped under a "
+            + "working key of its own, kept in its database only wrapped, by the deployment's "
+            + "key or by a Transit key its declaration names, in the deployment's Vault or one "
+            + "its owner runs. A tenant whose keys the deployment's key wrapped moves them once, "
+            + "keeping the index its people are found by; a rotated Transit key rewraps it; and "
+            + "a tenant whose key will not unwrap is taken down within the time it is trusted "
+            + "for and does not come up, nothing it keeps opening under the deployment's key."),
+
     TEN_A_STEP_REACHES_THE_SECRETS_IT_DECLARES("A step declares the tenant's secrets a run "
             + "of it may reach, and reaches them by name through its lane, as its work asks: in "
             + "process in the clear, and across a wire only sealed to the participant's "

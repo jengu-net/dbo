@@ -186,6 +186,7 @@ cloud.jengu.dbo.auth.IdentityModel                                     LOGIN_SYS
 cloud.jengu.dbo.auth.IdentityModel                                     RESOLVED_PERSON_SYSTEM:String
 cloud.jengu.dbo.auth.IdentityModel                                     ROLE_CODE_SYSTEM:String
 cloud.jengu.dbo.auth.IdentityModel                                     SECRET_SYSTEM:String
+cloud.jengu.dbo.auth.IdentityModel                                     WORKING_KEY_SYSTEM:String
 cloud.jengu.dbo.auth.IdentityModel                                     class
 cloud.jengu.dbo.auth.IdentityModel                                     identificationRegistrations():List
 cloud.jengu.dbo.auth.IdentityModel                                     registrations():List
@@ -208,6 +209,8 @@ cloud.jengu.dbo.auth.Jws.Parts                                         signingIn
 cloud.jengu.dbo.auth.Jws.Parts                                         toString():String
 cloud.jengu.dbo.auth.KeyProtector                                      class
 cloud.jengu.dbo.auth.KeyProtector                                      new(byte[])
+cloud.jengu.dbo.auth.KeyProtector                                      new(byte[],byte[])
+cloud.jengu.dbo.auth.KeyProtector                                      opensThePrevious():boolean
 cloud.jengu.dbo.auth.KeyProtector                                      unwrap(byte[]):byte[]
 cloud.jengu.dbo.auth.KeyProtector                                      wrap(byte[]):byte[]
 cloud.jengu.dbo.auth.LoginPage                                         BARE:cloud.jengu.dbo.auth.LoginPage
@@ -376,6 +379,7 @@ cloud.jengu.dbo.auth.TenantAuthority                                   redeemSec
 cloud.jengu.dbo.auth.TenantAuthority                                   refresh(String):cloud.jengu.dbo.auth.TenantAuthority.TokenResult
 cloud.jengu.dbo.auth.TenantAuthority                                   resolveByNationalId(String,String):Optional
 cloud.jengu.dbo.auth.TenantAuthority                                   retireCredential(String):void
+cloud.jengu.dbo.auth.TenantAuthority                                   rewrapKeys():int
 cloud.jengu.dbo.auth.TenantAuthority                                   roleGrants(boolean):List
 cloud.jengu.dbo.auth.TenantAuthority                                   rotateSigningKey():String
 cloud.jengu.dbo.auth.TenantAuthority                                   secret(String):Optional
@@ -2719,8 +2723,10 @@ cloud.jengu.dbo.pdi.PersonVault                                        findAllBy
 cloud.jengu.dbo.pdi.PersonVault                                        findByIdentifier(String,String):Optional
 cloud.jengu.dbo.pdi.PersonVault                                        fingerprintOf(String):String
 cloud.jengu.dbo.pdi.PersonVault                                        index(String,String,String):void
+cloud.jengu.dbo.pdi.PersonVault                                        indexKeyOf(byte[]):byte[]
 cloud.jengu.dbo.pdi.PersonVault                                        keyFor(String,boolean):Optional
 cloud.jengu.dbo.pdi.PersonVault                                        new(DataSource,byte[])
+cloud.jengu.dbo.pdi.PersonVault                                        new(DataSource,byte[],byte[],byte[])
 cloud.jengu.dbo.pdi.PersonVault                                        personOf(String,String):Optional
 cloud.jengu.dbo.pdi.PersonVault                                        pseudonymFor(String,String):Optional
 cloud.jengu.dbo.pdi.PersonVault                                        recordsOf(String):List
@@ -2728,6 +2734,7 @@ cloud.jengu.dbo.pdi.PersonVault                                        recordsOf
 cloud.jengu.dbo.pdi.PersonVault                                        replayLedger():int
 cloud.jengu.dbo.pdi.PersonVault                                        restrict(String,boolean):void
 cloud.jengu.dbo.pdi.PersonVault                                        restricted(String):boolean
+cloud.jengu.dbo.pdi.PersonVault                                        rewrapAll():int
 cloud.jengu.dbo.pdi.PersonVault                                        sealedUnder(Collection):Map
 cloud.jengu.dbo.pdi.PersonVault                                        shred(String):cloud.jengu.dbo.pdi.PersonVault.Shred
 cloud.jengu.dbo.pdi.PersonVault                                        storeAssigned(String):boolean
@@ -3356,6 +3363,7 @@ cloud.jengu.dbo.promises.DboPromises                                   TEN_A_REF
 cloud.jengu.dbo.promises.DboPromises                                   TEN_A_SLOW_BRING_UP_HOLDS_UP_ONLY_ITSELF:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_A_STALE_INDEX_IS_REMEMBERED_UNTIL_IT_IS_REBUILT:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_A_STEP_REACHES_THE_SECRETS_IT_DECLARES:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   TEN_A_TENANTS_WORKING_KEY_IS_HELD_WHERE_ITS_DECLARATION_SAYS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_A_TENANT_COMES_UP_FROM_THE_FACE_IMAGE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_A_TYPE_DECLARES_ITS_DOMAIN:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_COMING_UP_AND_KEEPING_UP_ARE_NOT_ONE_QUEUE:cloud.jengu.dbo.promises.DboPromises
@@ -4769,6 +4777,7 @@ cloud.jengu.dbo.tenant.TenantRuntimeManager                            scanOnce(
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            serveErasure(String):void
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            serveRuntimeState(String):void
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            servesAPlaceOf(String):void
+cloud.jengu.dbo.tenant.TenantRuntimeManager                            serviceAccountToken(Path):void
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            shapesRound():int
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            start(long):void
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            stepIncidents():Map
@@ -4789,6 +4798,7 @@ cloud.jengu.dbo.tenant.TenantRuntimeManager                            vault(clo
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            verbs(String):Optional
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            wakeupsFor(String):Optional
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            whatTheVersionCouldNotCarry(String):List
+cloud.jengu.dbo.tenant.TenantRuntimeManager                            workingKeyRecheck(Duration):void
 cloud.jengu.dbo.tenant.TenantRuntimeManager.AuthorityConfig            brokerSecrets():Map
 cloud.jengu.dbo.tenant.TenantRuntimeManager.AuthorityConfig            equals(Object):boolean
 cloud.jengu.dbo.tenant.TenantRuntimeManager.AuthorityConfig            hashCode():int
@@ -4879,6 +4889,7 @@ cloud.jengu.dbo.tenant.TenantSpec                                      new(Strin
 cloud.jengu.dbo.tenant.TenantSpec                                      new(String,String,List,boolean,cloud.jengu.dbo.policy.TenantPolicies,String,String,List,List,cloud.jengu.dbo.tenant.TenantSpec.Scim,List,String,boolean,List,boolean,boolean,List,Set,Set,Set)
 cloud.jengu.dbo.tenant.TenantSpec                                      new(String,String,List,boolean,cloud.jengu.dbo.policy.TenantPolicies,String,String,List,List,cloud.jengu.dbo.tenant.TenantSpec.Scim,List,String,boolean,List,boolean,boolean,List,Set,Set,Set,String)
 cloud.jengu.dbo.tenant.TenantSpec                                      new(String,String,List,boolean,cloud.jengu.dbo.policy.TenantPolicies,String,String,List,List,cloud.jengu.dbo.tenant.TenantSpec.Scim,List,String,boolean,List,boolean,boolean,List,Set,Set,Set,String,cloud.jengu.dbo.tenant.TenantSpec.Configuration)
+cloud.jengu.dbo.tenant.TenantSpec                                      new(String,String,List,boolean,cloud.jengu.dbo.policy.TenantPolicies,String,String,List,List,cloud.jengu.dbo.tenant.TenantSpec.Scim,List,String,boolean,List,boolean,boolean,List,Set,Set,Set,String,cloud.jengu.dbo.tenant.TenantSpec.Configuration,cloud.jengu.dbo.tenant.TenantSpec.WorkingKey)
 cloud.jengu.dbo.tenant.TenantSpec                                      onlyTheDeploymentDeclaresFleetSteps(cloud.jengu.dbo.tenant.TenantSpec):void
 cloud.jengu.dbo.tenant.TenantSpec                                      parse(String):cloud.jengu.dbo.tenant.TenantSpec
 cloud.jengu.dbo.tenant.TenantSpec                                      partnerOf():String
@@ -4891,6 +4902,7 @@ cloud.jengu.dbo.tenant.TenantSpec                                      substrate
 cloud.jengu.dbo.tenant.TenantSpec                                      substrateDatabaseName(String,String):String
 cloud.jengu.dbo.tenant.TenantSpec                                      toString():String
 cloud.jengu.dbo.tenant.TenantSpec                                      types():List
+cloud.jengu.dbo.tenant.TenantSpec                                      workingKey():cloud.jengu.dbo.tenant.TenantSpec.WorkingKey
 cloud.jengu.dbo.tenant.TenantSpec                                      zone():String
 cloud.jengu.dbo.tenant.TenantSpec                                      zoneRoot():boolean
 cloud.jengu.dbo.tenant.TenantSpec.Answer                               audience():String
@@ -5006,6 +5018,16 @@ cloud.jengu.dbo.tenant.TenantSpec.Step.Awaits                          RECORDS:c
 cloud.jengu.dbo.tenant.TenantSpec.Step.Awaits                          enum
 cloud.jengu.dbo.tenant.TenantSpec.Step.Awaits                          valueOf(String):cloud.jengu.dbo.tenant.TenantSpec.Step.Awaits
 cloud.jengu.dbo.tenant.TenantSpec.Step.Awaits                          values():cloud.jengu.dbo.tenant.TenantSpec.Step.Awaits[]
+cloud.jengu.dbo.tenant.TenantSpec.WorkingKey                           authMount():String
+cloud.jengu.dbo.tenant.TenantSpec.WorkingKey                           equals(Object):boolean
+cloud.jengu.dbo.tenant.TenantSpec.WorkingKey                           hashCode():int
+cloud.jengu.dbo.tenant.TenantSpec.WorkingKey                           key():String
+cloud.jengu.dbo.tenant.TenantSpec.WorkingKey                           mount():String
+cloud.jengu.dbo.tenant.TenantSpec.WorkingKey                           new(String,String,String,String,String)
+cloud.jengu.dbo.tenant.TenantSpec.WorkingKey                           record
+cloud.jengu.dbo.tenant.TenantSpec.WorkingKey                           role():String
+cloud.jengu.dbo.tenant.TenantSpec.WorkingKey                           toString():String
+cloud.jengu.dbo.tenant.TenantSpec.WorkingKey                           vault():String
 cloud.jengu.dbo.tenant.TenantState                                     code():String
 cloud.jengu.dbo.tenant.TenantState                                     equals(Object):boolean
 cloud.jengu.dbo.tenant.TenantState                                     hashCode():int
