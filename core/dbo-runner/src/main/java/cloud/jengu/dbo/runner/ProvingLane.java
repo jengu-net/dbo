@@ -346,6 +346,45 @@ public final class ProvingLane implements Lane {
         return run;
     }
 
+    /** What a step proved here is a part of: nothing, unless the test says so. */
+    private Run partOf;
+
+    /** The secrets a step proved here may reach, as the test hands them over. */
+    private final Map<String, byte[]> secrets = new java.util.HashMap<>();
+
+    /** The run the offered one is a part of, as a step reads it. */
+    public ProvingLane asPartOf(Run parent) {
+        this.partOf = parent;
+        return this;
+    }
+
+    /** A secret the step may reach, by name. */
+    public ProvingLane withSecret(String name, String value) {
+        secrets.put(name, value.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        return this;
+    }
+
+    @Override
+    public java.util.Optional<Run> partOf(Run run) {
+        return java.util.Optional.ofNullable(partOf);
+    }
+
+    @Override
+    public byte[] secret(Run run, String name) {
+        byte[] value = secrets.get(name);
+        if (value == null) {
+            throw new IllegalStateException("the proving lane was handed no secret '" + name
+                    + "'");
+        }
+        return value.clone();
+    }
+
+    /** Refused: a proving lane is in process, and a secret is sealed only to cross a wire. */
+    @Override
+    public cloud.jengu.dbo.work.SealedPayload sealedSecret(Run run, String name) {
+        throw new IllegalStateException("a proving lane is in process, and seals nothing");
+    }
+
     @Override
     public void closed(Run run) {
         this.ended = Ended.CLOSED;

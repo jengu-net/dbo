@@ -300,40 +300,29 @@ public interface Lane {
      * checked before anything is written, started once the records are, and
      * then the run closes.
      *
-     * <p>Refused, not ignored, by a lane that cannot carry them: a result
-     * whose parts were dropped would close a run that set nothing going.
+     * <p>Abstract, not defaulted: a lane that inherited this would close a
+     * run that set nothing going, its parts dropped.
      */
-    default Run committed(Run run, String head, List<Outcome.Write> result,
-            List<Outcome.Part> parts) {
-        if (parts.isEmpty()) {
-            return committed(run, head, result);
-        }
-        throw new UnsupportedOperationException(getClass().getName()
-                + " cannot start the parts a result names");
-    }
+    Run committed(Run run, String head, List<Outcome.Write> result,
+            List<Outcome.Part> parts);
 
     /**
      * The same, also saying something of the lasting work this run is a
      * part of: checked before anything is written, said once its records and
-     * parts are.
+     * parts are. Abstract for the reason the one above is: what a part said
+     * of its work would be lost by a lane that inherited it.
      */
-    default Run committed(Run run, String head, List<Outcome.Write> result,
-            List<Outcome.Part> parts, Outcome.Said said) {
-        if (said == null) {
-            return committed(run, head, result, parts);
-        }
-        throw new UnsupportedOperationException(getClass().getName()
-                + " cannot say anything of the work a run is a part of");
-    }
+    Run committed(Run run, String head, List<Outcome.Write> result,
+            List<Outcome.Part> parts, Outcome.Said said);
 
     /**
      * The run this one is a part of, as it stands, for the holder of this
      * one: what lasting work's parts read of it — the request it fulfils and
-     * its stage. Empty for a run that is a part of nothing.
+     * its stage. Empty for a run that is a part of nothing — and abstract,
+     * because a lane that inherited empty would hand a part its work as
+     * though it had none.
      */
-    default java.util.Optional<Run> partOf(Run run) {
-        return java.util.Optional.empty();
-    }
+    java.util.Optional<Run> partOf(Run run);
 
     /**
      * A closed run, deliberately open again, with the reason recorded
@@ -660,19 +649,16 @@ public interface Lane {
     /**
      * A secret of the tenant's, for the run this participant holds, its step
      * declaring it — in the clear, which is why no verb carries this one
-     * across a wire.
+     * across a wire. Abstract: every lane says how it reaches one, or that
+     * it reaches none.
      */
-    default byte[] secret(Run run, String name) {
-        throw new IllegalStateException(tenant() + ": this lane reaches no secrets");
-    }
+    byte[] secret(Run run, String name);
 
     /**
      * The same secret, sealed to this participant's enrolment key: the only
      * form one leaves the tenant in.
      */
-    default cloud.jengu.dbo.work.SealedPayload sealedSecret(Run run, String name) {
-        throw new IllegalStateException(tenant() + ": this lane reaches no secrets");
-    }
+    cloud.jengu.dbo.work.SealedPayload sealedSecret(Run run, String name);
 
     interface Keys {
         /** The key a participant is sealed to. */

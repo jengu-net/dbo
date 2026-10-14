@@ -3726,6 +3726,7 @@ cloud.jengu.dbo.runner.Outcome.Write                                   upsert(St
 cloud.jengu.dbo.runner.Outcome.Write                                   url():String
 cloud.jengu.dbo.runner.Performing                                      class
 cloud.jengu.dbo.runner.Performing                                      performed(cloud.jengu.dbo.runner.Lane,cloud.jengu.dbo.work.Run,cloud.jengu.dbo.runner.StepService,Duration):cloud.jengu.dbo.runner.Outcome
+cloud.jengu.dbo.runner.ProvingLane                                     asPartOf(cloud.jengu.dbo.work.Run):cloud.jengu.dbo.runner.ProvingLane
 cloud.jengu.dbo.runner.ProvingLane                                     checkpoint(cloud.jengu.dbo.work.Run,Map,Duration):cloud.jengu.dbo.work.Run
 cloud.jengu.dbo.runner.ProvingLane                                     checkpoints():List
 cloud.jengu.dbo.runner.ProvingLane                                     claim(cloud.jengu.dbo.work.Run,Duration):Optional
@@ -3749,6 +3750,7 @@ cloud.jengu.dbo.runner.ProvingLane                                     milestone
 cloud.jengu.dbo.runner.ProvingLane                                     offerAgain():cloud.jengu.dbo.runner.ProvingLane
 cloud.jengu.dbo.runner.ProvingLane                                     offering(String):cloud.jengu.dbo.runner.ProvingLane.Offer
 cloud.jengu.dbo.runner.ProvingLane                                     opened(cloud.jengu.dbo.work.Run,String,cloud.jengu.dbo.work.RunChain.Link):String
+cloud.jengu.dbo.runner.ProvingLane                                     partOf(cloud.jengu.dbo.work.Run):Optional
 cloud.jengu.dbo.runner.ProvingLane                                     performed():int
 cloud.jengu.dbo.runner.ProvingLane                                     poll(Set,int):List
 cloud.jengu.dbo.runner.ProvingLane                                     polls():int
@@ -3762,9 +3764,12 @@ cloud.jengu.dbo.runner.ProvingLane                                     said():Li
 cloud.jengu.dbo.runner.ProvingLane                                     saysItHasWork():cloud.jengu.dbo.runner.ProvingLane
 cloud.jengu.dbo.runner.ProvingLane                                     sealed(cloud.jengu.dbo.work.Run):cloud.jengu.dbo.work.SealedWork
 cloud.jengu.dbo.runner.ProvingLane                                     sealed(cloud.jengu.dbo.work.Run,List):cloud.jengu.dbo.work.SealedWork
+cloud.jengu.dbo.runner.ProvingLane                                     sealedSecret(cloud.jengu.dbo.work.Run,String):cloud.jengu.dbo.work.SealedPayload
+cloud.jengu.dbo.runner.ProvingLane                                     secret(cloud.jengu.dbo.work.Run,String):byte[]
 cloud.jengu.dbo.runner.ProvingLane                                     started():List
 cloud.jengu.dbo.runner.ProvingLane                                     tenant():String
 cloud.jengu.dbo.runner.ProvingLane                                     wakeups():Optional
+cloud.jengu.dbo.runner.ProvingLane                                     withSecret(String,String):cloud.jengu.dbo.runner.ProvingLane
 cloud.jengu.dbo.runner.ProvingLane                                     withdraw(cloud.jengu.dbo.work.Declarations.Declared):void
 cloud.jengu.dbo.runner.ProvingLane                                     workAppears():cloud.jengu.dbo.runner.ProvingLane
 cloud.jengu.dbo.runner.ProvingLane                                     written():List

@@ -202,6 +202,34 @@ class ARemoteLaneIsIndistinguishableIT {
         }
 
         @Override
+        public Run committed(Run run, String head, java.util.List<cloud.jengu.dbo.runner.Outcome.Write> result,
+                java.util.List<cloud.jengu.dbo.runner.Outcome.Part> parts) {
+            return across("committed", () -> farSide.committed(run, head, result, parts));
+        }
+
+        @Override
+        public Run committed(Run run, String head, java.util.List<cloud.jengu.dbo.runner.Outcome.Write> result,
+                java.util.List<cloud.jengu.dbo.runner.Outcome.Part> parts,
+                cloud.jengu.dbo.runner.Outcome.Said said) {
+            return across("committed", () -> farSide.committed(run, head, result, parts, said));
+        }
+
+        @Override
+        public Optional<Run> partOf(Run run) {
+            return across("part-of", () -> farSide.partOf(run));
+        }
+
+        @Override
+        public byte[] secret(Run run, String name) {
+            return across("secret", () -> farSide.secret(run, name));
+        }
+
+        @Override
+        public cloud.jengu.dbo.work.SealedPayload sealedSecret(Run run, String name) {
+            return across("secret", () -> farSide.sealedSecret(run, name));
+        }
+
+        @Override
         public void closed(Run run) {
             across("closed", () -> {
                 farSide.closed(run);
