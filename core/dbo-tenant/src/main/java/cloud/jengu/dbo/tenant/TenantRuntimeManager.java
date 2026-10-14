@@ -3973,6 +3973,22 @@ public final class TenantRuntimeManager implements AutoCloseable {
         };
     }
 
+    /**
+     * A secret for a run of a step, where the step declares it: a step
+     * reaches what its declaration names and nothing else the tenant holds.
+     */
+    private java.util.Optional<byte[]> reachSecret(TenantSpec spec, String step, String name) {
+        boolean declared = spec.steps().stream()
+                .anyMatch(one -> one.code().equals(step) && one.secrets().contains(name));
+        if (!declared) {
+            throw new IllegalStateException(spec.code() + ": step '" + step + "' does not "
+                    + "declare the secret '" + name + "', and a step reaches only the secrets "
+                    + "it declares");
+        }
+        cloud.jengu.dbo.auth.TenantAuthority authority = authorities.get(spec.code());
+        return authority == null ? java.util.Optional.empty() : authority.secret(name);
+    }
+
     private cloud.jengu.dbo.auth.TenantAuthority authorityHolding(String code, String secret) {
         cloud.jengu.dbo.auth.TenantAuthority authority = authorities.get(code);
         if (authority == null) {
@@ -4649,7 +4665,9 @@ public final class TenantRuntimeManager implements AutoCloseable {
                                     // Nothing here says when work appears: a
                                     // participant over this door polls.
                                     null,
-                                    runResults),
+                                    runResults,
+                                    // A step reaches the secrets it declares.
+                                    (step, name) -> reachSecret(spec, step, name)),
                                 contacts, laneRuns, laneDeclarations, heartbeatLimit, asker);
                     };
             // The same lane on the store's own stream, for a participant that

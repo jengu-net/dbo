@@ -315,6 +315,29 @@ public class WireLane implements Lane {
     }
 
     @Override
+    public byte[] secret(Run run, String name) {
+        if (holding == null) {
+            throw new IllegalStateException("a secret leaves the tenant only sealed, and "
+                    + identity.name() + " holds no key to open one");
+        }
+        try {
+            return sealedSecret(run, name).open(identity.name(), holding).payload();
+        } catch (java.security.GeneralSecurityException unopened) {
+            throw new IllegalStateException("the secret '" + name + "' did not open with "
+                    + identity.name() + "'s key", unopened);
+        }
+    }
+
+    @Override
+    public cloud.jengu.dbo.work.SealedPayload sealedSecret(Run run, String name) {
+        Map<String, Object> body = verb();
+        body.put(LaneVerbs.RUN, RecordWire.encode(run));
+        body.put(LaneVerbs.SECRET_NAME, name);
+        return RecordWire.decode(post(LaneVerbs.SECRET, body),
+                cloud.jengu.dbo.work.SealedPayload.class);
+    }
+
+    @Override
     public cloud.jengu.dbo.work.SealedWork sealed(Run run) {
         return sealed(run, null);
     }

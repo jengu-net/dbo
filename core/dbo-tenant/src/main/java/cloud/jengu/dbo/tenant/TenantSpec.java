@@ -99,11 +99,22 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
      *                 by the runs that are its parts
      * @param awaits   for an exchange a zone declares, what the asker waits for
      *                 from the tenant whose data it is
+     * @param secrets  the secrets of the tenant a run of it may reach, by name:
+     *                 a step reaches what it declares and nothing else
      */
     public record Step(String code, java.util.Map<String, String> slots,
             java.util.Set<String> writes, cloud.jengu.dbo.core.process.RetryPolicy retry,
             cloud.jengu.dbo.core.process.AutomationCriterion automate, Answer answer,
-            Starts starts, boolean lasts, Awaits awaits) {
+            Starts starts, boolean lasts, Awaits awaits, java.util.Set<String> secrets) {
+
+        /** A step that reaches no secret. */
+        public Step(String code, java.util.Map<String, String> slots,
+                java.util.Set<String> writes, cloud.jengu.dbo.core.process.RetryPolicy retry,
+                cloud.jengu.dbo.core.process.AutomationCriterion automate, Answer answer,
+                Starts starts, boolean lasts, Awaits awaits) {
+            this(code, slots, writes, retry, automate, answer, starts, lasts, awaits,
+                    java.util.Set.of());
+        }
 
         /** A step whose asker, where it crosses, waits for the records shared. */
         public Step(String code, java.util.Map<String, String> slots,
@@ -158,6 +169,7 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
 
         public Step {
             writes = java.util.Set.copyOf(writes);
+            secrets = secrets == null ? java.util.Set.of() : java.util.Set.copyOf(secrets);
             if (code == null || code.isBlank()) {
                 throw new IllegalArgumentException("a step declares a code");
             }
@@ -1179,7 +1191,7 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
                 }
                 steps.add(new Step(stepCode, slots, writes, retry, automate,
                         answer(code, stepCode, step, policies), starts, Json.bool(step, "lasts"),
-                        awaits));
+                        awaits, Set.copyOf(Json.strings(step, "secrets"))));
             }
         }
         // The steps the DEPLOYMENT performs, which only the management

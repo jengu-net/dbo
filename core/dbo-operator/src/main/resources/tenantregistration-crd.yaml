@@ -212,6 +212,12 @@ spec:
                       awaits:
                         type: string
                         enum: [records, outcome, none]
+                      # The tenant's secrets a run of the step may reach, by
+                      # name: a step reaches what it declares and nothing else.
+                      secrets:
+                        type: array
+                        items:
+                          type: string
                       # Whether a run of the step is work that lasts: opened
                       # for the one request its one slot names, held by
                       # nobody, moved and ended by the runs that are its parts.

@@ -643,6 +643,37 @@ public interface Lane {
      * to; a participant that offered none is sealed to by nobody, and a host
      * that wires none seals nothing.
      */
+    /**
+     * The tenant's secrets, as the host keeps them: reached for a run of a
+     * step that declares the secret, and for nothing else.
+     */
+    @FunctionalInterface
+    interface Secrets {
+
+        /**
+         * @param step the step's whole code
+         * @throws IllegalStateException when the step does not declare it
+         */
+        Optional<byte[]> reach(String step, String name);
+    }
+
+    /**
+     * A secret of the tenant's, for the run this participant holds, its step
+     * declaring it — in the clear, which is why no verb carries this one
+     * across a wire.
+     */
+    default byte[] secret(Run run, String name) {
+        throw new IllegalStateException(tenant() + ": this lane reaches no secrets");
+    }
+
+    /**
+     * The same secret, sealed to this participant's enrolment key: the only
+     * form one leaves the tenant in.
+     */
+    default cloud.jengu.dbo.work.SealedPayload sealedSecret(Run run, String name) {
+        throw new IllegalStateException(tenant() + ": this lane reaches no secrets");
+    }
+
     interface Keys {
         /** The key a participant is sealed to. */
         Optional<cloud.jengu.dbo.core.api.seal.ParticipantKey> of(String participant);
@@ -786,7 +817,45 @@ public interface Lane {
             cloud.jengu.dbo.work.Introductions introductions,
             Entitlement entitlement, Trackables trackables, Trail trail, Keys keys,
             Wakeups wakeups, Results results) {
+        return inProcess(tenant, runs, feed, declarations, participant, identity, objects,
+                introductions, entitlement, trackables, trail, keys, wakeups, results, null);
+    }
+
+    /** The same, reaching the tenant's secrets for the steps that declare them. */
+    static Lane inProcess(String tenant, Runs runs, ChangeFeed feed,
+            Declarations declarations, String participant, Executor identity,
+            cloud.jengu.dbo.core.api.ObjectStore objects,
+            cloud.jengu.dbo.work.Introductions introductions,
+            Entitlement entitlement, Trackables trackables, Trail trail, Keys keys,
+            Wakeups wakeups, Results results, Secrets secrets) {
         return new Lane() {
+
+            @Override
+            public byte[] secret(Run run, String name) {
+                Run current = claimedByThisIdentity(run);
+                if (secrets == null) {
+                    throw new IllegalStateException(tenant + ": this host keeps no secrets");
+                }
+                return secrets.reach(current.process() + "." + current.step(), name)
+                        .orElseThrow(() -> new IllegalStateException(tenant + " holds no "
+                                + "secret '" + name + "'"));
+            }
+
+            @Override
+            public cloud.jengu.dbo.work.SealedPayload sealedSecret(Run run, String name) {
+                cloud.jengu.dbo.core.api.seal.ParticipantKey key = keys == null
+                        ? null : keys.of(identity.name()).orElse(null);
+                if (key == null) {
+                    throw new IllegalStateException(tenant + ": '" + identity.name()
+                            + "' offered no key at enrolment, and a secret leaves the tenant "
+                            + "only sealed");
+                }
+                byte[] value = secret(run, name);
+                return cloud.jengu.dbo.work.SealedPayload.seal("secret", "HeldSecret/" + name,
+                        new StoredObject(name, "HeldSecret", 1, java.time.Instant.now(), value,
+                                false, null),
+                        Map.of(identity.name(), key));
+            }
 
             @Override
             public Optional<Wakeups> wakeups() {

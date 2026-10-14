@@ -127,6 +127,20 @@ final class ContactLane implements Lane {
     }
 
     @Override
+    public byte[] secret(Run run, String name) {
+        byte[] value = lane.secret(run, name);
+        heardAbout(run);
+        return value;
+    }
+
+    @Override
+    public cloud.jengu.dbo.work.SealedPayload sealedSecret(Run run, String name) {
+        cloud.jengu.dbo.work.SealedPayload sealed = lane.sealedSecret(run, name);
+        heardAbout(run);
+        return sealed;
+    }
+
+    @Override
     public Run refused(Run run, String because) {
         Run ended = lane.refused(run, because);
         heardAbout(run);

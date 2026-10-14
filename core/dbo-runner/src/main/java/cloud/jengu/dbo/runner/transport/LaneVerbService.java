@@ -379,6 +379,7 @@ public final class LaneVerbService {
                 yield null;
             }
             case REFUSE -> lane.refused(run(body), string(body, LaneVerbs.REASON));
+            case SECRET -> lane.sealedSecret(run(body), string(body, LaneVerbs.SECRET_NAME));
             case CLOSED -> {
                 String head = string(body, LaneVerbs.HEAD);
                 if (head == null) {

@@ -67,7 +67,7 @@ public final class Performing {
                         public void milestone(String milestone, Map<String, Long> counts) {
                             latest.set(lane.milestone(latest.get(), milestone, counts, holdFor));
                         }
-                    }, partOf);
+                    }, partOf, name -> lane.secret(latest.get(), name));
             Outcome outcome = service.perform(work);
             if (outcome instanceof Outcome.Done done) {
                 Run reported = done.tally().isEmpty() ? latest.get()

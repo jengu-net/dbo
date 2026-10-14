@@ -1,11 +1,10 @@
-**Open; the git source is built, and a tenant's secrets come from it. A
-tenant declares a repository its owner keeps, and the store applies it commit
-by commit, reconciling each commit against what each file applied, so a
-rollback is an apply. Files of secrets are opened through the deployment's
-Vault under the tenant's own Transit key and kept by its authority. Left: a
-step reaching a secret by name, and a working key held where the owner says;
-every tenant's keys, and its secrets, are still wrapped under the one
-deployment key.**
+**Open; two of three steps are built. A tenant declares a repository its
+owner keeps, and the store applies it commit by commit, reconciling each
+commit against what each file applied, so a rollback is an apply. Files of
+secrets are opened through the deployment's Vault under the tenant's own
+Transit key, kept by its authority, and reached by name by the steps that
+declare them. Left: a working key held where the owner says; every tenant's
+keys, and its secrets, are still wrapped under the one deployment key.**
 
 # A tenant's configuration is its own
 
@@ -42,7 +41,7 @@ the store talks to.
    applied from it, file by file. The run names the ref asked for, the commit,
    its author and message, the identity that asked, and the counts. The door
    takes `{"ref": …}`; the preview is the same reconciliation, unwritten.
-2. **Secrets.** Kept from the repository; a step does not reach one yet. A secret is a value in a SOPS file in the repository, its data
+2. **Secrets.** Built. A secret is a value in a SOPS file in the repository, its data
    key wrapped for the tenant's Vault Transit key and for the owner's own
    recovery key. The store reads the format itself and unwraps through
    Transit; a value may instead be a reference into Vault. Applied secrets

@@ -47,6 +47,8 @@ public enum LaneVerbs {
      * the asker: the reassembly performed at the tenant, where it is recorded.
      */
     IDENTIFIED("identified"),
+    /** A secret of the tenant's that the run's step declares, sealed to the asker. */
+    SECRET("secret"),
     /**
      * A chunk of what the tenant replicates to a second place of itself, from
      * where this participant last acknowledged. Not a participation verb: it
@@ -126,6 +128,8 @@ public enum LaneVerbs {
      * authorisation, and what it does is put the reason in the trail.
      */
     public static final String PURPOSE = "purpose";
+    /** Which secret, by the name the step declares it under. */
+    public static final String SECRET_NAME = "secret";
     /** A refusal travels as a refusal: this flag, and why. */
     public static final String REFUSED = "refused";
     /**

@@ -195,6 +195,22 @@ and never as a record. A changed value replaces the old one, and a name the
 repository stops declaring is forgotten. A file wrapped by another key is a
 card naming the key it needed.
 
+A step reaches a secret it declares, by name:
+
+```json
+{ "code": "clinic.lab.connect", "slots": { "organisation": "Organization" },
+  "secrets": ["lab-connection-password"] }
+```
+
+```java
+String password = work.secret("lab-connection-password");
+```
+
+In process the value is handed over as it is. Over HTTP it travels only sealed
+to the participant's enrolment key, and is opened with the key the participant
+holds, so a participant that enrolled no key is refused. A step that does not
+declare the secret is refused by name.
+
 The store logs into Vault as itself: Kubernetes auth when
 `dbo.vault.kubernetes.role` is set, otherwise a token read from
 `dbo.vault.token.file`. `dbo.vault.address` names the Vault, and

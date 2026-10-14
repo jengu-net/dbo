@@ -58,6 +58,8 @@ class ATenantsConfigurationIsItsOwnIT {
     private static final String OWNER = "owner-" + RUN;
     private static final String ORG = "urn:example:org";
     private static final String TRIAGE = "http://example.org/ValueSet/triage";
+    private static final String CONNECT = "clinic.lab.connect";
+    private static final String PEEK = "clinic.lab.peek";
 
     private final HttpClient http = HttpClient.newHttpClient();
     private LocalDatabasePerTenantProvisioner databases;
@@ -106,8 +108,13 @@ class ATenantsConfigurationIsItsOwnIT {
                  "types":[
                   {"name":"Organization","identity":"identifier","systems":["%s"],
                    "handling":"operational"},
-                  {"name":"ValueSet","identity":"canonical","handling":"operational"}]}"""
-                .formatted(OWNER, repository.toString().replace("\\", "\\\\"), ORG));
+                  {"name":"ValueSet","identity":"canonical","handling":"operational"}],
+                 "steps":[
+                  {"code":"%s","slots":{"organisation":"Organization"},
+                   "secrets":["lab-connection-password"]},
+                  {"code":"%s","slots":{"organisation":"Organization"}}]}"""
+                .formatted(OWNER, repository.toString().replace("\\", "\\\\"), ORG, CONNECT,
+                        PEEK));
         UntilServed.scan(manager, OWNER);
         manager.authority(OWNER).ensureClient("owner", "owner-secret",
                 List.of("configuration"));
@@ -290,6 +297,105 @@ class ATenantsConfigurationIsItsOwnIT {
         assertTrue(carded.contains("\"declaration\":\"secrets/borrowed.sops.json\""), carded);
         assertTrue(carded.contains("tenant-" + OWNER), carded);
         assertEquals(null, secret("borrowed-token"));
+    }
+
+    @Test
+    @Order(8)
+    @DisplayName("a step reaches a secret it declares by name, in process and sealed to a "
+            + "participant's key over HTTP; a step that does not declare it, and a participant "
+            + "holding no key, are refused")
+    @Proving(DboPromises.TEN_A_STEP_REACHES_THE_SECRETS_IT_DECLARES)
+    void aStepReachesTheSecretsItDeclares() throws Exception {
+        git.rm().addFilepattern("secrets/borrowed.sops.json").call();
+        write("secrets/lab.sops.json", sealed("tenant-" + OWNER,
+                java.util.Map.of("lab-connection-password", "lab-pa55")));
+        commit("The lab's connection, again");
+        String applied = apply("");
+        assertEquals("0", number(applied, "skipped"), applied);
+
+        cloud.jengu.dbo.work.Executor performer = new cloud.jengu.dbo.work.Executor(
+                "performer", "1", "example.clinic", cloud.jengu.dbo.work.Scope.BASELINE);
+        assertEquals("lab-pa55", reached(declared(manager.fleetLane(OWNER, CONNECT, performer)
+                .orElseThrow(), CONNECT), CONNECT, "in-process"));
+        String peeked = reached(declared(manager.fleetLane(OWNER, PEEK, performer)
+                .orElseThrow(), PEEK), PEEK, "peeked");
+        assertTrue(peeked.startsWith("failed:") && peeked.contains("does not declare"), peeked);
+
+        cloud.jengu.dbo.core.api.seal.ParticipantKeys keys =
+                cloud.jengu.dbo.core.api.seal.ParticipantKeys.adoptOrMake(
+                        Files.createTempDirectory("dbo-keyed"));
+        manager.authority(OWNER).ensureClient("keyed", "keyed-secret", List.of("work"),
+                keys.sealingKey(), keys.signingKey());
+        manager.authority(OWNER).ensureClient("keyless", "keyless-secret", List.of("work"));
+        cloud.jengu.dbo.runner.Lane keyed = cloud.jengu.dbo.runner.http.HttpLane.holding(
+                URI.create(base() + "/work"), () -> tokenOf("keyed", "keyed-secret"), OWNER,
+                "keyed", new cloud.jengu.dbo.work.Executor("keyed", "1", "example.clinic",
+                        cloud.jengu.dbo.work.Scope.BASELINE), keys.sealing(), keys.signing());
+        assertEquals("lab-pa55", reached(declared(keyed, CONNECT), CONNECT, "keyed"));
+        cloud.jengu.dbo.runner.Lane keyless = cloud.jengu.dbo.runner.http.HttpLane.to(
+                URI.create(base() + "/work"), () -> tokenOf("keyless", "keyless-secret"), OWNER,
+                "keyless", new cloud.jengu.dbo.work.Executor("keyless", "1", "example.clinic",
+                        cloud.jengu.dbo.work.Scope.BASELINE));
+        String refused = reached(declared(keyless, CONNECT), CONNECT, "keyless");
+        assertTrue(refused.startsWith("failed:") && refused.contains("holds no key"), refused);
+    }
+
+    private static cloud.jengu.dbo.runner.Lane declared(cloud.jengu.dbo.runner.Lane lane,
+            String step) {
+        int dot = step.lastIndexOf('.');
+        lane.declare(new cloud.jengu.dbo.work.Declarations.Declared(step.substring(0, dot),
+                step.substring(dot + 1), lane.identity().name(), lane.identity().version(),
+                lane.identity().provider(), lane.identity().scope(), lane.identity().name()));
+        return lane;
+    }
+
+    /**
+     * A run of a step started and performed on a lane by a service that asks
+     * for the lab's password: what it was handed, or why it failed.
+     */
+    private String reached(cloud.jengu.dbo.runner.Lane lane, String step, String key)
+            throws Exception {
+        var started = manager.runInitiator().starting(OWNER, step, java.util.Map.of(
+                        "organisation", cloud.jengu.dbo.work.RunInitiator.Slot.object(
+                                organisation("lab-" + key, "The lab"))),
+                key + "-" + System.nanoTime());
+        assertEquals(201, started.status(), started.body());
+        Run run = new Runs(engine()).byKey(started.key()).orElseThrow();
+        Run held = lane.claim(run, java.time.Duration.ofMinutes(5)).orElseThrow(
+                () -> new AssertionError("nothing took " + started.key()));
+        String[] handed = new String[1];
+        cloud.jengu.dbo.runner.Outcome outcome = cloud.jengu.dbo.runner.Performing.performed(
+                lane, held, new cloud.jengu.dbo.runner.StepService() {
+                    @Override
+                    public String step() {
+                        return step;
+                    }
+
+                    @Override
+                    public cloud.jengu.dbo.runner.Outcome perform(
+                            cloud.jengu.dbo.runner.Work work) {
+                        handed[0] = work.secret("lab-connection-password");
+                        return cloud.jengu.dbo.runner.Outcome.done();
+                    }
+                }, java.time.Duration.ofMinutes(5));
+        if (outcome instanceof cloud.jengu.dbo.runner.Outcome.Failed failed) {
+            return "failed: " + failed.reason();
+        }
+        return handed[0];
+    }
+
+    private String tokenOf(String client, String secret) {
+        try {
+            String body = http.send(HttpRequest.newBuilder(URI.create(base() + "/oidc/token"))
+                            .header("Content-Type", "application/x-www-form-urlencoded")
+                            .POST(HttpRequest.BodyPublishers.ofString(
+                                    "grant_type=client_credentials&client_id=" + client
+                                            + "&client_secret=" + secret)).build(),
+                    HttpResponse.BodyHandlers.ofString()).body();
+            return field(body, "access_token");
+        } catch (Exception failed) {
+            throw new IllegalStateException(failed);
+        }
     }
 
     // ── secrets ──
