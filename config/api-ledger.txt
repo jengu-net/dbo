@@ -3336,6 +3336,7 @@ cloud.jengu.dbo.promises.DboPromises                                   SYNC_PROV
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_SPEC_DECLARED:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_TERMINOLOGY_GRAIN_SURVIVES:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_AN_ACTIVITY_DECLARES_WHERE_IT_APPLIES:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   TEN_AN_OWNERS_CONFIGURATION_IS_APPLIED_FROM_ITS_REPOSITORY:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_APPLYING_IS_ASKED_FOR_AND_RECORDED:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_A_CHANGE_CAN_BE_CLASSIFIED_WITHOUT_APPLYING:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_A_CHANGE_IS_NOT_A_RETRACTION:cloud.jengu.dbo.promises.DboPromises
@@ -4218,12 +4219,15 @@ cloud.jengu.dbo.sync.ConfigApplication                                 apply(Str
 cloud.jengu.dbo.sync.ConfigApplication                                 apply(String,String,List,cloud.jengu.dbo.sync.ConfigApplication.Applier):cloud.jengu.dbo.sync.ConfigApplication.Outcome
 cloud.jengu.dbo.sync.ConfigApplication                                 applyFrom(String,cloud.jengu.dbo.sync.ConfigSource):cloud.jengu.dbo.sync.ConfigApplication.Outcome
 cloud.jengu.dbo.sync.ConfigApplication                                 applyFrom(String,cloud.jengu.dbo.sync.ConfigSource,cloud.jengu.dbo.sync.ConfigApplication.Applier):cloud.jengu.dbo.sync.ConfigApplication.Outcome
+cloud.jengu.dbo.sync.ConfigApplication                                 claimOf(cloud.jengu.dbo.sync.ConfigApplication.Declared):Optional
 cloud.jengu.dbo.sync.ConfigApplication                                 class
 cloud.jengu.dbo.sync.ConfigApplication                                 declaration():cloud.jengu.dbo.core.process.StepDeclaration
 cloud.jengu.dbo.sync.ConfigApplication                                 intoTheStore(cloud.jengu.dbo.sync.ConfigApplication.Declared):cloud.jengu.dbo.sync.ConfigApplication.Applier.Verdict
 cloud.jengu.dbo.sync.ConfigApplication                                 new(cloud.jengu.dbo.core.api.ObjectStore,cloud.jengu.dbo.work.Runs,String)
 cloud.jengu.dbo.sync.ConfigApplication                                 new(cloud.jengu.dbo.core.api.ObjectStore,cloud.jengu.dbo.work.Runs,String,cloud.jengu.dbo.core.face.GrainCodec,cloud.jengu.dbo.core.face.DocumentEquivalence)
 cloud.jengu.dbo.sync.ConfigApplication                                 new(cloud.jengu.dbo.core.api.ObjectStore,cloud.jengu.dbo.work.Runs,String,cloud.jengu.dbo.core.face.GrainCodec,cloud.jengu.dbo.core.face.DocumentEquivalence,cloud.jengu.dbo.core.face.ReferenceResolution)
+cloud.jengu.dbo.sync.ConfigApplication                                 reconcile(String,String,List,List,cloud.jengu.dbo.sync.ConfigApplication.Applier):cloud.jengu.dbo.sync.ConfigApplication.Outcome
+cloud.jengu.dbo.sync.ConfigApplication                                 settledAt(String,String):boolean
 cloud.jengu.dbo.sync.ConfigApplication.Applier                         apply(cloud.jengu.dbo.sync.ConfigApplication.Declared):cloud.jengu.dbo.sync.ConfigApplication.Applier.Verdict
 cloud.jengu.dbo.sync.ConfigApplication.Applier                         held(String):List
 cloud.jengu.dbo.sync.ConfigApplication.Applier                         interface
@@ -4819,6 +4823,7 @@ cloud.jengu.dbo.tenant.TenantSpec                                      acceptedB
 cloud.jengu.dbo.tenant.TenantSpec                                      authorised():Set
 cloud.jengu.dbo.tenant.TenantSpec                                      broker():String
 cloud.jengu.dbo.tenant.TenantSpec                                      code():String
+cloud.jengu.dbo.tenant.TenantSpec                                      configuration():cloud.jengu.dbo.tenant.TenantSpec.Configuration
 cloud.jengu.dbo.tenant.TenantSpec                                      databaseName():String
 cloud.jengu.dbo.tenant.TenantSpec                                      databaseName(String):String
 cloud.jengu.dbo.tenant.TenantSpec                                      databaseName(String,String):String
@@ -4852,6 +4857,7 @@ cloud.jengu.dbo.tenant.TenantSpec                                      new(Strin
 cloud.jengu.dbo.tenant.TenantSpec                                      new(String,String,List,boolean,cloud.jengu.dbo.policy.TenantPolicies,String,String,List,List,cloud.jengu.dbo.tenant.TenantSpec.Scim,List,String,boolean,List,boolean,boolean,List,Set,Set)
 cloud.jengu.dbo.tenant.TenantSpec                                      new(String,String,List,boolean,cloud.jengu.dbo.policy.TenantPolicies,String,String,List,List,cloud.jengu.dbo.tenant.TenantSpec.Scim,List,String,boolean,List,boolean,boolean,List,Set,Set,Set)
 cloud.jengu.dbo.tenant.TenantSpec                                      new(String,String,List,boolean,cloud.jengu.dbo.policy.TenantPolicies,String,String,List,List,cloud.jengu.dbo.tenant.TenantSpec.Scim,List,String,boolean,List,boolean,boolean,List,Set,Set,Set,String)
+cloud.jengu.dbo.tenant.TenantSpec                                      new(String,String,List,boolean,cloud.jengu.dbo.policy.TenantPolicies,String,String,List,List,cloud.jengu.dbo.tenant.TenantSpec.Scim,List,String,boolean,List,boolean,boolean,List,Set,Set,Set,String,cloud.jengu.dbo.tenant.TenantSpec.Configuration)
 cloud.jengu.dbo.tenant.TenantSpec                                      onlyTheDeploymentDeclaresFleetSteps(cloud.jengu.dbo.tenant.TenantSpec):void
 cloud.jengu.dbo.tenant.TenantSpec                                      parse(String):cloud.jengu.dbo.tenant.TenantSpec
 cloud.jengu.dbo.tenant.TenantSpec                                      partnerOf():String
@@ -4877,6 +4883,13 @@ cloud.jengu.dbo.tenant.TenantSpec.Answer                               revealing
 cloud.jengu.dbo.tenant.TenantSpec.Answer                               reveals():cloud.jengu.dbo.core.api.Disclosure.Mode
 cloud.jengu.dbo.tenant.TenantSpec.Answer                               toString():String
 cloud.jengu.dbo.tenant.TenantSpec.Answer                               types():Set
+cloud.jengu.dbo.tenant.TenantSpec.Configuration                        equals(Object):boolean
+cloud.jengu.dbo.tenant.TenantSpec.Configuration                        git():String
+cloud.jengu.dbo.tenant.TenantSpec.Configuration                        hashCode():int
+cloud.jengu.dbo.tenant.TenantSpec.Configuration                        new(String,String)
+cloud.jengu.dbo.tenant.TenantSpec.Configuration                        record
+cloud.jengu.dbo.tenant.TenantSpec.Configuration                        ref():String
+cloud.jengu.dbo.tenant.TenantSpec.Configuration                        toString():String
 cloud.jengu.dbo.tenant.TenantSpec.Dependency                           equals(Object):boolean
 cloud.jengu.dbo.tenant.TenantSpec.Dependency                           face():boolean
 cloud.jengu.dbo.tenant.TenantSpec.Dependency                           hashCode():int

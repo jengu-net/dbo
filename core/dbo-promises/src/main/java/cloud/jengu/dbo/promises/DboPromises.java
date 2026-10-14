@@ -1742,6 +1742,14 @@ public enum DboPromises implements Promise {
             + "arrived, what is stored names the referent by id, and a reference nothing can "
             + "answer fails that declaration by name rather than landing as a question."),
 
+    TEN_AN_OWNERS_CONFIGURATION_IS_APPLIED_FROM_ITS_REPOSITORY("A tenant may declare a "
+            + "repository its owner keeps, read at a commit from its objects and never "
+            + "fetched: its declared ref is applied when it comes up, and any ref when asked. "
+            + "Each apply reconciles the commit with what each file applied before — a file "
+            + "unchanged is not read, a changed one is applied, and what a file stops declaring "
+            + "is withdrawn and nothing else — so an older commit is a rollback. The run names "
+            + "the ref, the commit, its author and message, and who asked."),
+
     TEN_A_CHANGE_CAN_BE_CLASSIFIED_WITHOUT_APPLYING("What a declaration would do to the "
             + "tenants it names is answerable without doing it — hot, rebuilt in place, or "
             + "refused with what it would need — on the door that applies it and under the "

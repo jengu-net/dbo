@@ -1,10 +1,9 @@
-**Open, and started. A tenant owner's configuration is to come from a git
-repository the owner keeps, applied commit by commit, with its secrets sealed
-to keys the store reaches through Vault and its working key held where the
-owner says. Nothing of it is built yet: the store applies only the
-deployment's declarations, keeps no record of which file wrote which record,
-holds no secret a step can reach, and wraps every tenant's keys under the one
-deployment key.**
+**Open; the first of three steps is built. A tenant declares a git repository
+its owner keeps, and the store applies it commit by commit, reconciling each
+commit against what each file applied, so a rollback is an apply. Left:
+secrets sealed in the repository and unwrapped through Vault, and a working
+key held where the owner says. No secret a step can reach exists yet, and
+every tenant's keys are still wrapped under the one deployment key.**
 
 # A tenant's configuration is its own
 
@@ -12,12 +11,14 @@ Issue: [426](https://github.com/jengu-net/dbo/issues/426)
 
 ## Where it stands
 
-`ConfigSource` and `ConfigApplication` exist and are type-blind: a source
-hands over declarations with a marker, and a pass applies them as one sweep
-run, withdrawing what a complete read no longer names. Today they read only
-the deployment's tenant declarations and a face's vocabulary at bring-up. No
-tenant declares a source of its own, and withdrawal is by type across the
-whole store, because nothing records which declarer wrote which record.
+A tenant declares `configuration: {git, ref}`. `ConfigRepository` reads the
+repository at a commit with JGit, embedded in the tenant bundle, and
+`OwnersConfiguration` reconciles it: `ConfigFiles` keeps, in the tenant's own
+store, what each file applied, and `ConfigApplication.reconcile` applies what
+changed and withdraws what a file stopped declaring, as one sweep run of the
+scope `git.<tenant>`, correlated with the commit. Each apply records an act
+under that run. The door takes `{"ref": …}`, and its preview lists the
+changes. `ATenantsConfigurationIsItsOwnIT` proves it.
 
 `SealedArchive` seals an export under an owner key handed in per act.
 `KeyProtector` and `PersonVault` wrap a tenant's signing keys and its people's
@@ -27,7 +28,7 @@ the store talks to.
 
 ## The sequence
 
-1. **A git source and its changelists.** A tenant declares a repository on a
+1. **A git source and its changelists.** Built. A tenant declares a repository on a
    path the deployment can read, and a default ref. The store reads it at a
    commit with JGit, from git's objects and never a working tree, and
    reconciles: what the commit declares, against what the store recorded as

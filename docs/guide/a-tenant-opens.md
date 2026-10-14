@@ -130,6 +130,50 @@ Each of these is a leg of the story, and its
 [joins table](../arc42-003-context/user-stories/us-dbo-tenant-opening.md#joins)
 names the promise and the test that proves it.
 
+## The owner's configuration, from their repository
+
+The declaration is the provider's. What the clinic is made of (its wards, its
+value sets) can be the owner's, kept in a git repository the owner commits to
+and the deployment keeps a copy of on a path it can read:
+
+```json
+{ "code": "clinic", "face": "r5",
+  "configuration": { "git": "/srv/config/clinic.git", "ref": "main" } }
+```
+
+Every JSON file outside a hidden directory is one record, and its
+`resourceType` says which. The declared ref is applied when the tenant comes
+up. A client holding the `configuration` scope applies any ref at the tenant's
+door:
+
+```http
+POST /t/clinic/configuration
+{"ref": "v2"}
+```
+
+An empty body applies the declared ref. `POST /t/clinic/configuration/preview`
+with a ref lists the files that applying it would add, change or remove, and
+writes nothing.
+
+Each apply compares the commit with what each file applied last time:
+
+- a file that has not changed is not read;
+- a changed or new file is applied;
+- whatever a file stopped declaring is withdrawn, and nothing another
+  declarer wrote.
+
+Applying an older ref is the same comparison, so a rollback is an apply. The
+answer, and an act recorded under the configuration's run, name the ref, the
+commit, its author and message, and the client that asked.
+
+The store reads git's objects at the commit and never checks anything out. It
+refuses a declaration that is a link or a submodule, a pointer to Large File
+Storage, a repository that borrows objects from elsewhere, and a file larger
+than 4 MB. It never fetches: keeping the copy current is the deployment's. A
+record that names nothing it could be found by again, such as an organisation
+with no identifier, is refused as a card naming its file, because it could
+never be withdrawn.
+
 ## What the store cannot do yet
 
 - **No shared tier.** Every tenant is a database. A clinic too small to justify

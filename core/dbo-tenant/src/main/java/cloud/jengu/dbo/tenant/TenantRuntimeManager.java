@@ -1008,6 +1008,8 @@ public final class TenantRuntimeManager implements AutoCloseable {
             new ConcurrentHashMap<>();
     /** Where each tenant's ask-to-apply door is mounted, for the same teardown. */
     private final Map<String, String> configurationContexts = new ConcurrentHashMap<>();
+    /** Each tenant's owner's configuration, where it declares one: one apply at a time. */
+    private final Map<String, ConfigurationHandler.Owners> owners = new ConcurrentHashMap<>();
     /** One per tenant whose face delivers notifications; closed when the tenant goes. */
     private final Map<String, java.util.List<AutoCloseable>> activityCloseables =
             new ConcurrentHashMap<>();
@@ -4317,6 +4319,34 @@ public final class TenantRuntimeManager implements AutoCloseable {
         // the tenant that holds them — asking the deployment to apply the
         // declarations it reads itself. Behind the authority like every other
         // private surface: a tenant with none has no way to say who is asking.
+        if (spec.configuration() != null) {
+            // Applied as the face applies a posted set: through its grain, its
+            // equivalence and its references. One apply at a time per tenant,
+            // because each reads the account the last one left.
+            Object oneAtATime = new Object();
+            owners.put(spec.code(), (ref, by, preview) -> {
+                synchronized (oneAtATime) {
+                    // Read now, not at mount: a hot change to where the
+                    // configuration is kept replaces the declaration in place.
+                    TenantRuntime now = runtimes.getOrDefault(spec.code(), runtime);
+                    TenantSpec.Configuration configuration = now.spec().configuration() != null
+                            ? now.spec().configuration() : spec.configuration();
+                    return new OwnersConfiguration(spec.code(), configuration,
+                            runStores.get(spec.code()),
+                            new cloud.jengu.dbo.work.Runs(runStores.get(spec.code())),
+                            new cloud.jengu.dbo.sync.ConfigApplication(
+                                    runStores.get(spec.code()),
+                                    new cloud.jengu.dbo.work.Runs(runStores.get(spec.code())),
+                                    version.domain(),
+                                    runtime.grain(),
+                                    version.face().capability(
+                                            cloud.jengu.dbo.core.face.DocumentEquivalence.class)
+                                            .orElse(null),
+                                    store.references().orElse(null)))
+                            .apply(ref, by, preview);
+                }
+            });
+        }
         if (authority != null) {
             String configurationPath = "/t/" + spec.code() + "/configuration";
             sharedServer.createContext(configurationPath, new ConfigurationHandler(authority,
@@ -4366,7 +4396,8 @@ public final class TenantRuntimeManager implements AutoCloseable {
                     // against, and answering anyway would be answering about
                     // somebody else's tenants.
                     declarations -> spec.code().equals(managementCode)
-                            ? classify(declarations) : null));
+                            ? classify(declarations) : null,
+                    owners.get(spec.code())));
             configurationContexts.put(spec.code(), configurationPath);
         }
         // The maintenance surface, when the tenant has an authority to guard
@@ -4688,6 +4719,14 @@ public final class TenantRuntimeManager implements AutoCloseable {
         runtimes.put(spec.code(), runtime);
         mounting.remove(spec.code());
         cutWhatOthersWillComeUpFrom(spec);
+        // The owner's configuration, at the ref the declaration names, once
+        // the tenant serves. Owed rather than thrown: a repository not there
+        // yet is said once and read again on the next pass.
+        ConfigurationHandler.Owners owned = owners.get(spec.code());
+        if (owned != null) {
+            owe(spec.code(), "applying its owner's configuration",
+                    () -> owned.apply(null, "dbo", false));
+        }
         owe(spec.code(), "announcing it to the host", () -> listener.tenantUp(runtime));
     }
 
@@ -5794,6 +5833,9 @@ public final class TenantRuntimeManager implements AutoCloseable {
         // they are built, and a type registered for the wrong tenant is a
         // surface that answers nothing.
         all.addAll(TenantDeclarationModel.registrations());
+        // What each file of an owner's configuration applied, so a source
+        // withdraws what it stopped declaring and nothing anybody else wrote.
+        all.addAll(ConfigFiles.registrations());
         // And the replication lane's own bookkeeping: where each peer
         // has reached, and what arrived for which work. Same argument again —
         // a lane's state is this tenant's, dropped when the tenant is. Without
@@ -6124,6 +6166,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
         if (registerPath != null) {
             sharedServer.removeContext(registerPath);
         }
+        owners.remove(code);
         String configurationPath = configurationContexts.remove(code);
         if (configurationPath != null) {
             sharedServer.removeContext(configurationPath);

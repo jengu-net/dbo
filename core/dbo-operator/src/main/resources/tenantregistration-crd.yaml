@@ -53,6 +53,17 @@ spec:
                 # through that provider, on credentials the provider issues.
                 partnerOf:
                   type: string
+                # Where the tenant's owner keeps its configuration: a git
+                # repository on a path the deployment can read, and the ref
+                # applied when the tenant comes up.
+                configuration:
+                  type: object
+                  required: [git]
+                  properties:
+                    git:
+                      type: string
+                    ref:
+                      type: string
                 broker:
                   type: string
                 acceptedBrokers:

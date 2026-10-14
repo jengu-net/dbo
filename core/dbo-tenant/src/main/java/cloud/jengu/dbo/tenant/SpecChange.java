@@ -192,6 +192,11 @@ public record SpecChange(Kind kind, List<String> fields) {
             // this tenant serves itself.
             hot.add("partnerOf");
         }
+        if (!Objects.equals(serving.configuration(), declared.configuration())) {
+            // Hot: where the owner's configuration is read from is read when
+            // it is next applied, and nothing serving now holds it.
+            hot.add("configuration");
+        }
         if (!Objects.equals(serving.exchanges(), declared.exchanges())) {
             // Hot, and like zoneRoot its effect is on others: what members may
             // do for each other, read wherever a route or a register is worked

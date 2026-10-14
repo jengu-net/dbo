@@ -25,7 +25,32 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
         List<Dependency> dependencies, Scim scim, List<String> mandatorySteps,
         String managedBy, boolean faceRoot, List<Step> steps, boolean zoneRoot,
         boolean indexFace, List<FleetStep> fleetSteps, Set<String> declines,
-        Set<String> authorised, Set<String> exchanges, String partnerOf) {
+        Set<String> authorised, Set<String> exchanges, String partnerOf,
+        Configuration configuration) {
+
+    /**
+     * Where the tenant's owner keeps its configuration: a git repository on a
+     * path this deployment can read, and the ref applied when the tenant comes
+     * up and when it is asked to apply without naming one.
+     *
+     * <p>Read, never fetched: keeping the repository current is the
+     * deployment's, and the store reaches no remote.
+     *
+     * @param git the repository's path, a bare repository or a clone
+     * @param ref a branch, a tag or a commit
+     */
+    public record Configuration(String git, String ref) {
+
+        public Configuration {
+            if (git == null || git.isBlank()) {
+                throw new IllegalArgumentException("a configuration names the repository it "
+                        + "is read from, as configuration.git");
+            }
+            if (ref == null || ref.isBlank()) {
+                ref = "HEAD";
+            }
+        }
+    }
 
     /**
      * A step this tenant offers, and the documents a run of it is over.
@@ -517,6 +542,22 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
                 + "performs for every tenant that admits them, declared in the management "
                 + "tenant's own descriptor and nowhere else. A step this tenant offers itself "
                 + "goes under 'steps'.");
+    }
+
+    /**
+     * Without a configuration of the owner's own: what every tenant was while
+     * only its declaration configured it.
+     */
+    public TenantSpec(String code, String face, List<FhirTypeConfig> types,
+            boolean pdi, cloud.jengu.dbo.policy.TenantPolicies policies,
+            String zone, String broker, List<String> acceptedBrokers,
+            List<Dependency> dependencies, Scim scim, List<String> mandatorySteps,
+            String managedBy, boolean faceRoot, List<Step> steps, boolean zoneRoot,
+            boolean indexFace, List<FleetStep> fleetSteps, Set<String> declines,
+            Set<String> authorised, Set<String> exchanges, String partnerOf) {
+        this(code, face, types, pdi, policies, zone, broker, acceptedBrokers,
+                dependencies, scim, mandatorySteps, managedBy, faceRoot, steps, zoneRoot,
+                indexFace, fleetSteps, declines, authorised, exchanges, partnerOf, null);
     }
 
     /**
@@ -1221,7 +1262,20 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
                 // of its work to partners, and a tenant is one because its own
                 // file says so — the same rule as a zone — never because the
                 // provider named it.
-                Json.strOpt(root, "partnerOf"));
+                Json.strOpt(root, "partnerOf"),
+                // WHERE ITS OWNER KEEPS ITS CONFIGURATION, if anywhere. The
+                // declaration says where to read; what is read there is the
+                // owner's.
+                configurationOf(root));
+    }
+
+    private static Configuration configurationOf(Object root) {
+        Object configured = Json.objOpt(root, "configuration");
+        if (!(configured instanceof java.util.Map<?, ?>)) {
+            return null;
+        }
+        return new Configuration(Json.strOpt(configured, "git"),
+                Json.strOpt(configured, "ref"));
     }
 
     private static Set<String> exchangesOf(Object root) {
