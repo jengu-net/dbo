@@ -1442,6 +1442,8 @@ final class StepSurface implements HttpHandler {
     private void respond(HttpExchange exchange, int status, String body) throws IOException {
         byte[] bytes = body.getBytes(StandardCharsets.UTF_8);
         exchange.getResponseHeaders().set("Content-Type", "application/json");
+        // Read as what it says it is, and never sniffed into something else.
+        exchange.getResponseHeaders().set("X-Content-Type-Options", "nosniff");
         exchange.sendResponseHeaders(status, bytes.length);
         try (OutputStream out = exchange.getResponseBody()) {
             out.write(bytes);
@@ -1449,6 +1451,6 @@ final class StepSurface implements HttpHandler {
     }
 
     private static String quote(String value) {
-        return "\"" + String.valueOf(value).replace("\\", "\\\\").replace("\"", "\\\"") + "\"";
+        return JsonText.quote(value);
     }
 }
