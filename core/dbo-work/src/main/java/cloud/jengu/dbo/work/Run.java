@@ -116,6 +116,14 @@ public record Run(String id, long versionId, String key, String process, String 
     public record Crossing(String id, String from, String to, String askerRun, String reader,
             String arrived) {
 
+        /**
+         * Who alone may take a run asking across until it is carried: what
+         * carries it, as client and executor both. Another participant
+         * performing the same exchange step performs the owner's end, and a
+         * run it took at the asker's end would never cross.
+         */
+        public static final Addressee CARRIER = new Addressee("dbo-crossings", "dbo-crossings");
+
         public Crossing {
             if (id == null || from == null || to == null) {
                 throw new IllegalArgumentException("a crossing names itself, where it came "

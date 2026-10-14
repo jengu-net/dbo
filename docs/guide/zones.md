@@ -128,6 +128,12 @@ many were asked at once. A crossing it finds and cannot carry is handed back
 with why, and one still waiting on the next pass says on the asker's run since
 when and why. None is lost without a reason.
 
+**The run that asks is the carrier's alone.** However it was started, it is
+addressed to `dbo-crossings` until it is carried, and its `Task` names that as
+its owner. A participant performing the same exchange step for the owner's end
+is offered only the owner's runs, and a run asking across addressed to anybody
+else is refused.
+
 **A crossing need not start at the door.** An application in process starts one
 with `RunInitiator.starting(tenant, step, inputs, key, addressee, partOf, to)`.
 A step's result starts one as a part of its own run, with

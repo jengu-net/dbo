@@ -522,6 +522,11 @@ final class StepSurface implements HttpHandler {
             addressee = new cloud.jengu.dbo.work.Run.Addressee(
                     client == null ? null : String.valueOf(client),
                     executor == null ? null : String.valueOf(executor));
+            if (crossing != null && !addressee.equals(cloud.jengu.dbo.work.Run.Crossing.CARRIER)) {
+                return refused(400, "invalid_request", stepCode + " asks across to "
+                        + crossingTo + ", and a run asking across is for what carries it "
+                        + "alone: leave 'for' out");
+            }
         }
         // The run this one is started for, by its key: a part of it, read
         // as one of the things it set going. One this tenant does not hold

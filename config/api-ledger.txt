@@ -3412,6 +3412,7 @@ cloud.jengu.dbo.promises.DboPromises                                   ZONE_AN_A
 cloud.jengu.dbo.promises.DboPromises                                   ZONE_AN_OPENING_ACROSS_IS_THE_OWNERS_TO_SEE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   ZONE_AN_UNSERVABLE_ZONE_IS_SAID_AT_BRING_UP:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   ZONE_A_CROSSING_IS_STARTED_BY_A_HOST_OR_A_RESULT:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   ZONE_A_RUN_ASKING_ACROSS_IS_THE_CARRIERS_ALONE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   ZONE_A_TENANTS_OWN_ZONE_IS_AN_END_OF_A_CROSSING:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   ZONE_A_TENANTS_ZONES_ARE_ON_ITS_REGISTER:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   ZONE_A_TENANT_TAKES_ONLY_FROM_WHAT_STANDS_ABOVE_IT:cloud.jengu.dbo.promises.DboPromises
@@ -5454,6 +5455,7 @@ cloud.jengu.dbo.work.Run.Assignment                                    record
 cloud.jengu.dbo.work.Run.Assignment                                    role():String
 cloud.jengu.dbo.work.Run.Assignment                                    toString():String
 cloud.jengu.dbo.work.Run.Assignment                                    until():Instant
+cloud.jengu.dbo.work.Run.Crossing                                      CARRIER:cloud.jengu.dbo.work.Run.Addressee
 cloud.jengu.dbo.work.Run.Crossing                                      answered(String):cloud.jengu.dbo.work.Run.Crossing
 cloud.jengu.dbo.work.Run.Crossing                                      arrived():String
 cloud.jengu.dbo.work.Run.Crossing                                      askerRun():String

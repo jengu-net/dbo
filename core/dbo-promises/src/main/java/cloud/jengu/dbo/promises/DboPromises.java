@@ -457,6 +457,12 @@ public enum DboPromises implements Promise {
             + "work. One the carrier finds and cannot carry says why on the asker's run by the "
             + "next pass, so no crossing is lost without a reason."),
 
+    ZONE_A_RUN_ASKING_ACROSS_IS_THE_CARRIERS_ALONE("A run asking across is addressed to what "
+            + "carries it, however it was started, and offered to and claimed by nothing else "
+            + "until it is carried: a participant performing the same exchange step at the "
+            + "owner's end is offered only the owner's runs, and the asking run's Task names "
+            + "the carrier as its owner."),
+
     PROC_A_PARTICIPANT_REFUSES_ITS_RUN_WITH_A_REASON("A participant holding a run may end it "
             + "refused, with its reason: the run fails with that reason, as the participant's "
             + "act, and is neither handed back, retried nor given to people, as a failure is. "

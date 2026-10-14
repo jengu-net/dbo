@@ -33,8 +33,8 @@ import java.util.Set;
 final class Crossings {
 
     /** Who carries: one participant for the deployment, whatever the zones. */
-    static final Executor CARRIER =
-            new Executor("dbo-crossings", "1", "cloud.jengu.dbo", Scope.BASELINE);
+    static final Executor CARRIER = new Executor(Run.Crossing.CARRIER.executor(), "1",
+            "cloud.jengu.dbo", Scope.BASELINE);
 
     /** How long the carrier holds what it took before another pass may take it again. */
     static final Duration HOLD = Duration.ofMinutes(10);
@@ -473,7 +473,22 @@ final class Crossings {
 
     private boolean carry(ZoneTree zones, String asker, TenantSpec.Step step, Lane lane,
             Run asked) {
-        Optional<Run> claimed = lane.claim(asked, HOLD);
+        // As the client the run is addressed to: a claim is admitted by the
+        // credential asking as well as the executor it names, and an
+        // executor's name is only what a participant says it is.
+        String outer = cloud.jengu.dbo.core.api.Caller.current();
+        String outerFor = cloud.jengu.dbo.core.api.Caller.onBehalfOf();
+        Optional<Run> claimed;
+        cloud.jengu.dbo.core.api.Caller.set(Run.Crossing.CARRIER.client());
+        try {
+            claimed = lane.claim(asked, HOLD);
+        } finally {
+            if (outerFor == null) {
+                cloud.jengu.dbo.core.api.Caller.set(outer);
+            } else {
+                cloud.jengu.dbo.core.api.Caller.setChain(outer, outerFor);
+            }
+        }
         if (claimed.isEmpty()) {
             return false;
         }

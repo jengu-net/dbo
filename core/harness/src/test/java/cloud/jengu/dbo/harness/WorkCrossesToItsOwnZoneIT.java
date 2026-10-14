@@ -36,6 +36,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -119,6 +120,8 @@ class WorkCrossesToItsOwnZoneIT {
             // A client that may ask for work, with no key enrolled to seal to.
             manager.authority(tenant).ensureClient("desk", "desk-secret", List.of("work"));
         }
+        manager.authority(HOSPITAL).ensureClient("reader", "reader-secret",
+                List.of("system/*.read"));
     }
 
     @AfterAll
@@ -352,7 +355,70 @@ class WorkCrossesToItsOwnZoneIT {
                 "a failure that may pass ended the asker");
     }
 
+    @Test
+    @Order(10)
+    @DisplayName("a participant performing an exchange step at both ends is offered only the "
+            + "owner's runs: two runs asked a moment apart are the carrier's alone, named so on "
+            + "their Tasks, and both cross")
+    @Proving(DboPromises.ZONE_A_RUN_ASKING_ACROSS_IS_THE_CARRIERS_ALONE)
+    void aRunAskingAcrossIsTheCarriersAlone() throws Exception {
+        Lane atAsker = lane(HOSPITAL, NOTIFY);
+        String first = ask(HOSPITAL, NOTIFY, "result", COUNTRY, "iron, version 1");
+        String second = ask(HOSPITAL, NOTIFY, "result", COUNTRY, "iron, version 2");
+
+        // Nothing has carried them yet: no pass has run since they were asked.
+        java.util.Set<String> offered = new java.util.HashSet<>();
+        for (List<Run> page = atAsker.poll(java.util.Set.of("notify"), 100); !page.isEmpty();
+                page = atAsker.poll(java.util.Set.of("notify"), 100)) {
+            page.forEach(run -> offered.add(run.key()));
+        }
+        assertFalse(offered.contains(first) || offered.contains(second),
+                "a participant was offered a run asking across: " + offered);
+        for (String asked : List.of(first, second)) {
+            Run run = runAt(HOSPITAL, asked).orElseThrow();
+            assertEquals("ready", run.status().wire(), run.toString());
+            String task = task(HOSPITAL, run.id());
+            assertTrue(task.contains("\"owner\"") && task.contains("\"value\":\"dbo-crossings\""),
+                    "the asking run's Task does not name the carrier as its owner: " + task);
+            Optional<Run> taken;
+            try {
+                taken = atAsker.claim(run, Duration.ofMinutes(5));
+            } catch (Runs.NotForThisParticipant refused) {
+                taken = Optional.empty();
+            }
+            assertTrue(taken.isEmpty(), "a participant took a run asking across: " + taken);
+        }
+
+        var addressed = manager.runInitiator().starting(HOSPITAL, NOTIFY,
+                Map.of("result", RunInitiator.Slot.object(OBSERVATION.formatted("iron"))),
+                "addressed-" + RUN, new Run.Addressee(null, PERFORMER.name()), null, COUNTRY);
+        assertEquals(400, addressed.status(),
+                "a run asking across was addressed to a participant: " + addressed.body());
+
+        // At the owner's end the same participant performs, and both cross.
+        performed(COUNTRY, NOTIFY, first, null);
+        performed(COUNTRY, NOTIFY, second, null);
+        assertEquals("completed", ended(HOSPITAL, first).status().wire());
+        assertEquals("completed", ended(HOSPITAL, second).status().wire());
+    }
+
     // ── helpers ──
+
+    private String task(String tenant, String id) throws Exception {
+        String token = field(http.send(HttpRequest.newBuilder(URI.create(base(tenant)
+                                + "/oidc/token"))
+                        .header("Content-Type", "application/x-www-form-urlencoded")
+                        .POST(HttpRequest.BodyPublishers.ofString(
+                                "grant_type=client_credentials&client_id=reader"
+                                        + "&client_secret=reader-secret")).build(),
+                HttpResponse.BodyHandlers.ofString()).body(), "access_token");
+        HttpResponse<String> task = http.send(HttpRequest.newBuilder(URI.create(
+                        base(tenant) + "/fhir/Task/" + id))
+                .header("Authorization", "Bearer " + token).GET().build(),
+                HttpResponse.BodyHandlers.ofString());
+        assertEquals(200, task.statusCode(), task.body());
+        return task.body();
+    }
 
     /** Asks at a tenant's own door, with a client holding no key; the run's key. */
     private String ask(String asker, String step, String slot, String to, String what)

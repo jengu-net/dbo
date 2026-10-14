@@ -435,6 +435,16 @@ public final class Runs {
             String scope, Map<String, RunSlot> inputs, String requester,
             String forPeopleBecause, java.time.Duration collect, Run.Addressee addressee,
             Run parent, Run.Crossing crossing) {
+        // ASKING ACROSS IS THE CARRIER'S ALONE, however the run was started:
+        // at the door, by a host, or as a part of a result.
+        if (crossing != null && crossing.askerRun() == null) {
+            if (addressee != null && !addressee.equals(Run.Crossing.CARRIER)) {
+                throw new IllegalArgumentException(step.id() + " asks across to "
+                        + crossing.to() + ", so it is for what carries it alone, not for "
+                        + addressee);
+            }
+            addressee = Run.Crossing.CARRIER;
+        }
         for (String slot : inputs.keySet()) {
             if (!step.slots().containsKey(slot)) {
                 throw new IllegalArgumentException(step.id() + " declares no slot '" + slot
