@@ -147,6 +147,104 @@ final class SopsFile {
     private record Opened(String plain, String type) {
     }
 
+    /** What SOPS writes as the format's version, and what its readers expect to find. */
+    static final String VERSION = "3.13.1";
+
+    private static final java.security.SecureRandom RANDOM = new java.security.SecureRandom();
+
+    /**
+     * A file of secrets, whole, as SOPS writes one: a fresh data key, each
+     * value encrypted under its name, a MAC over them, and the data key wrapped
+     * for every recipient — through Transit's encrypt endpoint alone, so a
+     * writer that may only encrypt writes a file it cannot open.
+     *
+     * @param secrets    each name and its value, in the order they are written
+     * @param recipients who it is encrypted to
+     * @param wrap       wraps the data key under the recipients' Transit key
+     * @param now        when it is written, which the MAC is bound to
+     */
+    static byte[] write(Map<String, String> secrets, SopsRules.Recipients recipients,
+            java.util.function.Function<byte[], String> wrap, java.time.Instant now) {
+        if (secrets.isEmpty()) {
+            throw new IllegalArgumentException("a file of secrets holds at least one");
+        }
+        byte[] dataKey = new byte[32];
+        RANDOM.nextBytes(dataKey);
+        MessageDigest mac = sha512();
+        Map<String, Object> document = new LinkedHashMap<>();
+        for (Map.Entry<String, String> secret : secrets.entrySet()) {
+            if ("sops".equals(secret.getKey()) || secret.getKey().isBlank()) {
+                throw new IllegalArgumentException("'" + secret.getKey() + "' cannot name a "
+                        + "secret");
+            }
+            document.put(secret.getKey(), encrypt(dataKey, secret.getValue(),
+                    secret.getKey() + ":"));
+            mac.update(secret.getValue().getBytes(StandardCharsets.UTF_8));
+        }
+        String lastModified = now.truncatedTo(java.time.temporal.ChronoUnit.SECONDS).toString();
+        Map<String, Object> vault = new LinkedHashMap<>();
+        vault.put("vault_address", recipients.vaultAddress());
+        vault.put("engine_path", recipients.mount());
+        vault.put("key_name", recipients.key());
+        vault.put("created_at", lastModified);
+        vault.put("enc", wrap.apply(dataKey));
+        Map<String, Object> sops = new LinkedHashMap<>();
+        sops.put("hc_vault", List.of(vault));
+        if (!recipients.age().isEmpty()) {
+            List<Object> age = new ArrayList<>();
+            for (String recipient : recipients.age()) {
+                age.add(Map.of("recipient", recipient, "enc", ageWrapped(dataKey, recipient)));
+            }
+            sops.put("age", age);
+        }
+        sops.put("lastmodified", lastModified);
+        sops.put("mac", encrypt(dataKey, HexFormat.of().withUpperCase().formatHex(mac.digest()),
+                lastModified));
+        sops.put("unencrypted_suffix", "_unencrypted");
+        sops.put("version", VERSION);
+        document.put("sops", sops);
+        return RecordWire.write(document).getBytes(StandardCharsets.UTF_8);
+    }
+
+    private static String encrypt(byte[] dataKey, String plain, String additional) {
+        try {
+            byte[] iv = new byte[32];
+            RANDOM.nextBytes(iv);
+            Cipher gcm = Cipher.getInstance("AES/GCM/NoPadding");
+            gcm.init(Cipher.ENCRYPT_MODE, new SecretKeySpec(dataKey, "AES"),
+                    new GCMParameterSpec(128, iv));
+            gcm.updateAAD(additional.getBytes(StandardCharsets.UTF_8));
+            byte[] sealed = gcm.doFinal(plain.getBytes(StandardCharsets.UTF_8));
+            Base64.Encoder base64 = Base64.getEncoder();
+            return "ENC[AES256_GCM,data:" + base64.encodeToString(
+                    java.util.Arrays.copyOf(sealed, sealed.length - 16)) + ",iv:"
+                    + base64.encodeToString(iv) + ",tag:" + base64.encodeToString(
+                    java.util.Arrays.copyOfRange(sealed, sealed.length - 16, sealed.length))
+                    + ",type:str]";
+        } catch (GeneralSecurityException failed) {
+            throw new IllegalStateException("a value could not be encrypted", failed);
+        }
+    }
+
+    /** The data key, encrypted to one age recipient and armoured, as SOPS keeps it. */
+    private static String ageWrapped(byte[] dataKey, String recipient) {
+        try {
+            java.io.ByteArrayOutputStream armoured = new java.io.ByteArrayOutputStream();
+            try (java.nio.channels.WritableByteChannel channel =
+                    new com.exceptionfactory.jagged.framework.armor.ArmoredEncryptingChannelFactory()
+                            .newEncryptingChannel(java.nio.channels.Channels.newChannel(armoured),
+                                    List.of(com.exceptionfactory.jagged.x25519
+                                            .X25519RecipientStanzaWriterFactory
+                                            .newRecipientStanzaWriter(recipient)))) {
+                channel.write(java.nio.ByteBuffer.wrap(dataKey));
+            }
+            return armoured.toString(StandardCharsets.US_ASCII);
+        } catch (GeneralSecurityException | java.io.IOException refused) {
+            throw new IllegalArgumentException("'" + recipient + "' is not an age recipient "
+                    + "a data key can be encrypted to: " + refused.getMessage(), refused);
+        }
+    }
+
     private Opened decrypt(String value, String additional, byte[] dataKey, String what) {
         Matcher m = ENCRYPTED.matcher(value);
         if (!m.matches()) {

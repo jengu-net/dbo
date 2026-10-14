@@ -3355,6 +3355,7 @@ cloud.jengu.dbo.promises.DboPromises                                   TEN_A_CHA
 cloud.jengu.dbo.promises.DboPromises                                   TEN_A_DECLARATION_IS_A_RECORD:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_A_DECLARATION_NAMES_ITS_REFERENT:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_A_DECLARED_SET_IS_APPLIED_AS_ONE_PASS:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   TEN_A_DEPLOYMENT_WRITES_AN_OWNERS_SECRETS_AS_SOPS_DOES:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_A_DOOR_OPENS_WHEN_ITS_TENANT_SERVES:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_A_FEED_SAYS_WHAT_CHANGED_NOT_WHAT_IT_SAYS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_A_PARTNER_MANAGES_TENANTS:cloud.jengu.dbo.promises.DboPromises
@@ -4683,6 +4684,9 @@ cloud.jengu.dbo.tenant.RegisterVersusTrail.Incident                    slot():St
 cloud.jengu.dbo.tenant.RegisterVersusTrail.Incident                    step():String
 cloud.jengu.dbo.tenant.RegisterVersusTrail.Incident                    toString():String
 cloud.jengu.dbo.tenant.RegisterVersusTrail.Incident                    type():String
+cloud.jengu.dbo.tenant.SopsWriter                                      class
+cloud.jengu.dbo.tenant.SopsWriter                                      new(cloud.jengu.dbo.tenant.VaultTransit,String)
+cloud.jengu.dbo.tenant.SopsWriter                                      write(String,Map,String):byte[]
 cloud.jengu.dbo.tenant.SpecChange                                      NONE:cloud.jengu.dbo.tenant.SpecChange
 cloud.jengu.dbo.tenant.SpecChange                                      any():boolean
 cloud.jengu.dbo.tenant.SpecChange                                      between(cloud.jengu.dbo.tenant.TenantSpec,cloud.jengu.dbo.tenant.TenantSpec):cloud.jengu.dbo.tenant.SpecChange

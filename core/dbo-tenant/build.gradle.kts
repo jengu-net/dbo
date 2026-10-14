@@ -58,6 +58,11 @@ dependencies {
     embedded("org.eclipse.jgit:org.eclipse.jgit:7.8.0.202609011348-r") {
         exclude(group = "org.slf4j", module = "slf4j-api")
     }
+    // A file of secrets written as SOPS writes one: its data key wrapped for
+    // the owner's age recipients, and the recipients read from the
+    // repository's .sops.yaml. Private to this bundle, as JGit is.
+    embedded("com.exceptionfactory.jagged:jagged-x25519:1.0.0")
+    embedded("org.snakeyaml:snakeyaml-engine:2.9")
     // the PG driver comes from the DRIVER BUNDLE at runtime — compile-only
     compileOnly("org.postgresql:postgresql:42.7.13")
     compileOnly("org.slf4j:slf4j-api:2.0.18")
@@ -142,6 +147,9 @@ tasks.jar {
                     "!org.eclipse.jgit.*",
                     "!com.googlecode.javaewah.*",
                     "!org.apache.commons.codec.*",
+                    // jagged and SnakeYAML Engine ride privately as JGit does.
+                    "!com.exceptionfactory.jagged.*",
+                    "!org.snakeyaml.engine.*",
                     "sun.net.www.protocol.http;resolution:=optional",
                     "org.ietf.jgss;resolution:=optional",
                     "sun.security.jgss;resolution:=optional",

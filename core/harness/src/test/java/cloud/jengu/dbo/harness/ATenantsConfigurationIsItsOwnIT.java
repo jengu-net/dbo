@@ -71,6 +71,9 @@ class ATenantsConfigurationIsItsOwnIT {
     private RevCommit second;
     /** The deployment's Vault: a dev server, its root token the store's. */
     private org.testcontainers.containers.GenericContainer<?> vault;
+    /** Where Vault and the reference SOPS reach each other, as an owner's machine would. */
+    private final org.testcontainers.containers.Network network =
+            org.testcontainers.containers.Network.newNetwork();
 
     @BeforeAll
     void aTenantWhoseOwnerKeepsItsConfiguration() throws Exception {
@@ -86,6 +89,7 @@ class ATenantsConfigurationIsItsOwnIT {
 
         vault = new org.testcontainers.containers.GenericContainer<>("hashicorp/vault:1.17")
                 .withEnv("VAULT_DEV_ROOT_TOKEN_ID", "root").withExposedPorts(8200)
+                .withNetwork(network).withNetworkAliases("vault")
                 .waitingFor(org.testcontainers.containers.wait.strategy.Wait
                         .forHttp("/v1/sys/health").forStatusCode(200));
         vault.start();
@@ -134,6 +138,7 @@ class ATenantsConfigurationIsItsOwnIT {
         if (vault != null) {
             vault.stop();
         }
+        network.close();
         SuiteDatabases.retire(databases);
     }
 
@@ -398,6 +403,100 @@ class ATenantsConfigurationIsItsOwnIT {
         assertTrue(named.get(0).contains("connection.sample-1.password")
                 && !named.get(0).contains("connection.*"), named.get(0));
         assertFalse(named.get(0).contains("sample-pa55"), "the trail holds the secret itself");
+    }
+
+    @Test
+    @Order(10)
+    @DisplayName("a deployment writes the tenant's secrets as SOPS does: the reference sops "
+            + "opens the file through Vault and with the owner's age key alone, .sops.yaml "
+            + "decides the recipients by path, a writer that may only encrypt cannot open what "
+            + "it wrote, and an applied file is the tenant's secrets")
+    @Proving(DboPromises.TEN_A_DEPLOYMENT_WRITES_AN_OWNERS_SECRETS_AS_SOPS_DOES)
+    void aDeploymentWritesAFileOfSecrets() throws Exception {
+        java.security.KeyPair owner = new com.exceptionfactory.jagged.x25519.X25519KeyPairGenerator()
+                .generateKeyPair();
+        String recipient = owner.getPublic().toString();
+        String transit = "http://vault:8200/v1/transit/keys/tenant-" + OWNER;
+        write(".sops.yaml", """
+                creation_rules:
+                  - path_regex: secrets/owner/.*
+                    hc_vault_transit_uri: %s
+                    age: %s
+                  - hc_vault_transit_uri: %s
+                """.formatted(transit, recipient, transit));
+        commit("Who the owner's secrets are encrypted to");
+
+        String ownerFile = post("/secrets", """
+                {"path":"secrets/owner/lab.sops.json",
+                 "secrets":{"a":"first-pa55","b":"second-pa55"}}""");
+        assertTrue(ownerFile.contains(recipient), "the rule's age recipient is missing");
+        assertFalse(ownerFile.contains("first-pa55"), "a value is in the file in the clear");
+        String plainFile = post("/secrets", """
+                {"path":"secrets/plain.sops.json","secrets":{"c":"third-pa55"}}""");
+        assertFalse(plainFile.contains("\"age\""), "a path with no age recipient carries one");
+        HttpResponse<String> notAFile = send("/secrets", """
+                {"path":"secrets/plain.json","secrets":{"c":"x"}}""");
+        assertEquals(422, notAFile.statusCode(), notAFile.body());
+
+        String throughVault = sopsDecrypts(ownerFile, java.util.Map.of(
+                "VAULT_ADDR", "http://vault:8200", "VAULT_TOKEN", "root"));
+        assertTrue(throughVault.contains("first-pa55") && throughVault.contains("second-pa55"),
+                "the reference sops did not open the file through Vault: " + throughVault);
+        String withAge = sopsDecrypts(ownerFile, java.util.Map.of(
+                "SOPS_AGE_KEY", owner.getPrivate().toString(),
+                "VAULT_ADDR", "http://nowhere.invalid:8200"));
+        assertTrue(withAge.contains("first-pa55"),
+                "the owner's age key alone did not open the file: " + withAge);
+
+        vaultPost("/v1/sys/policies/acl/writer-only", "{\"policy\":\"path \\\"transit/encrypt/"
+                + "tenant-" + OWNER + "\\\" { capabilities = [\\\"update\\\"] }\"}");
+        String writerToken = field(vaultPost("/v1/auth/token/create",
+                "{\"policies\":[\"writer-only\"]}"), "client_token");
+        byte[] written = new cloud.jengu.dbo.tenant.SopsWriter(
+                new cloud.jengu.dbo.tenant.VaultTransit(vaultAddress(), "transit",
+                        () -> writerToken), "tenant-" + OWNER)
+                .write("secrets/writer.sops.json", java.util.Map.of("d", "fourth-pa55"), null);
+        String writtenText = new String(written, StandardCharsets.UTF_8);
+        String wrapped = field(writtenText.substring(writtenText.indexOf("hc_vault")), "enc");
+        HttpResponse<String> reading = http.send(HttpRequest.newBuilder(vaultAddress().resolve(
+                        "/v1/transit/decrypt/tenant-" + OWNER))
+                        .header("X-Vault-Token", writerToken)
+                        .POST(HttpRequest.BodyPublishers.ofString(
+                                "{\"ciphertext\":\"" + wrapped + "\"}")).build(),
+                HttpResponse.BodyHandlers.ofString());
+        assertEquals(403, reading.statusCode(), "a writer that may only encrypt decrypted: "
+                + reading.body());
+
+        write("secrets/owner/lab.sops.json", ownerFile);
+        write("secrets/plain.sops.json", plainFile);
+        write("secrets/writer.sops.json", writtenText);
+        commit("The lab's secrets, as the deployment wrote them");
+        String applied = apply("");
+        assertEquals("0", number(applied, "skipped"), applied);
+        assertEquals("first-pa55", secret("a"));
+        assertEquals("third-pa55", secret("c"));
+        assertEquals("fourth-pa55", secret("d"));
+    }
+
+    /** What the reference SOPS prints opening a file, or why it would not. */
+    private String sopsDecrypts(String file, java.util.Map<String, String> env) {
+        try (var sops = new org.testcontainers.containers.GenericContainer<>(
+                "ghcr.io/getsops/sops:v3.13.1-alpine")
+                .withNetwork(network).withEnv(env)
+                .withCopyToContainer(org.testcontainers.images.builder.Transferable.of(
+                        file.getBytes(StandardCharsets.UTF_8)), "/work/file.sops.json")
+                .withCommand("-d", "--input-type", "json", "--output-type", "json",
+                        "/work/file.sops.json")
+                .withStartupCheckStrategy(
+                        new org.testcontainers.containers.startupcheck.OneShotStartupCheckStrategy()
+                                .withTimeout(java.time.Duration.ofSeconds(120)))) {
+            try {
+                sops.start();
+                return sops.getLogs();
+            } catch (RuntimeException failed) {
+                return "failed: " + failed.getMessage() + " " + sops.getLogs();
+            }
+        }
     }
 
     /**

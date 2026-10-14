@@ -4114,6 +4114,32 @@ public final class TenantRuntimeManager implements AutoCloseable {
         }
     }
 
+    /**
+     * A file of a tenant's secrets, written as SOPS would through the
+     * deployment's Vault under the tenant's key, to the recipients the
+     * repository's .sops.yaml names at its declared ref.
+     */
+    private byte[] secretsWritten(TenantSpec spec, String path, Map<String, String> secrets) {
+        VaultTransit transit = vault;
+        if (transit == null) {
+            throw new IllegalArgumentException("this deployment names no Vault to wrap "
+                    + spec.code() + "'s secrets through");
+        }
+        TenantSpec.Configuration configuration = spec.configuration();
+        String key = configuration != null && configuration.key() != null
+                ? configuration.key() : "tenant-" + spec.code();
+        String sopsYaml = null;
+        if (configuration != null) {
+            try (ConfigRepository repository = ConfigRepository.open(
+                    Path.of(configuration.git()))) {
+                sopsYaml = repository.read(repository.resolve(configuration.ref()), ".sops.yaml")
+                        .map(bytes -> new String(bytes, java.nio.charset.StandardCharsets.UTF_8))
+                        .orElse(null);
+            }
+        }
+        return new SopsWriter(transit, key).write(path, secrets, sopsYaml);
+    }
+
     private cloud.jengu.dbo.auth.TenantAuthority authorityHolding(String code, String secret) {
         cloud.jengu.dbo.auth.TenantAuthority authority = authorities.get(code);
         if (authority == null) {
@@ -4572,7 +4598,8 @@ public final class TenantRuntimeManager implements AutoCloseable {
         }
         if (authority != null) {
             String configurationPath = "/t/" + spec.code() + "/configuration";
-            sharedServer.createContext(configurationPath, new ConfigurationHandler(authority,
+            ConfigurationHandler configuring;
+            sharedServer.createContext(configurationPath, configuring = new ConfigurationHandler(authority,
                     () -> spec.code().equals(managementCode) ? applyDeclarations() : null,
                     // Applied through the face, not onto the engine alone. A
                     // vocabulary handed over here has to land at the grain
@@ -4621,6 +4648,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
                     declarations -> spec.code().equals(managementCode)
                             ? classify(declarations) : null,
                     owners.get(spec.code())));
+            configuring.secretsWriter((path, secrets) -> secretsWritten(spec, path, secrets));
             configurationContexts.put(spec.code(), configurationPath);
         }
         // The maintenance surface, when the tenant has an authority to guard

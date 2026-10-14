@@ -209,6 +209,24 @@ and never as a record. A changed value replaces the old one, and a name the
 repository stops declaring is forgotten. A file wrapped by another key is a
 card naming the key it needed.
 
+A deployment can also write such a file for the owner. A screen where somebody
+types a connection's password posts it to the tenant's configuration door,
+which answers with the whole file, ready to commit:
+
+```http
+POST /t/clinic/configuration/secrets
+{"path": "secrets/connections/lab.sops.json", "secrets": {"connection.lab.password": "…"}}
+```
+
+The file is encrypted to the recipients the repository's `.sops.yaml` names for
+its path, at the declared ref: the tenant's Transit key, and any age keys the
+owner listed. With no rule, it is encrypted to the tenant's Transit key alone. A
+rule naming a key type the deployment cannot use (PGP, a cloud KMS, key
+groups), or another Transit key, is refused with what it named. The data key is
+wrapped through Transit's encrypt endpoint only, and `SopsWriter` takes a
+`VaultTransit` of its own, so a writer whose token may only encrypt writes a
+file it cannot read. The owner's `sops` opens it as one they wrote themselves.
+
 A step reaches a secret it declares, by name:
 
 ```json

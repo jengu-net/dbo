@@ -110,6 +110,8 @@ dependencies {
     // A tenant owner's configuration repository, written as its owner would
     // commit to it, so the store reads real git objects.
     testImplementation("org.eclipse.jgit:org.eclipse.jgit:7.8.0.202609011348-r")
+    // The owner's age key, made as the owner would make one.
+    testImplementation("com.exceptionfactory.jagged:jagged-x25519:1.0.0")
     constraints {
         // as in dbo-stream: DBOS carries Jackson 3 below its advisory.
         testImplementation("tools.jackson.core:jackson-databind:3.2.1")

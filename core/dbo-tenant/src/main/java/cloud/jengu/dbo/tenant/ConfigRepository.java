@@ -170,6 +170,32 @@ final class ConfigRepository implements AutoCloseable {
         }
     }
 
+    /**
+     * One file at a commit by its path — the repository's own settings, such
+     * as {@code .sops.yaml}, which are never declarations — or empty where the
+     * commit has none.
+     */
+    java.util.Optional<byte[]> read(Commit commit, String path) {
+        try (RevWalk walk = new RevWalk(repository)) {
+            TreeWalk found = TreeWalk.forPath(repository, path,
+                    walk.parseCommit(ObjectId.fromString(commit.id())).getTree());
+            if (found == null) {
+                return java.util.Optional.empty();
+            }
+            try (found) {
+                if (found.getFileMode(0) != FileMode.REGULAR_FILE) {
+                    throw new IllegalArgumentException(path + " in commit " + commit.id()
+                            + " is not a file");
+                }
+                return java.util.Optional.of(read(new File(path,
+                        found.getObjectId(0).getName())));
+            }
+        } catch (IOException unreadable) {
+            throw new IllegalArgumentException(path + " cannot be read: "
+                    + unreadable.getMessage(), unreadable);
+        }
+    }
+
     /** Under a directory whose name starts with a dot: tooling, not configuration. */
     private static boolean hidden(String path) {
         for (String segment : path.split("/")) {

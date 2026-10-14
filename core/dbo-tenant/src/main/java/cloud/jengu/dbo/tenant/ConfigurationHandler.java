@@ -92,6 +92,20 @@ public final class ConfigurationHandler implements HttpHandler {
         OwnersConfiguration.Applied apply(String ref, String by, boolean preview);
     }
 
+    /** Writes a file of the tenant's secrets as SOPS would, for somebody to commit. */
+    @FunctionalInterface
+    interface SecretsWriter {
+        byte[] write(String path, java.util.Map<String, String> secrets);
+    }
+
+    /** Null where nothing can wrap a tenant's secrets: no Vault, or no repository. */
+    private volatile SecretsWriter secretsWriter;
+
+    /** How a file of secrets is written here. */
+    void secretsWriter(SecretsWriter writer) {
+        this.secretsWriter = writer;
+    }
+
     private final TenantAuthority authority;
     private final Supplier<ConfigApplication.Outcome> apply;
     /** Null where the tenant declares no repository of its owner's. */
@@ -174,14 +188,18 @@ public final class ConfigurationHandler implements HttpHandler {
             if (verb.startsWith("/")) {
                 verb = verb.substring(1);
             }
-            if (!verb.isEmpty() && !"preview".equals(verb)) {
+            if (!verb.isEmpty() && !"preview".equals(verb) && !"secrets".equals(verb)) {
                 fail(exchange, 404, "invalid_request", "this door applies what is declared, "
-                        + "and 'preview' says what applying it would do; it was asked for '"
-                        + verb + "'");
+                        + "'preview' says what applying it would do, and 'secrets' writes a "
+                        + "file of secrets; it was asked for '" + verb + "'");
                 return;
             }
             String body = new String(exchange.getRequestBody().readAllBytes(),
                     StandardCharsets.UTF_8);
+            if ("secrets".equals(verb)) {
+                secretsWritten(exchange, body);
+                return;
+            }
             // THE OWNER'S REPOSITORY, where the tenant declares one: nothing
             // sent applies the declared ref, and a ref names another.
             if (owners != null && (body.isBlank() || namesARef(body))) {
@@ -249,6 +267,51 @@ public final class ConfigurationHandler implements HttpHandler {
         } finally {
             exchange.close();
         }
+    }
+
+    /**
+     * A file of secrets, written whole as SOPS would and answered as the file
+     * itself, for whoever asked to commit to the tenant's repository. Nothing
+     * here commits, and the secrets are kept nowhere: they are the tenant's
+     * once the file is applied, as any file of secrets is.
+     */
+    private void secretsWritten(HttpExchange exchange, String body) throws IOException {
+        SecretsWriter writer = secretsWriter;
+        if (writer == null) {
+            fail(exchange, 409, "not_writable", "this tenant's secrets cannot be written here: "
+                    + "the deployment names no Vault to wrap them through");
+            return;
+        }
+        Map<?, ?> fields = fieldsOf(exchange, body);
+        if (fields == null) {
+            return;
+        }
+        if (!(fields.get("path") instanceof String path)
+                || !(fields.get("secrets") instanceof Map<?, ?> named) || named.isEmpty()) {
+            fail(exchange, 400, "invalid_request", "send the file's path in the repository and "
+                    + "its secrets, {\"path\": \"secrets/x.sops.json\", \"secrets\": "
+                    + "{\"name\": \"value\"}}");
+            return;
+        }
+        java.util.Map<String, String> secrets = new java.util.LinkedHashMap<>();
+        for (Map.Entry<?, ?> one : named.entrySet()) {
+            if (!(one.getValue() instanceof String value)) {
+                fail(exchange, 400, "invalid_request", "the secret '" + one.getKey()
+                        + "' is not a string");
+                return;
+            }
+            secrets.put(String.valueOf(one.getKey()), value);
+        }
+        byte[] file;
+        try {
+            file = writer.write(path, secrets);
+        } catch (IllegalArgumentException refused) {
+            fail(exchange, 422, "refused", refused.getMessage());
+            return;
+        }
+        exchange.getResponseHeaders().set("Content-Type", "application/json");
+        exchange.sendResponseHeaders(200, file.length);
+        exchange.getResponseBody().write(file);
     }
 
     /** Whether a body asks for a ref rather than sending declarations. */

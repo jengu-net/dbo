@@ -1766,6 +1766,14 @@ public enum DboPromises implements Promise {
             + "a tenant whose key will not unwrap is taken down within the time it is trusted "
             + "for and does not come up, nothing it keeps opening under the deployment's key."),
 
+    TEN_A_DEPLOYMENT_WRITES_AN_OWNERS_SECRETS_AS_SOPS_DOES("A deployment writes a file of a "
+            + "tenant's secrets, whole, as SOPS writes one: each value under its name, a MAC "
+            + "over them, the data key wrapped through Transit's encrypt endpoint alone under "
+            + "the tenant's key and for the owner's age recipients, as the repository's "
+            + ".sops.yaml names them for the file's path. The store opens it, the owner's own "
+            + "SOPS opens it through Vault or with their age key alone, a writer that may only "
+            + "encrypt cannot open it, and a rule the writer cannot use is refused."),
+
     TEN_A_STEP_REACHES_A_FAMILY_OF_SECRETS("A step may declare a family of secrets by a name "
             + "ending .*, and reaches every secret whose name extends that prefix, at any depth, "
             + "as it reaches one it names: in process, or sealed to the participant across a "
