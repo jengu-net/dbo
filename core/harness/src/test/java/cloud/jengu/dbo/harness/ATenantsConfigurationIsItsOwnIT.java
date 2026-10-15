@@ -344,8 +344,72 @@ class ATenantsConfigurationIsItsOwnIT {
                 URI.create(base() + "/work"), () -> tokenOf("keyless", "keyless-secret"), OWNER,
                 "keyless", new cloud.jengu.dbo.work.Executor("keyless", "1", "example.clinic",
                         cloud.jengu.dbo.work.Scope.BASELINE));
-        String refused = reached(declared(keyless, CONNECT), CONNECT, "keyless");
-        assertTrue(refused.startsWith("failed:") && refused.contains("holds no key"), refused);
+        // Refused before its run is taken, naming the step, rather than at
+        // the first secret the step asks for.
+        var started = manager.runInitiator().starting(OWNER, CONNECT, java.util.Map.of(
+                        "organisation", cloud.jengu.dbo.work.RunInitiator.Slot.object(
+                                organisation("lab-keyless", "The lab"))),
+                "keyless-" + System.nanoTime());
+        Run offered = new Runs(engine()).byKey(started.key()).orElseThrow();
+        cloud.jengu.dbo.runner.Lane keylessLane = declared(keyless, CONNECT);
+        RuntimeException refused = org.junit.jupiter.api.Assertions.assertThrows(
+                RuntimeException.class,
+                () -> keylessLane.claim(offered, java.time.Duration.ofMinutes(5)));
+        assertTrue(refused.getMessage().contains(CONNECT)
+                && refused.getMessage().contains("holds no key"), refused.getMessage());
+    }
+
+    @Test
+    @Order(11)
+    @DisplayName("a worker holding its keys reaches the secrets its step declares, sealed on the "
+            + "wire, and no other; with its keys made again it is refused, saying why, until "
+            + "its client is ensured with them; and the trail names each secret it reached")
+    @Proving(DboPromises.TEN_A_WORKER_HOLDS_ITS_KEYS_AND_REACHES_ITS_STEPS_SECRETS)
+    void aWorkerHoldingItsKeysReachesItsSecrets() throws Exception {
+        cloud.jengu.dbo.core.api.seal.ParticipantKeys first =
+                cloud.jengu.dbo.core.api.seal.ParticipantKeys.adoptOrMake(
+                        Files.createTempDirectory("dbo-worker-first"));
+        manager.authority(OWNER).ensureClient("worker", "worker-secret", List.of("work"),
+                first.sealingKey(), first.signingKey());
+        cloud.jengu.dbo.runner.Lane holding = workerLane(first);
+        String[] reached = reachedAs(holding, "worker", "connection.sample-1.password");
+        assertEquals("sample-pa55", reached[0]);
+        String undeclared = reachedAs(holding, "worker-other", "lab-connection-password")[0];
+        assertTrue(undeclared.startsWith("failed:") && undeclared.contains("does not declare"),
+                undeclared);
+
+        String trail = trailOf(reached[1]);
+        assertTrue(trail.contains("connection.sample-1.password") && trail.contains("worker"),
+                "the trail does not name the secret and who reached it: " + trail);
+
+        cloud.jengu.dbo.core.api.seal.ParticipantKeys remade =
+                cloud.jengu.dbo.core.api.seal.ParticipantKeys.adoptOrMake(
+                        Files.createTempDirectory("dbo-worker-remade"));
+        cloud.jengu.dbo.runner.Lane afterRestart = workerLane(remade);
+        String stale = reachedAs(afterRestart, "worker-stale", "connection.sample-1.password")[0];
+        assertTrue(stale.startsWith("failed:") && stale.contains("no longer holds"), stale);
+        manager.authority(OWNER).ensureClient("worker", "worker-secret", List.of("work"),
+                remade.sealingKey(), remade.signingKey());
+        assertEquals("sample-pa55",
+                reachedAs(afterRestart, "worker-again", "connection.sample-1.password")[0]);
+    }
+
+    private cloud.jengu.dbo.runner.Lane workerLane(
+            cloud.jengu.dbo.core.api.seal.ParticipantKeys keys) {
+        return declared(cloud.jengu.dbo.runner.http.HttpLane.holding(
+                URI.create(base() + "/work"), () -> tokenOf("worker", "worker-secret"), OWNER,
+                "worker", new cloud.jengu.dbo.work.Executor("worker", "1", "example.clinic",
+                        cloud.jengu.dbo.work.Scope.BASELINE), keys.sealing(), keys.signing()),
+                CONNECTIONS);
+    }
+
+    private String trailOf(String runKey) {
+        StringBuilder said = new StringBuilder();
+        for (StoredObject entry : engine().select(cloud.jengu.dbo.core.api.Criteria.of(
+                "AuditEntry").eq("run", cloud.jengu.dbo.core.api.EnvelopeValue.of(runKey)))) {
+            said.append(new String(entry.payload(), StandardCharsets.UTF_8));
+        }
+        return said.toString();
     }
 
     @Test

@@ -74,6 +74,43 @@ class ALaneIsAttachedWhileTheApplicationRunsIT {
         });
     }
 
+    @Test
+    @DisplayName("a worker given a keys directory holds the keys made or found there, says their "
+            + "public halves for its enrolment, and every lane it attaches holds them; a worker "
+            + "given none attaches a lane that refuses a secret before asking for one")
+    @Proving(DboPromises.TEN_A_WORKER_HOLDS_ITS_KEYS_AND_REACHES_ITS_STEPS_SECRETS)
+    void aWorkerHoldsItsKeys() throws Exception {
+        java.nio.file.Path dir = java.nio.file.Files.createTempDirectory("dbo-worker-keys");
+        application.withPropertyValues("dbo.worker.identity.keys-dir=" + dir).run(context -> {
+            DboWorker worker = context.getBean(DboWorker.class);
+            cloud.jengu.dbo.core.api.seal.ParticipantKeys made =
+                    cloud.jengu.dbo.core.api.seal.ParticipantKeys.adopt(dir);
+            DboWorker.PublicKeys said = worker.publicKeys().orElseThrow(
+                    () -> new AssertionError("a worker given keys says it holds none"));
+            assertEquals(made.sealingKey(), said.sealing());
+            assertEquals(made.signingKey(), said.signing());
+
+            worker.attach(TENANT, URI.create("http://127.0.0.1:9/t/haru/"), () -> "t");
+            Lane lane = context.getBean(EmbeddedRuntime.class).lookup().all(Lane.class, NAMED)
+                    .get(0);
+            RuntimeException asked = org.junit.jupiter.api.Assertions.assertThrows(
+                    RuntimeException.class, () -> lane.secret(null, "x.a"));
+            assertFalse(String.valueOf(asked.getMessage()).contains("holds no key"),
+                    "a lane attached by a worker holding keys holds none: " + asked);
+        });
+        application.run(context -> {
+            DboWorker worker = context.getBean(DboWorker.class);
+            assertTrue(worker.publicKeys().isEmpty());
+            worker.attach(TENANT, URI.create("http://127.0.0.1:9/t/haru/"), () -> "t");
+            Lane lane = context.getBean(EmbeddedRuntime.class).lookup().all(Lane.class, NAMED)
+                    .get(0);
+            RuntimeException asked = org.junit.jupiter.api.Assertions.assertThrows(
+                    RuntimeException.class, () -> lane.secret(null, "x.a"));
+            assertTrue(String.valueOf(asked.getMessage()).contains("holds no key"),
+                    asked.toString());
+        });
+    }
+
     @Configuration
     @EnableDboWorker
     static class AnApplication {

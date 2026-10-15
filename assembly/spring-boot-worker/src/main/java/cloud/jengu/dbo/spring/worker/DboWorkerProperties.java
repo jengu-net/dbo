@@ -131,6 +131,23 @@ public class DboWorkerProperties {
         /** The baseline, because it is the only scope every step admits. */
         private Scope scope = Scope.BASELINE;
 
+        /**
+         * Where this worker's own keys are kept, in the documented directory
+         * form: adopted if present, made there if not. A worker holding keys
+         * is sealed to on every lane it attaches, so the steps it performs can
+         * reach the secrets they declare; one holding none is handed nothing
+         * that has to leave the tenant sealed.
+         */
+        private String keysDir;
+
+        public String getKeysDir() {
+            return keysDir;
+        }
+
+        public void setKeysDir(String keysDir) {
+            this.keysDir = keysDir;
+        }
+
         public String getName() {
             return name;
         }

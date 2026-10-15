@@ -49,11 +49,17 @@ public final class EnrollingTheWorker implements TenantLifecycleListener {
     private final DboTenants tenants;
     private final DboWorkerProperties lanes;
     private final Enrolment enrolment;
+    /** The worker in this application, whose keys its lanes hold; absent where there is none. */
+    private final org.springframework.beans.factory.ObjectProvider<
+            cloud.jengu.dbo.spring.worker.DboWorker> worker;
 
-    EnrollingTheWorker(DboTenants tenants, DboWorkerProperties lanes, Enrolment enrolment) {
+    EnrollingTheWorker(DboTenants tenants, DboWorkerProperties lanes, Enrolment enrolment,
+            org.springframework.beans.factory.ObjectProvider<
+                    cloud.jengu.dbo.spring.worker.DboWorker> worker) {
         this.tenants = tenants;
         this.lanes = lanes;
         this.enrolment = enrolment;
+        this.worker = worker;
     }
 
     // --8<-- [start:reached]
@@ -75,9 +81,20 @@ public final class EnrollingTheWorker implements TenantLifecycleListener {
                     || blank(token.getClientId()) || blank(token.getClientSecret())) {
                 continue;
             }
+            // With the PUBLIC halves of the worker's keys, where it holds any:
+            // what the tenant seals its secrets to. Ensured at every start, so
+            // keys made again after a rebuild replace the ones it knew.
+            java.util.Optional<cloud.jengu.dbo.spring.worker.DboWorker.PublicKeys> keys =
+                    java.util.Optional.ofNullable(worker.getIfAvailable())
+                            .flatMap(cloud.jengu.dbo.spring.worker.DboWorker::publicKeys);
             authority.ensureClient(token.getClientId(), token.getClientSecret(),
-                    List.of(Scopes.WORK));
-            LOG.info("worker enrolled: tenant={} client={}", code, token.getClientId());
+                    List.of(Scopes.WORK), keys.map(
+                            cloud.jengu.dbo.spring.worker.DboWorker.PublicKeys::sealing)
+                            .orElse(null),
+                    keys.map(cloud.jengu.dbo.spring.worker.DboWorker.PublicKeys::signing)
+                            .orElse(null));
+            LOG.info("worker enrolled: tenant={} client={} keys={}", code, token.getClientId(),
+                    keys.isPresent());
         }
         // A worker beside the store, over its substrate, known by the public
         // halves of the keys it made.

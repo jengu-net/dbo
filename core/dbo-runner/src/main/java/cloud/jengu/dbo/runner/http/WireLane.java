@@ -323,8 +323,13 @@ public class WireLane implements Lane {
         try {
             return sealedSecret(run, name).open(identity.name(), holding).payload();
         } catch (java.security.GeneralSecurityException unopened) {
-            throw new IllegalStateException("the secret '" + name + "' did not open with "
-                    + identity.name() + "'s key", unopened);
+            // Sealed to the key the tenant knows for this participant, which
+            // is not the one it holds: its keys were made again since it was
+            // enrolled, and the tenant has not been told.
+            throw new IllegalStateException("the secret '" + name + "' was sealed to a key "
+                    + identity.name() + " no longer holds: its keys were made again since it "
+                    + "was enrolled, so ensure its client again with the keys it holds now",
+                    unopened);
         }
     }
 
@@ -414,8 +419,13 @@ public class WireLane implements Lane {
             try {
                 document = payload.open(identity.name(), holding);
             } catch (java.security.GeneralSecurityException cannot) {
+                // Sealed to the key the tenant knows for this participant: one
+                // it does not hold was made again since it was enrolled.
                 throw new IllegalStateException(tenant + ": '" + identity.name()
-                        + "' cannot open " + payload.reference() + " with the key it holds", cannot);
+                        + "' cannot open " + payload.reference() + " with the key it holds: "
+                        + "it was sealed to a key " + identity.name() + " no longer holds, so "
+                        + "its keys were made again since it was enrolled; ensure its client "
+                        + "again with the keys it holds now", cannot);
             }
             opened(run, payload.reference(), linkFor(run, payload.reference()));
             // ACCUMULATED, not replaced. Payloads arrive in the order the

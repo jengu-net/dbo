@@ -247,8 +247,16 @@ the run's trail by its own name, never the family, with who reached it.
 
 In process the value is handed over as it is. Over HTTP it travels only sealed
 to the participant's enrolment key, and is opened with the key the participant
-holds, so a participant that enrolled no key is refused. A step that does not
+holds. A participant that enrolled no key is refused the run of a step
+declaring secrets when it would take it, naming the step. A step that does not
 declare the secret is refused by name.
+
+A worker attached while its application runs holds keys when
+`dbo.worker.identity.keys-dir` names where they are kept: adopted if present,
+made if not. Every lane it attaches then holds them, and `DboWorker.publicKeys()`
+gives the public halves its enrolment hands the tenant with its client. If the
+keys are made again after a rebuild, the worker is refused (saying its client
+must be ensured with the keys it now holds) until that is done.
 
 The store logs into Vault as itself: Kubernetes auth when
 `dbo.vault.kubernetes.role` is set, otherwise a token read from

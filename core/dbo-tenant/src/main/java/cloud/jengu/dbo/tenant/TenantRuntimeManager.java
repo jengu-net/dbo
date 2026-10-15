@@ -4905,8 +4905,21 @@ public final class TenantRuntimeManager implements AutoCloseable {
                                     null,
                                     runResults,
                                     // A step reaches the secrets it declares.
-                                    (run, by, name) -> reachSecret(spec, engine, run, by,
-                                            name)),
+                                    new cloud.jengu.dbo.runner.Lane.Secrets() {
+                                        @Override
+                                        public java.util.Optional<byte[]> reach(
+                                                cloud.jengu.dbo.work.Run run, String by,
+                                                String name) {
+                                            return reachSecret(spec, engine, run, by, name);
+                                        }
+
+                                        @Override
+                                        public boolean declaredBy(String step) {
+                                            return spec.steps().stream().anyMatch(one ->
+                                                    one.code().equals(step)
+                                                            && !one.secrets().isEmpty());
+                                        }
+                                    }),
                                 contacts, laneRuns, laneDeclarations, heartbeatLimit, asker);
                     };
             // The same lane on the store's own stream, for a participant that

@@ -645,6 +645,14 @@ public interface Lane {
          * @throws IllegalStateException when the run's step does not declare it
          */
         Optional<byte[]> reach(Run run, String by, String name);
+
+        /**
+         * Whether a step declares any secret at all — which a participant
+         * over a wire can reach only if it holds a key to seal them to.
+         */
+        default boolean declaredBy(String step) {
+            return false;
+        }
     }
 
     /**
@@ -896,6 +904,19 @@ public interface Lane {
                     throw new IllegalStateException(tenant + ": '" + identity.name()
                             + "' is not entitled to claim '" + step + "' — it holds "
                             + entitlement);
+                }
+                // A STEP DECLARING SECRETS, asked for over a wire by a
+                // participant holding no key: every secret it reaches would be
+                // refused at its first use, so its run is refused here, before
+                // it is taken, saying which step and why. A participant in this
+                // process reaches them in the clear and is not asked.
+                if (secrets != null
+                        && cloud.jengu.dbo.runner.transport.LaneVerbService.overAWire()
+                        && secrets.declaredBy(step)
+                        && (keys == null || keys.of(identity.name()).isEmpty())) {
+                    throw new IllegalStateException(tenant + ": '" + step + "' declares "
+                            + "secrets, and '" + identity.name() + "' holds no key they could "
+                            + "be sealed to: enrol it with its keys to perform this step");
                 }
                 // Claimed by the credential the door validated, which is who
                 // may then read the run's context and end it — the client

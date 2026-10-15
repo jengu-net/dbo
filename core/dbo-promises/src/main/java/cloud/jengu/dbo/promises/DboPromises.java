@@ -1783,6 +1783,14 @@ public enum DboPromises implements Promise {
             + "SOPS opens it through Vault or with their age key alone, a writer that may only "
             + "encrypt cannot open it, and a rule the writer cannot use is refused."),
 
+    TEN_A_WORKER_HOLDS_ITS_KEYS_AND_REACHES_ITS_STEPS_SECRETS("A worker attached while its "
+            + "application runs may hold keys of its own, enrolled with the tenant as their "
+            + "public halves, and then reaches the secrets the steps it performs declare, sealed "
+            + "to it on the wire and opened on its side, and no others. A worker holding no "
+            + "key is refused a step declaring secrets when it would take the run, naming the "
+            + "step; one whose keys were made again is refused, saying why, until its client is "
+            + "ensured with them; and the run's trail names each secret it reached."),
+
     TEN_A_STEP_REACHES_A_FAMILY_OF_SECRETS("A step may declare a family of secrets by a name "
             + "ending .*, and reaches every secret whose name extends that prefix, at any depth, "
             + "as it reaches one it names: in process, or sealed to the participant across a "
