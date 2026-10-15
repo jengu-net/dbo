@@ -16,6 +16,7 @@
 // on them wants this as much as this repository does.
 plugins {
     id("java-library")
+    id("cloud.jengu.promise")
 }
 
 val springBootVersion = rootProject.extra["dboSpringBootVersion"] as String
@@ -67,10 +68,9 @@ dependencies {
     testImplementation(project(":assembly:spring-boot-worker"))
     testImplementation("org.assertj:assertj-core:3.27.3")
     // The test cites the promise it proves, and the catalogue reads that
-    // citation from the index this processor writes beside the classes.
+    // citation from the index the promise plugin has written beside it.
     testImplementation(rootProject.extra["promiseProving"] as String)
     testImplementation(project(":core:dbo-promises"))
-    testAnnotationProcessor(rootProject.extra["promise"] as String)
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 

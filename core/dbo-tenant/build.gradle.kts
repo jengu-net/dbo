@@ -5,6 +5,7 @@
 
 plugins {
     id("biz.aQute.bnd.builder")
+    id("cloud.jengu.promise")
 }
 
 val embedded: Configuration = configurations.create("embedded")
@@ -78,7 +79,6 @@ dependencies {
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     // @Proving citations only.
     testImplementation(project(":core:dbo-promises"))
-    testAnnotationProcessor(rootProject.extra["promise"] as String)
 }
 
 tasks.test { useJUnitPlatform() }

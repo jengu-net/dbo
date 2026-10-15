@@ -3,6 +3,7 @@ import java.util.jar.JarFile
 
 plugins {
     id("biz.aQute.bnd.builder")
+    id("cloud.jengu.promise")
 }
 
 // The element-model face and the definitions it serves from.
@@ -67,10 +68,6 @@ dependencies {
     // (it depends on the promise framework and nothing else), so citing from
     // here adds no cycle
     testImplementation(project(":core:dbo-promises"))
-    // the promise framework's processor indexes @Proving citations at THIS
-    // module's test-compile time; without this configuration the index is
-    // silently absent
-    testAnnotationProcessor(rootProject.extra["promise"] as String)
     // the engine logs; compileOnly above is the runtime's arrangement, and a
     // test has no bundle to import it from
     testRuntimeOnly("org.slf4j:slf4j-simple:2.0.18")
@@ -185,6 +182,8 @@ configurations[definitionsTestSources.runtimeOnlyConfigurationName]
 dependencies {
     add(definitionsTestSources.implementationConfigurationName, "org.junit.jupiter:junit-jupiter:5.11.4")
     add(definitionsTestSources.compileOnlyConfigurationName, project(":core:dbo-promises"))
+    // The plugin wires the standard test compilation; this second one is
+    // tests too, and says so to the processor itself.
     add(definitionsTestSources.annotationProcessorConfigurationName, rootProject.extra["promise"] as String)
     add(definitionsTestSources.runtimeOnlyConfigurationName, project(":core:dbo-fhir-packages"))
     add(definitionsTestSources.runtimeOnlyConfigurationName, "org.slf4j:slf4j-simple:2.0.18")
@@ -204,4 +203,8 @@ val definitionsTest = tasks.register<Test>("definitionsTest") {
 
 tasks.named("check") {
     dependsOn(definitionsTest)
+}
+
+tasks.named<JavaCompile>(definitionsTestSources.compileJavaTaskName) {
+    options.compilerArgs.add("-Apromise.index=tested")
 }

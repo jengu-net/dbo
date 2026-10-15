@@ -14,6 +14,7 @@
 
 plugins {
     id("biz.aQute.bnd.builder")
+    id("cloud.jengu.promise")
 }
 
 dependencies {
@@ -37,7 +38,6 @@ dependencies {
     // @Proving citations only — dbo-promises depends on the promise framework alone, so
     // this does not create a cycle back into dbo-runner.
     testImplementation(project(":core:dbo-promises"))
-    testAnnotationProcessor(rootProject.extra["promise"] as String)
 }
 
 tasks.test {
