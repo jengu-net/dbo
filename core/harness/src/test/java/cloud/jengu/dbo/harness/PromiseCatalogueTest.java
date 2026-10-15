@@ -1,9 +1,9 @@
 package cloud.jengu.dbo.harness;
 
-import cloud.jengu.dbo.promise.Proofs;
-import cloud.jengu.dbo.promise.PromiseStatus;
-import cloud.jengu.dbo.promise.Registry;
-import cloud.jengu.dbo.promise.Report;
+import cloud.jengu.promise.Proofs;
+import cloud.jengu.promise.PromiseStatus;
+import cloud.jengu.promise.Registry;
+import cloud.jengu.promise.Report;
 import cloud.jengu.dbo.promises.DboAreas;
 import cloud.jengu.dbo.promises.DboFeatures;
 import cloud.jengu.dbo.promises.DboPromises;
@@ -156,7 +156,7 @@ class PromiseCatalogueTest {
         // a story may say about itself.
         java.nio.file.Path stories = java.nio.file.Path.of("../..",
                 "docs/arc42-003-context/user-stories").toAbsolutePath().normalize();
-        for (cloud.jengu.dbo.promise.Story story : PromiseProjection.stories(model())) {
+        for (cloud.jengu.promise.Story story : PromiseProjection.stories(model())) {
             java.nio.file.Path file = PromiseProjection.storyFile(stories, model(), story);
             String page = java.nio.file.Files.readString(file);
             assertEquals(PromiseProjection.projectedStory(model(), story, page), page,

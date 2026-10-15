@@ -1,7 +1,7 @@
 package cloud.jengu.dbo.spring.test.asking;
 
 import cloud.jengu.dbo.embedded.EmbeddedRuntime;
-import cloud.jengu.dbo.promise.proving.Proves;
+import cloud.jengu.promise.proving.Proves;
 import cloud.jengu.dbo.promises.DboPromises;
 import cloud.jengu.dbo.promises.Proving;
 import cloud.jengu.dbo.spring.server.DboServerAutoConfiguration;

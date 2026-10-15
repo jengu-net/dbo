@@ -4,7 +4,7 @@ import cloud.jengu.dbo.auth.TenantAuthority;
 import cloud.jengu.dbo.core.api.ObjectStore;
 import cloud.jengu.dbo.core.api.StoredObject;
 import cloud.jengu.dbo.core.process.StepDeclaration;
-import cloud.jengu.dbo.promise.proving.Proves;
+import cloud.jengu.promise.proving.Proves;
 import cloud.jengu.dbo.promises.DboPromises;
 import cloud.jengu.dbo.promises.DboStories;
 import cloud.jengu.dbo.promises.Proving;

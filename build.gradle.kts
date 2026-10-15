@@ -33,7 +33,6 @@ val moduleBlurbs = mapOf(
     "dbo-operator" to "Kubernetes operator reconciling TenantRegistration resources.",
     "dbo-test-model" to "A non-FHIR model used to prove the engine holds no FHIR knowledge.",
     "dbo-step-probe" to "A driver bundle that contributes a step service, to prove the runner's whiteboard wires one.",
-    "promise" to "Requirements as code: promises declared once, cited everywhere, composed across products.",
     "dbo-promises" to "The store's own promise catalogue: SHAPE and PDI as the pilot.",
     "dbo-embedded" to "The store inside an ordinary JVM: boot a framework, install a bundle set, share one class space with the host.",
     "dbo-runner" to "The embeddable step runner: register step services, work arrives, outcomes and vitals go back.",
@@ -64,9 +63,9 @@ val dboRuntimeModules = listOf(
     // (:core:dbo-fhir-packages), installed where a tenant has to build a
     // context and absent from a serving node — which is what makes "cannot
     // populate one" a property rather than a habit.
-    // the promise framework and the store's catalogue: leaf bundles the
-    // citing modules (dbo-pdi first) import from
-    ":promise", ":core:dbo-promises",
+    // the store's catalogue: a leaf bundle the citing modules (dbo-pdi first)
+    // import from, over the promise framework among the external bundles
+    ":core:dbo-promises",
     // the telemetry seam: a leaf like the two above, imported by anything
     // that reports a number and carrying no exporter of its own. It has to be
     // installed even where nothing exports, because the emitting code path
@@ -116,8 +115,16 @@ tasks.register("listPublishTasks") {
     }
 }
 
-// The JDBC driver is itself an OSGi bundle.
-val dboRuntimeExternalBundles = listOf("org.postgresql:postgresql:42.7.13")
+// The promise toolset, named once: the framework every catalogue and citing
+// module compiles against, and the assertions tests name promises with. Its
+// own repository and release line, so a change there reaches the store as a
+// version here.
+val promiseVersion = "0.1.0"
+val promise = "cloud.jengu.promise:promise:$promiseVersion"
+val promiseProving = "cloud.jengu.promise:promise-proving:$promiseVersion"
+
+// The JDBC driver is itself an OSGi bundle, and so is the promise framework.
+val dboRuntimeExternalBundles = listOf("org.postgresql:postgresql:42.7.13", promise)
 
 // One logging arrangement for the runtime: the API as a bundle every module
 // imports, dbo-logging as a FRAGMENT of it carrying the binding, and the
@@ -339,6 +346,8 @@ subprojects {
 }
 
 extra["dboRuntimeModules"] = dboRuntimeModules
+extra["promise"] = promise
+extra["promiseProving"] = promiseProving
 extra["dboRuntimeExternalBundles"] = dboRuntimeExternalBundles
 extra["dboLoggingBundles"] = dboLoggingBundles
 extra["dboLoggingModules"] = dboLoggingModules

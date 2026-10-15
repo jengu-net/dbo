@@ -1,6 +1,6 @@
 package cloud.jengu.dbo.samples.stories;
 
-import cloud.jengu.dbo.promise.Story;
+import cloud.jengu.promise.Story;
 
 import java.security.SecureRandom;
 import java.util.Locale;

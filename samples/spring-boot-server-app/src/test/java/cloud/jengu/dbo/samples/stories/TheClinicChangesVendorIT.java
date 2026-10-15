@@ -2,7 +2,7 @@ package cloud.jengu.dbo.samples.stories;
 
 import cloud.jengu.dbo.maintenance.ArchiveAttestation;
 import cloud.jengu.dbo.maintenance.ArchiveManifest;
-import cloud.jengu.dbo.promise.proving.Proves;
+import cloud.jengu.promise.proving.Proves;
 import cloud.jengu.dbo.promises.DboPromises;
 import cloud.jengu.dbo.promises.DboStories;
 import cloud.jengu.dbo.promises.Proving;

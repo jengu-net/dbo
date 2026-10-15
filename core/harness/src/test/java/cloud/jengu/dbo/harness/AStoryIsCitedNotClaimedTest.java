@@ -1,9 +1,9 @@
 package cloud.jengu.dbo.harness;
 
-import cloud.jengu.dbo.promise.Promise;
-import cloud.jengu.dbo.promise.Proofs;
-import cloud.jengu.dbo.promise.Registry;
-import cloud.jengu.dbo.promise.Story;
+import cloud.jengu.promise.Promise;
+import cloud.jengu.promise.Proofs;
+import cloud.jengu.promise.Registry;
+import cloud.jengu.promise.Story;
 import cloud.jengu.dbo.promises.DboPromises;
 import cloud.jengu.dbo.promises.DboStories;
 import cloud.jengu.dbo.promises.Proving;
@@ -109,7 +109,7 @@ class AStoryIsCitedNotClaimedTest {
     void aStoryOnPlannedLegsReadsUnproven() {
         Registry.Model model = model();
         Promise planned = model.promises().stream()
-                .filter(p -> model.statusOf(p) == cloud.jengu.dbo.promise.PromiseStatus.PLANNED)
+                .filter(p -> model.statusOf(p) == cloud.jengu.promise.PromiseStatus.PLANNED)
                 .findFirst().orElseThrow(() -> new AssertionError(
                         "no planned promise left to rest a story on — rewrite this test with a gap"));
         Story hopeful = new Story() {

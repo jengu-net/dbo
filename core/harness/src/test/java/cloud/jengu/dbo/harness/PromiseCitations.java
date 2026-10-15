@@ -1,8 +1,8 @@
 package cloud.jengu.dbo.harness;
 
-import cloud.jengu.dbo.promise.Catalogue;
-import cloud.jengu.dbo.promise.Coded;
-import cloud.jengu.dbo.promise.Registry;
+import cloud.jengu.promise.Catalogue;
+import cloud.jengu.promise.Coded;
+import cloud.jengu.promise.Registry;
 
 import java.io.IOException;
 import java.nio.file.Files;

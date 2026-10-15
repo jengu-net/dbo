@@ -6,11 +6,14 @@ described in this file. What it constrains is the work — how this repository
 is permitted to state a behaviour and what counts as having proven one.
 
 A business requirement here is a **promise — proven, not claimed**. The
-`promise/` module is a small, dependency-free subsystem for declaring
+promise toolset is a small, dependency-free framework for declaring
 promises once, citing them everywhere, classifying them, and composing the
 catalogues of several products into one graph. It is deliberately generic:
-nothing in it knows this store, so any product in the family can adopt it
-against its own catalogue.
+nothing in it knows this store, so any product can adopt it against its own
+catalogue — which is why it lives in a repository of its own,
+[jengu-net/promise](https://github.com/jengu-net/promise), and reaches this
+store as a version: `cloud.jengu.promise:promise`, with
+`cloud.jengu.promise:promise-proving` for tests.
 
 ## The model
 
@@ -50,8 +53,8 @@ against its own catalogue.
   the catalogue. Citation sites are indexed by the same processor at the
   product's own test-compile time (`META-INF/promise/proofs`), so a renamed
   or deleted proof site cannot leave a stale citation behind; the citing
-  module adds the promise module to its `annotationProcessor` configuration,
-  or the index is silently absent.
+  module adds `cloud.jengu.promise:promise` to its `annotationProcessor`
+  configuration, or the index is silently absent.
 - **Production code cites the same constants** — a refusal that enforces a
   promise names it (`Promise.X.code()` in the error), so the requirement is
   referable from the implementation, not only from its tests.
@@ -76,7 +79,7 @@ Each product keeps its promises in its **own enums implementing the shared
 interfaces**, marked `@Catalogue(namespace = "REQ-…")`. Discovery is paid at
 compile time, where the set of annotated types is already known:
 
-- A small annotation processor in the promise module (standard
+- A small annotation processor in the framework (standard
   `javax.annotation.processing`, zero dependencies) sees the annotated enum
   during the component's own compilation and writes its binary name into a
   resource index (`META-INF/promise/catalogues`) in that component's jar —

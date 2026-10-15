@@ -7,7 +7,7 @@ import cloud.jengu.dbo.fleet.Credentials;
 import cloud.jengu.dbo.fleet.FleetReader;
 import cloud.jengu.dbo.fleet.Node;
 import cloud.jengu.dbo.fleet.Reading;
-import cloud.jengu.dbo.promise.proving.Proves;
+import cloud.jengu.promise.proving.Proves;
 import cloud.jengu.dbo.promises.DboPromises;
 import cloud.jengu.dbo.promises.DboStories;
 import cloud.jengu.dbo.promises.Proving;

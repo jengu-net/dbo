@@ -1,8 +1,8 @@
 package cloud.jengu.dbo.promises;
 
-import cloud.jengu.dbo.promise.Catalogue;
-import cloud.jengu.dbo.promise.Promise;
-import cloud.jengu.dbo.promise.Quality;
+import cloud.jengu.promise.Catalogue;
+import cloud.jengu.promise.Promise;
+import cloud.jengu.promise.Quality;
 
 import java.util.List;
 

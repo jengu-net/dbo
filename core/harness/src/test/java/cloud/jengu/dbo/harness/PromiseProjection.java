@@ -1,9 +1,9 @@
 package cloud.jengu.dbo.harness;
 
-import cloud.jengu.dbo.promise.Proofs;
-import cloud.jengu.dbo.promise.Promise;
-import cloud.jengu.dbo.promise.Registry;
-import cloud.jengu.dbo.promise.Report;
+import cloud.jengu.promise.Proofs;
+import cloud.jengu.promise.Promise;
+import cloud.jengu.promise.Registry;
+import cloud.jengu.promise.Report;
 import cloud.jengu.dbo.promises.DboPromises;
 
 import java.nio.file.Files;
@@ -68,7 +68,7 @@ public final class PromiseProjection {
                 }
                 if (args.length > 2) {
                     Path stories = Path.of(args[2]);
-                    for (cloud.jengu.dbo.promise.Story story : stories(model)) {
+                    for (cloud.jengu.promise.Story story : stories(model)) {
                         Path file = storyFile(stories, model, story);
                         Files.writeString(file, projectedStory(model, story,
                                 Files.readString(file)));
@@ -115,8 +115,8 @@ public final class PromiseProjection {
     static String qualityBlock(Registry.Model model) {
         StringBuilder out = new StringBuilder(
                 "\n| Goal | Where the answer is read | Coverage |\n|---|---|---|\n");
-        for (cloud.jengu.dbo.promise.Classified quality : model.classifications()) {
-            if (!(quality instanceof cloud.jengu.dbo.promise.Quality)) {
+        for (cloud.jengu.promise.Classified quality : model.classifications()) {
+            if (!(quality instanceof cloud.jengu.promise.Quality)) {
                 continue;
             }
             java.util.SortedSet<String> areas = new java.util.TreeSet<>();
@@ -125,11 +125,11 @@ public final class PromiseProjection {
                     areas.add(areaOf(model.codeOf(promise)));
                 }
             }
-            Map<cloud.jengu.dbo.promise.PromiseStatus, Long> coverage = model.coverage(quality);
+            Map<cloud.jengu.promise.PromiseStatus, Long> coverage = model.coverage(quality);
             long total = coverage.values().stream().mapToLong(Long::longValue).sum();
-            long proven = coverage.getOrDefault(cloud.jengu.dbo.promise.PromiseStatus.PROVEN, 0L)
-                    + coverage.getOrDefault(cloud.jengu.dbo.promise.PromiseStatus.ASSURED, 0L);
-            long gaps = coverage.getOrDefault(cloud.jengu.dbo.promise.PromiseStatus.GAP, 0L);
+            long proven = coverage.getOrDefault(cloud.jengu.promise.PromiseStatus.PROVEN, 0L)
+                    + coverage.getOrDefault(cloud.jengu.promise.PromiseStatus.ASSURED, 0L);
+            long gaps = coverage.getOrDefault(cloud.jengu.promise.PromiseStatus.GAP, 0L);
             out.append("| ").append(quality.title())
                     .append(" | ").append(String.join(", ", areas.stream()
                             .map(a -> "`" + a + "`").toList()))
@@ -154,10 +154,10 @@ public final class PromiseProjection {
     }
 
     /** Every story the catalogue declares, in declaration order. */
-    static java.util.List<cloud.jengu.dbo.promise.Story> stories(Registry.Model model) {
+    static java.util.List<cloud.jengu.promise.Story> stories(Registry.Model model) {
         return model.classifications().stream()
-                .filter(c -> c instanceof cloud.jengu.dbo.promise.Story)
-                .map(c -> (cloud.jengu.dbo.promise.Story) c).toList();
+                .filter(c -> c instanceof cloud.jengu.promise.Story)
+                .map(c -> (cloud.jengu.promise.Story) c).toList();
     }
 
     /**
@@ -165,7 +165,7 @@ public final class PromiseProjection {
      * directory. A story constant with no scene to tell is refused rather
      * than projected into nothing.
      */
-    static Path storyFile(Path stories, Registry.Model model, cloud.jengu.dbo.promise.Story story) {
+    static Path storyFile(Path stories, Registry.Model model, cloud.jengu.promise.Story story) {
         Path file = stories.resolve(story.code().toLowerCase(java.util.Locale.ROOT) + ".md");
         if (!Files.exists(file)) {
             throw new IllegalStateException("story " + story.code() + " is declared and has no "
@@ -175,7 +175,7 @@ public final class PromiseProjection {
     }
 
     /** The story file with its generated joins block replaced. */
-    static String projectedStory(Registry.Model model, cloud.jengu.dbo.promise.Story story,
+    static String projectedStory(Registry.Model model, cloud.jengu.promise.Story story,
             String storyFile) {
         int begin = storyFile.indexOf(STORY_BEGIN);
         int end = storyFile.indexOf(STORY_END);
@@ -222,7 +222,7 @@ public final class PromiseProjection {
         return out.toString();
     }
 
-    static String storyBlock(Registry.Model model, cloud.jengu.dbo.promise.Story story) {
+    static String storyBlock(Registry.Model model, cloud.jengu.promise.Story story) {
         if (story.promises().isEmpty()) {
             throw new IllegalStateException(story.code() + " declares no promise — a story "
                     + "with no joins is prose, and belongs as a step of one that has them");
@@ -231,13 +231,13 @@ public final class PromiseProjection {
         boolean anyProven = false;
         for (Promise promise : story.promises()) {
             var status = model.statusOf(promise);
-            anyProven |= status == cloud.jengu.dbo.promise.PromiseStatus.PROVEN
-                    || status == cloud.jengu.dbo.promise.PromiseStatus.ASSURED;
+            anyProven |= status == cloud.jengu.promise.PromiseStatus.PROVEN
+                    || status == cloud.jengu.promise.PromiseStatus.ASSURED;
             out.append("| `").append(model.codeOf(promise)).append("` | ")
                     .append(rebasedForStories(promise.text())).append(" | ").append(status)
                     .append(" |\n");
         }
-        Map<cloud.jengu.dbo.promise.PromiseStatus, Long> coverage = model.coverage(story);
+        Map<cloud.jengu.promise.PromiseStatus, Long> coverage = model.coverage(story);
         out.append("\n");
         if (!anyProven) {
             out.append("**Unproven.** Every leg this story rests on is planned; nothing here "
@@ -354,7 +354,7 @@ public final class PromiseProjection {
      */
     private static String firstSectionOf(Registry.Model model, Promise gap,
             Map<String, String> sections) {
-        for (cloud.jengu.dbo.promise.Classified declarer : model.declaring(gap)) {
+        for (cloud.jengu.promise.Classified declarer : model.declaring(gap)) {
             for (Promise declared : declarer.promises()) {
                 if (declared.gap() || !(declared instanceof DboPromises named)) {
                     continue;

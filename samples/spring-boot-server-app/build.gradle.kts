@@ -56,11 +56,11 @@ dependencies {
     // An assertion that names its promise, and the catalogue the name is
     // typed to. The assertion knows no catalogue, so a test citing this
     // store's promises says so itself.
-    testImplementation(project(":promise:proving"))
+    testImplementation(rootProject.extra["promiseProving"] as String)
     testImplementation(project(":core:dbo-promises"))
     // The user stories cite the promises they prove, and the catalogue reads
     // those citations from the index this processor writes beside the classes.
-    testAnnotationProcessor(project(":promise"))
+    testAnnotationProcessor(rootProject.extra["promise"] as String)
     // The operator's side of the fleet story: one process outside every
     // container, reading what the deployment says about itself.
     testImplementation(project(":core:dbo-fleet"))

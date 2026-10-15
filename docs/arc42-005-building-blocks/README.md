@@ -5,15 +5,14 @@ divisions the build enforces. The behaviour behind each name is in
 [the crosscutting concepts](../README.md); this page is the map, not the
 territory.
 
-## The four layers, and what each may depend on
+## The three layers, and what each may depend on
 
-Every module is in one of four, and the rule is what a layer may depend on
+Every module is in one of three, and the rule is what a layer may depend on
 rather than what it contains.
 
 | | |
 |---|---|
-| `core/` | the store. No heavyweight framework — no Spring, no Micronaut, no application container. Names nothing outside `core/` and `promise/`. |
-| `promise/` | requirements as code: promises declared once and cited where they are kept. The same rule, for the same reason — production code cites it. |
+| `core/` | the store. No heavyweight framework — no Spring, no Micronaut, no application container. Names nothing outside `core/` but the promise toolset, which is dependency-free and cited by production code. |
 | `assembly/` | glue, binding the store into a development framework somebody already uses. **May** depend on a framework; depends on `core/`. Nothing in `core/` may depend on it. |
 | `samples/` | applications built on an assembly, to be read and run. Depends on whatever an application depends on. |
 
@@ -37,7 +36,7 @@ exactly the same reason. A store that had chosen a framework internally could
 not have been glued to a second one at all.
 
 Which module names which is the module map, below, generated from the build
-rather than asserted here: nothing under `core/` or `promise/` names an
+rather than asserted here: nothing under `core/` names an
 `assembly/` module in it.
 
 ## The shapes a deployment runs
@@ -124,9 +123,10 @@ and the map answers which module names which.
 - **`dbo-tenant`** — the composition root. It brings a tenant up, mounts every
   door, and registers the service set; `dbo-tenant-k8s` adds the in-cluster
   provisioning seam.
-- **`promise` / `dbo-promises`** — requirements as code: the promise framework
-  and this store's catalogue of them, which the REQ tables are generated from.
-  See [promise](../arc42-002-constraints/promise.md).
+- **`dbo-promises`** — requirements as code: this store's catalogue of
+  promises, which the REQ tables are generated from, over the promise toolset
+  from [its own repository](https://github.com/jengu-net/promise). See
+  [promise](../arc42-002-constraints/promise.md).
 - **`dbo-telemetry`** and **`dbo-telemetry-otlp`** — the measurement seam and
   its one exporter, both installed everywhere and idle without an endpoint,
   because a code path first run in production is the last place to first run

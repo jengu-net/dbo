@@ -42,7 +42,7 @@ final class ClassFile {
      * reason, because the next catalogue would arrive with the same reason
      * and somebody would have to write it again.
      */
-    private static final String CATALOGUE = "Lcloud/jengu/dbo/promise/Catalogue;";
+    private static final String CATALOGUE = "Lcloud/jengu/promise/Catalogue;";
 
     private static final int ACC_PUBLIC = 0x0001;
     private static final int ACC_STATIC = 0x0008;

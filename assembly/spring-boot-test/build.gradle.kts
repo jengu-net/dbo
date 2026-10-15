@@ -68,9 +68,9 @@ dependencies {
     testImplementation("org.assertj:assertj-core:3.27.3")
     // The test cites the promise it proves, and the catalogue reads that
     // citation from the index this processor writes beside the classes.
-    testImplementation(project(":promise:proving"))
+    testImplementation(rootProject.extra["promiseProving"] as String)
     testImplementation(project(":core:dbo-promises"))
-    testAnnotationProcessor(project(":promise"))
+    testAnnotationProcessor(rootProject.extra["promise"] as String)
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
