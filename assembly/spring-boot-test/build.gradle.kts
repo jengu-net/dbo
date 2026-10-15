@@ -66,7 +66,7 @@ dependencies {
     // Asking for a store is proven against both halves, and a context runner
     // hands its context over as an AssertJ provider.
     testImplementation(project(":assembly:spring-boot-worker"))
-    testImplementation("org.assertj:assertj-core:3.27.3")
+    testImplementation("org.assertj:assertj-core:3.27.7")
     // The test cites the promise it proves, and the catalogue reads that
     // citation from the index the promise plugin has written beside it.
     testImplementation(rootProject.extra["promiseProving"] as String)
