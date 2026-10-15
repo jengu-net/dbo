@@ -64,12 +64,23 @@ final class OwnersConfiguration {
     record Change(String path, String kind) {
     }
 
-    /** What applying, or previewing, a ref came to. */
+    /**
+     * What applying, or previewing, a ref came to.
+     *
+     * @param othersMayChange the types of what it applies that writers other
+     *        than the configuration may change — users, steps, a site's runs.
+     *        Said because the configuration being the source of truth for a
+     *        type is the type's handling to declare, and a type declared
+     *        {@code operational} is everybody's: a reader finds that out here,
+     *        before somebody else's write does it for them.
+     */
     record Applied(String ref, ConfigRepository.Commit commit, String by,
-            ConfigApplication.Outcome outcome, List<Change> changes, boolean preview) {
+            ConfigApplication.Outcome outcome, List<Change> changes, boolean preview,
+            List<String> othersMayChange) {
 
         Applied {
             changes = List.copyOf(changes);
+            othersMayChange = List.copyOf(othersMayChange);
         }
     }
 
@@ -110,7 +121,7 @@ final class OwnersConfiguration {
             ConfigRepository.Commit commit = repository.resolve(asked);
             if (!preview && application.settledAt(scope, commit.id())) {
                 return new Applied(asked, commit, by, ConfigApplication.Outcome.NOTHING,
-                        List.of(), false);
+                        List.of(), false, List.of());
             }
             ConfigFiles ledger = new ConfigFiles(store, scope);
             Map<String, ConfigFiles.Entry> applied = ledger.applied();
@@ -138,7 +149,7 @@ final class OwnersConfiguration {
             }
             if (preview) {
                 return new Applied(asked, commit, by, ConfigApplication.Outcome.NOTHING,
-                        changes, true);
+                        changes, true, othersMayChange(declared));
             }
 
             // WHAT IS NO LONGER DECLARED: everything a deleted file applied,
@@ -266,8 +277,29 @@ final class OwnersConfiguration {
             }
             runs.byKey(ConfigApplication.PROCESS + "/" + ConfigApplication.STEP + "/" + scope)
                     .ifPresent(sweep -> recordAct(sweep, asked, commit, by));
-            return new Applied(asked, commit, by, outcome, changes, false);
+            return new Applied(asked, commit, by, outcome, changes, false,
+                    othersMayChange(declared));
         }
+    }
+
+    /** The declared types whose handling lets a writer other than the configuration change them. */
+    private List<String> othersMayChange(List<ConfigApplication.Declared> declared) {
+        java.util.TreeSet<String> types = new java.util.TreeSet<>();
+        for (ConfigApplication.Declared one : declared) {
+            cloud.jengu.dbo.core.api.TypeRegistration registration;
+            try {
+                registration = store.registrationOf(one.typeName());
+            } catch (cloud.jengu.dbo.core.api.UnknownTypeException notStored) {
+                // A file of secrets, or a type the pass will card: nothing of
+                // it is a record anybody else could write.
+                continue;
+            }
+            if (registration != null && registration.handling().mutability()
+                    != cloud.jengu.dbo.core.api.Handling.Mutability.READ_ONLY_HERE) {
+                types.add(one.typeName());
+            }
+        }
+        return List.copyOf(types);
     }
 
     /**

@@ -66,6 +66,51 @@ final class ElementReferences {
         return changed;
     }
 
+    /**
+     * Hands every reference that names a record by its id to {@code each}, and
+     * writes back what it answers.
+     *
+     * <p>By its id means {@code Type/id} and nothing else. An absolute url, a
+     * contained {@code #ref}, a {@code urn:} and a version-pinned reference
+     * are left alone: none of them is a store's own id in the shape this
+     * store mints, so none of them is what a crossing must translate.
+     *
+     * @return true when the document changed
+     */
+    static boolean name(Element document, java.util.function.UnaryOperator<String> each) {
+        boolean changed = false;
+        for (Element reference : byId(document)) {
+            String value = reference.primitiveValue();
+            String named = each.apply(value);
+            if (!value.equals(named)) {
+                reference.setValue(named);
+                changed = true;
+            }
+        }
+        return changed;
+    }
+
+    /** {@code Type/id}: a type's name, one slash, and an id as FHIR spells one. */
+    private static final java.util.regex.Pattern BY_ID =
+            java.util.regex.Pattern.compile("[A-Z][A-Za-z]*/[A-Za-z0-9\\-.]{1,64}");
+
+    /** Every {@code reference} element whose value names a record by its id, at any depth. */
+    private static List<Element> byId(Element element) {
+        List<Element> found = new java.util.ArrayList<>();
+        collectById(element, found);
+        return found;
+    }
+
+    private static void collectById(Element element, List<Element> found) {
+        if ("reference".equals(element.getName()) && element.primitiveValue() != null
+                && BY_ID.matcher(element.primitiveValue()).matches()) {
+            found.add(element);
+        }
+        for (Element child : element.getChildren()) {
+            collectById(child, found);
+        }
+    }
+
     /** Every {@code reference} element whose value is a query, at any depth. */
     private static List<Element> conditionalReferences(Element element) {
         List<Element> found = new java.util.ArrayList<>();

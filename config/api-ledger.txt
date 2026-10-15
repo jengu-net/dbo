@@ -977,6 +977,10 @@ cloud.jengu.dbo.core.api.Identifier                                    value():S
 cloud.jengu.dbo.core.api.IdentifyingSearchRefusedException             class
 cloud.jengu.dbo.core.api.IdentifyingSearchRefusedException             new(String,String)
 cloud.jengu.dbo.core.api.IdentifyingSearchRefusedException             notMatchable(String,String):cloud.jengu.dbo.core.api.IdentifyingSearchRefusedException
+cloud.jengu.dbo.core.api.IdentityClaims                                class
+cloud.jengu.dbo.core.api.IdentityClaims                                named(cloud.jengu.dbo.core.api.ObjectStore,String,byte[]):List
+cloud.jengu.dbo.core.api.IdentityClaims                                of(cloud.jengu.dbo.core.api.ObjectStore,String,byte[]):cloud.jengu.dbo.core.api.Identifier
+cloud.jengu.dbo.core.api.IdentityClaims                                question(String,cloud.jengu.dbo.core.api.Identifier):String
 cloud.jengu.dbo.core.api.IdentityClass                                 CANONICAL:cloud.jengu.dbo.core.api.IdentityClass
 cloud.jengu.dbo.core.api.IdentityClass                                 IDENTIFIER:cloud.jengu.dbo.core.api.IdentityClass
 cloud.jengu.dbo.core.api.IdentityClass                                 INTERNAL:cloud.jengu.dbo.core.api.IdentityClass
@@ -1528,7 +1532,10 @@ cloud.jengu.dbo.core.face.RecordProjection.Record                      toString(
 cloud.jengu.dbo.core.face.RecordProjection.Record                      typeName():String
 cloud.jengu.dbo.core.face.RecordProjection.Record                      versionId():long
 cloud.jengu.dbo.core.face.ReferenceResolution                          interface
+cloud.jengu.dbo.core.face.ReferenceResolution                          named(byte[],cloud.jengu.dbo.core.face.ReferenceResolution.Naming):byte[]
 cloud.jengu.dbo.core.face.ReferenceResolution                          resolved(byte[],cloud.jengu.dbo.core.face.ReferenceResolution.Resolver):byte[]
+cloud.jengu.dbo.core.face.ReferenceResolution.Naming                   interface
+cloud.jengu.dbo.core.face.ReferenceResolution.Naming                   name(String):String
 cloud.jengu.dbo.core.face.ReferenceResolution.Resolver                 NOTHING:cloud.jengu.dbo.core.face.ReferenceResolution.Resolver
 cloud.jengu.dbo.core.face.ReferenceResolution.Resolver                 interface
 cloud.jengu.dbo.core.face.ReferenceResolution.Resolver                 resolve(String,String):Optional
@@ -2099,6 +2106,7 @@ cloud.jengu.dbo.fhir.element.ElementStore                              expandDef
 cloud.jengu.dbo.fhir.element.ElementStore                              historyBundle(String,String):String
 cloud.jengu.dbo.fhir.element.ElementStore                              internalFault(String):String
 cloud.jengu.dbo.fhir.element.ElementStore                              knowsType(String):boolean
+cloud.jengu.dbo.fhir.element.ElementStore                              named(byte[],cloud.jengu.dbo.core.face.ReferenceResolution.Naming):byte[]
 cloud.jengu.dbo.fhir.element.ElementStore                              narrow(String,Map):cloud.jengu.dbo.core.api.Criteria
 cloud.jengu.dbo.fhir.element.ElementStore                              noSuchType(String,String):String
 cloud.jengu.dbo.fhir.element.ElementStore                              operationOutcome(String,List):String
@@ -3337,6 +3345,7 @@ cloud.jengu.dbo.promises.DboPromises                                   SYNC_A_PL
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_A_PLACE_READS_ON_FROM_WHERE_IT_ACKNOWLEDGED:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_A_PLACE_SERVES_WHAT_IT_HOLDS_WHILE_ITS_ORIGIN_IS_AWAY:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_A_PLACE_TAKES_ITS_FACE_FROM_A_ROOT_BESIDE_IT:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   SYNC_A_SITE_HANDS_HOME_ONLY_WHAT_IS_ITS_OWN:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_A_STREAM_APPLIES_EACH_CHANGE_ONCE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_A_TYPE_IS_RECEIVED_AND_AUTHORED_RECORD_BY_RECORD:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_CONVERT_ON_APPLY:cloud.jengu.dbo.promises.DboPromises
@@ -4387,10 +4396,12 @@ cloud.jengu.dbo.sync.LaneModel                                         key(Strin
 cloud.jengu.dbo.sync.LaneModel                                         registrations():List
 cloud.jengu.dbo.sync.Lanes                                             MIRROR_SEPARATOR:String
 cloud.jengu.dbo.sync.Lanes                                             apply(String,cloud.jengu.dbo.sync.Lanes.Batch):cloud.jengu.dbo.sync.Lanes.Applied
+cloud.jengu.dbo.sync.Lanes                                             applyFromAPlace(String,cloud.jengu.dbo.sync.Lanes.Batch):cloud.jengu.dbo.sync.Lanes.Applied
 cloud.jengu.dbo.sync.Lanes                                             class
 cloud.jengu.dbo.sync.Lanes                                             copiedFrom(String,String):Optional
 cloud.jengu.dbo.sync.Lanes                                             lane(String):Optional
 cloud.jengu.dbo.sync.Lanes                                             mark(String,String):cloud.jengu.dbo.sync.Lanes.Lane
+cloud.jengu.dbo.sync.Lanes                                             namingAcrossStores(cloud.jengu.dbo.core.face.ReferenceResolution):cloud.jengu.dbo.sync.Lanes
 cloud.jengu.dbo.sync.Lanes                                             new(cloud.jengu.dbo.core.api.ObjectStore,cloud.jengu.dbo.core.api.feed.ChangeFeed,cloud.jengu.dbo.work.Runs,String)
 cloud.jengu.dbo.sync.Lanes                                             new(cloud.jengu.dbo.core.api.ObjectStore,cloud.jengu.dbo.core.api.feed.ChangeFeed,cloud.jengu.dbo.work.Runs,String,cloud.jengu.dbo.core.api.AuditReplay)
 cloud.jengu.dbo.sync.Lanes                                             new(cloud.jengu.dbo.core.api.ObjectStore,cloud.jengu.dbo.core.api.feed.ChangeFeed,cloud.jengu.dbo.work.Runs,String,cloud.jengu.dbo.core.api.AuditReplay,cloud.jengu.dbo.core.api.feed.ChangeFeed,Set)
@@ -4401,6 +4412,7 @@ cloud.jengu.dbo.sync.Lanes                                             outbound(
 cloud.jengu.dbo.sync.Lanes                                             outboundHome(String,int,Set):cloud.jengu.dbo.sync.Lanes.Batch
 cloud.jengu.dbo.sync.Lanes                                             recordingWhence(BiConsumer):cloud.jengu.dbo.sync.Lanes
 cloud.jengu.dbo.sync.Lanes                                             revoke():cloud.jengu.dbo.sync.Lanes.Revoked
+cloud.jengu.dbo.sync.Lanes                                             sayingWhatItDidNotTake(cloud.jengu.dbo.sync.Lanes.Untaken):cloud.jengu.dbo.sync.Lanes
 cloud.jengu.dbo.sync.Lanes                                             sent(String,cloud.jengu.dbo.sync.Lanes.Batch):cloud.jengu.dbo.sync.Lanes.Lane
 cloud.jengu.dbo.sync.Lanes.Applied                                     applied():long
 cloud.jengu.dbo.sync.Lanes.Applied                                     equals(Object):boolean
@@ -4457,6 +4469,10 @@ cloud.jengu.dbo.sync.Lanes.Revoked                                     new(long,
 cloud.jengu.dbo.sync.Lanes.Revoked                                     record
 cloud.jengu.dbo.sync.Lanes.Revoked                                     removed():long
 cloud.jengu.dbo.sync.Lanes.Revoked                                     toString():String
+cloud.jengu.dbo.sync.Lanes.Untaken                                     KEPT_ON_THE_PLACE:String
+cloud.jengu.dbo.sync.Lanes.Untaken                                     REFUSED:String
+cloud.jengu.dbo.sync.Lanes.Untaken                                     interface
+cloud.jengu.dbo.sync.Lanes.Untaken                                     said(String,cloud.jengu.dbo.sync.Lanes.Item,String,String,String):void
 cloud.jengu.dbo.sync.PlacementModel                                    KEY_SYSTEM:String
 cloud.jengu.dbo.sync.PlacementModel                                    TYPE:String
 cloud.jengu.dbo.sync.PlacementModel                                    class

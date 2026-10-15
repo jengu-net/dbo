@@ -738,57 +738,10 @@ public final class ConfigApplication {
         }
     }
 
-    /**
-     * Which of the things a declaration calls itself is the one it is CLAIMED
-     * under — the type's identity, not whichever token the extractor listed
-     * first.
-     *
-     * <p>An envelope carries every identifier a resource bears, and for a
-     * canonical type it carries the canonical identity beside them. The
-     * resource's own {@code identifier} tokens come first, so claiming the
-     * first one claimed a national OID as though it were the identity of a
-     * type identified by its url — and the engine refused it, correctly,
-     * because that is not what the type is claimed under. The refusal was a
-     * card and the tally said skipped, so a jurisdiction's vocabulary arrived
-     * as 89 applied of 459 with nothing saying why unless somebody opened the
-     * run. Declarations without an {@code identifier} went in, which is what
-     * made it look like something about the difficult ones.
-     *
-     * <p>The identity class is the answer and the store already holds it. For
-     * {@code IDENTIFIER} the declared systems say which tokens are identity,
-     * and the first of those the extractor listed wins — the extractor's order
-     * IS the trust order, which is the one thing a set of systems cannot
-     * carry.
-     *
-     * <p>Null when the declaration carries nothing the type is claimed under,
-     * and that falls through to a plain create rather than being reported
-     * here: a canonical resource with no url is a defect the engine states
-     * better than this could, and the pass turns what the engine says into the
-     * card.
-     */
+    /** What a declaration is claimed under: see {@link cloud.jengu.dbo.core.api.IdentityClaims#of}. */
     private cloud.jengu.dbo.core.api.Identifier identityClaimOf(Declared declared) {
-        cloud.jengu.dbo.core.api.TypeRegistration registration =
-                store.registrationOf(declared.typeName());
-        java.util.List<cloud.jengu.dbo.core.api.Identifier> named = identityOf(declared);
-        if (registration == null || named.isEmpty()) {
-            return null;
-        }
-        return switch (registration.identityClass()) {
-            case CANONICAL -> named.stream()
-                    .filter(one -> cloud.jengu.dbo.core.api.Identifier.CANONICAL_SYSTEM
-                            .equals(one.system()))
-                    .findFirst().orElse(null);
-            case IDENTIFIER -> named.stream()
-                    .filter(one -> registration.identitySystems().contains(one.system()))
-                    .findFirst().orElse(null);
-            // Untouched. Identity is the store's own id, so nothing in the
-            // document is it, and neither answer here is good: keyed on a
-            // token the type is not claimed under the engine refuses and the
-            // pass cards it, which is where this already was; keyed on
-            // nothing, every pass would make another record, and a duplicate
-            // nobody asked for is worse than a refusal somebody reads.
-            case INTERNAL -> named.get(0);
-        };
+        return cloud.jengu.dbo.core.api.IdentityClaims.of(store, declared.typeName(),
+                declared.payload());
     }
 
     /**
@@ -798,19 +751,7 @@ public final class ConfigApplication {
      * a second time.
      */
     private java.util.List<cloud.jengu.dbo.core.api.Identifier> identityOf(Declared declared) {
-        cloud.jengu.dbo.core.api.TypeRegistration registration =
-                store.registrationOf(declared.typeName());
-        if (registration == null) {
-            // An unknown type is not this method's refusal to make: the write
-            // below meets it and the pass turns it into a card, which is where
-            // the reason belongs.
-            return java.util.List.of();
-        }
-        try {
-            return registration.extractor().extract(declared.typeName(), declared.payload())
-                    .identifiers();
-        } catch (RuntimeException unreadable) {
-            return java.util.List.of();
-        }
+        return cloud.jengu.dbo.core.api.IdentityClaims.named(store, declared.typeName(),
+                declared.payload());
     }
 }

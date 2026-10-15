@@ -740,6 +740,19 @@ public final class ElementStore implements FhirStoreFacade,
         return moved ? payloads().write(document) : payload;
     }
 
+    @Override
+    public byte[] named(byte[] payload, cloud.jengu.dbo.core.face.ReferenceResolution.Naming each) {
+        // Guarded as resolved(..) is, for the same reason.
+        if (undefinedTypeOf(payload) != null) {
+            return payload;
+        }
+        Object document = payloads().read(null, payload);
+        if (!(document instanceof org.hl7.fhir.r5.elementmodel.Element element)) {
+            return payload;
+        }
+        return ElementReferences.name(element, each::name) ? payloads().write(document) : payload;
+    }
+
     /**
      * What a conditional reference points at, by the type's own identity.
      *

@@ -64,6 +64,18 @@ that use it.
   stays on the site. While the link is down the work waits on the site, and
   once it is back it all goes, each once. A lane admits every declared type except the
   ones about a person, which travel by work or not at all.
+- **A place hands home only what is its own.** Each store mints its own ids,
+  so a record a site's run wrote comes home naming what it points at by what
+  that says it is, and the cloud stores it pointing at its own record of the
+  same thing. A reference the cloud cannot answer refuses that record, naming
+  the reference, rather than storing it pointing at nothing. A record the
+  cloud holds as its own, the configuration's or anybody's, is never replaced
+  from a site, found by its id or by what it says: the site's write stays on
+  the site. Each write-back not taken is on the cloud's trail as
+  `write-back.kept-on-the-place` or `write-back.refused`, under the run that
+  produced it, about the record a reader there can follow. Which types a site
+  may write at all is the type's handling: `projected-config` is the
+  configuration's alone, there and here.
 
 The [joins table](../arc42-003-context/user-stories/us-dbo-two-places.md#joins)
 names the test behind each.

@@ -35,6 +35,31 @@ public interface ReferenceResolution {
      */
     byte[] resolved(byte[] payload, Resolver resolver);
 
+    /**
+     * The payload with each reference that names a record by its id —
+     * {@code Type/id}, and nothing else — handed to {@code each}, and replaced
+     * by what it answers.
+     *
+     * <p>The other half of crossing between stores. An id is the minting
+     * store's own, and means nothing in another; what a record says it is
+     * means the same in both. So a record leaving one store has its ids asked
+     * as questions, and the store it arrives at answers them with
+     * {@link #resolved}. Only the face knows where references live in its
+     * payloads, which is why the walk is here and the answers are not.
+     *
+     * @throws IllegalArgumentException whatever {@code each} throws, naming the
+     *         reference it would not answer
+     */
+    byte[] named(byte[] payload, Naming each);
+
+    /** What a reference by id is turned into. */
+    @FunctionalInterface
+    interface Naming {
+
+        /** The reference to write in its place: itself, to leave it as it is. */
+        String name(String reference);
+    }
+
     /** What a reference's query is asked of. */
     @FunctionalInterface
     interface Resolver {

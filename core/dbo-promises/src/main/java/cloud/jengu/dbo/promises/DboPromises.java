@@ -2890,6 +2890,17 @@ public enum DboPromises implements Promise {
             + "current, and it comes back when the tenant's record goes. A search can ask "
             + "for the upstream's copies — from one dependency, or any — or for the tenant's "
             + "own."),
+    SYNC_A_SITE_HANDS_HOME_ONLY_WHAT_IS_ITS_OWN(
+            "What a site's run wrote comes home naming other records by what they say, never "
+            + "by an id only the site's store minted: a reference to a record the tenant holds "
+            + "arrives as the tenant's own id, and one the tenant cannot answer refuses that "
+            + "record, naming the reference, rather than storing it pointing at nothing. A "
+            + "record the tenant holds as its own, found by its id or by what it says, is "
+            + "never replaced by a site's write-back: it stays as it was, in content and "
+            + "version, and the site's write stays on the site. Each write-back the tenant "
+            + "did not take is on the tenant's trail as the site's, about the record it was "
+            + "for."),
+
     SYNC_A_PLACE_HANDS_ITS_WORK_TO_ITS_TENANT(
             "A place's runs, and what each produced, reach its tenant by the node itself: up "
             + "the lane the place already holds, in its sync round, with no host and no "

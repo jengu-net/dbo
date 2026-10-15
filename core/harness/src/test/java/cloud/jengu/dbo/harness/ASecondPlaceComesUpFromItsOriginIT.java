@@ -72,13 +72,18 @@ class ASecondPlaceComesUpFromItsOriginIT {
     private static final String COUNTY = "vallamaa";
     private static final String CLINIC = "jaam";
 
+    /** What the clinic names its benches by, at home and on the site alike. */
+    private static final String BENCHES = "urn:dbo-test:bench";
+    /** What the clinic names its analysers by. */
+    private static final String ANALYSERS = "urn:dbo-test:analyser";
+
     private static final String CLINIC_DECLARATION = """
             {"code":"%s","face":"r4","audit":{"level":"writes"},
              "dependencies":[{"name":"%s","face":true,
                               "types":["StructureDefinition","SearchParameter","ValueSet","CodeSystem"]},
                              {"name":"%s","types":["Organization","CodeSystem"]}],
              "steps":[{"code":"%s","slots":{"specimen":"Observation"},
-                       "writes":["Observation"]},
+                       "writes":["Observation","Device","Basic"]},
                       {"code":"jaam.lab.order","slots":{"order":"Reference(Observation)"},
                        "lasts":true},
                       {"code":"jaam.lab.calibrate",
@@ -91,8 +96,12 @@ class ASecondPlaceComesUpFromItsOriginIT {
               {"name":"CodeSystem","identity":"canonical","handling":"replicated"},
               {"name":"Organization","identity":"internal","handling":"replicated"},
               {"name":"Observation","identity":"internal","handling":"operational"},
-              {"name":"Patient","identity":"internal","handling":"operational"}]}"""
-            .formatted(CLINIC, ROOT, COUNTY, "jaam.lab.record");
+              {"name":"Patient","identity":"internal","handling":"operational"},
+              {"name":"Location","identity":"identifier","systems":["%s"],
+               "handling":"operational"},
+              {"name":"Device","identity":"internal","handling":"operational"},
+              {"name":"Basic","identity":"internal","handling":"projected-config"}]}"""
+            .formatted(CLINIC, ROOT, COUNTY, "jaam.lab.record", BENCHES);
 
     /** The step the site performs on its own runners: a result captured from an instrument. */
     private static final String RECORD = "jaam.lab.record";
@@ -583,6 +592,19 @@ class ASecondPlaceComesUpFromItsOriginIT {
      * specimen and its result writes the observation it found.
      */
     private static void performedOnTheSite(String found) {
+        performedOnTheSite(found, Outcome.Write.create("""
+                {"resourceType":"Observation","status":"final","code":{"text":"%s"}}"""
+                .formatted(found)));
+    }
+
+    /** The same run, its result the writes given. */
+    private static void performedOnTheSite(String found, Outcome.Write... writes) {
+        Run ended = attemptedOnTheSite(found, writes);
+        assertEquals(null, ended.refused(), "the site refused its own result: " + ended);
+    }
+
+    /** The same run, its result the writes given, ended however the site ended it. */
+    private static Run attemptedOnTheSite(String found, Outcome.Write... writes) {
         StepDeclaration declared =
                 StepDeclaration.of(RECORD, "1", "r4")
                         .taking("specimen", "Observation");
@@ -601,9 +623,7 @@ class ASecondPlaceComesUpFromItsOriginIT {
                 analyser.name()));
         Run held = analysing.claim(run, java.time.Duration.ofMinutes(5))
                 .orElseThrow();
-        analysing.committed(held, null, List.of(Outcome.Write.create("""
-                {"resourceType":"Observation","status":"final","code":{"text":"%s"}}"""
-                .formatted(found))));
+        return analysing.committed(held, null, List.of(writes));
     }
 
     @Test
@@ -670,6 +690,209 @@ class ASecondPlaceComesUpFromItsOriginIT {
                         () -> home.ended(atHome, Status.CANCELLED,
                                 "home", "not ours to end")).getMessage() != null,
                 "the tenant moved work that lasts on its site");
+    }
+
+    @Test
+    @Order(16)
+    @DisplayName("a record the tenant holds, kept by a site's run by what it says, leaves the "
+            + "tenant's record as it was, in content and version, and the tenant's trail says "
+            + "the site's write stayed on the site")
+    @Proving(DboPromises.SYNC_A_SITE_HANDS_HOME_ONLY_WHAT_IS_ITS_OWN)
+    void aSitesWriteBackLeavesTheTenantsOwnRecord() throws Exception {
+        String bench = theBench();
+        assertEquals(201, post(cloud, CLINIC, "Device", """
+                {"resourceType":"Device","identifier":[{"system":"%s","value":"analyser-1"}],
+                 "manufacturer":"as the clinic set it up",
+                 "location":{"reference":"Location?identifier=%s|bench-1"}}"""
+                .formatted(ANALYSERS, BENCHES)));
+        com.fasterxml.jackson.databind.JsonNode before = only(cloud, "Device?identifier="
+                + ANALYSERS + "|analyser-1");
+        assertEquals("Location/" + bench, before.path("location").path("reference").asText());
+
+        performedOnTheSite("keeps-the-analyser", Outcome.Write.upsert(
+                "Device?identifier=" + ANALYSERS + "|analyser-1", """
+                {"resourceType":"Device","identifier":[{"system":"%s","value":"analyser-1"}],
+                 "manufacturer":"as the site keeps it",
+                 "location":{"reference":"Location?identifier=%s|bench-1"}}"""
+                        .formatted(ANALYSERS, BENCHES)));
+        site.syncRound();
+
+        com.fasterxml.jackson.databind.JsonNode after = only(cloud, "Device?identifier="
+                + ANALYSERS + "|analyser-1");
+        assertEquals(before.path("id").asText(), after.path("id").asText(), after.toString());
+        assertEquals(before.path("meta").path("versionId").asText(),
+                after.path("meta").path("versionId").asText(), after.toString());
+        assertEquals("as the clinic set it up", after.path("manufacturer").asText(),
+                after.toString());
+        assertEquals("Location/" + bench, after.path("location").path("reference").asText(),
+                after.toString());
+        com.fasterxml.jackson.databind.JsonNode said = writeBack("keeps-the-analyser");
+        assertEquals("write-back." + Lanes.Untaken.KEPT_ON_THE_PLACE,
+                said.path("type").path("code").asText(), said.toString());
+        assertEquals("Device/" + before.path("id").asText(),
+                said.path("entity").path(0).path("what").path("reference").asText(),
+                "the tenant's trail does not say which of its records the site's write was "
+                        + "about: " + said);
+    }
+
+    @Test
+    @Order(17)
+    @DisplayName("a record a site's run made comes home pointing at the tenant's own record "
+            + "where it pointed at the site's record of the same thing")
+    @Proving(DboPromises.SYNC_A_SITE_HANDS_HOME_ONLY_WHAT_IS_ITS_OWN)
+    void aSitesRecordComesHomePointingAtTheTenantsOwn() throws Exception {
+        String bench = theBench();
+        performedOnTheSite("at-the-bench", Outcome.Write.create("""
+                {"resourceType":"Observation","status":"final","code":{"text":"at-the-bench"},
+                 "subject":{"reference":"Location?identifier=%s|bench-1"}}"""
+                .formatted(BENCHES)));
+        site.syncRound();
+
+        com.fasterxml.jackson.databind.JsonNode home = observed("at-the-bench");
+        assertEquals("Location/" + bench, home.path("subject").path("reference").asText(),
+                home.toString());
+    }
+
+    @Test
+    @Order(18)
+    @DisplayName("a record a site's run made, pointing at a record its tenant does not hold — "
+            + "asked by what it says, or by an id only the site minted — is refused at home and "
+            + "nothing pointing nowhere is stored; the tenant's trail says the site's write was "
+            + "refused")
+    @Proving(DboPromises.SYNC_A_SITE_HANDS_HOME_ONLY_WHAT_IS_ITS_OWN)
+    void aReferenceTheTenantCannotAnswerIsRefused() throws Exception {
+        assertEquals(201, post(site, CLINIC, "Location", """
+                {"resourceType":"Location","name":"only on the site",
+                 "identifier":[{"system":"%s","value":"bench-on-the-site"}]}"""
+                .formatted(BENCHES)));
+        performedOnTheSite("pointing-nowhere", Outcome.Write.create("""
+                {"resourceType":"Observation","status":"final","code":{"text":"pointing-nowhere"},
+                 "subject":{"reference":"Location?identifier=%s|bench-on-the-site"}}"""
+                .formatted(BENCHES)));
+        site.syncRound();
+
+        assertTrue(!read(cloud, CLINIC, "Observation").contains("pointing-nowhere"),
+                "a record pointing at what its tenant does not hold was stored at home");
+        com.fasterxml.jackson.databind.JsonNode said = writeBack("pointing-nowhere");
+        assertEquals("write-back." + Lanes.Untaken.REFUSED,
+                said.path("type").path("code").asText(), said.toString());
+        assertTrue(said.path("entity").path(0).path("what").path("reference").asText()
+                .startsWith("Observation/"), said.toString());
+
+        // A patient says nothing it is claimed under here, so the site can
+        // name it only by the id it minted for it.
+        assertEquals(201, post(site, CLINIC, "Patient", """
+                {"resourceType":"Patient","gender":"male","name":[{"text":"seen-on-the-site"}]}"""));
+        String patient = new com.fasterxml.jackson.databind.ObjectMapper()
+                .readTree(read(site, CLINIC, "Patient?gender=male")).path("entry").path(0)
+                .path("resource").path("id").asText();
+        performedOnTheSite("pointing-at-an-id", Outcome.Write.create("""
+                {"resourceType":"Observation","status":"final","code":{"text":"pointing-at-an-id"},
+                 "subject":{"reference":"Patient/%s"}}""".formatted(patient)));
+        site.syncRound();
+
+        assertTrue(!read(cloud, CLINIC, "Observation").contains("pointing-at-an-id"),
+                "a record pointing at an id only the site minted was stored at home");
+        assertEquals("write-back." + Lanes.Untaken.REFUSED, writeBack("pointing-at-an-id")
+                .path("type").path("code").asText());
+    }
+
+    @Test
+    @Order(19)
+    @DisplayName("a reference to a record the site holds as its tenant's, by the tenant's own "
+            + "id, comes home as it was")
+    @Proving(DboPromises.SYNC_A_SITE_HANDS_HOME_ONLY_WHAT_IS_ITS_OWN)
+    void aReferenceBothSidesHoldByOneIdStays() throws Exception {
+        String county = new com.fasterxml.jackson.databind.ObjectMapper()
+                .readTree(read(site, CLINIC, "Organization")).path("entry").path(0)
+                .path("resource").path("id").asText();
+        assertTrue(!county.isEmpty(), "the site holds no organisation of the county's");
+        performedOnTheSite("by-the-county", Outcome.Write.create("""
+                {"resourceType":"Observation","status":"final","code":{"text":"by-the-county"},
+                 "performer":[{"reference":"Organization/%s"}]}""".formatted(county)));
+        site.syncRound();
+
+        com.fasterxml.jackson.databind.JsonNode home = observed("by-the-county");
+        assertEquals("Organization/" + county,
+                home.path("performer").path(0).path("reference").asText(), home.toString());
+    }
+
+    @Test
+    @Order(20)
+    @DisplayName("a type the configuration alone writes is refused to a site's run on the site "
+            + "itself, so nothing of it is handed home")
+    @Proving(DboPromises.SYNC_A_SITE_HANDS_HOME_ONLY_WHAT_IS_ITS_OWN)
+    void whatOnlyTheConfigurationWritesIsRefusedOnTheSite() throws Exception {
+        Run ended = attemptedOnTheSite("sets-the-clinic-up", Outcome.Write.create("""
+                {"resourceType":"Basic","code":{"text":"set-up-on-the-site"}}"""));
+        assertTrue(ended.refused() != null, "a site's run wrote what only the configuration "
+                + "writes: " + ended);
+        site.syncRound();
+        assertTrue(!read(cloud, CLINIC, "Basic").contains("set-up-on-the-site"),
+                "what only the configuration writes reached the tenant from a site");
+    }
+
+    /**
+     * The clinic's bench, recorded at home and on the site alike by what it
+     * says and under ids each store minted for itself: the tenant's id.
+     */
+    private static String theBench() throws Exception {
+        String query = "Location?identifier=" + BENCHES + "|bench-1";
+        if (!read(cloud, CLINIC, query.replace("|", "%7C")).contains("\"Location\"")) {
+            String bench = """
+                    {"resourceType":"Location","name":"bench one",
+                     "identifier":[{"system":"%s","value":"bench-1"}]}""".formatted(BENCHES);
+            assertEquals(201, post(cloud, CLINIC, "Location", bench));
+            assertEquals(201, post(site, CLINIC, "Location", bench));
+        }
+        String home = only(cloud, query).path("id").asText();
+        assertNotEquals(home, only(site, query).path("id").asText(),
+                "the bench has one id in both stores, so nothing here crosses a boundary");
+        return home;
+    }
+
+    /**
+     * The one entry on the tenant's trail saying a write-back of that run on
+     * the site was not taken: one, however often the site handed it.
+     */
+    private static com.fasterxml.jackson.databind.JsonNode writeBack(String found)
+            throws Exception {
+        String run = "site" + Lanes.MIRROR_SEPARATOR + RECORD + "/" + found;
+        List<com.fasterxml.jackson.databind.JsonNode> said = new java.util.ArrayList<>();
+        for (com.fasterxml.jackson.databind.JsonNode entry : new com.fasterxml.jackson.databind
+                .ObjectMapper().readTree(read(cloud, CLINIC, "AuditEvent?_count=1000"))
+                .path("entry")) {
+            com.fasterxml.jackson.databind.JsonNode event = entry.path("resource");
+            if (event.path("type").path("code").asText().startsWith("write-back.")
+                    && event.path("entity").toString().contains("\"" + run + "\"")) {
+                said.add(event);
+            }
+        }
+        assertEquals(1, said.size(), "write-backs of " + run + " on the tenant's trail: " + said);
+        return said.get(0);
+    }
+
+    /** The one observation at home whose code reads so. */
+    private static com.fasterxml.jackson.databind.JsonNode observed(String text) throws Exception {
+        List<com.fasterxml.jackson.databind.JsonNode> found = new java.util.ArrayList<>();
+        for (com.fasterxml.jackson.databind.JsonNode entry : new com.fasterxml.jackson.databind
+                .ObjectMapper().readTree(read(cloud, CLINIC, "Observation?_count=1000"))
+                .path("entry")) {
+            if (text.equals(entry.path("resource").path("code").path("text").asText())) {
+                found.add(entry.path("resource"));
+            }
+        }
+        assertEquals(1, found.size(), "observations at home reading '" + text + "': " + found);
+        return found.get(0);
+    }
+
+    /** The one record a search on the clinic finds on that node. */
+    private static com.fasterxml.jackson.databind.JsonNode only(TenantRuntimeManager node,
+            String query) throws Exception {
+        com.fasterxml.jackson.databind.JsonNode bundle = new com.fasterxml.jackson.databind
+                .ObjectMapper().readTree(read(node, CLINIC, query.replace("|", "%7C")));
+        assertEquals(1, bundle.path("entry").size(), query + " found " + bundle);
+        return bundle.path("entry").path(0).path("resource");
     }
 
     private static int times(String found, String in) {
