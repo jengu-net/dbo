@@ -316,7 +316,7 @@ public final class PdiObjectStore implements ObjectStore {
         if (!spec.isPersonType(criteria.typeName())
                 || criteria.matchedPaths().size() != 1
                 || criteria.equalsPredicates().size() != 1
-                || !criteria.shapePredicates().isEmpty()) {
+                || !criteria.shapePredicates().isEmpty() || criteria.origin() != null) {
             return Optional.empty();
         }
         Criteria.Eq only = criteria.equalsPredicates().get(0);

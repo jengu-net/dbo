@@ -169,8 +169,27 @@ final class StepSurface implements HttpHandler {
          */
         Offer offer(String tenant, String stepCode);
 
+        /**
+         * A step a jurisdiction above this tenant declares for its members'
+         * exchanges, asked for to go to the tenant named.
+         *
+         * @param to the tenant whose data it is, or null where the request
+         *           named none
+         * @return what the step takes and whether it may go there, or null
+         *         where no zone above this tenant declares the step
+         */
+        default Offer exchange(String tenant, String stepCode, String to) {
+            return null;
+        }
+
         /** The step's slots, and why it is not startable here if it is not. */
-        record Offer(Map<String, String> slots, String refusedBecause) {
+        record Offer(Map<String, String> slots, String refusedBecause,
+                TenantSpec.Step.Awaits awaits) {
+
+            /** An offer whose asker, where it crosses, waits for the records shared. */
+            Offer(Map<String, String> slots, String refusedBecause) {
+                this(slots, refusedBecause, TenantSpec.Step.Awaits.RECORDS);
+            }
         }
     }
 
@@ -355,8 +374,52 @@ final class StepSurface implements HttpHandler {
      * @param requester recorded as the client the run answers, or null
      */
     Started starting(String stepCode, Object body, String requester) {
+        return starting(stepCode, body, requester, false);
+    }
+
+    /**
+     * Whether a run of the step would be started over this body: everything
+     * starting it decides, and nothing written. Null where it would be, and
+     * otherwise the refusal it would answer with.
+     */
+    Started refusal(String stepCode, Object body) {
+        Started checked = starting(stepCode, body, null, true);
+        return checked.status() == 200 ? null : checked;
+    }
+
+    private Started starting(String stepCode, Object body, String requester, boolean dry) {
         TenantSpec.Step step = declared.get(stepCode);
+        // WHERE WORK GOES IS NAMED, AND ONLY THAT. Where it came from and which
+        // run it answers are the store's to write as it carries the work, so a
+        // request saying them would be the asker inventing a crossing.
+        String crossingTo = null;
+        if (Json.objOpt(body, "crossing") instanceof Map<?, ?> named) {
+            if (named.size() != 1 || !(named.get("to") instanceof String to)) {
+                return refused(400, "invalid_request", "a crossing is asked for by naming the "
+                        + "tenant whose data it is, crossing.to, and nothing else: where it "
+                        + "came from and which run it answers are the store's to say");
+            }
+            crossingTo = to;
+        }
+        cloud.jengu.dbo.work.Run.Crossing crossing = null;
         Map<String, String> slots;
+        // A ZONE'S OWN EXCHANGE, asked at the zone's door to go to one of its
+        // members: the zone is one end of the crossing, as a member asking it
+        // is.
+        Fleet.Offer exchanged = step != null && crossingTo != null
+                ? fleet.exchange(tenant, stepCode, crossingTo) : null;
+        if (exchanged != null && exchanged.refusedBecause() != null) {
+            return refused(409, "refused", exchanged.refusedBecause());
+        }
+        if (exchanged != null) {
+            crossing = new cloud.jengu.dbo.work.Run.Crossing(cloud.jengu.dbo.core.UuidV7.newId(),
+                    tenant, crossingTo, null, requester);
+            if (exchanged.awaits() == TenantSpec.Step.Awaits.RECORDS && requester == null) {
+                return refused(400, "invalid_request", stepCode + " brings back the records "
+                        + "shared, sealed to the client that asked, and nobody asked here: "
+                        + "ask at the door, or on an exchange that awaits its outcome");
+            }
+        }
         if (step != null) {
             slots = step.slots();
         } else {
@@ -373,6 +436,30 @@ final class StepSurface implements HttpHandler {
             // own record, before any participant said anything.
             Fleet.Offer offered = fleet.offer(tenant, stepCode);
             if (offered == null) {
+                // A JURISDICTION'S, for work that leaves this tenant. Asked for
+                // here, by the tenant that wants it, and carried up to the
+                // lowest zone it shares with the tenant whose data it is.
+                offered = fleet.exchange(tenant, stepCode, crossingTo);
+                if (offered != null && crossingTo == null) {
+                    return refused(400, "invalid_request", stepCode + " is an exchange its "
+                            + "zone declares, and goes to the tenant whose data it is: name "
+                            + "it as crossing.to");
+                }
+                if (offered != null && offered.refusedBecause() == null) {
+                    // What comes back is sealed to the client that asked, so
+                    // records nobody can open are not asked for.
+                    if (offered.awaits() == TenantSpec.Step.Awaits.RECORDS && requester == null) {
+                        return refused(400, "invalid_request", stepCode + " brings back the "
+                                + "records shared, sealed to the client that asked, and nobody "
+                                + "asked here: ask at the door, or on an exchange that awaits "
+                                + "its outcome");
+                    }
+                    crossing = new cloud.jengu.dbo.work.Run.Crossing(
+                            cloud.jengu.dbo.core.UuidV7.newId(), tenant, crossingTo, null,
+                            requester);
+                }
+            }
+            if (offered == null) {
                 return refused(404, "not_found", "this tenant offers no step '" + stepCode
                         + "'; it offers: " + declared.keySet());
             }
@@ -383,6 +470,11 @@ final class StepSurface implements HttpHandler {
                 return refused(409, "refused", offered.refusedBecause());
             }
             slots = offered.slots();
+        }
+        if (crossingTo != null && crossing == null) {
+            return refused(400, "invalid_request", stepCode + " is this tenant's own work and "
+                    + "does not cross; a crossing is asked for on an exchange a zone above "
+                    + "this tenant declares");
         }
         Map<String, Object> given = new LinkedHashMap<>();
         if (Json.objOpt(body, "inputs") instanceof Map<?, ?> named) {
@@ -430,14 +522,40 @@ final class StepSurface implements HttpHandler {
             addressee = new cloud.jengu.dbo.work.Run.Addressee(
                     client == null ? null : String.valueOf(client),
                     executor == null ? null : String.valueOf(executor));
+            if (crossing != null && !addressee.equals(cloud.jengu.dbo.work.Run.Crossing.CARRIER)) {
+                return refused(400, "invalid_request", stepCode + " asks across to "
+                        + crossingTo + ", and a run asking across is for what carries it "
+                        + "alone: leave 'for' out");
+            }
+        }
+        // The run this one is started for, by its key: a part of it, read
+        // as one of the things it set going. One this tenant does not hold
+        // is refused by name — a part filed under nothing would read as a
+        // root, and the reason it was started would be lost where it began.
+        Run parent = null;
+        String partOf = Json.strOpt(body, "partOf");
+        if (partOf != null) {
+            parent = runs.byKey(partOf).orElse(null);
+            if (parent == null) {
+                return refused(422, "invalid_request", "'partOf' names the run '" + partOf
+                        + "', and this tenant holds no run by that key");
+            }
         }
         String scope = Optional.ofNullable(Json.strOpt(body, "scope"))
                 .orElseGet(cloud.jengu.dbo.core.UuidV7::newId);
+        if (dry) {
+            return new Started(200, "{}");
+        }
         StepDeclaration declaration = declaration(stepCode, slots);
         if (step != null && step.retry() != null) {
             // Recorded on the run as it is authored, so its failures are
             // routed by what this tenant declared wherever it is performed.
             declaration = declaration.retrying(step.retry());
+        }
+        if (step != null && step.lasts()) {
+            Run opened = opened(step, declaration, inputs, requester, parent);
+            return new Started(201, "{\"run\":" + quote(opened.id()) + ",\"key\":"
+                    + quote(opened.key()) + ",\"step\":" + quote(stepCode) + "}");
         }
         Run run = runs.filling(declaration, RunKind.PIPELINE, scope, inputs, requester,
                 step == null || step.automate() == null ? null
@@ -445,7 +563,7 @@ final class StepSurface implements HttpHandler {
                 // The asker's window, recorded as the run is authored so the
                 // close that opens it needs nothing but the run.
                 step == null || step.answer() == null ? null : step.answer().collect(),
-                addressee);
+                addressee, parent, crossing);
         // The key as well as the id, because they answer different questions
         // and only one of them is this surface's. The id addresses the
         // context; the key is the name the rest of the work model is asked by
@@ -666,8 +784,110 @@ final class StepSurface implements HttpHandler {
         return admitted ? null : "its step admits automation only when " + when.expression();
     }
 
+    /**
+     * A run of one of this tenant's own steps, started by the tenant itself on
+     * an occasion the step declared — held to the same declaration, retry
+     * and automation decision as one somebody asked for here.
+     *
+     * @param occasion its scope, which says what started it
+     * @param parent   the tenant's system run
+     * @param by       who asked, for a run started now; null for an occasion
+     */
+    Run startedOn(TenantSpec.Step step, String occasion,
+            Map<String, cloud.jengu.dbo.work.RunSlot> inputs, Run parent, String by) {
+        StepDeclaration declaration = declaration(step.code(), step.slots());
+        if (step.lasts()) {
+            return opened(step, declaration, inputs, by, parent);
+        }
+        if (step.retry() != null) {
+            declaration = declaration.retrying(step.retry());
+        }
+        return runs.started(declaration, occasion, inputs,
+                step.automate() == null ? null : forPeopleBecause(step.automate(), inputs),
+                parent, by);
+    }
+
+    /**
+     * A body's {@code inputs} as a run of {@code step} records them, by the
+     * rules the door fills a run with: a slot the step does not declare is
+     * refused by name, and a search is resolved here into what it matched.
+     */
+    Map<String, cloud.jengu.dbo.work.RunSlot> filled(TenantSpec.Step step, Object body) {
+        Map<String, cloud.jengu.dbo.work.RunSlot> inputs = new LinkedHashMap<>();
+        if (!(Json.objOpt(body, "inputs") instanceof Map<?, ?> named)) {
+            return inputs;
+        }
+        for (Map.Entry<?, ?> given : named.entrySet()) {
+            String slot = String.valueOf(given.getKey());
+            String declaredShape = step.slots().get(slot);
+            if (declaredShape == null) {
+                throw new IllegalArgumentException(step.code() + " declares no slot '" + slot
+                        + "'; it takes: " + step.slots().keySet());
+            }
+            inputs.put(slot, fill(slot, cloud.jengu.dbo.core.process.SlotShape.of(
+                    declaredShape), given.getValue()));
+        }
+        return inputs;
+    }
+
+    /**
+     * Lasting work, opened for the one request its slot names, whatever the
+     * occasion: the request is what makes it this work, so handing it in
+     * again, or changing it again, finds the same.
+     */
+    private Run opened(TenantSpec.Step step, StepDeclaration declaration,
+            Map<String, cloud.jengu.dbo.work.RunSlot> inputs, String requester, Run parent) {
+        String slot = step.slots().keySet().iterator().next();
+        cloud.jengu.dbo.work.RunSlot filled = inputs.get(slot);
+        if (filled == null || filled.values().size() != 1) {
+            throw new IllegalArgumentException(step.code() + " lasts, and is opened for the one "
+                    + "request its slot '" + slot + "' names");
+        }
+        return runs.opening(declaration, slot, filled.values().get(0), requester, parent);
+    }
+
+    /** What may be said of lasting work, as the last segment of its address. */
+    static final java.util.Set<String> SAID = java.util.Set.of("accept", "reject", "stage", "end");
+
+    /**
+     * An act said of lasting work, by whoever says it: accepted, rejected and
+     * why, a stage reached, or ended — completed, failed or cancelled — and
+     * why. The door has decided they may; this decides whether the work can
+     * be said to be so.
+     *
+     * @param body {@code because}, and {@code stage} or {@code status} where
+     *             the act names one
+     */
+    Started saying(String runId, String act, Object body, String by) {
+        Optional<Run> found = runs.byId(runId);
+        if (found.isEmpty()) {
+            return refused(404, "not_found", "no such run");
+        }
+        String because = Json.strOpt(body, "because");
+        try {
+            Run moved = switch (act) {
+                case "accept" -> runs.accepted(found.get(), by, because);
+                case "reject" -> runs.rejected(found.get(), by, because);
+                case "stage" -> runs.reached(found.get(), Json.strOpt(body, "stage"), by, because);
+                case "end" -> runs.ended(found.get(), cloud.jengu.dbo.work.Status.of(
+                        Optional.ofNullable(Json.strOpt(body, "status")).orElse("completed")),
+                        by, because);
+                default -> throw new IllegalArgumentException("'" + act + "' is not said of "
+                        + "lasting work; it is accepted, rejected, staged or ended");
+            };
+            return new Started(200, "{\"run\":" + quote(moved.id()) + ",\"key\":"
+                    + quote(moved.key()) + ",\"status\":" + quote(moved.status().wire())
+                    + (moved.milestone() == null ? ""
+                            : ",\"stage\":" + quote(moved.milestone().name())) + "}");
+        } catch (IllegalArgumentException wrong) {
+            return refused(400, "invalid_request", wrong.getMessage());
+        } catch (IllegalStateException standing) {
+            return refused(409, "conflict", standing.getMessage());
+        }
+    }
+
     /** What the engine is handed: the slots, with the face type as the shape. */
-    private StepDeclaration declaration(String code, Map<String, String> slots) {
+    static StepDeclaration declaration(String code, Map<String, String> slots) {
         StepDeclaration declaration = StepDeclaration.of(code, "1", "r5");
         for (Map.Entry<String, String> slot : slots.entrySet()) {
             // THE TYPE. What the engine holds per slot is the shape a payload
@@ -697,6 +917,25 @@ final class StepSurface implements HttpHandler {
             TenantAuthority.AuthContext admitted) throws IOException {
         String asking = admitted.clientId();
         String[] segments = relative.split("/");
+        if (segments.length == 2 && SAID.contains(segments[1])) {
+            if (!"POST".equals(exchange.getRequestMethod())) {
+                fail(exchange, 405, "invalid_request", "an act is said by POSTing it");
+                return;
+            }
+            Optional<Run> lasting = runs.byId(segments[0]);
+            if (lasting.isEmpty() || !lasting.get().lasting()
+                    || !covers(admitted, lasting.get().process() + "." + lasting.get().step())) {
+                // As for any run this credential cannot act on: absence.
+                fail(exchange, 404, "not_found", "no such run");
+                return;
+            }
+            Object body = Json.parse(new String(exchange.getRequestBody().readAllBytes(),
+                    StandardCharsets.UTF_8));
+            Started said = saying(segments[0], segments[1], body,
+                    admitted.fhirUser() != null ? admitted.fhirUser() : asking);
+            respond(exchange, said.status(), said.body());
+            return;
+        }
         if (segments.length == 2 && "done".equals(segments[1])) {
             done(exchange, segments[0], asking);
             return;
@@ -1203,6 +1442,8 @@ final class StepSurface implements HttpHandler {
     private void respond(HttpExchange exchange, int status, String body) throws IOException {
         byte[] bytes = body.getBytes(StandardCharsets.UTF_8);
         exchange.getResponseHeaders().set("Content-Type", "application/json");
+        // Read as what it says it is, and never sniffed into something else.
+        exchange.getResponseHeaders().set("X-Content-Type-Options", "nosniff");
         exchange.sendResponseHeaders(status, bytes.length);
         try (OutputStream out = exchange.getResponseBody()) {
             out.write(bytes);
@@ -1210,6 +1451,6 @@ final class StepSurface implements HttpHandler {
     }
 
     private static String quote(String value) {
-        return "\"" + String.valueOf(value).replace("\\", "\\\\").replace("\"", "\\\"") + "\"";
+        return JsonText.quote(value);
     }
 }

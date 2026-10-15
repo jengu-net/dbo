@@ -24,6 +24,10 @@ dependencies {
     // opens, for the same substrate — a host that pooled differently would be
     // a second answer to a question the runtime already settled.
     embedded("com.zaxxer:HikariCP:7.1.0")
+    // The calendar-rule parser DBOS fires schedules with, declared for the
+    // same reason as the pool: a step's rule is read by the parser that will
+    // fire it, and DBOS carries it runtime-only.
+    embedded("com.cronutils:cron-utils:9.2.1")
     // DBOS carries Jackson 3, and 1.0.0 is the current release: its
     // next version is a milestone, so the version moves here instead.
     constraints {

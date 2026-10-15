@@ -43,15 +43,23 @@ public final class TenantAuthority {
     private final String issuer;
     private final KeyProtector protector;
     private final Map<String, RSAPublicKey> keyCache = new ConcurrentHashMap<>();
-    /** Issuers trusted because of a declared relation, by issuer: the partner tenants that manage this one. */
+    /** Issuers trusted because of a relation, by issuer: the provider whose partners follow this tenant's work. */
     private final Map<String, Trusted> trusted = new ConcurrentHashMap<>();
 
+    /** The audience every admitted partner reaches this tenant as. */
+    public static final String PARTNER_AUDIENCE = "partner";
+
     /**
-     * A partner tenant's authority, trusted for what the relation grants and
-     * nothing else: its tokens reach this tenant as the audience named, with
-     * a fixed read reach over runs and the trail.
+     * Another authority, trusted for what a relation grants and nothing else:
+     * a token it issued reaches this tenant only as a partner the gate admits,
+     * under the partner audience, with a fixed read reach over runs and the
+     * trail.
+     *
+     * @param admits which partner a verified token's claims are, asked each
+     *               time, or empty for a token this tenant does not admit
      */
-    private record Trusted(java.util.function.Supplier<String> jwks, String audience,
+    private record Trusted(java.util.function.Supplier<String> jwks,
+            java.util.function.Function<Object, Optional<String>> admits,
             Map<String, RSAPublicKey> keys) {}
 
     /** What a partner may ask of a managed tenant: the journey, never the documents. */
@@ -59,16 +67,18 @@ public final class TenantAuthority {
             List.of("system/Task.read", "system/AuditEvent.read");
 
     /**
-     * Trusts another tenant's authority because this tenant declared it as
-     * its partner. Cross-tenant confusion stays unrepresentable: a token
-     * from anybody else still fails at signature verification, and a
-     * partner's token fails everywhere it was not declared. What the
-     * relation grants is only the audience — the managed tenant's own
-     * declaration of what a partner sees — and a read reach fixed here.
+     * Trusts another authority for the partners it vouches for: the service
+     * provider's, whose partners carry out its processes. Cross-tenant
+     * confusion stays unrepresentable: a token from anybody else still fails
+     * at signature verification, and one this authority issued is admitted
+     * only as a partner the gate names — asked per token, so a relation this
+     * tenant withdraws is withdrawn at the next request. What admission grants
+     * is the partner audience, this tenant's own declaration of what a
+     * partner sees, and a read reach fixed here.
      */
-    public void trust(String partnerIssuer, java.util.function.Supplier<String> partnerJwks,
-            String audience) {
-        trusted.put(partnerIssuer, new Trusted(partnerJwks, audience, new ConcurrentHashMap<>()));
+    public void trust(String issuer, java.util.function.Supplier<String> jwks,
+            java.util.function.Function<Object, Optional<String>> admits) {
+        trusted.put(issuer, new Trusted(jwks, admits, new ConcurrentHashMap<>()));
     }
     /** §16: the tenant's main store — subjects and grants are ITS records. */
     private volatile ObjectStore subjectStore;
@@ -252,6 +262,75 @@ public final class TenantAuthority {
                 parked.nonce(), System.currentTimeMillis() + 60_000, null,
                 Json.strings(claims, "amr"), System.currentTimeMillis() / 1000));
         return new FederatedOutcome.Success(parked.redirectUri(), parked.rpState(), code);
+    }
+
+    // ------------------------------------------------------------ secrets
+
+    /**
+     * Keeps a secret the tenant's owner gave it, by name, wrapped as this
+     * authority wraps its signing keys — never in the clear, and never as a
+     * record anybody but this authority reads.
+     */
+    public void keepSecret(String name, byte[] value) {
+        String payload = "{\"name\":" + Json.quote(name) + ",\"wrapped\":\""
+                + Base64.getEncoder().encodeToString(protector.wrap(value)) + "\"}";
+        store.putConditional(cloud.jengu.dbo.core.api.IdentityRef.identifier(
+                        IdentityModel.SECRET_SYSTEM, name),
+                PutRequest.create("HeldSecret", payload.getBytes(StandardCharsets.UTF_8)));
+    }
+
+    /** Forgets a secret; whether there was one. */
+    public boolean forgetSecret(String name) {
+        boolean forgotten = false;
+        for (StoredObject held : heldSecret(name)) {
+            store.delete("HeldSecret", held.id(), held.versionId());
+            forgotten = true;
+        }
+        return forgotten;
+    }
+
+    /** A secret by name, unwrapped, or empty where the tenant holds none by that name. */
+    public Optional<byte[]> secret(String name) {
+        return heldSecret(name).stream().findFirst().map(held -> protector.unwrap(
+                Base64.getDecoder().decode(Json.str(Json.parse(new String(held.payload(),
+                        StandardCharsets.UTF_8)), "wrapped"))));
+    }
+
+    /**
+     * Everything this authority keeps wrapped — its signing keys and its
+     * secrets — wrapped again under the key it wraps with now, where the
+     * previous key wrapped it. How a tenant's keys move under its working
+     * key, once; nothing else about any of them changes.
+     *
+     * @return how many moved
+     */
+    public int rewrapKeys() {
+        if (!protector.opensThePrevious()) {
+            return 0;
+        }
+        int moved = 0;
+        for (String[] held : new String[][] {{"SigningKey", "privateEnc"},
+                {"HeldSecret", "wrapped"}}) {
+            for (StoredObject one : store.select(cloud.jengu.dbo.core.api.Criteria.of(held[0]))) {
+                Object node = Json.parse(new String(one.payload(), StandardCharsets.UTF_8));
+                if (!(node instanceof java.util.Map<?, ?> fields)
+                        || !(fields.get(held[1]) instanceof String wrapped)) {
+                    continue;
+                }
+                byte[] again = protector.wrap(protector.unwrap(Base64.getDecoder().decode(wrapped)));
+                java.util.Map<Object, Object> rewritten = new java.util.LinkedHashMap<>(fields);
+                rewritten.put(held[1], Base64.getEncoder().encodeToString(again));
+                store.put(PutRequest.update(held[0], one.id(), one.versionId(),
+                        Json.render(rewritten).getBytes(StandardCharsets.UTF_8)));
+                moved++;
+            }
+        }
+        return moved;
+    }
+
+    private List<StoredObject> heldSecret(String name) {
+        return store.getByIdentifier("HeldSecret", List.of(
+                new cloud.jengu.dbo.core.api.Identifier(IdentityModel.SECRET_SYSTEM, name)));
     }
 
     // ------------------------------------------------------------ keys
@@ -2370,8 +2449,14 @@ public final class TenantAuthority {
         if ("refresh".equals(Json.strOpt(claims, "typ"))) {
             return Optional.empty();
         }
-        return Optional.of(new AuthContext(partner.audience() + ":" + Json.str(claims, "sub"),
-                null, null, PARTNER_SCOPES, null, null, partner.audience()));
+        Optional<String> admitted = partner.admits().apply(claims);
+        if (admitted.isEmpty()) {
+            return Optional.empty();
+        }
+        // The partner is named on every entry it leaves, as whose credential
+        // it was: the provider's authority issued it, and the partner used it.
+        return Optional.of(new AuthContext(PARTNER_AUDIENCE + ":" + admitted.get(),
+                null, null, PARTNER_SCOPES, null, null, PARTNER_AUDIENCE));
     }
 
     /**

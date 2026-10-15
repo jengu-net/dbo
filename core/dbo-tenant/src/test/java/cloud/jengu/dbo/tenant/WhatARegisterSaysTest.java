@@ -49,6 +49,87 @@ class WhatARegisterSaysTest {
     }
 
     @Test
+    @DisplayName("a row says whose process it is and who carries it out, and saying either "
+            + "moves what the tenant authorised — while a row saying neither is authorised "
+            + "by the value it always was")
+    @Proving(DboPromises.PROC_A_TENANT_AUTHORISES_A_REGISTER_AND_SEES_IT_CHANGE)
+    void whoseProcessAndWhoDoesItAreAuthorisedToo() {
+        // What a tenant wrote down before rows named their authority. Pinned,
+        // because a digest that moved under every tenant on upgrade would read
+        // as every row unapproved, and withhold work that was agreed to.
+        assertEquals("RRvksb4I5ACcIIr1", CHECKED.digest(),
+                "the provider's own row no longer digests as it did");
+
+        FleetRegister.Row delegated = new FleetRegister.Row(CHECKED.step(), CHECKED.slot(),
+                CHECKED.type(), CHECKED.required(), CHECKED.posture(),
+                FleetRegister.Authority.PROVIDER, null, List.of("support-desk", "archive"));
+        assertFalse(CHECKED.digest().equals(delegated.digest()),
+                "a partner handling the tenant's data went unnoticed by its authorisation");
+        assertEquals(delegated.digest(), new FleetRegister.Row(CHECKED.step(), CHECKED.slot(),
+                        CHECKED.type(), CHECKED.required(), CHECKED.posture(),
+                        FleetRegister.Authority.PROVIDER, null,
+                        List.of("archive", "support-desk")).digest(),
+                "the same partners in another order read as a different row");
+
+        FleetRegister.Row zones = new FleetRegister.Row("care.records", null, null, true,
+                TenantSpec.FleetStep.Posture.APPLIED, FleetRegister.Authority.ZONE, "rl",
+                List.of());
+        FleetRegister.Row otherZone = new FleetRegister.Row("care.records", null, null, true,
+                TenantSpec.FleetStep.Posture.APPLIED, FleetRegister.Authority.ZONE, "ee",
+                List.of());
+        assertFalse(zones.digest().equals(otherZone.digest()),
+                "one jurisdiction's obligation was authorised as another's");
+    }
+
+    @Test
+    @DisplayName("a step the provider hands to partners names them on every row it opens, "
+            + "and one that opens nothing may not name any")
+    @Proving(DboPromises.PROC_A_PROVIDERS_PARTNERS_ARE_NAMED_ON_THE_REGISTER)
+    void aProvidersPartnersAreNamedOnTheRows() {
+        String provider = """
+                {"code":"mom","face":"r5",
+                 "types":[{"name":"Organization","identity":"identifier",
+                           "systems":["urn:orgs"],"handling":"operational"}],
+                 "fleetSteps":[{"code":"fleet.directory.check",
+                   "slots":{"org":"Reference(Organization)","note":"Basic"},
+                   "opens":["org","note"]%s}]}""";
+        List<FleetRegister.Row> itself = FleetRegister.of(
+                TenantSpec.parse(provider.formatted("")).fleetSteps(), Set.of());
+        List<FleetRegister.Row> handed = FleetRegister.of(TenantSpec.parse(provider.formatted(
+                ",\"delegatesTo\":[\"support-desk\"]")).fleetSteps(), Set.of());
+
+        assertEquals(2, handed.size());
+        assertTrue(handed.stream().allMatch(row -> row.subProcessors()
+                        .equals(List.of("support-desk"))),
+                "a row the partner handles does not name it: " + handed);
+        assertFalse(itself.get(0).digest().equals(handed.get(0).digest()),
+                "a partner added behind a row left what the tenant authorised standing");
+
+        assertTrue(assertThrowsIllegal(() -> TenantSpec.parse("""
+                {"code":"mom","face":"r5",
+                 "types":[{"name":"Organization","identity":"internal",
+                           "handling":"operational"}],
+                 "fleetSteps":[{"code":"fleet.directory.route",
+                   "slots":{"org":"Reference(Organization)"},
+                   "delegatesTo":["support-desk"]}]}""")),
+                "a step that opens nothing named a partner no register could show");
+        assertTrue(assertThrowsIllegal(() -> TenantSpec.parse("""
+                {"code":"support-desk","face":"r5","partnerOf":"support-desk",
+                 "types":[{"name":"Basic","identity":"internal",
+                           "handling":"operational"}]}""")),
+                "a tenant was taken as its own partner");
+    }
+
+    private static boolean assertThrowsIllegal(Runnable parsing) {
+        try {
+            parsing.run();
+            return false;
+        } catch (IllegalArgumentException refused) {
+            return true;
+        }
+    }
+
+    @Test
     @DisplayName("moving a row's posture changes the register too, so a deployment cannot "
             + "approve its own widening")
     @Proving(DboPromises.PROC_A_TENANT_AUTHORISES_A_REGISTER_AND_SEES_IT_CHANGE)

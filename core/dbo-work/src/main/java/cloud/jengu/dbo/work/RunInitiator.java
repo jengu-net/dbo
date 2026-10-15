@@ -179,6 +179,58 @@ public interface RunInitiator {
                 + " cannot start a run for one participant");
     }
 
+    /**
+     * The same, as a part of another run of the tenant's: started for it, and
+     * read as one of the things it set going. The run named must be one the
+     * tenant holds, open or over; one it does not hold is refused.
+     *
+     * <p>Refused, not ignored, where an initiator cannot carry it: started
+     * without it, the run would read as a root and say nothing of why.
+     *
+     * @param partOf the key of the run this one is part of, or null for a root
+     */
+    default Started starting(String tenant, String step, Map<String, Slot> inputs, String key,
+            Run.Addressee addressee, String partOf) {
+        if (partOf == null) {
+            return starting(tenant, step, inputs, key, addressee);
+        }
+        throw new UnsupportedOperationException(getClass().getName()
+                + " cannot start a run as part of another");
+    }
+
+    /**
+     * The same, as work that leaves this tenant for another through their
+     * zone — or for the tenant's own zone, or from a zone to one of its
+     * members — under the rules the tenant's door holds a crossing to.
+     *
+     * <p>Refused, not ignored, where an initiator cannot carry it: started
+     * without it, the work would stay where it was asked for.
+     *
+     * @param crossingTo the tenant the work goes to, or null for work that
+     *                   stays
+     */
+    default Started starting(String tenant, String step, Map<String, Slot> inputs, String key,
+            Run.Addressee addressee, String partOf, String crossingTo) {
+        if (crossingTo == null) {
+            return starting(tenant, step, inputs, key, addressee, partOf);
+        }
+        throw new UnsupportedOperationException(getClass().getName()
+                + " cannot start work that crosses to another tenant");
+    }
+
+    /**
+     * Says something of lasting work: {@code accept}, {@code reject},
+     * {@code stage} or {@code end}, as the run's own door takes it.
+     *
+     * @param run  the run's id
+     * @param said {@code because}, and {@code stage} or {@code status} where
+     *             the act names one
+     */
+    default Started saying(String tenant, String run, String act, Map<String, String> said) {
+        throw new UnsupportedOperationException(getClass().getName()
+                + " cannot say anything of lasting work");
+    }
+
     /** Asks a run how it stands. */
     Answer answer(String tenant, String run);
 
@@ -221,6 +273,22 @@ public interface RunInitiator {
     /** A string as JSON. */
     static String quoted(String value) {
         return "\"" + value.replace("\\", "\\\\").replace("\"", "\\\"") + "\"";
+    }
+
+    /**
+     * The step door's {@code partOf}, as a member to append to a request body
+     * after another: empty for a root.
+     */
+    static String partOf(String key) {
+        return key == null ? "" : ",\"partOf\":" + quoted(key);
+    }
+
+    /**
+     * The step door's {@code crossing}, as a member to append to a request
+     * body after another: empty for work that stays.
+     */
+    static String crossing(String to) {
+        return to == null ? "" : ",\"crossing\":{\"to\":" + quoted(to) + "}";
     }
 
     /**

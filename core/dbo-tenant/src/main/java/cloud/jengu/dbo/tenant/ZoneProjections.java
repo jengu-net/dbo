@@ -197,11 +197,11 @@ final class ZoneProjections {
                 }
             }
             return """
-                    {"code":"%s","face":"%s","audit":{"level":"none"},
+                    {"code":"%s","face":"%s","kind":"%s","audit":{"level":"none"},
                      "dependencies":[%s{"name":"%s","types":[%s]}],
                      "types":[%s%s]}"""
-                    .formatted(code, this.face, face, zone, quoted(this.types),
-                            faceTypes, types);
+                    .formatted(code, this.face, cloud.jengu.dbo.tenant.api.TenantKinds.PROJECTION,
+                            face, zone, quoted(this.types), faceTypes, types);
         }
 
         /**

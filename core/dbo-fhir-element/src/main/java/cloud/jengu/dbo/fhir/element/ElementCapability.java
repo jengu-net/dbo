@@ -35,7 +35,7 @@ final class ElementCapability {
      */
     private static final Map<String, String> META_SEARCH_PARAMS =
             new LinkedHashMap<>(Map.of("_tag", "token", "_profile", "uri",
-                    "_lastUpdated", "date", "_id", "token"));
+                    "_lastUpdated", "date", "_id", "token", "_source", "uri"));
 
     private ElementCapability() {
     }

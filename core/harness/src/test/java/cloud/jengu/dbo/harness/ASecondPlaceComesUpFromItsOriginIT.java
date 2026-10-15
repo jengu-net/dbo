@@ -1,5 +1,10 @@
 package cloud.jengu.dbo.harness;
 
+import cloud.jengu.dbo.asking.Asking;
+import cloud.jengu.dbo.asking.Ongoing;
+import cloud.jengu.dbo.work.RunInitiator;
+import cloud.jengu.dbo.work.Status;
+
 import cloud.jengu.dbo.auth.TenantAuthority;
 import cloud.jengu.dbo.core.api.feed.FeedChunk;
 import cloud.jengu.dbo.core.api.feed.FeedItem;
@@ -10,6 +15,15 @@ import cloud.jengu.dbo.runner.http.HttpLane;
 import cloud.jengu.dbo.runner.transport.Place;
 import cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner;
 import cloud.jengu.dbo.tenant.TenantRuntimeManager;
+import cloud.jengu.dbo.core.process.StepDeclaration;
+import cloud.jengu.dbo.runner.Lane;
+import cloud.jengu.dbo.runner.Outcome;
+import cloud.jengu.dbo.sync.Lanes;
+import cloud.jengu.dbo.work.Declarations;
+import cloud.jengu.dbo.work.Run;
+import cloud.jengu.dbo.work.RunKind;
+import cloud.jengu.dbo.work.RunSlot;
+import cloud.jengu.dbo.work.Runs;
 import cloud.jengu.dbo.work.Executor;
 import cloud.jengu.dbo.work.Scope;
 import org.junit.jupiter.api.AfterAll;
@@ -63,6 +77,13 @@ class ASecondPlaceComesUpFromItsOriginIT {
              "dependencies":[{"name":"%s","face":true,
                               "types":["StructureDefinition","SearchParameter","ValueSet","CodeSystem"]},
                              {"name":"%s","types":["Organization","CodeSystem"]}],
+             "steps":[{"code":"%s","slots":{"specimen":"Observation"},
+                       "writes":["Observation"]},
+                      {"code":"jaam.lab.order","slots":{"order":"Reference(Observation)"},
+                       "lasts":true},
+                      {"code":"jaam.lab.calibrate",
+                       "starts":{"every":"0 * * * * *","missed":"skip","keep":"P1D",
+                                 "where":"places"}}],
              "types":[
               {"name":"StructureDefinition","identity":"canonical","handling":"replicated"},
               {"name":"SearchParameter","identity":"canonical","handling":"replicated"},
@@ -71,7 +92,10 @@ class ASecondPlaceComesUpFromItsOriginIT {
               {"name":"Organization","identity":"internal","handling":"replicated"},
               {"name":"Observation","identity":"internal","handling":"operational"},
               {"name":"Patient","identity":"internal","handling":"operational"}]}"""
-            .formatted(CLINIC, ROOT, COUNTY);
+            .formatted(CLINIC, ROOT, COUNTY, "jaam.lab.record");
+
+    /** The step the site performs on its own runners: a result captured from an instrument. */
+    private static final String RECORD = "jaam.lab.record";
 
     /** The face root, declared alike on both nodes: the site reads its face from its own. */
     private static final String ROOT_DECLARATION = """
@@ -114,7 +138,7 @@ class ASecondPlaceComesUpFromItsOriginIT {
 
         Files.writeString(cloudDir.resolve(ROOT + ".json"), ROOT_DECLARATION);
         Files.writeString(cloudDir.resolve(COUNTY + ".json"), """
-                {"code":"%s","face":"r4","audit":{"level":"none"},
+                {"code":"%s","face":"r4","zoneRoot":true,"audit":{"level":"none"},
                  "types":[{"name":"Organization","identity":"internal","handling":"operational"},
                           {"name":"CodeSystem","identity":"canonical","handling":"operational"}]}"""
                 .formatted(COUNTY));
@@ -331,6 +355,50 @@ class ASecondPlaceComesUpFromItsOriginIT {
 
     @Test
     @Order(8)
+    @DisplayName("what a run on the site wrote is held by its tenant within a sync round, filed "
+            + "under the site, while what the site wrote outside any run stays on the site")
+    @Proving(DboPromises.SYNC_A_PLACE_HANDS_ITS_WORK_TO_ITS_TENANT)
+    void whatASitesRunWroteReachesItsTenant() throws Exception {
+        performedOnTheSite("hba1c-on-the-site");
+        assertEquals(201, post(site, CLINIC, "Observation", """
+                {"resourceType":"Observation","status":"final","code":{"text":"kept-on-the-site"}}"""));
+        site.syncRound();
+
+        String atTheTenant = read(cloud, CLINIC, "Observation");
+        assertTrue(atTheTenant.contains("hba1c-on-the-site")
+                        && atTheTenant.contains("urn:dbo:upstream:site"),
+                "what the site's run wrote is not at the tenant, filed under the site: "
+                        + atTheTenant);
+        assertTrue(!atTheTenant.contains("kept-on-the-site"),
+                "what the site wrote outside any run reached the tenant");
+        assertTrue(new Runs(cloud.runtime(CLINIC).orElseThrow().engine())
+                        .byKey("site" + Lanes.MIRROR_SEPARATOR + RECORD
+                                + "/hba1c-on-the-site").isPresent(),
+                "the site's run is not mirrored beside the tenant's own");
+    }
+
+    @Test
+    @Order(9)
+    @DisplayName("what a site's runs wrote while it was cut off reaches its tenant once it is "
+            + "back, and once")
+    @Proving(DboPromises.SYNC_A_PLACE_HANDS_ITS_WORK_TO_ITS_TENANT)
+    void whatASiteDidCutOffArrivesOnceItIsBack() throws Exception {
+        site.readsItsOriginThrough(CLINIC, null);
+        performedOnTheSite("glucose-cut-off");
+        site.syncRound();
+        assertTrue(!read(cloud, CLINIC, "Observation").contains("glucose-cut-off"),
+                "the site handed its work while it was cut off");
+
+        site.readsItsOriginThrough(CLINIC, connected());
+        site.syncRound();
+        site.syncRound();
+        assertEquals(1, times("glucose-cut-off", read(cloud, CLINIC, "Observation")),
+                "what the site did while cut off did not arrive once it was back, or arrived "
+                        + "twice");
+    }
+
+    @Test
+    @Order(10)
     @DisplayName("a site restarted with its origin away comes up from what it holds")
     @Proving(DboPromises.SYNC_A_PLACE_SERVES_WHAT_IT_HOLDS_WHILE_ITS_ORIGIN_IS_AWAY)
     void aPlaceRestartedOfflineServesWhatItHolds() throws Exception {
@@ -348,7 +416,72 @@ class ASecondPlaceComesUpFromItsOriginIT {
     }
 
     @Test
-    @Order(9)
+    @Order(12)
+    @DisplayName("a step declared to start on the clinic's places starts on the site with its "
+            + "origin away, under the site's own system run, and never in the cloud")
+    @Proving(DboPromises.PROC_A_STEP_STARTS_WHERE_IT_IS_DECLARED_TO)
+    void aSiteStartsItsOwnStepsWithItsOriginAway() throws Exception {
+        site.readsItsOriginThrough(CLINIC, null);
+        try {
+            assertEquals(java.util.Map.of(CALIBRATE, "0 * * * * *"),
+                    CLOCKS.get(siteDir).rules.get(CLINIC));
+            assertTrue(CLOCKS.get(cloudDir).rules.get(CLINIC) == null,
+                    "the cloud was given a step that starts on its places: "
+                            + CLOCKS.get(cloudDir).rules);
+
+            java.time.Instant tick = java.time.Instant.now()
+                    .truncatedTo(java.time.temporal.ChronoUnit.MINUTES);
+            calibrated = tick;
+            CLOCKS.get(siteDir).opened.get(CLINIC).due(CALIBRATE, tick);
+
+            site.authority(CLINIC).ensureClient("bench", "bench-secret", List.of("work"));
+            HttpResponse<String> steps = http.send(HttpRequest.newBuilder(
+                                    URI.create(base(site, CLINIC) + "/steps"))
+                            .header("Authorization", "Bearer "
+                                    + clientToken(site, CLINIC, "bench", "bench-secret"))
+                            .GET().build(),
+                    HttpResponse.BodyHandlers.ofString());
+            assertEquals(200, steps.statusCode(), steps.body());
+            assertTrue(steps.body().contains("\"lastRun\":\"" + CALIBRATE + "/tick/" + tick
+                    + "\""), "the site started nothing with its origin away: " + steps.body());
+        } finally {
+            site.readsItsOriginThrough(CLINIC, connected());
+        }
+    }
+
+    /** The clinic's step that starts on its places, every minute. */
+    private static final String CALIBRATE = "jaam.lab.calibrate";
+
+    /** The tick the site started its calibration on, with its origin away. */
+    private static java.time.Instant calibrated;
+
+    @Test
+    @Order(13)
+    @DisplayName("a run the site performed is listed at its tenant as any other, with the site "
+            + "it was performed at, when it was authored there, and the run it was started "
+            + "under filed under the site too")
+    @Proving(DboPromises.PROC_A_PLACES_RUN_IS_LISTED_AT_HOME_UNDER_ITS_PLACE)
+    void aSitesRunIsListedAtHomeUnderTheSite() throws Exception {
+        java.time.Instant handed = java.time.Instant.now();
+        site.syncRound();
+
+        String key = "site" + Lanes.MIRROR_SEPARATOR + CALIBRATE + "/tick/" + calibrated;
+        List<Ongoing> listed = Asking
+                .at(cloud.runtime(CLINIC).orElseThrow().engine()).work().key(key)
+                .page(10, null).runs();
+        assertEquals(1, listed.size(), "the site's run is not listed at its tenant: " + listed);
+        Ongoing run = listed.get(0);
+        assertEquals("site", run.place(), run.toString());
+        assertEquals("site" + Lanes.MIRROR_SEPARATOR + "dbo.tenant.system/serve/" + CLINIC,
+                run.parentKey(), "the run it was started under is not filed under the site: "
+                        + run);
+        assertTrue(run.authored() != null && run.authored().isBefore(handed),
+                "the run says it was authored when it arrived, not when the site authored it: "
+                        + run);
+    }
+
+    @Test
+    @Order(11)
     @DisplayName("what the clinic's stream applies from the county is in the clinic's trail "
             + "under the stream's run")
     @Proving(DboPromises.PROC_MACHINERY_WRITES_UNDER_ITS_RUN)
@@ -398,8 +531,13 @@ class ASecondPlaceComesUpFromItsOriginIT {
             return fresh;
         });
         return new TenantRuntimeManager(dir, databases, "127.0.0.1", 0, null,
-                new TenantRuntimeManager.AuthorityConfig(kek, null));
+                new TenantRuntimeManager.AuthorityConfig(kek, null))
+                .stepScheduler(CLOCKS.computeIfAbsent(dir, ignored -> new HandCrankedScheduler()));
     }
+
+    /** Each node's clock, turned by hand, kept across its restarts. */
+    private static final java.util.Map<Path, HandCrankedScheduler> CLOCKS =
+            new java.util.HashMap<>();
 
     private static final String OBSERVATION = """
             {"resourceType":"Observation","status":"final",
@@ -437,7 +575,105 @@ class ASecondPlaceComesUpFromItsOriginIT {
     private static TenantRuntimeManager.OriginFeeds connected() {
         return new TenantRuntimeManager.OriginFeeds(lane.placeFeed(Place.RECORDS),
                 lane.placeFeed(Place.DEFINITIONS), lane.definitionsWithoutTheFace(),
-                lane.origin().trail());
+                lane.origin().trail(), lane.origin().work());
+    }
+
+    /**
+     * A run of the site's own step, performed on the site: it takes a
+     * specimen and its result writes the observation it found.
+     */
+    private static void performedOnTheSite(String found) {
+        StepDeclaration declared =
+                StepDeclaration.of(RECORD, "1", "r4")
+                        .taking("specimen", "Observation");
+        Runs runs = new Runs(
+                site.runtime(CLINIC).orElseThrow().engine());
+        Run run = runs.filling(declared,
+                RunKind.PIPELINE, found,
+                java.util.Map.of("specimen", RunSlot.given(
+                        "{\"resourceType\":\"Observation\",\"status\":\"registered\","
+                                + "\"code\":{\"text\":\"specimen\"}}")));
+        Executor analyser = new Executor("analyser", "1", "example.site", Scope.BASELINE);
+        Lane analysing =
+                site.fleetLane(CLINIC, RECORD, analyser).orElseThrow();
+        analysing.declare(new Declarations.Declared("jaam.lab", "record",
+                analyser.name(), analyser.version(), analyser.provider(), analyser.scope(),
+                analyser.name()));
+        Run held = analysing.claim(run, java.time.Duration.ofMinutes(5))
+                .orElseThrow();
+        analysing.committed(held, null, List.of(Outcome.Write.create("""
+                {"resourceType":"Observation","status":"final","code":{"text":"%s"}}"""
+                .formatted(found))));
+    }
+
+    @Test
+    @Order(14)
+    @DisplayName("a part a run on the site started there reads at the tenant as that run's part, "
+            + "both filed under the site")
+    @Proving(DboPromises.PROC_A_RUN_IS_STARTED_AS_A_PART_OF_ANOTHER)
+    void aSitesTreeReadsTheSameAtHome() throws Exception {
+        StepDeclaration declared = StepDeclaration.of(RECORD, "1", "r4")
+                .taking("specimen", "Observation");
+        Runs runs = new Runs(site.runtime(CLINIC).orElseThrow().engine());
+        String specimen = "{\"resourceType\":\"Observation\",\"status\":\"registered\","
+                + "\"code\":{\"text\":\"specimen\"}}";
+        Run run = runs.filling(declared, RunKind.PIPELINE, "with-a-part",
+                java.util.Map.of("specimen", RunSlot.given(specimen)));
+        Executor analyser = new Executor("analyser", "1", "example.site", Scope.BASELINE);
+        Lane analysing = site.fleetLane(CLINIC, RECORD, analyser).orElseThrow();
+        analysing.declare(new Declarations.Declared("jaam.lab", "record",
+                analyser.name(), analyser.version(), analyser.provider(), analyser.scope(),
+                analyser.name()));
+        Run held = analysing.claim(run, java.time.Duration.ofMinutes(5)).orElseThrow();
+        Run ended = analysing.committed(held, null, List.of(Outcome.Write.create(
+                        "{\"resourceType\":\"Observation\",\"status\":\"final\","
+                                + "\"code\":{\"text\":\"with-a-part\"}}")),
+                List.of(new Outcome.Part(RECORD, java.util.Map.of("specimen",
+                        RunInitiator.Slot.object(specimen)),
+                        "the-part", null)));
+        assertEquals(null, ended.refused(), "the site refused its own result: " + ended);
+        site.syncRound();
+
+        Runs home = new Runs(cloud.runtime(CLINIC).orElseThrow().engine());
+        Run parentAtHome = home.byKey("site" + Lanes.MIRROR_SEPARATOR + RECORD + "/with-a-part")
+                .orElseThrow(() -> new AssertionError("the site's run did not reach its tenant"));
+        List<String> parts;
+        try (var asked = Asking.at(cloud.runtime(CLINIC).orElseThrow().engine()).work()
+                .childrenOf(parentAtHome.id()).stream()) {
+            parts = asked.map(Ongoing::key).toList();
+        }
+        assertEquals(List.of("site" + Lanes.MIRROR_SEPARATOR + RECORD + "/the-part"), parts,
+                "the part the site started is not its run's part at the tenant");
+    }
+
+    @Test
+    @Order(15)
+    @DisplayName("work that lasts opened on the site reads the same at its tenant, filed under "
+            + "the site, and is moved only where it is")
+    @Proving(DboPromises.PROC_WORK_THAT_LASTS_IS_OPENED_FOR_ITS_REQUEST)
+    void workThatLastsComesHomeUnderTheSite() throws Exception {
+        StepDeclaration ordering = StepDeclaration.of("jaam.lab.order", "1", "r4")
+                .taking("order", "Observation");
+        Runs onTheSite = new Runs(site.runtime(CLINIC).orElseThrow().engine());
+        Run opened = onTheSite.opening(ordering, "order", "Observation/the-order", null, null);
+        onTheSite.accepted(opened, "the-bench", "taken on at the site");
+        site.syncRound();
+
+        Runs home = new Runs(cloud.runtime(CLINIC).orElseThrow().engine());
+        Run atHome = home.byKey("site" + Lanes.MIRROR_SEPARATOR + "jaam.lab.order/Observation/"
+                + "the-order").orElseThrow(() -> new AssertionError(
+                        "the site's lasting work did not reach its tenant"));
+        assertTrue(atHome.lasting(), atHome.toString());
+        assertEquals("accepted", atHome.status().wire(), atHome.toString());
+        assertEquals("site", atHome.place(), atHome.toString());
+        assertTrue(org.junit.jupiter.api.Assertions.assertThrows(RuntimeException.class,
+                        () -> home.ended(atHome, Status.CANCELLED,
+                                "home", "not ours to end")).getMessage() != null,
+                "the tenant moved work that lasts on its site");
+    }
+
+    private static int times(String found, String in) {
+        return in.split(java.util.regex.Pattern.quote(found), -1).length - 1;
     }
 
     private static String canonical(String name) {

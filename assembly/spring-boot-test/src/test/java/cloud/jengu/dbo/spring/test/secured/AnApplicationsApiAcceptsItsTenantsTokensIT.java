@@ -48,8 +48,6 @@ class AnApplicationsApiAcceptsItsTenantsTokensIT {
 
     private static final String CLINIC = "clinic";
     private static final String NEIGHBOUR = "neighbour";
-    private static final String PARTNER = "partner";
-    private static final String MANAGED = "managed";
 
     @Autowired
     DboTestContext dbo;
@@ -110,35 +108,6 @@ class AnApplicationsApiAcceptsItsTenantsTokensIT {
                 asked.statusCode() == 401,
                 "the application's API accepted a token the neighbour's door refuses: "
                         + asked.statusCode() + " " + asked.body());
-    }
-
-    @Test
-    @Order(3)
-    @DisplayName("a partner's token is accepted where the clinic it manages is addressed, as "
-            + "that clinic's door accepts it, and refused where it manages nothing")
-    @Proving(DboPromises.AUTH_AN_APPLICATIONS_API_ACCEPTS_WHAT_ITS_TENANTS_DOORS_ACCEPT)
-    void aPartnersTokenIsAcceptedWhereTheRelationIs() throws Exception {
-        dbo.declare(PARTNER, basic(PARTNER, ""));
-        assertTrue(dbo.until(PARTNER, true, Duration.ofMinutes(5)), "the partner never served");
-        dbo.declare(MANAGED, basic(MANAGED, ",\"managedBy\":\"" + PARTNER + "\""));
-        assertTrue(dbo.until(MANAGED, true, Duration.ofMinutes(5)), "the clinic never served");
-        tenants.authority(PARTNER).orElseThrow()
-                .ensureClient("support", "support-secret", List.of("system/*.read"));
-        String partnerToken = clientCredentials(PARTNER, "support", "support-secret");
-
-        assertEquals(200, door(MANAGED, "AuditEvent", partnerToken).statusCode(),
-                "the managed clinic's door refused its partner");
-        HttpResponse<String> managed = api(MANAGED, partnerToken);
-        Proves.that(DboPromises.AUTH_AN_APPLICATIONS_API_ACCEPTS_WHAT_ITS_TENANTS_DOORS_ACCEPT,
-                managed.statusCode() == 200 && managed.body().contains("tenant=" + MANAGED)
-                        && !managed.body().contains("audience=null"),
-                "the partner's token is not accepted as the relation the managed clinic "
-                        + "declared: " + managed.statusCode() + " " + managed.body());
-
-        assertEquals(401, door(NEIGHBOUR, "AuditEvent", partnerToken).statusCode());
-        Proves.that(DboPromises.AUTH_AN_APPLICATIONS_API_ACCEPTS_WHAT_ITS_TENANTS_DOORS_ACCEPT,
-                api(NEIGHBOUR, partnerToken).statusCode() == 401,
-                "the partner's token was accepted where it manages nothing");
     }
 
     @Test

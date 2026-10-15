@@ -304,7 +304,7 @@ public final class ConfigApplication {
      * that got it there left nothing for anybody. A scope nothing has applied
      * yet has not settled: it has not been asked at all.
      */
-    private boolean settledAt(String scope, String marker) {
+    public boolean settledAt(String scope, String marker) {
         return runs.byKey(PROCESS + "/" + STEP + "/" + scope)
                 .filter(previous -> !previous.needsAPerson())
                 .flatMap(Run::correlated)
@@ -325,8 +325,39 @@ public final class ConfigApplication {
         return apply(scope, correlation, declarations, applier, false);
     }
 
+    /**
+     * A pass that applies what changed and withdraws what is gone, both as the
+     * declarer worked them out: a source that keeps its own account of what
+     * each of its files applied knows which identities it stopped declaring
+     * without being handed all of them again, and reads only what changed.
+     *
+     * <p>Withdrawn only as a complete read would be, when nothing was
+     * skipped: a declaration nobody could apply may be the one whose identity
+     * is in the list.
+     *
+     * @param gone the identities this source applied and no longer declares
+     */
+    public Outcome reconcile(String scope, String correlation, List<Declared> declarations,
+            List<cloud.jengu.dbo.core.api.Identifier> gone, Applier applier) {
+        return apply(scope, correlation, declarations, applier, false, List.copyOf(gone));
+    }
+
+    /**
+     * What a declaration claims to be, as the store keys it, or empty where it
+     * claims nothing the store could find it by again.
+     */
+    public java.util.Optional<cloud.jengu.dbo.core.api.Identifier> claimOf(Declared declared) {
+        return java.util.Optional.ofNullable(identityClaimOf(declared));
+    }
+
     private Outcome apply(String scope, String correlation, List<Declared> declarations,
             Applier applier, boolean complete) {
+        return apply(scope, correlation, declarations, applier, complete, null);
+    }
+
+    private Outcome apply(String scope, String correlation, List<Declared> declarations,
+            Applier applier, boolean complete,
+            List<cloud.jengu.dbo.core.api.Identifier> stopped) {
         Run sweep = runs.sweep(PROCESS, STEP, scope, List.of(domain));
         // Which read this scope last agreed with. Replaced rather than kept
         // from the first pass ever: somebody comparing the two is asking
@@ -396,6 +427,20 @@ public final class ConfigApplication {
             // cannot be identified either, so its own record would be the record
             // taken away — a typo deleting the thing the typo was in. Cards close
             // by re-evaluation, so the pass after the fix withdraws properly.
+            if (stopped != null && skipped == 0) {
+                for (cloud.jengu.dbo.core.api.Identifier identity : stopped) {
+                    try {
+                        applier.withdraw(scope, identity);
+                        withdrawn++;
+                    } catch (RuntimeException refused) {
+                        skipped++;
+                        pass.item(identity.value(), Failure.of(refused), String.valueOf(
+                                refused.getMessage()));
+                        cards.add(new Card(identity.value(),
+                                String.valueOf(refused.getMessage())));
+                    }
+                }
+            }
             if (complete && skipped == 0) {
                 // What this scope holds and this read does not name. Keyed on
                 // identity because it is the one key both sides can compute: a

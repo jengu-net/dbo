@@ -403,7 +403,10 @@ public final class ContentSyncEngine {
      */
     private String tryApply(FeedItem item) {
         if (item.kind() == ChangeKind.DELETED || item.deleted()) {
-            targetStore.delete(item.typeName(), item.objectId(), null);
+            // As the replication lane, as a write is: the copy is upstream's,
+            // and nobody else may remove it.
+            targetStore.delete(item.typeName(), item.objectId(), null,
+                    cloud.jengu.dbo.core.api.Handling.Authority.SOURCE_TENANT);
             recordOrigin(item, null);
             return null;
         }

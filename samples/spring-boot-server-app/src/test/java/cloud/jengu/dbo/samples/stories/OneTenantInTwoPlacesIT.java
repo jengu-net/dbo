@@ -122,30 +122,31 @@ class OneTenantInTwoPlacesIT {
 
     @Test
     @Order(3)
-    @DisplayName("any type travels as a dependency at its own grain: an encounter the hospital "
-            + "records arrives at St Jerome as the same record, beside the zone's code systems")
+    @DisplayName("any type travels as a dependency at its own grain: an organisation the zone "
+            + "registers arrives at St Jerome as the same record, beside the zone's code systems")
     @Proving(DboPromises.SYNC_ANY_TYPE)
     void anyTypeTravelsAtItsOwnGrain() throws InterruptedException {
-        // St Jerome takes the hospital's encounters, which are about somebody,
-        // as it takes Rowling Land's code systems, which are about nobody.
-        var encounter = dbo.write("hogwarts", "Encounter", """
-                {"resourceType":"Encounter","status":"completed",
-                 "class":[{"coding":[{"code":"AMB"}]}],
-                 "serviceType":[{"concept":{"text":"%s"}}]}"""
-                .formatted(names.value("visit")));
-        assertTrue(encounter.accepted(), encounter.body());
-        String id = encounter.idOrFail();
+        // St Jerome takes the organisations Rowling Land registers as it takes
+        // its code systems: a register is not a vocabulary, and travels all
+        // the same. A tenant takes from its jurisdiction and never from a
+        // tenant beside it.
+        var organisation = dbo.write("rl", "Organization", """
+                {"resourceType":"Organization","active":true,"name":"%s"}"""
+                .formatted(names.value("registered")));
+        assertTrue(organisation.accepted(), organisation.body());
+        String id = organisation.idOrFail();
 
-        HttpResponse<String> copied = new ATenantsDoor(dbo, "st-jerome").get("/Encounter/" + id);
+        HttpResponse<String> copied =
+                new ATenantsDoor(dbo, "st-jerome").get("/Organization/" + id);
         long giveUp = System.nanoTime() + Duration.ofMinutes(3).toNanos();
         while (copied.statusCode() != 200 && System.nanoTime() < giveUp) {
             Thread.sleep(1000);
-            copied = new ATenantsDoor(dbo, "st-jerome").get("/Encounter/" + id);
+            copied = new ATenantsDoor(dbo, "st-jerome").get("/Organization/" + id);
         }
         Proves.that(DboPromises.SYNC_ANY_TYPE,
-                copied.statusCode() == 200 && copied.body().contains(names.value("visit"))
-                        && copied.body().contains("\"completed\""),
-                "a clinical record did not travel as a dependency, or arrived changed: "
+                copied.statusCode() == 200 && copied.body().contains(names.value("registered"))
+                        && copied.body().contains("\"active\":true"),
+                "a register did not travel as a dependency, or arrived changed: "
                         + copied.statusCode() + " " + copied.body());
     }
 
@@ -516,7 +517,7 @@ class OneTenantInTwoPlacesIT {
                 {"name":"CodeSystem","identity":"canonical","handling":"operational"},
                 {"name":"ValueSet","identity":"canonical","handling":"operational"}""";
         dbo.declare(upstream, """
-                {"code":"%s","face":"r4","audit":{"level":"none"},"types":[%s]}"""
+                {"code":"%s","face":"r4","zoneRoot":true,"audit":{"level":"none"},"types":[%s]}"""
                 .formatted(upstream, canonicals));
         try {
             assertTrue(dbo.until(upstream, true, Duration.ofMinutes(10)), "no upstream");

@@ -282,6 +282,32 @@ public final class Lanes {
      * refused by name rather than quietly left out.
      */
     public Batch outbound(String peer, int limit, Set<String> processes, Set<String> types) {
+        return outbound(peer, limit, processes, types, true);
+    }
+
+    /**
+     * What a place sends home: the runs it performed, what they produced and
+     * their trail — never the records their inputs named. Those came from
+     * home, and handed back they would arrive as working copies of the
+     * tenant's own records, to be removed when the work closed.
+     */
+    public Batch outboundHome(String peer, int limit, Set<String> processes) {
+        return outbound(peer, limit, processes, Set.of(), false);
+    }
+
+    /**
+     * Notes, as a copy is applied, which peer it came from — so a reader of
+     * the record can be told by its source which place made it.
+     */
+    public Lanes recordingWhence(java.util.function.BiConsumer<Item, String> whence) {
+        this.whence = whence;
+        return this;
+    }
+
+    private volatile java.util.function.BiConsumer<Item, String> whence;
+
+    private Batch outbound(String peer, int limit, Set<String> processes, Set<String> types,
+            boolean withInputs) {
         for (String type : types) {
             if (!admitted.contains(type)) {
                 throw new IllegalStateException(site + ": this lane does not carry '" + type
@@ -325,8 +351,11 @@ public final class Lanes {
             // Which run named it travels with it: a record is here because a
             // particular piece of work needed it, and it leaves when that work
             // is over rather than when any work is.
-            for (String reference : named(run.get())) {
-                forRuns.computeIfAbsent(reference, key -> new ArrayList<>()).add(run.get().key());
+            if (withInputs) {
+                for (String reference : named(run.get())) {
+                    forRuns.computeIfAbsent(reference, key -> new ArrayList<>())
+                            .add(run.get().key());
+                }
             }
         }
         List<Item> items = new ArrayList<>();
@@ -562,6 +591,10 @@ public final class Lanes {
                 here.map(StoredObject::versionId).orElse(null), item.payload(),
                 item.version(), item.recordedAt(), true),
                 cloud.jengu.dbo.core.api.Handling.Authority.SOURCE_TENANT);
+        java.util.function.BiConsumer<Item, String> noting = whence;
+        if (noting != null) {
+            noting.accept(item, from);
+        }
         if (!noted) {
             store.putIfAbsent(IdentityRef.identifier(PlacementModel.KEY_SYSTEM, key),
                     PutRequest.create(PlacementModel.TYPE, ("{\"key\":" + Json.quoted(key)
@@ -602,10 +635,20 @@ public final class Lanes {
         Object json = Json.parse(new String(item.payload(), StandardCharsets.UTF_8));
         String key = Json.str(json, "key");
         String mirrored = WorkModel.mirroredKey(from, key);
-        byte[] payload = new String(item.payload(), StandardCharsets.UTF_8)
+        String text = new String(item.payload(), StandardCharsets.UTF_8)
                 .replaceFirst("\"key\":\"" + java.util.regex.Pattern.quote(key) + "\"",
-                        "\"key\":\"" + java.util.regex.Matcher.quoteReplacement(mirrored) + "\"")
-                .getBytes(StandardCharsets.UTF_8);
+                        "\"key\":\"" + java.util.regex.Matcher.quoteReplacement(mirrored) + "\"");
+        // Its parent filed the same way, so the run it was started under is
+        // found where the two of them are kept here — under the site, beside
+        // the run, and not among this side's own.
+        String parent = ((java.util.Map<?, ?>) json).get("parent") instanceof String named
+                && !WorkModel.authoredElsewhere(named) ? named : null;
+        if (parent != null) {
+            text = text.replaceFirst("\"parent\":\"" + java.util.regex.Pattern.quote(parent) + "\"",
+                    "\"parent\":\"" + java.util.regex.Matcher.quoteReplacement(
+                            WorkModel.mirroredKey(from, parent)) + "\"");
+        }
+        byte[] payload = text.getBytes(StandardCharsets.UTF_8);
         Optional<StoredObject> here = store.getByIdentifier(WorkModel.TYPE,
                 List.of(WorkModel.key(mirrored))).stream().findFirst();
         if (here.isPresent() && here.get().versionId() >= item.version()) {

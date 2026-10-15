@@ -30,20 +30,108 @@ final class RunResults implements Lane.Results {
 
     private final String tenant;
     private final Map<String, Set<String>> writesByStep;
+    private final java.util.function.Function<String, Set<String>> exchanged;
     private final FhirStoreFacade face;
+    /** The tenant's own way of starting work, which a part is started through. */
+    private final java.util.function.Supplier<StepSurface> starter;
 
+    /** Results for a tenant that starts no runs as parts of another. */
     RunResults(String tenant, List<TenantSpec.Step> steps, FhirStoreFacade face) {
+        this(tenant, steps, face, step -> Set.of(), () -> null);
+    }
+
+    /**
+     * @param exchanged what an exchange its zone declares writes, by step: the
+     *                  owner answering what another tenant asked of it writes
+     *                  what the jurisdiction declared the answer to be
+     * @param starter   the tenant's own way of starting work, which a part a
+     *                  result names is started through
+     */
+    RunResults(String tenant, List<TenantSpec.Step> steps, FhirStoreFacade face,
+            java.util.function.Function<String, Set<String>> exchanged,
+            java.util.function.Supplier<StepSurface> starter) {
         this.tenant = tenant;
+        this.starter = starter;
         Map<String, Set<String>> writes = new java.util.HashMap<>();
         steps.forEach(step -> writes.put(step.code(), step.writes()));
         this.writesByStep = Map.copyOf(writes);
+        this.exchanged = exchanged;
         this.face = face;
+    }
+
+    /**
+     * Each part, held to what starting it at the tenant's own door decides —
+     * a step it offers, slots that fill it — before anything is written.
+     */
+    @Override
+    public void requireStartable(Run run, List<Outcome.Part> parts) {
+        if (parts.isEmpty()) {
+            return;
+        }
+        StepSurface door = door();
+        for (int at = 0; at < parts.size(); at++) {
+            Outcome.Part part = parts.get(at);
+            StepSurface.Started refused = door.refusal(part.step(), body(run, part, at));
+            if (refused != null) {
+                throw new Refused(tenant + ": the result starts a run of '" + part.step()
+                        + "' as its part " + (at + 1) + ", and the tenant would not start it: "
+                        + refused.body());
+            }
+        }
+    }
+
+    /**
+     * Each part started as a part of the run, keyed by what the result named
+     * or by its place among the result's parts, so a result given again finds
+     * them rather than starting more.
+     */
+    @Override
+    public List<String> start(Run run, List<Outcome.Part> parts) {
+        List<String> keys = new java.util.ArrayList<>();
+        if (parts.isEmpty()) {
+            return keys;
+        }
+        StepSurface door = door();
+        for (int at = 0; at < parts.size(); at++) {
+            Outcome.Part part = parts.get(at);
+            StepSurface.Started started = door.starting(part.step(), body(run, part, at), null);
+            if (started.status() != 201) {
+                throw new IllegalStateException(tenant + ": part " + (at + 1) + " of '"
+                        + run.key() + "' was checked and then not started: " + started.body());
+            }
+            keys.add(cloud.jengu.dbo.work.RunInitiator.field(started.body(), "key"));
+        }
+        return keys;
+    }
+
+    private StepSurface door() {
+        StepSurface door = starter.get();
+        if (door == null) {
+            throw new Refused(tenant + ": the result starts runs as its parts, and this tenant "
+                    + "declares no steps to start them as");
+        }
+        return door;
+    }
+
+    /** The step door's body for one part: its inputs, its key, who it is for, whose part. */
+    private static Object body(Run run, Outcome.Part part, int at) {
+        StringBuilder named = new StringBuilder();
+        part.inputs().forEach((slot, filled) -> named.append(named.isEmpty() ? "" : ",")
+                .append(cloud.jengu.dbo.work.RunInitiator.quoted(slot)).append(':')
+                .append(filled.rendered()));
+        String key = part.key() != null ? part.key() : "part/" + run.id() + "/" + (at + 1);
+        return Json.parse("{\"inputs\":{" + named + "},\"scope\":"
+                + cloud.jengu.dbo.work.RunInitiator.quoted(key)
+                + cloud.jengu.dbo.work.RunInitiator.addressed(part.addressee())
+                + cloud.jengu.dbo.work.RunInitiator.partOf(run.key())
+                + cloud.jengu.dbo.work.RunInitiator.crossing(part.crossingTo()) + "}");
     }
 
     @Override
     public List<String> commit(Run run, List<Outcome.Write> result) {
         String step = run.process() + "." + run.step();
-        Set<String> declared = writesByStep.getOrDefault(step, Set.of());
+        Set<String> declared = writesByStep.containsKey(step) ? writesByStep.get(step)
+                : exchanged.apply(step);
         StringBuilder entries = new StringBuilder();
         for (int at = 0; at < result.size(); at++) {
             Outcome.Write write = result.get(at);

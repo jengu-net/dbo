@@ -40,6 +40,8 @@ It says four kinds of thing:
   `operational`, which the tenant owns and may edit, or `replicated`, which
   belongs to whoever published it and is read-only here. **There is no default
   for that**, because a default is a silent decision about a hospital's data.
+  An `operational` type a dependency also streams holds both, and each record
+  is its author's: a copy is read-only here, the tenant's own records are not.
 - **Where it gets things** — the tenants it depends on, and per dependency the
   types that stream from it.
 - **What it must do** — its audit level, its write discipline, its retention,
@@ -167,12 +169,14 @@ Outer declares the set; inner chooses within it and may narrow, never widen.
 **The set is the outer party's**, and that is the whole of what the rule
 governs.
 
-The same shape governs four unrelated-looking things in this store:
+The same shape governs five unrelated-looking things in this store:
 
 - a **dependency** declares the types that stream, within what the upstream
   publishes — so a tenant takes a face's vocabulary without taking all of it;
 - a **zone** declares which brokers exist and a tenant narrows them, and may
   further restrict which it *accepts*;
+- a **zone** declares which processes its members may exchange, and a zone
+  inside it may permit only some of them;
 - a **step** declares who may override it, and precedence selects only among
   those;
 - a **credential** and a step intersect to decide what a participant may claim.

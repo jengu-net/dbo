@@ -25,7 +25,72 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
         List<Dependency> dependencies, Scim scim, List<String> mandatorySteps,
         String managedBy, boolean faceRoot, List<Step> steps, boolean zoneRoot,
         boolean indexFace, List<FleetStep> fleetSteps, Set<String> declines,
-        Set<String> authorised) {
+        Set<String> authorised, Set<String> exchanges, String partnerOf,
+        Configuration configuration, WorkingKey workingKey, String kind) {
+
+    /**
+     * What wraps the tenant's working key, where it is not the deployment's
+     * own key: a Transit key in the deployment's Vault, or in a Vault its
+     * owner runs.
+     *
+     * <p>A key the owner holds is one the tenant cannot come up without: the
+     * deployment never holds it, and revoking it leaves what the tenant keeps
+     * unreadable, to the deployment's operator as to anybody.
+     *
+     * @param key       the Transit key
+     * @param vault     the owner's Vault, or null for the deployment's
+     * @param mount     where Transit is mounted there, or null for
+     *                  {@code transit}
+     * @param authMount where the owner's Vault takes this deployment's service
+     *                  account token, or null for {@code jwt}
+     * @param role      the role the owner's Vault grants this deployment
+     */
+    public record WorkingKey(String key, String vault, String mount, String authMount,
+            String role) {
+
+        public WorkingKey {
+            if (key == null || key.isBlank()) {
+                throw new IllegalArgumentException("a working key held elsewhere names the key "
+                        + "it is wrapped by, as workingKey.key");
+            }
+            if (vault != null && (role == null || role.isBlank())) {
+                throw new IllegalArgumentException("a working key in its owner's Vault is "
+                        + "reached by a role that Vault grants this deployment, as "
+                        + "workingKey.auth.role");
+            }
+        }
+    }
+
+    /**
+     * Where the tenant's owner keeps its configuration: a git repository on a
+     * path this deployment can read, and the ref applied when the tenant comes
+     * up and when it is asked to apply without naming one.
+     *
+     * <p>Read, never fetched: keeping the repository current is the
+     * deployment's, and the store reaches no remote.
+     *
+     * @param git the repository's path, a bare repository or a clone
+     * @param ref a branch, a tag or a commit
+     * @param key the Transit key in the deployment's Vault that the
+     *            repository's secrets are wrapped by, or null for
+     *            {@code tenant-<code>}
+     */
+    public record Configuration(String git, String ref, String key) {
+
+        public Configuration(String git, String ref) {
+            this(git, ref, null);
+        }
+
+        public Configuration {
+            if (git == null || git.isBlank()) {
+                throw new IllegalArgumentException("a configuration names the repository it "
+                        + "is read from, as configuration.git");
+            }
+            if (ref == null || ref.isBlank()) {
+                ref = "HEAD";
+            }
+        }
+    }
 
     /**
      * A step this tenant offers, and the documents a run of it is over.
@@ -60,10 +125,82 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
      * @param answer   what the application that asked for a run may collect
      *                 once its work is over, or null where it collects nothing
      *                 and reads the run's answer alone
+     * @param starts   when it starts itself, or null where it starts only when
+     *                 somebody asks
+     * @param lasts    whether a run of it is work that lasts: opened for the
+     *                 request in its one slot, held by nobody, moved and ended
+     *                 by the runs that are its parts
+     * @param awaits   for an exchange a zone declares, what the asker waits for
+     *                 from the tenant whose data it is
+     * @param secrets  the secrets of the tenant a run of it may reach, by name:
+     *                 a step reaches what it declares and nothing else
      */
+    /**
+     * Whether a step's declared secrets reach a name: one of them is the
+     * name, or a family whose prefix the name extends — connection.* reaches
+     * connection.a.password, and neither connection nor connections.a.
+     */
+    public static boolean reaches(java.util.Set<String> declared, String name) {
+        for (String secret : declared) {
+            if (secret.equals(name)) {
+                return true;
+            }
+            if (secret.endsWith(".*")) {
+                String prefix = secret.substring(0, secret.length() - 1);
+                if (name.startsWith(prefix) && name.length() > prefix.length()) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     public record Step(String code, java.util.Map<String, String> slots,
             java.util.Set<String> writes, cloud.jengu.dbo.core.process.RetryPolicy retry,
-            cloud.jengu.dbo.core.process.AutomationCriterion automate, Answer answer) {
+            cloud.jengu.dbo.core.process.AutomationCriterion automate, Answer answer,
+            Starts starts, boolean lasts, Awaits awaits, java.util.Set<String> secrets) {
+
+        /** A step that reaches no secret. */
+        public Step(String code, java.util.Map<String, String> slots,
+                java.util.Set<String> writes, cloud.jengu.dbo.core.process.RetryPolicy retry,
+                cloud.jengu.dbo.core.process.AutomationCriterion automate, Answer answer,
+                Starts starts, boolean lasts, Awaits awaits) {
+            this(code, slots, writes, retry, automate, answer, starts, lasts, awaits,
+                    java.util.Set.of());
+        }
+
+        /** A step whose asker, where it crosses, waits for the records shared. */
+        public Step(String code, java.util.Map<String, String> slots,
+                java.util.Set<String> writes, cloud.jengu.dbo.core.process.RetryPolicy retry,
+                cloud.jengu.dbo.core.process.AutomationCriterion automate, Answer answer,
+                Starts starts, boolean lasts) {
+            this(code, slots, writes, retry, automate, answer, starts, lasts, Awaits.RECORDS);
+        }
+
+        /** What a crossing on an exchange waits for at the end it left. */
+        public enum Awaits {
+            /** The owner's List, sealed to the asker's reader: what it shares. */
+            RECORDS,
+            /** How the owner's run ended, and why: nothing is sealed, nothing read. */
+            OUTCOME,
+            /** Nothing: the work is the owner's once it is authored there. */
+            NONE
+        }
+
+        /** A step whose runs are performed, not opened. */
+        public Step(String code, java.util.Map<String, String> slots,
+                java.util.Set<String> writes, cloud.jengu.dbo.core.process.RetryPolicy retry,
+                cloud.jengu.dbo.core.process.AutomationCriterion automate, Answer answer,
+                Starts starts) {
+            this(code, slots, writes, retry, automate, answer, starts, false);
+        }
+
+        /** A step that starts only when somebody asks for it. */
+        public Step(String code, java.util.Map<String, String> slots,
+                java.util.Set<String> writes, cloud.jengu.dbo.core.process.RetryPolicy retry,
+                cloud.jengu.dbo.core.process.AutomationCriterion automate, Answer answer) {
+            this(code, slots, writes, retry, automate, answer, null);
+        }
 
         /** A step whose asker collects nothing. */
         public Step(String code, java.util.Map<String, String> slots,
@@ -85,16 +222,70 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
 
         public Step {
             writes = java.util.Set.copyOf(writes);
+            secrets = secrets == null ? java.util.Set.of() : java.util.Set.copyOf(secrets);
+            for (String secret : secrets) {
+                // A FAMILY IS A TRAILING .* AND NOTHING ELSE: a prefix the
+                // owner's names extend, never a pattern. A star anywhere else
+                // would be a wildcard nobody can read the reach of.
+                String named = secret.endsWith(".*")
+                        ? secret.substring(0, secret.length() - 2) : secret;
+                if (named.isEmpty() || named.contains("*")) {
+                    throw new IllegalArgumentException(code + ": the secret '" + secret
+                            + "' is a name, or a family of names declared as a prefix and a "
+                            + "trailing .* (connection.*); a * anywhere else is not");
+                }
+            }
             if (code == null || code.isBlank()) {
                 throw new IllegalArgumentException("a step declares a code");
             }
-            if (slots.isEmpty()) {
+            // A step on a clock is the one that may take nothing: what it is
+            // over is whatever it finds when the tick comes, and nobody is
+            // there to hand it a record.
+            if (slots.isEmpty() && (starts == null || starts.every() == null)) {
                 throw new IllegalArgumentException(code + ": a step with no slots is over "
                         + "nothing, and a run of it would reach nothing — declare what it "
                         + "takes, or do not declare the step");
             }
             slots = java.util.Collections.unmodifiableMap(
                     new java.util.LinkedHashMap<>(slots));
+            if (lasts) {
+                // What it fulfils is what makes it this work, so there is one
+                // thing it is for, named: a request held here, by reference.
+                if (slots.size() != 1 || !cloud.jengu.dbo.core.process.SlotShape.of(
+                        slots.values().iterator().next()).referred()) {
+                    throw new IllegalArgumentException(code + ": lasts, and is opened for the "
+                            + "one request it fulfils — declare one slot, as "
+                            + "Reference(ServiceRequest); it takes " + slots);
+                }
+                if (!writes.isEmpty() || retry != null || automate != null) {
+                    throw new IllegalArgumentException(code + ": lasts, and is performed by "
+                            + "nobody — what it writes, retries and automates is its parts' "
+                            + "to say, not its own");
+                }
+                if (starts != null && starts.every() != null) {
+                    throw new IllegalArgumentException(code + ": lasts, and is opened for a "
+                            + "request — a clock names none");
+                }
+            }
+            if (starts != null && starts.every() != null && !slots.isEmpty()) {
+                throw new IllegalArgumentException(code + ": starts on a calendar rule and "
+                        + "takes " + slots.keySet() + ", and nothing fills a slot when a tick "
+                        + "comes — a step on a clock takes nothing and finds what it is over");
+            }
+            if (starts != null && starts.every() == null) {
+                // The record that started it goes into the one slot of its
+                // type; two such slots would leave the run guessing which.
+                long fits = slots.values().stream()
+                        .filter(declared -> cloud.jengu.dbo.core.process.SlotShape.of(declared)
+                                .type().equals(starts.type()))
+                        .count();
+                if (fits != 1) {
+                    throw new IllegalArgumentException(code + ": starts on a " + starts.type()
+                            + ", and " + (fits == 0 ? "takes no slot" : "takes " + fits
+                                    + " slots") + " of that type — the record that starts it "
+                            + "goes into exactly one");
+                }
+            }
             // READ HERE so a malformed form is refused where it was
             // written. Every other reader takes the shape apart again, and a
             // declaration that parses in one place and not another is a
@@ -107,6 +298,69 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
                             + wrong.getMessage(), wrong);
                 }
             });
+        }
+    }
+
+    /**
+     * When a step starts itself, rather than waiting to be asked.
+     *
+     * <p>Exactly one occasion: a calendar rule, a change to a record matching
+     * a search, or a moment a matching record names. Each run it starts is
+     * keyed by the step and that occasion, so however many nodes notice the
+     * same occasion there is one run of it.
+     *
+     * <p><b>The rule is the scheduler's own.</b> A calendar rule is read here
+     * by the parser that will fire it, so a rule it would refuse never gets
+     * past the declaration, and one firing more often than once a minute is
+     * refused too: each tick is a run, kept as history, and a cadence below a
+     * minute is a feed nobody can read.
+     *
+     * <p><b>Where it starts is said</b>, because a tenant served on a site
+     * holds the same declaration as its origin and keys are unique per
+     * database: unsaid, the cloud and every site would each start the same
+     * occasion.
+     *
+     * @param every  a calendar rule, six fields from seconds, or null
+     * @param change a search over one type, as {@code Type?param=value}, whose
+     *               matching changes start it, or null
+     * @param due    a search whose matching records start it at the moment
+     *               they name, or null
+     * @param at     the element of a {@code due} record naming its moment
+     * @param after  how long after that moment it is due, zero for at it
+     * @param missed what a tick missed while no node ran becomes on return;
+     *               only for a calendar rule
+     * @param keep   how long the runs it starts are kept
+     * @param where  where it starts
+     */
+    public record Starts(String every, String change, String due, String at,
+            java.time.Duration after, Missed missed, java.time.Duration keep, Where where) {
+
+        /** What a tick missed while no node ran becomes. */
+        public enum Missed {
+            /** one run on return, for all the ticks missed, and it says how many */
+            ONCE,
+            /** nothing; the next tick comes when due */
+            SKIP
+        }
+
+        /** Where a self-starting step starts. */
+        public enum Where {
+            /** where the tenant is served from its own database, and nowhere else */
+            ORIGIN,
+            /** on each site the tenant is served at, and not at its origin */
+            PLACES,
+            /** at its origin and on each of its sites, each its own occasion */
+            EVERYWHERE
+        }
+
+        /** The type whose records start it, or null for a calendar rule. */
+        public String type() {
+            String search = change != null ? change : due;
+            if (search == null) {
+                return null;
+            }
+            int query = search.indexOf('?');
+            return query < 0 ? search : search.substring(0, query);
         }
     }
 
@@ -195,7 +449,30 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
      *                  deployment's own. Several steps may name one
      */
     public record FleetStep(String code, java.util.Map<String, String> slots,
-            Set<String> opens, boolean required, Posture posture, String substrate) {
+            Set<String> opens, boolean required, Posture posture, String substrate,
+            Set<String> delegatesTo, boolean lasts, Starts starts) {
+
+        /** Carried out by the provider itself, handed to no partner. */
+        public FleetStep(String code, java.util.Map<String, String> slots,
+                Set<String> opens, boolean required, Posture posture, String substrate) {
+            this(code, slots, opens, required, posture, substrate, Set.of());
+        }
+
+        /** A step asked for, never starting itself, and performed rather than opened. */
+        public FleetStep(String code, java.util.Map<String, String> slots,
+                Set<String> opens, boolean required, Posture posture, String substrate,
+                Set<String> delegatesTo) {
+            this(code, slots, opens, required, posture, substrate, delegatesTo, false, null);
+        }
+
+        /**
+         * This step as each tenant admitting it holds it, where it starts itself
+         * there or lasts: the same rules a tenant's own such step is held to,
+         * read where the deployment declared it.
+         */
+        public Step asStep() {
+            return new Step(code, slots, Set.of(), null, null, null, starts, lasts);
+        }
 
         /**
          * What a deployment does with work it has not been approved to process.
@@ -249,6 +526,12 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
             }
             slots = java.util.Collections.unmodifiableMap(
                     new java.util.LinkedHashMap<>(slots));
+            if (lasts || starts != null) {
+                // Held to a tenant's own rules for such a step, here, so a
+                // deployment declaring one that cannot hold is refused where it
+                // was written rather than in every tenant that admits it.
+                new Step(code, slots, Set.of(), null, null, null, starts, lasts);
+            }
             // As above: refused where it was written.
             slots.forEach((slot, declared) -> {
                 try {
@@ -271,6 +554,22 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
             }
             if (posture == null) {
                 posture = Posture.PROCESSED_AND_NAMED;
+            }
+            delegatesTo = Set.copyOf(delegatesTo);
+            if (!delegatesTo.isEmpty() && opens.isEmpty()) {
+                // A partner is named so that a tenant knows who handles its
+                // data, on the register row for what is opened. A step that
+                // opens nothing has no row to name it on.
+                throw new IllegalArgumentException(code + ": hands its work to "
+                        + new java.util.TreeSet<>(delegatesTo) + " and opens nothing, so no "
+                        + "tenant's register could say so. A partner is named on a step that "
+                        + "opens what it handles");
+            }
+            for (String partner : delegatesTo) {
+                if (!isCode(partner)) {
+                    throw new IllegalArgumentException(code + ": a partner is a tenant, and '"
+                            + partner + "' is not a tenant code");
+                }
             }
         }
 
@@ -327,6 +626,85 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
                 + "performs for every tenant that admits them, declared in the management "
                 + "tenant's own descriptor and nowhere else. A step this tenant offers itself "
                 + "goes under 'steps'.");
+    }
+
+    /**
+     * Without a configuration of the owner's own: what every tenant was while
+     * only its declaration configured it.
+     */
+    public TenantSpec(String code, String face, List<FhirTypeConfig> types,
+            boolean pdi, cloud.jengu.dbo.policy.TenantPolicies policies,
+            String zone, String broker, List<String> acceptedBrokers,
+            List<Dependency> dependencies, Scim scim, List<String> mandatorySteps,
+            String managedBy, boolean faceRoot, List<Step> steps, boolean zoneRoot,
+            boolean indexFace, List<FleetStep> fleetSteps, Set<String> declines,
+            Set<String> authorised, Set<String> exchanges, String partnerOf) {
+        this(code, face, types, pdi, policies, zone, broker, acceptedBrokers,
+                dependencies, scim, mandatorySteps, managedBy, faceRoot, steps, zoneRoot,
+                indexFace, fleetSteps, declines, authorised, exchanges, partnerOf, null);
+    }
+
+    /** Of the kind its declaration makes it. */
+    public TenantSpec(String code, String face, List<FhirTypeConfig> types,
+            boolean pdi, cloud.jengu.dbo.policy.TenantPolicies policies,
+            String zone, String broker, List<String> acceptedBrokers,
+            List<Dependency> dependencies, Scim scim, List<String> mandatorySteps,
+            String managedBy, boolean faceRoot, List<Step> steps, boolean zoneRoot,
+            boolean indexFace, List<FleetStep> fleetSteps, Set<String> declines,
+            Set<String> authorised, Set<String> exchanges, String partnerOf,
+            Configuration configuration, WorkingKey workingKey) {
+        this(code, face, types, pdi, policies, zone, broker, acceptedBrokers,
+                dependencies, scim, mandatorySteps, managedBy, faceRoot, steps, zoneRoot,
+                indexFace, fleetSteps, declines, authorised, exchanges, partnerOf,
+                configuration, workingKey, null);
+    }
+
+    /** With its working key wrapped by the deployment's own key. */
+    public TenantSpec(String code, String face, List<FhirTypeConfig> types,
+            boolean pdi, cloud.jengu.dbo.policy.TenantPolicies policies,
+            String zone, String broker, List<String> acceptedBrokers,
+            List<Dependency> dependencies, Scim scim, List<String> mandatorySteps,
+            String managedBy, boolean faceRoot, List<Step> steps, boolean zoneRoot,
+            boolean indexFace, List<FleetStep> fleetSteps, Set<String> declines,
+            Set<String> authorised, Set<String> exchanges, String partnerOf,
+            Configuration configuration) {
+        this(code, face, types, pdi, policies, zone, broker, acceptedBrokers,
+                dependencies, scim, mandatorySteps, managedBy, faceRoot, steps, zoneRoot,
+                indexFace, fleetSteps, declines, authorised, exchanges, partnerOf,
+                configuration, null);
+    }
+
+    /**
+     * Without a provider to be a partner of: what every tenant was while a
+     * deployment carried out all of its processes itself.
+     */
+    public TenantSpec(String code, String face, List<FhirTypeConfig> types,
+            boolean pdi, cloud.jengu.dbo.policy.TenantPolicies policies,
+            String zone, String broker, List<String> acceptedBrokers,
+            List<Dependency> dependencies, Scim scim, List<String> mandatorySteps,
+            String managedBy, boolean faceRoot, List<Step> steps, boolean zoneRoot,
+            boolean indexFace, List<FleetStep> fleetSteps, Set<String> declines,
+            Set<String> authorised, Set<String> exchanges) {
+        this(code, face, types, pdi, policies, zone, broker, acceptedBrokers,
+                dependencies, scim, mandatorySteps, managedBy, faceRoot, steps, zoneRoot,
+                indexFace, fleetSteps, declines, authorised, exchanges, null);
+    }
+
+    /**
+     * Without exchanges: what every zone was while a jurisdiction only said
+     * what was true in it, and nothing about what its members may do for each
+     * other.
+     */
+    public TenantSpec(String code, String face, List<FhirTypeConfig> types,
+            boolean pdi, cloud.jengu.dbo.policy.TenantPolicies policies,
+            String zone, String broker, List<String> acceptedBrokers,
+            List<Dependency> dependencies, Scim scim, List<String> mandatorySteps,
+            String managedBy, boolean faceRoot, List<Step> steps, boolean zoneRoot,
+            boolean indexFace, List<FleetStep> fleetSteps, Set<String> declines,
+            Set<String> authorised) {
+        this(code, face, types, pdi, policies, zone, broker, acceptedBrokers,
+                dependencies, scim, mandatorySteps, managedBy, faceRoot, steps, zoneRoot,
+                indexFace, fleetSteps, declines, authorised, Set.of(), null);
     }
 
     /**
@@ -530,6 +908,9 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
     // 128 is generous headroom; databaseName() folds ANY length into a
     // Postgres-safe identifier. Underscores stay accepted for old specs.
     private static final Pattern CODE = Pattern.compile("[a-z][a-z0-9_-]{0,127}");
+    // A process id: the two leading parts of a step id, StepId.processId().
+    private static final Pattern PROCESS =
+            Pattern.compile("[a-z][a-z0-9-]*\\.[a-z][a-z0-9-]*");
 
     /**
      * Whether a string is a tenant code at all.
@@ -558,9 +939,36 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
         if (face == null || face.isBlank()) {
             throw new IllegalArgumentException(code + ": face is required");
         }
+        // WHAT KIND IT IS, said or made: a label something may select it by,
+        // and one that has to agree with what the declaration makes it.
+        kind = cloud.jengu.dbo.tenant.api.TenantKinds.resolve(code, kind, faceRoot);
         types = List.copyOf(types);
         if (types.isEmpty()) {
             throw new IllegalArgumentException(code + ": at least one type required");
+        }
+        // A ZONE IS NOT ITS OWN PARENT. Zones form a tree, and naming itself
+        // is the shortest cycle in one: a jurisdiction bound by its own rules
+        // is bound by nothing above it.
+        if (zone != null && zone.equals(code)) {
+            throw new IllegalArgumentException(code + ": names itself as its zone, and a "
+                    + "zone's zone is the jurisdiction it belongs to");
+        }
+        exchanges = Set.copyOf(exchanges);
+        if (partnerOf != null && (partnerOf.equals(code) || !CODE.matcher(partnerOf).matches())) {
+            throw new IllegalArgumentException(code + ": is a partner of '" + partnerOf
+                    + "', and a partner is a partner of the service provider, another tenant");
+        }
+        if (!exchanges.isEmpty() && !zoneRoot) {
+            throw new IllegalArgumentException(code + ": declares exchanges "
+                    + new java.util.TreeSet<>(exchanges) + " and is not a zone. What "
+                    + "members may do for each other is a jurisdiction's to permit, said in "
+                    + "a file that also says \"zoneRoot\": true");
+        }
+        for (String process : exchanges) {
+            if (!PROCESS.matcher(process).matches()) {
+                throw new IllegalArgumentException(code + ": an exchange is a process, "
+                        + "<module>.<process>, and this one is: " + process);
+            }
         }
         dependencies = List.copyOf(dependencies);
         for (Dependency dependency : dependencies) {
@@ -775,6 +1183,12 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
                     .map(cloud.jengu.dbo.fhir.common.FhirTypeConfig::typeName)
                     .collect(java.util.stream.Collectors.toSet());
             java.util.Set<String> seen = new java.util.HashSet<>();
+            // A ZONE'S EXCHANGES ARE OVER ITS MEMBERS' DATA. A step a zone
+            // declares within a process it permits is where its members ask
+            // each other for work, so what it takes is a type the members
+            // hold, which the jurisdiction itself has no reason to.
+            boolean zone = Json.bool(root, "zoneRoot");
+            java.util.Set<String> exchanged = exchangesOf(root);
             for (Object step : Json.array(root, "steps")) {
                 String stepCode = Json.str(step, "code");
                 // A step's name is the engine's, so it is checked against the
@@ -799,7 +1213,8 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
                     // said anything beyond a bare type.
                     cloud.jengu.dbo.core.process.SlotShape shape =
                             cloud.jengu.dbo.core.process.SlotShape.of(slot.getValue());
-                    if (!held.contains(shape.type())) {
+                    if (!held.contains(shape.type()) && !(zone
+                            && exchanged.contains(ZoneTree.processOf(stepCode)))) {
                         throw new IllegalArgumentException(code + ": step '" + stepCode
                                 + "' takes '" + shape.type() + "' in slot '" + slot.getKey()
                                 + "', and this tenant does not declare that type. It holds: "
@@ -812,7 +1227,8 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
                     // A type this tenant holds, checked where it was written:
                     // a step declared to write what the tenant cannot hold
                     // would come up and have every result refused.
-                    if (!held.contains(String.valueOf(type))) {
+                    if (!held.contains(String.valueOf(type)) && !(zone
+                            && exchanged.contains(ZoneTree.processOf(stepCode)))) {
                         throw new IllegalArgumentException(code + ": step '" + stepCode
                                 + "' writes '" + type + "', and this tenant does not declare "
                                 + "that type. It holds: " + new java.util.TreeSet<>(held));
@@ -853,8 +1269,27 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
                                 + "' — " + wrong.getMessage(), wrong);
                     }
                 }
+                Object startsNode = Json.objOpt(step, "starts");
+                Starts starts;
+                try {
+                    starts = starts(startsNode, held);
+                } catch (IllegalArgumentException wrong) {
+                    throw new IllegalArgumentException(code + ": step '" + stepCode
+                            + "' — " + wrong.getMessage(), wrong);
+                }
+                String awaited = Json.strOpt(step, "awaits");
+                Step.Awaits awaits = Step.Awaits.RECORDS;
+                if (awaited != null) {
+                    try {
+                        awaits = named(Step.Awaits.class, "awaits", awaited);
+                    } catch (IllegalArgumentException wrong) {
+                        throw new IllegalArgumentException(code + ": step '" + stepCode
+                                + "' — " + wrong.getMessage(), wrong);
+                    }
+                }
                 steps.add(new Step(stepCode, slots, writes, retry, automate,
-                        answer(code, stepCode, step, policies)));
+                        answer(code, stepCode, step, policies), starts, Json.bool(step, "lasts"),
+                        awaits, Set.copyOf(Json.strings(step, "secrets"))));
             }
         }
         // The steps the DEPLOYMENT performs, which only the management
@@ -879,11 +1314,24 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
                     named.forEach((slot, type) -> slots.put(String.valueOf(slot),
                             String.valueOf(type)));
                 }
+                // When it starts itself in each tenant admitting it, read by the
+                // rules a tenant's own step is — except the types, which are the
+                // tenants', not the deployment's.
+                Object fleetStartsNode = Json.objOpt(one, "starts");
+                Starts fleetStarts;
+                try {
+                    fleetStarts = starts(fleetStartsNode, null);
+                } catch (IllegalArgumentException wrong) {
+                    throw new IllegalArgumentException(code + ": fleet step '" + stepCode
+                            + "' — " + wrong.getMessage(), wrong);
+                }
                 fleetSteps.add(new FleetStep(stepCode, slots,
                         Set.copyOf(Json.strings(one, "opens")),
                         Json.bool(one, "required"),
                         FleetStep.Posture.of(Json.strOpt(one, "posture"), stepCode),
-                        Json.strOpt(one, "substrate")));
+                        Json.strOpt(one, "substrate"),
+                        Set.copyOf(Json.strings(one, "delegatesTo")),
+                        Json.bool(one, "lasts"), fleetStarts));
             }
         }
         return new TenantSpec(code, face, types, pdi, policies,
@@ -921,7 +1369,56 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
                 //
                 // Empty means it has read none, which is a real state and a
                 // different answer from having read a different one.
-                Set.copyOf(Json.strings(root, "authorised")));
+                Set.copyOf(Json.strings(root, "authorised")),
+                // WHAT THIS ZONE PERMITS ITS MEMBERS TO DO FOR EACH OTHER, by
+                // process. Permitted by declaration and never assumed: a zone
+                // that lists none permits none, and a zone below another may
+                // list only what the one above it does.
+                exchangesOf(root),
+                // A PARTNER SAYS WHOSE IT IS. The service provider hands part
+                // of its work to partners, and a tenant is one because its own
+                // file says so — the same rule as a zone — never because the
+                // provider named it.
+                Json.strOpt(root, "partnerOf"),
+                // WHERE ITS OWNER KEEPS ITS CONFIGURATION, if anywhere. The
+                // declaration says where to read; what is read there is the
+                // owner's.
+                configurationOf(root),
+                // WHAT WRAPS ITS WORKING KEY, where it is not the deployment's.
+                workingKeyOf(root),
+                // WHAT KIND IT IS, where it says: a label, deciding nothing here.
+                Json.strOpt(root, "kind"));
+    }
+
+    private static WorkingKey workingKeyOf(Object root) {
+        Object wrapping = Json.objOpt(root, "workingKey");
+        if (!(wrapping instanceof java.util.Map<?, ?>)) {
+            return null;
+        }
+        Object reaching = Json.objOpt(wrapping, "auth");
+        return new WorkingKey(Json.strOpt(wrapping, "key"), Json.strOpt(wrapping, "vault"),
+                Json.strOpt(wrapping, "mount"),
+                reaching == null ? null : Json.strOpt(reaching, "mount"),
+                reaching == null ? null : Json.strOpt(reaching, "role"));
+    }
+
+    private static Configuration configurationOf(Object root) {
+        Object configured = Json.objOpt(root, "configuration");
+        if (!(configured instanceof java.util.Map<?, ?>)) {
+            return null;
+        }
+        return new Configuration(Json.strOpt(configured, "git"),
+                Json.strOpt(configured, "ref"), Json.strOpt(configured, "key"));
+    }
+
+    private static Set<String> exchangesOf(Object root) {
+        Set<String> once = new java.util.HashSet<>();
+        for (String process : Json.strings(root, "exchanges")) {
+            if (!once.add(process)) {
+                throw new IllegalArgumentException("exchanges names " + process + " twice");
+            }
+        }
+        return once;
     }
 
     /**
@@ -934,6 +1431,106 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
      * a duration that is not one, a purpose that is not a code, and an
      * audience revealing a person whole on a step that says no reason for it.
      */
+    /**
+     * When a step starts itself, read whole here: one occasion and not two,
+     * a rule the scheduler can fire, a search over a type this tenant holds,
+     * a moment and a lag only where a moment is what starts it, a missed-tick
+     * policy only where there are ticks, and a retention and a place always,
+     * because neither has a default anybody chose.
+     */
+    private static Starts starts(Object startsNode, java.util.Set<String> held) {
+        if (startsNode == null) {
+            return null;
+        }
+        String every = Json.strOpt(startsNode, "every");
+        String change = Json.strOpt(startsNode, "change");
+        String due = Json.strOpt(startsNode, "due");
+        long occasions = java.util.stream.Stream.of(every, change, due)
+                .filter(java.util.Objects::nonNull).count();
+        if (occasions != 1) {
+            throw new IllegalArgumentException("starts on " + (occasions == 0 ? "nothing"
+                    : occasions + " occasions") + " — declare exactly one of 'every', "
+                    + "'change' or 'due'");
+        }
+        if (every != null) {
+            cloud.jengu.dbo.stream.StepClock.refuse(every);
+        }
+        String search = change != null ? change : due;
+        if (search != null) {
+            String type = search.contains("?") ? search.substring(0, search.indexOf('?'))
+                    : search;
+            if (held != null && !held.contains(type)) {
+                throw new IllegalArgumentException("starts on a change to '" + type
+                        + "', and this tenant does not declare that type. It holds: "
+                        + new java.util.TreeSet<>(held));
+            }
+        }
+        String at = Json.strOpt(startsNode, "at");
+        String after = Json.strOpt(startsNode, "after");
+        if (due == null && (at != null || after != null)) {
+            throw new IllegalArgumentException("names a moment ('at', 'after') and is not "
+                    + "started by one — only a 'due' step is");
+        }
+        if (due != null && at == null) {
+            throw new IllegalArgumentException("is due at a moment its record names, and "
+                    + "does not say which element names it — declare 'at'");
+        }
+        String missed = Json.strOpt(startsNode, "missed");
+        if (every == null && missed != null) {
+            throw new IllegalArgumentException("says what a missed tick becomes, and has no "
+                    + "ticks — 'missed' is only for a step started by 'every'");
+        }
+        if (every != null && missed == null) {
+            throw new IllegalArgumentException("is started by a calendar rule and does not "
+                    + "say what a tick missed while no node ran becomes — declare 'missed' "
+                    + "as 'once' or 'skip'");
+        }
+        String keep = Json.strOpt(startsNode, "keep");
+        if (keep == null) {
+            throw new IllegalArgumentException("starts itself and does not say how long the "
+                    + "runs it starts are kept — declare 'keep', as P30D");
+        }
+        String where = Json.strOpt(startsNode, "where");
+        if (where == null) {
+            throw new IllegalArgumentException("starts itself and does not say where — "
+                    + "declare 'where' as 'origin', 'places' or 'everywhere'");
+        }
+        java.time.Duration kept = duration("keep", keep);
+        if (kept.isNegative() || kept.isZero()) {
+            throw new IllegalArgumentException("keeps the runs it starts for " + keep
+                    + ", and a run kept for no time is never seen");
+        }
+        java.time.Duration lag = after == null ? java.time.Duration.ZERO
+                : duration("after", after);
+        if (lag.isNegative()) {
+            throw new IllegalArgumentException("is due " + after + " after its moment, and "
+                    + "a step is not started before what starts it");
+        }
+        return new Starts(every, change, due, at, lag,
+                missed == null ? null : named(Starts.Missed.class, "missed", missed), kept,
+                named(Starts.Where.class, "where", where));
+    }
+
+    private static java.time.Duration duration(String field, String value) {
+        try {
+            return java.time.Duration.parse(value);
+        } catch (java.time.format.DateTimeParseException wrong) {
+            throw new IllegalArgumentException("'" + field + "' is '" + value + "', which is "
+                    + "not an ISO-8601 duration such as P30D", wrong);
+        }
+    }
+
+    private static <E extends Enum<E>> E named(Class<E> kind, String field, String value) {
+        for (E one : kind.getEnumConstants()) {
+            if (one.name().equalsIgnoreCase(value)) {
+                return one;
+            }
+        }
+        throw new IllegalArgumentException("'" + field + "' is '" + value + "', and is one of "
+                + java.util.Arrays.stream(kind.getEnumConstants())
+                        .map(one -> one.name().toLowerCase(java.util.Locale.ROOT)).toList());
+    }
+
     private static Answer answer(String code, String stepCode, Object step,
             cloud.jengu.dbo.policy.TenantPolicies policies) {
         String answers = Json.strOpt(step, "answers");

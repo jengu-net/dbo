@@ -52,6 +52,17 @@ dependencies {
     embedded("com.zaxxer:HikariCP:7.1.0") {
         exclude(group = "org.slf4j", module = "slf4j-api")
     }
+    // A tenant owner's configuration is read from a git repository at a
+    // commit, from git's own objects and never a working tree. Private to this
+    // bundle as HikariCP is, and slf4j shared for the same reason.
+    embedded("org.eclipse.jgit:org.eclipse.jgit:7.8.0.202609011348-r") {
+        exclude(group = "org.slf4j", module = "slf4j-api")
+    }
+    // A file of secrets written as SOPS writes one: its data key wrapped for
+    // the owner's age recipients, and the recipients read from the
+    // repository's .sops.yaml. Private to this bundle, as JGit is.
+    embedded("com.exceptionfactory.jagged:jagged-x25519:1.0.0")
+    embedded("org.snakeyaml:snakeyaml-engine:2.9")
     // the PG driver comes from the DRIVER BUNDLE at runtime — compile-only
     compileOnly("org.postgresql:postgresql:42.7.13")
     compileOnly("org.slf4j:slf4j-api:2.0.18")
@@ -129,6 +140,21 @@ tasks.jar {
                     "!org.hibernate.*",
                     "!javassist.*",
                     "!org.jetbrains.annotations.*",
+                    // JGit rides privately like HikariCP, and is read only at
+                    // a commit on a local path: its transports over HTTP and
+                    // its Kerberos and XML paths are never reached, so what
+                    // they need may be absent.
+                    "!org.eclipse.jgit.*",
+                    "!com.googlecode.javaewah.*",
+                    "!org.apache.commons.codec.*",
+                    // jagged and SnakeYAML Engine ride privately as JGit does.
+                    "!com.exceptionfactory.jagged.*",
+                    "!org.snakeyaml.engine.*",
+                    "sun.net.www.protocol.http;resolution:=optional",
+                    "org.ietf.jgss;resolution:=optional",
+                    "sun.security.jgss;resolution:=optional",
+                    "org.xml.sax;resolution:=optional",
+                    "org.xml.sax.helpers;resolution:=optional",
                     // the JDK surfaces a bundle may run without
                     "javax.naming;resolution:=optional",
                     "javax.naming.spi;resolution:=optional",

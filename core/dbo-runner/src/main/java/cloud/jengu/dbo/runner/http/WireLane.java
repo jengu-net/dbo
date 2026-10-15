@@ -151,6 +151,14 @@ public class WireLane implements Lane {
     }
 
     @Override
+    public Run refused(Run run, String because) {
+        Map<String, Object> body = verb();
+        body.put(LaneVerbs.RUN, RecordWire.encode(run));
+        body.put(LaneVerbs.REASON, because);
+        return RecordWire.decode(post(LaneVerbs.REFUSE, body), Run.class);
+    }
+
+    @Override
     public void closed(Run run) {
         // A participant that signs closes with the head it commits to — the
         // last link it made or saw — without the runner having to know
@@ -171,6 +179,28 @@ public class WireLane implements Lane {
 
     @Override
     public Run committed(Run run, String head, List<cloud.jengu.dbo.runner.Outcome.Write> result) {
+        return committed(run, head, result, List.of());
+    }
+
+    @Override
+    public Run committed(Run run, String head, List<cloud.jengu.dbo.runner.Outcome.Write> result,
+            List<cloud.jengu.dbo.runner.Outcome.Part> parts) {
+        return committed(run, head, result, parts, null);
+    }
+
+    @Override
+    public java.util.Optional<Run> partOf(Run run) {
+        Map<String, Object> body = verb();
+        body.put(LaneVerbs.RUN, RecordWire.encode(run));
+        Object answered = post(LaneVerbs.PART_OF, body);
+        return answered == null ? java.util.Optional.empty()
+                : java.util.Optional.of(RecordWire.decode(answered, Run.class));
+    }
+
+    @Override
+    public Run committed(Run run, String head, List<cloud.jengu.dbo.runner.Outcome.Write> result,
+            List<cloud.jengu.dbo.runner.Outcome.Part> parts,
+            cloud.jengu.dbo.runner.Outcome.Said said) {
         Map<String, Object> body = verb();
         body.put(LaneVerbs.RUN, RecordWire.encode(run));
         // As closed(): a participant that signs commits to the head it last
@@ -180,6 +210,12 @@ public class WireLane implements Lane {
             body.put(LaneVerbs.HEAD, committedTo);
         }
         body.put(LaneVerbs.WRITES, RecordWire.encode(List.copyOf(result)));
+        if (!parts.isEmpty()) {
+            body.put(LaneVerbs.PARTS, RecordWire.encode(List.copyOf(parts)));
+        }
+        if (said != null) {
+            body.put(LaneVerbs.SAID, RecordWire.encode(said));
+        }
         Run ended = RecordWire.decode(post(LaneVerbs.COMMITTED, body), Run.class);
         heads.remove(run.key());
         return ended;
@@ -275,6 +311,29 @@ public class WireLane implements Lane {
         body.put(LaneVerbs.REFERENCE, reference);
         body.put(LaneVerbs.PURPOSE, purpose);
         return RecordWire.decode(post(LaneVerbs.IDENTIFIED, body),
+                cloud.jengu.dbo.work.SealedPayload.class);
+    }
+
+    @Override
+    public byte[] secret(Run run, String name) {
+        if (holding == null) {
+            throw new IllegalStateException("a secret leaves the tenant only sealed, and "
+                    + identity.name() + " holds no key to open one");
+        }
+        try {
+            return sealedSecret(run, name).open(identity.name(), holding).payload();
+        } catch (java.security.GeneralSecurityException unopened) {
+            throw new IllegalStateException("the secret '" + name + "' did not open with "
+                    + identity.name() + "'s key", unopened);
+        }
+    }
+
+    @Override
+    public cloud.jengu.dbo.work.SealedPayload sealedSecret(Run run, String name) {
+        Map<String, Object> body = verb();
+        body.put(LaneVerbs.RUN, RecordWire.encode(run));
+        body.put(LaneVerbs.SECRET_NAME, name);
+        return RecordWire.decode(post(LaneVerbs.SECRET, body),
                 cloud.jengu.dbo.work.SealedPayload.class);
     }
 
@@ -422,10 +481,29 @@ public class WireLane implements Lane {
                 return positionIn(post(LaneVerbs.TRAIL_PUSH, body));
             }
         };
+        cloud.jengu.dbo.runner.transport.Handover work = batch -> {
+            Map<String, Object> body = verb();
+            body.put(LaneVerbs.BATCH, batch);
+            Object answer = post(LaneVerbs.RUNS_PUSH, body);
+            Map<?, ?> said = answer instanceof Map<?, ?> map ? map : Map.of();
+            List<String> refused = new java.util.ArrayList<>();
+            if (said.get(LaneVerbs.REFUSED) instanceof List<?> named) {
+                named.forEach(one -> refused.add(String.valueOf(one)));
+            }
+            return new cloud.jengu.dbo.runner.transport.Handover.Taken(
+                    said.get(LaneVerbs.APPLIED) instanceof Number n ? n.longValue() : 0,
+                    said.get(LaneVerbs.SKIPPED) instanceof Number n ? n.longValue() : 0,
+                    refused);
+        };
         return new cloud.jengu.dbo.runner.transport.Origin() {
             @Override
             public cloud.jengu.dbo.runner.transport.Trail trail() {
                 return trail;
+            }
+
+            @Override
+            public cloud.jengu.dbo.runner.transport.Handover work() {
+                return work;
             }
 
             @Override

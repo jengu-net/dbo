@@ -113,6 +113,15 @@ class WorkLeavesTheClinicAndComesBackIT {
             cloud.jengu.dbo.core.api.seal.KeyWrap.newParticipantKeyPair();
     private final java.security.KeyPair routeeSigning =
             cloud.jengu.dbo.core.api.seal.SigningKey.newKeyPair();
+    /** Behind the keyed routee, which routes it in turn: a bench behind a desk. */
+    private static final String DEEP_ROUTEE = NAMES.value("routee-7-bench");
+    private final java.security.KeyPair deepSealing =
+            cloud.jengu.dbo.core.api.seal.KeyWrap.newParticipantKeyPair();
+    /** Everything the router routes, as each of its reports says it whole. */
+    private static final List<cloud.jengu.dbo.work.Trackable> ROUTED = List.of(
+            cloud.jengu.dbo.work.Trackable.routed(KEYED_ROUTEE, ROUTER),
+            cloud.jengu.dbo.work.Trackable.routed(KEYLESS_ROUTEE, ROUTER),
+            cloud.jengu.dbo.work.Trackable.routed(DEEP_ROUTEE, KEYED_ROUTEE));
     private HttpLane routerLane;
     private static final String ASSAYER = NAMES.value("assayer");
     private static final String COURIER = NAMES.value("courier");
@@ -216,12 +225,14 @@ class WorkLeavesTheClinicAndComesBackIT {
                 cloud.jengu.dbo.core.api.seal.ParticipantKey.of(routeeSealing.getPublic()),
                 cloud.jengu.dbo.core.api.seal.SigningKey.of(routeeSigning.getPublic()));
         authority.ensureClient(KEYLESS_ROUTEE, KEYLESS_ROUTEE + "-secret", List.of());
+        authority.ensureClient(DEEP_ROUTEE, DEEP_ROUTEE + "-secret", List.of(),
+                cloud.jengu.dbo.core.api.seal.ParticipantKey.of(deepSealing.getPublic()),
+                cloud.jengu.dbo.core.api.seal.SigningKey.of(
+                        cloud.jengu.dbo.core.api.seal.SigningKey.newKeyPair().getPublic()));
         routerLane = HttpLane.to(URI.create(dbo.at(HOSPITAL) + "/work"),
                 () -> participantToken(ROUTER), HOSPITAL, ROUTER, executor(ROUTER));
         routerLane.introduce(ROUTED_STEP);
-        routerLane.routes(List.of(
-                cloud.jengu.dbo.work.Trackable.routed(KEYED_ROUTEE, ROUTER),
-                cloud.jengu.dbo.work.Trackable.routed(KEYLESS_ROUTEE, ROUTER)));
+        routerLane.routes(ROUTED);
 
         var written = dbo.write(HOSPITAL, "Observation", """
                 {"resourceType":"Observation","status":"registered",
@@ -1121,6 +1132,470 @@ class WorkLeavesTheClinicAndComesBackIT {
     }
 
     @Test
+    @Order(49)
+    @DisplayName("a router seals to a routee behind its own routee as it does to one directly "
+            + "behind it, and neither the router nor the routee between them can open it")
+    @Proving({DboPromises.PROC_A_TRACKABLE_MAY_ROUTE_OTHERS,
+            DboPromises.PROC_THE_ROUTER_HOLDS_THE_CLAIM})
+    void aRouteeMaySitBehindAnother() throws Exception {
+        String marker = NAMES.value("bench-specimen");
+        Run held = routerLane.claim(routedRun("bench", marker), Duration.ofMinutes(5))
+                .orElseThrow();
+        cloud.jengu.dbo.work.SealedWork work = routerLane.sealed(held, List.of(DEEP_ROUTEE));
+
+        StoredObject opened = work.payload().get(0).open(DEEP_ROUTEE, deepSealing.getPrivate());
+        Proves.that(DboPromises.PROC_A_TRACKABLE_MAY_ROUTE_OTHERS,
+                work.manifest().recipients().equals(List.of(DEEP_ROUTEE))
+                        && new String(opened.payload(), java.nio.charset.StandardCharsets.UTF_8)
+                                .contains(marker),
+                "the work was not sealed to the routee two routers deep: "
+                        + work.manifest().recipients());
+        assertThrows(Exception.class, () -> work.payload().get(0).open(KEYED_ROUTEE,
+                        routeeSealing.getPrivate()),
+                "the routee in front of the bench opened what was sealed past it");
+    }
+
+    // ── work that leaves the tenant it was asked for in ──
+
+    // The clinic asks the hospital, through the jurisdiction both are in.
+    private static final String REQUEST = "care.records.request";
+    private static final String ASKER = NAMES.value("asker");
+
+    @Test
+    @Order(50)
+    @DisplayName("the clinic asks for the hospital's records at its own door, on the exchange "
+            + "its zone declares, and the run it asked for says where the work goes")
+    @Proving(DboPromises.ZONE_WORK_FOR_ANOTHER_TENANT_IS_ASKED_FOR_AT_ONES_OWN_DOOR)
+    void theClinicAsksTheHospitalThroughTheZone() {
+        HttpResponse<String> asked = askAcross(HOSPITAL);
+        Proves.that(DboPromises.ZONE_WORK_FOR_ANOTHER_TENANT_IS_ASKED_FOR_AT_ONES_OWN_DOOR,
+                asked.statusCode() == 201,
+                "the clinic could not ask for the hospital's records through rl: "
+                        + asked.statusCode() + " " + asked.body());
+        Run run = new Runs(tenants.store(CLINIC).orElseThrow())
+                .byKey(dbo.says(asked).one("key").orElseThrow()).orElseThrow();
+        Proves.that(DboPromises.ZONE_WORK_FOR_ANOTHER_TENANT_IS_ASKED_FOR_AT_ONES_OWN_DOOR,
+                run.crossing() != null && CLINIC.equals(run.crossing().from())
+                        && HOSPITAL.equals(run.crossing().to())
+                        && ASKER.equals(run.crossing().reader())
+                        && run.crossing().askerRun() == null,
+                "the run asked for does not say where the work goes, or who it is for: "
+                        + run.crossing());
+    }
+
+    @Test
+    @Order(51)
+    @DisplayName("asked for a tenant it shares no zone with, for a crossing it says the store's "
+            + "part of, or on its own work, the clinic's door refuses by name and authors "
+            + "nothing")
+    @Proving(DboPromises.ZONE_WORK_FOR_ANOTHER_TENANT_IS_ASKED_FOR_AT_ONES_OWN_DOOR)
+    void aCrossingWithNoWayIsRefused() {
+        HttpResponse<String> nowhere = askAcross("fhir-r5");
+        HttpResponse<String> forged = askAt(REQUEST, "{\"inputs\":{\"query\":" + query()
+                + "},\"crossing\":{\"to\":\"" + HOSPITAL + "\",\"from\":\"rl\"}}");
+        HttpResponse<String> own = askAt("care.contact.record", "{\"inputs\":{\"note\":"
+                + "{\"resourceType\":\"Observation\",\"status\":\"final\","
+                + "\"code\":{\"text\":\"x\"}}},\"crossing\":{\"to\":\"" + HOSPITAL
+                + "\"}}");
+        Proves.that(DboPromises.ZONE_WORK_FOR_ANOTHER_TENANT_IS_ASKED_FOR_AT_ONES_OWN_DOOR,
+                nowhere.statusCode() == 409 && nowhere.body().contains("fhir-r5")
+                        && nowhere.body().contains("no zone")
+                        && forged.statusCode() == 400 && forged.body().contains("store")
+                        && own.statusCode() == 400 && own.body().contains("does not cross"),
+                "a crossing with no way to go, or one the asker forged, was not refused by "
+                        + "name: " + nowhere.statusCode() + " " + nowhere.body() + " / "
+                        + forged.statusCode() + " " + forged.body() + " / "
+                        + own.statusCode() + " " + own.body());
+    }
+
+    @Test
+    @Order(52)
+    @DisplayName("what the clinic asked for is carried through rl to the hospital, which gets a "
+            + "run of its own answering the clinic's, while rl records only that it passed")
+    @Proving(DboPromises.ZONE_WORK_IS_CARRIED_THROUGH_THE_ZONES_THAT_KEEP_NO_COPY)
+    void whatTheClinicAskedIsCarriedToTheHospital() throws InterruptedException {
+        HttpResponse<String> asked = askAcross(HOSPITAL);
+        assertEquals(201, asked.statusCode(), asked.body());
+        String key = dbo.says(asked).one("key").orElseThrow();
+        Runs clinicRuns = new Runs(tenants.store(CLINIC).orElseThrow());
+        String crossing = clinicRuns.byKey(key).orElseThrow().crossing().id();
+
+        Runs hospitalRuns = new Runs(tenants.store(HOSPITAL).orElseThrow());
+        java.util.Optional<Run> answering = java.util.Optional.empty();
+        long giveUp = System.nanoTime() + Duration.ofMinutes(2).toNanos();
+        while (answering.isEmpty() && System.nanoTime() < giveUp) {
+            Thread.sleep(500);
+            answering = hospitalRuns.byKey(REQUEST + "/crossing-" + crossing);
+        }
+        Proves.that(DboPromises.ZONE_WORK_IS_CARRIED_THROUGH_THE_ZONES_THAT_KEEP_NO_COPY,
+                answering.isPresent() && key.equals(answering.get().crossing().askerRun())
+                        && CLINIC.equals(answering.get().crossing().from())
+                        && ASKER.equals(answering.get().crossing().reader())
+                        && answering.get().inputs().get("query").one()
+                                .contains(NAMES.value("asked-for")),
+                "the hospital got no run answering the clinic's, over what the clinic asked: "
+                        + answering);
+
+        Run held = clinicRuns.byKey(key).orElseThrow();
+        Proves.that(DboPromises.ZONE_WORK_IS_CARRIED_THROUGH_THE_ZONES_THAT_KEEP_NO_COPY,
+                held.assignment() != null && held.assignment().executor() != null
+                        && "dbo-crossings".equals(held.assignment().executor().name()),
+                "the clinic's run is not held by what carries it: " + held.assignment());
+
+        cloud.jengu.dbo.core.api.ObjectStore zone = tenants.store("rl").orElseThrow();
+        List<StoredObject> passed = zone.select(cloud.jengu.dbo.core.api.Criteria
+                .of("AuditEntry").eq("run",
+                        cloud.jengu.dbo.core.api.EnvelopeValue.of("crossing:" + crossing)));
+        String said = passed.stream().map(entry -> new String(entry.payload(),
+                java.nio.charset.StandardCharsets.UTF_8)).toList().toString();
+        Proves.that(DboPromises.ZONE_WORK_IS_CARRIED_THROUGH_THE_ZONES_THAT_KEEP_NO_COPY,
+                passed.size() == 1 && said.contains("\"from\":\"" + CLINIC + "\"")
+                        && said.contains("\"to\":\"" + HOSPITAL + "\"")
+                        && !said.contains(NAMES.value("asked-for")),
+                "rl did not record that the crossing passed, from where to where, or recorded "
+                        + "what was asked: " + said);
+        Proves.that(DboPromises.ZONE_WORK_IS_CARRIED_THROUGH_THE_ZONES_THAT_KEEP_NO_COPY,
+                new Runs(zone).byKey(REQUEST + "/crossing-" + crossing).isEmpty()
+                        && new Runs(zone).byKey(key).isEmpty(),
+                "rl keeps a run of work it only carried");
+    }
+
+    /** The hospital's participant that answers what other tenants ask of it. */
+    private static final String RECORDS_DESK = NAMES.value("records-desk");
+
+    @Test
+    @Order(53)
+    @DisplayName("the hospital answers what the clinic asked: its own participant takes the "
+            + "run, decides, and commits a list of what it shares, kept in its own store")
+    @Proving(DboPromises.ZONE_THE_OWNER_ANSWERS_WITH_WHAT_IT_SHARES)
+    void theHospitalAnswersWithWhatItShares() throws InterruptedException {
+        Run answering = hospitalRunAnswering(askAcross(HOSPITAL));
+        String shared = dbo.write(HOSPITAL, "Observation", """
+                {"resourceType":"Observation","status":"final",
+                 "code":{"text":"%s"}}""".formatted(NAMES.value("shared-result")))
+                .idOrFail();
+
+        HttpLane desk = recordsDesk();
+        Run held = desk.claim(answering, Duration.ofMinutes(5)).orElseThrow();
+        Map<String, List<StoredObject>> asked = desk.inputs(held);
+        assertTrue(new String(asked.get("query").get(0).payload(),
+                        java.nio.charset.StandardCharsets.UTF_8)
+                        .contains(NAMES.value("asked-for")),
+                "the hospital's participant could not read what was asked of it");
+        Run answered = desk.committed(held, null, List.of(cloud.jengu.dbo.runner.Outcome.Write
+                .create("""
+                        {"resourceType":"List","status":"current","mode":"snapshot",
+                         "entry":[{"item":{"reference":"Observation/%s"}}]}"""
+                        .formatted(shared))));
+
+        Proves.that(DboPromises.ZONE_THE_OWNER_ANSWERS_WITH_WHAT_IT_SHARES,
+                !answered.open() && answered.produced().versions().size() == 1,
+                "the hospital's answer did not end its run with the list it wrote: "
+                        + answered.produced());
+        java.util.regex.Matcher list = java.util.regex.Pattern.compile("List/[0-9a-f-]{36}")
+                .matcher(answered.produced().versions().get(0));
+        assertTrue(list.find(), "the run names no list: " + answered.produced());
+        HttpResponse<String> kept = dbo.get(dbo.at(HOSPITAL) + "/fhir/" + list.group(),
+                dbo.token(HOSPITAL));
+        Proves.that(DboPromises.ZONE_THE_OWNER_ANSWERS_WITH_WHAT_IT_SHARES,
+                kept.statusCode() == 200 && kept.body().contains("Observation/" + shared),
+                "the hospital does not keep the list of what it shared: " + kept.statusCode()
+                        + " " + kept.body());
+    }
+
+    @Test
+    @Order(54)
+    @DisplayName("what the hospital shares comes back sealed to the clinic's asker alone, the "
+            + "clinic's run is the asker's to take, and rl records the way back as it did the "
+            + "way out")
+    @Proving(DboPromises.ZONE_THE_ANSWER_COMES_BACK_SEALED_TO_THE_READER_ALONE)
+    void theAnswerComesBackSealedToTheAsker() throws Exception {
+        HttpResponse<String> asked = askAcross(HOSPITAL);
+        String key = dbo.says(asked).one("key").orElseThrow();
+        Run answering = hospitalRunAnswering(asked);
+        String marker = NAMES.value("shared-back");
+        String shared = dbo.write(HOSPITAL, "Observation", """
+                {"resourceType":"Observation","status":"final","code":{"text":"%s"}}"""
+                .formatted(marker)).idOrFail();
+        HttpLane desk = recordsDesk();
+        Run held = desk.claim(answering, Duration.ofMinutes(5)).orElseThrow();
+        desk.inputs(held);
+        desk.committed(held, null, List.of(cloud.jengu.dbo.runner.Outcome.Write.create("""
+                {"resourceType":"List","status":"current","mode":"snapshot",
+                 "entry":[{"item":{"reference":"Observation/%s"}}]}""".formatted(shared))));
+
+        Runs clinicRuns = new Runs(tenants.store(CLINIC).orElseThrow());
+        Run back = clinicRuns.byKey(key).orElseThrow();
+        long giveUp = System.nanoTime() + Duration.ofMinutes(2).toNanos();
+        while (back.crossing().arrived() == null && System.nanoTime() < giveUp) {
+            Thread.sleep(500);
+            back = clinicRuns.byKey(key).orElseThrow();
+        }
+        Proves.that(DboPromises.ZONE_THE_ANSWER_COMES_BACK_SEALED_TO_THE_READER_ALONE,
+                back.open() && back.addressee() != null
+                        && ASKER.equals(back.addressee().client()),
+                "the clinic's run is not offered to its asker alone: " + back.addressee());
+        HttpLane reader = HttpLane.holding(URI.create(dbo.at(CLINIC) + "/work"),
+                this::askerToken, CLINIC, ASKER, executor(ASKER),
+                askerSealing.getPrivate(), askerSigning.getPrivate());
+        cloud.jengu.dbo.work.SealedWork work = reader.sealed(
+                reader.claim(back, Duration.ofMinutes(5)).orElseThrow());
+        Proves.that(DboPromises.ZONE_THE_ANSWER_COMES_BACK_SEALED_TO_THE_READER_ALONE,
+                work.payload().size() == 1
+                        && work.payload().get(0).wrapped().keySet().equals(java.util.Set.of(ASKER))
+                        && !back.crossing().arrived().contains(marker),
+                "what the hospital shared did not come back sealed to the asker alone: "
+                        + work.payload());
+        StoredObject opened = work.payload().get(0).open(ASKER, askerSealing.getPrivate());
+        assertTrue(new String(opened.payload(), java.nio.charset.StandardCharsets.UTF_8)
+                .contains(marker), "the asker, holding its key, could not read the answer");
+
+        String crossing = back.crossing().id();
+        List<StoredObject> passed = tenants.store("rl").orElseThrow().select(
+                cloud.jengu.dbo.core.api.Criteria.of("AuditEntry").eq("run",
+                        cloud.jengu.dbo.core.api.EnvelopeValue.of("crossing:" + crossing)));
+        String said = passed.stream().map(entry -> new String(entry.payload(),
+                java.nio.charset.StandardCharsets.UTF_8)).toList().toString();
+        Proves.that(DboPromises.ZONE_THE_ANSWER_COMES_BACK_SEALED_TO_THE_READER_ALONE,
+                passed.size() == 2 && said.contains("\"to\":\"" + CLINIC + "\"")
+                        && !said.contains(marker),
+                "rl did not record the way back, or recorded what was shared: " + said);
+    }
+
+    @Test
+    @Order(55)
+    @DisplayName("the clinic's asker takes its run on the clinic's own lane, opens what the "
+            + "hospital shared with its own key, and the clinic's trail records that it did")
+    @Proving(DboPromises.ZONE_THE_ASKERS_READER_OPENS_THE_ANSWER_ON_ITS_OWN_LANE)
+    void theAskerOpensTheAnswerOnItsOwnLane() throws Exception {
+        String marker = NAMES.value("opened-back");
+        AnsweredBack back = askedAndAnsweredBack(marker);
+
+        HttpLane reader = HttpLane.holding(URI.create(dbo.at(CLINIC) + "/work"),
+                this::askerToken, CLINIC, ASKER, executor(ASKER),
+                askerSealing.getPrivate(), askerSigning.getPrivate());
+        Run run = new Runs(tenants.store(CLINIC).orElseThrow()).byKey(back.key()).orElseThrow();
+        Run held = reader.claim(run, Duration.ofMinutes(5)).orElseThrow();
+        Map<String, List<StoredObject>> shared = reader.inputs(held);
+        Proves.that(DboPromises.ZONE_THE_ASKERS_READER_OPENS_THE_ANSWER_ON_ITS_OWN_LANE,
+                shared.get("shared") != null && shared.get("shared").size() == 1
+                        && new String(shared.get("shared").get(0).payload(),
+                                java.nio.charset.StandardCharsets.UTF_8).contains(marker),
+                "the asker was not handed what the hospital shared: " + shared.keySet());
+
+        List<StoredObject> trail = tenants.store(CLINIC).orElseThrow().select(
+                cloud.jengu.dbo.core.api.Criteria.of("AuditEntry").eq("run",
+                        cloud.jengu.dbo.core.api.EnvelopeValue.of(back.key())));
+        String said = trail.stream().map(entry -> new String(entry.payload(),
+                java.nio.charset.StandardCharsets.UTF_8)).toList().toString();
+        Proves.that(DboPromises.ZONE_THE_ASKERS_READER_OPENS_THE_ANSWER_ON_ITS_OWN_LANE,
+                said.contains("\"access\"") && said.contains("\"by\":\"" + ASKER + "\"")
+                        && said.contains(back.shared()),
+                "the clinic's trail does not record that its asker opened what came back: "
+                        + said);
+    }
+
+    @Test
+    @Order(56)
+    @DisplayName("when the clinic's asker opens what the hospital shared, the hospital's own "
+            + "trail says who opened its record and for which run, and rl that it was opened, "
+            + "never which record")
+    @Proving(DboPromises.ZONE_AN_OPENING_ACROSS_IS_THE_OWNERS_TO_SEE)
+    void theHospitalSeesItsRecordOpenedAcross() throws Exception {
+        AnsweredBack back = askedAndAnsweredBack(NAMES.value("seen-opened"));
+        HttpLane reader = HttpLane.holding(URI.create(dbo.at(CLINIC) + "/work"),
+                this::askerToken, CLINIC, ASKER, executor(ASKER),
+                askerSealing.getPrivate(), askerSigning.getPrivate());
+        Run run = new Runs(tenants.store(CLINIC).orElseThrow()).byKey(back.key()).orElseThrow();
+        reader.inputs(reader.claim(run, Duration.ofMinutes(5)).orElseThrow());
+        String crossing = run.crossing().id();
+        String ownerRun = REQUEST + "/crossing-" + crossing;
+
+        String atHospital = "";
+        long giveUp = System.nanoTime() + Duration.ofMinutes(2).toNanos();
+        while (!atHospital.contains("\"access\"") && System.nanoTime() < giveUp) {
+            Thread.sleep(500);
+            atHospital = tenants.store(HOSPITAL).orElseThrow().select(
+                            cloud.jengu.dbo.core.api.Criteria.of("AuditEntry").eq("run",
+                                    cloud.jengu.dbo.core.api.EnvelopeValue.of(ownerRun)))
+                    .stream().map(entry -> new String(entry.payload(),
+                            java.nio.charset.StandardCharsets.UTF_8)).toList().toString();
+        }
+        Proves.that(DboPromises.ZONE_AN_OPENING_ACROSS_IS_THE_OWNERS_TO_SEE,
+                atHospital.contains("\"access\"") && atHospital.contains(back.shared())
+                        && atHospital.contains("\"by\":\"" + ASKER + "\"")
+                        && atHospital.contains("\"in\":\"" + CLINIC + "\"")
+                        && atHospital.contains(back.key()),
+                "the hospital's trail does not say its record was opened across, by whom and "
+                        + "for which run: " + atHospital);
+
+        String atZone = tenants.store("rl").orElseThrow().select(
+                        cloud.jengu.dbo.core.api.Criteria.of("AuditEntry").eq("run",
+                                cloud.jengu.dbo.core.api.EnvelopeValue.of("crossing:" + crossing)))
+                .stream().map(entry -> new String(entry.payload(),
+                        java.nio.charset.StandardCharsets.UTF_8)).toList().toString();
+        Proves.that(DboPromises.ZONE_AN_OPENING_ACROSS_IS_THE_OWNERS_TO_SEE,
+                atZone.contains("\"access\"") && atZone.contains("\"by\":\"" + ASKER + "\"")
+                        && !atZone.contains(back.shared()),
+                "rl does not record that the answer was opened, or records which record: "
+                        + atZone);
+    }
+
+    @Test
+    @Order(57)
+    @DisplayName("the clinic's asker closes its run once it has opened the answer, on one chain "
+            + "from the task through the carrier, the answer and its own openings")
+    @Proving(DboPromises.POL_A_RUNS_TRAIL_IS_CHAINED_FROM_THE_TASK)
+    void theAskerClosesOnTheWholeJourney() throws Exception {
+        AnsweredBack back = askedAndAnsweredBack(NAMES.value("closed-back"));
+        HttpLane reader = HttpLane.holding(URI.create(dbo.at(CLINIC) + "/work"),
+                this::askerToken, CLINIC, ASKER, executor(ASKER),
+                askerSealing.getPrivate(), askerSigning.getPrivate());
+        Runs clinicRuns = new Runs(tenants.store(CLINIC).orElseThrow());
+        Run held = reader.claim(clinicRuns.byKey(back.key()).orElseThrow(),
+                Duration.ofMinutes(5)).orElseThrow();
+        reader.inputs(held);
+        reader.closed(held);
+        Run closed = clinicRuns.byKey(back.key()).orElseThrow();
+        Proves.that(DboPromises.POL_A_RUNS_TRAIL_IS_CHAINED_FROM_THE_TASK,
+                !closed.open() && closed.status() == cloud.jengu.dbo.work.Status.COMPLETED,
+                "the clinic's run that went across and came back could not close on its "
+                        + "chain: " + closed.status());
+    }
+
+    @Test
+    @Order(58)
+    @DisplayName("once the clinic's run is over, what came back on it goes, and the hospital is "
+            + "told once that the copy it handed over ended")
+    @Proving(DboPromises.ZONE_WHAT_CAME_BACK_GOES_WITH_ITS_PURPOSE)
+    void whatCameBackGoesWithItsPurpose() throws Exception {
+        AnsweredBack back = askedAndAnsweredBack(NAMES.value("let-go"));
+        HttpLane reader = HttpLane.holding(URI.create(dbo.at(CLINIC) + "/work"),
+                this::askerToken, CLINIC, ASKER, executor(ASKER),
+                askerSealing.getPrivate(), askerSigning.getPrivate());
+        Runs clinicRuns = new Runs(tenants.store(CLINIC).orElseThrow());
+        Run run = clinicRuns.byKey(back.key()).orElseThrow();
+        Run held = reader.claim(run, Duration.ofMinutes(5)).orElseThrow();
+        reader.inputs(held);
+        reader.closed(held);
+        String crossing = run.crossing().id();
+
+        Proves.that(DboPromises.ZONE_WHAT_CAME_BACK_GOES_WITH_ITS_PURPOSE,
+                tenants.store(CLINIC).orElseThrow().history(cloud.jengu.dbo.work.WorkModel.TYPE,
+                        run.id()).stream().noneMatch(version -> new String(version.payload(),
+                                java.nio.charset.StandardCharsets.UTF_8).contains("ciphertext")),
+                "an earlier version of the clinic's run keeps a copy of what came back");
+        String told = "";
+        long giveUp = System.nanoTime() + Duration.ofMinutes(2).toNanos();
+        while (!told.contains("\"erased\"") && System.nanoTime() < giveUp) {
+            Thread.sleep(500);
+            told = tenants.store(HOSPITAL).orElseThrow().select(
+                            cloud.jengu.dbo.core.api.Criteria.of("AuditEntry").eq("run",
+                                    cloud.jengu.dbo.core.api.EnvelopeValue.of(
+                                            REQUEST + "/crossing-" + crossing)))
+                    .stream().map(entry -> new String(entry.payload(),
+                            java.nio.charset.StandardCharsets.UTF_8)).toList().toString();
+        }
+        Proves.that(DboPromises.ZONE_WHAT_CAME_BACK_GOES_WITH_ITS_PURPOSE,
+                told.contains("\"erased\"") && told.contains(back.key())
+                        && told.split("\"erased\"", -1).length == 2,
+                "the hospital was not told, once, that what it handed over is gone: " + told);
+    }
+
+    /** What the clinic asked, the hospital answered, and the answer back on the clinic's run. */
+    private record AnsweredBack(String key, String shared) {}
+
+    private AnsweredBack askedAndAnsweredBack(String marker) throws InterruptedException {
+        HttpResponse<String> asked = askAcross(HOSPITAL);
+        String key = dbo.says(asked).one("key").orElseThrow();
+        Run answering = hospitalRunAnswering(asked);
+        String shared = dbo.write(HOSPITAL, "Observation", """
+                {"resourceType":"Observation","status":"final","code":{"text":"%s"}}"""
+                .formatted(marker)).idOrFail();
+        HttpLane desk = recordsDesk();
+        Run held = desk.claim(answering, Duration.ofMinutes(5)).orElseThrow();
+        desk.inputs(held);
+        desk.committed(held, null, List.of(cloud.jengu.dbo.runner.Outcome.Write.create("""
+                {"resourceType":"List","status":"current","mode":"snapshot",
+                 "entry":[{"item":{"reference":"Observation/%s"}}]}""".formatted(shared))));
+        Runs clinicRuns = new Runs(tenants.store(CLINIC).orElseThrow());
+        long giveUp = System.nanoTime() + Duration.ofMinutes(2).toNanos();
+        while (System.nanoTime() < giveUp) {
+            if (clinicRuns.byKey(key).orElseThrow().crossing().arrived() != null) {
+                return new AnsweredBack(key, shared);
+            }
+            Thread.sleep(500);
+        }
+        throw new AssertionError("the hospital's answer never came back to the clinic");
+    }
+
+    /** The run the hospital was carried for what the clinic asked, once it arrives. */
+    private Run hospitalRunAnswering(HttpResponse<String> asked) throws InterruptedException {
+        assertEquals(201, asked.statusCode(), asked.body());
+        String key = dbo.says(asked).one("key").orElseThrow();
+        String crossing = new Runs(tenants.store(CLINIC).orElseThrow()).byKey(key)
+                .orElseThrow().crossing().id();
+        Runs hospitalRuns = new Runs(tenants.store(HOSPITAL).orElseThrow());
+        long giveUp = System.nanoTime() + Duration.ofMinutes(2).toNanos();
+        while (System.nanoTime() < giveUp) {
+            java.util.Optional<Run> found =
+                    hospitalRuns.byKey(REQUEST + "/crossing-" + crossing);
+            if (found.isPresent()) {
+                return found.get();
+            }
+            Thread.sleep(500);
+        }
+        throw new AssertionError("the request never reached the hospital");
+    }
+
+    /** A participant of the hospital's own, entitled to answer the exchange. */
+    private HttpLane recordsDesk() {
+        TenantAuthority authority = tenants.authority(HOSPITAL).orElseThrow();
+        authority.ensureClient(RECORDS_DESK, RECORDS_DESK + "-secret",
+                List.of("work/" + REQUEST));
+        return HttpLane.to(URI.create(dbo.at(HOSPITAL) + "/work"),
+                () -> participantToken(RECORDS_DESK), HOSPITAL, RECORDS_DESK,
+                executor(RECORDS_DESK));
+    }
+
+    private HttpResponse<String> askAcross(String to) {
+        return askAt(REQUEST, "{\"inputs\":{\"query\":" + query() + "},\"crossing\":"
+                + "{\"to\":\"" + to + "\"}}");
+    }
+
+    private HttpResponse<String> askAt(String step, String body) {
+        return dbo.send(HttpRequest.newBuilder(
+                        URI.create(dbo.at(CLINIC) + "/step/" + step))
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(body)), askerToken());
+    }
+
+    private static String query() {
+        return "{\"resourceType\":\"Parameters\",\"parameter\":[{\"name\":\"code\","
+                + "\"valueString\":\"" + NAMES.value("asked-for") + "\"}]}";
+    }
+
+    /** A client of the clinic's, entitled to ask for the exchange and its own step. */
+    /** The keys the clinic's asker enrolled with, so what comes back can be sealed to it. */
+    private final java.security.KeyPair askerSealing =
+            cloud.jengu.dbo.core.api.seal.KeyWrap.newParticipantKeyPair();
+    private final java.security.KeyPair askerSigning =
+            cloud.jengu.dbo.core.api.seal.SigningKey.newKeyPair();
+
+    private String askerToken() {
+        TenantAuthority authority = tenants.authority(CLINIC).orElseThrow();
+        authority.ensureClient(ASKER, ASKER + "-secret",
+                List.of("work/" + REQUEST, "work/care.contact.record"),
+                cloud.jengu.dbo.core.api.seal.ParticipantKey.of(askerSealing.getPublic()),
+                cloud.jengu.dbo.core.api.seal.SigningKey.of(askerSigning.getPublic()));
+        if (authority.token(ASKER, ASKER + "-secret", null)
+                instanceof TenantAuthority.TokenResult.Issued minted) {
+            return minted.accessToken();
+        }
+        throw new IllegalStateException("the clinic would not issue its asker a token");
+    }
+
+    @Test
     @Order(26)
     @DisplayName("a router whose routee never answers waits, the claim lapses, the run reads "
             + "released and still owed, and a late report is refused")
@@ -1772,7 +2247,9 @@ class WorkLeavesTheClinicAndComesBackIT {
         Proves.that(DboPromises.PROC_A_PERSON_CLAIMS_AS_A_PRACTITIONER_ROLE,
                 "in-progress".equals(meanwhile.state())
                         && meanwhile.body().contains(String.valueOf(holding.assignment().role()))
-                        && !meanwhile.body().contains("\"Device\""),
+                        // The owner, and not who asked: a client that asked
+                        // is named as the Device it authenticated as.
+                        && !meanwhile.body().contains("\"owner\":{\"type\":\"Device\""),
                 "the task does not name the nurse's role as its owner: " + meanwhile.body());
 
         assertEquals(200, taking.finish(HOSPITAL, token, alarming.run()).statusCode());
@@ -2070,9 +2547,7 @@ class WorkLeavesTheClinicAndComesBackIT {
             assertTrue(chainOf(held).stream().noneMatch(e -> KEYED_ROUTEE.equals(e.get("to"))),
                     "a refused seal handed the work on");
         } finally {
-            routerLane.routes(List.of(
-                    cloud.jengu.dbo.work.Trackable.routed(KEYED_ROUTEE, ROUTER),
-                    cloud.jengu.dbo.work.Trackable.routed(KEYLESS_ROUTEE, ROUTER)));
+            routerLane.routes(ROUTED);
         }
         Proves.that(DboPromises.PROC_A_DROPPED_ROUTEE_IS_NOT_SEALED_TO,
                 routerLane.sealed(held, List.of(KEYED_ROUTEE)).manifest().recipients()

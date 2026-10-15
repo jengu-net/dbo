@@ -295,6 +295,179 @@ public enum DboPromises implements Promise {
             + "binds anybody, and what it may take stays the intersection of its scopes "
             + "and what the step admits."),
 
+    PROC_A_STEP_SAYS_WHEN_IT_STARTS_ITSELF("A step may say when it starts itself, as "
+            + "exactly one occasion: a calendar rule, a change to a record matching a search, "
+            + "or a moment a matching record names. The declaration is read whole where it is "
+            + "written: a rule the scheduler would not fire or that fires more often than once "
+            + "a minute, a search over a type the tenant does not hold, a moment with no "
+            + "element naming it, a calendar step that does not say what a missed tick "
+            + "becomes, and one that does not say how long its runs are kept or where it "
+            + "starts are each refused, naming what is missing. A step on a calendar rule is "
+            + "the one step that may take no slots; one started by a record takes exactly one "
+            + "slot of that record's type."),
+
+    PROC_A_CADENCE_CHANGES_WHERE_THE_TENANT_STANDS("A change to when a tenant's steps start "
+            + "themselves alone is taken where the tenant stands: "
+            + "its clock and its watches are brought into line with the new declaration and "
+            + "nothing is rebuilt. A tenant starting its first self-starting step is wired "
+            + "for it, so that change is a rebuild."),
+
+    PROC_A_STARTED_RUN_IS_ONE_PER_OCCASION("A run a step starts itself is keyed by the step "
+            + "and its occasion — the tick's instant, the record and its version, the record "
+            + "whose moment came — so however many nodes are told of the same occasion, one "
+            + "run of it is started. Every one is a child of the tenant's system run, one "
+            + "endless run standing for the work nobody asked for, and has no requester."),
+
+    PROC_A_MISSED_TICK_IS_WHAT_ITS_STEP_SAYS("Ticks missed while no node ran are reckoned "
+            + "when a node opens the tenant's clock, from the last tick its database holds: a "
+            + "step declaring once has one run, for the last of them, and one declaring skip "
+            + "has none. Either way how many were missed is said in an act under the system "
+            + "run and in the step's current entry. A tick that came while the step was "
+            + "paused was not missed."),
+
+    PROC_SELF_STARTING_STEPS_ARE_READ_AND_STEERED_AT_THEIR_DOOR("A tenant's self-starting "
+            + "steps are read at their own door: what starts each, whether it is paused, its "
+            + "last tick, run and that run's outcome, its next tick, and how many ticks were "
+            + "missed and skipped. Run now starts a run outside its occasion, as the asker's "
+            + "and under the system run, and the next tick still comes when due. Pause starts "
+            + "nothing on the step's occasions until resume. Pausing and resuming need the "
+            + "supervisory scope over the step, and each is recorded as an act under the "
+            + "system run naming who did it and why."),
+
+    PROC_A_HOSTS_SCHEDULER_IS_TRUSTED_WITH_TIMING_ALONE("The store's own clock is the "
+            + "durable layer's stored schedules, in the tenant's own database and a schema of "
+            + "their own, and a tick is fired once however many nodes hold the schedule. A "
+            + "framework hosting the store may bring its own scheduler, and it decides only "
+            + "when a tick is due: what a tick starts, whether "
+            + "the step is paused and what a missed tick becomes stay the store's."),
+
+    PROC_A_STEP_STARTS_ON_A_MATCHING_CHANGE("A step declared to start on a change starts one "
+            + "run for each version of a record its search finds, the record in its slot, "
+            + "matched by the store as a subscription's criteria are; a change it does not "
+            + "find starts nothing. The searches are given before the tenant's feed is first "
+            + "read, so nothing written while no node ran is passed over."),
+
+    PROC_A_STEP_STARTS_AT_A_MOMENT_ITS_RECORD_NAMES("A step declared due at a moment a "
+            + "matching record names starts one run of that record once the moment, and the "
+            + "lag it declares, has come, waiting for it in a durable sleep; a record that no "
+            + "longer matches by then starts nothing."),
+
+    PROC_A_STARTED_RUN_IS_KEPT_AS_LONG_AS_ITS_STEP_SAYS("The runs a step started itself are "
+            + "removed, history and all, once they are over and older than the step keeps "
+            + "them, and how many went is counted in the step's current entry, one row "
+            + "updated in place. A run still open is never removed."),
+
+    PROC_A_STEP_STARTS_WHERE_IT_IS_DECLARED_TO("A self-starting step says where it starts: "
+            + "at the tenant's origin, on its places, or everywhere, each its own occasion. A "
+            + "place starts its steps on its own clock and under its own system run, with its "
+            + "origin away as with it there, and the origin never starts a step declared for "
+            + "its places."),
+
+    PROC_A_RUN_READS_AS_A_SCREEN_NEEDS_IT("An application embedding the store lists a "
+            + "tenant's runs as a screen of work needs them, without its own HTTP surface: "
+            + "the roots alone or the children of one run, one run by its key, the one that "
+            + "moved last first, a page at a time with a cursor to the next. Each carries "
+            + "where it stands, when it was authored and when it last moved, the run it is "
+            + "part of, who asked for it, what each of its slots names, the place it was "
+            + "performed at, its outcome and its tally. Asked across the tenant's door, the "
+            + "same questions answer the same, from the same fields."),
+
+    PROC_A_TASK_SEARCH_LISTS_ROOTS_AND_PARTS("A run's Task carries when it was authored "
+            + "and when it last moved, who asked for it, what its slots name as references, "
+            + "and the Task it is part of by reference as well as by key. Tasks are searched "
+            + "for the parts of one Task, for those part of none, and newest-moved first; a "
+            + "search that has more than one page says where the next one starts, rather "
+            + "than stopping at its count as if that were everything."),
+
+    PROC_A_PLACES_RUN_IS_LISTED_AT_HOME_UNDER_ITS_PLACE("A run a place performed is listed "
+            + "at home as any other, with the place it was performed at, the time it was "
+            + "authored there, and the run it was started under filed under the same place."),
+
+    PROC_A_RUN_IS_STARTED_AS_A_PART_OF_ANOTHER("A run is started as a part of another, "
+            + "and read as one of the things that run set going: by an application naming the "
+            + "run it is for, which must be one the tenant holds — a run it does not hold is "
+            + "refused by name — and by a step's result, whose parts are checked before "
+            + "anything is written and started once its records are. A part the tenant would "
+            + "not start refuses the whole result, records and parts together; a part is "
+            + "keyed, so a result given again finds its parts rather than starting more."),
+
+    PROC_A_RUN_STARTED_BY_A_CHANGE_IS_A_PART_OF_THE_RUN_THAT_WROTE_IT("Each version of a "
+            + "record says which run's result wrote it, where a run did. A run a step starts "
+            + "on a change, or at a moment a record names, is a part of the run whose result "
+            + "wrote the version that started it, and of the tenant's system run where no run "
+            + "wrote it. A run started on a clock stays the system run's."),
+
+    PROC_WORK_THAT_LASTS_IS_OPENED_FOR_ITS_REQUEST("A step may be declared to last. A run "
+            + "of it is opened, not offered, for the one request its one slot names, and keyed "
+            + "by that request, so the request handed in again, or changed again, finds the "
+            + "same work. It is received when opened, held by nobody, offered to nobody and "
+            + "claimed by nobody: it is nobody's card."),
+
+    PROC_WORK_THAT_LASTS_IS_MOVED_BY_ITS_PARTS("Work that lasts is accepted, or rejected and "
+            + "why, before it starts; is in progress once a run that is its part has started; "
+            + "reaches the stages its parts' results name, kept as its current stage; and ends "
+            + "completed, failed or cancelled, and why, by a part's result or by whoever has "
+            + "the right to act on it. Each is an act recorded under it, naming who and why. "
+            + "Work that is over is neither accepted nor moved, and a part's result that would "
+            + "move it is refused whole."),
+
+    PROC_WORK_THAT_LASTS_READS_AS_A_FULFILMENT_TASK("Work that lasts reads as FHIR's "
+            + "fulfilment Task: its focus is the request it fulfils, it instantiates its step, "
+            + "its status goes from received through accepted or rejected and in progress to "
+            + "completed, failed or cancelled with the reason, its business status is the stage "
+            + "it has reached, it names no performer, and its parts are Tasks part of it."),
+
+    PROC_A_FLEET_STEP_MAY_LAST_AND_START_ITSELF_IN_EVERY_TENANT("A step the deployment "
+            + "performs for every tenant may last, and may start itself, held to the rules a "
+            + "tenant's own such step is: each tenant admitting it runs it on its own clock and "
+            + "watches, so a notice the provider writes once opens one acknowledgement in every "
+            + "tenant that takes the provider's notices — a tenant joining afterwards included. "
+            + "A tenant cannot decline one the deployment requires."),
+
+    PROC_THE_PROVIDER_SEES_WHO_ACKNOWLEDGED("The deployment reads, under the operator's "
+            + "token, one fleet step's work that lasts, opened for a request it names, in every "
+            + "tenant: where each stands, and the acts said of it — who, when and why — or that "
+            + "a tenant has not opened it. It reads the work's state, never the tenant's "
+            + "records."),
+
+    ZONE_A_TENANTS_OWN_ZONE_IS_AN_END_OF_A_CROSSING("A tenant's own zone can be an end of a "
+            + "crossing, at any level of the tree: a member asks its zone on an exchange that "
+            + "zone, or one above it, declares, and a zone asks one of its members on one it "
+            + "declares itself. A zone at an end is recorded as that end, and never as a zone the "
+            + "work passed through; a zone above the lowest one the work needs is not on the "
+            + "way."),
+
+    ZONE_AN_ASKER_WAITS_FOR_WHAT_ITS_EXCHANGE_DECLARES("An exchange says what its asker waits "
+            + "for: the records the owner shares, sealed to the asker's reader; how the owner's "
+            + "work ended, the asker's run ending the same way and why, with nothing sealed and "
+            + "no reader's key needed; or nothing, the asker's run completing once the work is "
+            + "authored at the owner. Whatever it waits for, an owner's run that fails or is "
+            + "cancelled ends the asker's run with that status and reason; an asker is never left "
+            + "open because the owner refused."),
+
+    ZONE_A_CROSSING_IS_STARTED_BY_A_HOST_OR_A_RESULT("A crossing is started by a host in "
+            + "process and by a step's result, under the rules the door holds one to: a crossing "
+            + "that would bring back records with nobody to seal them to is refused. One a result "
+            + "starts is a part of the run that started it, so what became of it is read under "
+            + "that run."),
+
+    ZONE_EVERY_CROSSING_ASKED_IS_CARRIED("Every crossing asked and still ready at the asker is "
+            + "carried, however close in time to another and however many wait at once: the "
+            + "carrier finds them in the asker's store rather than after a position in its "
+            + "work. One the carrier finds and cannot carry says why on the asker's run by the "
+            + "next pass, so no crossing is lost without a reason."),
+
+    ZONE_A_RUN_ASKING_ACROSS_IS_THE_CARRIERS_ALONE("A run asking across is addressed to what "
+            + "carries it, however it was started, and offered to and claimed by nothing else "
+            + "until it is carried: a participant performing the same exchange step at the "
+            + "owner's end is offered only the owner's runs, and the asking run's Task names "
+            + "the carrier as its owner."),
+
+    PROC_A_PARTICIPANT_REFUSES_ITS_RUN_WITH_A_REASON("A participant holding a run may end it "
+            + "refused, with its reason: the run fails with that reason, as the participant's "
+            + "act, and is neither handed back, retried nor given to people, as a failure is. "
+            + "A refused crossing ends its asker failed with the same reason."),
+
     PROC_AUTOMATION_TAKES_ONLY_WHAT_ITS_STEP_ADMITS("A step may say when automation may take "
             + "its task, as a condition over the task's inputs, and the store decides it once, "
             + "when the task is authored: a task the condition does not admit is open to people "
@@ -1512,13 +1685,17 @@ public enum DboPromises implements Promise {
             + "credentials exist only as platform secrets and are never readable by "
             + "tenant-manager code. (R5, §4)"),
     TEN_A_PARTNER_MANAGES_TENANTS(
-            "A partner is a tenant that manages other tenants, declared when the managed "
-            + "tenant is created. The relation says which tenants the partner may read at "
-            + "all; within each, the partner is a declared audience saying what of each — "
-            + "runs and their journey, never documents, purposes only if the managed tenant "
-            + "opts in. What the partner is shown is assembled outside the store: a store "
-            + "instance is one tenant's store, and no cross-tenant query is grown to serve "
-            + "a support desk."),
+            "A partner follows a tenant's work only through the service provider: it is a "
+            + "tenant that says it is the provider's partner, named by the provider's "
+            + "process on the tenant's register, and it reaches the tenant on a credential "
+            + "the provider's authority issued — the one authority a tenant trusts for its "
+            + "partners, admitting one only while a row of its register names it and the "
+            + "tenant has neither declined nor withheld that row. Within the tenant the "
+            + "partner is a declared audience saying what it sees — runs and their journey, "
+            + "never documents, purposes only if the tenant opts in. A tenant naming its own "
+            + "partner is refused by name. What the partner is shown is assembled outside "
+            + "the store: a store instance is one tenant's store, and no cross-tenant query "
+            + "is grown to serve a support desk."),
     TEN_REGISTRY_SCOPED_ACCESS(
             "Application code obtains a tenant's data services from the service "
             + "registry and can use them without ever seeing credentials. (R5, §4)"),
@@ -1564,6 +1741,59 @@ public enum DboPromises implements Promise {
             + "creates: the set is applied to a fixed point rather than in the order it "
             + "arrived, what is stored names the referent by id, and a reference nothing can "
             + "answer fails that declaration by name rather than landing as a question."),
+
+    TEN_AN_OWNERS_CONFIGURATION_IS_APPLIED_FROM_ITS_REPOSITORY("A tenant may declare a "
+            + "repository its owner keeps, read at a commit from its objects and never "
+            + "fetched: its declared ref is applied when it comes up, and any ref when asked. "
+            + "Each apply reconciles the commit with what each file applied before — a file "
+            + "unchanged is not read, a changed one is applied, and what a file stops declaring "
+            + "is withdrawn and nothing else — so an older commit is a rollback. The run names "
+            + "the ref, the commit, its author and message, and who asked."),
+
+    TEN_A_TENANT_SAYS_WHAT_KIND_IT_IS("A tenant has a kind: the one it declares, or the one "
+            + "its declaration makes it — an ordinary tenant, a face root, or a projection the "
+            + "store made. It is published as a fact something selects tenants by, and decides "
+            + "nothing in the store, which asks the facts it needs instead; a kind outside dbo. "
+            + "is any name, a dbo. kind the store does not know is refused by name, and a kind "
+            + "that disagrees with what the declaration makes the tenant is refused."),
+
+    TEN_A_TENANTS_WORKING_KEY_IS_HELD_WHERE_ITS_DECLARATION_SAYS("Everything a tenant keeps "
+            + "secret — its signing keys, its secrets, its people's keys — is wrapped under a "
+            + "working key of its own, kept in its database only wrapped, by the deployment's "
+            + "key or by a Transit key its declaration names, in the deployment's Vault or one "
+            + "its owner runs. A tenant whose keys the deployment's key wrapped moves them once, "
+            + "keeping the index its people are found by; a rotated Transit key rewraps it; and "
+            + "a tenant whose key will not unwrap is taken down within the time it is trusted "
+            + "for and does not come up, nothing it keeps opening under the deployment's key."),
+
+    TEN_A_DEPLOYMENT_WRITES_AN_OWNERS_SECRETS_AS_SOPS_DOES("A deployment writes a file of a "
+            + "tenant's secrets, whole, as SOPS writes one: each value under its name, a MAC "
+            + "over them, the data key wrapped through Transit's encrypt endpoint alone under "
+            + "the tenant's key and for the owner's age recipients, as the repository's "
+            + ".sops.yaml names them for the file's path. The store opens it, the owner's own "
+            + "SOPS opens it through Vault or with their age key alone, a writer that may only "
+            + "encrypt cannot open it, and a rule the writer cannot use is refused."),
+
+    TEN_A_STEP_REACHES_A_FAMILY_OF_SECRETS("A step may declare a family of secrets by a name "
+            + "ending .*, and reaches every secret whose name extends that prefix, at any depth, "
+            + "as it reaches one it names: in process, or sealed to the participant across a "
+            + "wire. Nothing beside the family is reached, a * anywhere but a trailing .* is "
+            + "refused when the tenant is declared, and the run's trail names the secret it "
+            + "reached, never the family."),
+
+    TEN_A_STEP_REACHES_THE_SECRETS_IT_DECLARES("A step declares the tenant's secrets a run "
+            + "of it may reach, and reaches them by name through its lane, as its work asks: in "
+            + "process in the clear, and across a wire only sealed to the participant's "
+            + "enrolment key, so a participant holding none is refused. A step that does not "
+            + "declare a secret does not reach it."),
+
+    TEN_AN_OWNERS_SECRETS_ARE_SEALED_IN_ITS_REPOSITORY("A tenant owner's secrets are kept in "
+            + "its repository encrypted as SOPS writes them, each value under its name and the "
+            + "file under a MAC, with the data key wrapped by the tenant's own Transit key in "
+            + "the deployment's Vault. Applying one opens it through that Vault alone, refuses "
+            + "a file wrapped by any other key, and hands each secret to the tenant's authority, "
+            + "which keeps it wrapped and never as a record; a secret withdrawn from the "
+            + "repository is forgotten."),
 
     TEN_A_CHANGE_CAN_BE_CLASSIFIED_WITHOUT_APPLYING("What a declaration would do to the "
             + "tenants it names is answerable without doing it — hot, rebuilt in place, or "
@@ -2053,6 +2283,96 @@ public enum DboPromises implements Promise {
             + "records too. What it ends is the answer to `which tenants are zones` being "
             + "obtainable only by reading every other file and taking the union of what "
             + "they point at."),
+    ZONE_A_ZONE_NAMES_THE_ZONE_IT_BELONGS_TO(
+            "Zones form a tree. A zone's own zone is the jurisdiction it belongs to — "
+            + "Estonia's is the EU — and a chain of zones that leads back to one of its own "
+            + "is refused by name, listing every zone on it, a zone naming itself "
+            + "included: a jurisdiction above its own is bound by nothing. A deployment "
+            + "may hold several roots."),
+    ZONE_A_ZONE_ONLY_NARROWS_THE_ZONE_IT_BELONGS_TO(
+            "What members may do for each other is a jurisdiction's to permit, by process, "
+            + "and only a zone permits it: a zone that lists none permits none, and a "
+            + "tenant that is not a zone listing any is refused. A zone permitting a "
+            + "process the zone it belongs to does not is refused at its declaration, "
+            + "naming both zones and the process, because a jurisdiction is bound by the "
+            + "one above it and may be stricter, never looser."),
+    ZONE_WORK_CROSSES_THROUGH_THE_LOWEST_ZONE_TWO_TENANTS_SHARE(
+            "Two tenants never deal with each other directly. Work between them is "
+            + "carried up from the asker to the lowest zone both belong to and down to the "
+            + "owner, that zone's rules govern it, and it is permitted only where every "
+            + "zone on the way permits the process. Tenants under no shared zone, or in "
+            + "none, have no route, and are told so by name."),
+    ZONE_A_TENANTS_ZONES_ARE_ON_ITS_REGISTER(
+            "A tenant reads on one register everyone whose process may touch its data: the "
+            + "service provider's processes and, below them, one row for each process every "
+            + "zone above it permits, naming the zone, nearest first. A jurisdiction's row "
+            + "is required and applied — membership is the agreement — so declining one is "
+            + "refused by name, naming the zone that declares it."),
+    PROC_A_PROVIDERS_PARTNERS_ARE_NAMED_ON_THE_REGISTER(
+            "The service provider may hand a process to partners, and names them on the "
+            + "step it hands: every register row that step opens names them, so a tenant "
+            + "reads who handles its data on the provider's behalf, and a partner added "
+            + "behind a row moves what the tenant authorised. A partner is a tenant that "
+            + "says whose partner it is, and it is the provider's or nobody's — naming "
+            + "anything else is refused by name, and so is a step naming partners that "
+            + "opens nothing they could be named against."),
+    ZONE_WORK_FOR_ANOTHER_TENANT_IS_ASKED_FOR_AT_ONES_OWN_DOOR(
+            "Work for another tenant is asked for at the asker's own step door, on an "
+            + "exchange a zone above it declares within a process it permits, by naming the "
+            + "tenant whose data it is. The run asked for records where it goes. Where the "
+            + "two share no zone, or a zone on the way does not permit the process, nothing "
+            + "is authored and the refusal says why; a request saying where the work came "
+            + "from or which run it answers is refused, because those are the store's to "
+            + "write, and a tenant's own step does not cross."),
+    ZONE_WORK_IS_CARRIED_THROUGH_THE_ZONES_THAT_KEEP_NO_COPY(
+            "Work asked for across is carried up to the lowest zone the two tenants share "
+            + "and down to the one whose data it is, where the run that does it is authored "
+            + "over the same inputs, naming the run it answers — once, however often it is "
+            + "carried. The asker's trail records the hand-over to the carrier as it records "
+            + "any participant taking work, and every zone on the way records that the "
+            + "crossing passed, from where and to where, on a chain of its own rooted in the "
+            + "crossing, and keeps no run of it."),
+    ZONE_THE_OWNER_ANSWERS_WITH_WHAT_IT_SHARES(
+            "The tenant whose data is asked for answers it: a participant of its own takes "
+            + "the run the request was carried to, decides, and commits its answer as the "
+            + "record its zone's exchange declares — a List naming what it shares — written "
+            + "in its own store, so the owner keeps the account of what it shared, when and "
+            + "for which run. A step the owner did not declare may write what the exchange "
+            + "declares and nothing else."),
+    ZONE_THE_ANSWER_COMES_BACK_SEALED_TO_THE_READER_ALONE(
+            "What the owner's answer names is carried back to the run that asked, sealed to "
+            + "the reader the asker named — under the key the asker's own authority holds "
+            + "for it — and to nobody else: nothing the carrier holds opens it, and the zones "
+            + "on the way back record only that the crossing passed again. The run that asked "
+            + "is then offered to that reader alone. A reader that offered no key is sent "
+            + "nothing, and its run says why."),
+    ZONE_THE_ASKERS_READER_OPENS_THE_ANSWER_ON_ITS_OWN_LANE(
+            "The reader takes the run it asked for on its own tenant's lane and is handed "
+            + "the answer as it came back, sealed to it; it opens it with its own key, and "
+            + "reports each opening before it reads, so the asker's trail records the access "
+            + "as the reader's, under the run, naming what was opened. Nobody but that "
+            + "reader is handed it."),
+    ZONE_AN_OPENING_ACROSS_IS_THE_OWNERS_TO_SEE(
+            "When the asker's reader opens what came back, the owner learns of it: the "
+            + "access is recorded on the owner's own document, under the owner's run, "
+            + "naming the reader, the tenant it was opened in and the run it was opened "
+            + "for, with the reader's signed link as evidence — and every zone on the way "
+            + "records that the answer was opened and by whom, never which document. Each "
+            + "report is recorded once, however often it is carried."),
+    ZONE_WHAT_CAME_BACK_GOES_WITH_ITS_PURPOSE(
+            "What came back on a crossing is held by the tenant that asked beside the run "
+            + "that asked for it, never in it, so no earlier version of the run keeps a copy; "
+            + "once that run is over it goes — at once, unless the jurisdiction declared the "
+            + "exchange's answer may be kept for a time, and then once that has passed — and "
+            + "the owner is told once, on its own trail, that the copy it handed over ended."),
+    ZONE_A_TENANT_TAKES_ONLY_FROM_WHAT_STANDS_ABOVE_IT(
+            "A tenant's declared dependencies name only what stands above it: a "
+            + "jurisdiction, a face root, its service provider, or the projection that serves "
+            + "a jurisdiction on another face. A dependency on a tenant beside it — a stream "
+            + "of that tenant's records it never agreed to — is refused by name, naming both, "
+            + "because two tenants never deal with each other directly; what one needs of "
+            + "another is asked for through their zone. An upstream nothing declares yet is a "
+            + "wait, as before."),
     ZONE_A_ZONE_IS_SERVED_TO_A_FACE_THROUGH_ONE_PROJECTION(
             "A zone's definitions and records reach the tenants of a face it was not "
             + "written in through one projection per zone per face: a tenant that takes "
@@ -2534,6 +2854,25 @@ public enum DboPromises implements Promise {
     SYNC_PROVENANCE_COPIES(
             "Streamed copies are read-only and provenance-tagged with source tenant and "
             + "version; updates and retirements propagate through the same stream."),
+    SYNC_A_TYPE_IS_RECEIVED_AND_AUTHORED_RECORD_BY_RECORD(
+            "A tenant may take a type from its upstream and author records of it too: what "
+            + "decides whether a write is accepted is whose the record is, not the type's "
+            + "handling. A copy streamed from upstream is read-only to everything but the "
+            + "stream that delivered it — an update or a delete is refused naming the "
+            + "read-only-here rule — while the tenant's own records of the type are its own "
+            + "to create, change and delete. Writing a record that claims a copy's identity "
+            + "shadows it, explicitly: the copy is set aside behind it, the stream keeps it "
+            + "current, and it comes back when the tenant's record goes. A search can ask "
+            + "for the upstream's copies — from one dependency, or any — or for the tenant's "
+            + "own."),
+    SYNC_A_PLACE_HANDS_ITS_WORK_TO_ITS_TENANT(
+            "A place's runs, and what each produced, reach its tenant by the node itself: up "
+            + "the lane the place already holds, in its sync round, with no host and no "
+            + "credential beyond the place's own, filed under that credential and never "
+            + "under a name the batch carries. The runs are mirrored beside the tenant's own "
+            + "and what they produced is read at the tenant with the place as its source. "
+            + "What the place wrote outside any run stays on the place. While the link is "
+            + "down the work waits on the place; once it is back all of it goes, each once."),
     SYNC_LOCAL_SHADOWING(
             "A tenant's own object with the same base identity overrides the streamed "
             + "copy — version-neutrally, across FHIR versions and business versions; "

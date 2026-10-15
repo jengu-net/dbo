@@ -150,7 +150,7 @@ class AnActivitySaysWhichTenantsItIsForTest {
         // ratchet — one selector vocabulary, not two that drift.
         assertThrows(IllegalArgumentException.class,
                 () -> new TenantObservations().register(TenantDomain.WORK, "billing",
-                        "(dbo.tenant.kind=ext.clinic)", "billing", (tenant, items) -> { }),
+                        "(dbo.tenant.tier=gold)", "billing", (tenant, items) -> { }),
                 "an observer could select on a fact no tenant publishes");
     }
 

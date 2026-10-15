@@ -55,6 +55,7 @@ public final class Performing {
         // report against a run that has since moved.
         AtomicReference<Run> latest = new AtomicReference<>(claimed);
         try {
+            Run partOf = claimed.parent() == null ? null : lane.partOf(claimed).orElse(null);
             Work work = new Work(lane.tenant(), claimed, lane.inputs(claimed),
                     new Work.Progress() {
                         @Override
@@ -66,18 +67,19 @@ public final class Performing {
                         public void milestone(String milestone, Map<String, Long> counts) {
                             latest.set(lane.milestone(latest.get(), milestone, counts, holdFor));
                         }
-                    });
+                    }, partOf, name -> lane.secret(latest.get(), name));
             Outcome outcome = service.perform(work);
             if (outcome instanceof Outcome.Done done) {
                 Run reported = done.tally().isEmpty() ? latest.get()
                         : lane.checkpoint(latest.get(), done.tally(), holdFor);
-                if (done.writes().isEmpty()) {
+                if (done.writes().isEmpty() && done.parts().isEmpty() && done.said() == null) {
                     lane.closed(reported);
                 } else {
                     // The result goes to the tenant whole, and the tenant
                     // answers with the run as it left it: closed over what it
-                    // wrote, or ended because it would not write it.
-                    Run ended = lane.committed(reported, null, done.writes());
+                    // wrote and set going, or ended because it would not.
+                    Run ended = lane.committed(reported, null, done.writes(), done.parts(),
+                            done.said());
                     if (ended.refused() != null) {
                         return new Outcome.Refused(ended.refused());
                     }
@@ -87,6 +89,12 @@ public final class Performing {
                 // it will pass, so it goes to people unless it threw a fault
                 // the step declared will.
                 lane.released(latest.get(), failed.reason(), Failure.UNKNOWN);
+            } else if (outcome instanceof Outcome.Refusing refusing) {
+                // The participant's decision, so it ends the run rather than
+                // routing it: reported as a refusal, which a runner counts as
+                // its own word and never as an attempt to come.
+                lane.refused(latest.get(), refusing.reason());
+                return new Outcome.Refused(refusing.reason());
             } else if (outcome instanceof Outcome.Refused refused) {
                 // Only the tenant refuses a result. A service saying so on
                 // the tenant's behalf has failed, and is released like one

@@ -1120,6 +1120,96 @@ class AnOperatorReadsAndSteersTheFleetIT {
                 + "\",\"audit\":{\"level\":\"none\"},\"types\":[" + declared + "]}";
     }
 
+    @Test
+    @Order(27)
+    @DisplayName("a zone declared under the guide's jurisdiction that permits more than it "
+            + "does is refused by name, and the node says which zone and which process")
+    @Proving(DboPromises.ZONE_A_ZONE_ONLY_NARROWS_THE_ZONE_IT_BELONGS_TO)
+    void aZoneIsBoundByTheOneItBelongsTo() throws InterruptedException {
+        // A county of rl's, looser than rl: rl permits its members to share
+        // care records with each other, and nothing about gossip.
+        String county = NAMES.tenant("county");
+        dbo.declare(county, """
+                {"code":"%s","face":"r5","zoneRoot":true,"zone":"rl",
+                 "exchanges":["care.records","care.gossip"],
+                 "types":[
+                  {"name":"ValueSet","identity":"canonical","handling":"operational"}]}"""
+                .formatted(county));
+        try {
+            String why = "";
+            long giveUp = System.nanoTime() + Duration.ofMinutes(3).toNanos();
+            while (!why.contains("care.gossip") && System.nanoTime() < giveUp) {
+                Thread.sleep(1000);
+                why = String.valueOf(rowFor(county).get("why"));
+            }
+            Proves.that(DboPromises.ZONE_A_ZONE_ONLY_NARROWS_THE_ZONE_IT_BELONGS_TO,
+                    why.contains(county) && why.contains("rl") && why.contains("care.gossip")
+                            && !dbo.serving().contains(county),
+                    "a zone looser than the one it belongs to was not refused by name, or "
+                            + "was served anyway: " + why);
+        } finally {
+            dbo.retract(county);
+        }
+    }
+
+    @Test
+    @Order(28)
+    @DisplayName("a tenant saying it is the partner of anybody but the deployment's provider "
+            + "is refused by name, and the node says who the provider is")
+    @Proving(DboPromises.PROC_A_PROVIDERS_PARTNERS_ARE_NAMED_ON_THE_REGISTER)
+    void aPartnerIsTheProvidersOrNobodys() throws InterruptedException {
+        String stray = NAMES.tenant("stray-partner");
+        dbo.declare(stray, """
+                {"code":"%s","face":"r5","partnerOf":"%s",
+                 "types":[
+                  {"name":"Basic","identity":"internal","handling":"operational"}]}"""
+                .formatted(stray, HOSPITAL));
+        try {
+            String why = "";
+            long giveUp = System.nanoTime() + Duration.ofMinutes(3).toNanos();
+            while (!why.contains("partner") && System.nanoTime() < giveUp) {
+                Thread.sleep(1000);
+                why = String.valueOf(rowFor(stray).get("why"));
+            }
+            Proves.that(DboPromises.PROC_A_PROVIDERS_PARTNERS_ARE_NAMED_ON_THE_REGISTER,
+                    why.contains(stray) && why.contains(HOSPITAL) && why.contains("mom")
+                            && !dbo.serving().contains(stray),
+                    "a tenant claiming a partnership the deployment does not have was not "
+                            + "refused by name, or was served anyway: " + why);
+        } finally {
+            dbo.retract(stray);
+        }
+    }
+
+    @Test
+    @Order(29)
+    @DisplayName("a tenant naming its own partner is refused by name, because a partner follows "
+            + "a tenant only through the provider and the tenant's register")
+    @Proving(DboPromises.TEN_A_PARTNER_MANAGES_TENANTS)
+    void aTenantDoesNotNameItsOwnPartner() throws InterruptedException {
+        String managed = NAMES.tenant("self-managed");
+        dbo.declare(managed, """
+                {"code":"%s","face":"r5","managedBy":"%s",
+                 "types":[
+                  {"name":"Basic","identity":"internal","handling":"operational"}]}"""
+                .formatted(managed, HOSPITAL));
+        try {
+            String why = "";
+            long giveUp = System.nanoTime() + Duration.ofMinutes(3).toNanos();
+            while (!why.contains("managedBy") && System.nanoTime() < giveUp) {
+                Thread.sleep(1000);
+                why = String.valueOf(rowFor(managed).get("why"));
+            }
+            Proves.that(DboPromises.TEN_A_PARTNER_MANAGES_TENANTS,
+                    why.contains(managed) && why.contains("delegatesTo")
+                            && !dbo.serving().contains(managed),
+                    "a tenant naming its own partner was not refused by name, or was served "
+                            + "anyway: " + why);
+        } finally {
+            dbo.retract(managed);
+        }
+    }
+
     /** The node's row for one tenant, read as a record. */
     @SuppressWarnings("unchecked")
     private Map<String, Object> rowFor(String code) {

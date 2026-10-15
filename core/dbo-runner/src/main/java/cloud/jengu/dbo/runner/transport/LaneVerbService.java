@@ -118,7 +118,7 @@ public final class LaneVerbService {
         // verb and cleared after it, because a door's thread is reused.
         if (verb == LaneVerbs.FEED_READ || verb == LaneVerbs.FEED_ACK
                 || verb == LaneVerbs.DECLARATION || verb == LaneVerbs.TRAIL_POSITION
-                || verb == LaneVerbs.TRAIL_PUSH) {
+                || verb == LaneVerbs.TRAIL_PUSH || verb == LaneVerbs.RUNS_PUSH) {
             return placed(grant, participant, verb, body);
         }
         cloud.jengu.dbo.core.api.Caller.set(grant.clientId());
@@ -167,6 +167,9 @@ public final class LaneVerbService {
         }
         if (verb == LaneVerbs.TRAIL_POSITION || verb == LaneVerbs.TRAIL_PUSH) {
             return trail(served.get(), grant, verb, body);
+        }
+        if (verb == LaneVerbs.RUNS_PUSH) {
+            return work(served.get(), grant, body);
         }
         String domain = string(body, LaneVerbs.DOMAIN);
         if (!Place.RECORDS.equals(domain) && !Place.DEFINITIONS.equals(domain)) {
@@ -279,6 +282,34 @@ public final class LaneVerbService {
         }
     }
 
+    /**
+     * The runs a place performed, and what they produced, handed to be
+     * applied as the place's — filed by the credential that hands them, never
+     * by a name in the batch, so a place can file work as itself and as
+     * nobody else.
+     */
+    private Answer work(Place place, Access.Grant grant, Object body) {
+        if (place.workOf() == null) {
+            return new Answer.Refused("this tenant takes no work from its places");
+        }
+        Object batch = field(body, LaneVerbs.BATCH);
+        if (batch == null) {
+            return new Answer.Denied(400, null, "work is handed as a batch");
+        }
+        try {
+            Handover.Taken taken = place.workOf().apply(grant.clientId()).handed(batch);
+            Map<String, Object> answer = new java.util.LinkedHashMap<>();
+            answer.put(LaneVerbs.APPLIED, taken.applied());
+            answer.put(LaneVerbs.SKIPPED, taken.skipped());
+            answer.put(LaneVerbs.REFUSED, taken.refused());
+            return new Answer.Ok(answer);
+        } catch (IllegalStateException refused) {
+            return new Answer.Refused(String.valueOf(refused.getMessage()));
+        } catch (IllegalArgumentException malformed) {
+            return new Answer.Denied(400, null, String.valueOf(malformed.getMessage()));
+        }
+    }
+
     private static Map<String, Object> position(Trail.Position held) {
         Map<String, Object> answer = new java.util.LinkedHashMap<>();
         if (held != null) {
@@ -347,6 +378,8 @@ public final class LaneVerbService {
                         cloud.jengu.dbo.work.Failure.ofWire(string(body, LaneVerbs.FAILURE)));
                 yield null;
             }
+            case REFUSE -> lane.refused(run(body), string(body, LaneVerbs.REASON));
+            case SECRET -> lane.sealedSecret(run(body), string(body, LaneVerbs.SECRET_NAME));
             case CLOSED -> {
                 String head = string(body, LaneVerbs.HEAD);
                 if (head == null) {
@@ -362,7 +395,13 @@ public final class LaneVerbService {
             // recovery is the opposite — it must not try again.
             case COMMITTED -> lane.committed(run(body), string(body, LaneVerbs.HEAD),
                     RecordWire.decodeList(field(body, LaneVerbs.WRITES),
-                            cloud.jengu.dbo.runner.Outcome.Write.class));
+                            cloud.jengu.dbo.runner.Outcome.Write.class),
+                    field(body, LaneVerbs.PARTS) == null ? List.of()
+                            : RecordWire.decodeList(field(body, LaneVerbs.PARTS),
+                                    cloud.jengu.dbo.runner.Outcome.Part.class),
+                    field(body, LaneVerbs.SAID) == null ? null
+                            : RecordWire.decode(field(body, LaneVerbs.SAID),
+                                    cloud.jengu.dbo.runner.Outcome.Said.class));
             case REOPEN -> {
                 lane.reopen(run(body), string(body, LaneVerbs.REASON));
                 yield null;
@@ -398,6 +437,7 @@ public final class LaneVerbService {
             // The one read, and the lane guards it: a run this identity has
             // not claimed is refused there rather than filtered here.
             case INPUTS -> lane.inputs(run(body));
+            case PART_OF -> lane.partOf(run(body)).orElse(null);
             case SEALED -> {
                 Object recipients = field(body, LaneVerbs.RECIPIENTS);
                 yield recipients == null ? lane.sealed(run(body))
@@ -423,7 +463,7 @@ public final class LaneVerbService {
             }
             // Served beside the lane, never through it: a place is not a
             // participant act, and serve() takes them before a lane is built.
-            case FEED_READ, FEED_ACK, DECLARATION, TRAIL_POSITION, TRAIL_PUSH ->
+            case FEED_READ, FEED_ACK, DECLARATION, TRAIL_POSITION, TRAIL_PUSH, RUNS_PUSH ->
                     throw new IllegalStateException("'" + verb.path()
                             + "' is a place's verb and is not dispatched to a lane");
         };

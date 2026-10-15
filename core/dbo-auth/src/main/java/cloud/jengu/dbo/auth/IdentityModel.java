@@ -44,6 +44,12 @@ public final class IdentityModel {
      */
     public static final String GRANT_SYSTEM = "urn:dbo:auth:secret-grant";
 
+    /** The tenant's working key, wrapped: there is one, and this is its name. */
+    public static final String WORKING_KEY_SYSTEM = "urn:dbo:auth:working-key";
+
+    /** A secret the tenant holds, by the name a step reaches it by. */
+    public static final String SECRET_SYSTEM = "urn:dbo:auth:secret";
+
     private IdentityModel() {
     }
 
@@ -231,6 +237,34 @@ public final class IdentityModel {
                             Envelope e = new Envelope();
                             e.identifier(GRANT_SYSTEM, Json.str(n, "grantHash"));
                             e.value("status", EnvelopeValue.of(Json.str(n, "status")));
+                            return e;
+                        }, List.of()),
+                // A secret the tenant's owner gave it — a connection's password
+                // — wrapped as a signing key is, and kept with no history: one
+                // forgotten is gone, and a backup restores only the wrapped value.
+                // The key everything else this tenant keeps secret is wrapped
+                // under, itself wrapped by the key its declaration names: the
+                // deployment's, or one its owner holds. No history: a working
+                // key rewrapped under a new key leaves no copy under the old.
+                new TypeRegistration("WorkingKey", DOMAIN, IdentityClass.IDENTIFIER,
+                        java.util.Set.of(WORKING_KEY_SYSTEM),
+                        new Handling(Handling.Authority.PLATFORM_RUNTIME,
+                                Handling.Mutability.FULL, Handling.Durability.CURRENT_ONLY,
+                                Handling.Travel.BACKUP_ONLY),
+                        (type, payload) -> {
+                            Envelope e = new Envelope();
+                            e.identifier(WORKING_KEY_SYSTEM, "current");
+                            return e;
+                        }, List.of()),
+                new TypeRegistration("HeldSecret", DOMAIN, IdentityClass.IDENTIFIER,
+                        java.util.Set.of(SECRET_SYSTEM),
+                        new Handling(Handling.Authority.PLATFORM_RUNTIME,
+                                Handling.Mutability.FULL, Handling.Durability.CURRENT_ONLY,
+                                Handling.Travel.BACKUP_ONLY),
+                        (type, payload) -> {
+                            Object n = Json.parse(new String(payload, StandardCharsets.UTF_8));
+                            Envelope e = new Envelope();
+                            e.identifier(SECRET_SYSTEM, Json.str(n, "name"));
                             return e;
                         }, List.of()),
                 new TypeRegistration("Delegation", DOMAIN, IdentityClass.INTERNAL,

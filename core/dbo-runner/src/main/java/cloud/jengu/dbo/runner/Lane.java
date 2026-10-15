@@ -240,6 +240,16 @@ public interface Lane {
      */
     void released(Run run, String reason, cloud.jengu.dbo.work.Failure failure);
 
+    /**
+     * Will not be done, and why: the run ends failed with the reason, as the
+     * holder's act, rather than being handed to anybody else. Abstract for
+     * the reason {@link #milestone} is: a lane that degraded it to a release
+     * would have the work tried again by somebody who would refuse it too.
+     *
+     * @return the run as it ended
+     */
+    Run refused(Run run, String because);
+
     /** Done. */
     void closed(Run run);
 
@@ -284,6 +294,35 @@ public interface Lane {
      *         produced, or ended with the reason the result was refused
      */
     Run committed(Run run, String head, List<Outcome.Write> result);
+
+    /**
+     * The same, also starting the runs the result names as parts of this one:
+     * checked before anything is written, started once the records are, and
+     * then the run closes.
+     *
+     * <p>Abstract, not defaulted: a lane that inherited this would close a
+     * run that set nothing going, its parts dropped.
+     */
+    Run committed(Run run, String head, List<Outcome.Write> result,
+            List<Outcome.Part> parts);
+
+    /**
+     * The same, also saying something of the lasting work this run is a
+     * part of: checked before anything is written, said once its records and
+     * parts are. Abstract for the reason the one above is: what a part said
+     * of its work would be lost by a lane that inherited it.
+     */
+    Run committed(Run run, String head, List<Outcome.Write> result,
+            List<Outcome.Part> parts, Outcome.Said said);
+
+    /**
+     * The run this one is a part of, as it stands, for the holder of this
+     * one: what lasting work's parts read of it — the request it fulfils and
+     * its stage. Empty for a run that is a part of nothing — and abstract,
+     * because a lane that inherited empty would hand a part its work as
+     * though it had none.
+     */
+    java.util.Optional<Run> partOf(Run run);
 
     /**
      * A closed run, deliberately open again, with the reason recorded
@@ -408,9 +447,28 @@ public interface Lane {
      * check against the object would refuse every opening of something given
      * with the run.
      */
-    private static boolean names(Run run, String reference) {
+    private static boolean names(Run run, String reference, Trail trail) {
         return run.inputs().entrySet().stream()
-                .anyMatch(slot -> slot.getValue().tokens(slot.getKey()).contains(reference));
+                .anyMatch(slot -> slot.getValue().tokens(slot.getKey()).contains(reference))
+                || answeredWith(run, trail).stream()
+                        .anyMatch(sealed -> sealed.reference().equals(reference));
+    }
+
+    /**
+     * What came back on a crossing this run asked across: the owner's answer,
+     * sealed to the run's reader, as the tenant holds it beside the run. Empty
+     * for a run that stays where it is, one nothing has come back on yet, or
+     * one whose answer has gone with its purpose.
+     */
+    private static java.util.List<cloud.jengu.dbo.work.SealedPayload> answeredWith(Run run,
+            Trail trail) {
+        if (run.crossing() == null || run.crossing().arrived() == null || trail == null) {
+            return java.util.List.of();
+        }
+        return trail.held(run).map(answer -> cloud.jengu.dbo.core.wire.RecordWire.decode(
+                        cloud.jengu.dbo.core.wire.RecordWire.read(answer),
+                        cloud.jengu.dbo.work.SealedWork.class).payload())
+                .orElse(java.util.List.of());
     }
 
     private static Map<String, java.util.List<String>> named(Run run) {
@@ -557,6 +615,15 @@ public interface Lane {
 
         /** The run's chain as the trail holds it, in any order; the links say their order. */
         List<cloud.jengu.dbo.work.RunChain.Link> links(Run run);
+
+        /**
+         * What came back on a crossing this run asked across, held beside the
+         * run for as long as its purpose lasts; empty once it has gone, or
+         * where nothing came back.
+         */
+        default Optional<String> held(Run run) {
+            return Optional.empty();
+        }
     }
 
     /**
@@ -565,6 +632,35 @@ public interface Lane {
      * to; a participant that offered none is sealed to by nobody, and a host
      * that wires none seals nothing.
      */
+    /**
+     * The tenant's secrets, as the host keeps them: reached for a run of a
+     * step that declares the secret, and for nothing else.
+     */
+    @FunctionalInterface
+    interface Secrets {
+
+        /**
+         * @param run the run reaching it, held by {@code by}
+         * @param by  who reaches it
+         * @throws IllegalStateException when the run's step does not declare it
+         */
+        Optional<byte[]> reach(Run run, String by, String name);
+    }
+
+    /**
+     * A secret of the tenant's, for the run this participant holds, its step
+     * declaring it — in the clear, which is why no verb carries this one
+     * across a wire. Abstract: every lane says how it reaches one, or that
+     * it reaches none.
+     */
+    byte[] secret(Run run, String name);
+
+    /**
+     * The same secret, sealed to this participant's enrolment key: the only
+     * form one leaves the tenant in.
+     */
+    cloud.jengu.dbo.work.SealedPayload sealedSecret(Run run, String name);
+
     interface Keys {
         /** The key a participant is sealed to. */
         Optional<cloud.jengu.dbo.core.api.seal.ParticipantKey> of(String participant);
@@ -594,6 +690,30 @@ public interface Lane {
          *         released rather than ended
          */
         List<String> commit(Run run, List<Outcome.Write> result);
+
+        /**
+         * Refuses, before anything is written, a part this tenant would not
+         * start: a step it does not offer, or slots that do not fill it.
+         *
+         * @throws Refused naming the part and why
+         */
+        default void requireStartable(Run run, List<Outcome.Part> parts) {
+            if (!parts.isEmpty()) {
+                throw new Refused("this tenant starts no runs as parts of another, and the "
+                        + "result names " + parts.size());
+            }
+        }
+
+        /**
+         * Starts each part, as a part of the run: found rather than started
+         * again where a result given twice names it twice.
+         *
+         * @return the keys of the parts, in the order the result named them
+         */
+        default List<String> start(Run run, List<Outcome.Part> parts) {
+            requireStartable(run, parts);
+            return List.of();
+        }
 
         /** What the tenant answered a result it will not hold, in its own words. */
         final class Refused extends RuntimeException {
@@ -684,7 +804,45 @@ public interface Lane {
             cloud.jengu.dbo.work.Introductions introductions,
             Entitlement entitlement, Trackables trackables, Trail trail, Keys keys,
             Wakeups wakeups, Results results) {
+        return inProcess(tenant, runs, feed, declarations, participant, identity, objects,
+                introductions, entitlement, trackables, trail, keys, wakeups, results, null);
+    }
+
+    /** The same, reaching the tenant's secrets for the steps that declare them. */
+    static Lane inProcess(String tenant, Runs runs, ChangeFeed feed,
+            Declarations declarations, String participant, Executor identity,
+            cloud.jengu.dbo.core.api.ObjectStore objects,
+            cloud.jengu.dbo.work.Introductions introductions,
+            Entitlement entitlement, Trackables trackables, Trail trail, Keys keys,
+            Wakeups wakeups, Results results, Secrets secrets) {
         return new Lane() {
+
+            @Override
+            public byte[] secret(Run run, String name) {
+                Run current = claimedByThisIdentity(run);
+                if (secrets == null) {
+                    throw new IllegalStateException(tenant + ": this host keeps no secrets");
+                }
+                return secrets.reach(current, identity.name(), name)
+                        .orElseThrow(() -> new IllegalStateException(tenant + " holds no "
+                                + "secret '" + name + "'"));
+            }
+
+            @Override
+            public cloud.jengu.dbo.work.SealedPayload sealedSecret(Run run, String name) {
+                cloud.jengu.dbo.core.api.seal.ParticipantKey key = keys == null
+                        ? null : keys.of(identity.name()).orElse(null);
+                if (key == null) {
+                    throw new IllegalStateException(tenant + ": '" + identity.name()
+                            + "' offered no key at enrolment, and a secret leaves the tenant "
+                            + "only sealed");
+                }
+                byte[] value = secret(run, name);
+                return cloud.jengu.dbo.work.SealedPayload.seal("secret", "HeldSecret/" + name,
+                        new StoredObject(name, "HeldSecret", 1, java.time.Instant.now(), value,
+                                false, null),
+                        Map.of(identity.name(), key));
+            }
 
             @Override
             public Optional<Wakeups> wakeups() {
@@ -792,6 +950,12 @@ public interface Lane {
             }
 
             @Override
+            public Run refused(Run run, String because) {
+                // Said only by the holder, under its claim, as a release is.
+                return runs.refused(run, identity, because);
+            }
+
+            @Override
             public void closed(Run run) {
                 closed(run, null);
             }
@@ -806,7 +970,32 @@ public interface Lane {
 
             @Override
             public Run committed(Run run, String head, List<Outcome.Write> result) {
-                if (result.isEmpty()) {
+                return committed(run, head, result, List.of());
+            }
+
+            @Override
+            public Run committed(Run run, String head, List<Outcome.Write> result,
+                    List<Outcome.Part> parts) {
+                return committed(run, head, result, parts, null);
+            }
+
+            @Override
+            public java.util.Optional<Run> partOf(Run run) {
+                Run current = runs.byKey(run.key()).orElseThrow(() -> new IllegalStateException(
+                        tenant + ": no run '" + run.key() + "'"));
+                if (!heldByThisIdentity(current)) {
+                    throw new Runs.NotHeld(tenant + ": run '" + run.key()
+                            + "' is not claimed by " + identity.name()
+                            + " — what it is a part of is read with a claim");
+                }
+                return current.parent() == null ? java.util.Optional.empty()
+                        : runs.byKey(current.parent());
+            }
+
+            @Override
+            public Run committed(Run run, String head, List<Outcome.Write> result,
+                    List<Outcome.Part> parts, Outcome.Said said) {
+                if (result.isEmpty() && parts.isEmpty() && said == null) {
                     closed(run, head);
                     return runs.byKey(run.key()).orElse(run);
                 }
@@ -828,7 +1017,26 @@ public interface Lane {
                 String outer = cloud.jengu.dbo.core.api.Caller.run();
                 cloud.jengu.dbo.core.api.Caller.setRun(current.key());
                 try {
-                    versions = results.commit(current, result);
+                    // The parts first, while a refusal still strands nothing:
+                    // a result is refused whole, records and parts together.
+                    results.requireStartable(current, parts);
+                    Run lasting = said == null ? null : lastingOf(current);
+                    versions = result.isEmpty() ? List.of() : results.commit(current, result);
+                    // Then started, once what the run wrote is there to read.
+                    // Not in the records' commit — runs are the work's and the
+                    // records the tenant's — and so keyed: a result given again
+                    // after a failure between the two finds its parts started.
+                    results.start(current, parts);
+                    // And what it says of the work it is a part of, as the
+                    // part that said it.
+                    if (lasting != null && said.stage() != null) {
+                        lasting = runs.reached(lasting, said.stage(), identity.name(),
+                                said.because());
+                    }
+                    if (lasting != null && said.ending() != null) {
+                        runs.ended(lasting, cloud.jengu.dbo.work.Status.of(said.ending()),
+                                identity.name(), said.because());
+                    }
                 } catch (Results.Refused refused) {
                     // ENDED, with the tenant's words: the same result would be
                     // refused the same way next time, so nobody is asked to
@@ -846,6 +1054,26 @@ public interface Lane {
                 // what a lost claim refuses is the run's account of them,
                 // because the run is somebody else's to finish.
                 return runs.closed(run, identity, versions);
+            }
+
+            /**
+             * The lasting work a run is a part of, as what its result may say
+             * something of: refused whole where there is none to say it of.
+             */
+            private Run lastingOf(Run current) {
+                Run parent = current.parent() == null ? null
+                        : runs.byKey(current.parent()).orElse(null);
+                if (parent == null || !parent.lasting()) {
+                    throw new Results.Refused(tenant + ": run '" + current.key() + "' says "
+                            + "something of the work it is a part of, and it is a part of "
+                            + "no work that lasts");
+                }
+                if (parent.status().over()) {
+                    throw new Results.Refused(tenant + ": run '" + current.key() + "' says "
+                            + "something of '" + parent.key() + "', which is over ("
+                            + parent.status().wire() + ")");
+                }
+                return parent;
             }
 
             /**
@@ -1028,6 +1256,29 @@ public interface Lane {
             @Override
             public cloud.jengu.dbo.work.SealedWork sealed(Run run, List<String> named) {
                 Run current = readableByThisIdentity(run);
+                java.util.List<cloud.jengu.dbo.work.SealedPayload> answer =
+                        answeredWith(current, trail);
+                if (!answer.isEmpty()) {
+                    // WHAT CAME BACK, as it came: sealed by the owner to the
+                    // reader and nobody else, so nothing is sealed here and
+                    // nobody but the reader is given it. The manifest is made
+                    // now, because the head it names is the run's as it
+                    // stands when the reader opens it.
+                    String reader = current.crossing().reader();
+                    if (!named.equals(List.of(identity.name())) || !reader.equals(participant)) {
+                        throw new IllegalStateException(tenant + ": run '" + current.key()
+                                + "' came back sealed to '" + reader + "', and is opened by "
+                                + "that reader alone");
+                    }
+                    return new cloud.jengu.dbo.work.SealedWork(
+                            new cloud.jengu.dbo.work.Manifest(tenant,
+                                    current.process() + "." + current.step(), current.key(),
+                                    Map.of("shared", answer.stream()
+                                            .map(cloud.jengu.dbo.work.SealedPayload::reference)
+                                            .toList()),
+                                    List.of(reader), head(current)),
+                            answer);
+                }
                 if (named == null || named.isEmpty()) {
                     throw new IllegalStateException(tenant + ": a payload is sealed to somebody, "
                             + "and nobody was named");
@@ -1125,7 +1376,7 @@ public interface Lane {
             public cloud.jengu.dbo.work.SealedPayload identified(Run run, String reference,
                     String purpose) {
                 Run current = readableByThisIdentity(run);
-                if (!names(current, reference)) {
+                if (!names(current, reference, trail)) {
                     throw new IllegalStateException(tenant + ": run '" + current.key()
                             + "' names no input '" + reference + "' to identify");
                 }
@@ -1212,7 +1463,7 @@ public interface Lane {
             public String opened(Run run, String reference,
                     cloud.jengu.dbo.work.RunChain.Link link) {
                 Run current = readableByThisIdentity(run);
-                if (!names(current, reference)) {
+                if (!names(current, reference, trail)) {
                     throw new IllegalStateException(tenant + ": run '" + current.key()
                             + "' names no input '" + reference + "' to have opened");
                 }
@@ -1285,10 +1536,9 @@ public interface Lane {
                 return link.link();
             }
 
-            /** Whether this participant has declared the named thing directly behind it. */
+            /** Whether this participant has declared the named thing behind it, at any depth. */
             private boolean routee(String name) {
-                return trackables != null && trackables.behind(participant).stream()
-                        .anyMatch(behind -> name.equals(behind.id()));
+                return trackables != null && trackables.isBehind(participant, name);
             }
 
             /** The chain's head as the trail holds it; the root when the trail holds nothing. */

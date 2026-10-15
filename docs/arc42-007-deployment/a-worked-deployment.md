@@ -80,19 +80,27 @@ one — without it the node reads its declarations directly from the source and
 serves exactly as before, because recording what was declared is not a
 condition of honouring it.
 
-### The one direction anything crosses
+### What crosses, and how
 
 The arrows in the figure are the only movement between tenants, and they are
 worth being precise about, because a careless reading makes them a hole in the
 wall.
 
-What moves is definitions and declarations — never a person, never a record of
-care. It moves only where the receiving tenant **declared that it takes it**,
+What streams is definitions and declarations — never a person, never a record
+of care. It moves only where the receiving tenant **declared that it takes it**,
 in its own spec file, and a tenant declares only against its direct upstream,
 so chains compose one hop at a time rather than granting anybody a view of the
 whole. What lands is read-only and stamped with which tenant and which version
 it came from. And it travels on the same feed machinery as everything else, so
 there is no separate synchronisation subsystem to go stale.
+
+**Work crosses too, and only through a jurisdiction.** Two tenants never deal
+with each other directly: what one asks of another is carried up to the lowest
+zone both belong to and down again, under that zone's rules, and the zones on
+the way record that it passed and keep no copy
+([zones](../guide/zones.md)). A record of care moves only as the owner's own
+answer, sealed to the reader the asker named, and the owner's trail says who
+opened it and for which run.
 
 The wall the figure claims is therefore about records: no tenant reads
 another's, including the operator. The door is about definitions, one way, by
@@ -128,14 +136,14 @@ deploy. What changes between the two is the transport, not the rules.
 
 The operator provisions tenants, which means it arranges for each to have a
 database and hands the node a connection to it — the three `DBO_ADMIN_*`
-values in the compose file, and nothing else. It never holds a tenant's
-credentials: a tenant is its own authority from the moment it exists, and
-there is no master issuer whose keys open everything, because there is no
-master issuer.
+values in the compose file, and nothing else. It never holds a tenant's own
+authority: a tenant is its own issuer from the moment it exists, and there is
+no master issuer whose keys open everything, because there is no master
+issuer.
 
 There is also no cross-tenant surface. Nothing offers a read across tenants to
 anybody, the operator included. A fleet-wide view — an operator console, a
-report — holds one credential per tenant and asks each in turn. That is a walk
+report — holds a credential each tenant issued it, and asks each in turn. That is a walk
 rather than a join, and it is slower on purpose: a convenient cross-tenant
 read would be available to anything that ever got hold of it.
 
@@ -203,7 +211,7 @@ to is gone, including from the archive that left the building in March.
 | The application | a token of its own, or a person's, depending on whose behalf it acts | the same surface a person gets, never a wider one |
 | The laboratory | an enrolment for the step it declared | the runs of the steps it is entitled to claim |
 | The insurer | a declared dependency on the zone, through a projection | read-only copies of what it declared it takes |
-| The operator | a connection per tenant, and a credential in the managing tenant | provisioning, and the closed measurement stream |
+| The operator | a connection per tenant, a credential each tenant issued it, and one in the managing tenant | provisioning, and the closed measurement stream |
 | Nobody | — | another tenant's records |
 
 ## What this deployment is not yet

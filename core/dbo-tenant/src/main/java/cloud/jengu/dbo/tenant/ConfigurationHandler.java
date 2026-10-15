@@ -77,8 +77,39 @@ public final class ConfigurationHandler implements HttpHandler {
         }
     }
 
+    /**
+     * The tenant owner's configuration, read from its repository: applied at
+     * a ref, or previewed there.
+     */
+    @FunctionalInterface
+    interface Owners {
+
+        /**
+         * @param ref     a branch, tag or commit, or null for the declared one
+         * @param by      who asked
+         * @param preview whether to stop at saying what would change
+         */
+        OwnersConfiguration.Applied apply(String ref, String by, boolean preview);
+    }
+
+    /** Writes a file of the tenant's secrets as SOPS would, for somebody to commit. */
+    @FunctionalInterface
+    interface SecretsWriter {
+        byte[] write(String path, java.util.Map<String, String> secrets);
+    }
+
+    /** Null where nothing can wrap a tenant's secrets: no Vault, or no repository. */
+    private volatile SecretsWriter secretsWriter;
+
+    /** How a file of secrets is written here. */
+    void secretsWriter(SecretsWriter writer) {
+        this.secretsWriter = writer;
+    }
+
     private final TenantAuthority authority;
     private final Supplier<ConfigApplication.Outcome> apply;
+    /** Null where the tenant declares no repository of its owner's. */
+    private final Owners owners;
     private final java.util.function.BiFunction<String,
             java.util.List<ConfigApplication.Declared>, ConfigApplication.Outcome> applyHere;
     private final java.util.function.Function<cloud.jengu.dbo.sync.ConfigSource.Fetch,
@@ -105,6 +136,20 @@ public final class ConfigurationHandler implements HttpHandler {
                     ConfigApplication.Outcome> applyRead,
             java.util.function.Function<java.util.List<ConfigApplication.Declared>,
                     java.util.List<Classified>> classify) {
+        this(authority, apply, applyHere, applyRead, classify, null);
+    }
+
+    ConfigurationHandler(TenantAuthority authority,
+            Supplier<ConfigApplication.Outcome> apply,
+            java.util.function.BiFunction<String,
+                    java.util.List<ConfigApplication.Declared>,
+                    ConfigApplication.Outcome> applyHere,
+            java.util.function.Function<cloud.jengu.dbo.sync.ConfigSource.Fetch,
+                    ConfigApplication.Outcome> applyRead,
+            java.util.function.Function<java.util.List<ConfigApplication.Declared>,
+                    java.util.List<Classified>> classify,
+            Owners owners) {
+        this.owners = owners;
         this.authority = authority;
         this.apply = apply;
         this.applyHere = applyHere;
@@ -125,7 +170,8 @@ public final class ConfigurationHandler implements HttpHandler {
                         "applying what is declared is asked for with POST");
                 return;
             }
-            if (!permitted(exchange)) {
+            TenantAuthority.AuthContext asking = permitted(exchange);
+            if (asking == null) {
                 return;
             }
             // Which path, decided after the grant is: a door that answered
@@ -142,14 +188,29 @@ public final class ConfigurationHandler implements HttpHandler {
             if (verb.startsWith("/")) {
                 verb = verb.substring(1);
             }
-            if (!verb.isEmpty() && !"preview".equals(verb)) {
+            if (!verb.isEmpty() && !"preview".equals(verb) && !"secrets".equals(verb)) {
                 fail(exchange, 404, "invalid_request", "this door applies what is declared, "
-                        + "and 'preview' says what applying it would do; it was asked for '"
-                        + verb + "'");
+                        + "'preview' says what applying it would do, and 'secrets' writes a "
+                        + "file of secrets; it was asked for '" + verb + "'");
                 return;
             }
             String body = new String(exchange.getRequestBody().readAllBytes(),
                     StandardCharsets.UTF_8);
+            if ("secrets".equals(verb)) {
+                secretsWritten(exchange, body);
+                return;
+            }
+            // THE OWNER'S REPOSITORY, where the tenant declares one: nothing
+            // sent applies the declared ref, and a ref names another.
+            if (owners != null && (body.isBlank() || namesARef(body))) {
+                ownersApplied(exchange, body, asking.clientId(), "preview".equals(verb));
+                return;
+            }
+            if (namesARef(body)) {
+                fail(exchange, 400, "invalid_request", "this tenant declares no repository of "
+                        + "its owner's to apply a ref from");
+                return;
+            }
             if ("preview".equals(verb)) {
                 preview(exchange, body);
                 return;
@@ -206,6 +267,128 @@ public final class ConfigurationHandler implements HttpHandler {
         } finally {
             exchange.close();
         }
+    }
+
+    /**
+     * A file of secrets, written whole as SOPS would and answered as the file
+     * itself, for whoever asked to commit to the tenant's repository. Nothing
+     * here commits, and the secrets are kept nowhere: they are the tenant's
+     * once the file is applied, as any file of secrets is.
+     */
+    private void secretsWritten(HttpExchange exchange, String body) throws IOException {
+        SecretsWriter writer = secretsWriter;
+        if (writer == null) {
+            fail(exchange, 409, "not_writable", "this tenant's secrets cannot be written here: "
+                    + "the deployment names no Vault to wrap them through");
+            return;
+        }
+        Map<?, ?> fields = fieldsOf(exchange, body);
+        if (fields == null) {
+            return;
+        }
+        if (!(fields.get("path") instanceof String path)
+                || !(fields.get("secrets") instanceof Map<?, ?> named) || named.isEmpty()) {
+            fail(exchange, 400, "invalid_request", "send the file's path in the repository and "
+                    + "its secrets, {\"path\": \"secrets/x.sops.json\", \"secrets\": "
+                    + "{\"name\": \"value\"}}");
+            return;
+        }
+        java.util.Map<String, String> secrets = new java.util.LinkedHashMap<>();
+        for (Map.Entry<?, ?> one : named.entrySet()) {
+            if (!(one.getValue() instanceof String value)) {
+                fail(exchange, 400, "invalid_request", "the secret '" + one.getKey()
+                        + "' is not a string");
+                return;
+            }
+            secrets.put(String.valueOf(one.getKey()), value);
+        }
+        byte[] file;
+        try {
+            file = writer.write(path, secrets);
+        } catch (IllegalArgumentException refused) {
+            fail(exchange, 422, "refused", refused.getMessage());
+            return;
+        }
+        exchange.getResponseHeaders().set("Content-Type", "application/json");
+        exchange.sendResponseHeaders(200, file.length);
+        exchange.getResponseBody().write(file);
+    }
+
+    /** Whether a body asks for a ref rather than sending declarations. */
+    private static boolean namesARef(String body) {
+        if (body.isBlank()) {
+            return false;
+        }
+        try {
+            return RecordWire.read(body) instanceof Map<?, ?> fields
+                    && fields.containsKey("ref") && !fields.containsKey("declarations");
+        } catch (RuntimeException unreadable) {
+            return false;
+        }
+    }
+
+    /**
+     * A ref of the owner's repository, applied or previewed, answered with
+     * what the run records: the ref, the commit, its author and message, who
+     * asked, and what the changelist came to.
+     */
+    private void ownersApplied(HttpExchange exchange, String body, String by, boolean preview)
+            throws IOException {
+        String ref = null;
+        if (!body.isBlank()) {
+            Map<?, ?> fields = fieldsOf(exchange, body);
+            if (fields == null) {
+                return;
+            }
+            Object named = fields.get("ref");
+            if (named != null && !(named instanceof String)) {
+                fail(exchange, 400, "invalid_request", "a ref is a branch, a tag or a commit");
+                return;
+            }
+            ref = (String) named;
+        }
+        OwnersConfiguration.Applied applied;
+        try {
+            applied = owners.apply(ref, by, preview);
+        } catch (IllegalArgumentException unreadable) {
+            fail(exchange, 422, "unreadable", unreadable.getMessage());
+            return;
+        }
+        java.util.Map<String, Object> answer = new java.util.LinkedHashMap<>();
+        answer.put("process", ConfigApplication.PROCESS);
+        answer.put("step", ConfigApplication.STEP);
+        if (preview) {
+            answer.put("preview", Boolean.TRUE);
+        }
+        answer.put("ref", applied.ref());
+        answer.put("commit", applied.commit().id());
+        answer.put("author", applied.commit().author());
+        answer.put("message", applied.commit().message());
+        answer.put("by", applied.by());
+        java.util.List<Object> changes = new java.util.ArrayList<>();
+        for (OwnersConfiguration.Change change : applied.changes()) {
+            java.util.Map<String, Object> said = new java.util.LinkedHashMap<>();
+            said.put("path", change.path());
+            said.put("change", change.kind());
+            changes.add(said);
+        }
+        answer.put("changes", changes);
+        ConfigApplication.Outcome outcome = applied.outcome();
+        answer.put("read", outcome.read());
+        answer.put("applied", outcome.applied());
+        answer.put("unchanged", outcome.unchanged());
+        answer.put("skipped", outcome.skipped());
+        answer.put("withdrawn", outcome.withdrawn());
+        if (outcome.run() != null) {
+            answer.put("run", outcome.run());
+        }
+        java.util.List<Object> cards = new java.util.ArrayList<>();
+        for (ConfigApplication.Card card : outcome.cards()) {
+            cards.add(Map.of("declaration", String.valueOf(card.declaration()),
+                    "reason", String.valueOf(card.reason())));
+        }
+        answer.put("cards", cards);
+        respond(exchange, 200, answer);
     }
 
     /** What the deployment reads for itself. */
@@ -367,7 +550,8 @@ public final class ConfigurationHandler implements HttpHandler {
                 declarations, marker, complete));
     }
 
-    private boolean permitted(HttpExchange exchange) throws IOException {
+    /** Who is asking, or null once they have been refused. */
+    private TenantAuthority.AuthContext permitted(HttpExchange exchange) throws IOException {
         String header = exchange.getRequestHeaders().getFirst("Authorization");
         String bearer = header != null && header.regionMatches(true, 0, "Bearer ", 0, 7)
                 ? header.substring(7).trim() : null;
@@ -378,9 +562,9 @@ public final class ConfigurationHandler implements HttpHandler {
             fail(exchange, context.isEmpty() ? 401 : 403, "access_denied",
                     "applying what is declared needs the '" + SCOPE
                             + "' scope, which nothing else grants");
-            return false;
+            return null;
         }
-        return true;
+        return context.get();
     }
 
     private static void respond(HttpExchange exchange, int status, Map<String, Object> body)

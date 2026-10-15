@@ -65,7 +65,10 @@ public final class ProvingLane implements Lane {
         CLOSED,
 
         /** Failed or threw: released with a reason, which is not done. */
-        RELEASED
+        RELEASED,
+
+        /** Refused by the service: ended with its reason, for nobody to take again. */
+        REFUSED
     }
 
     private final String stepId;
@@ -82,6 +85,8 @@ public final class ProvingLane implements Lane {
     private final List<Map<String, Long>> checkpoints = new ArrayList<>();
     private final List<Ended> endings = new ArrayList<>();
     private final List<Outcome.Write> written = new ArrayList<>();
+    private final List<Outcome.Part> started = new ArrayList<>();
+    private final List<Outcome.Said> said = new ArrayList<>();
     private final List<Map<String, Object>> heartbeats =
             new java.util.concurrent.CopyOnWriteArrayList<>();
 
@@ -333,6 +338,54 @@ public final class ProvingLane implements Lane {
     }
 
     @Override
+    public Run refused(Run run, String because) {
+        this.ended = Ended.REFUSED;
+        this.reason = because;
+        this.performed++;
+        endings.add(Ended.REFUSED);
+        return run;
+    }
+
+    /** What a step proved here is a part of: nothing, unless the test says so. */
+    private Run partOf;
+
+    /** The secrets a step proved here may reach, as the test hands them over. */
+    private final Map<String, byte[]> secrets = new java.util.HashMap<>();
+
+    /** The run the offered one is a part of, as a step reads it. */
+    public ProvingLane asPartOf(Run parent) {
+        this.partOf = parent;
+        return this;
+    }
+
+    /** A secret the step may reach, by name. */
+    public ProvingLane withSecret(String name, String value) {
+        secrets.put(name, value.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        return this;
+    }
+
+    @Override
+    public java.util.Optional<Run> partOf(Run run) {
+        return java.util.Optional.ofNullable(partOf);
+    }
+
+    @Override
+    public byte[] secret(Run run, String name) {
+        byte[] value = secrets.get(name);
+        if (value == null) {
+            throw new IllegalStateException("the proving lane was handed no secret '" + name
+                    + "'");
+        }
+        return value.clone();
+    }
+
+    /** Refused: a proving lane is in process, and a secret is sealed only to cross a wire. */
+    @Override
+    public cloud.jengu.dbo.work.SealedPayload sealedSecret(Run run, String name) {
+        throw new IllegalStateException("a proving lane is in process, and seals nothing");
+    }
+
+    @Override
     public void closed(Run run) {
         this.ended = Ended.CLOSED;
         this.performed++;
@@ -351,9 +404,39 @@ public final class ProvingLane implements Lane {
      */
     @Override
     public Run committed(Run run, String head, List<Outcome.Write> result) {
+        return committed(run, head, result, List.of());
+    }
+
+    /**
+     * Closed, with what the step asked to be written and started kept for the
+     * test to read.
+     */
+    @Override
+    public Run committed(Run run, String head, List<Outcome.Write> result,
+            List<Outcome.Part> parts, Outcome.Said said) {
+        if (said != null) {
+            this.said.add(said);
+        }
+        return committed(run, head, result, parts);
+    }
+
+    /** What the step's results said of the work their runs are parts of, in order. */
+    public List<Outcome.Said> said() {
+        return List.copyOf(said);
+    }
+
+    @Override
+    public Run committed(Run run, String head, List<Outcome.Write> result,
+            List<Outcome.Part> parts) {
         written.addAll(result);
+        started.addAll(parts);
         closed(run);
         return run;
+    }
+
+    /** What the step's results asked the tenant to start as parts, in order. */
+    public List<Outcome.Part> started() {
+        return List.copyOf(started);
     }
 
     /** What the step's results asked the tenant to write, in order. */

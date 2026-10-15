@@ -24,10 +24,52 @@ import java.util.Map;
  *               was never entitled to.
  */
 public record Work(String tenant, Run run, Map<String, java.util.List<StoredObject>> inputs,
-        Progress progress) {
+        Progress progress, Run partOf, Secrets secrets) {
+
+    /** How a step reaches a secret of the tenant's, through the lane it was handed. */
+    @FunctionalInterface
+    public interface Secrets {
+        byte[] reach(String name);
+    }
 
     public Work {
         inputs = Map.copyOf(inputs);
+    }
+
+    /** Work whose step reaches no secret. */
+    public Work(String tenant, Run run, Map<String, java.util.List<StoredObject>> inputs,
+            Progress progress, Run partOf) {
+        this(tenant, run, inputs, progress, partOf, null);
+    }
+
+    /**
+     * A secret of the tenant's — a connection's password — by the name the
+     * step declares it under.
+     *
+     * @throws IllegalStateException when the step does not declare it, the
+     *                               tenant holds none by that name, or it
+     *                               cannot reach this participant sealed
+     */
+    public String secret(String name) {
+        if (secrets == null) {
+            throw new IllegalStateException("this work was handed no way to reach a secret");
+        }
+        return new String(secrets.reach(name), java.nio.charset.StandardCharsets.UTF_8);
+    }
+
+    /** Work that is a part of nothing a step needs to read. */
+    public Work(String tenant, Run run, Map<String, java.util.List<StoredObject>> inputs,
+            Progress progress) {
+        this(tenant, run, inputs, progress, null);
+    }
+
+    /**
+     * The run this work is a part of, as it stands — lasting work's request
+     * in its inputs and its stage as its milestone — or empty where it is a
+     * part of none.
+     */
+    public java.util.Optional<Run> parent() {
+        return java.util.Optional.ofNullable(partOf);
     }
 
     /**

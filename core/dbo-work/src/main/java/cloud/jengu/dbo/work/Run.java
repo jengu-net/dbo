@@ -31,7 +31,116 @@ public record Run(String id, long versionId, String key, String process, String 
         Map<String, RunSlot> inputs, Milestone milestone, String requester,
         String refused, Status status, boolean automation, java.time.Instant notBefore,
         String statusReason, int attempts, cloud.jengu.dbo.core.process.RetryPolicy retry,
-        Window window, Addressee addressee) {
+        Window window, Addressee addressee, java.time.Instant authored,
+        java.time.Instant moved, Crossing crossing) {
+
+    /**
+     * A run as it was described before it said when — authored and last
+     * moved, which only the store's own record of it can say — and that stays
+     * in the tenant it was asked for in.
+     */
+    public Run(String id, long versionId, String key, String process, String step,
+            RunKind kind, String parent, String correlation, String trace,
+            Map<String, Long> tally, Item item, java.util.List<String> domains,
+            Assignment assignment, Produced produced, String stepVersion,
+            Map<String, RunSlot> inputs, Milestone milestone, String requester,
+            String refused, Status status, boolean automation, java.time.Instant notBefore,
+            String statusReason, int attempts, cloud.jengu.dbo.core.process.RetryPolicy retry,
+            Window window, Addressee addressee) {
+        this(id, versionId, key, process, step, kind, parent, correlation, trace, tally, item,
+                domains, assignment, produced, stepVersion, inputs, milestone, requester,
+                refused, status, automation, notBefore, statusReason, attempts, retry, window,
+                addressee, null, null, null);
+    }
+
+    /** A run that says when, and stays in the tenant it was asked for in. */
+    public Run(String id, long versionId, String key, String process, String step,
+            RunKind kind, String parent, String correlation, String trace,
+            Map<String, Long> tally, Item item, java.util.List<String> domains,
+            Assignment assignment, Produced produced, String stepVersion,
+            Map<String, RunSlot> inputs, Milestone milestone, String requester,
+            String refused, Status status, boolean automation, java.time.Instant notBefore,
+            String statusReason, int attempts, cloud.jengu.dbo.core.process.RetryPolicy retry,
+            Window window, Addressee addressee, java.time.Instant authored,
+            java.time.Instant moved) {
+        this(id, versionId, key, process, step, kind, parent, correlation, trace, tally, item,
+                domains, assignment, produced, stepVersion, inputs, milestone, requester,
+                refused, status, automation, notBefore, statusReason, attempts, retry, window,
+                addressee, authored, moved, null);
+    }
+
+    /** A run that crosses, as it was described before it said when. */
+    public Run(String id, long versionId, String key, String process, String step,
+            RunKind kind, String parent, String correlation, String trace,
+            Map<String, Long> tally, Item item, java.util.List<String> domains,
+            Assignment assignment, Produced produced, String stepVersion,
+            Map<String, RunSlot> inputs, Milestone milestone, String requester,
+            String refused, Status status, boolean automation, java.time.Instant notBefore,
+            String statusReason, int attempts, cloud.jengu.dbo.core.process.RetryPolicy retry,
+            Window window, Addressee addressee, Crossing crossing) {
+        this(id, versionId, key, process, step, kind, parent, correlation, trace, tally, item,
+                domains, assignment, produced, stepVersion, inputs, milestone, requester,
+                refused, status, automation, notBefore, statusReason, attempts, retry, window,
+                addressee, null, null, crossing);
+    }
+
+    /**
+     * The place a run was performed at, for one a place handed home, or null
+     * for one performed here: the name its key is filed under at home.
+     */
+    public String place() {
+        return key == null || !WorkModel.authoredElsewhere(key) ? null
+                : key.substring(0, key.indexOf(WorkModel.AUTHOR_SEPARATOR));
+    }
+
+    /**
+     * Work that leaves the tenant it was asked for in, for the tenant whose
+     * data it is.
+     *
+     * <p>Two tenants never deal with each other directly: what crosses goes
+     * up to the lowest zone both belong to and down again. The run asked for
+     * and the run performed are two runs, one in each tenant, joined by this
+     * — kept apart from {@code correlation}, which the store echoes and never
+     * reads, and from {@code parent}, which never crosses a boundary.
+     *
+     * @param id       the crossing both runs carry
+     * @param from     the tenant that asked
+     * @param to       the tenant whose data it is, which performs it
+     * @param askerRun the asking run's key, on the run performed; null on the
+     *                 run that asked
+     * @param reader   the client in the asking tenant the answer is for
+     * @param arrived  on the run that asked, the owner's answer as it arrived:
+     *                 sealed to the reader and nobody else, in its wire form;
+     *                 null until it does
+     */
+    public record Crossing(String id, String from, String to, String askerRun, String reader,
+            String arrived) {
+
+        /**
+         * Who alone may take a run asking across until it is carried: what
+         * carries it, as client and executor both. Another participant
+         * performing the same exchange step performs the owner's end, and a
+         * run it took at the asker's end would never cross.
+         */
+        public static final Addressee CARRIER = new Addressee("dbo-crossings", "dbo-crossings");
+
+        public Crossing {
+            if (id == null || from == null || to == null) {
+                throw new IllegalArgumentException("a crossing names itself, where it came "
+                        + "from and where it goes");
+            }
+        }
+
+        /** A crossing nothing has come back on yet. */
+        public Crossing(String id, String from, String to, String askerRun, String reader) {
+            this(id, from, to, askerRun, reader, null);
+        }
+
+        /** The same crossing, with what came back. */
+        public Crossing answered(String sealed) {
+            return new Crossing(id, from, to, askerRun, reader, sealed);
+        }
+    }
 
     /** A run open to whoever holds its step. */
     public Run(String id, long versionId, String key, String process, String step,
@@ -381,7 +490,7 @@ public record Run(String id, long versionId, String key, String process, String 
      * question there is.
      */
     public boolean forAutomation(java.time.Instant now) {
-        return open() && automation && !claimed(now)
+        return open() && kind != RunKind.LASTING && automation && !claimed(now)
                 && (notBefore == null || !notBefore.isAfter(now));
     }
 
@@ -440,13 +549,20 @@ public record Run(String id, long versionId, String key, String process, String 
      * (REQ-DBO-PROC-WHO-OWES-THE-NEXT-ACT-IS-DERIVED).
      */
     public Awaits awaits(java.time.Instant now) {
-        if (!open()) {
+        // Lasting work waits for its parts, which are each somebody's card;
+        // it is nobody's own.
+        if (!open() || kind == RunKind.LASTING) {
             return Awaits.NOTHING;
         }
         if (status == Status.IN_PROGRESS && claimed(now)) {
             return Awaits.OWNER;
         }
         return automation ? Awaits.MACHINE : Awaits.PERSON;
+    }
+
+    /** Whether this is work that lasts: opened, moved by its parts, held by nobody. */
+    public boolean lasting() {
+        return kind == RunKind.LASTING;
     }
 
     /** Whether a person holds this run: claimed as a {@code PractitionerRole}. */
@@ -528,7 +644,22 @@ public record Run(String id, long versionId, String key, String process, String 
                 notBefore == null ? null : java.time.Instant.parse(notBefore.toString()),
                 optional(json, "statusReason"),
                 attempts instanceof Number count ? count.intValue() : 0, retry(json),
-                window(json), addressee(json));
+                window(json), addressee(json), instant(json, "authored"),
+                instant(json, "at"), crossing(json));
+    }
+
+    private static java.time.Instant instant(Object json, String field) {
+        Object written = ((Map<?, ?>) json).get(field);
+        return written == null ? null : java.time.Instant.parse(written.toString());
+    }
+
+    /** The crossing the run recorded, or null for a run that stays where it is. */
+    private static Crossing crossing(Object json) {
+        if (((Map<?, ?>) json).get("crossing") instanceof Map<?, ?> named) {
+            return new Crossing(str(named, "id"), str(named, "from"), str(named, "to"),
+                    str(named, "askerRun"), str(named, "reader"), str(named, "arrived"));
+        }
+        return null;
     }
 
     /** Who the run is for, as it recorded them, or null where it names nobody. */

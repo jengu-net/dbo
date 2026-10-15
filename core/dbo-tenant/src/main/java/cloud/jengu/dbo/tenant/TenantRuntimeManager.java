@@ -380,6 +380,8 @@ public final class TenantRuntimeManager implements AutoCloseable {
     private final Map<String, OriginFeeds> originFeeds = new ConcurrentHashMap<>();
     /** Each place's own trail, handed to its tenant over the link it reads through. */
     private final Map<String, TrailPusher> trailPushers = new ConcurrentHashMap<>();
+    /** Each place's work, handed up the link it reads through, as its trail is. */
+    private final Map<String, RunsPusher> runsPushers = new ConcurrentHashMap<>();
     /**
      * Each tenant's declaration as it was last read, by code: what a place of
      * it elsewhere is handed, so the two are declared with the same text.
@@ -585,8 +587,77 @@ public final class TenantRuntimeManager implements AutoCloseable {
         }
     }
 
+    /**
+     * The steps a tenant starts by itself: its own, and those the deployment
+     * performs for every tenant that start themselves or last, where this
+     * tenant admits them — a required one it cannot decline — held as it
+     * holds its own, so the same clock and watches run them.
+     */
+    List<TenantSpec.Step> selfStartingSteps(TenantSpec spec) {
+        List<TenantSpec.Step> steps = new java.util.ArrayList<>(spec.steps());
+        java.util.Set<String> declined = new java.util.HashSet<>(spec.declines());
+        for (TenantSpec.FleetStep fleet : declaredFleetSteps) {
+            if ((fleet.starts() != null || fleet.lasts())
+                    && (fleet.required() || !declined.contains(fleet.code()))) {
+                steps.add(fleet.asStep());
+            }
+        }
+        return steps;
+    }
+
+    /**
+     * Every serving tenant's self-starting steps brought into line with what
+     * the deployment now performs for them, where they stand: a step declared
+     * after they came up reaches them without a rebuild.
+     */
+    private void fleetStartsChanged() {
+        selfStarting.forEach((code, starting) -> {
+            TenantRuntime serving = runtimes.get(code);
+            if (serving == null) {
+                return;
+            }
+            List<TenantSpec.Step> steps = selfStartingSteps(serving.spec());
+            try {
+                starting.redeclared(steps);
+                StepWatches watching = watches.get(code);
+                if (watching != null) {
+                    watching.redeclared(steps);
+                }
+            } catch (RuntimeException failed) {
+                LOG.warn("tenant {}: what the deployment starts in it could not be brought "
+                        + "into line", code, failed);
+            }
+        });
+    }
+
     /** Each tenant's way of starting work in this process, by code. */
     private final Map<String, StepSurface> starters = new ConcurrentHashMap<>();
+
+    /** What each tenant's steps that start on a change watch its feed for, by code. */
+    private final Map<String, StepWatches> watches = new ConcurrentHashMap<>();
+
+    /** Each tenant's steps that start themselves, by code, where it has any. */
+    private final Map<String, SelfStarting> selfStarting = new ConcurrentHashMap<>();
+
+    /** What tells a tenant a tick is due: the store's own unless a host brought one. */
+    private volatile cloud.jengu.dbo.work.StepScheduler stepScheduler =
+            new cloud.jengu.dbo.stream.DbosStepScheduler();
+
+    /**
+     * The scheduler a hosting framework brings, in place of the store's own,
+     * for every tenant brought up after this. It is trusted with the timing
+     * alone: what a tick starts, whether a step is paused and what a missed
+     * tick becomes stay the store's.
+     */
+    public TenantRuntimeManager stepScheduler(cloud.jengu.dbo.work.StepScheduler scheduler) {
+        this.stepScheduler = java.util.Objects.requireNonNull(scheduler, "scheduler");
+        return this;
+    }
+
+    /** One tenant's self-starting steps, where it has any here. */
+    java.util.Optional<SelfStarting> selfStarting(String code) {
+        return java.util.Optional.ofNullable(selfStarting.get(code));
+    }
 
     /**
      * Starting a run on a tenant this node serves, from inside its process,
@@ -609,6 +680,21 @@ public final class TenantRuntimeManager implements AutoCloseable {
             public Started starting(String tenant, String step,
                     Map<String, Slot> inputs, String key,
                     cloud.jengu.dbo.work.Run.Addressee addressee) {
+                return starting(tenant, step, inputs, key, addressee, null);
+            }
+
+            @Override
+            public Started starting(String tenant, String step,
+                    Map<String, Slot> inputs, String key,
+                    cloud.jengu.dbo.work.Run.Addressee addressee, String partOf) {
+                return starting(tenant, step, inputs, key, addressee, partOf, null);
+            }
+
+            @Override
+            public Started starting(String tenant, String step,
+                    Map<String, Slot> inputs, String key,
+                    cloud.jengu.dbo.work.Run.Addressee addressee, String partOf,
+                    String crossingTo) {
                 StepSurface starter = starters.get(tenant);
                 if (starter == null) {
                     return new Started(404, null, null, "{\"error\":\"not_found\","
@@ -620,12 +706,33 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 Object body = Json.parse("{\"inputs\":{" + named + "}"
                         + (key == null ? "" : ",\"scope\":"
                         + cloud.jengu.dbo.work.RunInitiator.quoted(key))
-                        + cloud.jengu.dbo.work.RunInitiator.addressed(addressee) + "}");
+                        + cloud.jengu.dbo.work.RunInitiator.addressed(addressee)
+                        + cloud.jengu.dbo.work.RunInitiator.partOf(partOf)
+                        + cloud.jengu.dbo.work.RunInitiator.crossing(crossingTo) + "}");
                 StepSurface.Started started = starter.starting(step, body, null);
                 return new Started(started.status(),
                         cloud.jengu.dbo.work.RunInitiator.field(started.body(), "run"),
                         cloud.jengu.dbo.work.RunInitiator.field(started.body(), "key"),
                         started.body());
+            }
+
+            @Override
+            public Started saying(String tenant, String run, String act,
+                    Map<String, String> said) {
+                StepSurface starter = starters.get(tenant);
+                if (starter == null) {
+                    return new Started(404, null, null, "{\"error\":\"not_found\"}");
+                }
+                StringBuilder body = new StringBuilder();
+                said.forEach((name, value) -> body.append(body.isEmpty() ? "" : ",")
+                        .append(cloud.jengu.dbo.work.RunInitiator.quoted(name)).append(':')
+                        .append(cloud.jengu.dbo.work.RunInitiator.quoted(value)));
+                StepSurface.Started answered = starter.saying(run, act,
+                        Json.parse("{" + body + "}"), "in-process");
+                return new Started(answered.status(),
+                        cloud.jengu.dbo.work.RunInitiator.field(answered.body(), "run"),
+                        cloud.jengu.dbo.work.RunInitiator.field(answered.body(), "key"),
+                        answered.body());
             }
 
             @Override
@@ -849,6 +956,10 @@ public final class TenantRuntimeManager implements AutoCloseable {
     private volatile Set<String> requiredStepCodes = Set.of();
     /** The declarations themselves, which the register is a reading of. */
     private volatile List<TenantSpec.FleetStep> declaredFleetSteps = List.of();
+    /** The jurisdictions as the last pass read them, from every declaration at once. */
+    private volatile ZoneTree zones = ZoneTree.of(List.of());
+    /** The tenants that declare themselves the provider's partners, as the last pass read them. */
+    private volatile Set<String> partners = Set.of();
     /**
      * The substrate each declared fleet step's queue lives on, by step code.
      *
@@ -897,6 +1008,50 @@ public final class TenantRuntimeManager implements AutoCloseable {
             new ConcurrentHashMap<>();
     /** Where each tenant's ask-to-apply door is mounted, for the same teardown. */
     private final Map<String, String> configurationContexts = new ConcurrentHashMap<>();
+    /** Each serving tenant's working key, as its bring-up resolved it. */
+    private final Map<String, WorkingKeys.Held> workingKeys = new ConcurrentHashMap<>();
+
+    /** A serving tenant whose working key is held elsewhere, and when it last unwrapped. */
+    private record HeldElsewhere(cloud.jengu.dbo.core.api.ObjectStore identities,
+            KeyWrapper wrapper, java.time.Instant checked) {
+    }
+
+    private final Map<String, HeldElsewhere> heldElsewhere = new ConcurrentHashMap<>();
+
+    /** How long a working key held elsewhere is trusted unwrapped before it is asked again. */
+    private volatile java.time.Duration workingKeyRecheck = java.time.Duration.ofMinutes(15);
+
+    /** The service account token an owner's Vault takes from this deployment. */
+    private volatile Path serviceAccountToken =
+            Path.of("/var/run/secrets/kubernetes.io/serviceaccount/token");
+
+    /**
+     * How long a tenant whose working key is held elsewhere keeps serving on
+     * it before the key is asked for again — the longest a revoked key leaves
+     * the tenant up.
+     */
+    public void workingKeyRecheck(java.time.Duration every) {
+        this.workingKeyRecheck = every;
+    }
+
+    /** The token this deployment presents to a Vault its tenants' owners run. */
+    public void serviceAccountToken(Path token) {
+        this.serviceAccountToken = token;
+    }
+
+    /** The deployment's Vault, where its tenants' secrets are unwrapped; null for none. */
+    private volatile VaultTransit vault;
+
+    /**
+     * The Vault this deployment unwraps its tenants' secrets through: the
+     * only one the store reaches, whatever a file of secrets says.
+     */
+    public void vault(VaultTransit vault) {
+        this.vault = vault;
+    }
+
+    /** Each tenant's owner's configuration, where it declares one: one apply at a time. */
+    private final Map<String, ConfigurationHandler.Owners> owners = new ConcurrentHashMap<>();
     /** One per tenant whose face delivers notifications; closed when the tenant goes. */
     private final Map<String, java.util.List<AutoCloseable>> activityCloseables =
             new ConcurrentHashMap<>();
@@ -1324,7 +1479,8 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 "subscription dispatch",
                 tenant -> tenant.store().dispatchNotifications(
                                 new PgChangeFeed(tenant.dataSource(), tenant.recordDomain()),
-                                tenant.dataSource(), SUBSCRIPTION_POLL.toMillis())
+                                tenant.dataSource(), SUBSCRIPTION_POLL.toMillis(),
+                                watches.get(tenant.facts().code()))
                         .orElse(null));
 
         // Asking to be forgotten. Its own door and its own scope, beside
@@ -1483,8 +1639,53 @@ public final class TenantRuntimeManager implements AutoCloseable {
                     starters.put(code, new StepSurface(bearer -> java.util.Optional.empty(),
                             tenant.laneRuns(), tenant.runtime().store(),
                             tenant.runtime().engine(), tenant.spec().steps(),
-                            "/t/" + code + "/run", true, code, this::offerOf, rendered));
+                            "/t/" + code + "/run", true, code, offeredAtDoors, rendered));
                     return () -> starters.remove(code);
+                });
+
+        // The steps that start themselves, over the starter above: on a clock,
+        // through the scheduler; their runs under the tenant's system run.
+        activities.register(TenantPoint.SURFACES,
+                "(" + TenantFacts.HAS_STEPS + "=true)",
+                "steps that start themselves",
+                tenant -> {
+                    String code = tenant.facts().code();
+                    boolean place = places.contains(code);
+                    // Held wherever a step declares when it starts, even one
+                    // that starts elsewhere, so a cadence redeclared to start
+                    // here is taken where the tenant stands.
+                    if (selfStartingSteps(tenant.spec()).stream()
+                            .allMatch(step -> step.starts() == null)) {
+                        return null;
+                    }
+                    SelfStarting starting = new SelfStarting(code, tenant.dataSource(),
+                            tenant.laneRuns(), starters.get(code),
+                            selfStartingSteps(tenant.spec()), place,
+                            stepScheduler, java.time.Clock.systemUTC(),
+                            (type, id) -> tenant.runtime().engine().get(type, id)
+                                    .map(cloud.jengu.dbo.core.api.StoredObject::payload))
+                            .open();
+                    selfStarting.put(code, starting);
+                    StepWatches watching = watches.get(code);
+                    if (watching != null) {
+                        watching.attach(starting);
+                    }
+                    // Read and steered at its own door where the tenant has an
+                    // authority to guard one; in process through the manager
+                    // where it has none.
+                    String stepsPath = "/t/" + code + "/steps";
+                    boolean mounted = tenant.authority() != null;
+                    if (mounted) {
+                        sharedServer.createContext(stepsPath, new StepsSurface(
+                                tenant.authority()::validate, starting, starters.get(code)));
+                    }
+                    return () -> {
+                        if (mounted) {
+                            sharedServer.removeContext(stepsPath);
+                        }
+                        selfStarting.remove(code, starting);
+                        starting.close();
+                    };
                 });
 
         // Work as the way in. A tenant that declares no steps offers no such
@@ -1509,11 +1710,11 @@ public final class TenantRuntimeManager implements AutoCloseable {
                     sharedServer.createContext(startPath, new StepSurface(tenant.authority(),
                             tenant.laneRuns(), tenant.runtime().store(),
                             tenant.runtime().engine(), tenant.spec().steps(),
-                            runPath, true, code, this::offerOf, rendered));
+                            runPath, true, code, offeredAtDoors, rendered));
                     sharedServer.createContext(runPath, new StepSurface(tenant.authority(),
                             tenant.laneRuns(), tenant.runtime().store(),
                             tenant.runtime().engine(), tenant.spec().steps(),
-                            runPath, false, code, this::offerOf, rendered));
+                            runPath, false, code, offeredAtDoors, rendered));
                     stepContexts.put(code, java.util.List.of(startPath, runPath));
                     return null;
                 });
@@ -1673,6 +1874,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 .map(TenantSpec.FleetStep::code)
                 .collect(java.util.stream.Collectors.toUnmodifiableSet());
         declaredFleetSteps = spec.fleetSteps();
+        fleetStartsChanged();
         requiredStepCodes = spec.fleetSteps().stream()
                 .filter(TenantSpec.FleetStep::required)
                 .map(TenantSpec.FleetStep::code)
@@ -1766,6 +1968,15 @@ public final class TenantRuntimeManager implements AutoCloseable {
      */
     public java.util.Optional<cloud.jengu.dbo.runner.Lane> fleetLane(
             String tenant, String stepCode, cloud.jengu.dbo.work.Executor identity) {
+        return fleetLane(tenant, Set.of(stepCode), identity);
+    }
+
+    /**
+     * The same, entitled to several steps at once: one lane, and so one
+     * cursor over the tenant's work, for a participant taking all of them.
+     */
+    java.util.Optional<cloud.jengu.dbo.runner.Lane> fleetLane(
+            String tenant, Set<String> stepCodes, cloud.jengu.dbo.work.Executor identity) {
         cloud.jengu.dbo.runner.transport.Lanes factory = laneFactories.get(tenant);
         if (factory == null) {
             return java.util.Optional.empty();
@@ -1779,7 +1990,8 @@ public final class TenantRuntimeManager implements AutoCloseable {
         cloud.jengu.dbo.core.api.Caller.set(identity.name());
         try {
             return java.util.Optional.of(factory.laneFor(identity.name(), identity,
-                    cloud.jengu.dbo.runner.Lane.Entitlement.ofSteps(stepCode)));
+                    cloud.jengu.dbo.runner.Lane.Entitlement.ofSteps(
+                            stepCodes.toArray(String[]::new))));
         } finally {
             if (outerFor == null) {
                 cloud.jengu.dbo.core.api.Caller.set(outer);
@@ -1922,7 +2134,10 @@ public final class TenantRuntimeManager implements AutoCloseable {
      * describes cannot drift apart.
      */
     public List<FleetRegister.Row> fleetRegister(String tenant) {
-        return FleetRegister.of(declaredFleetSteps, declinedBy(tenant));
+        List<FleetRegister.Row> rows = new java.util.ArrayList<>(
+                FleetRegister.of(declaredFleetSteps, declinedBy(tenant)));
+        rows.addAll(FleetRegister.ofZones(zones.chainOf(tenant), zones::permitted));
+        return List.copyOf(rows);
     }
 
     /**
@@ -2090,6 +2305,57 @@ public final class TenantRuntimeManager implements AutoCloseable {
      * the three into a 404 would leave a tenant unable to tell "the
      * deployment does not do this" from "you told us not to".
      */
+    /** What this deployment offers at a tenant's door beyond the tenant's own steps. */
+    private final StepSurface.Fleet offeredAtDoors = new StepSurface.Fleet() {
+        @Override
+        public StepSurface.Fleet.Offer offer(String tenant, String stepCode) {
+            return offerOf(tenant, stepCode);
+        }
+
+        @Override
+        public StepSurface.Fleet.Offer exchange(String tenant, String stepCode, String to) {
+            return exchangeOf(tenant, stepCode, to);
+        }
+    };
+
+    /**
+     * An exchange a jurisdiction above this tenant declares, asked for to go
+     * to the tenant named.
+     *
+     * <p>Refused, with the tree's own words, where there is no way to go: the
+     * two tenants share no zone, or a zone on the way does not permit the
+     * process. Nothing is authored for a crossing that could not be carried.
+     */
+    private StepSurface.Fleet.Offer exchangeOf(String tenant, String stepCode, String to) {
+        ZoneTree tree = zones;
+        Optional<TenantSpec.Step> step = tree.exchangeStep(tenant, stepCode);
+        if (step.isEmpty()) {
+            return null;
+        }
+        if (to == null) {
+            return new StepSurface.Fleet.Offer(step.get().slots(), null, step.get().awaits());
+        }
+        try {
+            ZoneTree.Route route = tree.route(tenant, to);
+            String process = ZoneTree.processOf(stepCode);
+            if (!route.permits(process)) {
+                List<String> refusing = new java.util.ArrayList<>();
+                if (!tree.permitted(route.lowest()).contains(process)) {
+                    refusing.add(route.lowest());
+                }
+                route.zones().stream().filter(zone -> !tree.permitted(zone).contains(process))
+                        .forEach(refusing::add);
+                return new StepSurface.Fleet.Offer(step.get().slots(), "'" + process
+                        + "' is not permitted by " + refusing + " on the way from " + tenant
+                        + " to " + to + " through " + route.zones(), step.get().awaits());
+            }
+        } catch (IllegalArgumentException noWay) {
+            return new StepSurface.Fleet.Offer(step.get().slots(), noWay.getMessage(),
+                    step.get().awaits());
+        }
+        return new StepSurface.Fleet.Offer(step.get().slots(), null, step.get().awaits());
+    }
+
     private StepSurface.Fleet.Offer offerOf(String tenant, String stepCode) {
         TenantSpec.FleetStep declared = declaredFleetSteps.stream()
                 .filter(step -> step.code().equals(stepCode))
@@ -2197,10 +2463,11 @@ public final class TenantRuntimeManager implements AutoCloseable {
      * at all; this says what of each.
      */
     static cloud.jengu.dbo.policy.TenantPolicies policiesOf(TenantSpec spec) {
-        if (spec.managedBy() == null) {
-            return spec.policies();
-        }
-        return spec.policies().withAudienceUnlessDeclared(spec.managedBy(),
+        // What a partner sees, unless the tenant says otherwise: the journey
+        // of its runs, never their documents. Who is a partner here is the
+        // authority's to decide, per token.
+        return spec.policies().withAudienceUnlessDeclared(
+                cloud.jengu.dbo.auth.TenantAuthority.PARTNER_AUDIENCE,
                 new cloud.jengu.dbo.policy.TenantPolicies.Audience(
                         Set.of(cloud.jengu.dbo.work.WorkModel.TYPE, "AuditEntry"),
                         cloud.jengu.dbo.core.api.Disclosure.Mode.OMIT));
@@ -2258,6 +2525,9 @@ public final class TenantRuntimeManager implements AutoCloseable {
      * most one at a time per tenant, and the pass moves on.
      */
     private synchronized void pass() {
+        // A tenant whose owner took its key away stops before anything else is
+        // asked of it.
+        sealWhatNoLongerUnwraps();
         // The declarations first, then what this deployment does about them.
         // Applying is what turns a source into the records the sweep below
         // reads; a deployment with no managing tenant has no records and reads
@@ -2283,6 +2553,18 @@ public final class TenantRuntimeManager implements AutoCloseable {
         java.util.List<cloud.jengu.dbo.sync.ConfigApplication.Declared> declarations =
                 new java.util.ArrayList<>(declaredNow());
         declarations.addAll(ZoneProjections.neededBy(declarations));
+        // THE JURISDICTIONS, read from every declaration at once. A zone is a
+        // relation between files — what one names, another must be — so it is
+        // judged over all of them here, before any is begun, rather than by
+        // each bring-up against whatever happens to be serving.
+        List<TenantSpec> parsed = parsedOf(declarations);
+        ZoneTree tree = ZoneTree.of(parsed);
+        zones = tree;
+        partners = parsed.stream()
+                .filter(spec -> spec.partnerOf() != null
+                        && spec.partnerOf().equals(managementCode))
+                .map(TenantSpec::code)
+                .collect(java.util.stream.Collectors.toUnmodifiableSet());
         // What is declared is known before anything is begun, because the
         // retraction below reads it and the work no longer finishes first.
         // The same codes the work itself would add: a parsed spec's, or the
@@ -2319,6 +2601,10 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 TenantSpec.onlyTheDeploymentDeclaresFleetSteps(spec);
                 aStepCodeBelongsToOneLevel(spec);
                 aRequiredStepCannotBeDeclined(spec);
+                tree.refuse(spec);
+                tree.refuseTakingFromAPeer(spec, managementCode);
+                aPartnerIsTheProvidersPartner(spec);
+                aPartnerIsNotDeclaredByTheTenantItFollows(spec);
                 // It parsed and it is being served, so a later refusal of the
                 // same file is news rather than a repeat.
                 refusals.applied(named);
@@ -2471,6 +2757,67 @@ public final class TenantRuntimeManager implements AutoCloseable {
         }
         lastDeclared = declared;
         settle();
+        carryWhatWasAsked();
+    }
+
+    /** What carries work between tenants, through the zones they share. */
+    private final Crossings crossings = new Crossings(new Crossings.Plane() {
+        @Override
+        public Set<String> serving() {
+            return Set.copyOf(runtimes.keySet());
+        }
+
+        @Override
+        public ZoneTree zones() {
+            return zones;
+        }
+
+        @Override
+        public Optional<cloud.jengu.dbo.runner.Lane> lane(String tenant, Set<String> steps) {
+            return fleetLane(tenant, steps, Crossings.CARRIER);
+        }
+
+        @Override
+        public void hold(String tenant, String crossing, String answer) {
+            HeldAnswers.hold(tenantDataSources.get(tenant), crossing, answer);
+        }
+
+        @Override
+        public boolean drop(String tenant, String crossing) {
+            javax.sql.DataSource on = tenantDataSources.get(tenant);
+            return on != null && HeldAnswers.drop(on, crossing);
+        }
+
+        @Override
+        public Optional<cloud.jengu.dbo.core.api.seal.ParticipantKey> sealedTo(String tenant,
+                String participant) {
+            cloud.jengu.dbo.auth.TenantAuthority authority = authorities.get(tenant);
+            return authority == null ? Optional.empty() : authority.participantKey(participant);
+        }
+
+        @Override
+        public Optional<cloud.jengu.dbo.policy.PolicyObjectStore> store(String tenant) {
+            TenantRuntime serving = runtimes.get(tenant);
+            return serving != null
+                    && serving.engine() instanceof cloud.jengu.dbo.policy.PolicyObjectStore store
+                    ? Optional.of(store) : Optional.empty();
+        }
+    });
+
+    /**
+     * Each pass carries what tenants asked of each other since the last.
+     *
+     * <p>On the pass because it is the deployment's beat and the one place
+     * every tenant and zone is read together. A crossing that cannot be
+     * carried is released with why and tried again on a later pass; one that
+     * throws is said and does not stop the pass that found it.
+     */
+    private void carryWhatWasAsked() {
+        try {
+            crossings.crossOnce();
+        } catch (RuntimeException failed) {
+            LOG.error("carrying work between tenants failed this pass", failed);
+        }
     }
 
     /** What the last pass found declared, which is what the states are kept to. */
@@ -2693,7 +3040,9 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 fleetRegisterChanged(code).ifPresent(changed ->
                         row.put("changedSinceAuthorised", changed));
                 row.put("unapproved", unapprovedRows(code).stream()
-                        .map(unapproved -> unapproved.step() + "/" + unapproved.slot())
+                        .map(unapproved -> unapproved.slot() == null
+                                ? unapproved.step() + " (" + unapproved.by() + ")"
+                                : unapproved.step() + "/" + unapproved.slot())
                         .toList());
                 row.put("withheld", List.copyOf(withheldFrom(code)));
                 row.put("unauthorisedIncidents", unapprovedProcessing(code).size());
@@ -2704,6 +3053,75 @@ public final class TenantRuntimeManager implements AutoCloseable {
             answer.put("steps", List.copyOf(new java.util.TreeSet<>(fleetStepCodes)));
             answer.put("awaitingDeclaration", List.copyOf(new java.util.TreeSet<>(
                     awaitingDeclaration())));
+            answer.put("tenants", tenants);
+            return cloud.jengu.dbo.core.wire.RecordWire.write(answer);
+        }));
+        // One fleet step's work in every tenant, as the deployment answering
+        // for it reads it: for work that lasts, opened for a request the
+        // deployment names, where each tenant stands with it and who said so —
+        // the acts recorded under it, never the tenant's records.
+        sharedServer.createContext("/runtime/fleet/steps/", opsGuardedAt(expected, exchange -> {
+            String step = exchange.getRequestURI().getPath()
+                    .substring("/runtime/fleet/steps/".length());
+            String request = query(exchange, "notice");
+            if (step.isBlank() || request == null || !fleetStepCodes.contains(step)) {
+                return null;
+            }
+            List<Map<String, Object>> tenants = new java.util.ArrayList<>();
+            for (String code : new java.util.TreeSet<>(runtimes.keySet())) {
+                if (code.equals(managementCode)) {
+                    continue;
+                }
+                cloud.jengu.dbo.core.api.ObjectStore held = runStores.get(code);
+                if (held == null) {
+                    continue;
+                }
+                cloud.jengu.dbo.work.Runs runs = new cloud.jengu.dbo.work.Runs(held);
+                Map<String, Object> row = new java.util.LinkedHashMap<>();
+                row.put("tenant", code);
+                java.util.Optional<cloud.jengu.dbo.work.Run> work =
+                        runs.byKey(step + "/" + request);
+                if (work.isEmpty()) {
+                    row.put("status", "not-opened");
+                    tenants.add(row);
+                    continue;
+                }
+                cloud.jengu.dbo.work.Run run = work.get();
+                row.put("status", run.status().wire());
+                if (run.milestone() != null) {
+                    row.put("stage", run.milestone().name());
+                }
+                if (run.statusReason() != null) {
+                    row.put("because", run.statusReason());
+                }
+                if (run.authored() != null) {
+                    row.put("opened", run.authored().toString());
+                }
+                List<Map<String, Object>> said = new java.util.ArrayList<>();
+                for (cloud.jengu.dbo.work.Run act : runs.items(run)) {
+                    if (!cloud.jengu.dbo.work.Runs.ACTS.equals(act.process())) {
+                        continue;
+                    }
+                    Map<String, Object> one = new java.util.LinkedHashMap<>();
+                    one.put("act", act.step());
+                    if (act.assignment() != null && act.assignment().claimant() != null) {
+                        one.put("by", act.assignment().claimant());
+                    }
+                    if (act.assignment() != null && act.assignment().note() != null) {
+                        one.put("because", act.assignment().note());
+                    }
+                    if (act.authored() != null) {
+                        one.put("at", act.authored().toString());
+                    }
+                    said.add(one);
+                }
+                said.sort(java.util.Comparator.comparing(one -> String.valueOf(one.get("at"))));
+                row.put("said", said);
+                tenants.add(row);
+            }
+            Map<String, Object> answer = new java.util.LinkedHashMap<>();
+            answer.put("step", step);
+            answer.put("notice", request);
             answer.put("tenants", tenants);
             return cloud.jengu.dbo.core.wire.RecordWire.write(answer);
         }));
@@ -2867,6 +3285,51 @@ public final class TenantRuntimeManager implements AutoCloseable {
         };
     }
 
+    /**
+     * The same guard, for an answer that reads its own address: null answers
+     * as nothing found there.
+     */
+    private com.sun.net.httpserver.HttpHandler opsGuardedAt(byte[] expected,
+            java.util.function.Function<com.sun.net.httpserver.HttpExchange, String> answer) {
+        return exchange -> {
+            try {
+                String presented = exchange.getRequestHeaders().getFirst("Authorization");
+                byte[] offered = presented == null || !presented.startsWith("Bearer ")
+                        ? new byte[0]
+                        : presented.substring(7).getBytes(java.nio.charset.StandardCharsets.UTF_8);
+                if (!java.security.MessageDigest.isEqual(expected, offered)) {
+                    respond(exchange, 401, "{\"error\":\"unauthorized\"}");
+                    return;
+                }
+                if (!"GET".equals(exchange.getRequestMethod())) {
+                    respond(exchange, 405, "{\"error\":\"invalid_request\"}");
+                    return;
+                }
+                String body = answer.apply(exchange);
+                respond(exchange, body == null ? 404 : 200,
+                        body == null ? "{\"error\":\"not_found\"}" : body);
+            } finally {
+                exchange.close();
+            }
+        };
+    }
+
+    /** One query parameter, decoded, or null. */
+    private static String query(com.sun.net.httpserver.HttpExchange exchange, String name) {
+        String raw = exchange.getRequestURI().getRawQuery();
+        if (raw == null) {
+            return null;
+        }
+        for (String pair : raw.split("&")) {
+            int at = pair.indexOf('=');
+            if (at > 0 && pair.substring(0, at).equals(name)) {
+                return java.net.URLDecoder.decode(pair.substring(at + 1),
+                        java.nio.charset.StandardCharsets.UTF_8);
+            }
+        }
+        return null;
+    }
+
     private static void respond(com.sun.net.httpserver.HttpExchange exchange, int status,
             String body) throws IOException {
         byte[] bytes = body.getBytes(java.nio.charset.StandardCharsets.UTF_8);
@@ -3003,6 +3466,81 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 + "anybody joins.");
     }
 
+    /**
+     * A partner is the service provider's, and a deployment has one provider.
+     *
+     * <p>Every partner of this deployment is carried work through its
+     * provider, and a regular tenant trusts the provider and nobody it has
+     * not been told of — so a tenant naming anything else as whose partner it
+     * is names a relation this deployment does not have.
+     */
+    private void aPartnerIsTheProvidersPartner(TenantSpec spec) {
+        if (spec.partnerOf() == null || spec.partnerOf().equals(managementCode)) {
+            return;
+        }
+        throw new IllegalArgumentException("tenant '" + spec.code() + "' says it is a partner "
+                + "of '" + spec.partnerOf() + "', and "
+                + (managementCode == null ? "this deployment has no service provider"
+                        : "this deployment's service provider is '" + managementCode + "'")
+                + ". A partner is carried work by the provider, so it is the provider's "
+                + "partner or nobody's");
+    }
+
+    /**
+     * A tenant no longer names who may follow its work. A partner follows a
+     * tenant only because the provider's process hands it work, named on the
+     * tenant's register where the tenant may decline it — so a tenant naming
+     * its own would be a second way in that the register does not show.
+     */
+    private static void aPartnerIsNotDeclaredByTheTenantItFollows(TenantSpec spec) {
+        if (spec.managedBy() == null) {
+            return;
+        }
+        throw new IllegalArgumentException("tenant '" + spec.code() + "' names '"
+                + spec.managedBy() + "' under managedBy, which is retired: a partner follows a "
+                + "tenant only as one the service provider's process hands work to, named on "
+                + "the tenant's register by the provider's delegatesTo. Remove managedBy");
+    }
+
+    /**
+     * Which partner a token the provider's authority issued is, for this
+     * tenant, or empty where this tenant does not admit it.
+     *
+     * <p>Asked per token rather than decided when the trust was made, because
+     * every part of the answer moves under a serving tenant: a provider names
+     * or drops a partner, a tenant declines a step or has not authorised a
+     * row that may not run until it has. A service's credential only — the
+     * client is the subject — and only a tenant that declares itself the
+     * provider's partner, named on a row of this tenant's register that its
+     * work is not withheld from.
+     */
+    private Optional<String> admittedPartner(String tenant, Object claims) {
+        if (!(claims instanceof Map<?, ?> said) || !(said.get("sub") instanceof String client)
+                || !client.equals(said.get("client_id")) || !partners.contains(client)) {
+            return Optional.empty();
+        }
+        Set<String> withheld = withheldFrom(tenant);
+        boolean named = fleetRegister(tenant).stream()
+                .filter(row -> !withheld.contains(row.step()))
+                .anyMatch(row -> row.subProcessors().contains(client));
+        return named ? Optional.of(client) : Optional.empty();
+    }
+
+    /** The declarations that parse; one that does not is refused where it is begun. */
+    private static List<TenantSpec> parsedOf(
+            List<cloud.jengu.dbo.sync.ConfigApplication.Declared> declarations) {
+        List<TenantSpec> parsed = new java.util.ArrayList<>();
+        for (cloud.jengu.dbo.sync.ConfigApplication.Declared declaration : declarations) {
+            try {
+                parsed.add(TenantSpec.parse(new String(declaration.payload(),
+                        java.nio.charset.StandardCharsets.UTF_8)));
+            } catch (RuntimeException refusedWhereItIsBegun) {
+                // Said by the bring-up that parses it again, by name.
+            }
+        }
+        return parsed;
+    }
+
     /** The tenant a spec file declares, when it parses — for a state to belong to. */
     private static Optional<String> codeOf(
             cloud.jengu.dbo.sync.ConfigApplication.Declared declaration) {
@@ -3092,6 +3630,12 @@ public final class TenantRuntimeManager implements AutoCloseable {
                     serving.store(), serving.feed(), serving.definitionsFeed(),
                     serving.endpoint(), serving.grain(), serving.replication(),
                     serving.blobs(), serving.authority()));
+            selfStarting(declared.code())
+                    .ifPresent(starting -> starting.redeclared(selfStartingSteps(declared)));
+            StepWatches watching = watches.get(declared.code());
+            if (watching != null) {
+                watching.redeclared(selfStartingSteps(declared));
+            }
             redeclared.remove(declared.code());
             LOG.info("tenant {} took a change where it stands: {}",
                     declared.code(), change.says());
@@ -3422,6 +3966,190 @@ public final class TenantRuntimeManager implements AutoCloseable {
     }
 
     /**
+     * Where a tenant keeps the secrets its owner gives it: opened through the
+     * deployment's Vault under the tenant's own Transit key, and nothing else,
+     * and kept by the tenant's authority.
+     */
+    private OwnersConfiguration.Secrets secretsOf(String code,
+            TenantSpec.Configuration configuration) {
+        String key = configuration.key() != null ? configuration.key() : "tenant-" + code;
+        return new OwnersConfiguration.Secrets() {
+
+            @Override
+            public Map<String, String> open(SopsFile file) {
+                VaultTransit transit = vault;
+                if (transit == null) {
+                    throw new IllegalArgumentException(file.name() + " holds secrets, and "
+                            + "this deployment names no Vault to open them through");
+                }
+                // THE TENANT'S OWN KEY, in the deployment's own engine. A file
+                // wrapped under another tenant's key would otherwise have the
+                // store open what that tenant's owner sealed.
+                SopsFile.VaultRecipient recipient = file.vault().stream()
+                        .filter(one -> one.keyName().equals(key)
+                                && one.enginePath().equals(transit.mount()))
+                        .findFirst().orElseThrow(() -> new IllegalArgumentException(
+                                file.name() + " is not wrapped by this tenant's key '" + key
+                                        + "' in '" + transit.mount() + "'"));
+                return file.open(transit.unwrap(key, recipient.wrapped()));
+            }
+
+            @Override
+            public void keep(String name, String value) {
+                authorityHolding(code, name).keepSecret(name,
+                        value.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            }
+
+            @Override
+            public void forget(String name) {
+                authorityHolding(code, name).forgetSecret(name);
+            }
+        };
+    }
+
+    /**
+     * A secret for a run of a step, where the step declares it: a step
+     * reaches what its declaration names and nothing else the tenant holds.
+     */
+    private java.util.Optional<byte[]> reachSecret(TenantSpec spec,
+            cloud.jengu.dbo.policy.PolicyObjectStore engine, cloud.jengu.dbo.work.Run run,
+            String by, String name) {
+        String step = run.process() + "." + run.step();
+        boolean declared = spec.steps().stream().anyMatch(one -> one.code().equals(step)
+                && TenantSpec.reaches(one.secrets(), name));
+        if (!declared) {
+            throw new IllegalStateException(spec.code() + ": step '" + step + "' does not "
+                    + "declare the secret '" + name + "', and a step reaches only the secrets "
+                    + "it declares");
+        }
+        cloud.jengu.dbo.auth.TenantAuthority authority = authorities.get(spec.code());
+        java.util.Optional<byte[]> reached = authority == null ? java.util.Optional.empty()
+                : authority.secret(name);
+        if (reached.isPresent()) {
+            // WHICH SECRET, BY ITS OWN NAME, on the trail of the run that
+            // reached it: a family is what the step may reach, and the
+            // account says what it did.
+            String outer = cloud.jengu.dbo.core.api.Caller.run();
+            cloud.jengu.dbo.core.api.Caller.setRun(run.key());
+            try {
+                engine.recordCustom("secret", "HeldSecret", name,
+                        java.util.Map.of("by", by, "step", step));
+            } finally {
+                if (outer == null) {
+                    cloud.jengu.dbo.core.api.Caller.clearRun();
+                } else {
+                    cloud.jengu.dbo.core.api.Caller.setRun(outer);
+                }
+            }
+        }
+        return reached;
+    }
+
+    /**
+     * The tenant's people's keys, wrapped under its working key and looked up
+     * by the index it kept — and, while the tenant is moving its keys, moved
+     * from under the deployment's key here.
+     */
+    private cloud.jengu.dbo.pdi.PersonVault personVault(String code,
+            javax.sql.DataSource dataSource) {
+        WorkingKeys.Held held = workingKeys.get(code);
+        cloud.jengu.dbo.pdi.PersonVault vault = new cloud.jengu.dbo.pdi.PersonVault(dataSource,
+                held.key(), held.index(), held.moving() ? authorityConfig.kek() : null);
+        int moved = vault.rewrapAll();
+        if (moved > 0) {
+            LOG.info("tenant's people's keys moved under its working key: code={} keys={}",
+                    code, moved);
+        }
+        return vault;
+    }
+
+    /**
+     * What wraps a tenant's working key: the deployment's own key, a Transit
+     * key in the deployment's Vault, or one in a Vault the owner runs, reached
+     * with this deployment's service account token under the role it grants.
+     */
+    private KeyWrapper wrapperFor(TenantSpec.WorkingKey declared) {
+        if (declared == null) {
+            return KeyWrapper.deployment(authorityConfig.kek());
+        }
+        if (declared.vault() == null) {
+            VaultTransit deployments = vault;
+            if (deployments == null) {
+                throw new IllegalStateException("the working key is wrapped by '"
+                        + declared.key() + "' in this deployment's Vault, and it names none");
+            }
+            return KeyWrapper.transit(deployments.withMount(declared.mount()), declared.key());
+        }
+        java.net.URI owners = java.net.URI.create(declared.vault());
+        return KeyWrapper.transit(new VaultTransit(owners, declared.mount(),
+                VaultTransit.kubernetes(owners, declared.authMount() == null ? "jwt"
+                        : declared.authMount(), declared.role(), serviceAccountToken)),
+                declared.key());
+    }
+
+    /**
+     * Every serving tenant whose working key is held elsewhere and was last
+     * unwrapped longer ago than it is trusted for, asked again; one whose key
+     * will not unwrap is taken down, and is not brought up again while it
+     * will not.
+     */
+    private void sealWhatNoLongerUnwraps() {
+        java.time.Instant now = java.time.Instant.now();
+        for (Map.Entry<String, HeldElsewhere> one : List.copyOf(heldElsewhere.entrySet())) {
+            HeldElsewhere held = one.getValue();
+            if (held.checked().plus(workingKeyRecheck).isAfter(now)) {
+                continue;
+            }
+            try {
+                WorkingKeys.check(held.identities(), held.wrapper());
+                heldElsewhere.put(one.getKey(), new HeldElsewhere(held.identities(),
+                        held.wrapper(), now));
+            } catch (RuntimeException revoked) {
+                heldElsewhere.remove(one.getKey());
+                LOG.warn("tenant sealed: its working key would not unwrap: code={} reason={}",
+                        one.getKey(), revoked.getMessage());
+                takeDown(one.getKey(), "its working key would not unwrap: "
+                        + revoked.getMessage());
+            }
+        }
+    }
+
+    /**
+     * A file of a tenant's secrets, written as SOPS would through the
+     * deployment's Vault under the tenant's key, to the recipients the
+     * repository's .sops.yaml names at its declared ref.
+     */
+    private byte[] secretsWritten(TenantSpec spec, String path, Map<String, String> secrets) {
+        VaultTransit transit = vault;
+        if (transit == null) {
+            throw new IllegalArgumentException("this deployment names no Vault to wrap "
+                    + spec.code() + "'s secrets through");
+        }
+        TenantSpec.Configuration configuration = spec.configuration();
+        String key = configuration != null && configuration.key() != null
+                ? configuration.key() : "tenant-" + spec.code();
+        String sopsYaml = null;
+        if (configuration != null) {
+            try (ConfigRepository repository = ConfigRepository.open(
+                    Path.of(configuration.git()))) {
+                sopsYaml = repository.read(repository.resolve(configuration.ref()), ".sops.yaml")
+                        .map(bytes -> new String(bytes, java.nio.charset.StandardCharsets.UTF_8))
+                        .orElse(null);
+            }
+        }
+        return new SopsWriter(transit, key).write(path, secrets, sopsYaml);
+    }
+
+    private cloud.jengu.dbo.auth.TenantAuthority authorityHolding(String code, String secret) {
+        cloud.jengu.dbo.auth.TenantAuthority authority = authorities.get(code);
+        if (authority == null) {
+            throw new IllegalArgumentException("'" + secret + "' is a secret, and " + code
+                    + " has no authority to keep it");
+        }
+        return authority;
+    }
+
+    /**
      * Everything a bring-up mounted, taken back down — with or without a
      * runtime, because a bring-up can fail on either side of the moment one
      * exists. Not a retraction: nothing served, nobody was told, and there is
@@ -3478,7 +4206,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
         }
         // The zone a member federates through: its hub is built from the
         // zone's own records and authority.
-        if (authorityConfig != null && spec.zone() != null && !spec.zone().equals(spec.code())
+        if (authorityConfig != null && spec.zone() != null
                 && !zoneHubs.containsKey(spec.zone()) && !runtimes.containsKey(spec.zone())) {
             throw new UpstreamNotReady(spec.code(), spec.zone());
         }
@@ -3536,11 +4264,30 @@ public final class TenantRuntimeManager implements AutoCloseable {
                     ? authorityConfig.issuerBase()
                     : "http://" + host + ":" + port();
             String oidcPath = "/t/" + spec.code() + "/oidc";
+            PgObjectStore identities = new PgObjectStore(db.dataSource(),
+                    cloud.jengu.dbo.auth.IdentityModel.registrations());
+            // THE WORKING KEY FIRST: everything the authority keeps secret is
+            // wrapped under it, and a tenant whose key will not unwrap does
+            // not come up.
+            KeyWrapper wrapper = wrapperFor(spec.workingKey());
+            WorkingKeys.Held held = WorkingKeys.resolve(identities, wrapper, spec.workingKey(),
+                    authorityConfig.kek(), this::wrapperFor);
+            workingKeys.put(spec.code(), held);
             cloud.jengu.dbo.auth.TenantAuthority authority = tenantAuthority = new cloud.jengu.dbo.auth.TenantAuthority(
-                    new PgObjectStore(db.dataSource(), cloud.jengu.dbo.auth.IdentityModel.registrations()),
+                    identities,
                     issuerBase + oidcPath,
-                    new cloud.jengu.dbo.auth.KeyProtector(authorityConfig.kek()));
+                    new cloud.jengu.dbo.auth.KeyProtector(held.key(),
+                            held.moving() ? authorityConfig.kek() : null));
             authority.ensureSigningKey();
+            int moved = authority.rewrapKeys();
+            if (moved > 0) {
+                LOG.info("tenant keys moved under its working key: code={} keys={}",
+                        spec.code(), moved);
+            }
+            if (wrapper.heldElsewhere()) {
+                heldElsewhere.put(spec.code(), new HeldElsewhere(identities, wrapper,
+                        java.time.Instant.now()));
+            }
             // A place signs its people in with the PIN they set at the tenant,
             // whose verifier it was handed: its link to the tenant may be down
             // when somebody needs to sign in. Nowhere else does a PIN sign
@@ -3689,7 +4436,19 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 // FROM THE SPEC IN HAND, not from the serving runtime: this runs
                 // during bring-up, and the runtime whose declines would be
                 // read is the one being built.
-                !fleetStepCodes.isEmpty() && !spec.declines().containsAll(fleetStepCodes));
+                !fleetStepCodes.isEmpty() && !spec.declines().containsAll(fleetStepCodes)
+                        // Or its jurisdictions': an exchange a zone offers it is
+                        // asked for at its own door, and a member declaring no
+                        // steps of its own would otherwise have none to ask at.
+                        || !zones.exchangeSteps(spec.code()).isEmpty());
+        // What its steps that start on a change watch, known before its feed
+        // is first read; handed to those steps once they stand, at surfaces.
+        StepWatches watching = new StepWatches(selfStartingSteps(spec),
+                places.contains(spec.code()));
+        if (selfStartingSteps(spec).stream().allMatch(step -> step.starts() == null)) {
+            watching.detached();
+        }
+        watches.put(spec.code(), watching);
         java.util.List<AutoCloseable> leftBehind = new java.util.ArrayList<>(
                 activities.runAt(TenantPoint.DISPATCH,
                         new TenantActivities.Provisioned(facts, db.dataSource(), store,
@@ -3762,6 +4521,20 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 new PgChangeFeed(db.dataSource(), version.domain()),
                 new PgChangeFeed(db.dataSource(), cloud.jengu.dbo.core.api.Domains.DEFINITIONS),
                 declarationTypes(spec));
+        // WHICH PLACE MADE IT, kept where every other copy's source is kept:
+        // a record a place's run produced is read here with the place it came
+        // from as its source, as a record a dependency streamed is read with
+        // the dependency.
+        java.util.Map<String, String> domainOf = new java.util.HashMap<>();
+        declared.registrations().forEach(registration ->
+                domainOf.put(registration.typeName(), registration.domain()));
+        replication.recordingWhence((item, from) -> {
+            String domain = domainOf.get(item.typeName());
+            if (domain != null) {
+                PlaceOrigins.note(db.dataSource(), domain, item.id(), from, item.typeName(),
+                        item.version());
+            }
+        });
         TenantRuntime runtime = new TenantRuntime(spec, engine, store,
                 new PgChangeFeed(db.dataSource(), version.domain()),
                 new PgChangeFeed(db.dataSource(), cloud.jengu.dbo.core.api.Domains.DEFINITIONS),
@@ -3794,9 +4567,39 @@ public final class TenantRuntimeManager implements AutoCloseable {
         // the tenant that holds them — asking the deployment to apply the
         // declarations it reads itself. Behind the authority like every other
         // private surface: a tenant with none has no way to say who is asking.
+        if (spec.configuration() != null) {
+            // Applied as the face applies a posted set: through its grain, its
+            // equivalence and its references. One apply at a time per tenant,
+            // because each reads the account the last one left.
+            Object oneAtATime = new Object();
+            owners.put(spec.code(), (ref, by, preview) -> {
+                synchronized (oneAtATime) {
+                    // Read now, not at mount: a hot change to where the
+                    // configuration is kept replaces the declaration in place.
+                    TenantRuntime now = runtimes.getOrDefault(spec.code(), runtime);
+                    TenantSpec.Configuration configuration = now.spec().configuration() != null
+                            ? now.spec().configuration() : spec.configuration();
+                    return new OwnersConfiguration(spec.code(), configuration,
+                            runStores.get(spec.code()),
+                            new cloud.jengu.dbo.work.Runs(runStores.get(spec.code())),
+                            new cloud.jengu.dbo.sync.ConfigApplication(
+                                    runStores.get(spec.code()),
+                                    new cloud.jengu.dbo.work.Runs(runStores.get(spec.code())),
+                                    version.domain(),
+                                    runtime.grain(),
+                                    version.face().capability(
+                                            cloud.jengu.dbo.core.face.DocumentEquivalence.class)
+                                            .orElse(null),
+                                    store.references().orElse(null)),
+                            secretsOf(spec.code(), configuration))
+                            .apply(ref, by, preview);
+                }
+            });
+        }
         if (authority != null) {
             String configurationPath = "/t/" + spec.code() + "/configuration";
-            sharedServer.createContext(configurationPath, new ConfigurationHandler(authority,
+            ConfigurationHandler configuring;
+            sharedServer.createContext(configurationPath, configuring = new ConfigurationHandler(authority,
                     () -> spec.code().equals(managementCode) ? applyDeclarations() : null,
                     // Applied through the face, not onto the engine alone. A
                     // vocabulary handed over here has to land at the grain
@@ -3843,7 +4646,9 @@ public final class TenantRuntimeManager implements AutoCloseable {
                     // against, and answering anyway would be answering about
                     // somebody else's tenants.
                     declarations -> spec.code().equals(managementCode)
-                            ? classify(declarations) : null));
+                            ? classify(declarations) : null,
+                    owners.get(spec.code())));
+            configuring.secretsWriter((path, secrets) -> secretsWritten(spec, path, secrets));
             configurationContexts.put(spec.code(), configurationPath);
         }
         // The maintenance surface, when the tenant has an authority to guard
@@ -3906,7 +4711,11 @@ public final class TenantRuntimeManager implements AutoCloseable {
             // Where a step's result becomes this tenant's records: through
             // the same face a posted transaction bundle goes through, and
             // only for the types each step declared it writes.
-            RunResults runResults = new RunResults(spec.code(), spec.steps(), store);
+            final String answering = spec.code();
+            RunResults runResults = new RunResults(spec.code(), spec.steps(), store,
+                    step -> zones.exchangeStep(answering, step)
+                            .map(TenantSpec.Step::writes).orElse(Set.of()),
+                    () -> starters.get(answering));
             cloud.jengu.dbo.runner.transport.Lanes laneFactory =
                     (participant, identity, entitlement) -> {
                         // WHOSE KEYS the asker's own are: the credential the
@@ -3950,6 +4759,18 @@ public final class TenantRuntimeManager implements AutoCloseable {
                                         public java.util.List<cloud.jengu.dbo.work.RunChain.Link>
                                                 links(cloud.jengu.dbo.work.Run run) {
                                             return TrailLinks.of(engine, run);
+                                        }
+
+                                        // What came back on a crossing, held
+                                        // beside the run and never in it.
+                                        @Override
+                                        public java.util.Optional<String> held(
+                                                cloud.jengu.dbo.work.Run run) {
+                                            javax.sql.DataSource on =
+                                                    tenantDataSources.get(spec.code());
+                                            return run.crossing() == null || on == null
+                                                    ? java.util.Optional.empty()
+                                                    : HeldAnswers.held(on, run.crossing().id());
                                         }
 
                                         // An opening is an access entry on the
@@ -4016,7 +4837,10 @@ public final class TenantRuntimeManager implements AutoCloseable {
                                     // Nothing here says when work appears: a
                                     // participant over this door polls.
                                     null,
-                                    runResults),
+                                    runResults,
+                                    // A step reaches the secrets it declares.
+                                    (run, by, name) -> reachSecret(spec, engine, run, by,
+                                            name)),
                                 contacts, laneRuns, laneDeclarations, heartbeatLimit, asker);
                     };
             // The same lane on the store's own stream, for a participant that
@@ -4039,30 +4863,19 @@ public final class TenantRuntimeManager implements AutoCloseable {
             // And on every carrier a host registered, which chose to carry
             // the stream and so is not asked whether anybody can use it.
             carried.keySet().forEach(carrier -> openOn(carrier, spec.code()));
-            if (spec.managedBy() != null) {
-                // The relation, made true at the door: the partner's own
-                // authority is trusted here because this tenant declared it,
-                // and its tokens arrive as the partner audience. The keys
-                // come from the partner's runtime when it is served beside
-                // this one, and from its published JWKS when it is not.
-                String partner = spec.managedBy();
-                String partnerIssuer = partnerIssuer(authority.issuer(), spec.code(), partner);
-                authority.trust(partnerIssuer, () -> {
-                    cloud.jengu.dbo.auth.TenantAuthority local = authorities.get(partner);
-                    if (local != null) {
-                        return local.jwksJson();
-                    }
-                    try {
-                        return java.net.http.HttpClient.newHttpClient().send(
-                                java.net.http.HttpRequest.newBuilder(java.net.URI.create(
-                                        partnerIssuer + "/.well-known/jwks.json")).build(),
-                                java.net.http.HttpResponse.BodyHandlers.ofString()).body();
-                    } catch (java.io.IOException | InterruptedException unreachable) {
-                        throw new IllegalStateException(spec.code() + ": the partner '"
-                                + partner + "' published no keys at " + partnerIssuer,
-                                unreachable);
-                    }
-                }, partner);
+            String provider = managementCode;
+            if (provider != null && !provider.equals(spec.code())) {
+                // A PARTNER COMES THROUGH THE PROVIDER. For a tenant the
+                // provider is the service, so its authority is the one trusted
+                // here, and nobody it has not vouched for: a token it issued
+                // is admitted as the partner it names, and only while this
+                // tenant's register names that partner on a row it has not
+                // declined or withheld — asked per token, so that withdrawing
+                // is a line in this tenant's declaration and nothing more.
+                final String code = spec.code();
+                authority.trust(partnerIssuer(authority.issuer(), code, provider),
+                        () -> authorities.get(provider).jwksJson(),
+                        claims -> admittedPartner(code, claims));
             }
             sharedServer.createContext(workPath, new cloud.jengu.dbo.runner.http.LaneHandler(
                     workPath, verbs));
@@ -4157,9 +4970,25 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 spec.code(), facadeMillis, System.currentTimeMillis() - vocabularyAt);
         // Published only now: wired, mounted, and safe to be somebody's
         // upstream.
+        // Everything the deployment's key wrapped is under the working key
+        // now, so the deployment's key opens nothing of this tenant's again.
+        WorkingKeys.Held held = workingKeys.get(spec.code());
+        if (held != null && held.moving()) {
+            WorkingKeys.moved(new PgObjectStore(db.dataSource(),
+                    cloud.jengu.dbo.auth.IdentityModel.registrations()));
+            workingKeys.put(spec.code(), new WorkingKeys.Held(held.key(), held.index(), false));
+        }
         runtimes.put(spec.code(), runtime);
         mounting.remove(spec.code());
         cutWhatOthersWillComeUpFrom(spec);
+        // The owner's configuration, at the ref the declaration names, once
+        // the tenant serves. Owed rather than thrown: a repository not there
+        // yet is said once and read again on the next pass.
+        ConfigurationHandler.Owners owned = owners.get(spec.code());
+        if (owned != null) {
+            owe(spec.code(), "applying its owner's configuration",
+                    () -> owned.apply(null, "dbo", false));
+        }
         owe(spec.code(), "announcing it to the host", () -> listener.tenantUp(runtime));
     }
 
@@ -4221,7 +5050,23 @@ public final class TenantRuntimeManager implements AutoCloseable {
                         && tenantDataSources.get(code) != null
                         ? participant -> PlaceTrails.of(tenantDataSources.get(code), replay,
                                 participant)
-                        : null));
+                        : null,
+                // The runs a place performed and what they produced, applied as
+                // the place's: filed under the credential that hands them, the
+                // runs mirrored beside this tenant's own.
+                participant -> batch -> {
+                    cloud.jengu.dbo.sync.Lanes.Batch handed = cloud.jengu.dbo.core.wire.RecordWire
+                            .decode(batch, cloud.jengu.dbo.sync.Lanes.Batch.class);
+                    // FILED BY THE CREDENTIAL, never by the name the batch
+                    // carries: a place hands its work as itself and as nobody
+                    // else, exactly as it hands its trail.
+                    cloud.jengu.dbo.sync.Lanes.Applied applied = serving.replication().apply(
+                            participant, new cloud.jengu.dbo.sync.Lanes.Batch(handed.epoch(),
+                                    participant, handed.cursor(), handed.items(),
+                                    handed.contentCursor()));
+                    return new cloud.jengu.dbo.runner.transport.Handover.Taken(
+                            applied.applied(), applied.skipped(), applied.refused());
+                }));
     }
 
     /**
@@ -4232,12 +5077,21 @@ public final class TenantRuntimeManager implements AutoCloseable {
     public record OriginFeeds(ChangeFeed records, ChangeFeed definitions,
             ChangeFeed definitionsWithoutTheFace,
             /** Where the place hands its own trail, or null for a link that carries none. */
-            cloud.jengu.dbo.runner.transport.Trail trail) {
+            cloud.jengu.dbo.runner.transport.Trail trail,
+            /** Where the place hands the work it did, or null for a link that carries none. */
+            cloud.jengu.dbo.runner.transport.Handover work) {
 
         /** A link that carries no trail: the place keeps its own. */
         public OriginFeeds(ChangeFeed records, ChangeFeed definitions,
                 ChangeFeed definitionsWithoutTheFace) {
-            this(records, definitions, definitionsWithoutTheFace, null);
+            this(records, definitions, definitionsWithoutTheFace, null, null);
+        }
+
+        /** A link that carries the trail and no work. */
+        public OriginFeeds(ChangeFeed records, ChangeFeed definitions,
+                ChangeFeed definitionsWithoutTheFace,
+                cloud.jengu.dbo.runner.transport.Trail trail) {
+            this(records, definitions, definitionsWithoutTheFace, trail, null);
         }
     }
 
@@ -4301,6 +5155,12 @@ public final class TenantRuntimeManager implements AutoCloseable {
             trailPushers.put(spec.code(), new TrailPusher(on, feeds.trail()));
         } else {
             trailPushers.remove(spec.code());
+        }
+        if (feeds.work() != null) {
+            runsPushers.put(spec.code(), new RunsPusher(runtime.replication(), feeds.work(),
+                    RunsPusher.processesOf(spec)));
+        } else {
+            runsPushers.remove(spec.code());
         }
         FhirVersion version = versions.require(spec.face());
         TenantSpec.Dependency face = faceChainOf(spec);
@@ -5114,6 +5974,35 @@ public final class TenantRuntimeManager implements AutoCloseable {
         // Each place's own trail, up the link it reads through. What is not
         // taken waits in the place's own trail, and the tenant says where to
         // hand on from.
+        // And each place's work: the runs it performed and what they
+        // produced, which wait here while the link is down and go, once,
+        // when it is back.
+        runsPushers.forEach((code, pusher) -> {
+            if (closing || !runtimes.containsKey(code)) {
+                return;
+            }
+            String name = "runs." + code;
+            try {
+                int handed = pusher.round();
+                if (handed > 0) {
+                    LOG.info("place {} handed its tenant items={} of its work", code, handed);
+                }
+                if (unreached.remove(name)) {
+                    LOG.info("place {} hands its work to its tenant again", code);
+                }
+            } catch (RuntimeException e) {
+                if (unreachable(e)) {
+                    if (unreached.add(name)) {
+                        LOG.warn("place {} cannot hand its work to its tenant ({}); it waits "
+                                + "here and goes when the tenant can be reached", code,
+                                e.getMessage());
+                    }
+                } else {
+                    LOG.warn("place {} could not hand its work to its tenant this round; it "
+                            + "goes again next round", code, e);
+                }
+            }
+        });
         trailPushers.forEach((code, pusher) -> {
             if (closing || !runtimes.containsKey(code)) {
                 return;
@@ -5158,7 +6047,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
         }
         if (authorityConfig == null) {
             throw new IllegalStateException(spec.code()
-                    + ": pdi requires the tenant authority (the working key derives from its KEK)");
+                    + ": pdi requires the tenant authority, which holds the working key its people's keys are wrapped under");
         }
         cloud.jengu.dbo.pdi.PdiSpec pdiSpec = cloud.jengu.dbo.pdi.PdiSpec.fhir();
         PgObjectStore inner = new PgObjectStore(db.dataSource(),
@@ -5170,7 +6059,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
         // date got none at all, and the capability was published all along
         //.
         cloud.jengu.dbo.pdi.PersonVault vault =
-                new cloud.jengu.dbo.pdi.PersonVault(db.dataSource(), authorityConfig.kek());
+                personVault(spec.code(), db.dataSource());
         vaults.put(spec.code(), vault);
         return new cloud.jengu.dbo.pdi.PdiObjectStore(inner, vault,
                 pdiSpec,
@@ -5206,6 +6095,9 @@ public final class TenantRuntimeManager implements AutoCloseable {
         // they are built, and a type registered for the wrong tenant is a
         // surface that answers nothing.
         all.addAll(TenantDeclarationModel.registrations());
+        // What each file of an owner's configuration applied, so a source
+        // withdraws what it stopped declaring and nothing anybody else wrote.
+        all.addAll(ConfigFiles.registrations());
         // And the replication lane's own bookkeeping: where each peer
         // has reached, and what arrived for which work. Same argument again —
         // a lane's state is this tenant's, dropped when the tenant is. Without
@@ -5536,6 +6428,9 @@ public final class TenantRuntimeManager implements AutoCloseable {
         if (registerPath != null) {
             sharedServer.removeContext(registerPath);
         }
+        owners.remove(code);
+        workingKeys.remove(code);
+        heldElsewhere.remove(code);
         String configurationPath = configurationContexts.remove(code);
         if (configurationPath != null) {
             sharedServer.removeContext(configurationPath);
@@ -5994,6 +6889,17 @@ public final class TenantRuntimeManager implements AutoCloseable {
                     if (System.currentTimeMillis() - lastSweepMillis > 3_600_000) {
                         lastSweepMillis = System.currentTimeMillis();
                         sweeps.values().forEach(cloud.jengu.dbo.policy.RetentionSweep::sweepOnce);
+                        // The runs steps started themselves, under each
+                        // step's own retention, one tenant's failure not
+                        // another's.
+                        selfStarting.forEach((code, starting) -> {
+                            try {
+                                starting.letGo();
+                            } catch (RuntimeException failed) {
+                                LOG.warn("tenant {}: its started runs were not let go",
+                                        code, failed);
+                            }
+                        });
                         // On the same hourly beat: a key retired longer ago
                         // than any token it signed can still be live is gone.
                         // Rotation without this is not rotation.

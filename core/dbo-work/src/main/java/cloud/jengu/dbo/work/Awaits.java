@@ -46,7 +46,9 @@ public enum Awaits {
      */
     public Criteria narrowing(Criteria criteria) {
         switch (this) {
-            case OWNER -> criteria.eq("status", EnvelopeValue.of(Status.IN_PROGRESS.wire()));
+            // Claimed work: lasting work in progress is held by nobody.
+            case OWNER -> criteria.eq("status", EnvelopeValue.of(Status.IN_PROGRESS.wire()))
+                    .notEq("kind", EnvelopeValue.of(RunKind.LASTING.wire()));
             case MACHINE -> criteria.anyOf("status", List.of(
                             EnvelopeValue.of(Status.READY.wire()),
                             EnvelopeValue.of(Status.ON_HOLD.wire())))
@@ -56,13 +58,15 @@ public enum Awaits {
             case NOTHING -> criteria.anyOf("status", List.of(
                     EnvelopeValue.of(Status.COMPLETED.wire()),
                     EnvelopeValue.of(Status.FAILED.wire()),
-                    EnvelopeValue.of(Status.CANCELLED.wire())));
+                    EnvelopeValue.of(Status.CANCELLED.wire()),
+                    EnvelopeValue.of(Status.REJECTED.wire())));
         }
         return criteria;
     }
 
     /** The statuses a run still owed something can be in, for "is it open". */
     public static List<Status> open() {
-        return List.of(Status.READY, Status.IN_PROGRESS, Status.ON_HOLD);
+        return List.of(Status.READY, Status.IN_PROGRESS, Status.ON_HOLD, Status.RECEIVED,
+                Status.ACCEPTED);
     }
 }

@@ -18,7 +18,14 @@ public enum RunKind {
      * durable run per (process, scope), checkpointed — the operator's question
      * is about the thing, not about the pass.
      */
-    SWEEP;
+    SWEEP,
+
+    /**
+     * Work that lasts: opened for a request and held by nobody, moved through
+     * its stages by the runs that are its parts, and ended by them or by
+     * somebody with the right to — never claimed, and nobody's card.
+     */
+    LASTING;
 
     public String wire() {
         return name().toLowerCase(java.util.Locale.ROOT);

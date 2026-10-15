@@ -12,6 +12,7 @@
         "proposed": "Organization",
         "notes": "Basic[]"
       },
-      "opens": ["org"], "substrate": "directory" }
+      "opens": ["org"], "substrate": "directory",
+      "delegatesTo": ["sample-support-desk"] }
   ]
 }

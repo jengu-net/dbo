@@ -272,8 +272,9 @@ public final class PgObjectStore implements ObjectStore {
         replaceIdentifiers(c, domain, types, uuids, envelopes, created);
         replaceReferences(c, domain, uuids, envelopes, created);
         try (PreparedStatement ps = c.prepareStatement("""
-                INSERT INTO %s_history (id, version_id, type, last_updated, payload, deleted, payload_version, chain_hash, shape)
-                VALUES (?, ?, ?, ?, ?, false, ?, ?, ?::jsonb)""".formatted(Domains.historyTables(domain)))) {
+                INSERT INTO %s_history (id, version_id, type, last_updated, payload, deleted, payload_version, chain_hash, shape, run)
+                VALUES (?, ?, ?, ?, ?, false, ?, ?, ?::jsonb, ?)""".formatted(Domains.historyTables(domain)))) {
+            String run = cloud.jengu.dbo.core.api.Caller.run();
             for (int i = 0; i < n; i++) {
                 ps.setObject(1, uuids[i]);
                 ps.setLong(2, versions[i]);
@@ -283,6 +284,7 @@ public final class PgObjectStore implements ObjectStore {
                 ps.setString(6, types.get(i).payloadVersion());
                 ps.setBytes(7, chains[i]);
                 ps.setString(8, shapeJson[i]);
+                ps.setString(9, run);
                 ps.addBatch();
             }
             ps.executeBatch();
@@ -468,6 +470,15 @@ public final class PgObjectStore implements ObjectStore {
         Identifier ident = registry.identityIdentifier(type, identity);
         return inTx(c -> {
             Optional<String> existing = resolveIdentity(c, type, ident);
+            if (existing.isPresent() && !request.isRestore()
+                    && caller != Handling.Authority.SOURCE_TENANT
+                    && originOf(c, type.domain(), UUID.fromString(existing.get())).isPresent()) {
+                // WRITING WHAT A COPY CLAIMS IS SHADOWING IT. The identity
+                // names upstream's record, and a write by the tenant is a
+                // record of its own in front of it — not an edit of the copy,
+                // which would be overwritten or silently disagree.
+                existing = Optional.empty();
+            }
             String id = existing.orElse(request.id());
             // Same strip, same fix: only the id is decided here, and `with`
             // carries everything else the caller asked for.
@@ -543,6 +554,9 @@ public final class PgObjectStore implements ObjectStore {
         long newVersion = current == null ? 1 : current + 1;
         boolean created = current == null;
         guardWrite(type, request, created, caller);
+        if (!created) {
+            guardCopy(c, type, uuid, request.isRestore(), caller);
+        }
         Instant now = Instant.now();
         if (request.carriesRecordedHistory()) {
             // Replaying a history that happened elsewhere: keep its version and
@@ -562,6 +576,9 @@ public final class PgObjectStore implements ObjectStore {
         }
 
         Envelope envelope = envelopeOf(c, type, request.payload());
+        if (!request.isRestore() && caller != Handling.Authority.SOURCE_TENANT) {
+            shadowWhatThisClaims(c, type, uuid, envelope.identifiers());
+        }
         // The shape dimension derives from the ROW, not from the payload:
         // the extractor stays a pure function of bytes, and the stamp joins
         // the envelope here — the same place reindex re-adds it from the
@@ -780,8 +797,8 @@ public final class PgObjectStore implements ObjectStore {
             String shapeJson)
             throws SQLException {
         try (PreparedStatement ps = c.prepareStatement("""
-                INSERT INTO %s_history (id, version_id, type, last_updated, payload, deleted, payload_version, chain_hash, shape)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?::jsonb)"""
+                INSERT INTO %s_history (id, version_id, type, last_updated, payload, deleted, payload_version, chain_hash, shape, run)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?::jsonb, ?)"""
                 .formatted(Domains.historyTables(domain)))) {
             ps.setObject(1, id);
             ps.setLong(2, version);
@@ -792,6 +809,9 @@ public final class PgObjectStore implements ObjectStore {
             ps.setString(7, payloadVersion);
             ps.setBytes(8, chainHash);
             ps.setString(9, shapeJson);
+            // Whose result this is, as the run in force says: the one place
+            // every write passes, so no write path can forget to say it.
+            ps.setString(10, cloud.jengu.dbo.core.api.Caller.run());
             ps.executeUpdate();
         }
     }
@@ -1104,6 +1124,20 @@ public final class PgObjectStore implements ObjectStore {
             params.add(sw.path());
             params.add(likePrefix(sw.prefix()));
         }
+        if (criteria.origin() != null) {
+            // Whose a record is lives beside it, in the origin bookkeeping the
+            // stream writes, so the question is a join and never a guess from
+            // what the payload says about itself.
+            String tables = Domains.tables(domain);
+            Criteria.Origin origin = criteria.origin();
+            sql.append(origin.upstream() ? " AND EXISTS" : " AND NOT EXISTS")
+               .append(" (SELECT 1 FROM %s_sync_origin o WHERE o.object_id = d.id".formatted(tables));
+            if (origin.dependency() != null) {
+                sql.append(" AND o.dependency = ?");
+                params.add(origin.dependency());
+            }
+            sql.append(')');
+        }
         for (Criteria.Shape shape : criteria.shapePredicates()) {
             // An inequality over majors: GIN answers equality, so this walks
             // the _shape tokens — one per declared profile, bounded and
@@ -1309,13 +1343,25 @@ public final class PgObjectStore implements ObjectStore {
                             + " and only that lane may remove it");
             case null -> { }
         }
-        String domain = type.domain();
-        String d = Domains.tables(domain);
         UUID uuid = UUID.fromString(id);
         inTx(c -> {
+            guardCopy(c, type, uuid, false, caller);
+            tombstone(c, type, uuid, expectedVersion);
+            return null;
+        });
+    }
+
+    /** The deletion itself: a tombstone version, the claims freed, an event. */
+    private void tombstone(Connection c, TypeRegistration type, UUID uuid, Long expectedVersion)
+            throws SQLException {
+        String typeName = type.typeName();
+        String id = uuid.toString();
+        String domain = type.domain();
+        String d = Domains.tables(domain);
+        {
             Long current = lockVersion(c, domain, typeName, uuid);
             if (current == null) {
-                return null; // deleting the absent is a no-op (idempotent)
+                return; // deleting the absent is a no-op (idempotent)
             }
             if (expectedVersion != null && !expectedVersion.equals(current)) {
                 throw new VersionConflictException(typeName, id, expectedVersion, current);
@@ -1360,8 +1406,107 @@ public final class PgObjectStore implements ObjectStore {
             insertHistory(c, type.domain(), uuid, typeName, newVersion, now, lastPayload, true,
                     lastPayloadVersion, tombstoneChain, null);
             insertOutbox(c, domain, uuid, typeName, newVersion, "D");
-            return null;
-        });
+        }
+    }
+
+    /**
+     * Refuses changing a record that came from upstream, whatever its type's
+     * handling.
+     *
+     * <p><b>Per record, because the type no longer says.</b> A tenant may take
+     * a type from its upstream and author records of it too — a laboratory's
+     * catalogue beside the one its zone publishes — so what decides whether a
+     * write is the tenant's to make is whose the record is. A copy is its
+     * upstream's: an edit made here would be overwritten by the next change
+     * upstream, or kept and silently disagree with it. Only the stream that
+     * delivered it may change it. Shadowing it is a different act, and is
+     * how a tenant puts its own version in front of one.
+     */
+    private void guardCopy(Connection c, TypeRegistration type, UUID id, boolean restore,
+            Handling.Authority caller) throws SQLException {
+        if (restore || caller == Handling.Authority.SOURCE_TENANT) {
+            return;
+        }
+        Optional<String> upstream = originOf(c, type.domain(), id);
+        if (upstream.isPresent()) {
+            throw new HandlingRefusedException(type.typeName(), "read-only-here",
+                    "this record came from " + upstream.get() + " and only that stream may "
+                            + "change it; write a record of your own with the same identity "
+                            + "to shadow it");
+        }
+    }
+
+    /**
+     * A record of the tenant's own claiming what a copy from upstream claims
+     * shadows that copy, explicitly.
+     *
+     * <p>The copy is set aside rather than overwritten: parked exactly as an
+     * upstream version that arrives behind a local override is parked, and
+     * removed from what is served. So the tenant's record stands in front of
+     * it now, the stream keeps it current behind, and deleting the tenant's
+     * record brings the upstream's back on the stream's next round — which
+     * is what shadowing has always promised, now whichever of the two came
+     * first.
+     */
+    private void shadowWhatThisClaims(Connection c, TypeRegistration type, UUID writer,
+            List<Identifier> identifiers) throws SQLException {
+        for (Identifier ident : identifiers) {
+            if (!registry.isIdentityBearing(type, ident)) {
+                continue;
+            }
+            Optional<String> holder = resolveIdentity(c, type, ident);
+            if (holder.isEmpty() || holder.get().equals(writer.toString())) {
+                continue;
+            }
+            UUID copy = UUID.fromString(holder.get());
+            Optional<String> upstream = originOf(c, type.domain(), copy);
+            if (upstream.isPresent()) {
+                setAside(c, type, copy, upstream.get(), writer);
+            }
+        }
+    }
+
+    private void setAside(Connection c, TypeRegistration type, UUID copy, String dependency,
+            UUID shadowedBy) throws SQLException {
+        String d = Domains.tables(type.domain());
+        try (PreparedStatement ps = c.prepareStatement("""
+                INSERT INTO %1$s_sync_shadow
+                  (dependency, object_id, type, source_version_id, payload, deleted,
+                   payload_version, parked_at, shadows_object_id)
+                SELECT o.dependency, d.id, d.type, o.source_version_id, d.payload, false,
+                       d.payload_version, now(), ?
+                  FROM %1$s_data d JOIN %1$s_sync_origin o ON o.object_id = d.id
+                 WHERE d.id = ?
+                ON CONFLICT (dependency, object_id) DO UPDATE SET
+                  source_version_id = EXCLUDED.source_version_id,
+                  payload = EXCLUDED.payload,
+                  deleted = false,
+                  payload_version = EXCLUDED.payload_version,
+                  parked_at = now(),
+                  shadows_object_id = EXCLUDED.shadows_object_id""".formatted(d))) {
+            ps.setObject(1, shadowedBy);
+            ps.setObject(2, copy);
+            ps.executeUpdate();
+        }
+        try (PreparedStatement ps = c.prepareStatement(
+                "DELETE FROM %s_sync_origin WHERE object_id = ?".formatted(d))) {
+            ps.setObject(1, copy);
+            ps.executeUpdate();
+        }
+        tombstone(c, type, copy, null);
+    }
+
+    /** Which dependency streamed this record here, or empty for the tenant's own. */
+    private static Optional<String> originOf(Connection c, String domain, UUID id)
+            throws SQLException {
+        try (PreparedStatement ps = c.prepareStatement(
+                "SELECT dependency FROM %s_sync_origin WHERE object_id = ?"
+                        .formatted(Domains.tables(domain)))) {
+            ps.setObject(1, id);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? Optional.of(rs.getString(1)) : Optional.empty();
+            }
+        }
     }
 
     // -------------------------------------------------------------- rebuild

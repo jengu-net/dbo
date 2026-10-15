@@ -111,8 +111,17 @@ public record SpecChange(Kind kind, List<String> fields) {
         // when the tenant comes up. Nothing already stored moves, so this is
         // not cold; but a tenant cannot start answering at a path it has not
         // mounted, so it is not hot either.
+        //
+        // Except when the steps differ in when they start themselves alone,
+        // and the tenant already starts some: its clock is brought into line
+        // where it stands, so a cadence changes without an outage. A tenant
+        // starting its first is wired for it, so that one is a rebuild.
         if (!Objects.equals(serving.steps(), declared.steps())) {
-            rewire.add("steps");
+            if (startsAlone(serving.steps(), declared.steps())) {
+                hot.add("starts");
+            } else {
+                rewire.add("steps");
+            }
         }
         if (!Objects.equals(serving.policies(), declared.policies())) {
             rewire.add("policies");
@@ -177,6 +186,33 @@ public record SpecChange(Kind kind, List<String> fields) {
             // so keeps the members it has until each of them comes up again.
             hot.add("zoneRoot");
         }
+        if (!Objects.equals(serving.partnerOf(), declared.partnerOf())) {
+            // Hot: being a partner changes what this tenant may be handed by
+            // the provider, which is read where work is handed, and nothing
+            // this tenant serves itself.
+            hot.add("partnerOf");
+        }
+        if (!Objects.equals(serving.kind(), declared.kind())) {
+            // Rewire: what an activity selects on is read as the tenant comes
+            // up, and a tenant of another kind may be one it now applies to.
+            rewire.add("kind");
+        }
+        if (!Objects.equals(serving.workingKey(), declared.workingKey())) {
+            // Rewire: the working key is unwrapped as the tenant comes up, and
+            // rewrapped under what it names now.
+            rewire.add("workingKey");
+        }
+        if (!Objects.equals(serving.configuration(), declared.configuration())) {
+            // Hot: where the owner's configuration is read from is read when
+            // it is next applied, and nothing serving now holds it.
+            hot.add("configuration");
+        }
+        if (!Objects.equals(serving.exchanges(), declared.exchanges())) {
+            // Hot, and like zoneRoot its effect is on others: what members may
+            // do for each other, read wherever a route or a register is worked
+            // out, and nothing this zone serves itself.
+            hot.add("exchanges");
+        }
         if (serving.faceRoot() != declared.faceRoot()) {
             // Hot both ways. Becoming a root loads the version into a tenant
             // that keeps serving — an arrival like any profile's, rebuilding
@@ -192,6 +228,32 @@ public record SpecChange(Kind kind, List<String> fields) {
             return new SpecChange(Kind.REWIRE, join(rewire, hot));
         }
         return hot.isEmpty() ? NONE : new SpecChange(Kind.HOT, hot);
+    }
+
+    /**
+     * Whether two step lists differ only in when their steps start
+     * themselves, the serving one already starting some.
+     */
+    private static boolean startsAlone(List<TenantSpec.Step> serving,
+            List<TenantSpec.Step> declared) {
+        if (serving.size() != declared.size()
+                || serving.stream().allMatch(step -> step.starts() == null)) {
+            return false;
+        }
+        for (int i = 0; i < serving.size(); i++) {
+            TenantSpec.Step was = serving.get(i);
+            TenantSpec.Step is = declared.get(i);
+            try {
+                if (!Objects.equals(new TenantSpec.Step(was.code(), was.slots(), was.writes(),
+                        was.retry(), was.automate(), was.answer(), is.starts(), was.lasts(),
+                        was.awaits()), is)) {
+                    return false;
+                }
+            } catch (IllegalArgumentException slotsChangedToo) {
+                return false;
+            }
+        }
+        return true;
     }
 
     @SafeVarargs

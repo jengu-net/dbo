@@ -34,6 +34,8 @@ public record TenantFacts(Map<String, Object> properties) {
      */
     public static final String HOLDS_RECORDS_IN_FACE_DOMAIN = PREFIX + "holdsRecordsInFaceDomain";
     public static final String HAS_STEPS = PREFIX + "hasSteps";
+    /** What kind of tenant it is, as {@link TenantKinds} resolves it: a label to select by. */
+    public static final String KIND = PREFIX + "kind";
     public static final String HAS_SCIM = PREFIX + "hasScim";
     /**
      * Whether the tenant has an authority of its own.
@@ -66,7 +68,7 @@ public record TenantFacts(Map<String, Object> properties) {
      * has.
      */
     public static final java.util.Set<String> PUBLISHED = java.util.Set.of(
-            CODE, FACE, ZONE, HOLDS_RECORDS_IN_FACE_DOMAIN, HAS_STEPS, HAS_SCIM,
+            CODE, FACE, ZONE, KIND, HOLDS_RECORDS_IN_FACE_DOMAIN, HAS_STEPS, HAS_SCIM,
             HAS_AUTHORITY, HAS_VAULT, HOLDS_IDENTITIES);
 
     /**

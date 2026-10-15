@@ -209,6 +209,11 @@ public final class SchemaManager {
                 .formatted(h));
         execute(c, "ALTER TABLE %s_history ADD COLUMN IF NOT EXISTS shape jsonb"
                 .formatted(h));
+        // The run whose result wrote this version, where a run did: what a
+        // run started by this change is a part of. Null for a version written
+        // by anything else, and for every version written before it was kept.
+        execute(c, "ALTER TABLE %s_history ADD COLUMN IF NOT EXISTS run text"
+                .formatted(h));
     }
 
     private void applyIndexes(Connection c, TypeRegistry registry) throws SQLException {

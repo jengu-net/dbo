@@ -42,6 +42,56 @@ spec:
                 # rather than inferred from who points at it.
                 zoneRoot:
                   type: boolean
+                # What a zone permits its members to do for each other, by
+                # process. A child zone may only narrow its parent's, and a
+                # zone that lists none permits none.
+                exchanges:
+                  type: array
+                  items:
+                    type: string
+                # The provider this tenant is a partner of: it is reached only
+                # through that provider, on credentials the provider issues.
+                partnerOf:
+                  type: string
+                # What kind of tenant it is: a label to select it by. dbo.
+                # kinds are the store's own; any other name is free.
+                kind:
+                  type: string
+                # What wraps the tenant's working key, when not the
+                # deployment's own key: a Transit key in the deployment's
+                # Vault, or in one its owner runs.
+                workingKey:
+                  type: object
+                  required: [key]
+                  properties:
+                    key:
+                      type: string
+                    vault:
+                      type: string
+                    mount:
+                      type: string
+                    auth:
+                      type: object
+                      properties:
+                        mount:
+                          type: string
+                        role:
+                          type: string
+                # Where the tenant's owner keeps its configuration: a git
+                # repository on a path the deployment can read, and the ref
+                # applied when the tenant comes up.
+                configuration:
+                  type: object
+                  required: [git]
+                  properties:
+                    git:
+                      type: string
+                    ref:
+                      type: string
+                    # The Transit key its secrets are wrapped by, when not
+                    # tenant-<code>.
+                    key:
+                      type: string
                 broker:
                   type: string
                 acceptedBrokers:
@@ -173,6 +223,52 @@ spec:
                       # collecting request states the same code.
                       purpose:
                         type: string
+                      # When the step starts itself: exactly one of a
+                      # calendar rule (every, six fields from seconds), a
+                      # change to a record its search finds (change), or a
+                      # moment a matching record names (due, with at and
+                      # after). A calendar step says what a missed tick
+                      # becomes; every one says how long its runs are kept
+                      # and where it starts.
+                      # For an exchange a zone declares, what the asker waits
+                      # for: the records shared, sealed to its reader; how the
+                      # work ended; or nothing once it is authored.
+                      awaits:
+                        type: string
+                        enum: [records, outcome, none]
+                      # The tenant's secrets a run of the step may reach, by
+                      # name: a step reaches what it declares and nothing else.
+                      secrets:
+                        type: array
+                        items:
+                          type: string
+                      # Whether a run of the step is work that lasts: opened
+                      # for the one request its one slot names, held by
+                      # nobody, moved and ended by the runs that are its parts.
+                      lasts:
+                        type: boolean
+                      starts:
+                        type: object
+                        required: [keep, where]
+                        properties:
+                          every:
+                            type: string
+                          change:
+                            type: string
+                          due:
+                            type: string
+                          at:
+                            type: string
+                          after:
+                            type: string
+                          missed:
+                            type: string
+                            enum: [once, skip]
+                          keep:
+                            type: string
+                          where:
+                            type: string
+                            enum: [origin, places, everywhere]
                 # Steps the DEPLOYMENT performs for every tenant that admits
                 # them, declared in the management tenant's registration and
                 # refused in anybody else's. Declared here all the same: the
@@ -216,6 +312,39 @@ spec:
                       # deployment's own; several steps may name one.
                       substrate:
                         type: string
+                      # The partners the provider hands this step's work to;
+                      # adding one widens the step's register row.
+                      delegatesTo:
+                        type: array
+                        items:
+                          type: string
+                      # Whether a run of it in each tenant is work that lasts.
+                      lasts:
+                        type: boolean
+                      # When it starts itself in each tenant admitting it, as
+                      # a tenant's own step's starts says.
+                      starts:
+                        type: object
+                        required: [keep, where]
+                        properties:
+                          every:
+                            type: string
+                          change:
+                            type: string
+                          due:
+                            type: string
+                          at:
+                            type: string
+                          after:
+                            type: string
+                          missed:
+                            type: string
+                            enum: [once, skip]
+                          keep:
+                            type: string
+                          where:
+                            type: string
+                            enum: [origin, places, everywhere]
                 # Steps the deployment performs that THIS tenant will not
                 # have done to its data. Admitted by saying nothing, which is
                 # the ordinary case; a step the deployment declares required

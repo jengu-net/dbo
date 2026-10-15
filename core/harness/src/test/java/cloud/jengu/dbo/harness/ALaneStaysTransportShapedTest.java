@@ -152,7 +152,23 @@ class ALaneStaysTransportShapedTest {
         // statistics and nothing comes back, so it is data both ways; it is
         // abstract because a lane that inherited it would leave its worker
         // unknown to every node while it worked.
-        assertEquals(23, verbs.size(),
+        // 24 since a participant refuses its work with a reason: a run and the
+        // reason go out and the run comes back ended, and it is abstract
+        // because a lane that inherited it would hand the work back to be
+        // tried again, which is what a refusal is not.
+        // 25 and 26 since a result starts its run's parts and says something
+        // of the work it is a part of. Both carry data both ways; each is
+        // abstract because a lane that inherited it would close the run with
+        // its parts, or what it said, dropped.
+        // 27 since a part reads the work it is a part of: a run goes out and
+        // one comes back. Abstract, because a lane that inherited "none"
+        // would hand a part its work as though it had none.
+        // 28 and 29 since a step reaches a secret it declares: a run and a
+        // name go out, and the value comes back in process or sealed to the
+        // participant across a wire — never a handle to where secrets are
+        // kept. Abstract, so each lane says how it reaches one or that it
+        // reaches none.
+        assertEquals(29, verbs.size(),
                 "the verb count changed; a new verb is exactly what these rules are for");
         return verbs;
     }

@@ -55,14 +55,16 @@ why a copy of the enrolment records opens nothing and signs nothing — the
 only asymmetric material this store keeps, and it keeps only the halves that
 unlock nothing ([constraints](../../arc42-002-constraints/README.md)).
 
-One relation reaches across tenants, and it is declared rather than held: a
-tenant created as **managed by** a partner tenant trusts that partner's own
-authority, for what the relation grants and nothing else. A partner's token
-arrives as the audience the managed tenant declared for it — runs and the
-trail, never a document — and fails at signature verification in every
-tenant that did not declare it, exactly as any other tenant's token does.
-The support desk that could widen its own reach by asking about more tenants
-is the thing this refuses.
+One relation reaches across tenants, and it comes through the provider: for
+a tenant, the service provider is the service, and its authority is the one
+trusted for the partners it hands work to. A token the provider's authority
+issued a partner is admitted only while a row of the tenant's register names
+that partner and the tenant has neither declined nor withheld it — asked per
+request, so withdrawing is one line in the tenant's declaration. It arrives
+as the partner audience the tenant declares — runs and the trail, never a
+document — and a tenant never names its own partner: that would be a way in
+the register does not show. The support desk that could widen its own reach
+by asking about more tenants is the thing this refuses.
 
 The consequence worth stating on its own: because the tenant's export carries
 its authority, **restoring a tenant restores who may access it**. Recovery does

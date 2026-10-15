@@ -139,6 +139,13 @@ public final class WorkModel {
             }
             field(run, "correlation").ifPresent(correlation ->
                     envelope.value("correlation", EnvelopeValue.of(correlation)));
+            // Which end of a crossing this run is, and nothing of where it
+            // goes: so what waits to be carried is a query, not a position in
+            // the work that a pass may have read past.
+            if (((Map<?, ?>) run).get("crossing") instanceof Map<?, ?> crossing) {
+                envelope.value("crossing", EnvelopeValue.of(
+                        crossing.get("askerRun") == null ? "asked" : "answering"));
+            }
             counts(run, envelope);
             return envelope;
         };

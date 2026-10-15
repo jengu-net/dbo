@@ -2143,6 +2143,14 @@ public final class ElementStore implements FhirStoreFacade,
     public java.util.Optional<AutoCloseable> dispatchNotifications(
             cloud.jengu.dbo.core.api.feed.ChangeFeed feed,
             javax.sql.DataSource dataSource, long pollMillis) {
+        return dispatchNotifications(feed, dataSource, pollMillis, null);
+    }
+
+    @Override
+    public java.util.Optional<AutoCloseable> dispatchNotifications(
+            cloud.jengu.dbo.core.api.feed.ChangeFeed feed,
+            javax.sql.DataSource dataSource, long pollMillis,
+            cloud.jengu.dbo.core.api.feed.Watching watching) {
         cloud.jengu.dbo.subscriptions.SubscriptionEngine engine =
                 new cloud.jengu.dbo.subscriptions.SubscriptionEngine(dataSource, version.code(), store,
                         feed, ElementSubscriptions.source(store, inForce()),
@@ -2155,6 +2163,9 @@ public final class ElementStore implements FhirStoreFacade,
                         .withTopics(ElementSubscriptions.topicSource(store, inForce()),
                                 ElementSubscriptions.composer(),
                                 ElementSubscriptions.filterCompiler(inForce()));
+        if (watching != null) {
+            engine.watching(watching);
+        }
         engine.start(pollMillis);
         return java.util.Optional.of(engine);
     }

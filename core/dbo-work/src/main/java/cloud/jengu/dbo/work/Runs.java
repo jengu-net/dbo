@@ -363,6 +363,88 @@ public final class Runs {
     public Run filling(cloud.jengu.dbo.core.process.StepDeclaration step, RunKind kind,
             String scope, Map<String, RunSlot> inputs, String requester,
             String forPeopleBecause, java.time.Duration collect, Run.Addressee addressee) {
+        return filling(step, kind, scope, inputs, requester, forPeopleBecause, collect,
+                addressee, null, null);
+    }
+
+    /**
+     * A run of a step the tenant started itself, on an occasion the step
+     * declared, as a child of the run that stands for the tenant's own work.
+     *
+     * <p>Keyed by the occasion, so every node that notices the same tick or
+     * the same version of a record finds the one run of it; and nobody asked,
+     * so it has no requester. Its reason is its parent and its key.
+     *
+     * @param occasion what started it — {@code tick/<instant>},
+     *                 {@code change/<id>/<version>}, {@code due/<id>} or
+     *                 {@code now/<id>} — which is its scope
+     * @param parent   the tenant's system run
+     */
+    public Run started(cloud.jengu.dbo.core.process.StepDeclaration step, String occasion,
+            Map<String, RunSlot> inputs, String forPeopleBecause, Run parent) {
+        return started(step, occasion, inputs, forPeopleBecause, parent, null);
+    }
+
+    /**
+     * The same, started outside its occasion by somebody who asked — the one
+     * a person or a test calls run now, which is the tenant's own work and
+     * theirs both, so it has a parent and a requester.
+     */
+    public Run started(cloud.jengu.dbo.core.process.StepDeclaration step, String occasion,
+            Map<String, RunSlot> inputs, String forPeopleBecause, Run parent, String by) {
+        return filling(step, RunKind.PIPELINE, occasion, inputs, by, forPeopleBecause, null,
+                null, parent, null);
+    }
+
+    /**
+     * The same, as a part of another run: started for it, and read as one of
+     * the things it set going.
+     *
+     * @param parent the run this one is part of, or null for a root
+     */
+    public Run filling(cloud.jengu.dbo.core.process.StepDeclaration step, RunKind kind,
+            String scope, Map<String, RunSlot> inputs, String requester,
+            String forPeopleBecause, java.time.Duration collect, Run.Addressee addressee,
+            Run parent) {
+        return filling(step, kind, scope, inputs, requester, forPeopleBecause, collect,
+                addressee, parent, null);
+    }
+
+    /**
+     * The same, for work that leaves this tenant for the one whose data it
+     * is, or arrives here from the one that asked: the crossing is fixed as
+     * the run is authored, like the requester, because where the work goes
+     * is part of what it is.
+     *
+     * @param crossing the crossing it is one end of, or null for work that
+     *                 stays here
+     */
+    public Run filling(cloud.jengu.dbo.core.process.StepDeclaration step, RunKind kind,
+            String scope, Map<String, RunSlot> inputs, String requester,
+            String forPeopleBecause, java.time.Duration collect, Run.Addressee addressee,
+            Run.Crossing crossing) {
+        return filling(step, kind, scope, inputs, requester, forPeopleBecause, collect,
+                addressee, null, crossing);
+    }
+
+    /**
+     * The same, a part of another run and one end of a crossing at once — the
+     * one every other way of filling a run comes to.
+     */
+    public Run filling(cloud.jengu.dbo.core.process.StepDeclaration step, RunKind kind,
+            String scope, Map<String, RunSlot> inputs, String requester,
+            String forPeopleBecause, java.time.Duration collect, Run.Addressee addressee,
+            Run parent, Run.Crossing crossing) {
+        // ASKING ACROSS IS THE CARRIER'S ALONE, however the run was started:
+        // at the door, by a host, or as a part of a result.
+        if (crossing != null && crossing.askerRun() == null) {
+            if (addressee != null && !addressee.equals(Run.Crossing.CARRIER)) {
+                throw new IllegalArgumentException(step.id() + " asks across to "
+                        + crossing.to() + ", so it is for what carries it alone, not for "
+                        + addressee);
+            }
+            addressee = Run.Crossing.CARRIER;
+        }
         for (String slot : inputs.keySet()) {
             if (!step.slots().containsKey(slot)) {
                 throw new IllegalArgumentException(step.id() + " declares no slot '" + slot
@@ -381,16 +463,164 @@ public final class Runs {
         Map<String, RunSlot> ordered = new LinkedHashMap<>();
         step.slots().keySet().forEach(slot -> ordered.put(slot, inputs.get(slot)));
         String key = step.id() + "/" + scope;
+        Optional<Run> already = byKey(key);
+        if (already.isPresent()) {
+            return already.get();
+        }
+        Run written = writeFilling(step, kind, key, ordered, requester, forPeopleBecause,
+                collect, addressee, parent, crossing);
+        partStarted(parent);
+        return written;
+    }
+
+    private Run writeFilling(cloud.jengu.dbo.core.process.StepDeclaration step, RunKind kind,
+            String key, Map<String, RunSlot> ordered, String requester, String forPeopleBecause,
+            java.time.Duration collect, Run.Addressee addressee, Run parent,
+            Run.Crossing crossing) {
         return byKey(key).orElseGet(() -> write(new State(key, step.id().processId(),
                 step.id().step(), kind, (forPeopleBecause == null ? Standing.OPEN
                         : Standing.OPEN.openTo(false).because(forPeopleBecause))
-                        .retrying(step.retry()).addressedTo(addressee), null, null, null,
+                        .retrying(step.retry()).addressedTo(addressee),
+                parent == null ? null : parent.key(),
+                parent == null ? null : parent.correlation(),
+                parent == null ? null : parent.trace(),
                 Map.of(), null,
                 List.copyOf(step.writes()),
                 requester == null ? null : new Run.Assignment(null, null, null, null, requester),
                 Run.Produced.NOTHING, step.version(),
                 java.util.Collections.unmodifiableMap(ordered), null, requester, null,
-                collect == null ? null : new Run.Window(collect, null))));
+                collect == null ? null : new Run.Window(collect, null), crossing)));
+    }
+
+    /**
+     * Work that lasts, opened for the request in its one slot: found again
+     * when the same request is handed in again, because what it fulfils is
+     * what makes it this work.
+     *
+     * <p>Received, held by nobody and offered to nobody: what moves it is the
+     * runs that are its parts and the acts said of it.
+     *
+     * @param request   the request it fulfils, as {@code Type/id}
+     * @param requester who asked, or null
+     * @param parent    the run it is a part of, or null
+     */
+    public Run opening(cloud.jengu.dbo.core.process.StepDeclaration step, String slot,
+            String request, String requester, Run parent) {
+        if (!step.slots().keySet().equals(java.util.Set.of(slot))) {
+            throw new IllegalArgumentException(step.id() + " lasts, and is opened for the one "
+                    + "request in its one slot; it takes " + step.slots().keySet());
+        }
+        String key = step.id() + "/" + request;
+        Optional<Run> already = byKey(key);
+        if (already.isPresent()) {
+            return already.get();
+        }
+        partStarted(parent);
+        return byKey(key).orElseGet(() -> write(new State(key, step.id().processId(),
+                step.id().step(), RunKind.LASTING,
+                Standing.OPEN.as(Status.RECEIVED).openTo(false),
+                parent == null ? null : parent.key(),
+                parent == null ? null : parent.correlation(),
+                parent == null ? null : parent.trace(),
+                Map.of(), null, List.copyOf(step.writes()),
+                requester == null ? null : new Run.Assignment(null, null, null, null, requester),
+                Run.Produced.NOTHING, step.version(),
+                Map.of(slot, RunSlot.referring(request)), null, requester, null, null)));
+    }
+
+    /** The process an act said of lasting work is recorded under. */
+    public static final String ACTS = "dbo.run.act";
+
+    /**
+     * Lasting work said to be taken on. Only while it is received: once
+     * work has started, or it is over, there is nothing left to accept.
+     */
+    public Run accepted(Run lasting, String by, String because) {
+        return said(lasting, "accepted", by, because, Status.RECEIVED,
+                snapshot -> snapshot.withStanding(snapshot.standing().as(Status.ACCEPTED)));
+    }
+
+    /** Lasting work said not to be taken on, and why: over before it began. */
+    public Run rejected(Run lasting, String by, String because) {
+        requireBecause("rejected", because);
+        return said(lasting, "rejected", by, because, Status.RECEIVED,
+                snapshot -> snapshot.withStanding(snapshot.standing().as(Status.REJECTED)
+                        .because(because)));
+    }
+
+    /**
+     * The stage lasting work has reached, kept as its current stage — the one
+     * a reader of it is shown — and said as an act, so the stages it went
+     * through are its trail.
+     */
+    public Run reached(Run lasting, String stage, String by, String because) {
+        if (stage == null || stage.isBlank()) {
+            throw new IllegalArgumentException("a stage is named");
+        }
+        return said(lasting, "reached", by, "reached " + stage
+                        + (because == null ? "" : ": " + because), null,
+                snapshot -> snapshot.withMilestone(new Run.Milestone(stage, 0, 0)));
+    }
+
+    /**
+     * Lasting work ended: completed, failed or cancelled, and why — always
+     * why, because work that lasted days ends for a reason somebody reads.
+     */
+    public Run ended(Run lasting, Status how, String by, String because) {
+        if (how != Status.COMPLETED && how != Status.FAILED && how != Status.CANCELLED) {
+            throw new IllegalArgumentException("lasting work ends completed, failed or "
+                    + "cancelled, not " + how.wire());
+        }
+        requireBecause("ended", because);
+        return said(lasting, "ended", by, how.wire() + ": " + because, null,
+                snapshot -> snapshot.withStanding(snapshot.standing().as(how).because(because)));
+    }
+
+    private static void requireBecause(String act, String because) {
+        if (because == null || because.isBlank()) {
+            throw new IllegalArgumentException("lasting work " + act + " says why");
+        }
+    }
+
+    /**
+     * One act said of lasting work: the work moved, and the act recorded
+     * under it naming who and why — refused for a run that is not lasting,
+     * one that is over, or one not standing where the act needs it.
+     */
+    private Run said(Run lasting, String act, String by, String because, Status only,
+            java.util.function.UnaryOperator<State> change) {
+        Run current = byKey(lasting.key()).orElseThrow(
+                () -> new IllegalArgumentException("no run '" + lasting.key() + "' here"));
+        if (!current.lasting()) {
+            throw new IllegalArgumentException("'" + current.key() + "' is not work that "
+                    + "lasts, and is " + act + " by whoever holds it, not said to be");
+        }
+        if (current.status().over()) {
+            throw new IllegalStateException("'" + current.key() + "' is over ("
+                    + current.status().wire() + "), and nothing more is said of it");
+        }
+        if (only != null && current.status() != only) {
+            throw new IllegalStateException("'" + current.key() + "' is "
+                    + current.status().wire() + ", and is " + act + " only while "
+                    + only.wire());
+        }
+        Run moved = update(current, change);
+        act(moved, ACTS, act, current.id() + "/" + UuidV7.newId(), by, because);
+        return moved;
+    }
+
+    /**
+     * Lasting work one of whose parts has started: in progress, from here,
+     * where it was received or accepted. Said by the part, not by anybody.
+     */
+    private void partStarted(Run parent) {
+        if (parent == null || !parent.lasting()) {
+            return;
+        }
+        advanceIf(parent, "in progress",
+                current -> current.status() == Status.RECEIVED
+                        || current.status() == Status.ACCEPTED,
+                snapshot -> snapshot.withStanding(snapshot.standing().as(Status.IN_PROGRESS)));
     }
 
     /**
@@ -424,6 +654,29 @@ public final class Runs {
         return byKey(key).orElseGet(() -> write(new State(key, process, step, RunKind.SWEEP,
                 Standing.OPEN, null, null, null, Map.of(), null, List.copyOf(domains),
                 null, Run.Produced.NOTHING, null)));
+    }
+
+    /**
+     * An act somebody did to the tenant's own work — a step paused, resumed —
+     * recorded as a run that is over as it is written, under the run it
+     * acted on, saying who and why.
+     *
+     * <p>A run and not a log line, because every change is read for its
+     * reason in the same place: the trail of the work it changed.
+     *
+     * @param scope   what makes this act one — found again rather than written
+     *                twice when the same act is recorded again
+     * @param by      who did it
+     * @param because what they said, or null
+     */
+    public Run act(Run parent, String process, String step, String scope, String by,
+            String because) {
+        String key = process + "/" + step + "/" + scope;
+        return byKey(key).orElseGet(() -> completed(write(new State(key, process, step,
+                RunKind.PIPELINE, Standing.OPEN, parent.key(), parent.correlation(),
+                parent.trace(), Map.of(), null, List.of(),
+                new Run.Assignment(null, null, because, null, by), Run.Produced.NOTHING,
+                null))));
     }
 
     /** A pass over a sweep: what this round found, and what it therefore closes. */
@@ -583,7 +836,7 @@ public final class Runs {
         requireAdmits(seen, by);
         Run current = byKey(seen.key()).orElse(null);
         java.time.Instant now = clock.instant();
-        if (current == null || !current.open() || current.claimed(now)) {
+        if (current == null || !current.open() || current.claimed(now) || current.lasting()) {
             return Optional.empty();
         }
         if (!current.automation()) {
@@ -622,7 +875,7 @@ public final class Runs {
                 .withStanding(Standing.of(current).as(Status.IN_PROGRESS).notBefore(null));
         try {
             store.put(new PutRequest(WorkModel.TYPE, current.id(), current.versionId(),
-                    claimed.payload()));
+                    authored(claimed.payload(), current.authored())));
         } catch (cloud.jengu.dbo.core.api.VersionConflictException lost) {
             // Somebody wrote between the read and the write, which for a claim
             // means somebody else took it. Not an error: it is the answer.
@@ -674,7 +927,8 @@ public final class Runs {
                     + role + "' is not one");
         }
         Run current = byKey(seen.key()).orElse(null);
-        if (current == null || !current.open() || current.claimed(clock.instant())) {
+        if (current == null || !current.open() || current.claimed(clock.instant())
+                || current.lasting()) {
             return Optional.empty();
         }
         java.time.Instant until = deadline.apply(clock.instant());
@@ -684,7 +938,7 @@ public final class Runs {
                 .withStanding(Standing.of(current).as(Status.IN_PROGRESS).notBefore(null));
         try {
             store.put(new PutRequest(WorkModel.TYPE, current.id(), current.versionId(),
-                    claimed.payload()));
+                    authored(claimed.payload(), current.authored())));
         } catch (cloud.jengu.dbo.core.api.VersionConflictException lost) {
             return Optional.empty();
         }
@@ -890,6 +1144,30 @@ public final class Runs {
      * @throws NotHeld when the run no longer names {@code holder} as holding
      *                 it; nothing is written
      */
+    /**
+     * What the owner answered arrived, and the run that asked is the reader's
+     * to take: the carrier's claim is let go, the answer kept on the crossing,
+     * and the run offered to the client it was asked for and nobody else — in
+     * one version, so it is never offered without what it is for.
+     *
+     * @param sealed the answer, sealed to the reader, in its wire form
+     * @throws NotHeld when the run no longer names {@code holder} as holding
+     *                 it; nothing is written
+     */
+    public Run answered(Run run, Executor holder, String sealed) {
+        if (run.crossing() == null || run.crossing().reader() == null) {
+            throw new IllegalArgumentException("run '" + run.key() + "' asked nobody across, "
+                    + "so nothing can come back on it");
+        }
+        Run.Addressee reader = new Run.Addressee(run.crossing().reader(), null);
+        return advanceHeld(run, holder, "answered", snapshot -> snapshot
+                .withCrossing(snapshot.crossing().answered(sealed))
+                .withAssignment(new Run.Assignment(
+                        snapshot.assignment() == null ? null : snapshot.assignment().at(),
+                        null, "answered", null))
+                .withStanding(snapshot.standing().as(Status.READY).addressedTo(reader)));
+    }
+
     public Run released(Run run, Executor holder, String because, Failure failure) {
         return advanceHeld(run, holder, "released", releasing(run, because, failure));
     }
@@ -928,6 +1206,31 @@ public final class Runs {
      *
      * @throws NotHeld when the run no longer names {@code holder} as holding
      *                 it; nothing is written
+     */
+    /**
+     * A run that asked across, ended by what carries it as the work it asked
+     * for ended at the other end: completed, failed or cancelled, and why —
+     * so an asker never stays open because the owner refused.
+     *
+     * @throws NotHeld when the run no longer stands under the holder's claim
+     */
+    public Run endedAcross(Run run, Executor holder, Status how, String because) {
+        if (!how.over()) {
+            throw new IllegalArgumentException("a run asked across ends as its work did, and "
+                    + how.wire() + " is not an end");
+        }
+        return advanceHeld(run, holder, "ended across", snapshot -> {
+            State ended = snapshot.withStanding(snapshot.standing().as(how).because(because));
+            return how == Status.COMPLETED ? answered(ended) : ended.withRefused(because);
+        });
+    }
+
+    /**
+     * Refused by the holder: its work will not be done, so the run ends
+     * failed with why, as the holder's act — neither handed back, retried
+     * nor given to people, as a release is.
+     *
+     * @throws NotHeld when the run no longer stands under the holder's claim
      */
     public Run refused(Run run, Executor holder, String because) {
         return advanceHeld(run, holder, "ended", snapshot -> snapshot.withStanding(
@@ -1400,6 +1703,34 @@ public final class Runs {
     }
 
     /**
+     * What was asked across from here at one step and waits to be carried:
+     * open to automation, oldest first, so what waited longest is carried
+     * first and nothing waits behind a position in the tenant's work.
+     */
+    public List<Run> askedAcross(String process, String step, int limit) {
+        return store.select(Awaits.MACHINE.narrowing(Criteria.of(WorkModel.TYPE)
+                        .eq("process", EnvelopeValue.of(process))
+                        .eq("step", EnvelopeValue.of(step))
+                        .eq("crossing", EnvelopeValue.of("asked")))
+                        .sortByLastUpdated(true).limit(limit))
+                .stream().map(Run::of).toList();
+    }
+
+    /**
+     * Why a run that nobody holds is still waiting, said on it without taking
+     * it — and only while it is still ready and nobody's, so a claim landing
+     * first is never overwritten by somebody's account of why there was none.
+     *
+     * @return the run as written, or empty when it moved on first
+     */
+    public Optional<Run> waiting(Run run, String because) {
+        return advanceIf(run, "waiting",
+                current -> current.status() == Status.READY && (current.assignment() == null
+                        || current.assignment().executor() == null),
+                snapshot -> snapshot.withStanding(snapshot.standing().because(because)));
+    }
+
+    /**
      * The automation backlog: work at this step, here, that nothing automated
      * took and so waits for a person
      * (REQ-DBO-PROC-FALL-THROUGH-IS-COUNTABLE). A number, per step and per
@@ -1410,6 +1741,23 @@ public final class Runs {
                 .eq("process", EnvelopeValue.of(process))
                 .eq("step", EnvelopeValue.of(step))
                 .eq("scope", EnvelopeValue.of(at.wire()))));
+    }
+
+    /**
+     * The children of a run, of one step, that are over and were last changed
+     * before a moment — what a retention over them may remove. Open ones are
+     * never among them, however old: work nobody finished is not history.
+     */
+    public List<String> over(Run parent, String process, String step,
+            java.time.Instant before, int limit) {
+        return store.select(Criteria.of(WorkModel.TYPE)
+                        .eq("parent", EnvelopeValue.of(parent.key()))
+                        .eq("process", EnvelopeValue.of(process))
+                        .eq("step", EnvelopeValue.of(step))
+                        .lastUpdated(Criteria.RangeOp.LT, before)
+                        .limit(limit)).stream()
+                .filter(stored -> !Run.of(stored).open())
+                .map(cloud.jengu.dbo.core.api.StoredObject::id).toList();
     }
 
     /** The items of a run, open and closed. */
@@ -1504,19 +1852,47 @@ public final class Runs {
      * a reference in the payload and is not gathered.
      */
     public cloud.jengu.dbo.core.face.RecordProjection.Record asRecord(Run run) {
+        // Its items, and only those: a run started under another — every run
+        // the tenant starts itself is one, under its system run — is its own
+        // record, read by asking for the children of that run.
         return new cloud.jengu.dbo.core.face.RecordProjection.Record(WorkModel.TYPE, run.id(),
-                run.versionId(), payloadOf(run),
-                items(run).stream().map(item ->
+                run.versionId(), rendered(run),
+                items(run).stream().filter(item -> item.item() != null).map(item ->
                         new cloud.jengu.dbo.core.face.RecordProjection.Record(WorkModel.TYPE,
-                                item.id(), item.versionId(), payloadOf(item), item.domains()))
+                                item.id(), item.versionId(), rendered(item), item.domains()))
                         .toList(),
                 run.domains());
     }
 
-    private byte[] payloadOf(Run run) {
-        return store.get(WorkModel.TYPE, run.id())
+    /**
+     * The run as it is held, with what a reader of it needs and the record
+     * cannot say of itself: the id of the run it is part of, so the reference
+     * resolves; and, for a run written before runs said when they were
+     * authored, the moment its first version was written.
+     */
+    private byte[] rendered(Run run) {
+        byte[] held = store.get(WorkModel.TYPE, run.id())
                 .orElseThrow(() -> new IllegalStateException("run " + run.key() + " has gone"))
                 .payload();
+        StringBuilder facts = new StringBuilder();
+        if (run.parent() != null) {
+            byKey(run.parent()).ifPresent(parent -> facts.append(",\"parentId\":")
+                    .append(Json.quoted(parent.id())));
+        }
+        if (run.authored() == null) {
+            List<cloud.jengu.dbo.core.api.StoredObject> versions =
+                    store.history(WorkModel.TYPE, run.id());
+            if (!versions.isEmpty() && versions.get(0).lastUpdated() != null) {
+                facts.append(",\"authored\":")
+                        .append(Json.quoted(versions.get(0).lastUpdated().toString()));
+            }
+        }
+        if (facts.isEmpty()) {
+            return held;
+        }
+        String json = new String(held, StandardCharsets.UTF_8);
+        return (json.substring(0, json.lastIndexOf('}')) + facts + "}")
+                .getBytes(StandardCharsets.UTF_8);
     }
 
     // ------------------------------------------------------------- writing
@@ -1545,7 +1921,7 @@ public final class Runs {
                 run.parent(), run.correlation(), run.trace(), run.tally(), run.item(),
                 run.domains(),
                 run.assignment(), run.produced(), run.stepVersion(), run.inputs(),
-                run.milestone(), run.requester(), run.refused(), run.window());
+                run.milestone(), run.requester(), run.refused(), run.window(), run.crossing());
     }
 
     /**
@@ -1619,6 +1995,39 @@ public final class Runs {
         // deliberately nothing; see announced()
     }
 
+    /**
+     * The moment a run was authored, written into every version of it: once,
+     * as it is first written, and carried by each write after.
+     *
+     * <p>In the payload and not taken from the store's first version, so a
+     * run a place performed carries its own beginning home rather than the
+     * moment its copy arrived; and so a screen ordering by it reads one field
+     * rather than a history per run. A run written before this was kept has
+     * none, and keeps having none.
+     */
+    private static byte[] authored(byte[] payload, java.time.Instant authored) {
+        if (authored == null) {
+            return payload;
+        }
+        String json = new String(payload, StandardCharsets.UTF_8);
+        return (json.substring(0, json.lastIndexOf('}')) + ",\"authored\":"
+                + Json.quoted(authored.toString()) + "}").getBytes(StandardCharsets.UTF_8);
+    }
+
+    /**
+     * A first version, authored at the moment it says it was written: one
+     * instant for both, so a run never reads as having moved before it began.
+     */
+    private static byte[] authoredAsWritten(byte[] payload) {
+        java.util.regex.Matcher at = java.util.regex.Pattern.compile("\"at\":\"([^\"]+)\"")
+                .matcher(new String(payload, StandardCharsets.UTF_8));
+        String written = null;
+        while (at.find()) {
+            written = at.group(1);
+        }
+        return authored(payload, written == null ? null : java.time.Instant.parse(written));
+    }
+
     private Run write(State state) {
         if (WorkModel.authoredElsewhere(state.key())) {
             // A locally authored key that looked mirrored would be advanceable
@@ -1629,7 +2038,7 @@ public final class Runs {
                     + state.key());
         }
         PutResult result = store.putIfAbsent(IdentityRef.identifier(WorkModel.KEY_SYSTEM,
-                state.key()), PutRequest.create(WorkModel.TYPE, state.payload()));
+                state.key()), PutRequest.create(WorkModel.TYPE, authoredAsWritten(state.payload())));
         return announced(byKey(state.key()).orElseThrow(() -> new IllegalStateException(
                 "a run was written as " + result.id() + " and cannot be read back")));
     }
@@ -1757,7 +2166,7 @@ public final class Runs {
             }
             try {
                 store.put(new PutRequest(WorkModel.TYPE, current.id(), current.versionId(),
-                        state.payload()));
+                        authored(state.payload(), current.authored())));
                 return Optional.of(announced(byKey(state.key()).orElseThrow()));
             } catch (cloud.jengu.dbo.core.api.VersionConflictException lost) {
                 if (attempt == ATTEMPTS) {
@@ -1865,7 +2274,18 @@ public final class Runs {
             String parent, String correlation, String trace, Map<String, Long> tally, Run.Item item,
             List<String> domains, Run.Assignment assignment, Run.Produced produced,
             String stepVersion, Map<String, RunSlot> inputs, Run.Milestone milestone,
-            String requester, String refused, Run.Window window) {
+            String requester, String refused, Run.Window window, Run.Crossing crossing) {
+
+        /** A run that stays in the tenant it was asked for in. */
+        State(String key, String process, String step, RunKind kind, Standing standing,
+                String parent, String correlation, String trace, Map<String, Long> tally,
+                Run.Item item, List<String> domains, Run.Assignment assignment,
+                Run.Produced produced, String stepVersion, Map<String, RunSlot> inputs,
+                Run.Milestone milestone, String requester, String refused, Run.Window window) {
+            this(key, process, step, kind, standing, parent, correlation, trace, tally, item,
+                    domains, assignment, produced, stepVersion, inputs, milestone, requester,
+                    refused, window, null);
+        }
 
         /** A run whose asker collects nothing. */
         State(String key, String process, String step, RunKind kind, Standing standing,
@@ -1903,49 +2323,55 @@ public final class Runs {
 
         State withStanding(Standing standing) {
             return new State(key, process, step, kind, standing, parent, correlation, trace, tally, item,
-                    domains, assignment, produced, stepVersion, inputs, milestone, requester, refused, window);
+                    domains, assignment, produced, stepVersion, inputs, milestone, requester, refused, window, crossing);
         }
 
         State withTally(Map<String, Long> tally) {
             return new State(key, process, step, kind, standing, parent, correlation, trace,
                     Map.copyOf(tally), item, domains, assignment, produced, stepVersion,
-                    inputs, milestone, requester, refused, window);
+                    inputs, milestone, requester, refused, window, crossing);
         }
 
         State withAssignment(Run.Assignment assignment) {
             return new State(key, process, step, kind, standing, parent, correlation, trace, tally, item,
-                    domains, assignment, produced, stepVersion, inputs, milestone, requester, refused, window);
+                    domains, assignment, produced, stepVersion, inputs, milestone, requester, refused, window, crossing);
         }
 
         State withProduced(Run.Produced produced) {
             return new State(key, process, step, kind, standing, parent, correlation, trace, tally, item,
-                    domains, assignment, produced, stepVersion, inputs, milestone, requester, refused, window);
+                    domains, assignment, produced, stepVersion, inputs, milestone, requester, refused, window, crossing);
         }
 
         State withTrace(String trace) {
             return new State(key, process, step, kind, standing, parent, correlation, trace,
-                    tally, item, domains, assignment, produced, stepVersion, inputs, milestone, requester, refused, window);
+                    tally, item, domains, assignment, produced, stepVersion, inputs, milestone, requester, refused, window, crossing);
         }
 
         State withCorrelation(String correlation) {
             return new State(key, process, step, kind, standing, parent, correlation, trace, tally, item,
-                    domains, assignment, produced, stepVersion, inputs, milestone, requester, refused, window);
+                    domains, assignment, produced, stepVersion, inputs, milestone, requester, refused, window, crossing);
         }
 
         State withMilestone(Run.Milestone milestone) {
             return new State(key, process, step, kind, standing, parent, correlation, trace, tally, item,
-                    domains, assignment, produced, stepVersion, inputs, milestone, requester, refused, window);
+                    domains, assignment, produced, stepVersion, inputs, milestone, requester, refused, window, crossing);
         }
 
         State withWindow(Run.Window window) {
             return new State(key, process, step, kind, standing, parent, correlation, trace, tally, item,
                     domains, assignment, produced, stepVersion, inputs, milestone, requester, refused,
-                    window);
+                    window, crossing);
+        }
+
+        State withCrossing(Run.Crossing crossing) {
+            return new State(key, process, step, kind, standing, parent, correlation, trace, tally, item,
+                    domains, assignment, produced, stepVersion, inputs, milestone, requester, refused,
+                    window, crossing);
         }
 
         State withRefused(String refused) {
             return new State(key, process, step, kind, standing, parent, correlation, trace, tally, item,
-                    domains, assignment, produced, stepVersion, inputs, milestone, requester, refused, window);
+                    domains, assignment, produced, stepVersion, inputs, milestone, requester, refused, window, crossing);
         }
 
         byte[] payload() {
@@ -2046,6 +2472,21 @@ public final class Runs {
             }
             if (requester != null) {
                 json.append(",\"requester\":").append(Json.quoted(requester));
+            }
+            if (crossing != null) {
+                json.append(",\"crossing\":{\"id\":").append(Json.quoted(crossing.id()))
+                        .append(",\"from\":").append(Json.quoted(crossing.from()))
+                        .append(",\"to\":").append(Json.quoted(crossing.to()));
+                if (crossing.askerRun() != null) {
+                    json.append(",\"askerRun\":").append(Json.quoted(crossing.askerRun()));
+                }
+                if (crossing.reader() != null) {
+                    json.append(",\"reader\":").append(Json.quoted(crossing.reader()));
+                }
+                if (crossing.arrived() != null) {
+                    json.append(",\"arrived\":").append(Json.quoted(crossing.arrived()));
+                }
+                json.append('}');
             }
             if (refused != null) {
                 json.append(",\"refused\":").append(Json.quoted(refused));

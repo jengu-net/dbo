@@ -21,6 +21,8 @@ public enum LaneVerbs {
     CHECKPOINT("checkpoint"),
     MILESTONE("milestone"),
     RELEASED("released"),
+    /** Ended by its holder, who will not do the work, with why. */
+    REFUSE("refuse"),
     CLOSED("closed"),
     /** Closed with a result the tenant is asked to write — or ended because it would not. */
     COMMITTED("committed"),
@@ -34,6 +36,8 @@ public enum LaneVerbs {
     WITHDRAW("withdraw"),
     ROUTES("routes"),
     INPUTS("inputs"),
+    /** The run a held run is a part of, as it stands. */
+    PART_OF("part-of"),
     /** The same run's inputs, sealed to the asker's enrolment key: what a keyed participant gets. */
     SEALED("sealed"),
     /** The asker opened one sealed document — the access entry, from where the key was used. */
@@ -43,6 +47,8 @@ public enum LaneVerbs {
      * the asker: the reassembly performed at the tenant, where it is recorded.
      */
     IDENTIFIED("identified"),
+    /** A secret of the tenant's that the run's step declares, sealed to the asker. */
+    SECRET("secret"),
     /**
      * A chunk of what the tenant replicates to a second place of itself, from
      * where this participant last acknowledged. Not a participation verb: it
@@ -62,7 +68,12 @@ public enum LaneVerbs {
      * Entries the place recorded, in its order, handed to the tenant to be
      * recorded as the place's. Filed by the credential that hands them.
      */
-    TRAIL_PUSH("trail-push");
+    TRAIL_PUSH("trail-push"),
+    /**
+     * Runs the place performed and what they produced, handed to the tenant
+     * as one replication batch, filed by the credential that hands them.
+     */
+    RUNS_PUSH("runs-push");
 
     /** Who is asking, as a feed consumer: this participant's own cursor. */
     public static final String PARTICIPANT = "participant";
@@ -103,6 +114,10 @@ public enum LaneVerbs {
     public static final String HEAD = "head";
     /** The records a result asks the tenant to write. */
     public static final String WRITES = "writes";
+    /** The runs a result starts as parts of the run it is the result of. */
+    public static final String PARTS = "parts";
+    /** What a result says of the lasting work its run is a part of. */
+    public static final String SAID = "said";
     public static final String PREVIOUS = "previous";
     public static final String LINK = "link";
     public static final String SIGNATURE = "signature";
@@ -113,6 +128,8 @@ public enum LaneVerbs {
      * authorisation, and what it does is put the reason in the trail.
      */
     public static final String PURPOSE = "purpose";
+    /** Which secret, by the name the step declares it under. */
+    public static final String SECRET_NAME = "secret";
     /** A refusal travels as a refusal: this flag, and why. */
     public static final String REFUSED = "refused";
     /**
@@ -144,6 +161,11 @@ public enum LaneVerbs {
     public static final String THROUGH = "through";
     /** The entries handed: id, version, when recorded, and the entry as written. */
     public static final String ENTRIES = "entries";
+    /** A replication batch, in its wire form. */
+    public static final String BATCH = "batch";
+    /** What the tenant applied of a batch, held already, and refused. */
+    public static final String APPLIED = "applied";
+    public static final String SKIPPED = "skipped";
 
     private final String path;
 

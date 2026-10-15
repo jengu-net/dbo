@@ -93,6 +93,63 @@ the trail. The two come together or not at all, an undeclared audience is
 refused, and a step that says neither leaves its asker the answer alone
 ([reading back what was written](care-is-recorded.md#reading-back-what-was-written)).
 
+## `starts`: when a step starts itself
+
+`starts` names the one occasion on which the tenant starts a step itself:
+
+```json
+{ "code": "ward.rounds.walk",
+  "starts": { "every": "0 0 * * * *", "missed": "once", "keep": "P30D", "where": "origin" } }
+{ "code": "ward.orders.assign", "slots": { "order": "ServiceRequest" },
+  "starts": { "change": "ServiceRequest?status=active", "keep": "P7D", "where": "everywhere" } }
+{ "code": "ward.orders.chase", "slots": { "order": "ServiceRequest" },
+  "starts": { "due": "ServiceRequest?status=active", "at": "authoredOn", "after": "PT24H",
+              "keep": "P7D", "where": "origin" } }
+```
+
+- `every` is a calendar rule of six fields, from seconds, firing at most once a
+  minute. The step takes no slots. `missed` says what the ticks missed while no
+  node ran become when one comes back: `once`, one run for the last of them, or
+  `skip`. Either way the step says how many there were.
+- `change` is a search. Each version of a record it finds starts one run, with
+  the record in the step's one slot of that type. A record it does not find
+  starts nothing.
+- `due` is a search too. A record it finds starts one run once the moment its
+  `at` element names, plus `after`, has come. A record the search no longer
+  finds by then starts nothing.
+
+Each run is keyed by what started it: `tick/<instant>`, `change/<id>/<version>`
+or `due/<id>`. However many nodes notice the occasion, there is one run of it.
+Every run started this way is a child of the tenant's **system run**,
+`dbo.tenant.system/serve/<tenant>`, and has no requester.
+
+`keep` is how long those runs are kept once they are over; open ones are never
+removed. `where` says whether the step starts at the tenant's origin, on its
+[places](one-tenant-in-two-places.md), or at both. A place starts its steps on its
+own clock with its origin away. A change to `starts` alone is taken while the
+tenant serves.
+
+The clock is the deployment's durable layer, in the tenant's own database. An
+application hosting the store may bring its own scheduler through
+`TenantRuntimeManager.stepScheduler`. The store decides what a tick starts,
+whether the step is paused, and what a missed tick becomes; the scheduler says
+when a tick is due.
+
+### Reading and steering them
+
+`/t/<tenant>/steps` answers a `GET` with each self-starting step:
+
+- what starts it, and whether it is paused;
+- its last tick, its last run and how that run stands;
+- its next tick, how many runs it has started and how many it has let go;
+- how many ticks were missed and how many of those were skipped.
+
+`POST <step>/now` starts a run now, as the asker's. The next tick still comes
+when it was due. `POST <step>/pause` and `POST <step>/resume`, with a `because`,
+are recorded as acts under the system run, naming who did it. Reading and
+running need a `work` credential. Pausing and resuming need `supervise` over
+the step.
+
 ## A run
 
 Performing a step once is a **run**, and a run is a record in the tenant's own
@@ -108,6 +165,11 @@ where a `Task` keeps them:
 | who may take it | `performerType` (R4), `requestedPerformer` (R5) | `automation` and `person`, or `person` alone |
 | not before | `restriction.period.start` (R4), `requestedPeriod.start` (R5) | for a run held back after a failure that may pass |
 | why | `statusReason` | the failure, or why automation may not take it |
+| when | `authoredOn`, `lastModified`, `meta.lastUpdated` | authored, and last moved, where it was performed |
+| who asked | `requester` | a client as a `Device` under `urn:dbo:auth:client-id`, a person by reference |
+| what it is over | `input` | each value a slot holds, as a reference |
+| what it is part of | `partOf` | the parent's `Task` by reference, and its key under `urn:dbo:run` |
+| where it was performed | extension `performed-at` | the place, for a run a place handed home |
 
 Who owes the next act follows from those: a claimed run waits for its owner, an
 unclaimed one open to automation waits for a machine and is nobody's card, and
@@ -117,6 +179,89 @@ asking vocabulary. A machine is offered nothing on it and is refused when it
 claims; a person takes a task with their own token from the tenant's identity
 provider, as the role they hold there
 ([what automation may not take, a nurse does](work-leaves-and-comes-back.md#what-automation-may-not-take-a-nurse-does)).
+
+### A screen of work
+
+A screen lists the roots and opens each onto its parts:
+
+```
+GET /t/<tenant>/fhir/Task?part-of:missing=true&_sort=-_lastUpdated&_count=20
+GET /t/<tenant>/fhir/Task?part-of=Task/<id>
+```
+
+A page that is not the last links to the next. From inside an application the
+asking vocabulary says the same, and answers with the same fields:
+
+```java
+Questions.Work work = tenants.asking("hogwarts").orElseThrow().work();
+Questions.Page page = work.roots().newestMovedFirst().page(20, null);
+Questions.Page parts = work.childrenOf(page.runs().get(0).id()).page(20, null);
+```
+
+`key(...)` finds one run by its key, and `page.next()` is the cursor for the
+following page.
+
+### A run started for another
+
+A run started for another run is its part. An application names that run by its
+key, as `"partOf": "<key>"` in the step door's body, or as the last argument of
+`RunInitiator.starting(tenant, step, inputs, key, addressee, partOf)`. The
+tenant must hold that run, open or over; a key it does not hold is refused.
+
+A step's result starts parts of its own run:
+
+```java
+return Outcome.done().writing(Write.create(panel))
+        .starting("lab.orders.route", Map.of("order", Slot.reference("ServiceRequest/" + id)), null);
+```
+
+Each part is checked before anything is written, so a part the tenant would not
+start refuses the whole result, records included. The parts start once the
+records are written, and then the run closes. A part named without a key is
+keyed by its place among the result's parts, so a result given again finds the
+same parts.
+
+A run a step starts on a change, or at a moment a record names, is a part of the
+run whose result wrote that version of the record. Where no run wrote it, the
+run is a part of the tenant's system run.
+
+### Work that lasts
+
+Some work lasts hours or weeks and is done by many steps: an order is accepted,
+its specimen handled, measured, verified and released. A step declared to last
+stands for that work:
+
+```json
+{ "code": "lab.orders.fulfil", "slots": { "order": "Reference(ServiceRequest)" },
+  "lasts": true,
+  "starts": { "change": "ServiceRequest?status=active", "keep": "P90D", "where": "origin" } }
+```
+
+A run of it is opened for the one request its slot names, and keyed by it, so
+the same request handed in or changed again finds the same work. Nobody claims
+it. It is `received` when opened and moves by what is said of it:
+
+- `accepted`, or `rejected` and why, before it starts;
+- `in-progress` once a run that is its part has started;
+- a stage, kept as where it stands;
+- `completed`, `failed` or `cancelled`, and why.
+
+Its parts say these through their results, of the work they are part of:
+
+```java
+return Outcome.done().reaching("measured", "values in");
+return Outcome.done().ending("completed", "verified and released");
+```
+
+Whoever holds a `work` credential for the step says them at the run's address:
+`POST /t/<tenant>/run/<id>/accept`, `reject`, `stage` or `end`, each with a
+`because`, and `stage` or `status` where it names one. Each is recorded under the
+work, naming who said it. A part reads the work it is part of, request and stage,
+as `Work.parent()`.
+
+The work reads as FHIR's fulfilment `Task`. `focus` is the request,
+`instantiatesCanonical` the step as `urn:dbo:step:<code>`, `businessStatus` the
+stage, and its parts are `Task`s `partOf` it.
 
 ### A run for one participant
 
@@ -145,7 +290,10 @@ A step answers with an `Outcome`:
 - `.writing(Write.create(...), Write.update(ref, version, ...))` — the records
   it asks the tenant to write, as one result, committed whole or not at all;
 - `failed(reason)`, or throwing — released with the reason, and routed as
-  below.
+  below;
+- `refusing(reason)` — the work will not be done: no such patient, a request
+  the participant may not answer. The run ends `failed` with the reason, as the
+  participant's own act, and is neither retried nor given to people.
 
 The tenant writes the result under the run, through its own face: the profile
 validates it, identity rules hold, the membrane seals a person's identifying

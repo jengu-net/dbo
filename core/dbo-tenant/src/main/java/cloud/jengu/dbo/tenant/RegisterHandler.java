@@ -146,8 +146,19 @@ public final class RegisterHandler implements HttpHandler {
         for (FleetRegister.Row row : rows) {
             Map<String, Object> one = new LinkedHashMap<>();
             one.put("step", row.step());
-            one.put("slot", row.slot());
-            one.put("type", row.type());
+            // A jurisdiction's process is over whatever its members exchange,
+            // not over one slot of one step, so it has neither.
+            if (row.slot() != null) {
+                one.put("slot", row.slot());
+                one.put("type", row.type());
+            }
+            one.put("authority", row.authority().name().toLowerCase(java.util.Locale.ROOT));
+            if (row.by() != null) {
+                one.put("by", row.by());
+            }
+            if (!row.subProcessors().isEmpty()) {
+                one.put("subProcessors", row.subProcessors());
+            }
             one.put("required", row.required());
             one.put("posture", row.posture().name().toLowerCase(java.util.Locale.ROOT)
                     .replace('_', '-'));

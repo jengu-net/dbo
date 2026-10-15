@@ -55,6 +55,10 @@ final class ElementRecordProjection implements RecordProjection {
     static final String COLLECTABLE_UNTIL =
             "https://dbo.dev/fhir/StructureDefinition/collectable-until";
 
+    /** The place a run was performed at, for one a place handed home. */
+    static final String PERFORMED_AT =
+            "https://dbo.dev/fhir/StructureDefinition/performed-at";
+
     private static final String RUN_OUTPUT = "urn:dbo:run:output";
     private static final String RUN_INPUT = "urn:dbo:run:input";
     private static final String MILESTONE = "urn:dbo:run:milestone";
@@ -552,7 +556,7 @@ final class ElementRecordProjection implements RecordProjection {
     private String runDocument(Record record) {
         StringBuilder json = new StringBuilder(1024)
                 .append("{\"resourceType\":\"Bundle\",\"type\":\"collection\",\"entry\":[")
-                .append(entry(record, record.id()));
+                .append(entry(record, null));
         for (Record child : record.children()) {
             json.append(',').append(entry(child, record.id()));
         }
@@ -585,13 +589,26 @@ final class ElementRecordProjection implements RecordProjection {
         Map<?, ?> run = (Map<?, ?>) Json.parse(new String(record.payload(), StandardCharsets.UTF_8));
         StringBuilder json = new StringBuilder(512)
                 .append("{\"resourceType\":\"Task\",\"id\":").append(Json.quoted(record.id()))
-                .append(",\"meta\":{\"versionId\":").append(Json.quoted(String.valueOf(record.versionId())))
-                .append('}');
+                .append(",\"meta\":{\"versionId\":").append(Json.quoted(String.valueOf(record.versionId())));
+        if (run.get("at") != null) {
+            // The moment this version was written where the run was performed:
+            // a place's run keeps its own times when it is handed home.
+            json.append(",\"lastUpdated\":").append(Json.quoted(String.valueOf(run.get("at"))));
+        }
+        json.append('}');
         contained(record, json);
+        List<String> extensions = new java.util.ArrayList<>();
         if (run.get("collectUntil") != null) {
-            json.append(",\"extension\":[{\"url\":").append(Json.quoted(COLLECTABLE_UNTIL))
-                    .append(",\"valueInstant\":")
-                    .append(Json.quoted(String.valueOf(run.get("collectUntil")))).append("}]");
+            extensions.add("{\"url\":" + Json.quoted(COLLECTABLE_UNTIL) + ",\"valueInstant\":"
+                    + Json.quoted(String.valueOf(run.get("collectUntil"))) + "}");
+        }
+        String key = String.valueOf(run.get("key"));
+        if (key.contains(cloud.jengu.dbo.work.WorkModel.AUTHOR_SEPARATOR)) {
+            extensions.add("{\"url\":" + Json.quoted(PERFORMED_AT) + ",\"valueString\":"
+                    + Json.quoted(key.substring(0, key.indexOf(cloud.jengu.dbo.work.WorkModel.AUTHOR_SEPARATOR))) + "}");
+        }
+        if (!extensions.isEmpty()) {
+            json.append(",\"extension\":[").append(String.join(",", extensions)).append(']');
         }
         json.append(",\"identifier\":[{\"system\":\"").append(RUN).append("\",\"value\":")
                 .append(Json.quoted(String.valueOf(run.get("key")))).append('}');
@@ -622,15 +639,29 @@ final class ElementRecordProjection implements RecordProjection {
                 .append("},{\"system\":\"").append(STEP).append("\",\"code\":")
                 .append(Json.quoted(String.valueOf(run.get("step")))).append("}]}");
         if (run.get("parent") != null) {
-            // items are children; a subprocess elsewhere is a reference, and
-            // never arrives here as one
-            // both, and for different readers: the reference resolves inside
-            // this document, the identifier still means something outside it
-            json.append(",\"partOf\":[{\"reference\":\"urn:uuid:").append(parentId)
-                    .append("\",\"identifier\":{\"system\":\"").append(RUN)
+            // Both, and for different readers: the reference resolves — an
+            // item to the run it belongs to inside this document, a run to the
+            // Task its parent is — and the identifier still means something
+            // where neither does. A parent this store does not hold is named
+            // by its key alone.
+            Object parentTask = parentId != null ? "urn:uuid:" + parentId
+                    : run.get("parentId") != null ? "Task/" + run.get("parentId") : null;
+            json.append(",\"partOf\":[{");
+            if (parentTask != null) {
+                json.append("\"reference\":").append(Json.quoted(String.valueOf(parentTask)))
+                        .append(',');
+            }
+            json.append("\"identifier\":{\"system\":\"").append(RUN)
                     .append("\",\"value\":").append(Json.quoted(String.valueOf(run.get("parent"))))
                     .append("}}]");
         }
+        if (run.get("authored") != null) {
+            json.append(",\"authoredOn\":").append(Json.quoted(String.valueOf(run.get("authored"))));
+        }
+        if (run.get("at") != null) {
+            json.append(",\"lastModified\":").append(Json.quoted(String.valueOf(run.get("at"))));
+        }
+        requester(run, json);
         statusReason(run, json);
         owner(run, json);
         performers(run, json);
@@ -653,6 +684,26 @@ final class ElementRecordProjection implements RecordProjection {
      * provider can be withdrawn and "which behaviour was that" is the question
      * a year later.
      */
+    /**
+     * Who asked for the run: a person by the reference their credential named
+     * them by, an application as the client it authenticated as. A run the
+     * store started itself, or one authored any way but asking, names nobody.
+     */
+    private static void requester(Map<?, ?> run, StringBuilder json) {
+        if (run.get("requester") == null) {
+            return;
+        }
+        String asked = String.valueOf(run.get("requester"));
+        json.append(",\"requester\":");
+        if (asked.indexOf('/') > 0) {
+            json.append("{\"reference\":").append(Json.quoted(asked)).append('}');
+        } else {
+            json.append("{\"type\":\"Device\",\"identifier\":{\"system\":\"")
+                    .append(AUTH_CLIENT_ID).append("\",\"value\":").append(Json.quoted(asked))
+                    .append("}}");
+        }
+    }
+
     private static void owner(Map<?, ?> run, StringBuilder json) {
         if (run.get("role") != null) {
             json.append(",\"owner\":{\"reference\":")
@@ -705,8 +756,10 @@ final class ElementRecordProjection implements RecordProjection {
      * task nobody may take any more — over — says nothing about it.
      */
     private void performers(Map<?, ?> run, StringBuilder json) {
+        // Over, or lasting: nobody is to perform it.
         if (!(run.get("performerType") instanceof List<?> eligible) || eligible.isEmpty()
-                || List.of("completed", "failed", "cancelled").contains(
+                || "lasting".equals(run.get("kind"))
+                || List.of("completed", "failed", "cancelled", "rejected").contains(
                         String.valueOf(run.get("status")))) {
             return;
         }
@@ -749,6 +802,18 @@ final class ElementRecordProjection implements RecordProjection {
      * was over, and most of what work is over is not a resource in this store.
      */
     private void focus(Map<?, ?> run, StringBuilder json) {
+        if ("lasting".equals(run.get("kind")) && run.get("inputs") instanceof Map<?, ?> slots
+                && slots.size() == 1) {
+            // Lasting work is FHIR's fulfilment Task: focus is the request it
+            // fulfils, which resolves, and the step is what it instantiates.
+            String request = Json.quoted(String.valueOf(slots.values().iterator().next()));
+            json.append(focusIsABackbone
+                    ? ",\"focus\":[{\"valueReference\":{\"reference\":" + request + "}}]"
+                    : ",\"focus\":{\"reference\":" + request + "}");
+            json.append(",\"instantiatesCanonical\":").append(Json.quoted(
+                    "urn:dbo:step:" + run.get("process") + "." + run.get("step")));
+            return;
+        }
         if (!(run.get("item") instanceof Map<?, ?> item) || item.get("reference") == null) {
             return;
         }
@@ -772,12 +837,26 @@ final class ElementRecordProjection implements RecordProjection {
         if (!(run.get("inputs") instanceof Map<?, ?> slots) || slots.isEmpty()) {
             return;
         }
+        // One input per value a slot holds, in the slot's order. A reference
+        // resolves, as a reference; an object given in the request is named by
+        // its type and not repeated, because its content is the run's to read
+        // in its context and a list of tasks is not that.
         StringBuilder inputs = new StringBuilder();
-        slots.forEach((slot, reference) -> inputs.append(inputs.isEmpty() ? "" : ",")
-                .append("{\"type\":{\"coding\":[{\"system\":\"").append(RUN_INPUT)
-                .append("\",\"code\":").append(Json.quoted(String.valueOf(slot)))
-                .append("}]},\"valueReference\":{\"display\":")
-                .append(Json.quoted(String.valueOf(reference))).append("}}"));
+        slots.forEach((slot, filled) -> {
+            for (Object value : filled instanceof List<?> several ? several : List.of(filled)) {
+                inputs.append(inputs.isEmpty() ? "" : ",")
+                        .append("{\"type\":{\"coding\":[{\"system\":\"").append(RUN_INPUT)
+                        .append("\",\"code\":").append(Json.quoted(String.valueOf(slot)))
+                        .append("}]},\"valueReference\":");
+                if (value instanceof Map<?, ?> given) {
+                    inputs.append("{\"display\":").append(Json.quoted("a "
+                            + given.get("resourceType") + ", given")).append("}}");
+                } else {
+                    inputs.append("{\"reference\":").append(Json.quoted(String.valueOf(value)))
+                            .append("}}");
+                }
+            }
+        });
         json.append(",\"input\":[").append(inputs).append(']');
     }
 

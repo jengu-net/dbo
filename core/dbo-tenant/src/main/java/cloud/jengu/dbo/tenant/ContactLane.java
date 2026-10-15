@@ -127,6 +127,27 @@ final class ContactLane implements Lane {
     }
 
     @Override
+    public byte[] secret(Run run, String name) {
+        byte[] value = lane.secret(run, name);
+        heardAbout(run);
+        return value;
+    }
+
+    @Override
+    public cloud.jengu.dbo.work.SealedPayload sealedSecret(Run run, String name) {
+        cloud.jengu.dbo.work.SealedPayload sealed = lane.sealedSecret(run, name);
+        heardAbout(run);
+        return sealed;
+    }
+
+    @Override
+    public Run refused(Run run, String because) {
+        Run ended = lane.refused(run, because);
+        heardAbout(run);
+        return ended;
+    }
+
+    @Override
     public void closed(Run run) {
         lane.closed(run);
         heardAbout(run);
@@ -143,6 +164,27 @@ final class ContactLane implements Lane {
         Run ended = lane.committed(run, head, result);
         heard(ended);
         return ended;
+    }
+
+    @Override
+    public Run committed(Run run, String head, List<Outcome.Write> result,
+            List<Outcome.Part> parts) {
+        Run ended = lane.committed(run, head, result, parts);
+        heard(ended);
+        return ended;
+    }
+
+    @Override
+    public Run committed(Run run, String head, List<Outcome.Write> result,
+            List<Outcome.Part> parts, Outcome.Said said) {
+        Run ended = lane.committed(run, head, result, parts, said);
+        heard(ended);
+        return ended;
+    }
+
+    @Override
+    public java.util.Optional<Run> partOf(Run run) {
+        return lane.partOf(run);
     }
 
     @Override

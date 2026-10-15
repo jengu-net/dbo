@@ -40,6 +40,18 @@ write it. `replicated` — it is authored somewhere else and arrives as a copy,
 because the tenant declared a dependency on it, and a write here is refused by
 name rather than overwritten by the next sync.
 
+**A type can be both received and authored.** A laboratory takes the lab
+services its zone publishes and publishes its own beside them, in the same
+type. Declared `operational` with a dependency that streams it, the type holds
+both, and what decides whether a write is accepted is whose the record is:
+a copy that came from upstream is read-only here whatever the type says, and
+the tenant's own records are its own. Writing a record that claims a copy's
+canonical is shadowing it — the copy steps behind it, the stream keeps it
+current, and it comes back when the tenant's record is deleted. A search asks
+for one or the other with `_source=urn:dbo:upstream:<dependency>` for the
+upstream's copies, or `_source:missing=true` for the tenant's own; a copy says
+where it came from in its `meta.source`.
+
 ## A face is the standard a tenant speaks
 
 `"face": "r5"` is one word in the file. What stands behind it is records: the

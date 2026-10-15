@@ -20,6 +20,11 @@ themselves for it to travel in.
 | [DBOS Transact](https://github.com/dbos-inc) | 1.0.0 | MIT | `dbo-subscriptions` |
 | [Fabric8 Kubernetes Client](https://github.com/fabric8io/kubernetes-client) | 7.3.1 | Apache-2.0 | `dbo-tenant-k8s` |
 | [HikariCP](https://github.com/brettwooldridge/HikariCP) | 7.1.0 | Apache-2.0 | `dbo-tenant`, `dbo-tenant-k8s` |
+| [Eclipse JGit](https://github.com/eclipse-jgit/jgit) | 7.8.0 | EDL-1.0 (BSD-3-Clause) | `dbo-tenant` |
+| [JavaEWAH](https://github.com/lemire/javaewah) | 1.2.3 | Apache-2.0 | `dbo-tenant` |
+| [Apache Commons Codec](https://commons.apache.org/proper/commons-codec/) | 1.22.1 | Apache-2.0 | `dbo-tenant` |
+| [jagged](https://github.com/exceptionfactory/jagged) (age encryption) | 1.0.0 | Apache-2.0 | `dbo-tenant` |
+| [SnakeYAML Engine](https://bitbucket.org/snakeyaml/snakeyaml-engine) | 2.9 | Apache-2.0 | `dbo-tenant` |
 | [SLF4J](https://www.slf4j.org) (simple binding) | 2.0.18 | MIT | several bundles |
 | [Jackson Core](https://github.com/FasterXML/jackson-core) | 2.22.1 | Apache-2.0 | `dbo-fhir-element` |
 | [HL7 FHIR R6 core definitions](https://hl7.org/fhir) (`hl7.fhir.r6.core`) | 6.0.0-ballot5 | CC0-1.0 | `dbo-fhir-element` |

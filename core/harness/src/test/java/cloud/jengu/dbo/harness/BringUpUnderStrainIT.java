@@ -609,10 +609,11 @@ class BringUpUnderStrainIT {
 
     private static String vocabulary(String code, String dependencies) {
         return """
-                {"code":"%s","face":"r4","types":[
+                {"code":"%s","face":"r4"%s,"types":[
                   {"name":"CodeSystem","identity":"canonical","handling":"mirrored"},
                   {"name":"ValueSet","identity":"canonical","handling":"mirrored"}]%s}"""
-                .formatted(code, dependencies);
+                .formatted(code, dependencies.isEmpty() ? ",\"zoneRoot\":true" : "",
+                        dependencies);
     }
 
     /**
@@ -879,7 +880,7 @@ class BringUpUnderStrainIT {
             // A dependent tenant, so the reconciler has streams to carry and a
             // round is doing real work when the close arrives.
             Files.writeString(quietDir.resolve(zone + ".json"), """
-                    {"code":"%s","face":"r4","audit":{"level":"none"},"types":[
+                    {"code":"%s","face":"r4","zoneRoot":true,"audit":{"level":"none"},"types":[
                       {"name":"CodeSystem","identity":"canonical","handling":"operational"},
                       {"name":"Observation","identity":"internal","handling":"operational"}]}"""
                     .formatted(zone));
@@ -986,7 +987,8 @@ class BringUpUnderStrainIT {
     @Proving(DboPromises.TEN_COMING_UP_AND_KEEPING_UP_ARE_NOT_ONE_QUEUE)
     void aStreamKeepsMovingWhileATenantIsStuckComingUp() throws Exception {
         Files.writeString(dir.resolve("loops-source.json"),
-                "{\"code\":\"loops-source\",\"face\":\"r4\",\"types\":" + STREAMED_TYPES + "}");
+                "{\"code\":\"loops-source\",\"face\":\"r4\",\"zoneRoot\":true,\"types\":"
+                        + STREAMED_TYPES + "}");
         Files.writeString(dir.resolve("loops-reader.json"),
                 "{\"code\":\"loops-reader\",\"face\":\"r4\",\"types\":" + STREAMED_TYPES + ","
                         + "\"dependencies\":[{\"name\":\"loops-source\","
