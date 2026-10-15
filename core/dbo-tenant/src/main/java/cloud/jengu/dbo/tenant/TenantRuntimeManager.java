@@ -4657,6 +4657,45 @@ public final class TenantRuntimeManager implements AutoCloseable {
                         item.version());
             }
         });
+        // BY WHAT THINGS ARE, across stores: a place's record comes home
+        // naming others as questions, answered here as the configuration's
+        // are, by the same face.
+        replication.namingAcrossStores(store.references().orElse(null));
+        // What a place handed home and this tenant did not take is on the
+        // tenant's trail as the place's, under the run that produced it —
+        // through the contributed-event path, so actor and time are the
+        // machinery's. What happened is the code, and the record is the one
+        // a reader here can follow: the tenant's own where the write stayed
+        // on the place, and the place's where it was refused.
+        replication.sayingWhatItDidNotTake((from, item, run, outcome, holds) -> {
+            java.util.Map<String, String> detail = new java.util.LinkedHashMap<>();
+            detail.put("place", from);
+            detail.put("outcome", outcome);
+            if (holds != null) {
+                detail.put("holds", holds);
+            }
+            String outer = cloud.jengu.dbo.core.api.Caller.run();
+            if (run != null) {
+                cloud.jengu.dbo.core.api.Caller.setRun(run);
+            }
+            try {
+                // ONCE per place, record and version: a place hands a run's
+                // work again while the run's own feed keeps moving, and what
+                // was not taken is the same answer every time it arrives.
+                String about = holds != null ? holds : item.typeName() + "/" + item.id();
+                engine.recordCustom("write-back." + outcome,
+                        about.substring(0, about.indexOf('/')),
+                        about.substring(about.indexOf('/') + 1), detail, null,
+                        "write-back " + from + " " + item.typeName() + "/" + item.id() + "/"
+                                + item.version());
+            } finally {
+                if (outer == null) {
+                    cloud.jengu.dbo.core.api.Caller.clearRun();
+                } else {
+                    cloud.jengu.dbo.core.api.Caller.setRun(outer);
+                }
+            }
+        });
         TenantRuntime runtime = new TenantRuntime(spec, engine, store,
                 new PgChangeFeed(db.dataSource(), version.domain()),
                 new PgChangeFeed(db.dataSource(), cloud.jengu.dbo.core.api.Domains.DEFINITIONS),
@@ -5195,7 +5234,8 @@ public final class TenantRuntimeManager implements AutoCloseable {
                     // FILED BY THE CREDENTIAL, never by the name the batch
                     // carries: a place hands its work as itself and as nobody
                     // else, exactly as it hands its trail.
-                    cloud.jengu.dbo.sync.Lanes.Applied applied = serving.replication().apply(
+                    cloud.jengu.dbo.sync.Lanes.Applied applied = serving.replication()
+                            .applyFromAPlace(
                             participant, new cloud.jengu.dbo.sync.Lanes.Batch(handed.epoch(),
                                     participant, handed.cursor(), handed.items(),
                                     handed.contentCursor()));

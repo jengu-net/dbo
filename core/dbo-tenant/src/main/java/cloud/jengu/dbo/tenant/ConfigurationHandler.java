@@ -373,6 +373,7 @@ public final class ConfigurationHandler implements HttpHandler {
             changes.add(said);
         }
         answer.put("changes", changes);
+        answer.put("othersMayChange", applied.othersMayChange());
         ConfigApplication.Outcome outcome = applied.outcome();
         answer.put("read", outcome.read());
         answer.put("applied", outcome.applied());

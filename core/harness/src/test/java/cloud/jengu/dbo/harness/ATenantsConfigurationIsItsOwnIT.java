@@ -235,6 +235,9 @@ class ATenantsConfigurationIsItsOwnIT {
         assertTrue(preview.contains("\"preview\":true"), preview);
         assertTrue(preview.contains("{\"path\":\"organisations/ward-7.json\","
                 + "\"change\":\"modified\"}"), preview);
+        // Declared operational, so the configuration is not its only writer,
+        // and the answer says so before anybody else's write does.
+        assertTrue(preview.contains("\"othersMayChange\":[\"Organization\"]"), preview);
         assertEquals(before, organisation("ward-7").orElseThrow().versionId(),
                 "a preview wrote");
         assertEquals("Ward 7, cardiology", organisationName("ward-7"));

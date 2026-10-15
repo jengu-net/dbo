@@ -306,6 +306,45 @@ public final class Lanes {
 
     private volatile java.util.function.BiConsumer<Item, String> whence;
 
+    /**
+     * How records crossing between this store and another name the records
+     * they point at: by what those say they are, never by an id one store
+     * minted. Without it a record crosses as it was written, ids and all.
+     */
+    public Lanes namingAcrossStores(cloud.jengu.dbo.core.face.ReferenceResolution references) {
+        this.references = references;
+        return this;
+    }
+
+    private volatile cloud.jengu.dbo.core.face.ReferenceResolution references;
+
+    /** Who is told of each record a place handed home that this side did not take. */
+    public Lanes sayingWhatItDidNotTake(Untaken untaken) {
+        this.untaken = untaken;
+        return this;
+    }
+
+    private volatile Untaken untaken;
+
+    /** A record a place handed home and its tenant did not take. */
+    @FunctionalInterface
+    public interface Untaken {
+
+        /** It stayed on the place: the tenant holds the record it is about as its own. */
+        String KEPT_ON_THE_PLACE = "kept-on-the-place";
+
+        /** It was refused, and the place was told why. */
+        String REFUSED = "refused";
+
+        /**
+         * @param from    the place, by the credential that handed it
+         * @param run     the run that produced it, as filed here, or null
+         * @param outcome {@link #KEPT_ON_THE_PLACE} or {@link #REFUSED}
+         * @param holds   the tenant's own record it was about, when it was kept
+         */
+        void said(String from, Item item, String run, String outcome, String holds);
+    }
+
     private Batch outbound(String peer, int limit, Set<String> processes, Set<String> types,
             boolean withInputs) {
         for (String type : types) {
@@ -381,6 +420,17 @@ public final class Lanes {
             }
             contentCursor = content.nextCursor();
         }
+        if (!withInputs && references != null) {
+            // HOME, NAMING BY WHAT THINGS ARE. What a run here produced points
+            // at records by this store's ids, and an id this store minted is
+            // nothing at home. Asked as questions, they are answered there by
+            // the tenant's own ids.
+            Set<String> handed = new java.util.HashSet<>();
+            items.forEach(item -> handed.add(item.typeName() + "/" + item.id()));
+            items.replaceAll(item -> item.copy() ? Item.copy(item.typeName(), item.id(),
+                    item.version(), item.recordedAt(), askedAsWhatTheyAre(item.payload(), handed))
+                    : item);
+        }
         items.addAll(work);
         // Data, then work, then the account of what was done — an entry names
         // the run it was part of, and a trail arriving before the run it joins
@@ -388,6 +438,42 @@ public final class Lanes {
         items.addAll(trail(travelling));
         return new Batch(lane.epoch(), site, chunk.nextCursor(), List.copyOf(items),
                 contentCursor);
+    }
+
+    /**
+     * A record's references by id, turned into what each referent says it is.
+     *
+     * <p>Left as it is where the id means the same at home: a record
+     * travelling in the same batch, which arrives under its own id. A
+     * referent this store does not hold, or one that says nothing it is
+     * claimed under, is left too — home answers whether it holds that id, and
+     * refuses the record if it does not.
+     */
+    private byte[] askedAsWhatTheyAre(byte[] payload, Set<String> handed) {
+        return references.named(payload, reference -> {
+            if (handed.contains(reference)) {
+                return reference;
+            }
+            String typeName = reference.substring(0, reference.indexOf('/'));
+            Optional<StoredObject> held = heldHere(reference);
+            if (held.isEmpty()) {
+                return reference;
+            }
+            cloud.jengu.dbo.core.api.Identifier claim = cloud.jengu.dbo.core.api.IdentityClaims
+                    .of(store, typeName, held.get().payload());
+            return claim == null ? reference
+                    : cloud.jengu.dbo.core.api.IdentityClaims.question(typeName, claim);
+        });
+    }
+
+    /** The record a reference by id names in this store, if this store holds its type at all. */
+    private Optional<StoredObject> heldHere(String reference) {
+        int slash = reference.indexOf('/');
+        try {
+            return store.get(reference.substring(0, slash), reference.substring(slash + 1));
+        } catch (RuntimeException notAType) {
+            return Optional.empty();
+        }
     }
 
     /** The exact version a run named as produced, from history, as a copy. */
@@ -502,6 +588,57 @@ public final class Lanes {
      * exactly the comparison this exists to make possible.
      */
     public Applied apply(String peer, Batch batch) {
+        return apply(peer, batch, null);
+    }
+
+    /**
+     * Applies what a place of this tenant handed home: its runs, what they
+     * produced, and their trail.
+     *
+     * <p><b>Only what is the place's own is taken.</b> What a run produced
+     * arrives naming other records by what they say they are, and is stored
+     * pointing at the tenant's own; one pointing at something the tenant does
+     * not hold is refused, naming the reference, rather than stored pointing
+     * at nothing. A record the tenant holds as its own — the configuration's,
+     * or anybody's here — is never replaced from a place, found by its id or
+     * by what it says: the place's write stays on the place. What was not
+     * taken is said, by the place and record it was about.
+     */
+    public Applied applyFromAPlace(String peer, Batch batch) {
+        return apply(peer, batch, new Home(batch));
+    }
+
+    /** What applying a place's batch needs to know about the whole of it. */
+    private static final class Home {
+        /** Every record the batch carries, by reference: those arrive under their own ids. */
+        final Set<String> handed = new java.util.HashSet<>();
+        /** Which run produced each version, filed as it is filed here. */
+        final Map<String, String> producedBy = new java.util.HashMap<>();
+
+        Home(Batch batch) {
+            for (Item item : batch.items()) {
+                handed.add(item.typeName() + "/" + item.id());
+                if (!item.work()) {
+                    continue;
+                }
+                try {
+                    Run run = Run.of(new StoredObject(item.id(), item.typeName(), item.version(),
+                            item.recordedAt(), item.payload(), false, null, null, null));
+                    run.produced().versions().forEach(version -> producedBy.put(version,
+                            WorkModel.mirroredKey(batch.from(), run.key())));
+                } catch (RuntimeException unreadable) {
+                    // A run nobody can read names no record here: what it
+                    // produced is still said, without the run.
+                }
+            }
+        }
+
+        String producerOf(Item item) {
+            return producedBy.get(item.typeName() + "/" + item.id() + "/" + item.version());
+        }
+    }
+
+    private Applied apply(String peer, Batch batch, Home home) {
         Lane lane = adopt(peer, batch);
         if (!lane.epoch().equals(batch.epoch())) {
             // A cursor from another lane instance. Refusing is inconvenient at
@@ -525,7 +662,7 @@ public final class Lanes {
                     // a working copy.
                     written = admit(batch.from(), item);
                 } else {
-                    written = item.copy() ? copy(batch.from(), item)
+                    written = item.copy() ? copy(batch.from(), item, home)
                             : item.work() ? mirror(batch.from(), item) : replicate(item);
                 }
                 if (!item.work() && !item.copy() && !AUDIT.equals(item.typeName())) {
@@ -546,6 +683,14 @@ public final class Lanes {
                 // One record nobody can apply is a line in the answer, not a
                 // stalled lane.
                 refused.add(item.typeName() + "/" + item.id() + ": " + e.getMessage());
+                if (home != null && item.copy()) {
+                    try {
+                        tell(batch.from(), item, home, Untaken.REFUSED, null);
+                    } catch (RuntimeException unsaid) {
+                        refused.add(item.typeName() + "/" + item.id()
+                                + ": and the trail could not say so: " + unsaid.getMessage());
+                    }
+                }
             }
         }
         return new Applied(applied, skipped, List.copyOf(refused));
@@ -575,20 +720,35 @@ public final class Lanes {
      * site authored itself stands in front of it — the local override
      * wins, as it does for a streamed copy — and the copy is skipped.
      */
-    private boolean copy(String from, Item item) {
+    private boolean copy(String from, Item item, Home home) {
         String reference = item.typeName() + "/" + item.id();
         String key = reference + " " + COPY + from;
         Optional<StoredObject> here = store.get(item.typeName(), item.id());
         boolean noted = !store.getByIdentifier(PlacementModel.TYPE,
                 List.of(PlacementModel.key(key))).isEmpty();
         if (here.isPresent() && !noted) {
+            if (home != null) {
+                tell(from, item, home, Untaken.KEPT_ON_THE_PLACE, reference);
+            }
             return false;
         }
         if (here.isPresent() && here.get().versionId() >= item.version()) {
             return false;
         }
+        byte[] payload = item.payload();
+        if (home != null && references != null) {
+            // Whose it is first: what a record says it is does not depend on
+            // what it points at, and a record the tenant holds as its own
+            // stays on the place whatever its references would have answered.
+            Optional<String> own = ownRecordSaying(item.typeName(), item.id(), payload);
+            if (own.isPresent()) {
+                tell(from, item, home, Untaken.KEPT_ON_THE_PLACE, own.get());
+                return false;
+            }
+            payload = answeredHere(payload, home);
+        }
         store.put(new PutRequest(item.typeName(), item.id(),
-                here.map(StoredObject::versionId).orElse(null), item.payload(),
+                here.map(StoredObject::versionId).orElse(null), payload,
                 item.version(), item.recordedAt(), true),
                 cloud.jengu.dbo.core.api.Handling.Authority.SOURCE_TENANT);
         java.util.function.BiConsumer<Item, String> noting = whence;
@@ -604,6 +764,51 @@ public final class Lanes {
                             .getBytes(StandardCharsets.UTF_8)));
         }
         return true;
+    }
+
+    /**
+     * A place's record with its references answered here: each question by
+     * the record it names here, and each id held to being one this tenant
+     * holds or one arriving beside it.
+     *
+     * @throws IllegalArgumentException naming the reference that could not be
+     *         answered — the record is refused, not stored pointing at nothing
+     */
+    private byte[] answeredHere(byte[] payload, Home home) {
+        byte[] answered = references.resolved(payload,
+                cloud.jengu.dbo.core.face.ReferenceResolution.Resolver.NOTHING);
+        return references.named(answered, reference -> {
+            if (home.handed.contains(reference) || heldHere(reference).isPresent()) {
+                return reference;
+            }
+            throw new IllegalArgumentException("the reference '" + reference + "' names "
+                    + "nothing this tenant holds — an id one store minted means nothing in "
+                    + "another, and a record pointing at nothing is refused rather than stored");
+        });
+    }
+
+    /**
+     * The tenant's own record this one says it is, when it is another record:
+     * the configuration's, or anybody's here. A place's write of it is the
+     * place's, and does not replace what the tenant holds.
+     */
+    private Optional<String> ownRecordSaying(String typeName, String id, byte[] payload) {
+        cloud.jengu.dbo.core.api.Identifier claim =
+                cloud.jengu.dbo.core.api.IdentityClaims.of(store, typeName, payload);
+        if (claim == null) {
+            return Optional.empty();
+        }
+        return store.getByIdentifier(typeName, List.of(claim)).stream()
+                .filter(found -> !found.id().equals(id))
+                .map(found -> typeName + "/" + found.id())
+                .findFirst();
+    }
+
+    private void tell(String from, Item item, Home home, String outcome, String holds) {
+        Untaken saying = untaken;
+        if (saying != null) {
+            saying.said(from, item, home.producerOf(item), outcome, holds);
+        }
     }
 
     /** Whether this site holds the record as a copy from another, and from which. */
