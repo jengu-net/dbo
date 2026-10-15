@@ -51,6 +51,7 @@ ATenantsWorkingKeyIsHeldWhereItsOwnerSaysIT              lifecycle — brings te
 ATickStartsOneRunOnEveryNodeIT                           deployment — two nodes over one tenant database, each bringing its own scheduler turned by hand, and every node taken down to reckon missed ticks; the sample world is one node on the store's own clock
 AWriteIsJudgedFromTheIndexIT                             a global dial: the face is chosen by a system property rather than by a declaration, so any tenant whose payloads were first built inside this class's window would keep the index face for the rest of the run. A shared tenant caught that way would leave a neighbouring class quietly testing something else. It joins a shared world when the selector becomes per-tenant
 BringUpUnderStrainIT                                     lifecycle
+EveryListenerHearsOfEveryTenantIT                        lifecycle — it has a management tenant, takes a tenant down and brings it up again, and counts what each listener is told of every tenant; a listener on the shared world would be told of tenants other classes bring up and down
 OperatorIT                                               sweep
 WhatTheLoadedSpecificationCostsIT                        first boot
 WorkCrossesToItsOwnZoneIT                                deployment — a tree two zones deep, with a member directly under the root and one under the lower zone; the sample world has one zone with none above or below it, and a zone added to it would be a jurisdiction every shared tenant belongs to

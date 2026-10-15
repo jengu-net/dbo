@@ -223,6 +223,13 @@ public final class Activator implements BundleActivator {
                     @Override
                     public void removedService(ServiceReference<TenantLifecycleListener> ref,
                             TenantLifecycleListener listener) {
+                        // Told nothing more: a bundle restarted while tenants
+                        // serve registers its listener again, and the one it
+                        // left must not be told beside it.
+                        TenantRuntimeManager serving = manager;
+                        if (serving != null) {
+                            serving.removeLifecycleListener(listener);
+                        }
                         ctx.ungetService(ref);
                     }
                 });
