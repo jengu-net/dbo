@@ -1061,9 +1061,26 @@ public final class TenantRuntimeManager implements AutoCloseable {
     private final TenantActivities activities = new TenantActivities();
     /** Who is watching which of a tenant's streams. */
     private final TenantObservations observations = new TenantObservations();
-    /** Who is told when a tenant reaches a point, with the filter that selected them. */
-    private final java.util.List<Object[]> lifecycleListeners =
+    /**
+     * Somebody told when a tenant reaches a point, the filter that selected
+     * them, and which reach of each tenant they were last told of.
+     */
+    private record Listening(TenantPoint point, org.osgi.framework.Filter filter, String name,
+            TenantLifecycleListener listener, Map<String, Long> told) {
+    }
+
+    /** Who is told when a tenant reaches a point. */
+    private final java.util.List<Listening> lifecycleListeners =
             new java.util.concurrent.CopyOnWriteArrayList<>();
+
+    /**
+     * Which points each serving tenant has reached, each by the reach it was:
+     * what a listener arriving later is told of, and what keeps one told of a
+     * reach from being told of it twice.
+     */
+    private final Map<String, Map<TenantPoint, Long>> reachedAt = new ConcurrentHashMap<>();
+    private final java.util.concurrent.atomic.AtomicLong reaches =
+            new java.util.concurrent.atomic.AtomicLong();
     /** What each served tenant published about itself, for the later points. */
     private final Map<String, TenantFacts> publishedFacts = new ConcurrentHashMap<>();
     /** Tenants whose index is stale because a reindex did not finish. */
@@ -1350,7 +1367,27 @@ public final class TenantRuntimeManager implements AutoCloseable {
                         name + ": the target filter cannot be parsed: " + target, e);
             }
         }
-        lifecycleListeners.add(new Object[] {point, filter, name, listener});
+        Listening listening = new Listening(point, filter, name, listener,
+                new ConcurrentHashMap<>());
+        lifecycleListeners.add(listening);
+        // TOLD OF EVERY TENANT ALREADY PAST ITS POINT, as if it had been here
+        // when each reached it. A listener is registered when its bundle or
+        // its application gets round to it, and the management tenant comes
+        // up inside the runtime's own start, before any application has: a
+        // listener told only from now on would never hear of it, and the
+        // silence looks like working.
+        for (Map.Entry<String, Map<TenantPoint, Long>> tenant : reachedAt.entrySet()) {
+            Long reach = tenant.getValue().get(point);
+            TenantFacts facts = publishedFacts.get(tenant.getKey());
+            if (reach != null && facts != null) {
+                tell(listening, point, facts, reach);
+            }
+        }
+    }
+
+    /** Stops telling a listener anything: its bundle went, or its application stopped. */
+    public void removeLifecycleListener(TenantLifecycleListener listener) {
+        lifecycleListeners.removeIf(listening -> listening.listener() == listener);
     }
 
     /**
@@ -1416,23 +1453,42 @@ public final class TenantRuntimeManager implements AutoCloseable {
      * a deployment an absent listener can take down is the worse trade — the
      * same answer mandatory steps already gives.
      */
-    @SuppressWarnings("unchecked")
     private void reached(TenantPoint point, TenantFacts facts) {
-        for (Object[] one : lifecycleListeners) {
-            if (one[0] != point) {
-                continue;
+        // Recorded before anybody is told, so a listener arriving while this
+        // runs is told of it by its own arrival if not by this.
+        long reach = reaches.incrementAndGet();
+        reachedAt.computeIfAbsent(facts.code(), code -> new ConcurrentHashMap<>())
+                .put(point, reach);
+        for (Listening listening : lifecycleListeners) {
+            if (listening.point() == point) {
+                tell(listening, point, facts, reach);
             }
-            org.osgi.framework.Filter filter = (org.osgi.framework.Filter) one[1];
-            if (filter != null
-                    && !filter.matches((Map<String, ?>) facts.properties())) {
-                continue;
+        }
+    }
+
+    /**
+     * One listener told of one reach of one tenant, once: whichever of its
+     * arrival and the reach comes second tells it, and the other finds it
+     * told. A tenant brought up again is a new reach, and is told again.
+     */
+    @SuppressWarnings("unchecked")
+    private void tell(Listening listening, TenantPoint point, TenantFacts facts, long reach) {
+        if (listening.filter() != null
+                && !listening.filter().matches((Map<String, ?>) facts.properties())) {
+            return;
+        }
+        synchronized (listening) {
+            Long told = listening.told().get(facts.code());
+            if (told != null && told >= reach) {
+                return;
             }
-            try {
-                ((TenantLifecycleListener) one[3]).reached(point, facts);
-            } catch (RuntimeException e) {
-                LOG.warn("tenant {}: listener {} failed at {}",
-                        facts.code(), one[2], point.spelling(), e);
-            }
+            listening.told().put(facts.code(), reach);
+        }
+        try {
+            listening.listener().reached(point, facts);
+        } catch (RuntimeException e) {
+            LOG.warn("tenant {}: listener {} failed at {}",
+                    facts.code(), listening.name(), point.spelling(), e);
         }
     }
 
@@ -6508,6 +6564,9 @@ public final class TenantRuntimeManager implements AutoCloseable {
             sharedServer.removeContext(registerPath);
         }
         owners.remove(code);
+        // Past none of its points now: a listener arriving while it is down is
+        // not told of it, and one told before is told again when it comes up.
+        reachedAt.remove(code);
         workingKeys.remove(code);
         heldElsewhere.remove(code);
         String configurationPath = configurationContexts.remove(code);

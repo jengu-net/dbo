@@ -3359,6 +3359,7 @@ cloud.jengu.dbo.promises.DboPromises                                   TEN_A_DEC
 cloud.jengu.dbo.promises.DboPromises                                   TEN_A_DEPLOYMENT_WRITES_AN_OWNERS_SECRETS_AS_SOPS_DOES:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_A_DOOR_OPENS_WHEN_ITS_TENANT_SERVES:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_A_FEED_SAYS_WHAT_CHANGED_NOT_WHAT_IT_SAYS:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   TEN_A_LISTENER_HEARS_OF_EVERY_TENANT_PAST_ITS_POINT:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_A_PARTNER_MANAGES_TENANTS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_A_REDECLARATION_IS_NOTICED:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_A_REFUSED_DECLARATION_IS_SAID_ONCE:cloud.jengu.dbo.promises.DboPromises
@@ -4786,6 +4787,7 @@ cloud.jengu.dbo.tenant.TenantRuntimeManager                            processor
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            pruneSigningKeys():int
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            readsItsOriginThrough(String,cloud.jengu.dbo.tenant.TenantRuntimeManager.OriginFeeds):void
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            redeclarations():Map
+cloud.jengu.dbo.tenant.TenantRuntimeManager                            removeLifecycleListener(cloud.jengu.dbo.tenant.api.TenantLifecycleListener):void
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            runInitiator():cloud.jengu.dbo.work.RunInitiator
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            runtime(String):Optional
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            scanOnce():Set

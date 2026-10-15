@@ -18,6 +18,12 @@ package cloud.jengu.dbo.tenant.api;
  * trail, identity, the tenant's own content — is watched with a
  * {@link TenantObserver} instead, which survives its bundle being down.
  *
+ * <p>A listener is told of every tenant past its point however late it is
+ * registered, once per time that tenant came up: the management tenant comes
+ * up inside the runtime's own start, before any bundle or application has
+ * registered anything, and is told to each as it arrives. A tenant that is down
+ * is told to nobody, and one brought up again is told again.
+ *
  * <p>So a listener here is for what is rare and can be re-derived: noticing a
  * tenant, registering it somewhere, warming something. Anything that must not
  * miss an event does not belong on this interface.

@@ -1565,6 +1565,14 @@ public enum DboPromises implements Promise {
             + "turning the membrane on turned a refusal into a fault — and the membrane is "
             + "supposed to be invisible to everything except what it protects."),
 
+    TEN_A_LISTENER_HEARS_OF_EVERY_TENANT_PAST_ITS_POINT("A listener is told of every tenant "
+            + "that reaches its point and its target selects, once, however late it was "
+            + "registered: a tenant already past the point is told to it as it arrives, the "
+            + "management tenant included, which comes up before any application listens. "
+            + "Nobody is told twice by another's arrival, a tenant that is down is told to "
+            + "nobody, one brought up again is told again, and a listener removed is told "
+            + "nothing more."),
+
     TEN_AN_ACTIVITY_DECLARES_WHERE_IT_APPLIES("A tenant publishes what it is as facts, "
             + "and an activity states which tenants it is for rather than working it out "
             + "where it runs: it declares a filter over those facts, or it applies to "
