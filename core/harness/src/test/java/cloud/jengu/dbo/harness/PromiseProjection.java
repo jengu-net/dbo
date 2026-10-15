@@ -307,6 +307,13 @@ public final class PromiseProjection {
                 continue;
             }
             String code = model.codeOf(promise);
+            // Another product's promise — the promise toolset's, composed from
+            // its jar — is that product's to project, on its own page. A story
+            // here may rest on it as a leg, and reads its status from the
+            // model; this catalogue is this store's alone.
+            if (!code.startsWith("REQ-DBO-")) {
+                continue;
+            }
             if (sections.keySet().stream().noneMatch(p -> code.startsWith("REQ-DBO-" + p + "-"))) {
                 homeless.add(code);
             }

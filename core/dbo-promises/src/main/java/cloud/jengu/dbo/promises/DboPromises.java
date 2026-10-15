@@ -3100,25 +3100,9 @@ public enum DboPromises implements Promise {
             + "it, in the tenant's own audit trail, so what was imported and what both "
             + "parties said it was stays answerable without the archive."),
 
-    // ── PRM — migrated from hand-written prose (2026-08-27) ──
+    // ── PRM — how this store uses the promise toolset. The toolset's own
+    // promises are its own (REQ-PROMISE-…), composed from its jar. ──
 
-    PRM_NAME_IS_THE_CODE(
-            "A promise is declared exactly once, as an enum constant; its code derives "
-            + "from the constant's name and its catalogue's namespace, so a citation "
-            + "cannot drift from a declaration — there is no string to mistype and no "
-            + "generator to trust."),
-    PRM_GAP_IS_FIRST_CLASS(
-            "Unstated ground is declared as a gap with plain text; a gap registers, "
-            + "carries a stable code, and counts against coverage until promoted to a "
-            + "named promise.") {
-        @Override
-        public String assurance() {
-            return "Proven by CodeAndGapTest#gapCodesAreStableAndDistinct and #aGapNeedsItsText "
-                    + "in the promise module, which cannot cite this constant: the framework "
-                    + "has no dependency on any product's catalogue, and acquiring one to "
-                    + "prove itself would invert the design it exists to enforce.";
-        }
-    },
     PRM_A_STORY_IS_CITED_NOT_CLAIMED(
             "A user story is a constant beside the promises, and promises declare the "
             + "stories they serve; a story's legs are projected from those declarations "
@@ -3126,56 +3110,6 @@ public enum DboPromises implements Promise {
             + "not exist, cannot claim a leg nothing promises, and reads unproven while "
             + "every leg it rests on is only planned. A story claims no evidence: coverage "
             + "arrives only through promises citing it."),
-    PRM_REGISTERED_AT_COMPILE_TIME(
-            "An annotated catalogue is registered during its own component's "
-            + "compilation — no classpath is swept, and a registration regenerated on "
-            + "every compile cannot drift or be lost."),
-    PRM_CATALOGUE_READ_WHOLE(
-            "The registry reads a catalogue's constants whole — proven, planned and gap "
-            + "alike — never as a side effect of what happened to be class-loaded."),
-    PRM_DOWN_LINKS_ONLY(
-            "A classification declares the promises that fulfil it; a promise never "
-            + "names its classifications; the inverse is derived. One direction, one "
-            + "truth.") {
-        @Override
-        public String assurance() {
-            return "Proven by ModelTest#downLinksOnly in the promise module, which cannot "
-                    + "cite this constant without the framework depending on a product.";
-        }
-    },
-    PRM_AREAS_MERGE_BY_CODE(
-            "Composition merges same-code areas across catalogues and refuses two with "
-            + "conflicting prose rather than picking one.") {
-        @Override
-        public String assurance() {
-            return "Proven by ModelTest#areasMergeByCode and #conflictingAreasRefused in the "
-                    + "promise module, over two fixture catalogues. This one could not move "
-                    + "here even if the cycle were solved: a single product has no second "
-                    + "catalogue to merge with, and no conflicting prose to refuse.";
-        }
-    },
-    PRM_CITATION_IS_TYPED(
-            "A test cites promises through its product's own enum-typed annotation, "
-            + "recognised by meta-annotation — a mistyped citation is a compile error, "
-            + "and the framework never learns a product's types.") {
-        @Override
-        public String assurance() {
-            return "Proven by CitationIndexTest#citationsAreIndexedAtCompileTime in the "
-                    + "promise module, where an identically-shaped decoy annotation without "
-                    + "@Cites is ignored — the point being that the meta-annotation alone "
-                    + "decides, which a test citing through @Proving could not show.";
-        }
-    },
-    PRM_PROOFS_INDEXED_AT_COMPILE_TIME(
-            "Citation sites are indexed during the product's own compilation; a renamed "
-            + "or deleted proof site cannot leave a stale citation behind."),
-    PRM_STATUS_IS_DERIVED(
-            "A promise's status is computed — cited is proven, named-uncited is "
-            + "planned, assurance is declared on the constant, a gap is a gap — never "
-            + "asserted at a proof site."),
-    PRM_COVERAGE_IS_A_FOLD(
-            "A classification's coverage is the fold of its declared promises' "
-            + "statuses, gaps included; an area's is the fold of its classifications."),
     PRM_PROJECTION_IS_GENERATED(
             "The catalogue's prose form is generated from the composed model, never a "
             + "second source; a hand-edit or a stale projection fails the build."),

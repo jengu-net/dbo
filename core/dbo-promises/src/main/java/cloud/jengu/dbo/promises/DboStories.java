@@ -138,18 +138,18 @@ public enum DboStories implements Story {
             List.of(
                     // What is promised is a constant, and its code is the
                     // constant's name.
-                    DboPromises.PRM_NAME_IS_THE_CODE,
-                    DboPromises.PRM_GAP_IS_FIRST_CLASS,
-                    DboPromises.PRM_REGISTERED_AT_COMPILE_TIME,
-                    DboPromises.PRM_CATALOGUE_READ_WHOLE,
-                    DboPromises.PRM_AREAS_MERGE_BY_CODE,
+                    cloud.jengu.promise.ToolsetPromises.NAME_IS_THE_CODE,
+                    cloud.jengu.promise.ToolsetPromises.GAP_IS_FIRST_CLASS,
+                    cloud.jengu.promise.ToolsetPromises.REGISTERED_AT_COMPILE_TIME,
+                    cloud.jengu.promise.ToolsetPromises.CATALOGUE_READ_WHOLE,
+                    cloud.jengu.promise.ToolsetPromises.AREAS_MERGE_BY_CODE,
                     // What is proven is what a test says, and the index of
                     // citations is built by the compile that owns them.
-                    DboPromises.PRM_CITATION_IS_TYPED,
-                    DboPromises.PRM_PROOFS_INDEXED_AT_COMPILE_TIME,
-                    DboPromises.PRM_STATUS_IS_DERIVED,
-                    DboPromises.PRM_COVERAGE_IS_A_FOLD,
-                    DboPromises.PRM_DOWN_LINKS_ONLY,
+                    cloud.jengu.promise.ToolsetPromises.CITATION_IS_TYPED,
+                    cloud.jengu.promise.ToolsetPromises.PROOFS_INDEXED_AT_COMPILE_TIME,
+                    cloud.jengu.promise.ToolsetPromises.STATUS_IS_DERIVED,
+                    cloud.jengu.promise.ToolsetPromises.COVERAGE_IS_A_FOLD,
+                    cloud.jengu.promise.ToolsetPromises.DOWN_LINKS_ONLY,
                     DboPromises.PRM_A_STORY_IS_CITED_NOT_CLAIMED,
                     // And the page she reads is projected from the model.
                     DboPromises.PRM_PROJECTION_IS_GENERATED,

@@ -61,7 +61,7 @@ its last proof.
 
 **No gap could be declared anywhere, and nobody had noticed because none had
 been.** `Promise.gap` is a first-class part of the model —
-REQ-DBO-PRM-GAP-IS-FIRST-CLASS promises that unstated ground is named rather
+REQ-PROMISE-GAP-IS-FIRST-CLASS promises that unstated ground is named rather
 than silent — and the requirement-catalogue projection refused every one of
 them. Its guard against a promise belonging to no section compared codes
 against the area prefixes, and a gap's code is synthetic and carries the
