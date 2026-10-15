@@ -279,17 +279,9 @@ tasks.test {
     maxHeapSize = "4g"
 }
 
-// The composed promise report and the catalogue projection: both run
-// on the TEST runtime classpath, because that is where the catalogue
-// registration and the citation index live.
-val promiseReport = tasks.register<JavaExec>("promiseReport") {
-    group = "documentation"
-    description = "Renders the composed promise report to build/reports/promise/report.md."
-    dependsOn(tasks.named("testClasses"))
-    classpath = sourceSets["test"].runtimeClasspath
-    mainClass.set("cloud.jengu.dbo.harness.PromiseProjection")
-    args("report", layout.buildDirectory.file("reports/promise/report.md").get().asFile.absolutePath)
-}
+// The catalogue projection runs on the TEST runtime classpath, because that is
+// where the catalogue registration and the citation index live. The composed
+// report a run leads with is the promise toolset's ledger, drawn at the root.
 
 // Every bundle whose jar the ledger reads. The recorder refuses to run with
 // one missing rather than recording a smaller surface, so this list and
