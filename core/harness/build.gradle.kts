@@ -1,3 +1,7 @@
+plugins {
+    id("cloud.jengu.promise")
+}
+
 // dbo-work's OWN test module (ExecutorResolutionTest) carries @Proving
 // citations of its own — the promise processor indexes them into THAT
 // module's test-classes output, which a plain testImplementation on the
@@ -121,10 +125,6 @@ dependencies {
     testImplementation(project(":core:dbo-telemetry-otlp"))
     // the fleet reader: proven against two runtimes in this JVM, over HTTP
     testImplementation(project(":core:dbo-fleet"))
-    // the promise framework's processor indexes @Proving citations at THIS
-    // module's test-compile time; without this configuration the index is
-    // silently absent
-    testAnnotationProcessor(rootProject.extra["promise"] as String)
     testImplementation(project(":core:dbo-postgres"))
     testImplementation(project(":core:dbo-test-model"))
     testImplementation(project(":core:dbo-fhir-r4"))

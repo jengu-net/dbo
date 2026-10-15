@@ -51,10 +51,14 @@ store as a version: `cloud.jengu.promise:promise`, with
   product, and the framework never learns a product's types. The annotation
   **cites, never defines** — a promise proven by five tests has one text, in
   the catalogue. Citation sites are indexed by the same processor at the
-  product's own test-compile time (`META-INF/promise/proofs`), so a renamed
-  or deleted proof site cannot leave a stale citation behind; the citing
-  module adds `cloud.jengu.promise:promise` to its `annotationProcessor`
-  configuration, or the index is silently absent.
+  module's own test-compile time (`META-INF/promise/proofs-tested`), so a
+  renamed or deleted proof site cannot leave a stale citation behind, and
+  the index travels in the module's jar: a product composing this store's
+  artifacts reads which tests stand behind each promise from what is
+  shipped. Every citing module applies the promise toolset's Gradle plugin,
+  `cloud.jengu.promise`, which does all of that; a module that cites without
+  it has its citations silently absent, and the catalogue projection
+  refuses the promises they proved.
 - **Production code cites the same constants** — a refusal that enforces a
   promise names it (`Promise.X.code()` in the error), so the requirement is
   referable from the implementation, not only from its tests.

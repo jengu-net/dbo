@@ -1,5 +1,9 @@
 import java.util.jar.JarFile
 
+plugins {
+    id("cloud.jengu.promise")
+}
+
 // The performing half, as one dependency a Spring Boot application adds.
 //
 // A bean that implements StepService becomes a step this application
@@ -134,7 +138,6 @@ dependencies {
     testImplementation("org.assertj:assertj-core:3.27.3")
     // @Proving citations only.
     testImplementation(project(":core:dbo-promises"))
-    testAnnotationProcessor(rootProject.extra["promise"] as String)
     // A binding, so the test sees what an application would see: every line
     // the container logs, made by the application's own LoggerFactory.
     testRuntimeOnly("ch.qos.logback:logback-classic:1.5.18")

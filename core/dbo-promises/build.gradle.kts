@@ -5,11 +5,11 @@
 
 plugins {
     id("biz.aQute.bnd.builder")
+    id("cloud.jengu.promise")
 }
 
 dependencies {
     api(rootProject.extra["promise"] as String)
-    annotationProcessor(rootProject.extra["promise"] as String)
 }
 
 tasks.jar {

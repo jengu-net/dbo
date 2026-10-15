@@ -14,6 +14,7 @@
 // depend on — the same reason the harness is not published.
 plugins {
     id("java")
+    id("cloud.jengu.promise")
     // So a reader can run it: `./gradlew <this>:run`. The Spring Boot Gradle
     // plugin is not used here — it adds bootJar and bootRun, and what a sample
     // needs is a main class somebody can start, not a repackaged archive.
@@ -57,10 +58,9 @@ dependencies {
     // typed to. The assertion knows no catalogue, so a test citing this
     // store's promises says so itself.
     testImplementation(rootProject.extra["promiseProving"] as String)
-    testImplementation(project(":core:dbo-promises"))
     // The user stories cite the promises they prove, and the catalogue reads
-    // those citations from the index this processor writes beside the classes.
-    testAnnotationProcessor(rootProject.extra["promise"] as String)
+    // those citations from the index the promise plugin writes beside them.
+    testImplementation(project(":core:dbo-promises"))
     // The operator's side of the fleet story: one process outside every
     // container, reading what the deployment says about itself.
     testImplementation(project(":core:dbo-fleet"))

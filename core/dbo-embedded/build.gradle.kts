@@ -1,5 +1,9 @@
 import java.util.jar.JarFile
 
+plugins {
+    id("cloud.jengu.promise")
+}
+
 // The store inside an ordinary JVM: boot a framework, hand it a bundle set
 // and a package list, and let the host reach what it registers.
 //
@@ -43,7 +47,6 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter:5.11.4")
     // @Proving citations only.
     testImplementation(project(":core:dbo-promises"))
-    testAnnotationProcessor(rootProject.extra["promise"] as String)
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
