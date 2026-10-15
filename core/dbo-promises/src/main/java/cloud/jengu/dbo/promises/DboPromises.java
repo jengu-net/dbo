@@ -341,6 +341,15 @@ public enum DboPromises implements Promise {
             + "when a tick is due: what a tick starts, whether "
             + "the step is paused and what a missed tick becomes stay the store's."),
 
+    PROC_A_CHANGE_TO_A_PERSON_STARTS_A_STEP_BEHIND_THE_MEMBRANE("A change to a record about a "
+            + "person starts a step declared to start on it behind the membrane as anywhere: one "
+            + "run per version, its slot read as the participant may read the person — the "
+            + "pseudonymous record, or the person reassembled when one entitled asks with a "
+            + "purpose — and nothing that identifies the person in the run's key or on its "
+            + "trail. A search on an element that does not identify somebody is answered; one "
+            + "on an element that does, or one the face cannot ask, is refused when the tenant "
+            + "is declared, naming it and never its value."),
+
     PROC_A_STEP_STARTS_ON_A_MATCHING_CHANGE("A step declared to start on a change starts one "
             + "run for each version of a record its search finds, the record in its slot, "
             + "matched by the store as a subscription's criteria are; a change it does not "

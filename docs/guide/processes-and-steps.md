@@ -118,6 +118,17 @@ refused, and a step that says neither leaves its asker the answer alone
   `at` element names, plus `after`, has come. A record the search no longer
   finds by then starts nothing.
 
+Both searches are compiled when the tenant is declared, and one the face cannot
+ask is refused there, naming the parameter. Behind the membrane, a change to a
+person (`Person`, `Patient`, `Practitioner`, `RelatedPerson`) starts a run like
+any other. The slot holds the pseudonymous record, and a participant entitled
+to see the person asks for it with a purpose
+([personal data](personal-data.md)). A search on an element that identifies
+somebody, such as `Person?identifier=…` or `Patient?family=…`, would find
+nobody, so it is refused at declaration, naming the element and never its
+value. A search on one that does not, such as `Patient?gender=female`, is
+answered.
+
 Each run is keyed by what started it: `tick/<instant>`, `change/<id>/<version>`
 or `due/<id>`. However many nodes notice the occasion, there is one run of it.
 Every run started this way is a child of the tenant's **system run**,
