@@ -70,7 +70,7 @@ dependencies {
     // the promise framework's processor indexes @Proving citations at THIS
     // module's test-compile time; without this configuration the index is
     // silently absent
-    testAnnotationProcessor(project(":promise"))
+    testAnnotationProcessor(rootProject.extra["promise"] as String)
     // the engine logs; compileOnly above is the runtime's arrangement, and a
     // test has no bundle to import it from
     testRuntimeOnly("org.slf4j:slf4j-simple:2.0.18")
@@ -185,7 +185,7 @@ configurations[definitionsTestSources.runtimeOnlyConfigurationName]
 dependencies {
     add(definitionsTestSources.implementationConfigurationName, "org.junit.jupiter:junit-jupiter:5.11.4")
     add(definitionsTestSources.compileOnlyConfigurationName, project(":core:dbo-promises"))
-    add(definitionsTestSources.annotationProcessorConfigurationName, project(":promise"))
+    add(definitionsTestSources.annotationProcessorConfigurationName, rootProject.extra["promise"] as String)
     add(definitionsTestSources.runtimeOnlyConfigurationName, project(":core:dbo-fhir-packages"))
     add(definitionsTestSources.runtimeOnlyConfigurationName, "org.slf4j:slf4j-simple:2.0.18")
     add(definitionsTestSources.runtimeOnlyConfigurationName, "org.junit.platform:junit-platform-launcher")

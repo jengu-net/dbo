@@ -43,7 +43,7 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter:5.11.4")
     // @Proving citations only.
     testImplementation(project(":core:dbo-promises"))
-    testAnnotationProcessor(project(":promise"))
+    testAnnotationProcessor(rootProject.extra["promise"] as String)
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 

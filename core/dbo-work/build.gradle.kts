@@ -40,10 +40,10 @@ tasks.jar {
 dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter:5.11.4")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
-    // @Proving citations only — dbo-promises depends on :promise alone, so
+    // @Proving citations only — dbo-promises depends on the promise framework alone, so
     // this does not create a cycle back into dbo-work.
     testImplementation(project(":core:dbo-promises"))
-    testAnnotationProcessor(project(":promise"))
+    testAnnotationProcessor(rootProject.extra["promise"] as String)
 }
 
 tasks.test { useJUnitPlatform() }

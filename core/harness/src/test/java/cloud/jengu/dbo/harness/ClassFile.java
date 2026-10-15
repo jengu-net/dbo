@@ -42,7 +42,11 @@ final class ClassFile {
      * reason, because the next catalogue would arrive with the same reason
      * and somebody would have to write it again.
      */
-    private static final String CATALOGUE = "Lcloud/jengu/dbo/promise/Catalogue;";
+    // From the type rather than spelled: spelled, it named the framework's
+    // old package after the framework moved, and every catalogue read as
+    // reached by nothing.
+    private static final String CATALOGUE =
+            "L" + cloud.jengu.promise.Catalogue.class.getName().replace('.', '/') + ";";
 
     private static final int ACC_PUBLIC = 0x0001;
     private static final int ACC_STATIC = 0x0008;

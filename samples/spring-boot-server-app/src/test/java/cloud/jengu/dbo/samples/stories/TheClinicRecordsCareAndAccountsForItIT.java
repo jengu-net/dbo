@@ -2,7 +2,7 @@ package cloud.jengu.dbo.samples.stories;
 
 import cloud.jengu.dbo.core.api.feed.FeedChunk;
 import cloud.jengu.dbo.core.api.feed.FeedItem;
-import cloud.jengu.dbo.promise.proving.Proves;
+import cloud.jengu.promise.proving.Proves;
 import cloud.jengu.dbo.promises.DboPromises;
 import cloud.jengu.dbo.promises.DboStories;
 import cloud.jengu.dbo.promises.Proving;

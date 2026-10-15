@@ -1,7 +1,7 @@
 package cloud.jengu.dbo.promises;
 
-import cloud.jengu.dbo.promise.Catalogue;
-import cloud.jengu.dbo.promise.Promise;
+import cloud.jengu.promise.Catalogue;
+import cloud.jengu.promise.Promise;
 
 /**
  * The store's promise catalogue — whole (2026-08-27). The pilot carried

@@ -78,7 +78,7 @@ dependencies {
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     // @Proving citations only.
     testImplementation(project(":core:dbo-promises"))
-    testAnnotationProcessor(project(":promise"))
+    testAnnotationProcessor(rootProject.extra["promise"] as String)
 }
 
 tasks.test { useJUnitPlatform() }

@@ -1,8 +1,8 @@
 package cloud.jengu.dbo.promises;
 
-import cloud.jengu.dbo.promise.Area;
-import cloud.jengu.dbo.promise.Catalogue;
-import cloud.jengu.dbo.promise.Classified;
+import cloud.jengu.promise.Area;
+import cloud.jengu.promise.Catalogue;
+import cloud.jengu.promise.Classified;
 
 import java.util.List;
 

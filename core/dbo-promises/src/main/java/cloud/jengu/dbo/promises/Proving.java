@@ -1,6 +1,6 @@
 package cloud.jengu.dbo.promises;
 
-import cloud.jengu.dbo.promise.Cites;
+import cloud.jengu.promise.Cites;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

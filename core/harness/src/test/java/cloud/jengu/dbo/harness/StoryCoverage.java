@@ -1,10 +1,10 @@
 package cloud.jengu.dbo.harness;
 
-import cloud.jengu.dbo.promise.Promise;
-import cloud.jengu.dbo.promise.PromiseStatus;
-import cloud.jengu.dbo.promise.Proofs;
-import cloud.jengu.dbo.promise.Registry;
-import cloud.jengu.dbo.promise.Story;
+import cloud.jengu.promise.Promise;
+import cloud.jengu.promise.PromiseStatus;
+import cloud.jengu.promise.Proofs;
+import cloud.jengu.promise.Registry;
+import cloud.jengu.promise.Story;
 
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;

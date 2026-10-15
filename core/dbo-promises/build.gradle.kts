@@ -8,8 +8,8 @@ plugins {
 }
 
 dependencies {
-    api(project(":promise"))
-    annotationProcessor(project(":promise"))
+    api(rootProject.extra["promise"] as String)
+    annotationProcessor(rootProject.extra["promise"] as String)
 }
 
 tasks.jar {

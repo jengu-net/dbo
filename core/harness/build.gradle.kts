@@ -124,7 +124,7 @@ dependencies {
     // the promise framework's processor indexes @Proving citations at THIS
     // module's test-compile time; without this configuration the index is
     // silently absent
-    testAnnotationProcessor(project(":promise"))
+    testAnnotationProcessor(rootProject.extra["promise"] as String)
     testImplementation(project(":core:dbo-postgres"))
     testImplementation(project(":core:dbo-test-model"))
     testImplementation(project(":core:dbo-fhir-r4"))
@@ -508,14 +508,16 @@ tasks.withType<Test>().configureEach {
         ":core:dbo-fhir-common:jar", ":core:dbo-subscriptions:jar", ":core:dbo-rest:jar",
         ":core:dbo-sync:jar", ":core:dbo-maintenance:jar", ":core:dbo-tenant:jar",
         ":core:dbo-tenant-k8s:jar", ":core:dbo-auth:jar", ":core:dbo-pdi:jar", ":core:dbo-scim:jar", ":core:dbo-policy:jar",
-        ":promise:jar", ":core:dbo-promises:jar", ":core:dbo-telemetry:jar",
+        ":core:dbo-promises:jar", ":core:dbo-telemetry:jar",
         ":core:dbo-work:jar", ":core:dbo-asking:jar", ":core:dbo-runner:jar", ":core:dbo-stream:jar",
         ":core:dbo-telemetry-otlp:jar",
         ":core:dbo-server:installDist")
-    systemProperty(
-        "dbo.promise.jar",
-        project(":promise").tasks.named<Jar>("jar").get().archiveFile.get().asFile.absolutePath,
-    )
+    // The framework is an external bundle now, resolved like any other.
+    val promiseJar = configurations.detachedConfiguration(
+        dependencies.create(rootProject.extra["promise"] as String)).apply { isTransitive = false }
+    doFirst {
+        systemProperty("dbo.promise.jar", promiseJar.singleFile.absolutePath)
+    }
     systemProperty(
         "dbo.server.dist",
         project(":core:dbo-server").layout.buildDirectory.dir("install/dbo-server").get().asFile.absolutePath,
