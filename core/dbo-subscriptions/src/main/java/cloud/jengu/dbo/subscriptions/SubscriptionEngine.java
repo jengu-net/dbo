@@ -220,7 +220,7 @@ public final class SubscriptionEngine implements AutoCloseable {
         @Workflow(name = "watched")
         public void watched(String watch, String type, String id, long version, String run) {
             java.time.Instant again = dbos.runStep(
-                    () -> watching.join().matched(watch, type, id, version, run), "matched");
+                    () -> handedOver(watch, type, id, version, run), "matched");
             while (again != null) {
                 final java.time.Instant at = again;
                 long waitMillis = dbos.runStep(() -> Math.max(0L,
@@ -229,13 +229,30 @@ public final class SubscriptionEngine implements AutoCloseable {
                 dbos.sleep(java.time.Duration.ofMillis(waitMillis));
                 boolean still = dbos.runStep(() -> {
                     String search = watching.join().searches().get(watch);
-                    return search != null && matchesSearch(search, type, id);
+                    return search != null && matchesSearch(watch, search, type, id);
                 }, "still");
                 if (!still) {
                     return;
                 }
                 again = dbos.runStep(
-                        () -> watching.join().matched(watch, type, id, version, run), "matched");
+                        () -> handedOver(watch, type, id, version, run), "matched");
+            }
+        }
+
+        /**
+         * The change handed to the step that watches it, and a failure to start
+         * one said where somebody reads it, not only in the workflow's own row:
+         * by the watch and the record's id and version, never by its content.
+         */
+        private java.time.Instant handedOver(String watch, String type, String id, long version,
+                String run) {
+            try {
+                return watching.join().matched(watch, type, id, version, run);
+            } catch (RuntimeException failed) {
+                LOG.warn("a change did not start the step watching it: watch={} type={} id={} "
+                        + "version={} error={}", watch, type, id, version,
+                        failed.getClass().getSimpleName());
+                throw failed;
             }
         }
     }
@@ -256,7 +273,8 @@ public final class SubscriptionEngine implements AutoCloseable {
             return;
         }
         for (Map.Entry<String, String> watch : watches.searches().entrySet()) {
-            if (!matchesSearch(watch.getValue(), item.typeName(), item.objectId())) {
+            if (!matchesSearch(watch.getKey(), watch.getValue(), item.typeName(),
+                    item.objectId())) {
                 continue;
             }
             // Named by the watch and the version, so the feed's redelivery
@@ -270,11 +288,22 @@ public final class SubscriptionEngine implements AutoCloseable {
         }
     }
 
-    private boolean matchesSearch(String search, String type, String id) {
+    /** Watches whose search would not compile, said once each. */
+    private final java.util.Set<String> unaskable =
+            java.util.concurrent.ConcurrentHashMap.newKeySet();
+
+    private boolean matchesSearch(String watch, String search, String type, String id) {
         Criteria criteria;
         try {
             criteria = criteriaCompiler.apply(search);
         } catch (RuntimeException e) {
+            // Refused where the tenant is declared, so this is what slipped past
+            // that: said once, by the watch's name and never its search, which
+            // may carry a value that identifies somebody.
+            if (unaskable.add(watch)) {
+                LOG.warn("a step's search cannot be asked, so no change starts it: watch={} "
+                        + "error={}", watch, e.getClass().getSimpleName());
+            }
             return false;
         }
         return criteria.typeName().equals(type) && store.count(criteria.idEquals(id)) > 0;

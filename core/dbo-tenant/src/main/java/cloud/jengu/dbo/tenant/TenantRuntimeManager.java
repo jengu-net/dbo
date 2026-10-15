@@ -4140,6 +4140,69 @@ public final class TenantRuntimeManager implements AutoCloseable {
         return new SopsWriter(transit, key).write(path, secrets, sopsYaml);
     }
 
+    /**
+     * Every search a step of the tenant starts on, compiled by its face before
+     * the tenant comes up, and refused by name where it cannot be asked.
+     *
+     * <p><b>Two ways a watch would otherwise match nothing, saying nothing.</b>
+     * A search the face cannot compile was dropped where it was matched; and
+     * behind the membrane, a search naming what identifies a person is asked
+     * of a record that no longer holds it, so it finds nobody. Both are the
+     * declaration's mistake and are said to its author, naming the parameter
+     * or the element — never a value, which may itself identify somebody.
+     */
+    private void refuseWhatItsStepsCannotWatch(TenantSpec spec, FhirStoreFacade store) {
+        cloud.jengu.dbo.pdi.PdiSpec membrane = spec.pdi() ? cloud.jengu.dbo.pdi.PdiSpec.fhir()
+                : null;
+        for (TenantSpec.Step step : spec.steps()) {
+            TenantSpec.Starts starts = step.starts();
+            String search = starts == null ? null
+                    : starts.change() != null ? starts.change() : starts.due();
+            if (search == null) {
+                continue;
+            }
+            String type = starts.type();
+            Map<String, String> params = new java.util.LinkedHashMap<>();
+            int query = search.indexOf('?');
+            if (query >= 0 && query < search.length() - 1) {
+                for (String pair : search.substring(query + 1).split("&")) {
+                    int equals = pair.indexOf('=');
+                    if (equals <= 0) {
+                        throw new IllegalArgumentException(spec.code() + ": step '"
+                                + step.code() + "' starts on a search over " + type
+                                + " with a parameter that names no value");
+                    }
+                    params.put(java.net.URLDecoder.decode(pair.substring(0, equals),
+                                    java.nio.charset.StandardCharsets.UTF_8),
+                            java.net.URLDecoder.decode(pair.substring(equals + 1),
+                                    java.nio.charset.StandardCharsets.UTF_8));
+                }
+            }
+            cloud.jengu.dbo.core.api.Criteria criteria;
+            try {
+                criteria = store.narrow(type, params);
+            } catch (RuntimeException cannot) {
+                throw new IllegalArgumentException(spec.code() + ": step '" + step.code()
+                        + "' starts on a search over " + type + " by " + params.keySet()
+                        + " that its face cannot ask: " + cannot.getClass().getSimpleName(),
+                        cannot);
+            }
+            if (membrane == null || !membrane.isPersonType(type)) {
+                continue;
+            }
+            for (String path : criteria.matchedPaths()) {
+                String element = membrane.identifyingElementFor(type, path);
+                if (element != null) {
+                    throw new IllegalArgumentException(spec.code() + ": step '" + step.code()
+                            + "' starts on a search over " + type + " by its " + element
+                            + ", which identifies somebody and is sealed behind the membrane: "
+                            + "a search on it would find nobody, ever. Start on a change to "
+                            + type + " itself, or on an element that does not identify");
+                }
+            }
+        }
+    }
+
     private cloud.jengu.dbo.auth.TenantAuthority authorityHolding(String code, String secret) {
         cloud.jengu.dbo.auth.TenantAuthority authority = authorities.get(code);
         if (authority == null) {
@@ -4441,6 +4504,9 @@ public final class TenantRuntimeManager implements AutoCloseable {
                         // asked for at its own door, and a member declaring no
                         // steps of its own would otherwise have none to ask at.
                         || !zones.exchangeSteps(spec.code()).isEmpty());
+        // A SEARCH IT CANNOT ASK IS REFUSED NOW, while the declaration is in
+        // hand: once the feed is read it would only match nothing, for ever.
+        refuseWhatItsStepsCannotWatch(spec, store);
         // What its steps that start on a change watch, known before its feed
         // is first read; handed to those steps once they stand, at surfaces.
         StepWatches watching = new StepWatches(selfStartingSteps(spec),
@@ -4839,8 +4905,21 @@ public final class TenantRuntimeManager implements AutoCloseable {
                                     null,
                                     runResults,
                                     // A step reaches the secrets it declares.
-                                    (run, by, name) -> reachSecret(spec, engine, run, by,
-                                            name)),
+                                    new cloud.jengu.dbo.runner.Lane.Secrets() {
+                                        @Override
+                                        public java.util.Optional<byte[]> reach(
+                                                cloud.jengu.dbo.work.Run run, String by,
+                                                String name) {
+                                            return reachSecret(spec, engine, run, by, name);
+                                        }
+
+                                        @Override
+                                        public boolean declaredBy(String step) {
+                                            return spec.steps().stream().anyMatch(one ->
+                                                    one.code().equals(step)
+                                                            && !one.secrets().isEmpty());
+                                        }
+                                    }),
                                 contacts, laneRuns, laneDeclarations, heartbeatLimit, asker);
                     };
             // The same lane on the store's own stream, for a participant that

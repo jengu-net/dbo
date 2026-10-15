@@ -45,6 +45,8 @@ public final class DboWorker implements SmartLifecycle {
     private final List<cloud.jengu.dbo.runner.HeartbeatStatistics> statistics;
 
     private final List<Attached> attachedLanes = new java.util.concurrent.CopyOnWriteArrayList<>();
+    /** The worker's own keys, from its identity's keys directory; null where it holds none. */
+    private final cloud.jengu.dbo.core.api.seal.ParticipantKeys keys;
     private final List<DboRegistrar.Registration> performing = new ArrayList<>();
     private volatile boolean running;
 
@@ -61,6 +63,25 @@ public final class DboWorker implements SmartLifecycle {
         this.steps = List.copyOf(steps);
         this.tokens = Map.copyOf(tokens);
         this.statistics = List.copyOf(statistics);
+        String keysDir = properties.getIdentity().getKeysDir();
+        this.keys = keysDir == null || keysDir.isBlank() ? null
+                : cloud.jengu.dbo.core.api.seal.ParticipantKeys.adoptOrMake(
+                        java.nio.file.Path.of(keysDir));
+    }
+
+    /**
+     * The public halves of this worker's keys, which whatever enrols it hands
+     * each tenant it performs for — so the tenant seals to it — or empty
+     * where it holds none. The private halves never leave the worker.
+     */
+    public java.util.Optional<PublicKeys> publicKeys() {
+        return keys == null ? java.util.Optional.empty()
+                : java.util.Optional.of(new PublicKeys(keys.sealingKey(), keys.signingKey()));
+    }
+
+    /** What a tenant is told of a worker's keys: the halves it seals to and verifies with. */
+    public record PublicKeys(cloud.jengu.dbo.core.api.seal.ParticipantKey sealing,
+            cloud.jengu.dbo.core.api.seal.SigningKey signing) {
     }
 
     /**
@@ -103,6 +124,19 @@ public final class DboWorker implements SmartLifecycle {
      */
     public synchronized Attached attach(String tenant, java.net.URI base,
             Supplier<String> token) {
+        return attach(tenant, base, token, keys);
+    }
+
+    /**
+     * The same, holding these keys rather than the worker's own: the lane's
+     * work and the secrets its steps declare arrive sealed to them, and are
+     * opened on this side. Without keys the lane is handed nothing that has to
+     * leave the tenant sealed.
+     *
+     * @param holding the keys this lane holds, or null for none
+     */
+    public synchronized Attached attach(String tenant, java.net.URI base,
+            Supplier<String> token, cloud.jengu.dbo.core.api.seal.ParticipantKeys holding) {
         // The baseline unless this application said otherwise. A step is
         // not overridable by default and the baseline is the only scope
         // every step admits, so a worker scoped to an organisation by
@@ -113,8 +147,12 @@ public final class DboWorker implements SmartLifecycle {
                 properties.getIdentity().getScope() == DboWorkerProperties.Scope.ORGANISATION
                         ? Scope.organisation(tenant)
                         : Scope.BASELINE);
-        HttpLane lane = HttpLane.to(base.resolve("work"), token, tenant,
-                properties.getIdentity().getName(), identity);
+        HttpLane lane = holding == null
+                ? HttpLane.to(base.resolve("work"), token, tenant,
+                        properties.getIdentity().getName(), identity)
+                : HttpLane.holding(base.resolve("work"), token, tenant,
+                        properties.getIdentity().getName(), identity, holding.sealing(),
+                        holding.signing());
         // Said on the registration, so whatever reads the whiteboard can tell
         // a lane to a tenant elsewhere from one to a tenant served here under
         // the same code — which is exactly what a site holds.

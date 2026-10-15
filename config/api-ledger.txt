@@ -3146,6 +3146,7 @@ cloud.jengu.dbo.promises.DboPromises                                   PROC_AUTO
 cloud.jengu.dbo.promises.DboPromises                                   PROC_AUTOMATION_TAKES_ONLY_WHAT_ITS_STEP_ADMITS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_BEAN_IS_FOUND_RATHER_THAN_WIRED:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_CADENCE_CHANGES_WHERE_THE_TENANT_STANDS:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   PROC_A_CHANGE_TO_A_PERSON_STARTS_A_STEP_BEHIND_THE_MEMBRANE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_CLAIM_IS_LOST_TO_SOMEBODY_NOT_TO_THE_CLOCK:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_CLAIM_IS_NAMED_BY_THE_STORE_NOT_BY_ITS_TAKER:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_CONSUMER_TAKES_ONLY_ITS_OWN_STEPS:cloud.jengu.dbo.promises.DboPromises
@@ -3369,6 +3370,7 @@ cloud.jengu.dbo.promises.DboPromises                                   TEN_A_TEN
 cloud.jengu.dbo.promises.DboPromises                                   TEN_A_TENANT_COMES_UP_FROM_THE_FACE_IMAGE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_A_TENANT_SAYS_WHAT_KIND_IT_IS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_A_TYPE_DECLARES_ITS_DOMAIN:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   TEN_A_WORKER_HOLDS_ITS_KEYS_AND_REACHES_ITS_STEPS_SECRETS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_COMING_UP_AND_KEEPING_UP_ARE_NOT_ONE_QUEUE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_CREDENTIAL_BLIND_PROVISIONING:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_DECLARED_TOGETHER_COME_UP_TOGETHER:cloud.jengu.dbo.promises.DboPromises
@@ -3639,6 +3641,7 @@ cloud.jengu.dbo.runner.Lane.Results                                    start(clo
 cloud.jengu.dbo.runner.Lane.Results.Refused                            class
 cloud.jengu.dbo.runner.Lane.Results.Refused                            new(String)
 cloud.jengu.dbo.runner.Lane.Results.Refused                            new(String,Throwable)
+cloud.jengu.dbo.runner.Lane.Secrets                                    declaredBy(String):boolean
 cloud.jengu.dbo.runner.Lane.Secrets                                    interface
 cloud.jengu.dbo.runner.Lane.Secrets                                    reach(cloud.jengu.dbo.work.Run,String,String):Optional
 cloud.jengu.dbo.runner.Lane.Trail                                      handedTo(cloud.jengu.dbo.work.Run,String,cloud.jengu.dbo.work.RunChain.Link):void
@@ -3923,6 +3926,7 @@ cloud.jengu.dbo.runner.transport.Handover.Taken                        toString(
 cloud.jengu.dbo.runner.transport.LaneVerbService                       class
 cloud.jengu.dbo.runner.transport.LaneVerbService                       new(cloud.jengu.dbo.runner.transport.Grants,cloud.jengu.dbo.runner.transport.SignedGrants,cloud.jengu.dbo.runner.transport.Lanes)
 cloud.jengu.dbo.runner.transport.LaneVerbService                       new(cloud.jengu.dbo.runner.transport.Grants,cloud.jengu.dbo.runner.transport.SignedGrants,cloud.jengu.dbo.runner.transport.Lanes,cloud.jengu.dbo.runner.transport.Places)
+cloud.jengu.dbo.runner.transport.LaneVerbService                       overAWire():boolean
 cloud.jengu.dbo.runner.transport.LaneVerbService                       serve(String,cloud.jengu.dbo.runner.transport.LaneVerbs,Object):cloud.jengu.dbo.runner.transport.LaneVerbService.Answer
 cloud.jengu.dbo.runner.transport.LaneVerbService                       serve(cloud.jengu.dbo.runner.transport.Access,cloud.jengu.dbo.runner.transport.LaneVerbs,Object):cloud.jengu.dbo.runner.transport.LaneVerbService.Answer
 cloud.jengu.dbo.runner.transport.LaneVerbService                       serveSigned(String,byte[],String,cloud.jengu.dbo.runner.transport.LaneVerbs,Object):cloud.jengu.dbo.runner.transport.LaneVerbService.Answer

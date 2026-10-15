@@ -341,6 +341,15 @@ public enum DboPromises implements Promise {
             + "when a tick is due: what a tick starts, whether "
             + "the step is paused and what a missed tick becomes stay the store's."),
 
+    PROC_A_CHANGE_TO_A_PERSON_STARTS_A_STEP_BEHIND_THE_MEMBRANE("A change to a record about a "
+            + "person starts a step declared to start on it behind the membrane as anywhere: one "
+            + "run per version, its slot read as the participant may read the person — the "
+            + "pseudonymous record, or the person reassembled when one entitled asks with a "
+            + "purpose — and nothing that identifies the person in the run's key or on its "
+            + "trail. A search on an element that does not identify somebody is answered; one "
+            + "on an element that does, or one the face cannot ask, is refused when the tenant "
+            + "is declared, naming it and never its value."),
+
     PROC_A_STEP_STARTS_ON_A_MATCHING_CHANGE("A step declared to start on a change starts one "
             + "run for each version of a record its search finds, the record in its slot, "
             + "matched by the store as a subscription's criteria are; a change it does not "
@@ -1773,6 +1782,14 @@ public enum DboPromises implements Promise {
             + ".sops.yaml names them for the file's path. The store opens it, the owner's own "
             + "SOPS opens it through Vault or with their age key alone, a writer that may only "
             + "encrypt cannot open it, and a rule the writer cannot use is refused."),
+
+    TEN_A_WORKER_HOLDS_ITS_KEYS_AND_REACHES_ITS_STEPS_SECRETS("A worker attached while its "
+            + "application runs may hold keys of its own, enrolled with the tenant as their "
+            + "public halves, and then reaches the secrets the steps it performs declare, sealed "
+            + "to it on the wire and opened on its side, and no others. A worker holding no "
+            + "key is refused a step declaring secrets when it would take the run, naming the "
+            + "step; one whose keys were made again is refused, saying why, until its client is "
+            + "ensured with them; and the run's trail names each secret it reached."),
 
     TEN_A_STEP_REACHES_A_FAMILY_OF_SECRETS("A step may declare a family of secrets by a name "
             + "ending .*, and reaches every secret whose name extends that prefix, at any depth, "

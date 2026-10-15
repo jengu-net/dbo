@@ -122,6 +122,7 @@ public final class LaneVerbService {
             return placed(grant, participant, verb, body);
         }
         cloud.jengu.dbo.core.api.Caller.set(grant.clientId());
+        OVER_A_WIRE.set(Boolean.TRUE);
         try {
             return new Answer.Ok(answer(verb, lanes.laneFor(participant, identity,
                     narrowed(grant.entitlement(), body)), body));
@@ -137,6 +138,7 @@ public final class LaneVerbService {
         } catch (IllegalArgumentException malformed) {
             return new Answer.Denied(400, null, String.valueOf(malformed.getMessage()));
         } finally {
+            OVER_A_WIRE.remove();
             cloud.jengu.dbo.core.api.Caller.clear();
         }
     }
@@ -359,6 +361,18 @@ public final class LaneVerbService {
                 item.typeName(), item.versionId(), item.kind(), item.committedAt(),
                 grain.forTransport(item.typeName(), item.payload()), item.deleted(),
                 item.payloadVersion(), item.shape());
+    }
+
+    /** Whether the verb this thread is answering arrived over a wire. */
+    private static final ThreadLocal<Boolean> OVER_A_WIRE = new ThreadLocal<>();
+
+    /**
+     * Whether the lane is answering a participant that reached it over a wire,
+     * rather than one in the same process: what a secret has to be sealed to
+     * cross, and what a participant in this process reaches in the clear.
+     */
+    public static boolean overAWire() {
+        return Boolean.TRUE.equals(OVER_A_WIRE.get());
     }
 
     private static Object answer(LaneVerbs verb, Lane lane, Object body) {
