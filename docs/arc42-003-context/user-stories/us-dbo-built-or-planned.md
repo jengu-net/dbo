@@ -63,21 +63,21 @@ citations say it is.
 
 | Promise | Says | Status |
 |---|---|---|
-| `REQ-DBO-PRM-NAME-IS-THE-CODE` | A promise is declared exactly once, as an enum constant; its code derives from the constant's name and its catalogue's namespace, so a citation cannot drift from a declaration — there is no string to mistype and no generator to trust. | PROVEN |
-| `REQ-DBO-PRM-GAP-IS-FIRST-CLASS` | Unstated ground is declared as a gap with plain text; a gap registers, carries a stable code, and counts against coverage until promoted to a named promise. | ASSURED |
-| `REQ-DBO-PRM-REGISTERED-AT-COMPILE-TIME` | An annotated catalogue is registered during its own component's compilation — no classpath is swept, and a registration regenerated on every compile cannot drift or be lost. | PROVEN |
-| `REQ-DBO-PRM-CATALOGUE-READ-WHOLE` | The registry reads a catalogue's constants whole — proven, planned and gap alike — never as a side effect of what happened to be class-loaded. | PROVEN |
-| `REQ-DBO-PRM-AREAS-MERGE-BY-CODE` | Composition merges same-code areas across catalogues and refuses two with conflicting prose rather than picking one. | ASSURED |
-| `REQ-DBO-PRM-CITATION-IS-TYPED` | A test cites promises through its product's own enum-typed annotation, recognised by meta-annotation — a mistyped citation is a compile error, and the framework never learns a product's types. | ASSURED |
-| `REQ-DBO-PRM-PROOFS-INDEXED-AT-COMPILE-TIME` | Citation sites are indexed during the product's own compilation; a renamed or deleted proof site cannot leave a stale citation behind. | PROVEN |
-| `REQ-DBO-PRM-STATUS-IS-DERIVED` | A promise's status is computed — cited is proven, named-uncited is planned, assurance is declared on the constant, a gap is a gap — never asserted at a proof site. | PROVEN |
-| `REQ-DBO-PRM-COVERAGE-IS-A-FOLD` | A classification's coverage is the fold of its declared promises' statuses, gaps included; an area's is the fold of its classifications. | PROVEN |
-| `REQ-DBO-PRM-DOWN-LINKS-ONLY` | A classification declares the promises that fulfil it; a promise never names its classifications; the inverse is derived. One direction, one truth. | ASSURED |
+| `REQ-PROMISE-NAME-IS-THE-CODE` | A promise is declared exactly once, as an enum constant; its code derives from the constant's name and its catalogue's namespace, so a citation cannot drift from a declaration — there is no string to mistype and no generator to trust. | PROVEN |
+| `REQ-PROMISE-GAP-IS-FIRST-CLASS` | Unstated ground is declared as a gap with plain text; a gap registers, carries a stable code, and counts against coverage until promoted to a named promise. | PROVEN |
+| `REQ-PROMISE-REGISTERED-AT-COMPILE-TIME` | An annotated catalogue is registered during its own component's compilation — no classpath is swept, and a registration regenerated on every compile cannot drift or be lost. | PROVEN |
+| `REQ-PROMISE-CATALOGUE-READ-WHOLE` | The registry reads a catalogue's constants whole — proven, planned and gap alike — never as a side effect of what happened to be class-loaded. | PROVEN |
+| `REQ-PROMISE-AREAS-MERGE-BY-CODE` | Composition merges same-code areas across catalogues and refuses two with conflicting prose rather than picking one. | PROVEN |
+| `REQ-PROMISE-CITATION-IS-TYPED` | A test cites promises through its product's own enum-typed annotation, recognised by meta-annotation — a mistyped citation is a compile error, and the framework never learns a product's types. | PROVEN |
+| `REQ-PROMISE-PROOFS-INDEXED-AT-COMPILE-TIME` | Citation sites are indexed during the product's own compilation; a renamed or deleted proof site cannot leave a stale citation behind, and an index naming a constant the classpath does not carry fails the strict load. | PROVEN |
+| `REQ-PROMISE-STATUS-IS-DERIVED` | A promise's status is computed — cited by a test is proven, named-uncited is planned, assurance is declared on the constant, a gap is a gap — never asserted at a proof site. | PROVEN |
+| `REQ-PROMISE-COVERAGE-IS-A-FOLD` | A classification's coverage is the fold of its declared promises' statuses, gaps included; an area's is the fold of its classifications. | PROVEN |
+| `REQ-PROMISE-DOWN-LINKS-ONLY` | A classification declares the promises that fulfil it; a promise never names its classifications; the inverse is derived. One direction, one truth. | PROVEN |
 | `REQ-DBO-PRM-A-STORY-IS-CITED-NOT-CLAIMED` | A user story is a constant beside the promises, and promises declare the stories they serve; a story's legs are projected from those declarations rather than written by hand, so a story cannot cite a promise that does not exist, cannot claim a leg nothing promises, and reads unproven while every leg it rests on is only planned. A story claims no evidence: coverage arrives only through promises citing it. | PROVEN |
 | `REQ-DBO-PRM-PROJECTION-IS-GENERATED` | The catalogue's prose form is generated from the composed model, never a second source; a hand-edit or a stale projection fails the build. | PROVEN |
 | `REQ-DBO-PRM-COVERAGE-ON-THE-RESULTS-PAGE` | Every CI run's results page leads with the composed promise coverage report. | PROVEN |
 
-Coverage: {PROVEN=9, ASSURED=4} — a leg marked PLANNED cites a promise that exists and is not yet cited by any test.
+Coverage: {PROVEN=13} — a leg marked PLANNED cites a promise that exists and is not yet cited by any test.
 <!-- story:end -->
 
 ## What the store cannot do yet
