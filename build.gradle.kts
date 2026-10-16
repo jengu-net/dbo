@@ -123,7 +123,7 @@ tasks.register("listPublishTasks") {
 // module compiles against, and the assertions tests name promises with. Its
 // own repository and release line, so a change there reaches the store as a
 // version here.
-val promiseVersion = "0.5.1"
+val promiseVersion = "0.6.0"
 val promise = "cloud.jengu.promise:promise:$promiseVersion"
 val promiseProving = "cloud.jengu.promise:promise-proving:$promiseVersion"
 
