@@ -1,5 +1,7 @@
 # DBO — a multi-tenant object store for regulated data, with a FHIR face
 
+[![Promise ledger](https://jengu-net.github.io/dbo/ledger/badge.svg)](https://jengu-net.github.io/dbo/ledger/)
+
 A FHIR server stores FHIR. A healthcare platform needs more than that, and
 ends up building the rest by hand — once per application, above a store that
 cannot help. DBO is the store that helps.

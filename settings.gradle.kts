@@ -5,7 +5,7 @@ pluginManagement {
         // catalogues and citations indexed, and its tests' citations packed
         // into its jar. Its version is the framework's, named once in the
         // root build as well.
-        id("cloud.jengu.promise") version "0.3.0"
+        id("cloud.jengu.promise") version "0.5.1"
     }
     repositories {
         gradlePluginPortal()

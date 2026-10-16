@@ -22,6 +22,12 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  # A finished build of main brings a new promise ledger, which the site
+  # serves at /ledger/ — so the site follows it.
+  workflow_run:
+    workflows: [build]
+    types: [completed]
+    branches: [main]
   workflow_dispatch:
 
 # Pages serves one deployment at a time, and cancelling a half-finished deploy
@@ -64,6 +70,8 @@ jobs:
     # the world sees is `deploy` below.
     permissions:
       contents: read
+      # to take the promise ledger a build of main kept
+      actions: read
     env:
       # Pinned, because it is the cache key and because a compiler upgrade
       # rewrites every diagram — which is a commit, not a surprise on a push.
@@ -100,8 +108,27 @@ jobs:
         run: ./gradlew siteDiagramsCheck -Plini="$HOME/.local/lini/bin/lini"
       - name: Build the site
         run: ./gradlew site
+      # The promise ledger of main's latest build — the one that brought this
+      # deploy, or the latest finished one — served beside the documentation
+      # at /ledger/, where the README's badge points. Absent, the site is still
+      # the site: a ledger nobody has drawn yet is not a failed deploy.
+      - name: Take main's promise ledger
+        if: github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TRIGGER: ${{ github.event.workflow_run.id }}
+        run: |
+          run="${TRIGGER:-$(gh run list --repo "$GITHUB_REPOSITORY" --workflow build.yml \
+            --branch main --event push --status completed --limit 1 \
+            --json databaseId --jq '.[0].databaseId')}"
+          if [ -n "$run" ] && gh run download "$run" --repo "$GITHUB_REPOSITORY" \
+              --name promise-ledger --dir build/site/ledger; then
+            echo "the ledger of build run $run is at /ledger/"
+          else
+            echo "::notice::no promise ledger to serve yet"
+          fi
       - name: Upload the site
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: (github.event_name == 'push' || github.event_name == 'workflow_run') && github.ref == 'refs/heads/main'
         uses: actions/upload-pages-artifact@v3
         with:
           path: build/site
@@ -111,7 +138,7 @@ jobs:
   # it on Pages. It exists on a push to main and nowhere else.
   deploy:
     needs: render
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: (github.event_name == 'push' || github.event_name == 'workflow_run') && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:

@@ -95,14 +95,22 @@ jobs:
         # commits landed on a red main while a local build was green at twice
         # this heap and could not fail the way CI fails.
         run: ./verify ${{ steps.version.outputs.gradle_args }}
-      # The results page LEADS with what the build means — the composed
-      # promise report: which promises are proven, by which tests, and what
-      # ground is still a gap (REQ-DBO-PRM-COVERAGE-ON-THE-RESULTS-PAGE).
-      # A job summary is plain markdown; no report format is faked.
-      - name: Promise coverage on the results page
-        run: |
-          ./gradlew :core:harness:promiseReport -q
-          cat core/harness/build/reports/promise/report.md >> "$GITHUB_STEP_SUMMARY"
+      # The results page LEADS with what the build means — the promise
+      # ledger: how much of what the store promises is kept, and how this
+      # run's tests came out (REQ-DBO-PRM-COVERAGE-ON-THE-RESULTS-PAGE). The
+      # plugin adds its summary to $GITHUB_STEP_SUMMARY itself. Drawn whatever
+      # the suite came to: a red run's ledger is the one most worth reading.
+      - name: Promise ledger on the results page
+        if: always() && steps.version.outcome == 'success'
+        run: ./gradlew :promiseReport -q ${{ steps.version.outputs.gradle_args }}
+      # The page itself, kept with the run. The site serves main's latest.
+      - name: Keep the promise ledger with the run
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: promise-ledger
+          path: build/reports/promise/
+          if-no-files-found: ignore
       # The classes that cost the most, from the XML the run just wrote. It
       # runs on failure too: a run that timed out is the one whose slowest
       # classes somebody most wants to see.

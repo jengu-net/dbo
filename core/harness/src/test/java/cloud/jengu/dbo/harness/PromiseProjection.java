@@ -3,7 +3,6 @@ package cloud.jengu.dbo.harness;
 import cloud.jengu.promise.Proofs;
 import cloud.jengu.promise.Promise;
 import cloud.jengu.promise.Registry;
-import cloud.jengu.promise.Report;
 import cloud.jengu.dbo.promises.DboPromises;
 
 import java.nio.file.Files;
@@ -16,14 +15,13 @@ import java.util.TreeMap;
  * The catalogue's prose forms, generated from the composed model
  * (REQ-DBO-PRM-PROJECTION-IS-GENERATED) — never a second source.
  *
- * <p>Two renderings from one model: the full report (areas, classifications,
- * coverage folds — what a build's results page leads with), and the
- * requirement-table block spliced into {@code req-catalogue.md} between
+ * <p>The requirement-table block spliced into {@code req-catalogue.md} between
  * visible markers, in the table shape readers already know plus what the
- * hand-written tables never had — status and proving sites.
+ * hand-written tables never had — status and proving sites — and the user
+ * stories' and quality tree's generated blocks. What a build's results page
+ * leads with is the promise toolset's ledger, drawn at the root.
  *
- * <p>Run as {@code ./gradlew :core:harness:promiseReport} (report) and
- * {@code :core:harness:promiseProjection} (rewrite the catalogue block);
+ * <p>Run as {@code ./gradlew :core:harness:promiseProjection} (rewrite the blocks);
  * {@link PromiseCatalogueTest} regenerates the block in memory on every
  * build and fails on any difference, so a hand-edit and a stale projection
  * are the same refusal.
@@ -44,19 +42,12 @@ public final class PromiseProjection {
     }
 
     /**
-     * args: {@code report <out.md>} |
-     * {@code project <req-catalogue.md> [<stories dir> [<quality tree.md>]]}.
+     * args: {@code project <req-catalogue.md> [<stories dir> [<quality tree.md>]]}.
      */
     public static void main(String[] args) throws Exception {
         ClassLoader loader = PromiseProjection.class.getClassLoader();
         Registry.Model model = Registry.load(loader).model(Proofs.load(loader));
         switch (args[0]) {
-            case "report" -> {
-                Path out = Path.of(args[1]);
-                Files.createDirectories(out.getParent());
-                Files.writeString(out, Report.render(model));
-                System.out.println("promise report: " + out);
-            }
             case "project" -> {
                 Path catalogue = Path.of(args[1]);
                 Files.writeString(catalogue, projected(model, Files.readString(catalogue)));

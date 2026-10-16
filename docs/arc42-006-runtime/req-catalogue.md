@@ -557,7 +557,7 @@ deliberately have no REQs yet — they get them when scheduled.
 |---|---|---|---|
 | REQ-DBO-PRM-A-STORY-IS-CITED-NOT-CLAIMED | A user story is a constant beside the promises, and promises declare the stories they serve; a story's legs are projected from those declarations rather than written by hand, so a story cannot cite a promise that does not exist, cannot claim a leg nothing promises, and reads unproven while every leg it rests on is only planned. A story claims no evidence: coverage arrives only through promises citing it. | PROVEN | cloud.jengu.dbo.harness.AStoryIsCitedNotClaimedTest#aStoryOnPlannedLegsReadsUnproven<br>cloud.jengu.dbo.harness.AStoryIsCitedNotClaimedTest#aStoryWithoutAPageOrWithoutJoinsIsRefused<br>cloud.jengu.dbo.harness.AStoryIsCitedNotClaimedTest#everyStoryIsAConstantAndAPage |
 | REQ-DBO-PRM-PROJECTION-IS-GENERATED | The catalogue's prose form is generated from the composed model, never a second source; a hand-edit or a stale projection fails the build. | PROVEN | cloud.jengu.dbo.harness.PromiseCatalogueTest#projectionIsCurrent |
-| REQ-DBO-PRM-COVERAGE-ON-THE-RESULTS-PAGE | Every CI run's results page leads with the composed promise coverage report. | PROVEN | cloud.jengu.dbo.harness.CoverageLeadsTheResultsPageTest#theReportReachesTheSummary |
+| REQ-DBO-PRM-COVERAGE-ON-THE-RESULTS-PAGE | Every CI run's results page leads with the composed promise coverage report. | PROVEN | cloud.jengu.dbo.harness.CoverageLeadsTheResultsPageTest#theLedgerLeadsTheResultsPage |
 
 ## SCIM — staff provisioning surface
 

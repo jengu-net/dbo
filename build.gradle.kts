@@ -1,4 +1,8 @@
 plugins {
+    // At the root, which is no module of its own: one ledger of the store,
+    // composed over every module that applies the plugin — what it promises,
+    // and what the run's tests proved (./gradlew :promiseReport).
+    id("cloud.jengu.promise")
     id("io.freefair.lombok") version "9.8.0" apply false
 }
 
@@ -119,7 +123,7 @@ tasks.register("listPublishTasks") {
 // module compiles against, and the assertions tests name promises with. Its
 // own repository and release line, so a change there reaches the store as a
 // version here.
-val promiseVersion = "0.3.0"
+val promiseVersion = "0.5.1"
 val promise = "cloud.jengu.promise:promise:$promiseVersion"
 val promiseProving = "cloud.jengu.promise:promise-proving:$promiseVersion"
 
@@ -346,6 +350,10 @@ subprojects {
 }
 
 extra["dboRuntimeModules"] = dboRuntimeModules
+
+promise {
+    title.set("dbo")
+}
 extra["promise"] = promise
 extra["promiseProving"] = promiseProving
 extra["dboRuntimeExternalBundles"] = dboRuntimeExternalBundles
