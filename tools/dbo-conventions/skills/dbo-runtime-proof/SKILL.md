@@ -5,8 +5,8 @@ description: Changing a bundle's dependencies or Import-Package policy, adding a
 
 # dbo-runtime-proof
 
-> **Generated from its source document — do not edit.** Change the
-> skill-block in the source document and run `./gradlew generateSkills`.
+> **Generated from its source page — do not edit.** Change the skill-block in the
+> page and run `generateSkills`.
 
 **Apply when:** Changing a bundle's dependencies or Import-Package policy, adding a module to the runtime, registering a service, touching the logging provider, or reporting a change as working.
 
@@ -28,4 +28,4 @@ description: Changing a bundle's dependencies or Import-Package policy, adding a
 
 ---
 
-Where this is stated and argued: [`docs/arc42-002-constraints/working-rules/runtime-proof.md`](../../../../docs/arc42-002-constraints/working-rules/runtime-proof.md)
+Where this is stated and argued: [`docs/arc42-002-constraints/working-rules/runtime-proof.md`](https://github.com/jengu-net/dbo/blob/main/docs/arc42-002-constraints/working-rules/runtime-proof.md)

@@ -1,18 +1,10 @@
-# dbo-conventions — generated skills
+# dbo-conventions
 
-> **Nothing in this folder is hand-edited.** Every skill is projected
-> from a skill-block in the document that owns the text, by
-> `scripts/generate-skills.py`. To change one, edit the block in its
-> source document and run `./gradlew generateSkills`.
+> **Nothing here is edited by hand.** Each skill is projected from the skill-block in the
+> page that owns its rules. Change the block and run `generateSkills`; `verifySkills`
+> fails the build while this folder and the pages disagree.
 
-Two kinds, and the difference matters when you read one. Most are
-**rules a green build does not enforce**: this store's characteristic
-defect compiles, resolves, publishes and then dies on first use, so
-the rules that catch it are the ones nothing else will. One is a
-**reference** for somebody building on the store rather than in it —
-what it already provides, and what an application would otherwise
-write itself. Each skill is a thin projection: when it applies, what
-it says, and a link to the document that argues it.
+Working rules for this store that a green build does not enforce, and a reference for building on it, projected from its constraints documents.
 
 ## Skills
 
@@ -29,9 +21,6 @@ it says, and a link to the document that argues it.
 
 ## Installing
 
-**All of them**, which is the useful form because the set grows as
-documents gain skill-blocks: add a plugin marketplace pointing at this
-folder, or at the repository. The manifest is
-`.claude-plugin/marketplace.json`.
-
-**One of them:** install the single `skills/<name>/` directory.
+Add the marketplace this projection writes, by its repository or its folder, and enable
+the plugin. Its version follows the skills' content, so an installed copy takes every
+change.

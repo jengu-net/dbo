@@ -1,16 +1,9 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "dbo-conventions",
-  "version": "0.3.0",
-  "description": "Working rules for this store, projected from its constraints documents. Generated \u2014 do not hand-edit.",
+  "version": "0.4-e7c0d227e53d",
+  "description": "Working rules for this store that a green build does not enforce, and a reference for building on it, projected from its constraints documents.",
   "author": {
     "name": "jengu-net"
-  },
-  "keywords": [
-    "dbo",
-    "arc42",
-    "osgi",
-    "runtime",
-    "conventions"
-  ]
+  }
 }

@@ -5,14 +5,21 @@ pluginManagement {
         // catalogues and citations indexed, and its tests' citations packed
         // into its jar. Its version is the framework's, named once in the
         // root build as well.
-        id("cloud.jengu.promise") version "0.6.0"
+        id("cloud.jengu.promise") version "0.8.0"
+        // The same toolset's skill projection: the working rules' skill-blocks
+        // projected into the plugin an agent installs.
+        id("cloud.jengu.promise.skills") version "0.8.0"
     }
     repositories {
         gradlePluginPortal()
         mavenCentral()
         maven {
             url = uri("https://repo.jengu.cloud/repository/maven-releases/")
-            content { includeGroup("cloud.jengu.promise") }
+            content {
+                includeGroup("cloud.jengu.promise")
+                // A plugin's marker sits in a group named after its id.
+                includeGroup("cloud.jengu.promise.skills")
+            }
         }
     }
 }

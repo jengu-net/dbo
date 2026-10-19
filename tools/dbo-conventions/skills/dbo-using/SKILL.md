@@ -5,8 +5,8 @@ description: Building or reviewing an application on the DBO store, when work wo
 
 # dbo-using
 
-> **Generated from its source document — do not edit.** Change the
-> skill-block in the source document and run `./gradlew generateSkills`.
+> **Generated from its source page — do not edit.** Change the skill-block in the
+> page and run `generateSkills`.
 
 **Apply when:** Building or reviewing an application on the DBO store, when work would add persistence, users or roles, an audit log, a job queue, encryption, export or import, terminology, validation, change notification, or a data-protection answer the store may already provide.
 
@@ -83,4 +83,4 @@ description: Building or reviewing an application on the DBO store, when work wo
 
 ---
 
-Where this is stated and argued: [`docs/using-dbo.md`](../../../../docs/using-dbo.md)
+Where this is stated and argued: [`docs/using-dbo.md`](https://github.com/jengu-net/dbo/blob/main/docs/using-dbo.md)

@@ -17,8 +17,8 @@ hand-edited:
   the work that trips it begins;
 - the trap section of `CLAUDE.md`, copied from the marked region below.
 
-`./gradlew generateSkills` regenerates both; `verifySkillProjection` fails
-the build when what is committed disagrees with its source.
+`./gradlew generateSkills` regenerates both; `verifySkills` fails the build
+when what is committed disagrees with its source.
 
 ## The rules
 
