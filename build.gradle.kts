@@ -3,6 +3,9 @@ plugins {
     // composed over every module that applies the plugin — what it promises,
     // and what the run's tests proved (./gradlew :promiseReport).
     id("cloud.jengu.promise")
+    // The working rules' skill-blocks, projected into the plugin an agent
+    // installs and the trap section of CLAUDE.md (see the skills block below).
+    id("cloud.jengu.promise.skills")
     id("io.freefair.lombok") version "9.8.0" apply false
 }
 
@@ -123,7 +126,7 @@ tasks.register("listPublishTasks") {
 // module compiles against, and the assertions tests name promises with. Its
 // own repository and release line, so a change there reaches the store as a
 // version here.
-val promiseVersion = "0.6.0"
+val promiseVersion = "0.8.0"
 val promise = "cloud.jengu.promise:promise:$promiseVersion"
 val promiseProving = "cloud.jengu.promise:promise-proving:$promiseVersion"
 
@@ -581,40 +584,26 @@ subprojects {
 //
 // The rules a green build cannot enforce are stated once, in a constraints
 // document, and projected from there into installable skills and into the
-// trap section of CLAUDE.md. A projection that can drift silently is a copy,
-// so the verify task regenerates and then refuses a dirty working tree —
-// the same arrangement the requirement catalogue is under, for the same
-// reason. Hung off `check` so it runs wherever the build does, rather than
-// in a lane somebody has to remember.
-val generateSkills = tasks.register<Exec>("generateSkills") {
-    group = "documentation"
-    description = "Projects the constraints documents' skill-blocks into tools/dbo-conventions/."
-    workingDir = rootDir
-    commandLine("python3", "scripts/generate-skills.py")
-    inputs.dir(layout.projectDirectory.dir("docs/arc42-002-constraints"))
-    // The generator reads every markdown file under docs/, and a skill-block
-    // that lives outside the constraints tree is invisible to an inputs
-    // declaration that names only that tree: the task stays up to date while
-    // its source moves, which is the staleness the projection exists to stop.
-    inputs.file(layout.projectDirectory.file("docs/using-dbo.md"))
-    inputs.file(layout.projectDirectory.file("scripts/generate-skills.py"))
-    outputs.dir(layout.projectDirectory.dir("tools/dbo-conventions"))
-    outputs.file(layout.projectDirectory.file("CLAUDE.md"))
+// trap section of CLAUDE.md, by the promise toolset's skill projection. A
+// projection that can drift silently is a copy, so `verifySkills` fails the
+// build while the committed projection and its source disagree — the same
+// arrangement the requirement catalogue is under, for the same reason. It runs
+// on the root's `check`, and on the harness's, which every lane reaches.
+skills {
+    name.set("dbo-conventions")
+    description.set("Working rules for this store that a green build does not enforce, and a reference for "
+            + "building on it, projected from its constraints documents.")
+    owner.set("jengu-net")
+    baseVersion.set("0.4")
+    output.set(layout.projectDirectory.dir("tools/dbo-conventions"))
+    instructions.set(layout.projectDirectory.file("CLAUDE.md"))
+    // An installed skill is read from the plugin cache, where a relative link
+    // reaches nothing; its links go to the page in this repository instead.
+    linkBase.set("$projectUrl/blob/main/")
 }
+val generateSkills = tasks.named("generateSkills")
 
-val verifySkillProjection = tasks.register<Exec>("verifySkillProjection") {
-    group = "verification"
-    description = "Fails when the committed skills or CLAUDE.md disagree with their source."
-    dependsOn(generateSkills)
-    workingDir = rootDir
-    commandLine("git", "diff", "--exit-code", "--stat", "tools/dbo-conventions", "CLAUDE.md")
-}
-
-// Hung off the harness's own check, which is the one task every lane of the
-// build already reaches. A root-level `check` looks tidier and is not run by
-// `./gradlew build` at all — a wiring that resolves, configures, and is never
-// invoked is exactly the failure the reachability rule describes.
-project(":core:harness").tasks.named("check") { dependsOn(verifySkillProjection) }
+project(":core:harness").tasks.named("check") { dependsOn(tasks.named("verifySkills")) }
 
 // The Central Portal accepts one zip per deployment, laid out as a Maven
 // repository. Staging is shared across modules, so this zips the lot.
@@ -770,10 +759,9 @@ val preCommitHook = """
     [ -z "${'$'}staged" ] && exit 0
     moved=""
 
-    # A projection written by a python script costs nothing, so a changed
-    # document always pays for it.
+    # A changed document re-projects the skills and CLAUDE.md's trap section.
     if printf '%s\n' "${'$'}staged" | grep -q '^docs/.*\.md${'$'}'; then
-        python3 scripts/generate-skills.py >/dev/null 2>&1 \
+        ./gradlew --no-daemon -q generateSkills >/dev/null 2>&1 \
             && moved="${'$'}moved tools/dbo-conventions CLAUDE.md"
     fi
 

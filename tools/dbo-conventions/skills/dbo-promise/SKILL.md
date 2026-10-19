@@ -5,8 +5,8 @@ description: Adding or changing behaviour of the store, fixing a defect, or edit
 
 # dbo-promise
 
-> **Generated from its source document — do not edit.** Change the
-> skill-block in the source document and run `./gradlew generateSkills`.
+> **Generated from its source page — do not edit.** Change the skill-block in the
+> page and run `generateSkills`.
 
 **Apply when:** Adding or changing behaviour of the store, fixing a defect, or editing a promise constant, a Proving citation, or the requirement catalogue.
 
@@ -23,4 +23,4 @@ description: Adding or changing behaviour of the store, fixing a defect, or edit
 
 ---
 
-Where this is stated and argued: [`docs/arc42-002-constraints/promise.md#claiming-a-behaviour`](../../../../docs/arc42-002-constraints/promise.md#claiming-a-behaviour)
+Where this is stated and argued: [`docs/arc42-002-constraints/promise.md#claiming-a-behaviour`](https://github.com/jengu-net/dbo/blob/main/docs/arc42-002-constraints/promise.md#claiming-a-behaviour)

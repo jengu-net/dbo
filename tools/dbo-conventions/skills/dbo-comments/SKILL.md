@@ -5,8 +5,8 @@ description: Writing or reviewing a comment, a Javadoc block, a test display nam
 
 # dbo-comments
 
-> **Generated from its source document — do not edit.** Change the
-> skill-block in the source document and run `./gradlew generateSkills`.
+> **Generated from its source page — do not edit.** Change the skill-block in the
+> page and run `generateSkills`.
 
 **Apply when:** Writing or reviewing a comment, a Javadoc block, a test display name, a commit message, or prose in the specification tree.
 
@@ -26,4 +26,4 @@ description: Writing or reviewing a comment, a Javadoc block, a test display nam
 
 ---
 
-Where this is stated and argued: [`docs/arc42-002-constraints/working-rules/comments.md`](../../../../docs/arc42-002-constraints/working-rules/comments.md)
+Where this is stated and argued: [`docs/arc42-002-constraints/working-rules/comments.md`](https://github.com/jengu-net/dbo/blob/main/docs/arc42-002-constraints/working-rules/comments.md)

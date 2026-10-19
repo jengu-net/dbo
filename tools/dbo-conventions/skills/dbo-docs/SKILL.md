@@ -5,8 +5,8 @@ description: Adding, moving or editing a page under docs/, guide/ or site/pages/
 
 # dbo-docs
 
-> **Generated from its source document — do not edit.** Change the
-> skill-block in the source document and run `./gradlew generateSkills`.
+> **Generated from its source page — do not edit.** Change the skill-block in the
+> page and run `generateSkills`.
 
 **Apply when:** Adding, moving or editing a page under docs/, guide/ or site/pages/, a link into any of them, or deciding where a piece of documentation goes.
 
@@ -38,4 +38,4 @@ description: Adding, moving or editing a page under docs/, guide/ or site/pages/
 
 ---
 
-Where this is stated and argued: [`docs/arc42-002-constraints/working-rules/documentation.md`](../../../../docs/arc42-002-constraints/working-rules/documentation.md)
+Where this is stated and argued: [`docs/arc42-002-constraints/working-rules/documentation.md`](https://github.com/jengu-net/dbo/blob/main/docs/arc42-002-constraints/working-rules/documentation.md)

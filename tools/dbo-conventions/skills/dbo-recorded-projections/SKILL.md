@@ -5,8 +5,8 @@ description: Changing a promise constant or citation, a public or protected sign
 
 # dbo-recorded-projections
 
-> **Generated from its source document — do not edit.** Change the
-> skill-block in the source document and run `./gradlew generateSkills`.
+> **Generated from its source page — do not edit.** Change the skill-block in the
+> page and run `generateSkills`.
 
 **Apply when:** Changing a promise constant or citation, a public or protected signature in an exported package, a skill-block or marked region in a constraints document, a diagram source, or a harness class that builds a runtime; or when a build says a projection disagrees with its source.
 
@@ -23,4 +23,4 @@ description: Changing a promise constant or citation, a public or protected sign
 
 ---
 
-Where this is stated and argued: [`docs/arc42-002-constraints/working-rules/recorded-projections.md`](../../../../docs/arc42-002-constraints/working-rules/recorded-projections.md)
+Where this is stated and argued: [`docs/arc42-002-constraints/working-rules/recorded-projections.md`](https://github.com/jengu-net/dbo/blob/main/docs/arc42-002-constraints/working-rules/recorded-projections.md)

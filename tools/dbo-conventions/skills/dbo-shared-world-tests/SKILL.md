@@ -5,8 +5,8 @@ description: Writing an integration test, deciding which world it runs in, movin
 
 # dbo-shared-world-tests
 
-> **Generated from its source document — do not edit.** Change the
-> skill-block in the source document and run `./gradlew generateSkills`.
+> **Generated from its source page — do not edit.** Change the skill-block in the
+> page and run `generateSkills`.
 
 **Apply when:** Writing an integration test, deciding which world it runs in, moving a test onto a shared world, or deleting a test that builds a world of its own.
 
@@ -53,4 +53,4 @@ description: Writing an integration test, deciding which world it runs in, movin
 
 ---
 
-Where this is stated and argued: [`docs/arc42-002-constraints/working-rules/shared-world-tests.md`](../../../../docs/arc42-002-constraints/working-rules/shared-world-tests.md)
+Where this is stated and argued: [`docs/arc42-002-constraints/working-rules/shared-world-tests.md`](https://github.com/jengu-net/dbo/blob/main/docs/arc42-002-constraints/working-rules/shared-world-tests.md)
