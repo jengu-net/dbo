@@ -1956,6 +1956,11 @@ public enum DboPromises implements Promise {
             + "resolves nothing, redemption burns the grant on presentation rather than "
             + "on success, and a grant authenticates nothing and cannot be exchanged for "
             + "a token."),
+    AUTH_A_REDEEMED_GRANT_NAMES_ITS_SUBJECT_TO_ITS_CONSUMER(
+            "A consumer redeeming a grant in its own process learns whose secret it set, "
+            + "by login and by the person the credential is, so it can keep that secret "
+            + "beside the right subject; every refusal answers alike, and over the wire "
+            + "redemption says no more than before."),
     AUTH_A_ZONE_IS_ITS_OWN_BROKER(
             "A zone that names no identity broker is its own: every tenant carries an "
             + "authority and a zone is a tenant, so members federate to the ceremony it "
