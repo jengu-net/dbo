@@ -2658,6 +2658,21 @@ public final class TenantAuthority {
      * different factor with a different life.
      */
     public boolean redeemSecretGrant(String grant, String chosenSecret) {
+        return redeemSecretGrantFor(grant, chosenSecret).isPresent();
+    }
+
+    /**
+     * The same ceremony, answering in-process with the login whose secret it
+     * set, and empty for every refusal alike.
+     *
+     * <p>A consumer that keeps a subject's secret beside the subject — in a
+     * configuration of its own, sealed — has to know whose it now is, and the
+     * place it learns who the link was for is not the link: a holder of one
+     * grant could otherwise name somebody else beside it. Only here, inside
+     * the consumer's process, after the grant was burnt; over the wire the
+     * answer stays the one refusal it always was.
+     */
+    public Optional<String> redeemSecretGrantFor(String grant, String chosenSecret) {
         String presented = grant == null ? "" : grant;
         Optional<StoredObject> found = store.getByIdentifier("SecretGrant",
                 List.of(new Identifier(IdentityModel.GRANT_SYSTEM, fingerprint(presented))))
@@ -2685,7 +2700,7 @@ public final class TenantAuthority {
         boolean settable = credential.isPresent()
                 && "active".equals(field(credential.get(), "status"));
         if (!live || !settable || chosenSecret == null || chosenSecret.isBlank()) {
-            return false;
+            return Optional.empty();
         }
         StoredObject stored = credential.get();
         String keptFactors = factorsOf(stored);
@@ -2696,7 +2711,7 @@ public final class TenantAuthority {
                 + ",\"status\":\"active\"}";
         store.put(PutRequest.update("LocalCredential", stored.id(), stored.versionId(),
                 payload.getBytes(StandardCharsets.UTF_8)));
-        return true;
+        return Optional.of(field(stored, "login"));
     }
 
     /**
