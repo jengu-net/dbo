@@ -499,6 +499,13 @@ cloud.jengu.dbo.auth.TenantAuthority.LoginResult.Redirect              hashCode(
 cloud.jengu.dbo.auth.TenantAuthority.LoginResult.Redirect              new(String)
 cloud.jengu.dbo.auth.TenantAuthority.LoginResult.Redirect              record
 cloud.jengu.dbo.auth.TenantAuthority.LoginResult.Redirect              toString():String
+cloud.jengu.dbo.auth.TenantAuthority.RedeemedGrant                     equals(Object):boolean
+cloud.jengu.dbo.auth.TenantAuthority.RedeemedGrant                     hashCode():int
+cloud.jengu.dbo.auth.TenantAuthority.RedeemedGrant                     login():String
+cloud.jengu.dbo.auth.TenantAuthority.RedeemedGrant                     new(String,String)
+cloud.jengu.dbo.auth.TenantAuthority.RedeemedGrant                     personId():String
+cloud.jengu.dbo.auth.TenantAuthority.RedeemedGrant                     record
+cloud.jengu.dbo.auth.TenantAuthority.RedeemedGrant                     toString():String
 cloud.jengu.dbo.auth.TenantAuthority.RoleGrant                         active():boolean
 cloud.jengu.dbo.auth.TenantAuthority.RoleGrant                         equals(Object):boolean
 cloud.jengu.dbo.auth.TenantAuthority.RoleGrant                         hashCode():int

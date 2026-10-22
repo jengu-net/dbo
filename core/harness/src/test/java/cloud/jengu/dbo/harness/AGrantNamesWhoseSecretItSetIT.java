@@ -51,11 +51,12 @@ class AGrantNamesWhoseSecretItSetIT {
     }
 
     @Test
-    @DisplayName("a redeemed grant answers with the login it was minted for, a refused one with nothing")
+    @DisplayName("a redeemed grant answers with the login it was minted for and the person whose it is, "
+            + "a refused one with nothing")
     @Proving(DboPromises.AUTH_A_REDEEMED_GRANT_NAMES_ITS_SUBJECT_TO_ITS_CONSUMER)
     void aRedeemedGrantNamesItsSubject() {
         String hers = authority.mintSecretGrant("minerva@hogwarts.scot", Duration.ofMinutes(5));
-        assertEquals(Optional.of("minerva@hogwarts.scot"),
+        assertEquals(Optional.of(new TenantAuthority.RedeemedGrant("minerva@hogwarts.scot", "prac-minerva")),
                 authority.redeemSecretGrantFor(hers, "tabby9cat"));
         assertEquals(Optional.empty(), authority.redeemSecretGrantFor(hers, "again9tabby"));
         assertEquals(Optional.empty(), authority.redeemSecretGrantFor("a-grant-nobody-minted", "tabby9cat"));

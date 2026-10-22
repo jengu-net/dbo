@@ -2661,9 +2661,13 @@ public final class TenantAuthority {
         return redeemSecretGrantFor(grant, chosenSecret).isPresent();
     }
 
+    /** Whose secret a redeemed grant set: their login, and the person their credential is. */
+    public record RedeemedGrant(String login, String personId) {
+    }
+
     /**
-     * The same ceremony, answering in-process with the login whose secret it
-     * set, and empty for every refusal alike.
+     * The same ceremony, answering in-process with whose secret it set, and
+     * empty for every refusal alike.
      *
      * <p>A consumer that keeps a subject's secret beside the subject — in a
      * configuration of its own, sealed — has to know whose it now is, and the
@@ -2672,7 +2676,7 @@ public final class TenantAuthority {
      * the consumer's process, after the grant was burnt; over the wire the
      * answer stays the one refusal it always was.
      */
-    public Optional<String> redeemSecretGrantFor(String grant, String chosenSecret) {
+    public Optional<RedeemedGrant> redeemSecretGrantFor(String grant, String chosenSecret) {
         String presented = grant == null ? "" : grant;
         Optional<StoredObject> found = store.getByIdentifier("SecretGrant",
                 List.of(new Identifier(IdentityModel.GRANT_SYSTEM, fingerprint(presented))))
@@ -2711,7 +2715,7 @@ public final class TenantAuthority {
                 + ",\"status\":\"active\"}";
         store.put(PutRequest.update("LocalCredential", stored.id(), stored.versionId(),
                 payload.getBytes(StandardCharsets.UTF_8)));
-        return Optional.of(field(stored, "login"));
+        return Optional.of(new RedeemedGrant(field(stored, "login"), field(stored, "personId")));
     }
 
     /**
