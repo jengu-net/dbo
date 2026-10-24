@@ -1717,7 +1717,12 @@ public final class TenantRuntimeManager implements AutoCloseable {
                     SelfStarting starting = new SelfStarting(code, tenant.dataSource(),
                             tenant.laneRuns(), starters.get(code),
                             selfStartingSteps(tenant.spec()), place,
-                            stepScheduler, java.time.Clock.systemUTC(),
+                            // Asked for only when a clock opens: a tenant
+                            // whose steps start on changes alone holds no
+                            // pool for one.
+                            (t, database, tick) -> stepScheduler.open(t,
+                                    provisioner.schedules(tenant.spec(), database), tick),
+                            java.time.Clock.systemUTC(),
                             (type, id) -> tenant.runtime().engine().get(type, id)
                                     .map(cloud.jengu.dbo.core.api.StoredObject::payload))
                             .open();
