@@ -20,6 +20,8 @@ import java.util.concurrent.ConcurrentHashMap;
 public final class LocalDatabasePerTenantProvisioner implements TenantDatabaseProvisioner, AutoCloseable {
 
     private static final String DUPLICATE_DATABASE = "42P04";
+    /** A scheduler's pool is keyed apart from its tenant's, which is keyed by the bare code. */
+    private static final String SCHEDULES = "schedules:";
 
     private final String adminUrl;
     private final String user;
@@ -93,6 +95,27 @@ public final class LocalDatabasePerTenantProvisioner implements TenantDatabasePr
             // Held only while used, for the reason a tenant's pool is.
             config.setMinimumIdle(1);
             config.setPoolName("dbo-step-" + dbName);
+            return new HikariDataSource(config);
+        });
+    }
+
+    /**
+     * The tenant's database, opened by the stream bundle's driver, for the
+     * reason a step's substrate is: the scheduler's durable layer runs from
+     * that bundle and listens on what it is given.
+     */
+    @Override
+    public DataSource schedules(TenantSpec spec, DataSource tenantPool) {
+        String dbName = TenantSpec.databaseName(namespace, spec.code());
+        return pools.computeIfAbsent(SCHEDULES + spec.code(), key -> {
+            HikariConfig config = new HikariConfig();
+            config.setDataSource(new cloud.jengu.dbo.stream.SubstrateConnections(
+                    tenantUrl(dbName), user, password));
+            // A listener held for as long as the tenant serves, and the
+            // occasional poll and tick beside it.
+            config.setMaximumPoolSize(3);
+            config.setMinimumIdle(1);
+            config.setPoolName("dbo-schedules-" + spec.code());
             return new HikariDataSource(config);
         });
     }
@@ -259,9 +282,11 @@ public final class LocalDatabasePerTenantProvisioner implements TenantDatabasePr
     /** Closes the pool WITHOUT dropping data — spec retraction, not erasure. */
     @Override
     public void release(String tenantCode) {
-        HikariDataSource pool = pools.remove(tenantCode);
-        if (pool != null) {
-            pool.close();
+        for (String key : java.util.List.of(tenantCode, SCHEDULES + tenantCode)) {
+            HikariDataSource pool = pools.remove(key);
+            if (pool != null) {
+                pool.close();
+            }
         }
     }
 

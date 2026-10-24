@@ -62,6 +62,26 @@ public interface TenantDatabaseProvisioner {
     }
 
     /**
+     * A pool onto the tenant's own database for the scheduler that keeps its
+     * steps' clocks.
+     *
+     * <p>Apart from the tenant's pool because the store's scheduler runs its
+     * durable layer from the stream bundle, and that layer unwraps every
+     * connection it listens on to the driver's own interface as ITS bundle
+     * resolves it. A connection the tenant's pool opened is the driver as the
+     * tenant bundle resolves it, and where the two resolve differently the
+     * unwrap fails, the listener retries once a second for as long as the
+     * tenant serves, and every tick waits for a poll.
+     *
+     * <p>The default is the tenant's pool, which is right wherever the
+     * container wires one driver for everybody — and, like a step's substrate,
+     * the honest answer where databases are operator-made.
+     */
+    default DataSource schedules(TenantSpec spec, DataSource tenantPool) {
+        return tenantPool;
+    }
+
+    /**
      * Erasure-by-drop (REQ-DBO-TEN-ERASURE-BY-DROP). Distinct from service
      * retraction: removing a tenant's spec only retracts serving; only this
      * call destroys data.
