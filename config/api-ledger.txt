@@ -4659,6 +4659,7 @@ cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner               release(S
 cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner               rpClientId(String):void
 cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner               rpClientSecret(String):String
 cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner               rpRedirectUris(List):void
+cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner               schedules(cloud.jengu.dbo.tenant.TenantSpec,DataSource):DataSource
 cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner               stepSubstrate(String):DataSource
 cloud.jengu.dbo.tenant.MaintenanceHandler                              ATTESTATION_HEADER:String
 cloud.jengu.dbo.tenant.MaintenanceHandler                              KIND_HEADER:String
@@ -4736,6 +4737,7 @@ cloud.jengu.dbo.tenant.TenantDatabaseProvisioner                       deprovisi
 cloud.jengu.dbo.tenant.TenantDatabaseProvisioner                       interface
 cloud.jengu.dbo.tenant.TenantDatabaseProvisioner                       provision(cloud.jengu.dbo.tenant.TenantSpec):cloud.jengu.dbo.tenant.TenantDatabaseProvisioner.TenantDatabase
 cloud.jengu.dbo.tenant.TenantDatabaseProvisioner                       release(String):void
+cloud.jengu.dbo.tenant.TenantDatabaseProvisioner                       schedules(cloud.jengu.dbo.tenant.TenantSpec,DataSource):DataSource
 cloud.jengu.dbo.tenant.TenantDatabaseProvisioner                       stepSubstrate(String):DataSource
 cloud.jengu.dbo.tenant.TenantDatabaseProvisioner.NotProvisionedYet     class
 cloud.jengu.dbo.tenant.TenantDatabaseProvisioner.NotProvisionedYet     new(String)
