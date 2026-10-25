@@ -426,6 +426,13 @@ public enum DboPromises implements Promise {
             + "completed, failed or cancelled with the reason, its business status is the stage "
             + "it has reached, it names no performer, and its parts are Tasks part of it."),
 
+    PROC_WORK_IN_PROCESS_NAMES_THE_PERSON_IT_IS_FOR("An application in the store's process "
+            + "starts work, and says acts of work that lasts, for a person it names by "
+            + "reference: the run and the Task it reads as name that person as having asked, "
+            + "and the acts are on the trail as theirs. Started or said for nobody, the work is "
+            + "the application's, as before. A person is named by reference, and an initiator "
+            + "that cannot carry a person refuses rather than drop them."),
+
     PROC_A_FLEET_STEP_MAY_LAST_AND_START_ITSELF_IN_EVERY_TENANT("A step the deployment "
             + "performs for every tenant may last, and may start itself, held to the rules a "
             + "tenant's own such step is: each tenant admitting it runs it on its own clock and "

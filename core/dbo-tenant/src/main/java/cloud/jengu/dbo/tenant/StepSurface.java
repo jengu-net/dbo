@@ -371,7 +371,9 @@ final class StepSurface implements HttpHandler {
      *                  and an optional {@code for}, naming the one participant
      *                  that may take it by {@code client}, {@code executor} or
      *                  both
-     * @param requester recorded as the client the run answers, or null
+     * @param requester recorded as who asked: the client the run answers, a
+     *                  person by reference an application in this process
+     *                  acts for, or null
      */
     Started starting(String stepCode, Object body, String requester) {
         return starting(stepCode, body, requester, false);
@@ -402,6 +404,10 @@ final class StepSurface implements HttpHandler {
             crossingTo = to;
         }
         cloud.jengu.dbo.work.Run.Crossing crossing = null;
+        // WHO ASKED IS NOT ALWAYS WHO READS. A person an application acts for
+        // asked, but what comes back is sealed to a client, and a person is
+        // not one.
+        String reader = requester != null && requester.indexOf('/') > 0 ? null : requester;
         Map<String, String> slots;
         // A ZONE'S OWN EXCHANGE, asked at the zone's door to go to one of its
         // members: the zone is one end of the crossing, as a member asking it
@@ -413,8 +419,8 @@ final class StepSurface implements HttpHandler {
         }
         if (exchanged != null) {
             crossing = new cloud.jengu.dbo.work.Run.Crossing(cloud.jengu.dbo.core.UuidV7.newId(),
-                    tenant, crossingTo, null, requester);
-            if (exchanged.awaits() == TenantSpec.Step.Awaits.RECORDS && requester == null) {
+                    tenant, crossingTo, null, reader);
+            if (exchanged.awaits() == TenantSpec.Step.Awaits.RECORDS && reader == null) {
                 return refused(400, "invalid_request", stepCode + " brings back the records "
                         + "shared, sealed to the client that asked, and nobody asked here: "
                         + "ask at the door, or on an exchange that awaits its outcome");
@@ -448,7 +454,7 @@ final class StepSurface implements HttpHandler {
                 if (offered != null && offered.refusedBecause() == null) {
                     // What comes back is sealed to the client that asked, so
                     // records nobody can open are not asked for.
-                    if (offered.awaits() == TenantSpec.Step.Awaits.RECORDS && requester == null) {
+                    if (offered.awaits() == TenantSpec.Step.Awaits.RECORDS && reader == null) {
                         return refused(400, "invalid_request", stepCode + " brings back the "
                                 + "records shared, sealed to the client that asked, and nobody "
                                 + "asked here: ask at the door, or on an exchange that awaits "
@@ -456,7 +462,7 @@ final class StepSurface implements HttpHandler {
                     }
                     crossing = new cloud.jengu.dbo.work.Run.Crossing(
                             cloud.jengu.dbo.core.UuidV7.newId(), tenant, crossingTo, null,
-                            requester);
+                            reader);
                 }
             }
             if (offered == null) {
