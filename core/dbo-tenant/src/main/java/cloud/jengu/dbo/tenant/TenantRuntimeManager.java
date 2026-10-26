@@ -669,7 +669,30 @@ public final class TenantRuntimeManager implements AutoCloseable {
      * answers 404 as the door would.
      */
     public cloud.jengu.dbo.work.RunInitiator runInitiator() {
+        return runInitiator(null);
+    }
+
+    /**
+     * The same, for the person named, or for the application itself where
+     * nobody is: what it starts names that person as having asked, and what
+     * it says of lasting work is theirs on the trail.
+     */
+    private cloud.jengu.dbo.work.RunInitiator runInitiator(String person) {
         return new cloud.jengu.dbo.work.RunInitiator() {
+            @Override
+            public cloud.jengu.dbo.work.RunInitiator actingFor(String someone) {
+                if (someone == null) {
+                    return runInitiator(null);
+                }
+                if (someone.indexOf('/') <= 0) {
+                    // A bare name is how a client is recorded, so a person
+                    // named by one would read on the Task as an application.
+                    throw new IllegalArgumentException("a person is named by reference, "
+                            + "such as Practitioner/<id>, and '" + someone + "' is not one");
+                }
+                return runInitiator(someone);
+            }
+
             @Override
             public Started starting(String tenant, String step,
                     Map<String, Slot> inputs, String key) {
@@ -709,7 +732,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
                         + cloud.jengu.dbo.work.RunInitiator.addressed(addressee)
                         + cloud.jengu.dbo.work.RunInitiator.partOf(partOf)
                         + cloud.jengu.dbo.work.RunInitiator.crossing(crossingTo) + "}");
-                StepSurface.Started started = starter.starting(step, body, null);
+                StepSurface.Started started = starter.starting(step, body, person);
                 return new Started(started.status(),
                         cloud.jengu.dbo.work.RunInitiator.field(started.body(), "run"),
                         cloud.jengu.dbo.work.RunInitiator.field(started.body(), "key"),
@@ -728,7 +751,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
                         .append(cloud.jengu.dbo.work.RunInitiator.quoted(name)).append(':')
                         .append(cloud.jengu.dbo.work.RunInitiator.quoted(value)));
                 StepSurface.Started answered = starter.saying(run, act,
-                        Json.parse("{" + body + "}"), "in-process");
+                        Json.parse("{" + body + "}"), person == null ? "in-process" : person);
                 return new Started(answered.status(),
                         cloud.jengu.dbo.work.RunInitiator.field(answered.body(), "run"),
                         cloud.jengu.dbo.work.RunInitiator.field(answered.body(), "key"),

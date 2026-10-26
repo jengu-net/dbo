@@ -33,6 +33,7 @@ import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -66,6 +67,7 @@ class ATickStartsOneRunOnEveryNodeIT {
     private static final String WRITE = "ward.messages.write";
     private static final String FULFIL = "ward.orders.fulfil";
     private static final String HANDLE = "ward.orders.handle";
+    private static final String RAISE = "ward.orders.raise";
     private static final String READ = "ward.messages.read";
     private static final String DECLARED = """
             {"code":"%s","face":"r5","types":[
@@ -89,6 +91,8 @@ class ATickStartsOneRunOnEveryNodeIT {
                "starts":{"change":"CommunicationRequest?status=active","keep":"P1D",
                          "where":"origin"}},
               {"code":"ward.orders.handle","slots":{"order":"Reference(CommunicationRequest)"}},
+              {"code":"ward.orders.raise","slots":{"order":"Reference(CommunicationRequest)"},
+               "lasts":true},
               {"code":"ward.messages.write","slots":{"about":"Reference(Communication)"},
                "writes":["Communication"]},
               {"code":"ward.messages.read","slots":{"message":"Reference(Communication)"}},
@@ -576,6 +580,60 @@ class ATickStartsOneRunOnEveryNodeIT {
         assertTrue(refused.refused() != null && refused.refused().contains("over"),
                 "a part's result moved work that was over: " + refused);
         assertEquals(null, runOf(key).milestone(), "rejected work reached a stage");
+    }
+
+    @Test
+    @Order(13)
+    @DisplayName("work an application raises in-process for a person names them as having asked "
+            + "on its Task, and what it says of the work is theirs on the trail; raised for "
+            + "nobody it is the application's, and a person not named by reference is refused")
+    @Proving(DboPromises.PROC_WORK_IN_PROCESS_NAMES_THE_PERSON_IT_IS_FOR)
+    void workRaisedForAPersonNamesThem() throws Exception {
+        var forThem = north.runInitiator().actingFor("Practitioner/p1");
+        var raised = forThem.starting(WARD, RAISE, Map.of("order",
+                cloud.jengu.dbo.work.RunInitiator.Slot.reference(order())), null);
+        assertEquals(201, raised.status(), raised.body());
+        String asked = task(raised.run());
+        assertTrue(asked.contains("\"requester\":{\"reference\":\"Practitioner/p1\"}"), asked);
+
+        assertEquals(200, forThem.saying(WARD, raised.run(), "accept",
+                Map.of("because", "taken on")).status());
+        assertEquals(200, forThem.saying(WARD, raised.run(), "end",
+                Map.of("status", "completed", "because", "closed")).status());
+        assertEquals(Map.of("accepted", "Practitioner/p1", "ended", "Practitioner/p1"),
+                saidBy(raised.key()));
+
+        var byItself = north.runInitiator().starting(WARD, RAISE, Map.of("order",
+                cloud.jengu.dbo.work.RunInitiator.Slot.reference(order())), null);
+        assertEquals(201, byItself.status(), byItself.body());
+        String nobody = task(byItself.run());
+        assertTrue(!nobody.contains("\"requester\""), nobody);
+        north.runInitiator().saying(WARD, byItself.run(), "accept", Map.of("because", "ours"));
+        assertEquals(Map.of("accepted", "in-process"), saidBy(byItself.key()));
+
+        assertThrows(IllegalArgumentException.class,
+                () -> north.runInitiator().actingFor("p1"),
+                "a person named as a client would read on the Task as an application");
+    }
+
+    /** A new order, for work raised over it. */
+    private String order() throws Exception {
+        return "CommunicationRequest/" + writeAs("CommunicationRequest",
+                "{\"resourceType\":\"CommunicationRequest\",\"status\":\"draft\","
+                        + "\"intent\":\"order\"}");
+    }
+
+    /** Each act said of a run of work that lasts, and who it is on the trail as. */
+    private Map<String, String> saidBy(String key) {
+        var runs = new cloud.jengu.dbo.work.Runs(north.runtime(WARD).orElseThrow().engine());
+        Map<String, String> said = new java.util.TreeMap<>();
+        for (cloud.jengu.dbo.work.Run act : runs.items(runOf(key))) {
+            if (cloud.jengu.dbo.work.Runs.ACTS.equals(act.process())) {
+                said.put(act.step(), act.assignment() == null ? null
+                        : act.assignment().claimant());
+            }
+        }
+        return said;
     }
 
     private String task(String id) throws Exception {

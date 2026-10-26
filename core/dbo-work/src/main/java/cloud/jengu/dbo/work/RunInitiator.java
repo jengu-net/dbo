@@ -231,6 +231,30 @@ public interface RunInitiator {
                 + " cannot say anything of lasting work");
     }
 
+    /**
+     * The same initiator, acting for a person: a run it starts names them as
+     * having asked, on the run and on its Task, and an act it says of lasting
+     * work is on the trail as theirs. Without one, both are the application's.
+     *
+     * <p>Trusted as {@code Caller.setChain} is: the application already names
+     * who a write is for, and names who work is for the same way.
+     *
+     * <p>Refused, not ignored, where an initiator cannot carry it: started or
+     * said without the person, the trail would name the application where it
+     * should name who.
+     *
+     * @param person a reference, such as {@code Practitioner/<id>}, as a door
+     *               records a credential's {@code fhirUser}; null for the
+     *               application itself
+     */
+    default RunInitiator actingFor(String person) {
+        if (person == null) {
+            return this;
+        }
+        throw new UnsupportedOperationException(getClass().getName()
+                + " cannot act for a person");
+    }
+
     /** Asks a run how it stands. */
     Answer answer(String tenant, String run);
 

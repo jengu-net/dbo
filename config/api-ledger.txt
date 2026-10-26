@@ -3290,6 +3290,7 @@ cloud.jengu.dbo.promises.DboPromises                                   PROC_TRAC
 cloud.jengu.dbo.promises.DboPromises                                   PROC_TRACE_RIDES_THE_LANE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_WHO_OWES_THE_NEXT_ACT_IS_DERIVED:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_WORK_DRIVEN_ARRIVAL_AND_EXPIRY:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   PROC_WORK_IN_PROCESS_NAMES_THE_PERSON_IT_IS_FOR:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_WORK_IS_AUTHORED_ON_THE_SURFACE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_WORK_THAT_LASTS_IS_MOVED_BY_ITS_PARTS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_WORK_THAT_LASTS_IS_OPENED_FOR_ITS_REQUEST:cloud.jengu.dbo.promises.DboPromises
@@ -5639,6 +5640,7 @@ cloud.jengu.dbo.work.RunChain.Verdict                                  new(Strin
 cloud.jengu.dbo.work.RunChain.Verdict                                  record
 cloud.jengu.dbo.work.RunChain.Verdict                                  toString():String
 cloud.jengu.dbo.work.RunChain.Verdict                                  unchained():boolean
+cloud.jengu.dbo.work.RunInitiator                                      actingFor(String):cloud.jengu.dbo.work.RunInitiator
 cloud.jengu.dbo.work.RunInitiator                                      addressed(cloud.jengu.dbo.work.Run.Addressee):String
 cloud.jengu.dbo.work.RunInitiator                                      answer(String,String):cloud.jengu.dbo.work.RunInitiator.Answer
 cloud.jengu.dbo.work.RunInitiator                                      awaiting(String,String,Duration):cloud.jengu.dbo.work.RunInitiator.Answer
