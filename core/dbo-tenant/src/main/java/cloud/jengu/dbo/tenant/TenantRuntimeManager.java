@@ -4756,7 +4756,9 @@ public final class TenantRuntimeManager implements AutoCloseable {
         // the tenant that holds them — asking the deployment to apply the
         // declarations it reads itself. Behind the authority like every other
         // private surface: a tenant with none has no way to say who is asking.
-        if (spec.configuration() != null) {
+        // Never at a place: the repository its declaration names is the
+        // origin's, on the origin's disk, and applying it is the origin's.
+        if (spec.configuration() != null && !places.contains(spec.code())) {
             // Applied as the face applies a posted set: through its grain, its
             // equivalence and its references. One apply at a time per tenant,
             // because each reads the account the last one left.

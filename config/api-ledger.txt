@@ -3341,6 +3341,7 @@ cloud.jengu.dbo.promises.DboPromises                                   SYNC_A_PL
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_A_PLACE_HANDS_ITS_TRAIL_TO_ITS_TENANT:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_A_PLACE_HANDS_ITS_WORK_TO_ITS_TENANT:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_A_PLACE_IS_DECLARED_AS_ITS_ORIGIN_IS:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   SYNC_A_PLACE_LEAVES_ITS_OWNERS_CONFIGURATION_TO_ITS_ORIGIN:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_A_PLACE_READS_ONLY_WHAT_THE_TENANT_DID_NOT_AUTHOR:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_A_PLACE_READS_ON_FROM_WHERE_IT_ACKNOWLEDGED:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_A_PLACE_SERVES_WHAT_IT_HOLDS_WHILE_ITS_ORIGIN_IS_AWAY:cloud.jengu.dbo.promises.DboPromises
