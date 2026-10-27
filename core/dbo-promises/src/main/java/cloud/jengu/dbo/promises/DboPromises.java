@@ -734,6 +734,11 @@ public enum DboPromises implements Promise {
             + "conditions nothing can re-check. Closing by click is how a card reads "
             + "resolved while the fault is live."),
 
+    PROC_A_SWEEP_HOLDS_EACH_REFERENCE_ONCE("A pass reads every open item of its sweep, "
+            + "whatever their number, so what is still wrong is found again rather than raised "
+            + "again. A sweep holds one open item for a reference: one already holding several "
+            + "keeps one and closes the rest on its next pass."),
+
     PROC_CONFIG_WITHDRAWAL_IS_DECLARED("Only a read a source says is complete may "
             + "withdraw what it no longer names, so a partial read and an unreadable one "
             + "take nothing away. What is held is the applier's to answer and undoing is "
@@ -2985,6 +2990,12 @@ public enum DboPromises implements Promise {
             + "cannot read rather than on every round. When it can read again it carries on "
             + "from where it last acknowledged. A place that has never received anything has "
             + "nothing to serve, and waits for its origin as a tenant waits for an upstream."),
+    SYNC_A_PLACE_LETS_GO_OF_WHAT_ITS_OLD_CONFIGURATION_APPLIED(
+            "A place releases what its owner's configuration applied there before the place "
+            + "left that configuration to its origin, wherever it holds back a version the "
+            + "origin sends, once it is serving and with nobody asked; the stream's next pass "
+            + "applies the origin's version. Only what the configuration's own account says "
+            + "it applied is released: a record somebody at the place wrote still shadows."),
     SYNC_A_PLACE_LEAVES_ITS_OWNERS_CONFIGURATION_TO_ITS_ORIGIN(
             "A place does not apply its owner's configuration from the repository its "
             + "declaration names: that repository is its origin's, and applying it is the "

@@ -107,6 +107,50 @@ final class OwnersConfiguration {
     }
 
     /**
+     * Withdraws, at a place, what its owner's configuration applied there
+     * before the place left that configuration to its origin, wherever it
+     * stands in front of a version the origin sends.
+     *
+     * <p>Such a record is local, with no origin, so the stream reads every
+     * version the origin publishes of it as a local override and parks it,
+     * for good: nobody overrode anything, and nothing else would remove it.
+     * Only what the account says the configuration applied is withdrawn, so
+     * a record somebody at the place wrote keeps shadowing.
+     *
+     * @param shadowing whether a local record holds an upstream version back
+     * @return how many records were withdrawn
+     */
+    static int releasedAtAPlace(String code, ObjectStore store,
+            java.util.function.Predicate<String> shadowing) {
+        ConfigFiles ledger = new ConfigFiles(store, scopeOf(code));
+        int released = 0;
+        for (ConfigFiles.Entry entry : ledger.applied().values()) {
+            if (SECRETS.equals(entry.type())) {
+                continue;
+            }
+            boolean anyLeft = false;
+            for (Identifier identity : entry.identities()) {
+                for (StoredObject record : store.getByIdentifier(entry.type(),
+                        List.of(identity))) {
+                    if (shadowing.test(record.id())) {
+                        store.delete(entry.type(), record.id(), record.versionId(),
+                                cloud.jengu.dbo.core.api.Handling.Authority.CONFIG_LANE);
+                        released++;
+                    } else {
+                        anyLeft = true;
+                    }
+                }
+            }
+            // Kept while it still names a record here, so one the origin
+            // publishes later is released on the place's next start.
+            if (!anyLeft) {
+                ledger.forget(entry);
+            }
+        }
+        return released;
+    }
+
+    /**
      * Applies a ref, or says what applying it would do.
      *
      * @param ref     a branch, tag or commit, or null for the declared one

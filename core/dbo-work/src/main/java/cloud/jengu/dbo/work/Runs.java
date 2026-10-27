@@ -15,6 +15,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * The runs of one tenant's store.
@@ -1768,6 +1769,27 @@ public final class Runs {
     }
 
     /**
+     * The open items of a run, every one of them.
+     *
+     * <p>Walked a page at a time and asked by status, not selected whole. A
+     * selection stops at its limit, and a pass that saw a hundred of its open
+     * items raised the rest again as new on every round; a sweep keeps every
+     * item it ever closed, so reading them all to find the open ones grows
+     * with its history rather than with what is wrong now.
+     */
+    public List<Run> openItems(Run parent) {
+        return cloud.jengu.dbo.core.api.Answered.pagedBy(store::page,
+                        Criteria.of(WorkModel.TYPE)
+                                .eq("parent", EnvelopeValue.of(parent.key()))
+                                .anyOf("status", Awaits.open().stream()
+                                        .map(status -> EnvelopeValue.of(status.wire()))
+                                        .toList()))
+                .map(Run::of)
+                .filter(Run::open)
+                .toList();
+    }
+
+    /**
      * A pass over a sweep, closing by re-evaluation
      * (REQ-DBO-PROC-CLOSE-BY-RE-EVALUATION).
      *
@@ -1779,14 +1801,17 @@ public final class Runs {
 
         private final Run sweep;
         private final Map<String, Run> before = new LinkedHashMap<>();
-        private final List<String> seen = new ArrayList<>();
+        /** Open items naming a reference another open item already names. */
+        private final List<Run> duplicates = new ArrayList<>();
+        private final Set<String> seen = new java.util.HashSet<>();
         private final Map<String, Long> counts = new LinkedHashMap<>();
 
         private Pass(Run sweep) {
             this.sweep = sweep;
-            for (Run item : items(sweep)) {
-                if (item.item() != null && item.open()) {
-                    before.put(item.item().reference(), item);
+            for (Run item : openItems(sweep)) {
+                if (item.item() != null
+                        && before.putIfAbsent(item.item().reference(), item) != null) {
+                    duplicates.add(item);
                 }
             }
         }
@@ -1829,12 +1854,15 @@ public final class Runs {
                     completed(item);
                 }
             });
+            // One reference is one item. A store that raised a reference again
+            // while it was still open keeps the first and is mended here.
+            duplicates.forEach(Runs.this::completed);
             Run current = byKey(sweep.key()).orElse(sweep);
             if (!counts.isEmpty()) {
                 current = tally(current, counts);
             }
-            boolean anybodyWaiting = items(current).stream()
-                    .anyMatch(item -> item.open() && item.needsAPerson());
+            boolean anybodyWaiting = openItems(current).stream()
+                    .anyMatch(Run::needsAPerson);
             // Converged when nothing is left for a person. A sweep is never
             // "finished" — it is either agreeing with the world or not.
             return anybodyWaiting

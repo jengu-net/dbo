@@ -684,20 +684,28 @@ public final class ContentSyncEngine {
         return !deadLetters().isEmpty();
     }
 
+    /**
+     * An upstream version held back, and what holds it back.
+     *
+     * @param shadowedBy the local record standing in front of it, or null for
+     *        one parked before a shadow said so
+     */
     public record ShadowedEvent(String objectId, String typeName, long sourceVersionId,
-            byte[] payload, boolean deleted, String payloadVersion) {}
+            byte[] payload, boolean deleted, String payloadVersion, String shadowedBy) {}
 
     public List<ShadowedEvent> shadowedEvents() {
         List<ShadowedEvent> out = new ArrayList<>();
         try (Connection c = targetDs.getConnection();
              PreparedStatement ps = c.prepareStatement("""
-                     SELECT object_id, type, source_version_id, payload, deleted, payload_version
+                     SELECT object_id, type, source_version_id, payload, deleted, payload_version,
+                            shadows_object_id
                      FROM %s_sync_shadow WHERE dependency = ?""".formatted(Domains.tables(targetDomain)))) {
             ps.setString(1, dependency.name());
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     out.add(new ShadowedEvent(rs.getObject(1).toString(), rs.getString(2),
-                            rs.getLong(3), rs.getBytes(4), rs.getBoolean(5), rs.getString(6)));
+                            rs.getLong(3), rs.getBytes(4), rs.getBoolean(5), rs.getString(6),
+                            rs.getObject(7) == null ? null : rs.getObject(7).toString()));
                 }
             }
         } catch (SQLException e) {
