@@ -39,6 +39,7 @@ ADeploymentIsEquippedBeforeItStartsIT                    deployment — an image
 AHostHoldsALaneByInstallingABundleIT                     container
 ANoticeReachesEveryTenantIT                              deployment — its management tenant declares fleet steps that last and start themselves in every tenant, and redeclares them while tenants serve; a fleet step is declared for the whole deployment, so one on the world would open work in every shared tenant
 AParticipantHoldsItsLaneOnTheStreamIT                    whole plane
+APlaceLetsGoOfWhatItsOldConfigurationAppliedIT           lifecycle — a node that served a tenant as its own, applying its owner's configuration, restarted as a place of that tenant on another node; read off a node as it first brings a place up, which the sample world does not do
 APlaceThatHasServedComesUpWithItsOriginAwayIT            lifecycle — a place coming up on a node started with its origin away, having served before or never; read off nodes as they are started, which the sample world does not do
 ARollingUpgradeReadsAsOneStepIT                          deployment — two nodes, each built with a step catalogue of its own carrying one step at two versions; the sample world is one node
 ASecondPlaceComesUpFromItsOriginIT                       lifecycle — a place of a tenant coming up on a second node from its origin over the lane, with the link down and across a restart; a site is a second node with a database server of its own, which the sample world is not

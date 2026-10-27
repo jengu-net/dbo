@@ -56,10 +56,13 @@ final class WorkInMemory {
                             case "putIfAbsent" -> putIfAbsent((IdentityRef) args[0],
                                     (PutRequest) args[1]);
                             case "put" -> put((PutRequest) args[0]);
-                            case "select" -> matching((Criteria) args[0]);
+                            // A selection stops at its limit and a page continues
+                            // after an id, as the store's do: a rule that reads
+                            // only part of what it asked for has to fail here too.
+                            case "select" -> matching((Criteria) args[0]).stream()
+                                    .limit(((Criteria) args[0]).limitValue()).toList();
                             case "count" -> (long) matching((Criteria) args[0]).size();
-                            case "page" -> new FeedChunk<>(matching((Criteria) args[0]), null,
-                                    true);
+                            case "page" -> page((Criteria) args[0], (String) args[1]);
                             case "toString" -> "work in memory";
                             default -> throw new UnsupportedOperationException(method.getName());
                         });
@@ -139,6 +142,15 @@ final class WorkInMemory {
         return new PutResult(id, version, created);
     }
 
+    private FeedChunk<StoredObject> page(Criteria criteria, String after) {
+        List<StoredObject> rest = matching(criteria).stream()
+                .filter(stored -> after == null || stored.id().compareTo(after) > 0)
+                .toList();
+        List<StoredObject> page = rest.subList(0, Math.min(rest.size(), criteria.limitValue()));
+        boolean drained = page.size() == rest.size();
+        return new FeedChunk<>(page, drained ? null : page.get(page.size() - 1).id(), drained);
+    }
+
     private List<StoredObject> matching(Criteria criteria) {
         List<StoredObject> found = new ArrayList<>();
         for (StoredObject stored : byId.values()) {
@@ -157,6 +169,7 @@ final class WorkInMemory {
                 found.add(stored);
             }
         }
+        found.sort(java.util.Comparator.comparing(StoredObject::id));
         return found;
     }
 

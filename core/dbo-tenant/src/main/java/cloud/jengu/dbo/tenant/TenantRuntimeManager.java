@@ -5193,7 +5193,34 @@ public final class TenantRuntimeManager implements AutoCloseable {
             owe(spec.code(), "applying its owner's configuration",
                     () -> owned.apply(null, "dbo", false));
         }
+        // And at a place, what that configuration applied here before the
+        // place left it to its origin, wherever it holds the origin's version
+        // back. Released here; the stream's next pass applies what it parked.
+        if (places.contains(spec.code())) {
+            owe(spec.code(), "releasing what its owner's configuration applied here",
+                    () -> releaseWhatItsConfigurationApplied(spec.code()));
+        }
         owe(spec.code(), "announcing it to the host", () -> listener.tenantUp(runtime));
+    }
+
+    private void releaseWhatItsConfigurationApplied(String code) {
+        java.util.Set<String> shadowing = new java.util.HashSet<>();
+        for (cloud.jengu.dbo.sync.ContentSyncEngine engine
+                : syncEngines.getOrDefault(code, java.util.List.of())) {
+            engine.shadowedEvents().stream()
+                    .map(cloud.jengu.dbo.sync.ContentSyncEngine.ShadowedEvent::shadowedBy)
+                    .filter(java.util.Objects::nonNull)
+                    .forEach(shadowing::add);
+        }
+        if (shadowing.isEmpty()) {
+            return;
+        }
+        int released = OwnersConfiguration.releasedAtAPlace(code, runStores.get(code),
+                shadowing::contains);
+        if (released > 0) {
+            LOG.info("tenant {} released {} records its owner's configuration applied before "
+                    + "it was a place", code, released);
+        }
     }
 
     /**

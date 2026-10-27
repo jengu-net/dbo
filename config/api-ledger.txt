@@ -3213,6 +3213,7 @@ cloud.jengu.dbo.promises.DboPromises                                   PROC_A_ST
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_STEP_STARTS_WHERE_IT_IS_DECLARED_TO:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_STREAM_DOOR_OPENS_FOR_WHOEVER_CAN_ASK:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_STREAM_RIDES_ANY_CARRIER:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   PROC_A_SWEEP_HOLDS_EACH_REFERENCE_ONCE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_TASK_SEARCH_LISTS_ROOTS_AND_PARTS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_TENANT_ADMITS_OR_DECLINES_WHAT_IS_DONE_TO_IT:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_TENANT_AUTHORISES_A_REGISTER_AND_SEES_IT_CHANGE:cloud.jengu.dbo.promises.DboPromises
@@ -3342,6 +3343,7 @@ cloud.jengu.dbo.promises.DboPromises                                   SYNC_A_PL
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_A_PLACE_HANDS_ITS_WORK_TO_ITS_TENANT:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_A_PLACE_IS_DECLARED_AS_ITS_ORIGIN_IS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_A_PLACE_LEAVES_ITS_OWNERS_CONFIGURATION_TO_ITS_ORIGIN:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   SYNC_A_PLACE_LETS_GO_OF_WHAT_ITS_OLD_CONFIGURATION_APPLIED:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_A_PLACE_READS_ONLY_WHAT_THE_TENANT_DID_NOT_AUTHOR:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_A_PLACE_READS_ON_FROM_WHERE_IT_ACKNOWLEDGED:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_A_PLACE_SERVES_WHAT_IT_HOLDS_WHILE_ITS_ORIGIN_IS_AWAY:cloud.jengu.dbo.promises.DboPromises
@@ -4379,11 +4381,12 @@ cloud.jengu.dbo.sync.ContentSyncEngine.Origin                          typeName(
 cloud.jengu.dbo.sync.ContentSyncEngine.ShadowedEvent                   deleted():boolean
 cloud.jengu.dbo.sync.ContentSyncEngine.ShadowedEvent                   equals(Object):boolean
 cloud.jengu.dbo.sync.ContentSyncEngine.ShadowedEvent                   hashCode():int
-cloud.jengu.dbo.sync.ContentSyncEngine.ShadowedEvent                   new(String,String,long,byte[],boolean,String)
+cloud.jengu.dbo.sync.ContentSyncEngine.ShadowedEvent                   new(String,String,long,byte[],boolean,String,String)
 cloud.jengu.dbo.sync.ContentSyncEngine.ShadowedEvent                   objectId():String
 cloud.jengu.dbo.sync.ContentSyncEngine.ShadowedEvent                   payload():byte[]
 cloud.jengu.dbo.sync.ContentSyncEngine.ShadowedEvent                   payloadVersion():String
 cloud.jengu.dbo.sync.ContentSyncEngine.ShadowedEvent                   record
+cloud.jengu.dbo.sync.ContentSyncEngine.ShadowedEvent                   shadowedBy():String
 cloud.jengu.dbo.sync.ContentSyncEngine.ShadowedEvent                   sourceVersionId():long
 cloud.jengu.dbo.sync.ContentSyncEngine.ShadowedEvent                   toString():String
 cloud.jengu.dbo.sync.ContentSyncEngine.ShadowedEvent                   typeName():String
@@ -5810,6 +5813,7 @@ cloud.jengu.dbo.work.Runs                                              new(cloud
 cloud.jengu.dbo.work.Runs                                              new(cloud.jengu.dbo.core.api.ObjectStore,cloud.jengu.dbo.core.process.Steps,cloud.jengu.dbo.work.Runs.Claimable,Clock)
 cloud.jengu.dbo.work.Runs                                              of(cloud.jengu.dbo.core.process.StepDeclaration,cloud.jengu.dbo.work.RunKind,String):cloud.jengu.dbo.work.Run
 cloud.jengu.dbo.work.Runs                                              of(cloud.jengu.dbo.core.process.StepDeclaration,cloud.jengu.dbo.work.RunKind,String,Map):cloud.jengu.dbo.work.Run
+cloud.jengu.dbo.work.Runs                                              openItems(cloud.jengu.dbo.work.Run):List
 cloud.jengu.dbo.work.Runs                                              opening(cloud.jengu.dbo.core.process.StepDeclaration,String,String,String,cloud.jengu.dbo.work.Run):cloud.jengu.dbo.work.Run
 cloud.jengu.dbo.work.Runs                                              over(cloud.jengu.dbo.work.Run,String,String,Instant,int):List
 cloud.jengu.dbo.work.Runs                                              pass(cloud.jengu.dbo.work.Run):cloud.jengu.dbo.work.Runs.Pass
