@@ -2985,6 +2985,12 @@ public enum DboPromises implements Promise {
             + "cannot read rather than on every round. When it can read again it carries on "
             + "from where it last acknowledged. A place that has never received anything has "
             + "nothing to serve, and waits for its origin as a tenant waits for an upstream."),
+    SYNC_A_PLACE_LEAVES_ITS_OWNERS_CONFIGURATION_TO_ITS_ORIGIN(
+            "A place does not apply its owner's configuration from the repository its "
+            + "declaration names: that repository is its origin's, and applying it is the "
+            + "origin's work. A place declared with its origin's "
+            + "configuration comes up serving, and is not degraded for want of a repository "
+            + "it was never meant to hold."),
 
     // ── VAL — migrated from hand-written prose (2026-08-27) ──
 

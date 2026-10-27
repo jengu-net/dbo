@@ -15,6 +15,7 @@ import cloud.jengu.dbo.runner.http.HttpLane;
 import cloud.jengu.dbo.runner.transport.Place;
 import cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner;
 import cloud.jengu.dbo.tenant.TenantRuntimeManager;
+import cloud.jengu.dbo.tenant.TenantState;
 import cloud.jengu.dbo.core.process.StepDeclaration;
 import cloud.jengu.dbo.runner.Lane;
 import cloud.jengu.dbo.runner.Outcome;
@@ -26,6 +27,8 @@ import cloud.jengu.dbo.work.RunSlot;
 import cloud.jengu.dbo.work.Runs;
 import cloud.jengu.dbo.work.Executor;
 import cloud.jengu.dbo.work.Scope;
+import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.lib.PersonIdent;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
@@ -77,8 +80,14 @@ class ASecondPlaceComesUpFromItsOriginIT {
     /** What the clinic names its analysers by. */
     private static final String ANALYSERS = "urn:dbo-test:analyser";
 
+    /**
+     * The clinic as declared, on both nodes alike: its owner's configuration
+     * named where the cloud keeps it, as the declaration a site is handed
+     * names it.
+     */
     private static final String CLINIC_DECLARATION = """
             {"code":"%s","face":"r4","audit":{"level":"writes"},
+             "configuration":{"git":"%%s","ref":"main"},
              "dependencies":[{"name":"%s","face":true,
                               "types":["StructureDefinition","SearchParameter","ValueSet","CodeSystem"]},
                              {"name":"%s","types":["Organization","CodeSystem"]}],
@@ -127,6 +136,8 @@ class ASecondPlaceComesUpFromItsOriginIT {
      * database — and a site never shares the cloud's server anyway.
      */
     static PostgreSQLContainer<?> siteServer;
+    /** Where the cloud keeps the clinic owner's configuration. */
+    static Path configuration;
     static TenantRuntimeManager cloud;
     static TenantRuntimeManager site;
     static HttpLane lane;
@@ -144,6 +155,13 @@ class ASecondPlaceComesUpFromItsOriginIT {
         siteDatabases = new LocalDatabasePerTenantProvisioner(siteServer.getJdbcUrl(),
                 siteServer.getUsername(), siteServer.getPassword());
         cloud = node(cloudDir, cloudDatabases);
+        configuration = Files.createDirectories(cloudDir.resolve("configuration"));
+        try (Git git = Git.init().setDirectory(configuration.toFile()).setInitialBranch("main")
+                .call()) {
+            git.commit().setAllowEmpty(true).setMessage("Open the clinic")
+                    .setAuthor(new PersonIdent("Owner", "owner@example.org"))
+                    .setCommitter(new PersonIdent("Owner", "owner@example.org")).call();
+        }
 
         Files.writeString(cloudDir.resolve(ROOT + ".json"), ROOT_DECLARATION);
         Files.writeString(cloudDir.resolve(COUNTY + ".json"), """
@@ -151,9 +169,13 @@ class ASecondPlaceComesUpFromItsOriginIT {
                  "types":[{"name":"Organization","identity":"internal","handling":"operational"},
                           {"name":"CodeSystem","identity":"canonical","handling":"operational"}]}"""
                 .formatted(COUNTY));
-        Files.writeString(cloudDir.resolve(CLINIC + ".json"), CLINIC_DECLARATION);
+        Files.writeString(cloudDir.resolve(CLINIC + ".json"),
+                CLINIC_DECLARATION.formatted(configuration));
         UntilServed.scan(cloud, ROOT, COUNTY);
         UntilServed.scan(cloud, CLINIC);
+        assertEquals(TenantState.State.SERVING, stateOf(cloud, CLINIC),
+                "the cloud's clinic did not apply its owner's configuration: "
+                        + cloud.troubles().get(CLINIC));
 
         // What the clinic takes from the county, and what it authors itself.
         assertEquals(201, post(cloud, COUNTY, "Organization",
@@ -179,7 +201,12 @@ class ASecondPlaceComesUpFromItsOriginIT {
         site.readsItsOriginThrough(CLINIC, connected());
         Files.writeString(siteDir.resolve(ROOT + ".json"), ROOT_DECLARATION);
         UntilServed.scan(site, ROOT);
-        Files.writeString(siteDir.resolve(CLINIC + ".json"), CLINIC_DECLARATION);
+        // A site does not share the cloud's disk: the repository is where
+        // the cloud keeps it, and not on the site.
+        org.eclipse.jgit.util.FileUtils.delete(configuration.toFile(),
+                org.eclipse.jgit.util.FileUtils.RECURSIVE);
+        Files.writeString(siteDir.resolve(CLINIC + ".json"),
+                CLINIC_DECLARATION.formatted(configuration));
         long began = System.currentTimeMillis();
         UntilServed.scan(site, CLINIC);
         System.out.println("MEASURED a place's first bring-up from its origin: "
@@ -223,6 +250,18 @@ class ASecondPlaceComesUpFromItsOriginIT {
                 {"resourceType":"Observation","status":"final",
                  "code":{"coding":[{"system":"http://loinc.org","code":"8867-4"}]}}"""),
                 "the site's clinic refused a write of its own");
+    }
+
+    @Test
+    @Order(0)
+    @DisplayName("the site's clinic, declared with the cloud's configuration, came up serving and "
+            + "not degraded, though the repository it names is not on the site")
+    @Proving(DboPromises.SYNC_A_PLACE_LEAVES_ITS_OWNERS_CONFIGURATION_TO_ITS_ORIGIN)
+    void aPlaceLeavesItsOwnersConfigurationToItsOrigin() {
+        assertTrue(!Files.exists(configuration),
+                "the repository is on the site's disk, so applying it would not have failed");
+        assertEquals(TenantState.State.SERVING, stateOf(site, CLINIC),
+                "the site's clinic is not serving as itself: " + site.troubles().get(CLINIC));
     }
 
     @Test
@@ -919,6 +958,11 @@ class ASecondPlaceComesUpFromItsOriginIT {
                 {"resourceType":"CodeSystem","url":"%s","name":"%s","status":"active",
                  "content":"complete","concept":[{"code":"a","display":"A"}]}"""
                 .formatted(canonical(name), name.replace("-", ""));
+    }
+
+    private static TenantState.State stateOf(TenantRuntimeManager node, String code) {
+        return node.tenantStates().stream().filter(state -> state.code().equals(code))
+                .map(TenantState::state).findFirst().orElse(null);
     }
 
     private static int post(TenantRuntimeManager node, String code, String type, String body)
