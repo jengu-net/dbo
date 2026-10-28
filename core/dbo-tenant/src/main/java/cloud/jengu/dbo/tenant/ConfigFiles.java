@@ -1,5 +1,6 @@
 package cloud.jengu.dbo.tenant;
 
+import cloud.jengu.dbo.core.api.Answered;
 import cloud.jengu.dbo.core.api.Criteria;
 import cloud.jengu.dbo.core.api.Envelope;
 import cloud.jengu.dbo.core.api.EnvelopeExtractor;
@@ -20,6 +21,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Stream;
 
 /**
  * What each file of a tenant's configuration source applied, kept in the
@@ -66,13 +68,18 @@ final class ConfigFiles {
                 extractor(), List.of()));
     }
 
-    /** Every file this source has applied, by path. */
+    /**
+     * Every file this source has applied, by path.
+     *
+     * <p>Walked to its end, a page at a time: a selection stops at a page, and
+     * an account read short calls files applied long ago new, never withdraws
+     * one past the page, and lets a place release only the first page of it.
+     */
     Map<String, Entry> applied() {
         Map<String, Entry> entries = new LinkedHashMap<>();
-        for (StoredObject stored : store.select(Criteria.of(TYPE)
+        try (Stream<StoredObject> ledger = Answered.pagedBy(store::page, Criteria.of(TYPE)
                 .eq("source", EnvelopeValue.of(source)))) {
-            Entry entry = entryOf(stored);
-            entries.put(entry.path(), entry);
+            ledger.map(ConfigFiles::entryOf).forEach(entry -> entries.put(entry.path(), entry));
         }
         return entries;
     }
