@@ -734,10 +734,14 @@ public enum DboPromises implements Promise {
             + "conditions nothing can re-check. Closing by click is how a card reads "
             + "resolved while the fault is live."),
 
-    PROC_A_SWEEP_HOLDS_EACH_REFERENCE_ONCE("A pass reads every open item of its sweep, "
-            + "whatever their number, so what is still wrong is found again rather than raised "
-            + "again. A sweep holds one open item for a reference: one already holding several "
-            + "keeps one and closes the rest on its next pass."),
+    PROC_A_SWEEP_HOLDS_EACH_REFERENCE_ONCE("A pass finds again what is still open in its "
+            + "sweep, whatever the number of its open items, rather than raising it again, and "
+            + "holds one item per reference while it does, so its memory grows with what is "
+            + "wrong and not with how often it was raised. A sweep holds one open item for a "
+            + "reference: one already holding several keeps one and closes the rest. What one "
+            + "pass closes is bounded, so a sweep holding millions drains over many passes and "
+            + "each pass stays short; a pass that stopped at its bound raises nothing new and "
+            + "closes nothing for not being found again."),
 
     PROC_CONFIG_WITHDRAWAL_IS_DECLARED("Only a read a source says is complete may "
             + "withdraw what it no longer names, so a partial read and an unreadable one "
