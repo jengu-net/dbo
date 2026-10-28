@@ -107,6 +107,14 @@ final class OwnersConfiguration {
     }
 
     /**
+     * What a place let go of: by the account of what its configuration
+     * applied, by the type's own word that only the configuration writes it,
+     * and what the account names that no lookup found.
+     */
+    record Released(int byAccount, int byHandling, int unfound) {
+    }
+
+    /**
      * Withdraws, at a place, what its owner's configuration applied there
      * before the place left that configuration to its origin, wherever it
      * stands in front of a version the origin sends.
@@ -114,28 +122,41 @@ final class OwnersConfiguration {
      * <p>Such a record is local, with no origin, so the stream reads every
      * version the origin publishes of it as a local override and parks it,
      * for good: nobody overrode anything, and nothing else would remove it.
-     * Only what the account says the configuration applied is withdrawn, so
-     * a record somebody at the place wrote keeps shadowing.
+     * Only what the configuration wrote is withdrawn, so a record somebody at
+     * the place wrote keeps shadowing.
      *
-     * @param shadowing whether a local record holds an upstream version back
-     * @return how many records were withdrawn
+     * <p>What the configuration wrote is read first from its account. An
+     * entry is forgotten once each of its records is released or none is
+     * left standing; one whose lookup finds nothing while a record of its
+     * type still shadows is kept and counted, since that record may be the
+     * one it applied, and forgetting the entry would be forgetting the only
+     * account of it. Then, account or not, a shadowing record of a type only
+     * the configuration lane may write is the configuration's: nobody at the
+     * place could have written it.
+     *
+     * @param shadowing the local records holding an upstream version back,
+     *        by id, with their type
      */
-    static int releasedAtAPlace(String code, ObjectStore store,
-            java.util.function.Predicate<String> shadowing) {
+    static Released releasedAtAPlace(String code, ObjectStore store,
+            Map<String, String> shadowing) {
         ConfigFiles ledger = new ConfigFiles(store, scopeOf(code));
-        int released = 0;
+        Set<String> released = new LinkedHashSet<>();
+        List<ConfigFiles.Entry> unfound = new ArrayList<>();
         for (ConfigFiles.Entry entry : ledger.applied().values()) {
             if (SECRETS.equals(entry.type())) {
                 continue;
             }
             boolean anyLeft = false;
+            boolean anyUnfound = false;
             for (Identifier identity : entry.identities()) {
-                for (StoredObject record : store.getByIdentifier(entry.type(),
-                        List.of(identity))) {
-                    if (shadowing.test(record.id())) {
+                List<StoredObject> found = store.getByIdentifier(entry.type(),
+                        List.of(identity));
+                anyUnfound |= found.isEmpty();
+                for (StoredObject record : found) {
+                    if (shadowing.containsKey(record.id())) {
                         store.delete(entry.type(), record.id(), record.versionId(),
                                 cloud.jengu.dbo.core.api.Handling.Authority.CONFIG_LANE);
-                        released++;
+                        released.add(record.id());
                     } else {
                         anyLeft = true;
                     }
@@ -143,11 +164,52 @@ final class OwnersConfiguration {
             }
             // Kept while it still names a record here, so one the origin
             // publishes later is released on the place's next start.
-            if (!anyLeft) {
+            if (anyUnfound) {
+                unfound.add(entry);
+            } else if (!anyLeft) {
                 ledger.forget(entry);
             }
         }
-        return released;
+        int byAccount = released.size();
+        for (Map.Entry<String, String> shadow : shadowing.entrySet()) {
+            if (released.contains(shadow.getKey())
+                    || !writtenOnlyByTheConfiguration(store, shadow.getValue())) {
+                continue;
+            }
+            store.get(shadow.getValue(), shadow.getKey())
+                    .filter(record -> record.origin() == null)
+                    .ifPresent(record -> {
+                        store.delete(shadow.getValue(), record.id(), record.versionId(),
+                                cloud.jengu.dbo.core.api.Handling.Authority.CONFIG_LANE);
+                        released.add(record.id());
+                    });
+        }
+        Set<String> stillShadowing = new LinkedHashSet<>();
+        shadowing.forEach((id, type) -> {
+            if (!released.contains(id)) {
+                stillShadowing.add(type);
+            }
+        });
+        int stillUnfound = 0;
+        for (ConfigFiles.Entry entry : unfound) {
+            if (stillShadowing.contains(entry.type())) {
+                stillUnfound++;
+            } else {
+                ledger.forget(entry);
+            }
+        }
+        return new Released(byAccount, released.size() - byAccount, stillUnfound);
+    }
+
+    private static boolean writtenOnlyByTheConfiguration(ObjectStore store, String type) {
+        try {
+            cloud.jengu.dbo.core.api.Handling handling = store.registrationOf(type).handling();
+            return handling.authority() == cloud.jengu.dbo.core.api.Handling.Authority.CONFIG_LANE
+                    && handling.mutability()
+                            == cloud.jengu.dbo.core.api.Handling.Mutability.READ_ONLY_HERE;
+        } catch (cloud.jengu.dbo.core.api.UnknownTypeException notHere) {
+            return false;
+        }
     }
 
     /**
