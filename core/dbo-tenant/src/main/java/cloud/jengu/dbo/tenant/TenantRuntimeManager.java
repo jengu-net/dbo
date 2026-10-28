@@ -5204,22 +5204,31 @@ public final class TenantRuntimeManager implements AutoCloseable {
     }
 
     private void releaseWhatItsConfigurationApplied(String code) {
-        java.util.Set<String> shadowing = new java.util.HashSet<>();
+        java.util.Map<String, String> shadowing = new java.util.LinkedHashMap<>();
         for (cloud.jengu.dbo.sync.ContentSyncEngine engine
                 : syncEngines.getOrDefault(code, java.util.List.of())) {
-            engine.shadowedEvents().stream()
-                    .map(cloud.jengu.dbo.sync.ContentSyncEngine.ShadowedEvent::shadowedBy)
-                    .filter(java.util.Objects::nonNull)
-                    .forEach(shadowing::add);
+            for (cloud.jengu.dbo.sync.ContentSyncEngine.ShadowedEvent parked
+                    : engine.shadowedEvents()) {
+                if (parked.shadowedBy() != null) {
+                    shadowing.put(parked.shadowedBy(), parked.typeName());
+                }
+            }
         }
         if (shadowing.isEmpty()) {
             return;
         }
-        int released = OwnersConfiguration.releasedAtAPlace(code, runStores.get(code),
-                shadowing::contains);
-        if (released > 0) {
+        OwnersConfiguration.Released released = OwnersConfiguration.releasedAtAPlace(code,
+                runStores.get(code), shadowing);
+        if (released.byAccount() + released.byHandling() > 0) {
             LOG.info("tenant {} released {} records its owner's configuration applied before "
-                    + "it was a place", code, released);
+                    + "it was a place: {} by its account, {} as types only the configuration "
+                    + "writes", code, released.byAccount() + released.byHandling(),
+                    released.byAccount(), released.byHandling());
+        }
+        if (released.unfound() > 0) {
+            LOG.warn("tenant {} keeps {} entries of its owner's configuration whose records "
+                    + "no lookup finds while records of their types still shadow the origin's",
+                    code, released.unfound());
         }
     }
 

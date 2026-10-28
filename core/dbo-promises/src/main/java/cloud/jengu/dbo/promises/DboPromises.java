@@ -2998,8 +2998,11 @@ public enum DboPromises implements Promise {
             "A place releases what its owner's configuration applied there before the place "
             + "left that configuration to its origin, wherever it holds back a version the "
             + "origin sends, once it is serving and with nobody asked; the stream's next pass "
-            + "applies the origin's version. Only what the configuration's own account says "
-            + "it applied is released: a record somebody at the place wrote still shadows."),
+            + "applies the origin's version. What is released is what the configuration's "
+            + "own account says it applied, and, with or without that account, a record of a "
+            + "type only the configuration may write: a record somebody at the place wrote "
+            + "still shadows. An entry of the account whose record no lookup finds is kept, "
+            + "and said, while a record of its type still shadows, never forgotten quietly."),
     SYNC_A_PLACE_LEAVES_ITS_OWNERS_CONFIGURATION_TO_ITS_ORIGIN(
             "A place does not apply its owner's configuration from the repository its "
             + "declaration names: that repository is its origin's, and applying it is the "
