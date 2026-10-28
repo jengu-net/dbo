@@ -1769,15 +1769,35 @@ public final class Runs {
     }
 
     /**
-     * The open items of a run, every one of them.
+     * How many items one pass closes at most, whether for being a second item
+     * of a reference or for not being found again.
      *
-     * <p>Walked a page at a time and asked by status, not selected whole. A
-     * selection stops at its limit, and a pass that saw a hundred of its open
-     * items raised the rest again as new on every round; a sweep keeps every
-     * item it ever closed, so reading them all to find the open ones grows
-     * with its history rather than with what is wrong now.
+     * <p>Each close is a version, its history and an outbox row, all under the
+     * stream's lock. A store that holds millions of items raised again drains
+     * over many rounds this way, and every round stays short.
+     */
+    static final int CLOSES_PER_PASS = 1000;
+
+    /**
+     * The open items of a run, every one of them, held at once.
+     *
+     * <p>For a reader that wants the list. A pass walks them instead and holds
+     * one per reference, because a sweep that raised one reference millions of
+     * times holds millions of open items.
      */
     public List<Run> openItems(Run parent) {
+        try (java.util.stream.Stream<Run> open = openItemsWalked(parent)) {
+            return open.toList();
+        }
+    }
+
+    /**
+     * The open items of a run, a page at a time and asked by status. A
+     * selection stops at its limit, and a sweep keeps every item it ever
+     * closed, so reading them all to find the open ones grows with its history
+     * rather than with what is wrong now.
+     */
+    private java.util.stream.Stream<Run> openItemsWalked(Run parent) {
         return cloud.jengu.dbo.core.api.Answered.pagedBy(store::page,
                         Criteria.of(WorkModel.TYPE)
                                 .eq("parent", EnvelopeValue.of(parent.key()))
@@ -1785,8 +1805,7 @@ public final class Runs {
                                         .map(status -> EnvelopeValue.of(status.wire()))
                                         .toList()))
                 .map(Run::of)
-                .filter(Run::open)
-                .toList();
+                .filter(Run::open);
     }
 
     /**
@@ -1796,22 +1815,41 @@ public final class Runs {
      * <p>What this pass finds wrong stays open; what it does not find again is
      * closed by the pass itself. So a person fixes the world and the next round
      * closes their card — nobody clicks resolved on a fault that is still live.
+     *
+     * <p><b>One item per reference, and a bounded number of closes.</b> The
+     * sweep's open items are walked, not held: the first for each reference is
+     * kept and a second one closed as it is met, so memory grows with what is
+     * wrong and never with how often it was raised. Once the pass has closed
+     * {@link #CLOSES_PER_PASS} the walk stops, and a pass whose walk stopped
+     * cannot tell a reference it has not met from one nobody raised: it raises
+     * nothing new and closes nothing for not being found, and leaves both to
+     * the first pass whose walk is whole.
      */
     public final class Pass {
 
         private final Run sweep;
         private final Map<String, Run> before = new LinkedHashMap<>();
-        /** Open items naming a reference another open item already names. */
-        private final List<Run> duplicates = new ArrayList<>();
         private final Set<String> seen = new java.util.HashSet<>();
         private final Map<String, Long> counts = new LinkedHashMap<>();
+        private int closes = CLOSES_PER_PASS;
+        private boolean whole = true;
 
         private Pass(Run sweep) {
             this.sweep = sweep;
-            for (Run item : openItems(sweep)) {
-                if (item.item() != null
-                        && before.putIfAbsent(item.item().reference(), item) != null) {
-                    duplicates.add(item);
+            try (java.util.stream.Stream<Run> open = openItemsWalked(sweep)) {
+                java.util.Iterator<Run> walk = open.iterator();
+                while (walk.hasNext()) {
+                    Run item = walk.next();
+                    if (item.item() == null
+                            || before.putIfAbsent(item.item().reference(), item) == null) {
+                        continue;
+                    }
+                    if (closes == 0) {
+                        whole = false;
+                        break;
+                    }
+                    completed(item);
+                    closes--;
                 }
             }
         }
@@ -1826,7 +1864,10 @@ public final class Runs {
             seen.add(reference);
             Run existing = before.get(reference);
             if (existing == null) {
-                Runs.this.item(sweep, reference, failure, message);
+                // Perhaps open already, further on than the walk went.
+                if (whole) {
+                    Runs.this.item(sweep, reference, failure, message);
+                }
             } else {
                 Standing now = Standing.forItem(failure);
                 if (existing.status() != now.status()
@@ -1849,20 +1890,25 @@ public final class Runs {
          * for a person while any of its items does.
          */
         public Run done() {
-            before.forEach((reference, item) -> {
-                if (!seen.contains(reference)) {
-                    completed(item);
+            if (whole) {
+                for (Map.Entry<String, Run> held : before.entrySet()) {
+                    if (closes == 0) {
+                        break;
+                    }
+                    if (!seen.contains(held.getKey())) {
+                        completed(held.getValue());
+                        closes--;
+                    }
                 }
-            });
-            // One reference is one item. A store that raised a reference again
-            // while it was still open keeps the first and is mended here.
-            duplicates.forEach(Runs.this::completed);
+            }
             Run current = byKey(sweep.key()).orElse(sweep);
             if (!counts.isEmpty()) {
                 current = tally(current, counts);
             }
-            boolean anybodyWaiting = openItems(current).stream()
-                    .anyMatch(Run::needsAPerson);
+            // Asked, not walked: one is enough to say so.
+            boolean anybodyWaiting = !store.select(Awaits.PERSON.narrowing(
+                    Criteria.of(WorkModel.TYPE)
+                            .eq("parent", EnvelopeValue.of(current.key()))).limit(1)).isEmpty();
             // Converged when nothing is left for a person. A sweep is never
             // "finished" — it is either agreeing with the world or not.
             return anybodyWaiting
