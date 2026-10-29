@@ -542,6 +542,7 @@ public enum DboStories implements Story {
                     DboPromises.SYNC_A_PERSON_LETS_A_LOCAL_OVERRIDE_GO,
                     DboPromises.SYNC_LETTING_AN_OVERRIDE_GO_SAYS_WHAT_IT_WAS_FOR,
                     DboPromises.PROC_A_LANE_IS_ATTACHED_WHILE_THE_APPLICATION_RUNS,
+                    DboPromises.PROC_A_HOST_STOPPING_WITHDRAWS_WHILE_ITS_LANES_STILL_CARRY,
                     // And the second place: the other bound, deliberately different.
                     DboPromises.PROC_THE_LANE_HAS_TWO_BOUNDS,
                     DboPromises.PROC_WORK_DRIVEN_ARRIVAL_AND_EXPIRY,

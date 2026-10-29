@@ -211,9 +211,31 @@ public final class StepRunner implements AutoCloseable {
     private void detaching(Attached attached) {
         lanes.remove(attached);
         attached.stop();
-        services.keySet().forEach(step -> attached.lane.withdraw(declared(attached.lane, step)));
+        int left = 0;
+        for (String step : services.keySet()) {
+            if (left > 0) {
+                left++;
+                continue;
+            }
+            Declarations.Declared declared = declared(attached.lane, step);
+            try {
+                attached.lane.withdraw(declared);
+            } catch (RuntimeException unreachable) {
+                // The far side is gone or going, which on the way down is
+                // ordinary. Asking again for each remaining step would wait on
+                // the same absence once per step, and a host stopping must not.
+                left++;
+            }
+        }
         attached.stopListening();
-        LOG.info("lane detached: tenant={}", attached.lane.tenant());
+        if (left == 0) {
+            LOG.info("lane detached: tenant={}", attached.lane.tenant());
+        } else {
+            // Left standing at the far side as declared and not answering,
+            // which resolution doubts once work waits on it.
+            LOG.info("lane detached: tenant={}, withdrawals not delivered={}",
+                    attached.lane.tenant(), left);
+        }
     }
 
     private Attached find(Lane lane) {

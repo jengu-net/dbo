@@ -32,7 +32,7 @@ core:dbo-rest                core:dbo-core core:dbo-fhir-common
 core:dbo-runner              core:dbo-core core:dbo-promises core:dbo-telemetry core:dbo-work
 core:dbo-scim                core:dbo-auth core:dbo-core core:dbo-pdi
 core:dbo-step-probe          core:dbo-runner
-core:dbo-stream              core:dbo-core core:dbo-runner core:dbo-work
+core:dbo-stream              core:dbo-core core:dbo-promises core:dbo-runner core:dbo-work
 core:dbo-subscriptions       core:dbo-core core:dbo-work
 core:dbo-sync                core:dbo-core core:dbo-work
 core:dbo-telemetry-otlp      core:dbo-telemetry
