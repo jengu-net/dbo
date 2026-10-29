@@ -3397,6 +3397,7 @@ cloud.jengu.dbo.promises.DboPromises                                   TEN_A_DOO
 cloud.jengu.dbo.promises.DboPromises                                   TEN_A_FEED_SAYS_WHAT_CHANGED_NOT_WHAT_IT_SAYS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_A_LISTENER_HEARS_OF_EVERY_TENANT_PAST_ITS_POINT:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_A_PARTNER_MANAGES_TENANTS:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   TEN_A_PUSH_TO_THE_APPLIED_BRANCH_IS_CHECKED_AND_APPLIED:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_A_REDECLARATION_IS_NOTICED:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_A_REFUSED_DECLARATION_IS_SAID_ONCE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_A_SLOW_BRING_UP_HOLDS_UP_ONLY_ITSELF:cloud.jengu.dbo.promises.DboPromises

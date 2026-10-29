@@ -1634,7 +1634,11 @@ public final class TenantRuntimeManager implements AutoCloseable {
                     sharedServer.createContext(repositoryPath,
                             new ConfigurationRepositoryHandler(tenant.authority(),
                                     tenantDataSources.get(code), code,
-                                    () -> owners.containsKey(code)));
+                                    () -> owners.get(code),
+                                    () -> runtime(code).map(TenantRuntime::spec)
+                                            .map(TenantSpec::configuration)
+                                            .map(TenantSpec.Configuration::ref)
+                                            .orElse(null)));
                     return null;
                 });
 

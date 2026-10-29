@@ -173,9 +173,19 @@ is decided apart from who may push their own. Nothing is anonymous, only
 branches are kept, and a push that is refused moves nothing.
 
 Every JSON file outside a hidden directory is one record, and its
-`resourceType` says which. The declared ref is applied when the tenant comes
-up, once something has been pushed. A client holding the `configuration` scope
-applies any ref at the tenant's door:
+`resourceType` says which. A push to the branch the declaration applies is
+previewed at the pushed commit before the branch moves. Where the commit would
+not apply, the push is refused with what refused it, so a commit that cannot
+apply never lands on that branch. A push that lands is applied, and git prints
+what the apply came to and each card it raised:
+
+```text
+remote: applied main at 3f2a…: read 2, applied 2, unchanged 0, skipped 0, withdrawn 0
+```
+
+The branch is not deleted while the tenant applies it. The declared ref is
+also applied when the tenant comes up, once something has been pushed. A
+client holding the `configuration` scope applies any ref at the tenant's door:
 
 ```http
 POST /t/clinic/configuration

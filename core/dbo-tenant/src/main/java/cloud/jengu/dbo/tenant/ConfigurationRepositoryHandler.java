@@ -11,6 +11,8 @@ import org.eclipse.jgit.transport.ReceivePack;
 import org.eclipse.jgit.transport.RefAdvertiser;
 import org.eclipse.jgit.transport.UploadPack;
 
+import cloud.jengu.dbo.sync.ConfigApplication;
+
 import javax.sql.DataSource;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -39,6 +41,14 @@ import java.util.zip.GZIPInputStream;
  * repository itself, where a push could change it.
  *
  * <p>Only branches are kept. A tag or any other ref is refused by name.
+ *
+ * <p><b>The branch the tenant applies is checked before it moves.</b> A push
+ * to it is previewed at the pushed commit, as asking for a preview would, and
+ * refused with what refused it where the commit would not apply, so a commit
+ * that cannot apply is never on the branch. Once it lands it is applied, as one
+ * recorded run under whoever pushed, and what the apply came to is told back
+ * to the pusher on the push itself. The branch is not deleted while the tenant
+ * applies it.
  */
 final class ConfigurationRepositoryHandler implements HttpHandler {
 
@@ -60,18 +70,23 @@ final class ConfigurationRepositoryHandler implements HttpHandler {
     private final TenantAuthority authority;
     private final DataSource ds;
     private final String code;
-    private final java.util.function.BooleanSupplier kept;
+    private final java.util.function.Supplier<ConfigurationHandler.Owners> owners;
+    private final java.util.function.Supplier<String> declared;
 
     /**
-     * @param kept whether the tenant takes its owner's configuration now; a
-     *             tenant that does not has no repository to serve
+     * @param owners   the tenant's apply of its owner's configuration, or null
+     *                 while the tenant does not take one, when it has no
+     *                 repository to serve
+     * @param declared the ref the tenant's declaration applies
      */
     ConfigurationRepositoryHandler(TenantAuthority authority, DataSource ds, String code,
-            java.util.function.BooleanSupplier kept) {
+            java.util.function.Supplier<ConfigurationHandler.Owners> owners,
+            java.util.function.Supplier<String> declared) {
         this.authority = authority;
         this.ds = ds;
         this.code = code;
-        this.kept = kept;
+        this.owners = owners;
+        this.declared = declared;
     }
 
     @Override
@@ -105,7 +120,8 @@ final class ConfigurationRepositoryHandler implements HttpHandler {
                 plain(exchange, 403, "only git's smart HTTP is served here");
                 return;
             }
-            if (!kept.getAsBoolean()) {
+            ConfigurationHandler.Owners applying = owners.get();
+            if (applying == null) {
                 plain(exchange, 404, code + " does not take its owner's configuration from a "
                         + "repository; its declaration says so with a configuration block");
                 return;
@@ -130,7 +146,8 @@ final class ConfigurationRepositoryHandler implements HttpHandler {
                 if (UPLOAD.equals(service)) {
                     upload(exchange, repository, advertising);
                 } else {
-                    receive(exchange, repository, advertising, scopes);
+                    receive(exchange, repository, advertising, scopes, applying,
+                            asking.get().clientId());
                 }
             }
         } catch (RuntimeException failed) {
@@ -167,16 +184,33 @@ final class ConfigurationRepositoryHandler implements HttpHandler {
     }
 
     private void receive(HttpExchange exchange, StoredRepository repository,
-            boolean advertising, List<String> scopes) throws IOException {
+            boolean advertising, List<String> scopes, ConfigurationHandler.Owners applying,
+            String by) throws IOException {
         ReceivePack receive = new ReceivePack(repository);
         receive.setBiDirectionalPipe(false);
         receive.setCheckReceivedObjects(true);
         receive.setMaxPackSizeLimit(LARGEST_PUSH);
+        String applied = appliedBranch(repository);
         receive.setPreReceiveHook((pack, commands) -> {
             for (ReceiveCommand command : commands) {
                 String refused = refused(command.getRefName(), scopes);
+                if (refused == null && command.getRefName().equals(applied)) {
+                    refused = command.getType() == ReceiveCommand.Type.DELETE
+                            ? code + " applies " + shortName(applied) + ", which is not "
+                                    + "deleted while it does"
+                            : wouldNotApply(applying, command, by);
+                }
                 if (refused != null) {
                     command.setResult(ReceiveCommand.Result.REJECTED_OTHER_REASON, refused);
+                }
+            }
+        });
+        receive.setPostReceiveHook((pack, commands) -> {
+            for (ReceiveCommand command : commands) {
+                if (command.getRefName().equals(applied)
+                        && command.getResult() == ReceiveCommand.Result.OK
+                        && command.getType() != ReceiveCommand.Type.DELETE) {
+                    said(pack, applying, shortName(applied), by);
                 }
             }
         });
@@ -195,6 +229,64 @@ final class ConfigurationRepositoryHandler implements HttpHandler {
         exchange.sendResponseHeaders(200, 0);
         try (InputStream in = body(exchange); OutputStream out = exchange.getResponseBody()) {
             receive.receive(in, out, null);
+        }
+    }
+
+    /**
+     * The branch the tenant applies, as a ref: the one its declaration names,
+     * or the one HEAD names where it names HEAD; null where it names a tag or
+     * a commit, which no push moves.
+     */
+    private String appliedBranch(StoredRepository repository) throws IOException {
+        String ref = declared.get();
+        if (ref == null || Constants.HEAD.equals(ref)) {
+            org.eclipse.jgit.lib.Ref head = repository.exactRef(Constants.HEAD);
+            return head != null && head.isSymbolic() ? head.getTarget().getName() : null;
+        }
+        if (ref.startsWith(Constants.R_REFS)) {
+            return ref.startsWith(Constants.R_HEADS) ? ref : null;
+        }
+        if (org.eclipse.jgit.lib.ObjectId.isId(ref)
+                || repository.exactRef(Constants.R_TAGS + ref) != null) {
+            return null;
+        }
+        return Constants.R_HEADS + ref;
+    }
+
+    private static String shortName(String ref) {
+        return ref.substring(Constants.R_HEADS.length());
+    }
+
+    /** Why the commit pushed would not apply, as the preview says it, or null where it would. */
+    private static String wouldNotApply(ConfigurationHandler.Owners applying,
+            ReceiveCommand command, String by) {
+        try {
+            applying.apply(command.getNewId().name(), by, true);
+            return null;
+        } catch (IllegalArgumentException unreadable) {
+            return "would not apply: " + unreadable.getMessage();
+        }
+    }
+
+    /** The branch applied, and what that came to told back to whoever pushed. */
+    private void said(org.eclipse.jgit.transport.ReceivePack pack,
+            ConfigurationHandler.Owners applying, String branch, String by) {
+        try {
+            OwnersConfiguration.Applied applied = applying.apply(branch, by, false);
+            ConfigApplication.Outcome outcome = applied.outcome();
+            pack.sendMessage("applied " + branch + " at " + applied.commit().id() + ": read "
+                    + outcome.read() + ", applied " + outcome.applied() + ", unchanged "
+                    + outcome.unchanged() + ", skipped " + outcome.skipped() + ", withdrawn "
+                    + outcome.withdrawn());
+            for (ConfigApplication.Card card : outcome.cards()) {
+                pack.sendMessage("card " + card.declaration() + ": " + card.reason());
+            }
+        } catch (RuntimeException failed) {
+            // Landed and not applied: the branch moved, so the next apply
+            // that is asked for, or the tenant's next start, tries it again.
+            pack.sendMessage("not applied: " + failed.getMessage());
+            org.slf4j.LoggerFactory.getLogger(ConfigurationRepositoryHandler.class).warn(
+                    "a push landed and was not applied: tenant={}", code, failed);
         }
     }
 

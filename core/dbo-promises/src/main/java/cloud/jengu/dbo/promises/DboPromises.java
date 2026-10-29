@@ -3027,6 +3027,13 @@ public enum DboPromises implements Promise {
             + "client granted that branch, so who may push the branch the tenant applies is "
             + "apart from who may push their own. Nothing is anonymous, only branches are kept, "
             + "and a push refused moves nothing."),
+    TEN_A_PUSH_TO_THE_APPLIED_BRANCH_IS_CHECKED_AND_APPLIED("A push to the branch a tenant "
+            + "applies is previewed at the pushed commit before the branch moves, and refused "
+            + "with what refused it where the commit would not apply, so a commit that cannot "
+            + "apply is never on that branch. A push that lands is applied once, as one run "
+            + "naming the ref, the commit, its author and message, and the client that pushed, "
+            + "and the pusher is told on the push what the apply came to and each card it "
+            + "raised. The branch is not deleted while the tenant applies it."),
     SYNC_A_PERSON_LETS_A_LOCAL_OVERRIDE_GO(
             "At a place, a person holding the configuration scope lets local records go that "
             + "stand in front of the origin's versions: one, several, or every one of a type "
