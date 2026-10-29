@@ -175,6 +175,7 @@ public final class MaintenanceHandler implements HttpHandler {
                 case "reshape" -> reshape(exchange);
                 case "reshape/claim" -> reshapeClaim(exchange);
                 case "reshape/apply" -> reshapeApply(exchange);
+                case "work-feed/drop" -> dropWorkFeedReader(exchange);
                 default -> fail(exchange, 404, "not_found", "no such maintenance operation");
             }
         } catch (IllegalArgumentException refused) {
@@ -192,6 +193,36 @@ public final class MaintenanceHandler implements HttpHandler {
         } finally {
             exchange.close();
         }
+    }
+
+    /**
+     * Drops a reader of the work feed that is gone for good, so the feed lets
+     * go of what it never read.
+     *
+     * <p>The feed is pruned only past its slowest reader, so one that stopped
+     * holds everything after it. The tenant cannot tell stopped from away; the
+     * operator who decommissioned it can, and the hourly round names it.
+     */
+    private void dropWorkFeedReader(HttpExchange exchange) throws IOException {
+        Object read = cloud.jengu.dbo.core.wire.RecordWire.read(new String(
+                exchange.getRequestBody().readAllBytes(), java.nio.charset.StandardCharsets.UTF_8));
+        if (!(read instanceof java.util.Map<?, ?> asked)
+                || !(asked.get("reader") instanceof String reader)) {
+            fail(exchange, 400, "invalid_request", "name the reader: {\"reader\": \"...\"}");
+            return;
+        }
+        boolean dropped = new cloud.jengu.dbo.postgres.PgChangeFeed(dataSource,
+                cloud.jengu.dbo.work.WorkModel.DOMAIN).dropConsumer(reader);
+        if (!dropped) {
+            fail(exchange, 404, "not_found", "no reader of the work feed is called '"
+                    + reader + "'; a replication lane is not dropped here");
+            return;
+        }
+        byte[] body = cloud.jengu.dbo.core.wire.RecordWire.write(java.util.Map.of(
+                "dropped", reader)).getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        exchange.getResponseHeaders().set("Content-Type", "application/json");
+        exchange.sendResponseHeaders(200, body.length);
+        exchange.getResponseBody().write(body);
     }
 
     private void archive(HttpExchange exchange) throws IOException {
