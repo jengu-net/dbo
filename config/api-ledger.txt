@@ -2498,6 +2498,10 @@ cloud.jengu.dbo.maintenance.ArchiveVerification                        verify(by
 cloud.jengu.dbo.maintenance.ArchiveVerification                        verifyStreaming(InputStream,cloud.jengu.dbo.maintenance.ArchiveAttestation,byte[],byte[]):String
 cloud.jengu.dbo.maintenance.ArchiveVerification.ArchiveRefusedException class
 cloud.jengu.dbo.maintenance.ArchiveVerification.ArchiveRefusedException new(String)
+cloud.jengu.dbo.maintenance.ConfigRepositoryTables                     SCHEMA:String
+cloud.jengu.dbo.maintenance.ConfigRepositoryTables                     TABLES:List
+cloud.jengu.dbo.maintenance.ConfigRepositoryTables                     class
+cloud.jengu.dbo.maintenance.ConfigRepositoryTables                     ensure(Connection):void
 cloud.jengu.dbo.maintenance.Copying                                    HERE:cloud.jengu.dbo.maintenance.Copying
 cloud.jengu.dbo.maintenance.Copying                                    in(Connection,String,InputStream):long
 cloud.jengu.dbo.maintenance.Copying                                    interface

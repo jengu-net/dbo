@@ -3019,7 +3019,8 @@ public enum DboPromises implements Promise {
             + "configuration repository is kept in the tenant's own database, in a schema of "
             + "its own: its packs in chunks read where they are asked for, and its refs as rows "
             + "a writer moves only from the value it read. Read back, every object is the one "
-            + "written, byte for byte."),
+            + "written, byte for byte, and the tenant's backup carries it, so a tenant restored "
+            + "holds its repository as it was."),
     TEN_A_TENANTS_CONFIGURATION_REPOSITORY_IS_SERVED_UNDER_ITS_AUTHORITY("A tenant that "
             + "takes its owner's configuration serves its repository over git's smart HTTP at "
             + "its own address: cloned and fetched by a client its authority issued that may "

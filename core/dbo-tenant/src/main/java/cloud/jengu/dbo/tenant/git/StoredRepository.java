@@ -10,7 +10,6 @@ import javax.sql.DataSource;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.sql.Statement;
 
 /**
  * A tenant's configuration repository, kept in the tenant's own database.
@@ -33,7 +32,7 @@ import java.sql.Statement;
 public final class StoredRepository extends DfsRepository {
 
     /** The schema the repository is kept in, inside the tenant's database. */
-    public static final String SCHEMA = "config_git";
+    public static final String SCHEMA = cloud.jengu.dbo.maintenance.ConfigRepositoryTables.SCHEMA;
 
     /**
      * The size of a stored piece of a file, and the block git reads in: one
@@ -129,43 +128,8 @@ public final class StoredRepository extends DfsRepository {
     }
 
     private static void ensureSchema(DataSource ds) throws IOException {
-        try (Connection c = ds.getConnection(); Statement s = c.createStatement()) {
-            s.execute("CREATE SCHEMA IF NOT EXISTS " + SCHEMA);
-            s.execute("""
-                    CREATE TABLE IF NOT EXISTS %s.pack (
-                      name text PRIMARY KEY,
-                      source text NOT NULL,
-                      last_modified bigint NOT NULL,
-                      object_count bigint NOT NULL,
-                      delta_count bigint NOT NULL,
-                      index_version int NOT NULL,
-                      min_update_index bigint NOT NULL,
-                      max_update_index bigint NOT NULL
-                    )""".formatted(SCHEMA));
-            s.execute("""
-                    CREATE TABLE IF NOT EXISTS %s.file (
-                      pack text NOT NULL,
-                      ext text NOT NULL,
-                      size bigint NOT NULL,
-                      PRIMARY KEY (pack, ext)
-                    )""".formatted(SCHEMA));
-            s.execute("""
-                    CREATE TABLE IF NOT EXISTS %s.chunk (
-                      pack text NOT NULL,
-                      ext text NOT NULL,
-                      n int NOT NULL,
-                      bytes bytea NOT NULL,
-                      PRIMARY KEY (pack, ext, n)
-                    )""".formatted(SCHEMA));
-            s.execute("""
-                    CREATE TABLE IF NOT EXISTS %s.ref (
-                      name text PRIMARY KEY,
-                      target text,
-                      symbolic text,
-                      peeled text,
-                      is_peeled boolean NOT NULL DEFAULT false,
-                      CHECK ((target IS NULL) <> (symbolic IS NULL))
-                    )""".formatted(SCHEMA));
+        try (Connection c = ds.getConnection()) {
+            cloud.jengu.dbo.maintenance.ConfigRepositoryTables.ensure(c);
         } catch (SQLException e) {
             throw new IOException("the configuration repository's tables could not be made", e);
         }

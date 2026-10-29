@@ -439,6 +439,10 @@ public final class TenantImport {
                 if (dumps.keySet().stream().anyMatch(t -> t.startsWith("pdi."))) {
                     ensurePdiTables(c);
                 }
+                if (dumps.keySet().stream().anyMatch(t -> t.startsWith(
+                        ConfigRepositoryTables.SCHEMA + "."))) {
+                    ConfigRepositoryTables.ensure(c);
+                }
                 // A target that has never had a projection applied has no
                 // marker table, and the load truncates before it copies
                 if (dumps.containsKey("state.projection_marker")) {
@@ -616,6 +620,13 @@ public final class TenantImport {
         if (archiveName.equals("pdi.person") || archiveName.equals("pdi.identifier")
                 || archiveName.equals("pdi.shred_ledger")) {
             return archiveName;
+        }
+        // The tenant's configuration repository: its own schema, its tables
+        // written down, so an archive still names no table it does not own.
+        for (String repositoryTable : ConfigRepositoryTables.TABLES) {
+            if (archiveName.equals(ConfigRepositoryTables.SCHEMA + "." + repositoryTable)) {
+                return archiveName;
+            }
         }
         // Terminology is tenant-scoped rather than domain-scoped: one vocabulary
         // serves every domain in the tenant, so it carries no domain prefix.
