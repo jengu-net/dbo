@@ -3338,6 +3338,7 @@ cloud.jengu.dbo.promises.DboPromises                                   SRCH_THE_
 cloud.jengu.dbo.promises.DboPromises                                   SRCH_TIER1_PARITY:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SRCH_TYPED_ORDERING:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_ANY_TYPE:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   SYNC_A_PERSON_LETS_A_LOCAL_OVERRIDE_GO:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_A_PLACE_COMES_UP_FROM_ITS_ORIGIN:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_A_PLACE_HANDS_ITS_TRAIL_TO_ITS_TENANT:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_A_PLACE_HANDS_ITS_WORK_TO_ITS_TENANT:cloud.jengu.dbo.promises.DboPromises
@@ -4346,6 +4347,7 @@ cloud.jengu.dbo.sync.ContentSyncEngine                                 STEP:Stri
 cloud.jengu.dbo.sync.ContentSyncEngine                                 class
 cloud.jengu.dbo.sync.ContentSyncEngine                                 deadLetters():List
 cloud.jengu.dbo.sync.ContentSyncEngine                                 degraded():boolean
+cloud.jengu.dbo.sync.ContentSyncEngine                                 dependency():String
 cloud.jengu.dbo.sync.ContentSyncEngine                                 holdsAnything():boolean
 cloud.jengu.dbo.sync.ContentSyncEngine                                 isStreamedOrigin(String):boolean
 cloud.jengu.dbo.sync.ContentSyncEngine                                 name():String

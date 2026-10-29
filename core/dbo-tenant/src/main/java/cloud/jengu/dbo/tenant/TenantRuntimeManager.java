@@ -1031,6 +1031,8 @@ public final class TenantRuntimeManager implements AutoCloseable {
             new ConcurrentHashMap<>();
     /** Where each tenant's ask-to-apply door is mounted, for the same teardown. */
     private final Map<String, String> configurationContexts = new ConcurrentHashMap<>();
+    /** Where each tenant's door for letting overrides go is mounted, likewise. */
+    private final Map<String, String> overridesContexts = new ConcurrentHashMap<>();
     /** Each serving tenant's working key, as its bring-up resolved it. */
     private final Map<String, WorkingKeys.Held> workingKeys = new ConcurrentHashMap<>();
 
@@ -1595,6 +1597,24 @@ public final class TenantRuntimeManager implements AutoCloseable {
                                 return vault.personOf(reference.substring(0, slash),
                                         reference.substring(slash + 1));
                             }));
+                    return null;
+                });
+
+        // Letting a local override go at a place. Selected on the authority
+        // alone and refusing per request away from a place, because a tenant
+        // becomes a place after its surfaces are up, so being one is not a
+        // fact it has published by then.
+        activities.register(TenantPoint.SURFACES,
+                "(" + TenantFacts.HAS_AUTHORITY + "=true)",
+                "the door that lets a local override go",
+                tenant -> {
+                    String code = tenant.facts().code();
+                    String overridesPath = "/t/" + code + "/overrides";
+                    overridesContexts.put(code, overridesPath);
+                    sharedServer.createContext(overridesPath, new OverridesHandler(
+                            tenant.authority(), tenant.runtime().engine(),
+                            () -> places.contains(code),
+                            () -> syncEngines.getOrDefault(code, java.util.List.of())));
                     return null;
                 });
 
@@ -6678,6 +6698,10 @@ public final class TenantRuntimeManager implements AutoCloseable {
         String configurationPath = configurationContexts.remove(code);
         if (configurationPath != null) {
             sharedServer.removeContext(configurationPath);
+        }
+        String overridesPath = overridesContexts.remove(code);
+        if (overridesPath != null) {
+            sharedServer.removeContext(overridesPath);
         }
         String blobPath = blobContexts.remove(code);
         if (blobPath != null) {

@@ -224,6 +224,11 @@ public final class ContentSyncEngine {
         return consumer();
     }
 
+    /** The dependency this stream reads, as the tenant declares it. */
+    public String dependency() {
+        return dependency.name();
+    }
+
     // -------------------------------------------------------------- syncing
 
     /** The selection this stream last read under, so a widening is noticed. */

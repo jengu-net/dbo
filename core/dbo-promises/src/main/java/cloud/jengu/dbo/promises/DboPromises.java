@@ -3003,6 +3003,15 @@ public enum DboPromises implements Promise {
             + "type only the configuration may write: a record somebody at the place wrote "
             + "still shadows. An entry of the account whose record no lookup finds is kept, "
             + "and said, while a record of its type still shadows, never forgotten quietly."),
+    SYNC_A_PERSON_LETS_A_LOCAL_OVERRIDE_GO(
+            "At a place, a person holding the configuration scope lets local records go that "
+            + "stand in front of the origin's versions: one, several, or every one of a type "
+            + "under a dependency. What would go is listed first, each record by type and what "
+            + "it is called beside what the origin holds instead. Letting go deletes each "
+            + "through the tenant's store under the person who asked, recorded and disciplined "
+            + "as any delete is, and the origin's parked versions apply. A record the person did "
+            + "not name keeps shadowing. Refused away from a place, and for a record that holds "
+            + "nothing back."),
     SYNC_A_PLACE_LEAVES_ITS_OWNERS_CONFIGURATION_TO_ITS_ORIGIN(
             "A place does not apply its owner's configuration from the repository its "
             + "declaration names: that repository is its origin's, and applying it is the "
