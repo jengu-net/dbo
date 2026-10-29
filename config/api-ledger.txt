@@ -1148,6 +1148,7 @@ cloud.jengu.dbo.core.api.VersionConflictException                      class
 cloud.jengu.dbo.core.api.VersionConflictException                      new(String,String,long,long)
 cloud.jengu.dbo.core.api.feed.ChangeFeed                               ack(String,String):void
 cloud.jengu.dbo.core.api.feed.ChangeFeed                               cursorOf(String):String
+cloud.jengu.dbo.core.api.feed.ChangeFeed                               headCursor():String
 cloud.jengu.dbo.core.api.feed.ChangeFeed                               interface
 cloud.jengu.dbo.core.api.feed.ChangeFeed                               lag(String):long
 cloud.jengu.dbo.core.api.feed.ChangeFeed                               read(String,int):cloud.jengu.dbo.core.api.feed.FeedChunk
@@ -3195,6 +3196,7 @@ cloud.jengu.dbo.promises.DboPromises                                   PROC_A_NO
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_PARTICIPANTS_KEYS_ARE_KEPT_IN_A_DOCUMENTED_FORM:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_PARTICIPANTS_KEYS_ARE_READ_AS_STANDARD_TOOLS_MAKE_THEM:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_PARTICIPANT_ASKS_FOR_WORK_IT_NEED_NOT_PERFORM:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   PROC_A_PARTICIPANT_BEHIND_ITS_FEED_STILL_FINDS_ITS_WORK:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_PARTICIPANT_OFFERS_ITS_KEY_AT_ENROLMENT:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_PARTICIPANT_REFUSES_ITS_RUN_WITH_A_REASON:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_PARTICIPANT_SIGNS_BEFORE_IT_IS_ADMITTED:cloud.jengu.dbo.promises.DboPromises
@@ -5853,6 +5855,7 @@ cloud.jengu.dbo.work.Runs                                              pipeline(
 cloud.jengu.dbo.work.Runs                                              pipeline(String,String,String,List):cloud.jengu.dbo.work.Run
 cloud.jengu.dbo.work.Runs                                              produced(cloud.jengu.dbo.work.Run,String,String,long):cloud.jengu.dbo.work.Run
 cloud.jengu.dbo.work.Runs                                              reached(cloud.jengu.dbo.work.Run,String,String,String):cloud.jengu.dbo.work.Run
+cloud.jengu.dbo.work.Runs                                              readyFor(String,int):List
 cloud.jengu.dbo.work.Runs                                              refused(cloud.jengu.dbo.work.Run,String):cloud.jengu.dbo.work.Run
 cloud.jengu.dbo.work.Runs                                              refused(cloud.jengu.dbo.work.Run,cloud.jengu.dbo.work.Executor,String):cloud.jengu.dbo.work.Run
 cloud.jengu.dbo.work.Runs                                              rejected(cloud.jengu.dbo.work.Run,String,String):cloud.jengu.dbo.work.Run
