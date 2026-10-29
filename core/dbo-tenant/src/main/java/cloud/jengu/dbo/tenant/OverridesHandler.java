@@ -7,6 +7,8 @@ import cloud.jengu.dbo.core.api.ObjectStore;
 import cloud.jengu.dbo.core.api.StoredObject;
 import cloud.jengu.dbo.core.wire.RecordWire;
 import cloud.jengu.dbo.sync.ContentSyncEngine;
+import cloud.jengu.dbo.work.Run;
+import cloud.jengu.dbo.work.Runs;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 
@@ -42,6 +44,14 @@ import java.util.function.Supplier;
  * delete, and the tenant's write discipline applies as it does to any other.
  * Then the place's streams reconcile, which applies what they had parked.
  *
+ * <p><b>Inside a run.</b> The deletes are one run's, so each version they
+ * leave names it, as every other change at a place names the run that made
+ * it. The caller says what the run is for — the piece of work and the order a
+ * service at the place acts on — and the run carries it as its correlation,
+ * echoed and never read: a token from the origin is not one this authority
+ * can name a person from, and what the order was for is what the caller does
+ * have. Without it the run is still there, so no delete belongs to nothing.
+ *
  * <p>Behind the configuration scope: what a place holds in front of its origin
  * is part of what the tenant is there, not a record somebody may write into.
  */
@@ -49,10 +59,17 @@ final class OverridesHandler implements HttpHandler {
 
     static final String SCOPE = cloud.jengu.dbo.auth.Scopes.CONFIGURATION;
 
+    /** The process a letting go is recorded under. */
+    static final String PROCESS = "dbo.place.overrides";
+
+    /** Its one step. */
+    static final String STEP = "let-go";
+
     private final TenantAuthority authority;
     private final ObjectStore store;
     private final BooleanSupplier place;
     private final Supplier<List<ContentSyncEngine>> streams;
+    private final Runs runs;
 
     /**
      * @param store   the tenant's store as a caller writes to it, so what is let
@@ -60,13 +77,15 @@ final class OverridesHandler implements HttpHandler {
      * @param place   whether the tenant is a place now; asked per request, since
      *                a tenant becomes one after its door is mounted
      * @param streams the streams the place reads its origin through
+     * @param runs    the tenant's runs, which each letting go opens one of
      */
     OverridesHandler(TenantAuthority authority, ObjectStore store, BooleanSupplier place,
-            Supplier<List<ContentSyncEngine>> streams) {
+            Supplier<List<ContentSyncEngine>> streams, Runs runs) {
         this.authority = authority;
         this.store = store;
         this.place = place;
         this.streams = streams;
+        this.runs = runs;
     }
 
     /** One local record standing in front of the origin's version, and that version. */
@@ -109,6 +128,13 @@ final class OverridesHandler implements HttpHandler {
                         + "\"PlanDefinition\", \"records\": [\"<id>\"]}");
                 return;
             }
+            Object forWhat = asked.get("for");
+            if (forWhat != null && !(forWhat instanceof String) && !(forWhat instanceof Map<?, ?>)) {
+                fail(exchange, 400, "invalid_request", "'for' says what the letting go is for, "
+                        + "as text or as an object: {\"for\": {\"work\": \"Task/...\", "
+                        + "\"order\": \"...\"}}");
+                return;
+            }
             Set<String> named = new LinkedHashSet<>();
             if (asked.get("records") instanceof List<?> records) {
                 records.forEach(one -> named.add(String.valueOf(one)));
@@ -131,13 +157,16 @@ final class OverridesHandler implements HttpHandler {
             Map<String, Object> answer = new LinkedHashMap<>();
             answer.put("dependency", dependency);
             answer.put("type", type);
+            if (forWhat != null) {
+                answer.put("for", forWhat);
+            }
             if ("preview".equals(verb)) {
                 answer.put("preview", true);
                 answer.put("overrides", said(overrides));
                 respond(exchange, 200, answer);
                 return;
             }
-            letGo(exchange, asking, overrides, answer);
+            letGo(exchange, asking, overrides, forWhat, answer);
         } catch (RuntimeException failed) {
             fail(exchange, 500, "let_go_failed", "letting the overrides go did not complete");
         } finally {
@@ -146,10 +175,16 @@ final class OverridesHandler implements HttpHandler {
     }
 
     private void letGo(HttpExchange exchange, TenantAuthority.AuthContext asking,
-            List<Shadow> overrides, Map<String, Object> answer) throws IOException {
+            List<Shadow> overrides, Object forWhat, Map<String, Object> answer)
+            throws IOException {
         List<Shadow> released = new ArrayList<>();
         List<Object> kept = new ArrayList<>();
         Set<ContentSyncEngine> touched = new LinkedHashSet<>();
+        Run run = runs.pipeline(PROCESS, STEP);
+        if (forWhat != null) {
+            run = runs.correlated(run, forWhat instanceof String text ? text
+                    : RecordWire.write(forWhat));
+        }
         String outer = cloud.jengu.dbo.core.api.Caller.current();
         String outerFor = cloud.jengu.dbo.core.api.Caller.onBehalfOf();
         if (asking.fhirUser() == null) {
@@ -157,7 +192,8 @@ final class OverridesHandler implements HttpHandler {
         } else {
             cloud.jengu.dbo.core.api.Caller.setChain(asking.clientId(), asking.fhirUser());
         }
-        try {
+        try (cloud.jengu.dbo.core.api.Caller.InRun named =
+                cloud.jengu.dbo.core.api.Caller.underRun(run.key())) {
             for (Shadow one : overrides) {
                 try {
                     store.delete(one.type(), one.local().id(), one.local().versionId());
@@ -175,10 +211,15 @@ final class OverridesHandler implements HttpHandler {
                 cloud.jengu.dbo.core.api.Caller.setChain(outer, outerFor);
             }
         }
+        // Closed before the streams reconcile: what they apply is theirs, and
+        // is written for their own runs.
+        run = runs.closed(runs.tally(run, Map.of("released", (long) released.size(),
+                "kept", (long) kept.size())));
         long applied = 0;
         for (ContentSyncEngine stream : touched) {
             applied += stream.reconcile();
         }
+        answer.put("run", Map.of("key", run.key(), "reference", "Task/" + run.id()));
         answer.put("released", said(released));
         answer.put("applied", applied);
         // Always present, empty included, so a caller does not learn to read it

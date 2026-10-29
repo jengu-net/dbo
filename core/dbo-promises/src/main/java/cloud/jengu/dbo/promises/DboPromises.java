@@ -3012,6 +3012,13 @@ public enum DboPromises implements Promise {
             + "as any delete is, and the origin's parked versions apply. A record the person did "
             + "not name keeps shadowing. Refused away from a place, and for a record that holds "
             + "nothing back."),
+    SYNC_LETTING_AN_OVERRIDE_GO_SAYS_WHAT_IT_WAS_FOR(
+            "Letting local overrides go at a place is one run, and each delete names it as every "
+            + "other change at a place names the run that made it. The caller may say what it "
+            + "is for, a piece of work and the order it acts on, and the run carries that as "
+            + "given; without it the run is still there. The answer names the run, so from a "
+            + "deleted record's trail a reader reaches the run, and from the run what it was "
+            + "for."),
     SYNC_A_PLACE_LEAVES_ITS_OWNERS_CONFIGURATION_TO_ITS_ORIGIN(
             "A place does not apply its owner's configuration from the repository its "
             + "declaration names: that repository is its origin's, and applying it is the "
