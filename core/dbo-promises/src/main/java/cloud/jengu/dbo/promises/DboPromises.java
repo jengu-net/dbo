@@ -3015,6 +3015,31 @@ public enum DboPromises implements Promise {
             + "type only the configuration may write: a record somebody at the place wrote "
             + "still shadows. An entry of the account whose record no lookup finds is kept, "
             + "and said, while a record of its type still shadows, never forgotten quietly."),
+    TEN_A_TENANTS_CONFIGURATION_REPOSITORY_IS_KEPT_IN_ITS_DATABASE("A tenant's "
+            + "configuration repository is kept in the tenant's own database, in a schema of "
+            + "its own: its packs in chunks read where they are asked for, and its refs as rows "
+            + "a writer moves only from the value it read. Read back, every object is the one "
+            + "written, byte for byte, and the tenant's backup carries it, so a tenant restored "
+            + "holds its repository as it was."),
+    TEN_A_TENANTS_CONFIGURATION_REPOSITORY_IS_SERVED_UNDER_ITS_AUTHORITY("A tenant that "
+            + "takes its owner's configuration serves its repository over git's smart HTTP at "
+            + "its own address: cloned and fetched by a client its authority issued that may "
+            + "read it, signed in with that client's secret, and pushed branch by branch by a "
+            + "client granted that branch, so who may push the branch the tenant applies is "
+            + "apart from who may push their own. Nothing is anonymous, only branches are kept, "
+            + "and a push refused moves nothing."),
+    TEN_A_PUSH_TO_THE_APPLIED_BRANCH_IS_CHECKED_AND_APPLIED("A push to the branch a tenant "
+            + "applies is previewed at the pushed commit before the branch moves, and refused "
+            + "with what refused it where the commit would not apply, so a commit that cannot "
+            + "apply is never on that branch. A push that lands is applied once, as one run "
+            + "naming the ref, the commit, its author and message, and the client that pushed, "
+            + "and the pusher is told on the push what the apply came to and each card it "
+            + "raised. The branch is not deleted while the tenant applies it."),
+    TEN_A_TENANTS_CONFIGURATION_REPOSITORY_IS_KEPT_TIDY_BY_A_RUN("A tenant's configuration "
+            + "repository that pushes have left in more than a few packs is compacted on the "
+            + "store's hourly round, as a run of its own sweep counting the packs before and "
+            + "after: what a branch reaches is kept as it was, and what nothing reaches is kept "
+            + "a day before it goes."),
     SYNC_A_PERSON_LETS_A_LOCAL_OVERRIDE_GO(
             "At a place, a person holding the configuration scope lets local records go that "
             + "stand in front of the origin's versions: one, several, or every one of a type "

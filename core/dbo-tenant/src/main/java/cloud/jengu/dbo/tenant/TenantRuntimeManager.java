@@ -1033,6 +1033,8 @@ public final class TenantRuntimeManager implements AutoCloseable {
     private final Map<String, String> configurationContexts = new ConcurrentHashMap<>();
     /** Where each tenant's door for letting overrides go is mounted, likewise. */
     private final Map<String, String> overridesContexts = new ConcurrentHashMap<>();
+    /** Where each tenant's configuration repository is served, likewise. */
+    private final Map<String, String> repositoryContexts = new ConcurrentHashMap<>();
     /** Each serving tenant's working key, as its bring-up resolved it. */
     private final Map<String, WorkingKeys.Held> workingKeys = new ConcurrentHashMap<>();
 
@@ -1616,6 +1618,27 @@ public final class TenantRuntimeManager implements AutoCloseable {
                             () -> places.contains(code),
                             () -> syncEngines.getOrDefault(code, java.util.List.of()),
                             new cloud.jengu.dbo.work.Runs(runStores.get(code))));
+                    return null;
+                });
+
+        // The tenant's configuration repository, over git. Selected on the
+        // authority and answering per request only where the tenant takes its
+        // owner's configuration, which a hot change can declare later.
+        activities.register(TenantPoint.SURFACES,
+                "(" + TenantFacts.HAS_AUTHORITY + "=true)",
+                "the door to the tenant's configuration repository",
+                tenant -> {
+                    String code = tenant.facts().code();
+                    String repositoryPath = "/t/" + code + "/configuration.git";
+                    repositoryContexts.put(code, repositoryPath);
+                    sharedServer.createContext(repositoryPath,
+                            new ConfigurationRepositoryHandler(tenant.authority(),
+                                    tenantDataSources.get(code), code,
+                                    () -> owners.get(code),
+                                    () -> runtime(code).map(TenantRuntime::spec)
+                                            .map(TenantSpec::configuration)
+                                            .map(TenantSpec.Configuration::ref)
+                                            .orElse(null)));
                     return null;
                 });
 
@@ -4235,8 +4258,8 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 ? configuration.key() : "tenant-" + spec.code();
         String sopsYaml = null;
         if (configuration != null) {
-            try (ConfigRepository repository = ConfigRepository.open(
-                    Path.of(configuration.git()))) {
+            try (ConfigRepository repository = ConfigRepository.stored(
+                    tenantDataSources.get(spec.code()), spec.code())) {
                 sopsYaml = repository.read(repository.resolve(configuration.ref()), ".sops.yaml")
                         .map(bytes -> new String(bytes, java.nio.charset.StandardCharsets.UTF_8))
                         .orElse(null);
@@ -4792,6 +4815,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
                     TenantSpec.Configuration configuration = now.spec().configuration() != null
                             ? now.spec().configuration() : spec.configuration();
                     return new OwnersConfiguration(spec.code(), configuration,
+                            () -> ConfigRepository.stored(db.dataSource(), spec.code()),
                             runStores.get(spec.code()),
                             new cloud.jengu.dbo.work.Runs(runStores.get(spec.code())),
                             new cloud.jengu.dbo.sync.ConfigApplication(
@@ -5209,10 +5233,16 @@ public final class TenantRuntimeManager implements AutoCloseable {
         // The owner's configuration, at the ref the declaration names, once
         // the tenant serves. Owed rather than thrown: a repository not there
         // yet is said once and read again on the next pass.
+        // Nothing to apply until something is pushed: a tenant starts with an
+        // empty repository, and its first configuration arrives by a push.
         ConfigurationHandler.Owners owned = owners.get(spec.code());
         if (owned != null) {
-            owe(spec.code(), "applying its owner's configuration",
-                    () -> owned.apply(null, "dbo", false));
+            owe(spec.code(), "applying its owner's configuration", () -> {
+                if (ConfigRepository.holds(db.dataSource(), spec.code(),
+                        spec.configuration().ref())) {
+                    owned.apply(null, "dbo", false);
+                }
+            });
         }
         // And at a place, what that configuration applied here before the
         // place left it to its origin, wherever it holds the origin's version
@@ -6037,6 +6067,59 @@ public final class TenantRuntimeManager implements AutoCloseable {
         return removed;
     }
 
+    /** The process a configuration repository's housekeeping is recorded under. */
+    static final String HOUSEKEEPING = "dbo.config.housekeeping";
+
+    /** Packs a configuration repository may be kept in before a round compacts them. */
+    private static final int PACKS_BEFORE_COLLECTING = 4;
+
+    /**
+     * Each tenant's configuration repository compacted, where pushes have left
+     * it in more than a few packs, as a run of its own sweep.
+     *
+     * <p>Every push is a pack, and every read walks them all. Recorded as any
+     * of the store's sweeps is, with what it found and what it left, so a
+     * repository that keeps growing is a tally somebody can read.
+     *
+     * @return the packs let go across all tenants
+     */
+    public int collectConfigurationGarbage() {
+        int collected = 0;
+        for (String code : java.util.List.copyOf(owners.keySet())) {
+            javax.sql.DataSource ds = tenantDataSources.get(code);
+            ObjectStore runStore = runStores.get(code);
+            if (ds == null || runStore == null
+                    || !cloud.jengu.dbo.tenant.git.StoredRepository.exists(ds)) {
+                continue;
+            }
+            try (cloud.jengu.dbo.tenant.git.StoredRepository repository =
+                         cloud.jengu.dbo.tenant.git.StoredRepository.open(ds, code)) {
+                if (repository.packs() <= PACKS_BEFORE_COLLECTING) {
+                    continue;
+                }
+                cloud.jengu.dbo.work.Runs runs = new cloud.jengu.dbo.work.Runs(runStore);
+                cloud.jengu.dbo.work.Runs.Pass pass = runs.pass(runs.sweep(HOUSEKEEPING,
+                        "collect", code, java.util.List.of()));
+                try {
+                    cloud.jengu.dbo.tenant.git.StoredRepository.Collected done =
+                            repository.collectGarbage();
+                    collected += done.packsBefore() - done.packsAfter();
+                    pass.counted("packsBefore", done.packsBefore())
+                            .counted("packsAfter", done.packsAfter());
+                } catch (java.io.IOException | RuntimeException failed) {
+                    pass.item("repository", cloud.jengu.dbo.work.Failure.of(failed),
+                            String.valueOf(failed.getMessage()));
+                }
+                pass.done();
+            } catch (java.io.IOException | RuntimeException e) {
+                // one tenant's failure never stops the others, and the next
+                // round tries again from the same state
+                LOG.warn("could not keep the configuration repository for tenant {}", code, e);
+            }
+        }
+        return collected;
+    }
+
     /** The most work-feed events one tenant lets go of in one round. */
     private static final long PRUNED_PER_ROUND = 1_000_000;
 
@@ -6761,6 +6844,10 @@ public final class TenantRuntimeManager implements AutoCloseable {
         if (overridesPath != null) {
             sharedServer.removeContext(overridesPath);
         }
+        String repositoryPath = repositoryContexts.remove(code);
+        if (repositoryPath != null) {
+            sharedServer.removeContext(repositoryPath);
+        }
         String blobPath = blobContexts.remove(code);
         if (blobPath != null) {
             sharedServer.removeContext(blobPath);
@@ -7231,6 +7318,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
                         // Rotation without this is not rotation.
                         pruneSigningKeys();
                         pruneWorkFeeds();
+                        collectConfigurationGarbage();
                     }
                     Thread.sleep(pollMillis);
                 } catch (InterruptedException e) {

@@ -252,6 +252,8 @@ cloud.jengu.dbo.auth.LoginPage.Provider                                toString(
 cloud.jengu.dbo.auth.Pseudonyms                                        class
 cloud.jengu.dbo.auth.Pseudonyms                                        record(cloud.jengu.dbo.core.api.ObjectStore,cloud.jengu.dbo.core.api.identity.PseudonymResolution):String
 cloud.jengu.dbo.auth.Scopes                                            CONFIGURATION:String
+cloud.jengu.dbo.auth.Scopes                                            CONFIG_PUSH:String
+cloud.jengu.dbo.auth.Scopes                                            CONFIG_READ:String
 cloud.jengu.dbo.auth.Scopes                                            ERASURE:String
 cloud.jengu.dbo.auth.Scopes                                            FLEET:String
 cloud.jengu.dbo.auth.Scopes                                            IDENTITY:String
@@ -2496,6 +2498,10 @@ cloud.jengu.dbo.maintenance.ArchiveVerification                        verify(by
 cloud.jengu.dbo.maintenance.ArchiveVerification                        verifyStreaming(InputStream,cloud.jengu.dbo.maintenance.ArchiveAttestation,byte[],byte[]):String
 cloud.jengu.dbo.maintenance.ArchiveVerification.ArchiveRefusedException class
 cloud.jengu.dbo.maintenance.ArchiveVerification.ArchiveRefusedException new(String)
+cloud.jengu.dbo.maintenance.ConfigRepositoryTables                     SCHEMA:String
+cloud.jengu.dbo.maintenance.ConfigRepositoryTables                     TABLES:List
+cloud.jengu.dbo.maintenance.ConfigRepositoryTables                     class
+cloud.jengu.dbo.maintenance.ConfigRepositoryTables                     ensure(Connection):void
 cloud.jengu.dbo.maintenance.Copying                                    HERE:cloud.jengu.dbo.maintenance.Copying
 cloud.jengu.dbo.maintenance.Copying                                    in(Connection,String,InputStream):long
 cloud.jengu.dbo.maintenance.Copying                                    interface
@@ -3395,12 +3401,16 @@ cloud.jengu.dbo.promises.DboPromises                                   TEN_A_DOO
 cloud.jengu.dbo.promises.DboPromises                                   TEN_A_FEED_SAYS_WHAT_CHANGED_NOT_WHAT_IT_SAYS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_A_LISTENER_HEARS_OF_EVERY_TENANT_PAST_ITS_POINT:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_A_PARTNER_MANAGES_TENANTS:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   TEN_A_PUSH_TO_THE_APPLIED_BRANCH_IS_CHECKED_AND_APPLIED:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_A_REDECLARATION_IS_NOTICED:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_A_REFUSED_DECLARATION_IS_SAID_ONCE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_A_SLOW_BRING_UP_HOLDS_UP_ONLY_ITSELF:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_A_STALE_INDEX_IS_REMEMBERED_UNTIL_IT_IS_REBUILT:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_A_STEP_REACHES_A_FAMILY_OF_SECRETS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_A_STEP_REACHES_THE_SECRETS_IT_DECLARES:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   TEN_A_TENANTS_CONFIGURATION_REPOSITORY_IS_KEPT_IN_ITS_DATABASE:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   TEN_A_TENANTS_CONFIGURATION_REPOSITORY_IS_KEPT_TIDY_BY_A_RUN:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   TEN_A_TENANTS_CONFIGURATION_REPOSITORY_IS_SERVED_UNDER_ITS_AUTHORITY:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_A_TENANTS_WORKING_KEY_IS_HELD_WHERE_ITS_DECLARATION_SAYS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_A_TENANT_COMES_UP_FROM_THE_FACE_IMAGE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_A_TENANT_SAYS_WHAT_KIND_IT_IS:cloud.jengu.dbo.promises.DboPromises
@@ -4814,6 +4824,7 @@ cloud.jengu.dbo.tenant.TenantRuntimeManager                            carrying(
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            class
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            close():void
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            codes():Set
+cloud.jengu.dbo.tenant.TenantRuntimeManager                            collectConfigurationGarbage():int
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            contacts():cloud.jengu.dbo.work.Contacts
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            contacts(cloud.jengu.dbo.work.Contacts):void
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            databaseOf(String):Optional
@@ -4992,11 +5003,9 @@ cloud.jengu.dbo.tenant.TenantSpec.Answer                               reveals()
 cloud.jengu.dbo.tenant.TenantSpec.Answer                               toString():String
 cloud.jengu.dbo.tenant.TenantSpec.Answer                               types():Set
 cloud.jengu.dbo.tenant.TenantSpec.Configuration                        equals(Object):boolean
-cloud.jengu.dbo.tenant.TenantSpec.Configuration                        git():String
 cloud.jengu.dbo.tenant.TenantSpec.Configuration                        hashCode():int
 cloud.jengu.dbo.tenant.TenantSpec.Configuration                        key():String
 cloud.jengu.dbo.tenant.TenantSpec.Configuration                        new(String,String)
-cloud.jengu.dbo.tenant.TenantSpec.Configuration                        new(String,String,String)
 cloud.jengu.dbo.tenant.TenantSpec.Configuration                        record
 cloud.jengu.dbo.tenant.TenantSpec.Configuration                        ref():String
 cloud.jengu.dbo.tenant.TenantSpec.Configuration                        toString():String

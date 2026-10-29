@@ -60,10 +60,10 @@ class APlaceLetsGoOfWhatItsOldConfigurationAppliedIT {
     /** Another the site wrote its own of, and keeps when the first is let go. */
     private static final String KEPT = "urn:dbo-test:map:kept";
 
-    /** The clinic, its owner's configuration named where the node applying it keeps it. */
+    /** The clinic, taking its owner's configuration from the repository the node keeps. */
     private static final String DECLARATION = """
             {"code":"%s","face":"r4","audit":{"level":"writes"},
-             "configuration":{"git":"%%s","ref":"main"},
+             "configuration":{"ref":"main"},
              "dependencies":[{"name":"%s","face":true,
                               "types":["StructureDefinition","SearchParameter","ValueSet","CodeSystem",
                                        "StructureMap"]}],
@@ -117,9 +117,9 @@ class APlaceLetsGoOfWhatItsOldConfigurationAppliedIT {
                 new LocalDatabasePerTenantProvisioner(admin, user, password, "cloud"));
         Files.writeString(cloudDir.resolve(ROOT + ".json"), ROOT_DECLARATION);
         UntilServed.scan(cloud, ROOT);
-        Files.writeString(cloudDir.resolve(CLINIC + ".json"),
-                DECLARATION.formatted(cloudConfiguration));
+        Files.writeString(cloudDir.resolve(CLINIC + ".json"), DECLARATION);
         UntilServed.scan(cloud, CLINIC);
+        pushedAndApplied(cloud, cloudConfiguration);
         assertTrue(mapNamed(cloud, CATALOGUE).contains("AsTheOriginPublishesIt"),
                 "the cloud's clinic did not apply its owner's configuration: "
                         + cloud.troubles().get(CLINIC));
@@ -133,9 +133,9 @@ class APlaceLetsGoOfWhatItsOldConfigurationAppliedIT {
         TenantRuntimeManager before = node(siteDir, siteDatabases);
         Files.writeString(siteDir.resolve(ROOT + ".json"), ROOT_DECLARATION);
         UntilServed.scan(before, ROOT);
-        Files.writeString(siteDir.resolve(CLINIC + ".json"),
-                DECLARATION.formatted(siteConfiguration));
+        Files.writeString(siteDir.resolve(CLINIC + ".json"), DECLARATION);
         UntilServed.scan(before, CLINIC);
+        pushedAndApplied(before, siteConfiguration);
         assertTrue(mapNamed(before, CATALOGUE).contains("AsTheSiteAppliedIt"),
                 "the site's clinic did not apply its owner's configuration: "
                         + before.troubles().get(CLINIC));
@@ -154,8 +154,7 @@ class APlaceLetsGoOfWhatItsOldConfigurationAppliedIT {
         site.readsItsOriginThrough(CLINIC, new TenantRuntimeManager.OriginFeeds(
                 lane.placeFeed(Place.RECORDS), lane.placeFeed(Place.DEFINITIONS),
                 lane.definitionsWithoutTheFace()));
-        Files.writeString(siteDir.resolve(CLINIC + ".json"),
-                DECLARATION.formatted(cloudConfiguration));
+        Files.writeString(siteDir.resolve(CLINIC + ".json"), DECLARATION);
         UntilServed.scan(site, ROOT);
         UntilServed.scan(site, CLINIC);
         site.scanOnce();
@@ -309,6 +308,37 @@ class APlaceLetsGoOfWhatItsOldConfigurationAppliedIT {
             }
         }
         throw new AssertionError("nothing holds back " + url);
+    }
+
+    /**
+     * The owner's repository pushed to the node's clinic and applied there, as
+     * an owner does: with git, then asking for the apply.
+     */
+    private static void pushedAndApplied(TenantRuntimeManager node, Path repository)
+            throws Exception {
+        node.authority(CLINIC).ensureClient("owner", "owner-secret",
+                List.of("configuration", "config/read", "config/push:*"));
+        try (Git git = Git.open(repository.toFile())) {
+            for (org.eclipse.jgit.transport.PushResult result : git.push()
+                    .setRemote(base(node) + "/configuration.git")
+                    .setRefSpecs(new org.eclipse.jgit.transport.RefSpec(
+                            "+refs/heads/main:refs/heads/main"))
+                    .setCredentialsProvider(new org.eclipse.jgit.transport
+                            .UsernamePasswordCredentialsProvider("owner", "owner-secret"))
+                    .call()) {
+                result.getRemoteUpdates().forEach(update -> assertEquals(
+                        org.eclipse.jgit.transport.RemoteRefUpdate.Status.OK,
+                        update.getStatus(), update.getMessage()));
+            }
+        }
+        HttpResponse<String> applied = http.send(HttpRequest.newBuilder(
+                        URI.create(base(node) + "/configuration"))
+                        .header("Authorization", "Bearer "
+                                + clientToken(node, "owner", "owner-secret"))
+                        .header("Content-Type", "application/json")
+                        .POST(HttpRequest.BodyPublishers.ofString("")).build(),
+                HttpResponse.BodyHandlers.ofString());
+        assertEquals(200, applied.statusCode(), applied.body());
     }
 
     /** A repository holding these files, committed once on main. */

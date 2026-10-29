@@ -817,6 +817,18 @@ public final class TenantExport {
                         copyOf(history, exclusions), history);
             }
 
+            // The tenant's configuration repository, where it keeps one: the
+            // store keeps it and nothing else does, so a backup without it
+            // restores a tenant without the configuration that made it.
+            for (String repositoryTable : ConfigRepositoryTables.TABLES) {
+                if (!tableExists(c, ConfigRepositoryTables.SCHEMA, repositoryTable)) {
+                    continue;
+                }
+                String qualified = ConfigRepositoryTables.SCHEMA + "." + repositoryTable;
+                dumpInto(copying, c, zip, "fidelity/" + qualified + ".csv",
+                        "COPY " + qualified + " TO STDOUT WITH (FORMAT csv)", qualified);
+            }
+
             // §14 vault (present only under PDI): wrapped keys, HMAC index,
             // shred ledger — ciphertext and key material only, blind to the
             // operator by construction; the identifying data itself rides

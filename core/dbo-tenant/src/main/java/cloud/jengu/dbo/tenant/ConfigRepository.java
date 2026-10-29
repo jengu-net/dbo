@@ -8,13 +8,10 @@ import org.eclipse.jgit.lib.ObjectReader;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.revwalk.RevWalk;
-import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
 import org.eclipse.jgit.treewalk.TreeWalk;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -27,8 +24,8 @@ import java.util.List;
  * deployment, and the only thing taken from it is the bytes of the files it
  * declares, as git holds them.
  *
- * <p>Read and never fetched: keeping the repository current is the
- * deployment's, and the store reaches no remote.
+ * <p>Kept by the store in the tenant's own database, and pushed to by the
+ * owner: nothing outside the store is reached to read it.
  */
 final class ConfigRepository implements AutoCloseable {
 
@@ -52,32 +49,38 @@ final class ConfigRepository implements AutoCloseable {
         this.repository = repository;
     }
 
+    /** A repository already open, which this closes when it is closed. */
+    static ConfigRepository of(Repository repository) {
+        return new ConfigRepository(repository);
+    }
+
     /**
-     * The repository at a path: a bare one, or a clone whose objects are
-     * beside its working tree, which is never read.
+     * The tenant's own, kept in its database.
      *
-     * @throws IllegalArgumentException when there is no repository there, or
-     *                                  it borrows objects from elsewhere
+     * @throws IllegalArgumentException when it cannot be opened
      */
-    static ConfigRepository open(Path path) {
-        Path gitDir = Files.isDirectory(path.resolve(".git")) ? path.resolve(".git") : path;
-        if (!Files.isDirectory(gitDir.resolve("objects"))) {
-            throw new IllegalArgumentException("no git repository at " + path);
-        }
-        // An alternates file makes a repository read objects from another
-        // directory, which may be anywhere the deployment can read — so a
-        // repository the owner wrote could name files the owner may not.
-        if (Files.exists(gitDir.resolve("objects/info/alternates"))) {
-            throw new IllegalArgumentException("the repository at " + path + " borrows "
-                    + "objects from elsewhere (objects/info/alternates), and is read only "
-                    + "from its own");
-        }
+    static ConfigRepository stored(javax.sql.DataSource ds, String code) {
         try {
-            return new ConfigRepository(new FileRepositoryBuilder().setGitDir(gitDir.toFile())
-                    .setMustExist(true).setup().build());
-        } catch (IOException | RuntimeException unreadable) {
-            throw new IllegalArgumentException("the repository at " + path
-                    + " cannot be read: " + unreadable.getMessage(), unreadable);
+            return new ConfigRepository(
+                    cloud.jengu.dbo.tenant.git.StoredRepository.open(ds, code));
+        } catch (IOException unreadable) {
+            throw new IllegalArgumentException("the tenant's configuration repository cannot "
+                    + "be opened: " + unreadable.getMessage(), unreadable);
+        }
+    }
+
+    /**
+     * Whether the tenant's repository holds a commit at this ref: false for a
+     * tenant nobody has pushed to, without making it a repository.
+     */
+    static boolean holds(javax.sql.DataSource ds, String code, String ref) {
+        if (!cloud.jengu.dbo.tenant.git.StoredRepository.exists(ds)) {
+            return false;
+        }
+        try (ConfigRepository repository = stored(ds, code)) {
+            return repository.repository.resolve(ref + "^{commit}") != null;
+        } catch (IOException | org.eclipse.jgit.errors.RevisionSyntaxException unreadable) {
+            return false;
         }
     }
 

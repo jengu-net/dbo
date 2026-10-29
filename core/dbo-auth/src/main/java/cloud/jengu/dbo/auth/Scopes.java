@@ -123,6 +123,26 @@ public final class Scopes {
      */
     public static final String PLACE = "place";
 
+    /**
+     * Reading the tenant's configuration repository: cloning and fetching it
+     * with git. Outside the SMART grammar like the others.
+     *
+     * <p><b>Apart from {@link #CONFIGURATION}.</b> That scope asks the store
+     * to apply; this one reads what the owner committed, which may hold
+     * secrets wrapped for the owner and the history of every change.
+     */
+    public static final String CONFIG_READ = "config/read";
+
+    /**
+     * Pushing one branch of the tenant's configuration repository, as
+     * {@code config/push:<branch>}, or every branch as {@code config/push:*}.
+     *
+     * <p>Per branch, because the branch the tenant applies is not every
+     * branch: who may push their own work is not who may change what the
+     * tenant is.
+     */
+    public static final String CONFIG_PUSH = "config/push:";
+
     private static final String WORK_STEP = WORK + "/";
     private static final String SUPERVISE_STEP = SUPERVISE + "/";
 
@@ -132,6 +152,8 @@ public final class Scopes {
                 || IDENTITY.equals(scope) || FLEET.equals(scope)
                 || SUPERVISE.equals(scope) || CONFIGURATION.equals(scope) || PLACE.equals(scope)
                 || isWorkStep(scope) || isSupervisedStep(scope)
+                || CONFIG_READ.equals(scope)
+                || (scope.startsWith(CONFIG_PUSH) && scope.length() > CONFIG_PUSH.length())
                 || SCOPE.matcher(scope).matches();
     }
 
