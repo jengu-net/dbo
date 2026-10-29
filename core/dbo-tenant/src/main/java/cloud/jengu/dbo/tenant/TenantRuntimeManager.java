@@ -1600,6 +1600,24 @@ public final class TenantRuntimeManager implements AutoCloseable {
                     return null;
                 });
 
+        // Letting a local override go at a place. Selected on the authority
+        // alone and refusing per request away from a place, because a tenant
+        // becomes a place after its surfaces are up, so being one is not a
+        // fact it has published by then.
+        activities.register(TenantPoint.SURFACES,
+                "(" + TenantFacts.HAS_AUTHORITY + "=true)",
+                "the door that lets a local override go",
+                tenant -> {
+                    String code = tenant.facts().code();
+                    String overridesPath = "/t/" + code + "/overrides";
+                    overridesContexts.put(code, overridesPath);
+                    sharedServer.createContext(overridesPath, new OverridesHandler(
+                            tenant.authority(), tenant.runtime().engine(),
+                            () -> places.contains(code),
+                            () -> syncEngines.getOrDefault(code, java.util.List.of())));
+                    return null;
+                });
+
         // Content held whole, over the wire. The store keeps it and an archive
         // carries it; without a door none of that is reachable from outside
         // this process, which is a capability built and unreachable rather
@@ -4843,13 +4861,6 @@ public final class TenantRuntimeManager implements AutoCloseable {
                     owners.get(spec.code())));
             configuring.secretsWriter((path, secrets) -> secretsWritten(spec, path, secrets));
             configurationContexts.put(spec.code(), configurationPath);
-            // Mounted on every tenant and refusing away from a place: a tenant
-            // becomes one after its doors are up.
-            String overridesPath = "/t/" + spec.code() + "/overrides";
-            sharedServer.createContext(overridesPath, new OverridesHandler(authority, engine,
-                    () -> places.contains(spec.code()),
-                    () -> syncEngines.getOrDefault(spec.code(), java.util.List.of())));
-            overridesContexts.put(spec.code(), overridesPath);
         }
         // The maintenance surface, when the tenant has an authority to guard
         // it: backups are system-plane, and a tenant with no authority has no
