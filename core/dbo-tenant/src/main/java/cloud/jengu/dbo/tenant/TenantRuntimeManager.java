@@ -1614,7 +1614,8 @@ public final class TenantRuntimeManager implements AutoCloseable {
                     sharedServer.createContext(overridesPath, new OverridesHandler(
                             tenant.authority(), tenant.runtime().engine(),
                             () -> places.contains(code),
-                            () -> syncEngines.getOrDefault(code, java.util.List.of())));
+                            () -> syncEngines.getOrDefault(code, java.util.List.of()),
+                            new cloud.jengu.dbo.work.Runs(runStores.get(code))));
                     return null;
                 });
 

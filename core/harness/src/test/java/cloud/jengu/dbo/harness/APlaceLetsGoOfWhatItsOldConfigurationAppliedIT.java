@@ -219,6 +219,64 @@ class APlaceLetsGoOfWhatItsOldConfigurationAppliedIT {
         assertEquals(200, trail.statusCode(), trail.body());
         assertTrue(trail.body().contains("keeper"),
                 "the trail does not name who let the override go: " + trail.body());
+        String run = ranIn(letGo.body(), "key");
+        assertTrue(trail.body().contains("\"value\":\"" + run + "\""),
+                "a delete nobody said the purpose of belongs to no run: " + trail.body());
+    }
+
+    @Test
+    @Order(3)
+    @DisplayName("letting an override go for a piece of work runs in one run, and from the "
+            + "deleted record's trail a reader reaches the run and what it was for")
+    @Proving(DboPromises.SYNC_LETTING_AN_OVERRIDE_GO_SAYS_WHAT_IT_WAS_FOR)
+    void lettingAnOverrideGoSaysWhatItWasFor() throws Exception {
+        String keeper = clientToken(site, "keeper", "keeper-secret");
+        ContentSyncEngine.ShadowedEvent kept = shadowOf(KEPT);
+        String dependency = site.streamsOf(CLINIC).stream()
+                .filter(stream -> stream.shadowedEvents().stream()
+                        .anyMatch(one -> one.objectId().equals(kept.objectId())))
+                .findFirst().orElseThrow().dependency();
+        String asked = """
+                {"dependency":"%s","type":"StructureMap","records":["%s"],
+                 "for":{"work":"Task/the-work-somebody-was-given","order":"order-7"}}"""
+                .formatted(dependency, kept.shadowedBy());
+
+        HttpResponse<String> preview = overrides(keeper, "/preview", asked);
+        assertEquals(200, preview.statusCode(), preview.body());
+        assertTrue(preview.body().contains("order-7"),
+                "the preview did not say what it was asked for: " + preview.body());
+        HttpResponse<String> letGo = overrides(keeper, "", asked);
+        assertEquals(200, letGo.statusCode(), letGo.body());
+        assertEquals(java.util.Set.of(), parked());
+
+        HttpResponse<String> trail = http.send(HttpRequest.newBuilder(
+                        URI.create(base(site) + "/fhir/AuditEvent?action=D&entity=StructureMap/"
+                                + kept.shadowedBy()))
+                        .header("Authorization", "Bearer " + writer(site)).GET().build(),
+                HttpResponse.BodyHandlers.ofString());
+        assertEquals(200, trail.statusCode(), trail.body());
+        String run = ranIn(letGo.body(), "key");
+        assertTrue(trail.body().contains("\"value\":\"" + run + "\""),
+                "the deleted record's trail does not reach the run: " + trail.body());
+        HttpResponse<String> task = http.send(HttpRequest.newBuilder(
+                        URI.create(base(site) + "/fhir/"
+                                + ranIn(letGo.body(), "reference")))
+                        .header("Authorization", "Bearer " + writer(site)).GET().build(),
+                HttpResponse.BodyHandlers.ofString());
+        assertEquals(200, task.statusCode(), task.body());
+        assertTrue(task.body().contains(run) && task.body().contains("urn:dbo:correlation")
+                        && task.body().contains("the-work-somebody-was-given")
+                        && task.body().contains("order-7"),
+                "the run does not say what it was for: " + task.body());
+    }
+
+    /** What the door's answer says of the run it let go in. */
+    private static String ranIn(String answer, String field) {
+        if (!(cloud.jengu.dbo.core.wire.RecordWire.read(answer) instanceof Map<?, ?> said)
+                || !(said.get("run") instanceof Map<?, ?> run) || run.get(field) == null) {
+            throw new AssertionError("the answer names no run: " + answer);
+        }
+        return String.valueOf(run.get(field));
     }
 
     private HttpResponse<String> overrides(String token, String verb, String body)

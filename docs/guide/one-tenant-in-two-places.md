@@ -86,7 +86,11 @@ that use it.
   each record and what the origin holds instead, and the same body to
   `POST /t/clinic/overrides` deletes them under that person and applies the
   origin's versions. Without `records` it is every one of that type under the
-  dependency. A record nobody named keeps shadowing.
+  dependency. A record nobody named keeps shadowing. Letting go is one run,
+  which each delete names, and the answer names it too. An optional `"for"`,
+  such as `{"work": "Task/...", "order": "..."}`, is what the run says it was
+  for, so a service acting on an order from the origin can be followed from
+  the record it deleted back to that order.
 
 The [joins table](../arc42-003-context/user-stories/us-dbo-two-places.md#joins)
 names the test behind each.
