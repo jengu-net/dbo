@@ -43,6 +43,14 @@ dependencies {
     // service in an existing container — so this bundle has an activator like
     // every other injectable one. compileOnly: outside OSGi it is never called.
     compileOnly("org.osgi:osgi.core:8.0.0")
+    testImplementation("org.osgi:osgi.core:8.0.0")
+    testImplementation("org.junit.jupiter:junit-jupiter:5.11.4")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+    testImplementation(project(":core:dbo-promises"))
+}
+
+tasks.test {
+    useJUnitPlatform()
 }
 
 tasks.jar {

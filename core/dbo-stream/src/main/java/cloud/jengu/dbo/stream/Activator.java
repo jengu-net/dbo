@@ -5,6 +5,7 @@ import cloud.jengu.dbo.work.Executor;
 import cloud.jengu.dbo.work.Scope;
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;
+import org.osgi.framework.ServiceRegistration;
 
 
 import java.security.KeyFactory;
@@ -82,6 +83,7 @@ public final class Activator implements BundleActivator {
     static final String SCOPE = "dbo.lane.scope";
 
     private final List<StreamLane> held = new ArrayList<>();
+    private final List<ServiceRegistration<?>> registered = new ArrayList<>();
     private AutoCloseable substrate;
 
     @Override
@@ -169,7 +171,7 @@ public final class Activator implements BundleActivator {
                 Hashtable<String, Object> properties = new Hashtable<>();
                 properties.put("dbo.tenant", code);
                 properties.put("dbo.lane.carrier", "stream");
-                context.registerService(Lane.class, lane, properties);
+                registered.add(context.registerService(Lane.class, lane, properties));
             }
         } catch (RuntimeException | Error failed) {
             // A lane that did not open leaves none behind it: half a host is
@@ -182,25 +184,46 @@ public final class Activator implements BundleActivator {
 
     @Override
     public void stop(BundleContext context) {
-        // The framework unregisters the services; what it cannot do is close
-        // the substrate connection each lane holds open.
-        for (StreamLane lane : held) {
+        letGo(registered, held);
+        if (substrate != null) {
+            try {
+                substrate.close();
+            } catch (Exception letGo) {
+                // Shutting down, as for the lanes.
+            }
+            substrate = null;
+        }
+    }
+
+    /**
+     * Each lane withdrawn from the registry, and then closed.
+     *
+     * <p>In that order because the framework stops a bundle before it
+     * unregisters what the bundle registered. A runner told a lane is gone
+     * withdraws what it declared on it, over the lane; left to the framework,
+     * that came after the lane's substrate connection was closed, every
+     * withdrawal failed, and the far side kept each declaration as declared
+     * and not answering.
+     */
+    static void letGo(List<ServiceRegistration<?>> registered,
+            List<? extends AutoCloseable> held) {
+        for (ServiceRegistration<?> registration : registered) {
+            try {
+                registration.unregister();
+            } catch (IllegalStateException already) {
+                // Unregistered already, by whoever stopped it first.
+            }
+        }
+        registered.clear();
+        for (AutoCloseable lane : held) {
             try {
                 lane.close();
-            } catch (RuntimeException letGo) {
+            } catch (Exception letGo) {
                 // Shutting down. A lane that will not close cannot stop the
                 // others from closing.
             }
         }
         held.clear();
-        if (substrate != null) {
-            try {
-                substrate.close();
-            } catch (Exception letGo) {
-                // As above.
-            }
-            substrate = null;
-        }
     }
 
     /**

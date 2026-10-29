@@ -582,6 +582,12 @@ public enum DboPromises implements Promise {
             + "itself, not by its tenant: two lanes to one tenant code, to the tenant in the "
             + "cloud and to a place of it on site, are both served, and letting one go "
             + "leaves the other's declarations and its work standing."),
+    PROC_A_HOST_STOPPING_WITHDRAWS_WHILE_ITS_LANES_STILL_CARRY("A host stopping lets each "
+            + "lane go while the lane can still carry, so what the runner declared on it is "
+            + "withdrawn at the far side rather than left there as declared and not answering. "
+            + "Where the far side is already gone, the runner asks once per lane, not once per "
+            + "step, says in its line for the lane how many withdrawals were not delivered, "
+            + "and the host goes on stopping without an error."),
     PROC_STEP_SERVICE_EMBEDDABLE("One embeddable runner registers step services and needs "
             + "only the participation lane — no orchestrator, no transport, no access to "
             + "the tenant's dbo — so the same bundle runs inside the platform's container, "
