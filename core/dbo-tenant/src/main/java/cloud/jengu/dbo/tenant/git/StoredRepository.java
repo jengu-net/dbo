@@ -81,9 +81,12 @@ public final class StoredRepository extends DfsRepository {
      */
     public static boolean exists(DataSource ds) {
         try (Connection c = ds.getConnection();
-             java.sql.ResultSet rs = c.createStatement().executeQuery(
-                     "SELECT to_regclass('" + SCHEMA + ".ref') IS NOT NULL")) {
-            return rs.next() && rs.getBoolean(1);
+             java.sql.PreparedStatement ps = c.prepareStatement(
+                     "SELECT to_regclass(?) IS NOT NULL")) {
+            ps.setString(1, SCHEMA + ".ref");
+            try (java.sql.ResultSet rs = ps.executeQuery()) {
+                return rs.next() && rs.getBoolean(1);
+            }
         } catch (SQLException e) {
             throw new IllegalStateException("whether the tenant keeps a configuration "
                     + "repository could not be asked", e);

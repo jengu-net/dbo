@@ -2,7 +2,7 @@ package cloud.jengu.dbo.maintenance;
 
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.PreparedStatement;
 import java.util.List;
 
 /**
@@ -29,9 +29,9 @@ public final class ConfigRepositoryTables {
 
     /** Makes the schema and its tables where they are not yet. */
     public static void ensure(Connection c) throws SQLException {
-        try (Statement s = c.createStatement()) {
-            s.execute("CREATE SCHEMA IF NOT EXISTS " + SCHEMA);
-            s.execute("""
+        for (String ddl : new String[] {
+                "CREATE SCHEMA IF NOT EXISTS " + SCHEMA,
+                """
                     CREATE TABLE IF NOT EXISTS %s.pack (
                       name text PRIMARY KEY,
                       source text NOT NULL,
@@ -41,23 +41,23 @@ public final class ConfigRepositoryTables {
                       index_version int NOT NULL,
                       min_update_index bigint NOT NULL,
                       max_update_index bigint NOT NULL
-                    )""".formatted(SCHEMA));
-            s.execute("""
+                    )""".formatted(SCHEMA),
+                """
                     CREATE TABLE IF NOT EXISTS %s.file (
                       pack text NOT NULL,
                       ext text NOT NULL,
                       size bigint NOT NULL,
                       PRIMARY KEY (pack, ext)
-                    )""".formatted(SCHEMA));
-            s.execute("""
+                    )""".formatted(SCHEMA),
+                """
                     CREATE TABLE IF NOT EXISTS %s.chunk (
                       pack text NOT NULL,
                       ext text NOT NULL,
                       n int NOT NULL,
                       bytes bytea NOT NULL,
                       PRIMARY KEY (pack, ext, n)
-                    )""".formatted(SCHEMA));
-            s.execute("""
+                    )""".formatted(SCHEMA),
+                """
                     CREATE TABLE IF NOT EXISTS %s.ref (
                       name text PRIMARY KEY,
                       target text,
@@ -65,7 +65,10 @@ public final class ConfigRepositoryTables {
                       peeled text,
                       is_peeled boolean NOT NULL DEFAULT false,
                       CHECK ((target IS NULL) <> (symbolic IS NULL))
-                    )""".formatted(SCHEMA));
+                    )""".formatted(SCHEMA)}) {
+            try (PreparedStatement ps = c.prepareStatement(ddl)) {
+                ps.execute();
+            }
         }
     }
 }
