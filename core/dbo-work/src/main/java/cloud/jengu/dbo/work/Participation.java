@@ -80,34 +80,57 @@ public final class Participation {
      * participant dies is the claim and its deadline, not the cursor — and a
      * cursor that only moved on completion would replay everything a slow
      * participant had already claimed.
+     *
+     * <p><b>Behind, it asks for its work instead.</b> The work feed is the
+     * store's own work as much as anybody's, and at a busy place it can be
+     * millions of events of it: a participant reading them fifty at a time
+     * reaches a run started now in days. So a read that comes back full asks
+     * for what is ready at its steps directly and is acked to the head, read
+     * first: whatever was committed before it is in the answer, and whatever
+     * after it the feed carries.
      */
     public List<Run> poll(int limit) {
         FeedChunk<FeedItem> chunk = feed.readFor(participant, limit);
         if (chunk.items().isEmpty()) {
             return List.of();
         }
-        List<Run> mine = new ArrayList<>();
         Instant now = Instant.now();
+        if (chunk.items().size() >= limit) {
+            String head = feed.headCursor();
+            if (head != null) {
+                List<Run> ready = new ArrayList<>();
+                for (String step : steps) {
+                    runs.readyFor(step, limit).stream()
+                            .filter(run -> mine(run, now))
+                            .forEach(ready::add);
+                }
+                feed.ack(participant, head);
+                return ready.stream().limit(limit).toList();
+            }
+        }
+        List<Run> mine = new ArrayList<>();
         for (FeedItem item : chunk.items()) {
             if (!WorkModel.TYPE.equals(item.typeName())) {
                 continue;
             }
-            runs.byId(item.objectId())
-                    .filter(run -> steps.contains(run.step()))
-                    .filter(run -> run.item() == null)
-                    // What automation may take, and nothing else: a run open
-                    // to people alone was offered here too, and the claim
-                    // that followed made it automation's.
-                    .filter(run -> run.forAutomation(now))
-                    // And only what is for this participant. Passed over for
-                    // good on this cursor, which is right: it never becomes
-                    // this participant's, and the one it names reads it on
-                    // its own cursor whenever it comes back.
-                    .filter(run -> run.forParticipant(client, identity.name()))
-                    .ifPresent(mine::add);
+            runs.byId(item.objectId()).filter(run -> mine(run, now)).ifPresent(mine::add);
         }
         feed.ack(participant, chunk.nextCursor());
         return List.copyOf(mine);
+    }
+
+    private boolean mine(Run run, Instant now) {
+        return steps.contains(run.step())
+                && run.item() == null
+                // What automation may take, and nothing else: a run open to
+                // people alone was offered here too, and the claim that
+                // followed made it automation's.
+                && run.forAutomation(now)
+                // And only what is for this participant. Passed over for good
+                // on this cursor, which is right: it never becomes this
+                // participant's, and the one it names reads it on its own
+                // cursor whenever it comes back.
+                && run.forParticipant(client, identity.name());
     }
 
     /**

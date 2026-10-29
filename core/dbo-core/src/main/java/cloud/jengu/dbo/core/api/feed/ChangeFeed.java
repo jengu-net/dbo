@@ -44,4 +44,17 @@ public interface ChangeFeed {
 
     /** Undelivered event count behind the head (REQ-DBO-FEED-NAMED-CONSUMERS observability). */
     long lag(String consumer);
+
+    /**
+     * Where this feed stands now, as a cursor a consumer can be acked to, or
+     * null where it cannot say: a feed that has delivered nothing, or one that
+     * does not know its own head.
+     *
+     * <p>Only for a consumer that has found by other means everything the
+     * events before it would have told it. Acking past events it never read is
+     * otherwise losing them.
+     */
+    default String headCursor() {
+        return null;
+    }
 }

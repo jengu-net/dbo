@@ -66,6 +66,31 @@ class AnIdleSweepAddsNothingToTheWorkFeedTest {
         assertEquals(List.of(), openItems(recovered), "the recovered upstream is still on the run");
     }
 
+    @Test
+    @DisplayName("a round that holds back the same hundreds of records as the last one writes "
+            + "nothing a participant has to read")
+    @Proving(DboPromises.PROC_A_PASS_THAT_CHANGES_NOTHING_WRITES_NOTHING)
+    void theSameParkedRecordsAreSilent() {
+        roundParked(300);
+        int settled = events();
+        for (int again = 0; again < 10; again++) {
+            roundParked(300);
+        }
+        assertEquals(settled, events(),
+                "rounds holding back the same records raised them again on the work feed");
+    }
+
+    /** One round of a stream holding back this many records behind local overrides. */
+    private Run roundParked(int parked) {
+        Run sweep = runs.sweep("dbo.sync.stream", "apply", "hogwarts", List.of("r5"));
+        Runs.Pass pass = runs.pass(sweep);
+        for (int i = 0; i < parked; i++) {
+            pass.item("PlanDefinition/" + i, Failure.RECORD, "a local override shadows");
+        }
+        return pass.counted("seen", 0).counted("applied", 0).counted("parked", parked)
+                .counted("undelivered", 0).done();
+    }
+
     /** One round of a stream, as ContentSyncEngine records it. */
     private Run round(long seen, boolean unreachable) {
         Run sweep = runs.sweep("dbo.sync.stream", "apply", "hogwarts", List.of("r5"));

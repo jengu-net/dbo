@@ -582,6 +582,12 @@ public enum DboPromises implements Promise {
             + "itself, not by its tenant: two lanes to one tenant code, to the tenant in the "
             + "cloud and to a place of it on site, are both served, and letting one go "
             + "leaves the other's declarations and its work standing."),
+    PROC_A_PARTICIPANT_BEHIND_ITS_FEED_STILL_FINDS_ITS_WORK("A participant finds the work "
+            + "ready for its steps however far its cursor is behind on the work feed, which "
+            + "carries the store's own work as much as anybody's: a poll that finds it behind "
+            + "asks for what is ready at its steps and moves its cursor to the head, so a run "
+            + "started behind millions of events is offered on the next poll, and what is "
+            + "started after it is read from the feed as before."),
     PROC_STEP_SERVICE_EMBEDDABLE("One embeddable runner registers step services and needs "
             + "only the participation lane — no orchestrator, no transport, no access to "
             + "the tenant's dbo — so the same bundle runs inside the platform's container, "
