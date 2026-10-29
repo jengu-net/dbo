@@ -3034,6 +3034,11 @@ public enum DboPromises implements Promise {
             + "naming the ref, the commit, its author and message, and the client that pushed, "
             + "and the pusher is told on the push what the apply came to and each card it "
             + "raised. The branch is not deleted while the tenant applies it."),
+    TEN_A_TENANTS_CONFIGURATION_REPOSITORY_IS_KEPT_TIDY_BY_A_RUN("A tenant's configuration "
+            + "repository that pushes have left in more than a few packs is compacted on the "
+            + "store's hourly round, as a run of its own sweep counting the packs before and "
+            + "after: what a branch reaches is kept as it was, and what nothing reaches is kept "
+            + "a day before it goes."),
     SYNC_A_PERSON_LETS_A_LOCAL_OVERRIDE_GO(
             "At a place, a person holding the configuration scope lets local records go that "
             + "stand in front of the origin's versions: one, several, or every one of a type "

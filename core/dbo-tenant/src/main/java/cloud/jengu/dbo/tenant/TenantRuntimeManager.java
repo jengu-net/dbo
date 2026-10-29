@@ -6067,6 +6067,59 @@ public final class TenantRuntimeManager implements AutoCloseable {
         return removed;
     }
 
+    /** The process a configuration repository's housekeeping is recorded under. */
+    static final String HOUSEKEEPING = "dbo.config.housekeeping";
+
+    /** Packs a configuration repository may be kept in before a round compacts them. */
+    private static final int PACKS_BEFORE_COLLECTING = 4;
+
+    /**
+     * Each tenant's configuration repository compacted, where pushes have left
+     * it in more than a few packs, as a run of its own sweep.
+     *
+     * <p>Every push is a pack, and every read walks them all. Recorded as any
+     * of the store's sweeps is, with what it found and what it left, so a
+     * repository that keeps growing is a tally somebody can read.
+     *
+     * @return the packs let go across all tenants
+     */
+    public int collectConfigurationGarbage() {
+        int collected = 0;
+        for (String code : java.util.List.copyOf(owners.keySet())) {
+            javax.sql.DataSource ds = tenantDataSources.get(code);
+            ObjectStore runStore = runStores.get(code);
+            if (ds == null || runStore == null
+                    || !cloud.jengu.dbo.tenant.git.StoredRepository.exists(ds)) {
+                continue;
+            }
+            try (cloud.jengu.dbo.tenant.git.StoredRepository repository =
+                         cloud.jengu.dbo.tenant.git.StoredRepository.open(ds, code)) {
+                if (repository.packs() <= PACKS_BEFORE_COLLECTING) {
+                    continue;
+                }
+                cloud.jengu.dbo.work.Runs runs = new cloud.jengu.dbo.work.Runs(runStore);
+                cloud.jengu.dbo.work.Runs.Pass pass = runs.pass(runs.sweep(HOUSEKEEPING,
+                        "collect", code, java.util.List.of()));
+                try {
+                    cloud.jengu.dbo.tenant.git.StoredRepository.Collected done =
+                            repository.collectGarbage();
+                    collected += done.packsBefore() - done.packsAfter();
+                    pass.counted("packsBefore", done.packsBefore())
+                            .counted("packsAfter", done.packsAfter());
+                } catch (java.io.IOException | RuntimeException failed) {
+                    pass.item("repository", cloud.jengu.dbo.work.Failure.of(failed),
+                            String.valueOf(failed.getMessage()));
+                }
+                pass.done();
+            } catch (java.io.IOException | RuntimeException e) {
+                // one tenant's failure never stops the others, and the next
+                // round tries again from the same state
+                LOG.warn("could not keep the configuration repository for tenant {}", code, e);
+            }
+        }
+        return collected;
+    }
+
     /** The most work-feed events one tenant lets go of in one round. */
     private static final long PRUNED_PER_ROUND = 1_000_000;
 
@@ -7265,6 +7318,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
                         // Rotation without this is not rotation.
                         pruneSigningKeys();
                         pruneWorkFeeds();
+                        collectConfigurationGarbage();
                     }
                     Thread.sleep(pollMillis);
                 } catch (InterruptedException e) {

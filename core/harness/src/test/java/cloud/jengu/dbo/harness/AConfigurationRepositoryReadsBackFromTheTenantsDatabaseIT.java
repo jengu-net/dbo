@@ -125,6 +125,84 @@ class AConfigurationRepositoryReadsBackFromTheTenantsDatabaseIT {
         }
     }
 
+    @Test
+    @DisplayName("after push upon push, collecting garbage leaves fewer packs and every object "
+            + "the branch reaches as it was")
+    @Proving(DboPromises.TEN_A_TENANTS_CONFIGURATION_REPOSITORY_IS_KEPT_IN_ITS_DATABASE)
+    void collectingGarbageKeepsWhatIsReached() throws Exception {
+        PGSimpleDataSource ds = new PGSimpleDataSource();
+        ds.setUrl(SharedPostgres.urlFor("AConfigurationRepositoryReadsBackFromTheTenantsDatabaseIT_gc"));
+        ds.setUser(SharedPostgres.get().getUsername());
+        ds.setPassword(SharedPostgres.get().getPassword());
+        Path disk = dir.resolve("collected");
+        try (Git onDisk = Git.init().setDirectory(disk.toFile()).setInitialBranch("main").call();
+             StoredRepository stored = StoredRepository.open(ds, "collected")) {
+            ObjectId had = ObjectId.zeroId();
+            for (int push = 1; push <= 6; push++) {
+                Files.writeString(disk.resolve("ward-" + push + ".json"),
+                        "{\"resourceType\":\"Organization\",\"name\":\"Ward " + push + "\"}");
+                onDisk.add().addFilepattern(".").call();
+                ObjectId tip = onDisk.commit().setMessage("Ward " + push)
+                        .setAuthor(new PersonIdent("Owner", "owner@example.org"))
+                        .setCommitter(new PersonIdent("Owner", "owner@example.org")).call();
+                receivedSince(onDisk.getRepository(), stored, tip, had);
+                RefUpdate main = stored.updateRef(Constants.R_HEADS + "main");
+                main.setExpectedOldObjectId(had);
+                main.setNewObjectId(tip);
+                main.update();
+                had = tip;
+            }
+            Set<ObjectId> reachable = reachable(onDisk.getRepository(), had);
+            int before = stored.packs();
+            assertTrue(before >= 6, "a push was not a pack of its own: " + before);
+
+            StoredRepository.Collected collected = stored.collectGarbage();
+
+            assertEquals(before, collected.packsBefore());
+            assertTrue(collected.packsAfter() < before, "collecting left " + collected);
+            try (StoredRepository again = StoredRepository.open(ds, "collected")) {
+                assertEquals(had, again.resolve("refs/heads/main"));
+                for (ObjectId id : reachable) {
+                    assertArrayEquals(onDisk.getRepository().open(id).getBytes(),
+                            again.open(id).getBytes(),
+                            "the object " + id.name() + " read differently after collecting");
+                }
+            }
+        }
+    }
+
+    private static Set<ObjectId> reachable(Repository repository, ObjectId tip) throws Exception {
+        Set<ObjectId> reachable = new java.util.HashSet<>();
+        try (ObjectWalk walk = new ObjectWalk(repository)) {
+            walk.markStart(walk.parseCommit(tip));
+            for (RevCommit commit; (commit = walk.next()) != null; ) {
+                reachable.add(commit.copy());
+            }
+            for (RevObject object; (object = walk.nextObject()) != null; ) {
+                reachable.add(object.copy());
+            }
+        }
+        return reachable;
+    }
+
+    /** What a push sends: a pack of what the far side lacks since what it had. */
+    private static void receivedSince(Repository from, Repository into, ObjectId tip,
+            ObjectId had) throws Exception {
+        ByteArrayOutputStream pack = new ByteArrayOutputStream();
+        try (PackWriter writer = new PackWriter(from)) {
+            writer.preparePack(NullProgressMonitor.INSTANCE, Set.of(tip),
+                    had.equals(ObjectId.zeroId()) ? Set.of() : Set.of(had));
+            writer.writePack(NullProgressMonitor.INSTANCE, NullProgressMonitor.INSTANCE, pack);
+        }
+        try (ObjectInserter inserter = into.newObjectInserter()) {
+            PackParser parser = inserter.newPackParser(
+                    new ByteArrayInputStream(pack.toByteArray()));
+            parser.setAllowThin(true);
+            parser.parse(NullProgressMonitor.INSTANCE);
+            inserter.flush();
+        }
+    }
+
     /** What a fetch into the stored repository does: a pack of what it lacks, then parsed. */
     private static void received(Repository from, Repository into, ObjectId tip)
             throws Exception {

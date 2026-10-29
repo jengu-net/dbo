@@ -91,6 +91,33 @@ public final class StoredRepository extends DfsRepository {
         }
     }
 
+    /** How many packs the repository is kept in now. */
+    public int packs() throws IOException {
+        return objects.listPacks().size();
+    }
+
+    /**
+     * Compacts the repository's packs into as few as git would, and sets what
+     * nothing reaches into a pack of its own, dropped a day later.
+     *
+     * <p>Every push is a pack, so a repository pushed to often is read
+     * through ever more of them. What a ref reaches is kept whole; what
+     * nothing reaches is kept a day before it goes, so a push landing while
+     * this runs loses nothing it named.
+     *
+     * @return the packs before and after
+     */
+    public Collected collectGarbage() throws IOException {
+        int before = packs();
+        new org.eclipse.jgit.internal.storage.dfs.DfsGarbageCollector(this)
+                .pack(org.eclipse.jgit.lib.NullProgressMonitor.INSTANCE);
+        return new Collected(before, packs());
+    }
+
+    /** What collecting garbage came to. */
+    public record Collected(int packsBefore, int packsAfter) {
+    }
+
     @Override
     public StoredObjects getObjectDatabase() {
         return objects;

@@ -816,6 +816,30 @@ class ATenantsConfigurationIsItsOwnIT {
                 "a refused push moved the applied branch");
     }
 
+    @Test
+    @Order(13)
+    @DisplayName("a repository pushed to push after push is compacted by a run of its own "
+            + "sweep, and clones as it did")
+    @Proving(DboPromises.TEN_A_TENANTS_CONFIGURATION_REPOSITORY_IS_KEPT_TIDY_BY_A_RUN)
+    void itsHousekeepingIsARun() throws Exception {
+        assertTrue(manager.collectConfigurationGarbage() > 0,
+                "a repository pushed to a dozen times was not compacted");
+        Run kept = new Runs(engine()).byKey("dbo.config.housekeeping/collect/" + OWNER)
+                .orElseThrow(() -> new AssertionError("the housekeeping left no run"));
+        assertTrue(kept.tally().containsKey("packsBefore"), "the run counts nothing: " + kept);
+        assertTrue(kept.tally().get("packsAfter") < kept.tally().get("packsBefore"),
+                kept.tally().toString());
+        assertEquals(git.getRepository().resolve("main"), lsRemote("main"));
+        Path again = Files.createTempDirectory("dbo-owner-config-again");
+        try (Git cloned = Git.cloneRepository().setURI(base() + "/configuration.git")
+                .setDirectory(again.toFile()).setCredentialsProvider(signedIn("owner-git"))
+                .call()) {
+            assertEquals(git.getRepository().resolve("main"),
+                    cloned.getRepository().resolve("origin/main"),
+                    "the repository cloned differently after it was compacted");
+        }
+    }
+
     private static org.eclipse.jgit.transport.CredentialsProvider signedIn(String client) {
         return new org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider(client,
                 client + "-secret");
