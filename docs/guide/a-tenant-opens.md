@@ -147,18 +147,35 @@ names the promise and the test that proves it.
 ## The owner's configuration, from their repository
 
 The declaration is the provider's. What the clinic is made of (its wards, its
-value sets) can be the owner's, kept in a git repository the owner commits to
-and the deployment keeps a copy of on a path it can read:
+value sets) can be the owner's, kept in a git repository the store keeps for
+the clinic, in the clinic's own database. The declaration says that the clinic
+takes its configuration from there, and which ref it applies:
 
 ```json
 { "code": "clinic", "face": "r5",
-  "configuration": { "git": "/srv/config/clinic.git", "ref": "main" } }
+  "configuration": { "ref": "main" } }
 ```
+
+A declaration that names a repository of its own with `git` is refused: there
+is no path or remote to name, and the store reaches nothing outside itself for
+it. A new clinic starts with an empty repository, and the owner pushes to it
+with an ordinary git client at the clinic's address:
+
+```sh
+git push https://dbo.example/t/clinic/configuration.git main
+```
+
+The client signs in with a client the clinic's authority issued and its secret,
+as a git client's username and password. Cloning and fetching take the
+`config/read` scope. Pushing a branch takes `config/push:<branch>`, or
+`config/push:*` for every branch, so who may push the branch the clinic applies
+is decided apart from who may push their own. Nothing is anonymous, only
+branches are kept, and a push that is refused moves nothing.
 
 Every JSON file outside a hidden directory is one record, and its
 `resourceType` says which. The declared ref is applied when the tenant comes
-up. A client holding the `configuration` scope applies any ref at the tenant's
-door:
+up, once something has been pushed. A client holding the `configuration` scope
+applies any ref at the tenant's door:
 
 ```http
 POST /t/clinic/configuration
@@ -182,9 +199,7 @@ commit, its author and message, and the client that asked.
 
 The store reads git's objects at the commit and never checks anything out. It
 refuses a declaration that is a link or a submodule, a pointer to Large File
-Storage, a repository that borrows objects from elsewhere, and a file larger
-than 4 MB. It never fetches: keeping the copy current is the deployment's. A
-record that names nothing it could be found by again, such as an organisation
+Storage, and a file larger than 4 MB. A record that names nothing it could be found by again, such as an organisation
 with no identifier, is refused as a card naming its file, because it could
 never be withdrawn.
 

@@ -62,30 +62,22 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
     }
 
     /**
-     * Where the tenant's owner keeps its configuration: a git repository on a
-     * path this deployment can read, and the ref applied when the tenant comes
-     * up and when it is asked to apply without naming one.
+     * That the tenant takes its owner's configuration from its repository, and
+     * the ref applied when it comes up and when it is asked to apply without
+     * naming one.
      *
-     * <p>Read, never fetched: keeping the repository current is the
-     * deployment's, and the store reaches no remote.
+     * <p>The repository is the store's to keep, in the tenant's own database,
+     * and the owner pushes to it at {@code /t/<code>/configuration.git}: there
+     * is no path or remote to name, and nothing outside the store is reached.
      *
-     * @param git the repository's path, a bare repository or a clone
      * @param ref a branch, a tag or a commit
      * @param key the Transit key in the deployment's Vault that the
      *            repository's secrets are wrapped by, or null for
      *            {@code tenant-<code>}
      */
-    public record Configuration(String git, String ref, String key) {
-
-        public Configuration(String git, String ref) {
-            this(git, ref, null);
-        }
+    public record Configuration(String ref, String key) {
 
         public Configuration {
-            if (git == null || git.isBlank()) {
-                throw new IllegalArgumentException("a configuration names the repository it "
-                        + "is read from, as configuration.git");
-            }
             if (ref == null || ref.isBlank()) {
                 ref = "HEAD";
             }
@@ -1407,8 +1399,13 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
         if (!(configured instanceof java.util.Map<?, ?>)) {
             return null;
         }
-        return new Configuration(Json.strOpt(configured, "git"),
-                Json.strOpt(configured, "ref"), Json.strOpt(configured, "key"));
+        if (((java.util.Map<?, ?>) configured).containsKey("git")) {
+            throw new IllegalArgumentException("configuration.git names a repository the "
+                    + "deployment keeps, and the store keeps the tenant's configuration "
+                    + "repository itself: leave it out, and push the repository to "
+                    + "/t/<code>/configuration.git");
+        }
+        return new Configuration(Json.strOpt(configured, "ref"), Json.strOpt(configured, "key"));
     }
 
     private static Set<String> exchangesOf(Object root) {

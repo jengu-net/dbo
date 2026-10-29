@@ -3020,6 +3020,13 @@ public enum DboPromises implements Promise {
             + "its own: its packs in chunks read where they are asked for, and its refs as rows "
             + "a writer moves only from the value it read. Read back, every object is the one "
             + "written, byte for byte."),
+    TEN_A_TENANTS_CONFIGURATION_REPOSITORY_IS_SERVED_UNDER_ITS_AUTHORITY("A tenant that "
+            + "takes its owner's configuration serves its repository over git's smart HTTP at "
+            + "its own address: cloned and fetched by a client its authority issued that may "
+            + "read it, signed in with that client's secret, and pushed branch by branch by a "
+            + "client granted that branch, so who may push the branch the tenant applies is "
+            + "apart from who may push their own. Nothing is anonymous, only branches are kept, "
+            + "and a push refused moves nothing."),
     SYNC_A_PERSON_LETS_A_LOCAL_OVERRIDE_GO(
             "At a place, a person holding the configuration scope lets local records go that "
             + "stand in front of the origin's versions: one, several, or every one of a type "

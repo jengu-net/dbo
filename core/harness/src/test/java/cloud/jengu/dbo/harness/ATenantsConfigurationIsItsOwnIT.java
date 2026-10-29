@@ -36,15 +36,16 @@ import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * A tenant owner's configuration, kept in a git repository the owner commits
- * to, applied commit by commit.
+ * to and pushes to the store, applied commit by commit.
  *
- * <p>A world of its own because the tenant's declaration names a repository
- * this class writes, on a path only this run has; a tenant of the shared world
- * holding one would hold this class's commits for every class after it. Its
+ * <p>A world of its own because the tenant's repository holds this class's
+ * commits, and a tenant of the shared world holding them would hold them for
+ * every class after it. Its
  * tenant is named for this run, because a tenant's database is named by its
  * code and a database server may outlive the run that made it.
  */
@@ -109,7 +110,7 @@ class ATenantsConfigurationIsItsOwnIT {
                 () -> "root"));
         Files.writeString(dir.resolve(OWNER + ".json"), """
                 {"code":"%s","face":"r5",
-                 "configuration":{"git":"%s","ref":"main"},
+                 "configuration":{"ref":"main"},
                  "types":[
                   {"name":"Organization","identity":"identifier","systems":["%s"],
                    "handling":"operational"},
@@ -120,11 +121,17 @@ class ATenantsConfigurationIsItsOwnIT {
                   {"code":"%s","slots":{"organisation":"Organization"}},
                   {"code":"%s","slots":{"organisation":"Organization"},
                    "secrets":["connection.*","zone.token"]}]}"""
-                .formatted(OWNER, repository.toString().replace("\\", "\\\\"), ORG, CONNECT,
-                        PEEK, CONNECTIONS));
+                .formatted(OWNER, ORG, CONNECT, PEEK, CONNECTIONS));
         UntilServed.scan(manager, OWNER);
         manager.authority(OWNER).ensureClient("owner", "owner-secret",
                 List.of("configuration"));
+        // The owner's own git client: reads, and pushes any branch.
+        manager.authority(OWNER).ensureClient("owner-git", "owner-git-secret",
+                List.of("config/read", "config/push:*"));
+        pushed("main");
+        git.branchCreate().setName("opening").setStartPoint(first).call();
+        pushed("opening");
+        apply("");
     }
 
     @AfterAll
@@ -144,8 +151,8 @@ class ATenantsConfigurationIsItsOwnIT {
 
     @Test
     @Order(1)
-    @DisplayName("a tenant declared with a repository applies its declared ref when it comes "
-            + "up, and a second apply of the same commit reads nothing")
+    @DisplayName("a tenant whose owner pushed its configuration applies the declared ref, and "
+            + "a second apply of the same commit reads nothing")
     @Proving(DboPromises.TEN_AN_OWNERS_CONFIGURATION_IS_APPLIED_FROM_ITS_REPOSITORY)
     void itComesUpConfigured() throws Exception {
         assertEquals("Ward 7", organisationName("ward-7"));
@@ -744,6 +751,79 @@ class ATenantsConfigurationIsItsOwnIT {
         return answered.body();
     }
 
+    @Test
+    @Order(12)
+    @DisplayName("the repository is cloned only by a client the tenant issued that may read it, "
+            + "and a branch is pushed only by one granted that branch")
+    @Proving(DboPromises.TEN_A_TENANTS_CONFIGURATION_REPOSITORY_IS_SERVED_UNDER_ITS_AUTHORITY)
+    void itIsServedUnderTheTenantsAuthority() throws Exception {
+        String remote = base() + "/configuration.git";
+        Path nobody = Files.createTempDirectory("dbo-owner-config-nobody");
+        assertThrows(org.eclipse.jgit.api.errors.TransportException.class,
+                () -> Git.cloneRepository().setURI(remote).setDirectory(nobody.toFile()).call()
+                        .close(), "the repository was cloned without signing in");
+
+        manager.authority(OWNER).ensureClient("auditor-git", "auditor-git-secret",
+                List.of("config/read"));
+        manager.authority(OWNER).ensureClient("ada-git", "ada-git-secret",
+                List.of("config/read", "config/push:ada"));
+        Path auditor = Files.createTempDirectory("dbo-owner-config-auditor");
+        try (Git read = Git.cloneRepository().setURI(remote).setDirectory(auditor.toFile())
+                .setCredentialsProvider(signedIn("auditor-git")).call()) {
+            assertEquals(git.getRepository().resolve("main"), read.getRepository()
+                    .resolve("origin/main"), "the clone is not what the owner pushed");
+            assertThrows(org.eclipse.jgit.api.errors.TransportException.class,
+                    () -> read.push().setCredentialsProvider(signedIn("auditor-git")).call(),
+                    "a client that may only read pushed");
+        }
+
+        Path ada = Files.createTempDirectory("dbo-owner-config-ada");
+        try (Git hers = Git.cloneRepository().setURI(remote).setDirectory(ada.toFile())
+                .setCredentialsProvider(signedIn("ada-git")).call()) {
+            Files.writeString(ada.resolve("draft.json"), organisation("ward-12", "Ward 12"));
+            hers.add().addFilepattern(".").call();
+            hers.commit().setMessage("A ward of her own").setAuthor("Ada", "ada@example.org")
+                    .setCommitter("Ada", "ada@example.org").call();
+            assertEquals(org.eclipse.jgit.transport.RemoteRefUpdate.Status.OK,
+                    pushedAs(hers, "ada-git", "HEAD:refs/heads/ada"),
+                    "her own branch was refused");
+            assertEquals(org.eclipse.jgit.transport.RemoteRefUpdate.Status.REJECTED_OTHER_REASON,
+                    pushedAs(hers, "ada-git", "HEAD:refs/heads/main"),
+                    "the applied branch took a push from somebody granted only her own");
+            hers.tag().setName("hers").call();
+            assertEquals(org.eclipse.jgit.transport.RemoteRefUpdate.Status.REJECTED_OTHER_REASON,
+                    pushedAs(hers, "ada-git", "refs/tags/hers:refs/tags/hers"),
+                    "a tag was kept where only branches are");
+        }
+        assertEquals(git.getRepository().resolve("main"), lsRemote("main"),
+                "a refused push moved the applied branch");
+    }
+
+    private static org.eclipse.jgit.transport.CredentialsProvider signedIn(String client) {
+        return new org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider(client,
+                client + "-secret");
+    }
+
+    private org.eclipse.jgit.transport.RemoteRefUpdate.Status pushedAs(Git from, String client,
+            String refSpec) throws Exception {
+        org.eclipse.jgit.transport.RemoteRefUpdate.Status status = null;
+        for (org.eclipse.jgit.transport.PushResult result : from.push()
+                .setRemote(base() + "/configuration.git")
+                .setRefSpecs(new org.eclipse.jgit.transport.RefSpec(refSpec))
+                .setCredentialsProvider(signedIn(client)).call()) {
+            for (org.eclipse.jgit.transport.RemoteRefUpdate update : result.getRemoteUpdates()) {
+                status = update.getStatus();
+            }
+        }
+        return status;
+    }
+
+    private org.eclipse.jgit.lib.ObjectId lsRemote(String branch) throws Exception {
+        return Git.lsRemoteRepository().setRemote(base() + "/configuration.git")
+                .setCredentialsProvider(signedIn("owner-git")).callAsMap()
+                .get("refs/heads/" + branch).getObjectId();
+    }
+
     // ── the repository ──
 
     private void write(String path, String content) throws Exception {
@@ -752,10 +832,36 @@ class ATenantsConfigurationIsItsOwnIT {
         Files.writeString(file, content);
     }
 
+    /** Committed, and pushed to the store as the owner pushes it, once the tenant is up. */
     private RevCommit commit(String message) throws Exception {
         git.add().addFilepattern(".").call();
         PersonIdent ada = new PersonIdent("Ada Lovelace", "ada@example.org");
-        return git.commit().setMessage(message).setAuthor(ada).setCommitter(ada).call();
+        RevCommit committed = git.commit().setMessage(message).setAuthor(ada).setCommitter(ada)
+                .call();
+        if (manager != null) {
+            pushed("main");
+        }
+        return committed;
+    }
+
+    /** A branch pushed to the tenant's repository, which the store must have taken. */
+    private void pushed(String branch) throws Exception {
+        for (org.eclipse.jgit.transport.PushResult result : git.push()
+                .setRemote(base() + "/configuration.git")
+                .setRefSpecs(new org.eclipse.jgit.transport.RefSpec(
+                        "+refs/heads/" + branch + ":refs/heads/" + branch))
+                .setCredentialsProvider(new org.eclipse.jgit.transport
+                        .UsernamePasswordCredentialsProvider("owner-git", "owner-git-secret"))
+                .call()) {
+            for (org.eclipse.jgit.transport.RemoteRefUpdate update : result.getRemoteUpdates()) {
+                assertTrue(update.getStatus() == org.eclipse.jgit.transport.RemoteRefUpdate
+                                .Status.OK
+                                || update.getStatus() == org.eclipse.jgit.transport
+                                .RemoteRefUpdate.Status.UP_TO_DATE,
+                        "the store did not take " + branch + ": " + update.getStatus() + " "
+                                + update.getMessage());
+            }
+        }
     }
 
     private static String organisation(String code, String name) {

@@ -53,7 +53,7 @@ class AConfigurationReadsBackEveryFileItAppliedTest {
         // What applying that commit left: each ward's record, and the account
         // of which file applied it.
         ConfigFiles ledger = new ConfigFiles(store, OwnersConfiguration.scopeOf(CODE));
-        try (ConfigRepository read = ConfigRepository.open(repository)) {
+        try (ConfigRepository read = opened()) {
             for (ConfigRepository.File file : read.files(read.resolve("main"))) {
                 Identifier ward = new Identifier(ORG, file.path().replace(".json", ""));
                 ledger.record(file.path(), file.blob(), "Organization", List.of(ward));
@@ -101,8 +101,18 @@ class AConfigurationReadsBackEveryFileItAppliedTest {
     }
 
     private OwnersConfiguration configuration() {
-        return new OwnersConfiguration(CODE, new TenantSpec.Configuration(repository.toString(),
-                "main"), store, null, null, null);
+        return new OwnersConfiguration(CODE, new TenantSpec.Configuration("main", null),
+                this::opened, store, null, null, null);
+    }
+
+    /** The repository on disk, which is what the store's own reads the same as. */
+    private ConfigRepository opened() {
+        try {
+            return ConfigRepository.of(new org.eclipse.jgit.storage.file.FileRepositoryBuilder()
+                    .setGitDir(repository.resolve(".git").toFile()).setMustExist(true).build());
+        } catch (java.io.IOException unreadable) {
+            throw new IllegalStateException(unreadable);
+        }
     }
 
     private void commit(String message) throws Exception {

@@ -8,7 +8,6 @@ import cloud.jengu.dbo.work.Run;
 import cloud.jengu.dbo.work.Runs;
 
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -86,15 +85,21 @@ final class OwnersConfiguration {
 
     private final String code;
     private final TenantSpec.Configuration configuration;
+    private final java.util.function.Supplier<ConfigRepository> repository;
     private final ObjectStore store;
     private final Runs runs;
     private final ConfigApplication application;
     private final Secrets secrets;
 
-    OwnersConfiguration(String code, TenantSpec.Configuration configuration, ObjectStore store,
+    /**
+     * @param repository opens the tenant's repository, once for each apply
+     */
+    OwnersConfiguration(String code, TenantSpec.Configuration configuration,
+            java.util.function.Supplier<ConfigRepository> repository, ObjectStore store,
             Runs runs, ConfigApplication application, Secrets secrets) {
         this.code = code;
         this.configuration = configuration;
+        this.repository = repository;
         this.store = store;
         this.runs = runs;
         this.application = application;
@@ -223,7 +228,7 @@ final class OwnersConfiguration {
     Applied apply(String ref, String by, boolean preview) {
         String asked = ref == null ? configuration.ref() : ref;
         String scope = scopeOf(code);
-        try (ConfigRepository repository = ConfigRepository.open(Path.of(configuration.git()))) {
+        try (ConfigRepository repository = this.repository.get()) {
             ConfigRepository.Commit commit = repository.resolve(asked);
             if (!preview && application.settledAt(scope, commit.id())) {
                 return new Applied(asked, commit, by, ConfigApplication.Outcome.NOTHING,

@@ -252,6 +252,8 @@ cloud.jengu.dbo.auth.LoginPage.Provider                                toString(
 cloud.jengu.dbo.auth.Pseudonyms                                        class
 cloud.jengu.dbo.auth.Pseudonyms                                        record(cloud.jengu.dbo.core.api.ObjectStore,cloud.jengu.dbo.core.api.identity.PseudonymResolution):String
 cloud.jengu.dbo.auth.Scopes                                            CONFIGURATION:String
+cloud.jengu.dbo.auth.Scopes                                            CONFIG_PUSH:String
+cloud.jengu.dbo.auth.Scopes                                            CONFIG_READ:String
 cloud.jengu.dbo.auth.Scopes                                            ERASURE:String
 cloud.jengu.dbo.auth.Scopes                                            FLEET:String
 cloud.jengu.dbo.auth.Scopes                                            IDENTITY:String
@@ -3402,6 +3404,7 @@ cloud.jengu.dbo.promises.DboPromises                                   TEN_A_STA
 cloud.jengu.dbo.promises.DboPromises                                   TEN_A_STEP_REACHES_A_FAMILY_OF_SECRETS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_A_STEP_REACHES_THE_SECRETS_IT_DECLARES:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_A_TENANTS_CONFIGURATION_REPOSITORY_IS_KEPT_IN_ITS_DATABASE:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   TEN_A_TENANTS_CONFIGURATION_REPOSITORY_IS_SERVED_UNDER_ITS_AUTHORITY:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_A_TENANTS_WORKING_KEY_IS_HELD_WHERE_ITS_DECLARATION_SAYS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_A_TENANT_COMES_UP_FROM_THE_FACE_IMAGE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_A_TENANT_SAYS_WHAT_KIND_IT_IS:cloud.jengu.dbo.promises.DboPromises
@@ -4993,11 +4996,9 @@ cloud.jengu.dbo.tenant.TenantSpec.Answer                               reveals()
 cloud.jengu.dbo.tenant.TenantSpec.Answer                               toString():String
 cloud.jengu.dbo.tenant.TenantSpec.Answer                               types():Set
 cloud.jengu.dbo.tenant.TenantSpec.Configuration                        equals(Object):boolean
-cloud.jengu.dbo.tenant.TenantSpec.Configuration                        git():String
 cloud.jengu.dbo.tenant.TenantSpec.Configuration                        hashCode():int
 cloud.jengu.dbo.tenant.TenantSpec.Configuration                        key():String
 cloud.jengu.dbo.tenant.TenantSpec.Configuration                        new(String,String)
-cloud.jengu.dbo.tenant.TenantSpec.Configuration                        new(String,String,String)
 cloud.jengu.dbo.tenant.TenantSpec.Configuration                        record
 cloud.jengu.dbo.tenant.TenantSpec.Configuration                        ref():String
 cloud.jengu.dbo.tenant.TenantSpec.Configuration                        toString():String
