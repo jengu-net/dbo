@@ -3015,6 +3015,11 @@ public enum DboPromises implements Promise {
             + "type only the configuration may write: a record somebody at the place wrote "
             + "still shadows. An entry of the account whose record no lookup finds is kept, "
             + "and said, while a record of its type still shadows, never forgotten quietly."),
+    TEN_A_TENANTS_CONFIGURATION_REPOSITORY_IS_KEPT_IN_ITS_DATABASE("A tenant's "
+            + "configuration repository is kept in the tenant's own database, in a schema of "
+            + "its own: its packs in chunks read where they are asked for, and its refs as rows "
+            + "a writer moves only from the value it read. Read back, every object is the one "
+            + "written, byte for byte."),
     SYNC_A_PERSON_LETS_A_LOCAL_OVERRIDE_GO(
             "At a place, a person holding the configuration scope lets local records go that "
             + "stand in front of the origin's versions: one, several, or every one of a type "

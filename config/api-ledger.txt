@@ -3401,6 +3401,7 @@ cloud.jengu.dbo.promises.DboPromises                                   TEN_A_SLO
 cloud.jengu.dbo.promises.DboPromises                                   TEN_A_STALE_INDEX_IS_REMEMBERED_UNTIL_IT_IS_REBUILT:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_A_STEP_REACHES_A_FAMILY_OF_SECRETS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_A_STEP_REACHES_THE_SECRETS_IT_DECLARES:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   TEN_A_TENANTS_CONFIGURATION_REPOSITORY_IS_KEPT_IN_ITS_DATABASE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_A_TENANTS_WORKING_KEY_IS_HELD_WHERE_ITS_DECLARATION_SAYS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_A_TENANT_COMES_UP_FROM_THE_FACE_IMAGE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_A_TENANT_SAYS_WHAT_KIND_IT_IS:cloud.jengu.dbo.promises.DboPromises
