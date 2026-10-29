@@ -32,7 +32,7 @@ dependencies {
     // HAPI pulls OpenTelemetry's instrumentation annotations, and with
     // them an api below its advisory. Raised here, not added.
     constraints {
-        embedded("io.opentelemetry:opentelemetry-api:1.62.0")
+        embedded("io.opentelemetry:opentelemetry-api:1.67.0")
     }
     embedded("ca.uhn.hapi.fhir:hapi-fhir-structures-r4:$hapi")
     embedded("ca.uhn.hapi.fhir:hapi-fhir-caching-caffeine:$hapi")
