@@ -90,6 +90,8 @@ final class WorkInMemory {
                             case "lag" -> (long) (written.size()
                                     - cursors.getOrDefault((String) args[0], 0));
                             case "cursorOf" -> String.valueOf(cursors.get((String) args[0]));
+                            case "headCursor" -> written.isEmpty() ? null
+                                    : Integer.toString(written.size());
                             case "toString" -> "work feed in memory";
                             default -> throw new UnsupportedOperationException(method.getName());
                         });

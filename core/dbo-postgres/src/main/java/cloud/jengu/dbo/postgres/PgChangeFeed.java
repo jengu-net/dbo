@@ -309,6 +309,7 @@ public final class PgChangeFeed implements ChangeFeed {
      *         a consumer reads as the beginning, and is right: there is
      *         nothing behind it to skip
      */
+    @Override
     public String headCursor() {
         try (Connection c = ds.getConnection()) {
             String horizon = localHorizon(c);

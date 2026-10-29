@@ -108,6 +108,26 @@ class ARunIsOfferedWhicheverDoorDeclaredItsStepIT {
                         + "capability performs nothing — see item 029");
     }
 
+    @Test
+    @DisplayName("a run started behind hundreds of the store's own runs is offered on the next "
+            + "poll, over the tenant's own feed")
+    @cloud.jengu.dbo.promises.Proving(
+            cloud.jengu.dbo.promises.DboPromises.PROC_A_PARTICIPANT_BEHIND_ITS_FEED_STILL_FINDS_ITS_WORK)
+    void aRunBehindTheStoresOwnWorkIsOffered() {
+        for (int round = 0; round < 200; round++) {
+            runs.pipeline("dbo.sync.stream", "apply");
+        }
+        Run started = runs.of(AS_A_TENANT_DECLARES, RunKind.PIPELINE, "behind-the-stream");
+
+        List<String> offered = lane("a-busy-runner").poll(Set.of(bare(AS_A_TENANT_DECLARES)), 50)
+                .stream().map(Run::key).toList();
+
+        assertTrue(offered.contains(started.key()),
+                "a run behind the store's own work was not offered on the next poll: " + offered);
+        assertTrue(lane("a-busy-runner").claim(started, Duration.ofMinutes(5)).isPresent(),
+                "the run offered could not be taken");
+    }
+
     /** The word a run records, which is the step alone and not its whole id. */
     private static String bare(StepDeclaration step) {
         String id = step.id().toString();

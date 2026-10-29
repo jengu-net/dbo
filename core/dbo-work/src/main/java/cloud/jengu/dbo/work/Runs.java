@@ -1655,6 +1655,24 @@ public final class Runs {
         return update(run, snapshot -> snapshot.withTrace(traceContext));
     }
 
+    /**
+     * What waits for automation at a step now, oldest first, asked of the runs
+     * themselves rather than of the work feed.
+     *
+     * <p>For a participant whose cursor is behind: the feed carries the store's
+     * own work as much as anybody's, and reading it fifty events at a time
+     * reaches a run started an hour ago only after every event before it.
+     */
+    public List<Run> readyFor(String step, int limit) {
+        return store.select(Criteria.of(WorkModel.TYPE)
+                        .eq("step", EnvelopeValue.of(step))
+                        .eq("status", EnvelopeValue.of(Status.READY.wire()))
+                        .eq("eligible", EnvelopeValue.of("automation"))
+                        .sortByLastUpdated(true)
+                        .limit(limit))
+                .stream().map(Run::of).toList();
+    }
+
     /** A run by the store's id, which is what a feed event names. */
     public Optional<Run> byId(String id) {
         return store.get(WorkModel.TYPE, id).map(Run::of);
