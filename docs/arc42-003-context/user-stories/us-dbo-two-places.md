@@ -134,7 +134,7 @@ citations say it is.
 | `REQ-DBO-ZONE-A-ZONE-IS-SERVED-TO-A-FACE-THROUGH-ONE-PROJECTION` | A zone's definitions and records reach the tenants of a face it was not written in through one projection per zone per face: a tenant that takes the zone and stands on the target face, so the conversion happens once rather than once per tenant. A zone serving a face it was written in has no projection, because there is nothing to convert and one would be a hop, a database and a second copy for nothing. Nobody declares them — they follow from a zone's version and the faces of the tenants that asked for it — and a tenant's declaration still names the zone, since which projection serves it follows from its own face and is not a tenant's to know. | PROVEN |
 | `REQ-DBO-FEED-LEAN-WIRE-OPTION` | Planned — Between DBO-speaking parties, feeds stream lean frames; FHIR Bundles are assembled only at the FHIR surface. | PLANNED |
 
-Coverage: {PROVEN=37, PLANNED=1} — a leg marked PLANNED cites a promise that exists and is not yet cited by any test.
+Coverage: {PROVEN=38, PLANNED=1} — a leg marked PLANNED cites a promise that exists and is not yet cited by any test.
 <!-- story:end -->
 
 ## What the store cannot do yet
