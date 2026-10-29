@@ -1031,6 +1031,8 @@ public final class TenantRuntimeManager implements AutoCloseable {
             new ConcurrentHashMap<>();
     /** Where each tenant's ask-to-apply door is mounted, for the same teardown. */
     private final Map<String, String> configurationContexts = new ConcurrentHashMap<>();
+    /** Where each tenant's door for letting overrides go is mounted, likewise. */
+    private final Map<String, String> overridesContexts = new ConcurrentHashMap<>();
     /** Each serving tenant's working key, as its bring-up resolved it. */
     private final Map<String, WorkingKeys.Held> workingKeys = new ConcurrentHashMap<>();
 
@@ -4841,6 +4843,13 @@ public final class TenantRuntimeManager implements AutoCloseable {
                     owners.get(spec.code())));
             configuring.secretsWriter((path, secrets) -> secretsWritten(spec, path, secrets));
             configurationContexts.put(spec.code(), configurationPath);
+            // Mounted on every tenant and refusing away from a place: a tenant
+            // becomes one after its doors are up.
+            String overridesPath = "/t/" + spec.code() + "/overrides";
+            sharedServer.createContext(overridesPath, new OverridesHandler(authority, engine,
+                    () -> places.contains(spec.code()),
+                    () -> syncEngines.getOrDefault(spec.code(), java.util.List.of())));
+            overridesContexts.put(spec.code(), overridesPath);
         }
         // The maintenance surface, when the tenant has an authority to guard
         // it: backups are system-plane, and a tenant with no authority has no
@@ -6678,6 +6687,10 @@ public final class TenantRuntimeManager implements AutoCloseable {
         String configurationPath = configurationContexts.remove(code);
         if (configurationPath != null) {
             sharedServer.removeContext(configurationPath);
+        }
+        String overridesPath = overridesContexts.remove(code);
+        if (overridesPath != null) {
+            sharedServer.removeContext(overridesPath);
         }
         String blobPath = blobContexts.remove(code);
         if (blobPath != null) {

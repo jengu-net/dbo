@@ -64,6 +64,13 @@ public final class StepRunner implements AutoCloseable {
 
     private static final Logger LOG = LoggerFactory.getLogger(StepRunner.class);
 
+    /**
+     * How many cycles a lane may find no door before it has ever been
+     * answered and say nothing. A door on a stream waits half a minute for an
+     * answer, so this is a couple of minutes of a start.
+     */
+    static final int QUIET_AT_START = 3;
+
     private final Duration holdFor;
     private final Duration pollEvery;
     /**
@@ -301,8 +308,20 @@ public final class StepRunner implements AutoCloseable {
     /** One lane's cycle, whose failure is that lane's and nobody else's. */
     private int cycling(Attached attached) {
         try {
-            return cycle(attached);
+            int performed = cycle(attached);
+            attached.answered = true;
+            return performed;
         } catch (RuntimeException laneFailed) {
+            // A door that has never answered this lane is one still coming up
+            // alongside it, and saying so on every start reads as a fault on
+            // every start. Said once it has been silent past a few cycles,
+            // since a door that never comes up is one.
+            if (laneFailed instanceof cloud.jengu.dbo.core.api.StoreUnreachableException
+                    && !attached.answered && ++attached.unansweredAtStart <= QUIET_AT_START) {
+                LOG.debug("lane cycle found no door yet: tenant={} {}",
+                        attached.lane.tenant(), laneFailed.getMessage());
+                return 0;
+            }
             // One tenant's bad day must not starve the rest of the fleet.
             LOG.warn("lane cycle failed: tenant={} {}",
                     attached.lane.tenant(), laneFailed.getMessage());
@@ -537,6 +556,10 @@ public final class StepRunner implements AutoCloseable {
         volatile AutoCloseable listening;
         volatile boolean looping;
         volatile Thread loop;
+        /** Whether a cycle of this lane has ever completed. */
+        volatile boolean answered;
+        /** Cycles that found no door before any cycle completed. */
+        volatile int unansweredAtStart;
 
         Attached(Lane lane, long number) {
             this.lane = lane;

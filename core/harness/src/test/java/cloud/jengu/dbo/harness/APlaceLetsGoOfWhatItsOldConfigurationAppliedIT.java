@@ -13,9 +13,12 @@ import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.lib.PersonIdent;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.TestMethodOrder;
 
 import java.net.URI;
 import java.net.URLEncoder;
@@ -44,6 +47,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 @Tag("integration")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class APlaceLetsGoOfWhatItsOldConfigurationAppliedIT {
 
     private static final String ROOT = "kaasiku-r4";
@@ -53,10 +57,12 @@ class APlaceLetsGoOfWhatItsOldConfigurationAppliedIT {
     private static final String CATALOGUE = "urn:dbo-test:map:catalogue";
     /** What the owner declares, and somebody on the site wrote a map of their own for. */
     private static final String OVERRIDDEN = "urn:dbo-test:map:overridden";
+    /** Another the site wrote its own of, and keeps when the first is let go. */
+    private static final String KEPT = "urn:dbo-test:map:kept";
 
     /** The clinic, its owner's configuration named where the node applying it keeps it. */
     private static final String DECLARATION = """
-            {"code":"%s","face":"r4","audit":{"level":"none"},
+            {"code":"%s","face":"r4","audit":{"level":"writes"},
              "configuration":{"git":"%%s","ref":"main"},
              "dependencies":[{"name":"%s","face":true,
                               "types":["StructureDefinition","SearchParameter","ValueSet","CodeSystem",
@@ -83,6 +89,8 @@ class APlaceLetsGoOfWhatItsOldConfigurationAppliedIT {
     static final HttpClient http = HttpClient.newHttpClient();
     private final List<TenantRuntimeManager> nodes = new ArrayList<>();
     private final Map<Path, byte[]> keys = new java.util.HashMap<>();
+    /** The site, up again as a place of the cloud's clinic. */
+    private TenantRuntimeManager site;
 
     @AfterAll
     void down() {
@@ -90,6 +98,7 @@ class APlaceLetsGoOfWhatItsOldConfigurationAppliedIT {
     }
 
     @Test
+    @Order(1)
     @DisplayName("a place releases what its own configuration apply wrote there, so the "
             + "origin's versions apply; what somebody on the site wrote still shadows")
     @Proving(DboPromises.SYNC_A_PLACE_LETS_GO_OF_WHAT_ITS_OLD_CONFIGURATION_APPLIED)
@@ -102,7 +111,8 @@ class APlaceLetsGoOfWhatItsOldConfigurationAppliedIT {
 
         Path cloudConfiguration = repository(cloudDir.resolve("configuration"), Map.of(
                 "maps/catalogue.json", map(CATALOGUE, "AsTheOriginPublishesIt"),
-                "maps/overridden.json", map(OVERRIDDEN, "AsTheOriginPublishesIt")));
+                "maps/overridden.json", map(OVERRIDDEN, "AsTheOriginPublishesIt"),
+                "maps/kept.json", map(KEPT, "AsTheOriginPublishesIt")));
         TenantRuntimeManager cloud = node(cloudDir,
                 new LocalDatabasePerTenantProvisioner(admin, user, password, "cloud"));
         Files.writeString(cloudDir.resolve(ROOT + ".json"), ROOT_DECLARATION);
@@ -130,6 +140,7 @@ class APlaceLetsGoOfWhatItsOldConfigurationAppliedIT {
                 "the site's clinic did not apply its owner's configuration: "
                         + before.troubles().get(CLINIC));
         assertEquals(201, post(before, map(OVERRIDDEN, "AsSomebodyOnTheSiteWroteIt")));
+        assertEquals(201, post(before, map(KEPT, "AsSomebodyOnTheSiteWroteIt")));
         before.close();
         nodes.remove(before);
 
@@ -138,7 +149,7 @@ class APlaceLetsGoOfWhatItsOldConfigurationAppliedIT {
         HttpLane lane = HttpLane.to(URI.create(base(cloud) + "/work"),
                 () -> clientToken(cloud, "site", "site-secret"), CLINIC, "site",
                 new Executor("site", "1", "example.site", Scope.BASELINE));
-        TenantRuntimeManager site = node(siteDir, siteDatabases);
+        site = node(siteDir, siteDatabases);
         site.servesAPlaceOf(CLINIC);
         site.readsItsOriginThrough(CLINIC, new TenantRuntimeManager.OriginFeeds(
                 lane.placeFeed(Place.RECORDS), lane.placeFeed(Place.DEFINITIONS),
@@ -155,14 +166,91 @@ class APlaceLetsGoOfWhatItsOldConfigurationAppliedIT {
                         + "origin's version: " + mapNamed(site, CATALOGUE));
         assertTrue(mapNamed(site, OVERRIDDEN).contains("AsSomebodyOnTheSiteWroteIt"),
                 "what somebody on the site wrote was released with the configuration's writes");
-        List<String> parked = new ArrayList<>();
+        assertEquals(java.util.Set.of(OVERRIDDEN, KEPT), parked(),
+                "the place holds back something other than the maps somebody there wrote");
+    }
+
+    @Test
+    @Order(2)
+    @DisplayName("a person at the place lets one override go after reading what would go, the "
+            + "origin's version applies, the trail names them, and the one they kept still "
+            + "shadows")
+    @Proving(DboPromises.SYNC_A_PERSON_LETS_A_LOCAL_OVERRIDE_GO)
+    void aPersonLetsALocalOverrideGo() throws Exception {
+        site.authority(CLINIC).ensureClient("keeper", "keeper-secret",
+                List.of("configuration"));
+        String keeper = clientToken(site, "keeper", "keeper-secret");
+        ContentSyncEngine.ShadowedEvent overridden = shadowOf(OVERRIDDEN);
+        String dependency = site.streamsOf(CLINIC).stream()
+                .filter(stream -> stream.shadowedEvents().stream()
+                        .anyMatch(one -> one.objectId().equals(overridden.objectId())))
+                .findFirst().orElseThrow().dependency();
+        String asked = """
+                {"dependency":"%s","type":"StructureMap","records":["%s"]}"""
+                .formatted(dependency, overridden.shadowedBy());
+
+        assertEquals(422, overrides(keeper, "/preview", """
+                {"dependency":"%s","type":"StructureMap","records":["not-a-shadow"]}"""
+                .formatted(dependency)).statusCode(),
+                "a record that holds nothing back was offered to let go");
+        HttpResponse<String> preview = overrides(keeper, "/preview", asked);
+        assertEquals(200, preview.statusCode(), preview.body());
+        assertTrue(preview.body().contains(OVERRIDDEN) && preview.body().contains(
+                "\"record\":\"" + overridden.objectId() + "\""),
+                "the preview did not say what goes and what the origin holds instead: "
+                        + preview.body());
+        assertTrue(mapNamed(site, OVERRIDDEN).contains("AsSomebodyOnTheSiteWroteIt"),
+                "a preview let the override go");
+
+        HttpResponse<String> letGo = overrides(keeper, "", asked);
+        assertEquals(200, letGo.statusCode(), letGo.body());
+        assertTrue(mapNamed(site, OVERRIDDEN).contains("AsTheOriginPublishesIt"),
+                "the origin's version did not apply once the override went: "
+                        + mapNamed(site, OVERRIDDEN));
+        assertTrue(mapNamed(site, KEPT).contains("AsSomebodyOnTheSiteWroteIt"),
+                "an override nobody named was let go");
+        assertEquals(java.util.Set.of(KEPT), parked());
+
+        HttpResponse<String> trail = http.send(HttpRequest.newBuilder(
+                        URI.create(base(site) + "/fhir/AuditEvent?action=D&entity=StructureMap/"
+                                + overridden.shadowedBy()))
+                        .header("Authorization", "Bearer " + writer(site)).GET().build(),
+                HttpResponse.BodyHandlers.ofString());
+        assertEquals(200, trail.statusCode(), trail.body());
+        assertTrue(trail.body().contains("keeper"),
+                "the trail does not name who let the override go: " + trail.body());
+    }
+
+    private HttpResponse<String> overrides(String token, String verb, String body)
+            throws Exception {
+        return http.send(HttpRequest.newBuilder(URI.create(base(site) + "/overrides" + verb))
+                        .header("Authorization", "Bearer " + token)
+                        .POST(HttpRequest.BodyPublishers.ofString(body)).build(),
+                HttpResponse.BodyHandlers.ofString());
+    }
+
+    /** The maps the place holds back, by url. */
+    private java.util.Set<String> parked() {
+        java.util.Set<String> parked = new java.util.HashSet<>();
         for (ContentSyncEngine stream : site.streamsOf(CLINIC)) {
-            stream.shadowedEvents().forEach(shadow ->
-                    parked.add(new String(shadow.payload(), StandardCharsets.UTF_8)
-                            .contains(OVERRIDDEN) ? OVERRIDDEN : shadow.objectId()));
+            stream.shadowedEvents().forEach(shadow -> {
+                String held = new String(shadow.payload(), StandardCharsets.UTF_8);
+                parked.add(held.contains(OVERRIDDEN) ? OVERRIDDEN
+                        : held.contains(KEPT) ? KEPT : shadow.objectId());
+            });
         }
-        assertEquals(List.of(OVERRIDDEN), parked,
-                "the place holds back something other than the one map somebody there wrote");
+        return parked;
+    }
+
+    private ContentSyncEngine.ShadowedEvent shadowOf(String url) {
+        for (ContentSyncEngine stream : site.streamsOf(CLINIC)) {
+            for (ContentSyncEngine.ShadowedEvent shadow : stream.shadowedEvents()) {
+                if (new String(shadow.payload(), StandardCharsets.UTF_8).contains(url)) {
+                    return shadow;
+                }
+            }
+        }
+        throw new AssertionError("nothing holds back " + url);
     }
 
     /** A repository holding these files, committed once on main. */
