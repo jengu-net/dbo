@@ -552,6 +552,7 @@ public enum DboStories implements Story {
                     DboPromises.PROC_LANE_EPOCH,
                     DboPromises.FEED_PUSH_ACK_RESUME,
                     DboPromises.FEED_IDEMPOTENT_DELIVERY,
+                    DboPromises.FEED_A_FEED_LETS_GO_OF_WHAT_EVERY_READER_HAS_READ_PAST,
                     // Fitted here rather than left in no story: what a zone hands to a
                     // face it was not written in.
                     DboPromises.TEN_WHAT_A_TENANT_CARES_ABOUT_IS_EDITABLE,

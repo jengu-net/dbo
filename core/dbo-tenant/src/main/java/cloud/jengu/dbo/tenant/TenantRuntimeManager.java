@@ -6037,6 +6037,63 @@ public final class TenantRuntimeManager implements AutoCloseable {
         return removed;
     }
 
+    /** The most work-feed events one tenant lets go of in one round. */
+    private static final long PRUNED_PER_ROUND = 1_000_000;
+
+    /** How long a reader may stand still before a round says it holds the work feed back. */
+    private static final java.time.Duration HELD_TOO_LONG = java.time.Duration.ofDays(7);
+
+    /**
+     * Each tenant lets go of the work-feed events every reader has read past.
+     *
+     * <p>The work feed is the store's own work as much as anybody's, and kept
+     * whole it grows with everything ever done there: a busy place held
+     * fourteen million events of it, most of them its sync streams' runs.
+     * The readers are the feed's named consumers and each replication lane,
+     * which keeps its cursor on its own record.
+     *
+     * <p>A reader that stopped holds the feed where it stopped, and a round
+     * says so once it has stood still a week, naming it, so whoever knows it
+     * is gone can drop it at the tenant's maintenance door.
+     *
+     * @return how many events were let go across all tenants
+     */
+    public long pruneWorkFeeds() {
+        long removed = 0;
+        for (Map.Entry<String, TenantRuntime> tenant : runtimes.entrySet()) {
+            String code = tenant.getKey();
+            javax.sql.DataSource ds = tenantDataSources.get(code);
+            if (ds == null) {
+                continue;
+            }
+            try {
+                java.util.List<PgChangeFeed.Reader> lanes = new java.util.ArrayList<>();
+                for (cloud.jengu.dbo.sync.Lanes.Reading lane
+                        : tenant.getValue().replication().readings()) {
+                    lanes.add(new PgChangeFeed.Reader("lane to " + lane.peer(), lane.cursor(),
+                            lane.since()));
+                }
+                PgChangeFeed.Pruned pruned = new PgChangeFeed(ds,
+                        cloud.jengu.dbo.work.WorkModel.DOMAIN).prune(lanes, PRUNED_PER_ROUND);
+                removed += pruned.removed();
+                if (pruned.removed() > 0) {
+                    LOG.info("work feed pruned: tenant={}, removed={}", code, pruned.removed());
+                }
+                PgChangeFeed.Reader held = pruned.heldBy();
+                if (held != null && held.since() != null && held.since().isBefore(
+                        java.time.Instant.now().minus(HELD_TOO_LONG))) {
+                    LOG.info("work feed held back: tenant={}, reader={}, unmoved since={}",
+                            code, held.name(), held.since());
+                }
+            } catch (RuntimeException e) {
+                // one tenant's failure never stops the others, and the next
+                // round tries again from the same state
+                LOG.warn("could not prune the work feed for tenant {}", code, e);
+            }
+        }
+        return removed;
+    }
+
     /**
      * One round of watching each tenant's own change feed for profiles that
      * arrived without this facade's knowledge.
@@ -7173,6 +7230,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
                         // than any token it signed can still be live is gone.
                         // Rotation without this is not rotation.
                         pruneSigningKeys();
+                        pruneWorkFeeds();
                     }
                     Thread.sleep(pollMillis);
                 } catch (InterruptedException e) {

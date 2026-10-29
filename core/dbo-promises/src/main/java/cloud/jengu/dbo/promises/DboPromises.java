@@ -2752,6 +2752,12 @@ public enum DboPromises implements Promise {
     FEED_PUSH_ACK_RESUME(
             "Push consumers acknowledge with the cursor; any interrupted stream resumes "
             + "from the last acknowledged position."),
+    FEED_A_FEED_LETS_GO_OF_WHAT_EVERY_READER_HAS_READ_PAST("A feed's outbox lets go of the "
+            + "events every reader has read past, its named consumers and each replication "
+            + "lane alike, and nothing any of them has not: a reader that has read nothing "
+            + "holds all of it, so no reader ever finds a gap. A reader that stopped holds the "
+            + "feed where it stopped, the tenant says which once it has stood still a week, "
+            + "and dropping it at the tenant's maintenance door lets the rest go."),
     FEED_IDEMPOTENT_DELIVERY(
             "Delivery is at-least-once with idempotent apply by identity and version."),
     FEED_NAMED_CONSUMERS(

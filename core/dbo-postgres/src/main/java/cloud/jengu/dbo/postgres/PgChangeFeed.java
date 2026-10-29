@@ -353,6 +353,119 @@ public final class PgChangeFeed implements ChangeFeed {
         }
     }
 
+    /**
+     * A reader of this feed and how far it has read: a cursor this feed's
+     * consumer table keeps, or one a reader keeps for itself and reads
+     * anonymously from.
+     *
+     * @param cursor where it has read to, or null for one that has read nothing
+     * @param since  when it last moved, as far as anybody knows; null if not
+     */
+    public record Reader(String name, String cursor, java.time.Instant since) {
+    }
+
+    /**
+     * What a prune let go, and the reader that kept it from letting go more.
+     *
+     * @param heldBy the slowest reader, or null where nothing reads this feed
+     */
+    public record Pruned(long removed, Reader heldBy) {
+    }
+
+    /**
+     * Lets go of what every reader of this feed has read past.
+     *
+     * <p><b>Every reader, so never a gap.</b> The floor is the slowest of them
+     * all, the named consumers and the readers named here, and a reader that
+     * has read nothing holds it at the beginning. A reader that never comes
+     * back holds it there for good, until somebody drops it: what this lets
+     * go is only ever what nobody will read again.
+     *
+     * <p>Below the floor, not at it: the event a reader stands on is kept, so a
+     * feed that delivered something still says where its head is.
+     *
+     * <p>A feed nothing reads lets go of nothing. Who will read it first is
+     * not known here, and what it is owed is not this method's to decide.
+     *
+     * @param also readers that keep their own cursors
+     * @param most the most events to let go in this call, in batches, so one
+     *             call never holds a transaction over millions of rows
+     */
+    public Pruned prune(List<Reader> also, long most) {
+        List<Reader> readers = new ArrayList<>(also);
+        try (Connection c = ds.getConnection()) {
+            try (PreparedStatement ps = c.prepareStatement(
+                    "SELECT name, cursor_xid::text, seq, updated_at FROM %s_consumer"
+                            .formatted(tables));
+                 ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    long xid = Long.parseLong(rs.getString(2));
+                    long seq = rs.getLong(3);
+                    readers.add(new Reader(rs.getString(1),
+                            xid == 0 && seq == 0 ? null : Cursors.encodeFeed(xid, seq),
+                            rs.getTimestamp(4).toInstant()));
+                }
+            }
+            if (readers.isEmpty()) {
+                return new Pruned(0, null);
+            }
+            Reader slowest = null;
+            Cursors.FeedCursor floor = null;
+            for (Reader reader : readers) {
+                if (reader.cursor() == null) {
+                    return new Pruned(0, reader);
+                }
+                Cursors.FeedCursor at = Cursors.decodeFeed(reader.cursor());
+                if (floor == null || at.xid() < floor.xid()
+                        || (at.xid() == floor.xid() && at.seq() < floor.seq())) {
+                    floor = at;
+                    slowest = reader;
+                }
+            }
+            long removed = 0;
+            int batch = 10_000;
+            try (PreparedStatement ps = c.prepareStatement("""
+                    DELETE FROM %s_outbox WHERE seq IN (
+                        SELECT seq FROM %s_outbox
+                        WHERE (xact_id, seq) < (?::text::xid8, ?)
+                        ORDER BY xact_id, seq LIMIT ?)""".formatted(tables, tables))) {
+                while (removed < most) {
+                    ps.setString(1, Long.toString(floor.xid()));
+                    ps.setLong(2, floor.seq());
+                    ps.setInt(3, (int) Math.min(batch, most - removed));
+                    int gone = ps.executeUpdate();
+                    removed += gone;
+                    if (gone < batch) {
+                        break;
+                    }
+                }
+            }
+            return new Pruned(removed, slowest);
+        } catch (SQLException e) {
+            throw new IllegalStateException("the feed could not be pruned", e);
+        }
+    }
+
+    /**
+     * Forgets a named consumer, so it no longer holds what it has not read.
+     *
+     * <p>For one that is gone for good. One that comes back afterwards reads
+     * from the oldest event still kept, as a consumer new to the feed does.
+     *
+     * @return whether there was one by that name
+     */
+    public boolean dropConsumer(String consumer) {
+        requireConsumer(consumer);
+        try (Connection c = ds.getConnection();
+             PreparedStatement ps = c.prepareStatement(
+                     "DELETE FROM %s_consumer WHERE name = ?".formatted(tables))) {
+            ps.setString(1, consumer);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            throw new IllegalStateException("the consumer could not be dropped", e);
+        }
+    }
+
     private static void requireConsumer(String consumer) {
         if (consumer == null || !CONSUMER.matcher(consumer).matches()) {
             throw new IllegalArgumentException("invalid consumer name: " + consumer);

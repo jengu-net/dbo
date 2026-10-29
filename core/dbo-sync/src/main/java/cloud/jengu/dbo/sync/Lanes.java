@@ -245,6 +245,34 @@ public final class Lanes {
     }
 
     /**
+     * Where each lane has read the work feed to, and when it last moved.
+     *
+     * <p>A lane reads that feed anonymously, from a cursor it keeps on its own
+     * record, so the feed's consumers do not include it: whatever lets go of
+     * the feed asks here as well.
+     */
+    public List<Reading> readings() {
+        List<Reading> readings = new ArrayList<>();
+        try (java.util.stream.Stream<StoredObject> lanes = cloud.jengu.dbo.core.api.Answered
+                .pagedBy(store::page, Criteria.of(LaneModel.TYPE))) {
+            lanes.forEach(stored -> {
+                Object json = Json.parse(new String(stored.payload(), StandardCharsets.UTF_8));
+                readings.add(new Reading(Json.str(json, "peer"), optional(json, "ourCursor"),
+                        stored.lastUpdated()));
+            });
+        }
+        return readings;
+    }
+
+    /**
+     * One lane's place in the work feed.
+     *
+     * @param cursor null for a lane that has sent nothing yet
+     */
+    public record Reading(String peer, String cursor, Instant since) {
+    }
+
+    /**
      * Records where the far side said it had reached.
      *
      * <p>Echoed rather than inferred: "where is the far side" should be a store
