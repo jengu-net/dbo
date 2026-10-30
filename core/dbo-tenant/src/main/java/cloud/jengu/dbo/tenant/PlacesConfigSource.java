@@ -43,6 +43,8 @@ final class PlacesConfigSource implements ConfigSource {
     private final Map<String, Origin> origins = new ConcurrentHashMap<>();
     /** The places whose origin did not answer on the last read, said once until it does. */
     private final Set<String> unanswered = ConcurrentHashMap.newKeySet();
+    /** The places whose declaration still names a repository, said once until it does not. */
+    private final Set<String> naming = ConcurrentHashMap.newKeySet();
     private volatile TenantRuntimeManager manager;
 
     /**
@@ -90,7 +92,7 @@ final class PlacesConfigSource implements ConfigSource {
         places.addAll(keptPlaces());
         List<ConfigApplication.Declared> declared = new ArrayList<>();
         for (String code : places) {
-            String declaration = read(code);
+            String declaration = asAPlace(code, read(code));
             TenantRuntimeManager serving = manager;
             if (serving != null) {
                 serving.servesAPlaceOf(code);
@@ -146,6 +148,24 @@ final class PlacesConfigSource implements ConfigSource {
                           {"name":"CodeSystem","identity":"canonical","handling":"operational"}]}"""
                         .formatted(root, face)).getBytes(StandardCharsets.UTF_8))));
         return beside;
+    }
+
+    /**
+     * The declaration as a place takes it: without the configuration
+     * repository it may still name, which is its origin's to apply.
+     */
+    private String asAPlace(String code, String declaration) {
+        java.util.Optional<String> without = TenantSpec.withoutItsRepository(declaration);
+        if (without.isEmpty()) {
+            naming.remove(code);
+            return declaration;
+        }
+        if (naming.add(code)) {
+            LOG.warn("place {}: its origin's declaration names configuration.git, so it is from "
+                    + "before the store kept the configuration repository; a place applies no "
+                    + "configuration, and serves without it", code);
+        }
+        return without.get();
     }
 
     /** The place's declaration from its origin when it answers, else the one kept for it. */

@@ -135,6 +135,43 @@ class ASiteServesItsPlacesAsTheyAreDeclaredTest {
                 "a root the deployment declares was declared a second time");
     }
 
+    @Test
+    @DisplayName("a place kept from before the store kept the configuration repository comes "
+            + "up on its declaration with its origin away, read without the repository it "
+            + "names; the same declaration at a tenant that is not a place is refused")
+    @Proving(DboPromises.SYNC_A_PLACE_TAKES_ITS_DECLARATION_WITHOUT_THE_REPOSITORY_IT_NAMES)
+    void aPlaceTakesItsDeclarationWithoutTheRepositoryItNames() throws Exception {
+        String before = """
+                {"code":"haru","face":"r4","name":"Haru \\"kliinik\\"",
+                 "types":[{"name":"Patient","identity":"internal","handling":"operational"}],
+                 "configuration":{"git":"/srv/config/haru.git","ref":"refs/tags/2026-09"}}""";
+        Files.writeString(kept.resolve("haru.json"), before);
+        PlacesConfigSource source = new PlacesConfigSource(kept, null);
+        source.reaches(origin("haru", null));
+
+        String taken = declared(source.fetch()).get("haru");
+
+        TenantSpec spec = TenantSpec.parse(taken);
+        assertEquals("haru", spec.code());
+        assertEquals("refs/tags/2026-09", spec.configuration().ref(),
+                "the ref the origin named was lost with the repository");
+        assertEquals(before, Files.readString(kept.resolve("haru.json")),
+                "the kept declaration is the origin's and was rewritten");
+
+        source.reaches(origin("haru", before));
+        assertEquals(taken, declared(source.fetch()).get("haru"),
+                "the origin's own answer was taken differently from the one kept");
+
+        ConfigApplication.Declared own = new ConfigApplication.Declared(
+                TenantDeclarationModel.TYPE, "kohalik",
+                before.replace("haru", "kohalik").getBytes(StandardCharsets.UTF_8));
+        String asDeclared = declared(new PlacesConfigSource(kept.resolve("none"),
+                () -> new ConfigSource.Fetch(List.of(own), "own", true)).fetch()).get("kohalik");
+        IllegalArgumentException refused = assertThrows(IllegalArgumentException.class,
+                () -> TenantSpec.parse(asDeclared));
+        assertTrue(refused.getMessage().contains("configuration.git"), refused.getMessage());
+    }
+
     private static Map<String, String> declared(ConfigSource.Fetch read) {
         Map<String, String> byName = new java.util.TreeMap<>();
         read.declarations().forEach(declared -> byName.put(declared.name(),

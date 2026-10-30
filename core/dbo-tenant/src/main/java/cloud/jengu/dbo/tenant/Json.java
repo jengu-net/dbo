@@ -46,6 +46,65 @@ final class Json {
         return array(node, field).stream().map(String::valueOf).toList();
     }
 
+    /** Writes a parsed value back out, in the order it was read. */
+    static String render(Object node) {
+        StringBuilder sb = new StringBuilder();
+        render(node, sb);
+        return sb.toString();
+    }
+
+    private static void render(Object node, StringBuilder sb) {
+        switch (node) {
+            case null -> sb.append("null");
+            case Map<?, ?> map -> {
+                sb.append('{');
+                boolean first = true;
+                for (Map.Entry<?, ?> e : map.entrySet()) {
+                    if (!first) {
+                        sb.append(',');
+                    }
+                    first = false;
+                    render(String.valueOf(e.getKey()), sb);
+                    sb.append(':');
+                    render(e.getValue(), sb);
+                }
+                sb.append('}');
+            }
+            case List<?> list -> {
+                sb.append('[');
+                for (int i = 0; i < list.size(); i++) {
+                    if (i > 0) {
+                        sb.append(',');
+                    }
+                    render(list.get(i), sb);
+                }
+                sb.append(']');
+            }
+            case String str -> {
+                sb.append('"');
+                for (char c : str.toCharArray()) {
+                    switch (c) {
+                        case '"' -> sb.append("\\\"");
+                        case '\\' -> sb.append("\\\\");
+                        default -> {
+                            if (c < 0x20) {
+                                sb.append(String.format("\\u%04x", (int) c));
+                            } else {
+                                sb.append(c);
+                            }
+                        }
+                    }
+                }
+                sb.append('"');
+            }
+            // Plain where it was read plain: BigDecimal's own toString turns
+            // 0.0000001 into 1E-7.
+            case java.math.BigDecimal decimal -> sb.append(
+                    decimal.scale() >= 0 ? decimal.toPlainString() : decimal.toString());
+            default -> sb.append(node);
+        }
+    }
+
     private static final class Parser {
         private final String s;
         private int i;

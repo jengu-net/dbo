@@ -1408,6 +1408,31 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
         return new Configuration(Json.strOpt(configured, "ref"), Json.strOpt(configured, "key"));
     }
 
+    /**
+     * A place's declaration without the repository it names, or empty when it
+     * names none.
+     *
+     * <p>A place never applies its owner's configuration, so the part
+     * {@link #configurationOf} refuses is one it would never act on. The
+     * declaration a place keeps from before the store kept the repository
+     * still names one, and refusing it would keep the place down while its
+     * origin is away, which is when a place is needed.
+     */
+    static java.util.Optional<String> withoutItsRepository(String json) {
+        Object root;
+        try {
+            root = Json.parse(json);
+        } catch (RuntimeException unreadable) {
+            return java.util.Optional.empty(); // refused where it is applied, with its reason
+        }
+        if (!(Json.objOpt(root, "configuration") instanceof java.util.Map<?, ?> configured)
+                || !configured.containsKey("git")) {
+            return java.util.Optional.empty();
+        }
+        configured.remove("git");
+        return java.util.Optional.of(Json.render(root));
+    }
+
     private static Set<String> exchangesOf(Object root) {
         Set<String> once = new java.util.HashSet<>();
         for (String process : Json.strings(root, "exchanges")) {
