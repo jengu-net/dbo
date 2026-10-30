@@ -538,6 +538,7 @@ public enum DboStories implements Story {
                     DboPromises.SYNC_A_PLACE_TAKES_ITS_FACE_FROM_A_ROOT_BESIDE_IT,
                     DboPromises.SYNC_A_PLACE_SERVES_WHAT_IT_HOLDS_WHILE_ITS_ORIGIN_IS_AWAY,
                     DboPromises.SYNC_A_PLACE_LEAVES_ITS_OWNERS_CONFIGURATION_TO_ITS_ORIGIN,
+                    DboPromises.SYNC_A_PLACE_TAKES_ITS_DECLARATION_WITHOUT_THE_REPOSITORY_IT_NAMES,
                     DboPromises.SYNC_A_PLACE_LETS_GO_OF_WHAT_ITS_OLD_CONFIGURATION_APPLIED,
                     DboPromises.SYNC_A_PERSON_LETS_A_LOCAL_OVERRIDE_GO,
                     DboPromises.SYNC_LETTING_AN_OVERRIDE_GO_SAYS_WHAT_IT_WAS_FOR,
