@@ -288,10 +288,13 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
                             + "one request it fulfils — declare one slot, as "
                             + "Reference(ServiceRequest); it takes " + slots);
                 }
-                if (!writes.isEmpty() || retry != null || automate != null) {
+                // What it writes is written by the people working it while it
+                // is open; nothing performs it, so nothing is retried or
+                // automated.
+                if (retry != null || automate != null) {
                     throw new IllegalArgumentException(code + ": lasts, and is performed by "
-                            + "nobody — what it writes, retries and automates is its parts' "
-                            + "to say, not its own");
+                            + "nobody — what it retries and automates is its parts' to say, "
+                            + "not its own");
                 }
                 if (starts != null && starts.every() != null) {
                     throw new IllegalArgumentException(code + ": lasts, and is opened for a "

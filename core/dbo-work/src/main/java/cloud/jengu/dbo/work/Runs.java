@@ -699,6 +699,21 @@ public final class Runs {
     }
 
     /**
+     * Records written under lasting work while it is open, by somebody working
+     * it: kept among what the work produced, and an act under it naming who.
+     *
+     * @param versions what was written, as {@code Type/id/version}
+     */
+    public Run written(Run lasting, List<String> versions, String by) {
+        if (versions.isEmpty()) {
+            throw new IllegalArgumentException("nothing was written under '" + lasting.key()
+                    + "'");
+        }
+        return said(lasting, "written", by, String.join(" ", versions), null,
+                producing(versions));
+    }
+
+    /**
      * One of the provider's people joined to handed work by whoever holds
      * it: they read it and write in it, and act on nothing else under it.
      *
@@ -1692,6 +1707,12 @@ public final class Runs {
 
     /** What closing over a committed result writes: the versions named, and done. */
     private java.util.function.UnaryOperator<State> closing(List<String> versions) {
+        return snapshot -> answered(producing(versions).apply(snapshot)
+                .withStanding(snapshot.standing().as(Status.COMPLETED)));
+    }
+
+    /** The versions named among what the run produced, beyond a watermark past a few. */
+    private java.util.function.UnaryOperator<State> producing(List<String> versions) {
         return snapshot -> {
             Run.Produced before = snapshot.produced();
             List<String> named = new ArrayList<>(before.versions());
@@ -1704,9 +1725,8 @@ public final class Runs {
                     watermark.merge(parts[0], Long.parseLong(parts[2]), Math::max);
                 }
             }
-            return answered(snapshot.withProduced(new Run.Produced(List.copyOf(named),
-                            Map.copyOf(watermark), before.counted() + versions.size()))
-                    .withStanding(snapshot.standing().as(Status.COMPLETED)));
+            return snapshot.withProduced(new Run.Produced(List.copyOf(named),
+                    Map.copyOf(watermark), before.counted() + versions.size()));
         };
     }
 

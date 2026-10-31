@@ -200,7 +200,9 @@ POST /t/<tenant>/run/<id>/leave   { "person": "Practitioner/<id>" }
 ```
 
 A colleague joined reads the work's context with their own token from the
-provider, and holds no claim: its acts and its parts stay the holder's. The work
+provider, and writes under it what the step declares
+([work that lasts](processes-and-steps.md#work-that-lasts)); they hold no claim,
+and its acts and its parts stay the holder's. The work
 lists them in `for.joined`, by absolute reference to the provider's base, and each
 join is an act under the work naming them. The tenant takes any of them off with
 `leave` and that reference; the provider takes them off only through the holder.
@@ -232,9 +234,6 @@ names the test behind each.
 
 ## What the store cannot do yet
 
-- **A person of the provider writes nothing through handed work.** Handed work
-  lasts, and work that lasts writes nothing of its own; the parts they start are
-  performed by the tenant's own participants and people.
 - **A fleet step writes nothing.** No tenant's declaration says what the
   deployment's step may write, so its result is a tally and no records.
 - **A deployment cannot name its processor** in configuration, so none is

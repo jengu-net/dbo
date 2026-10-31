@@ -144,6 +144,27 @@ class WorkHandedToTheProviderIsOfferedToNoParticipantTest {
     }
 
     @Test
+    @DisplayName("what is written under open work is kept among what it produced, said under "
+            + "it naming who wrote, and leaves the work where it stood")
+    @Proving(DboPromises.PROC_WORK_THAT_LASTS_IS_WRITTEN_IN_WHILE_OPEN)
+    void writtenUnderOpenWork() {
+        String grace = "https://mom.example/t/mom/fhir/Practitioner/grace";
+        Run open = runs.opening(INCIDENTS, "incident", "CommunicationRequest/8",
+                "Practitioner/admin", null, "mom");
+        Run written = runs.written(open, List.of("Basic/1/1"), grace);
+        assertEquals(List.of("Basic/1/1"), written.produced().versions(),
+                "what was written is not among what the work produced");
+        assertEquals(open.status(), written.status(), "writing moved the work");
+        assertTrue(runs.items(written).stream().anyMatch(act -> "written".equals(act.step())
+                        && act.assignment() != null && grace.equals(act.assignment().claimant())),
+                "the work's account does not say who wrote under it");
+        Run over = runs.ended(written, Status.COMPLETED, "Practitioner/admin", "fixed");
+        assertThrows(IllegalStateException.class,
+                () -> runs.written(over, List.of("Basic/2/1"), grace),
+                "something was written under work that is over");
+    }
+
+    @Test
     @DisplayName("work that is over is neither handed nor taken back, and a run that does not "
             + "last is never handed")
     @Proving(DboPromises.PROC_LASTING_WORK_IS_HANDED_TO_THE_PROVIDER_AND_TAKEN_BACK)

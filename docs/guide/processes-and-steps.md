@@ -274,6 +274,20 @@ Whoever holds a `work` credential for the step says them at the run's address:
 work, naming who said it. A part reads the work it is part of, request and stage,
 as `Work.parent()`.
 
+Work that lasts may declare `writes`, and while it is open whoever holds it
+writes those records under it, as a transaction at its own base:
+
+```http
+POST /t/<tenant>/run/<id>/fhir   { "resourceType": "Bundle", "type": "transaction", "entry": [ … ] }
+```
+
+The transaction is held to the step's `writes` exactly as a result is. Each
+version is written under the work, kept among what it produced, and the write is
+an act under it naming who wrote. The work stays where it stood: what moves it is
+what is said of it and its parts. A write the tenant will not hold is answered
+`422` with its words and nothing of it is written; work that is over answers as
+work that does not exist.
+
 A tenant may hand such work to its service provider, for the provider's people to
 carry out, by saying so on the step:
 

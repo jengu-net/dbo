@@ -420,6 +420,16 @@ public enum DboPromises implements Promise {
             + "Work that is over is neither accepted nor moved, and a part's result that would "
             + "move it is refused whole."),
 
+    PROC_WORK_THAT_LASTS_IS_WRITTEN_IN_WHILE_OPEN(
+            "Work that lasts may declare what it writes, and while it is open whoever holds it, "
+            + "and a colleague of the provider its holder joined to it, write those records "
+            + "under it as a transaction: held to the step's declaration exactly as a result "
+            + "is, written as the tenant under the work, kept among what the work produced, "
+            + "and each write an act recorded under the work naming who wrote. The work stays "
+            + "where it stood. A write the tenant will not hold is answered with its words "
+            + "and nothing of it is written; anybody else, and work that is over, is answered "
+            + "as work that does not exist."),
+
     PROC_WORK_THAT_LASTS_READS_AS_A_FULFILMENT_TASK("Work that lasts reads as FHIR's "
             + "fulfilment Task: its focus is the request it fulfils, it instantiates its step, "
             + "its status goes from received through accepted or rejected and in progress to "
@@ -1282,7 +1292,7 @@ public enum DboPromises implements Promise {
             + "provider with that token, holding no credential of the tenant's: the token is "
             + "admitted while a row of the tenant's register handing a step stands, and "
             + "reaches those steps, and the parts the tenant lets their holder start, and "
-            + "nothing else — no record. The "
+            + "nothing else — no record outside the work they hold. The "
             + "person holds the work, with no deadline, as a role the provider vouched for in "
             + "the token, and the work names that role as its owner by absolute reference to "
             + "the provider's base; taking it is an act recorded under the work naming the "

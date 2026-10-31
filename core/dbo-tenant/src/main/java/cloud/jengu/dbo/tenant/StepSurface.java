@@ -1033,6 +1033,11 @@ final class StepSurface implements HttpHandler {
             TenantAuthority.AuthContext admitted) throws IOException {
         String asking = admitted.clientId();
         String[] segments = relative.split("/");
+        if (segments.length == 2 && "fhir".equals(segments[1])
+                && "POST".equals(exchange.getRequestMethod())) {
+            writeUnder(exchange, segments[0], admitted);
+            return;
+        }
         if (admitted.vouched() != null && segments.length == 2) {
             // A person of the provider takes handed work, and once they hold
             // it says its own acts and lets it go. Handing it over and taking
@@ -1354,6 +1359,83 @@ final class StepSurface implements HttpHandler {
         }
         respond(exchange, 200, "{\"run\":" + quote(ended.id()) + ",\"key\":"
                 + quote(ended.key()) + ",\"status\":" + quote(ended.status().wire()) + "}");
+    }
+
+    /**
+     * POST /run/&lt;id&gt;/fhir — a transaction written under lasting work while
+     * it is open, by whoever holds it or a colleague the holder joined to it.
+     *
+     * <p>Held to what the step declares it writes, through the same commit a
+     * result goes through, and under the run, so each version names the work
+     * and the person who wrote it. The work stays open: what moves it is its
+     * acts and its parts, and a record is neither. A write the tenant will not
+     * hold is answered with its words and nothing of it is written; anybody
+     * else, and work that is over, is answered as a run that does not exist.
+     */
+    private void writeUnder(HttpExchange exchange, String id,
+            TenantAuthority.AuthContext asking) throws IOException {
+        Optional<Run> found = runs.byId(id);
+        if (found.isEmpty() || !found.get().lasting()
+                || !(held(found, asking.clientId()) || joined(found, asking))) {
+            fail(exchange, 404, "not_found", "no such run");
+            return;
+        }
+        Object bundle = Json.parse(new String(exchange.getRequestBody().readAllBytes(),
+                StandardCharsets.UTF_8));
+        if (!"Bundle".equals(Json.strOpt(bundle, "resourceType"))
+                || !"transaction".equals(Json.strOpt(bundle, "type"))) {
+            fail(exchange, 400, "invalid_request", "what is written under work is a "
+                    + "transaction Bundle");
+            return;
+        }
+        List<Object> entries = new java.util.ArrayList<>();
+        for (Object entry : Json.objOpt(bundle, "entry") instanceof List<?> given
+                ? given : List.of()) {
+            Object request = Json.objOpt(entry, "request");
+            Map<String, Object> write = new LinkedHashMap<>();
+            write.put("resource", Json.objOpt(entry, "resource"));
+            write.put("fullUrl", Json.objOpt(entry, "fullUrl"));
+            if (request != null) {
+                write.put("method", Json.objOpt(request, "method"));
+                write.put("url", Json.objOpt(request, "url"));
+                String ifMatch = Json.strOpt(request, "ifMatch");
+                // A bundle says the version as an ETag, W/"n"; a write, as n.
+                write.put("ifMatch", ifMatch == null ? null
+                        : ifMatch.replaceAll("[^0-9]", ""));
+            }
+            entries.add(write);
+        }
+        List<cloud.jengu.dbo.runner.Outcome.Write> writes =
+                writesOf(Map.of("writes", entries));
+        if (writes.isEmpty()) {
+            fail(exchange, 400, "invalid_request", "the transaction writes nothing");
+            return;
+        }
+        List<String> versions;
+        String outer = cloud.jengu.dbo.core.api.Caller.run();
+        cloud.jengu.dbo.core.api.Caller.setRun(found.get().key());
+        try {
+            versions = results.commit(found.get(), writes);
+        } catch (cloud.jengu.dbo.runner.Lane.Results.Refused refused) {
+            fail(exchange, 422, "refused", String.valueOf(refused.getMessage()));
+            return;
+        } finally {
+            if (outer == null) {
+                cloud.jengu.dbo.core.api.Caller.clearRun();
+            } else {
+                cloud.jengu.dbo.core.api.Caller.setRun(outer);
+            }
+        }
+        // The records are the tenant's by now, under the run, and the answer
+        // says so; work that ended between the look above and here keeps
+        // them without an act saying so.
+        try {
+            runs.written(found.get(), versions, cloud.jengu.dbo.core.api.Caller.current());
+        } catch (IllegalStateException over) {
+            // Said by the versions' own trail entries, which name the run.
+        }
+        respond(exchange, 200, "{\"run\":" + quote(found.get().id()) + ",\"versions\":["
+                + String.join(",", versions.stream().map(StepSurface::quote).toList()) + "]}");
     }
 
     /**

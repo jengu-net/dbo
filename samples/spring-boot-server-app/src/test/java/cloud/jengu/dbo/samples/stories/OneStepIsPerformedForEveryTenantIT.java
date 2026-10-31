@@ -695,6 +695,7 @@ class OneStepIsPerformedForEveryTenantIT {
             DboPromises.PROC_A_PERSON_OF_THE_PROVIDER_TAKES_WORK_HANDED_TO_IT,
             DboPromises.PROC_A_PERSON_OF_THE_PROVIDER_STARTS_PARTS_OF_WORK_THEY_HOLD,
             DboPromises.PROC_THE_PROVIDERS_PEOPLE_JOIN_HANDED_WORK,
+            DboPromises.PROC_WORK_THAT_LASTS_IS_WRITTEN_IN_WHILE_OPEN,
             DboPromises.PROC_A_PERSON_OF_THE_PROVIDER_ACTS_ON_WORK_THEY_HOLD})
     void aPersonOfTheProviderWorksWhatTheClinicHandsIt() throws Exception {
         String declines = ",\"declines\":[\"" + STEP + "\"]";
@@ -855,11 +856,38 @@ class OneStepIsPerformedForEveryTenantIT {
                         && !runs(CLINIC).byId(handed).orElseThrow().heldBy(grace,
                                 java.time.Instant.now()),
                 "the colleague she brought in does not read the repair, or acted on it");
+        String stood = runs(CLINIC).byId(handed).orElseThrow().status().wire();
+        HttpResponse<String> finding = writeUnder(handed, colleague, "Basic",
+                "the valve seat is cracked");
+        assertEquals(200, finding.statusCode(), finding.body());
+        Run found = runs(CLINIC).byId(handed).orElseThrow();
+        Proves.that(DboPromises.PROC_WORK_THAT_LASTS_IS_WRITTEN_IN_WHILE_OPEN,
+                found.produced().versions().stream().anyMatch(v -> v.startsWith("Basic/"))
+                        && stood.equals(found.status().wire())
+                        && runs(CLINIC).items(found).stream().anyMatch(act ->
+                                "written".equals(act.step()) && act.assignment() != null
+                                        && grace.equals(act.assignment().claimant())),
+                "the finding the colleague wrote is not the repair's, moved it, or is not "
+                        + "said to be hers: " + found.produced());
+        HttpResponse<String> undeclared = writeUnder(handed, colleague, "Organization",
+                "a supplier");
+        Proves.that(DboPromises.PROC_WORK_THAT_LASTS_IS_WRITTEN_IN_WHILE_OPEN,
+                undeclared.statusCode() == 422 && undeclared.body().contains("Organization")
+                        && writeUnder(handed, token, "Basic", "parts ordered")
+                                .statusCode() == 200
+                        && writeUnder(kept, dbo.workToken(CLINIC), "Basic", "lift serviced")
+                                .statusCode() == 200,
+                "a write the repair does not declare was not refused by name, or the holder "
+                        + "or the clinic holding its own work could not write: "
+                        + undeclared.body());
         assertEquals(200, atTheRun(handed, "leave", token,
                 "{\"person\":\"Practitioner/" + graceAt + "\"}").statusCode());
         Proves.that(DboPromises.PROC_THE_PROVIDERS_PEOPLE_JOIN_HANDED_WORK,
                 atTheRun(handed, context, colleague, null).statusCode() == 404,
                 "the colleague she took off still read the repair");
+        Proves.that(DboPromises.PROC_WORK_THAT_LASTS_IS_WRITTEN_IN_WHILE_OPEN,
+                writeUnder(handed, colleague, "Basic", "one more").statusCode() == 404,
+                "the colleague she took off still wrote under the repair");
         assertEquals(200, atTheRun(handed, "join", token,
                 "{\"person\":\"Practitioner/" + graceAt + "\"}").statusCode());
         assertEquals(200, atTheRun(handed, "leave", dbo.workToken(CLINIC),
@@ -921,7 +949,8 @@ class OneStepIsPerformedForEveryTenantIT {
     private static String handing(String more) {
         return clinic(OWN_STEP, more).replace("\"steps\":[", "\"steps\":["
                 + "{\"code\":\"" + REPAIR + "\",\"slots\":{\"request\":\"Reference(Basic)\"},"
-                + "\"lasts\":true,\"handsTo\":\"provider\",\"holdersStart\":[\"" + DIAGNOSE
+                + "\"lasts\":true,\"handsTo\":\"provider\",\"writes\":[\"Basic\"],"
+                + "\"holdersStart\":[\"" + DIAGNOSE
                 + "\"]},{\"code\":\"" + DIAGNOSE + "\","
                 + "\"slots\":{\"request\":\"Reference(Basic)\"}},");
     }
@@ -933,6 +962,16 @@ class OneStepIsPerformedForEveryTenantIT {
                 .filter(row -> REPAIR.equals(row.get("partOf"))
                         && DIAGNOSE.equals(row.get("step")))
                 .findFirst().orElseThrow();
+    }
+
+    /** One record of a type, written under the work as a transaction. */
+    private HttpResponse<String> writeUnder(String run, String token, String type, String text) {
+        String record = "Basic".equals(type)
+                ? "{\"resourceType\":\"Basic\",\"code\":{\"text\":\"" + text + "\"}}"
+                : "{\"resourceType\":\"" + type + "\",\"name\":\"" + text + "\"}";
+        return atTheRun(run, "fhir", token, "{\"resourceType\":\"Bundle\","
+                + "\"type\":\"transaction\",\"entry\":[{\"resource\":" + record
+                + ",\"request\":{\"method\":\"POST\",\"url\":\"" + type + "\"}}]}");
     }
 
     /** A part of handed work, asked for at the clinic's step door. */
