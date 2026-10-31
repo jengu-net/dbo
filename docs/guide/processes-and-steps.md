@@ -301,7 +301,9 @@ then carries a row of the tenant's own, `"authority": "tenant"`, for the request
 the work fulfils. The row stands once the tenant has authorised it, and removing
 `handsTo` declines it. Only work that lasts is handed, and only to the provider. A provider
 cannot hand its own work to itself, and a deployment with no provider refuses the
-tenant.
+tenant. A [place](one-tenant-in-two-places.md) of the tenant takes the same declaration and serves
+the work as the tenant's own: handing over, taking back and the provider's people
+stay at its origin, and a place asked to hand work over answers `409 not_here`.
 
 `holdersStart` beside `handsTo` names the steps a person of the provider holding
 the work may start as its parts:

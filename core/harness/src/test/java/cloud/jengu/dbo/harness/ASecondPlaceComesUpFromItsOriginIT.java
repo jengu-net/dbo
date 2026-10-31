@@ -109,6 +109,14 @@ class ASecondPlaceComesUpFromItsOriginIT {
               {"name":"Basic","identity":"internal","handling":"projected-config"}]}"""
             .formatted(CLINIC, ROOT, COUNTY, "jaam.lab.record", BENCHES);
 
+    /**
+     * The clinic as its origin declares it on a deployment with a provider:
+     * its orders handed to the provider. The cloud here has none and would
+     * refuse it, so only the site is handed this one.
+     */
+    private static final String HANDING_DECLARATION = CLINIC_DECLARATION.replace(
+            "\"lasts\":true}", "\"lasts\":true,\"handsTo\":\"provider\"}");
+
     /** The step the site performs on its own runners: a result captured from an instrument. */
     private static final String RECORD = "jaam.lab.record";
 
@@ -188,7 +196,7 @@ class ASecondPlaceComesUpFromItsOriginIT {
         site.readsItsOriginThrough(CLINIC, connected());
         Files.writeString(siteDir.resolve(ROOT + ".json"), ROOT_DECLARATION);
         UntilServed.scan(site, ROOT);
-        Files.writeString(siteDir.resolve(CLINIC + ".json"), CLINIC_DECLARATION);
+        Files.writeString(siteDir.resolve(CLINIC + ".json"), HANDING_DECLARATION);
         long began = System.currentTimeMillis();
         UntilServed.scan(site, CLINIC);
         System.out.println("MEASURED a place's first bring-up from its origin: "
@@ -242,6 +250,52 @@ class ASecondPlaceComesUpFromItsOriginIT {
     void aPlaceLeavesItsOwnersConfigurationToItsOrigin() {
         assertEquals(TenantState.State.SERVING, stateOf(site, CLINIC),
                 "the site's clinic is not serving as itself: " + site.troubles().get(CLINIC));
+    }
+
+    @Test
+    @Order(0)
+    @DisplayName("the site's clinic, whose declaration hands its orders to the provider, came up "
+            + "serving them as its own, and asking it to hand one over is answered as not here")
+    @Proving(DboPromises.SYNC_A_PLACE_LEAVES_HANDING_WORK_OVER_TO_ITS_ORIGIN)
+    void aPlaceLeavesHandingWorkOverToItsOrigin() throws Exception {
+        assertTrue(HANDING_DECLARATION.contains("\"handsTo\":\"provider\""),
+                "the site was not handed a declaration that hands work over");
+        assertEquals(TenantState.State.SERVING, stateOf(site, CLINIC),
+                "the site's clinic is not serving: " + site.troubles().get(CLINIC));
+        HttpResponse<String> written = http.send(HttpRequest.newBuilder(
+                        URI.create(base(site, CLINIC) + "/fhir/Observation"))
+                        .header("Authorization", "Bearer " + writer(site, CLINIC))
+                        .header("Content-Type", "application/fhir+json")
+                        .POST(HttpRequest.BodyPublishers.ofString(OBSERVATION)).build(),
+                HttpResponse.BodyHandlers.ofString());
+        assertEquals(201, written.statusCode(), written.body());
+        java.util.regex.Matcher id = java.util.regex.Pattern.compile("\"id\":\"([^\"]+)\"")
+                .matcher(written.body());
+        assertTrue(id.find(), written.body());
+        site.authority(CLINIC).ensureClient("orders", "orders-secret", List.of("work"));
+        String orders = clientToken(site, CLINIC, "orders", "orders-secret");
+
+        HttpResponse<String> handed = order(id.group(1), ",\"for\":{\"provider\":true}",
+                orders);
+        assertEquals(409, handed.statusCode(), handed.body());
+        assertTrue(handed.body().contains("not_here"),
+                "asking a place to hand work over was not answered as not here: "
+                        + handed.body());
+        HttpResponse<String> kept = order(id.group(1), "", orders);
+        assertEquals(201, kept.statusCode(),
+                "the site's clinic does not open its orders as its own: " + kept.body());
+    }
+
+    /** An order opened at the site's clinic over an observation it holds. */
+    private static HttpResponse<String> order(String observation, String more, String token)
+            throws Exception {
+        return http.send(HttpRequest.newBuilder(
+                        URI.create(base(site, CLINIC) + "/step/jaam.lab.order"))
+                        .header("Authorization", "Bearer " + token)
+                        .header("Content-Type", "application/json")
+                        .POST(HttpRequest.BodyPublishers.ofString("{\"inputs\":{\"order\":"
+                                + "\"Observation/" + observation + "\"}" + more + "}")).build(),
+                HttpResponse.BodyHandlers.ofString());
     }
 
     @Test

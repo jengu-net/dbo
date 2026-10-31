@@ -3153,6 +3153,13 @@ public enum DboPromises implements Promise {
             + "origin's work. A place declared with its origin's "
             + "configuration comes up serving, and is not degraded for want of a repository "
             + "it was never meant to hold."),
+    SYNC_A_PLACE_LEAVES_HANDING_WORK_OVER_TO_ITS_ORIGIN(
+            "A place of a tenant comes up on a declaration whose steps hand work to the "
+            + "provider and serves that work as the tenant's own: handing it over, taking it "
+            + "back, and the provider's people taking it stay at the origin, whatever provider "
+            + "the place's own deployment has. Asking a place to hand work over is answered as "
+            + "not done here, and the tenant is not refused for it."),
+
     SYNC_A_PLACE_TAKES_ITS_DECLARATION_WITHOUT_THE_REPOSITORY_IT_NAMES(
             "A place takes its origin's declaration without the configuration repository that "
             + "declaration may still name, kept from before the store kept the repository, and "

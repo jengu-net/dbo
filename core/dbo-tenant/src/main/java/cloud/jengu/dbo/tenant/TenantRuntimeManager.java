@@ -2266,7 +2266,9 @@ public final class TenantRuntimeManager implements AutoCloseable {
         List<FleetRegister.Row> rows = new java.util.ArrayList<>(
                 FleetRegister.of(declaredFleetSteps, declinedBy(tenant)));
         TenantRuntime serving = runtimes.get(tenant);
-        if (serving != null) {
+        // Rows a place would never act on, since its origin hands the work
+        // over: a register listing them would be one nobody can act on.
+        if (serving != null && !places.contains(tenant)) {
             rows.addAll(FleetRegister.handed(serving.spec().steps()));
         }
         rows.addAll(FleetRegister.ofZones(zones.chainOf(tenant), zones::permitted));
@@ -2456,6 +2458,11 @@ public final class TenantRuntimeManager implements AutoCloseable {
         }
 
         @Override
+        public boolean aPlace(String tenant) {
+            return places.contains(tenant);
+        }
+
+        @Override
         public boolean holdersStart(String tenant, String handedStep, String part) {
             if (handedToOf(tenant, handedStep) == null) {
                 return false;
@@ -2476,7 +2483,9 @@ public final class TenantRuntimeManager implements AutoCloseable {
      */
     private String handedToOf(String tenant, String stepCode) {
         String provider = managementCode;
-        if (provider == null || provider.equals(tenant)
+        // A place's deployment may have a provider of its own, and it is not
+        // the one the tenant hands work to.
+        if (provider == null || provider.equals(tenant) || places.contains(tenant)
                 || withheldFrom(tenant).contains(stepCode)) {
             return null;
         }
@@ -2773,7 +2782,11 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 tree.refuseTakingFromAPeer(spec, managementCode);
                 aPartnerIsTheProvidersPartner(spec);
                 aPartnerIsNotDeclaredByTheTenantItFollows(spec);
-                workIsHandedToAProvider(spec, managementCode);
+                // A place hands nothing over: its origin does, where the
+                // tenant's provider is, so a place has nothing to check.
+                if (!places.contains(spec.code())) {
+                    workIsHandedToAProvider(spec, managementCode);
+                }
                 // It parsed and it is being served, so a later refusal of the
                 // same file is news rather than a repeat.
                 refusals.applied(named);

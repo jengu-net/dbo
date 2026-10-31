@@ -210,6 +210,11 @@ final class StepSurface implements HttpHandler {
             return false;
         }
 
+        /** Whether this node serves the tenant as a place of it, its origin elsewhere. */
+        default boolean aPlace(String tenant) {
+            return false;
+        }
+
         /** The step's slots, and why it is not startable here if it is not. */
         record Offer(Map<String, String> slots, String refusedBecause,
                 TenantSpec.Step.Awaits awaits) {
@@ -607,7 +612,7 @@ final class StepSurface implements HttpHandler {
             }
             provider = fleet.handedTo(tenant, stepCode);
             if (provider == null) {
-                return refused(409, "refused", notHandedBecause(stepCode));
+                return notHanded(stepCode);
             }
         } else if (Json.objOpt(body, "for") instanceof Map<?, ?> named) {
             Object client = named.get("client");
@@ -946,10 +951,17 @@ final class StepSurface implements HttpHandler {
     }
 
     /** Why this tenant's work of a step may not be handed to the provider now. */
-    private static String notHandedBecause(String stepCode) {
-        return stepCode + " hands its work to the provider under a row of this tenant's "
-                + "register, and the row does not stand: authorise it in this tenant's "
-                + "declaration, on a deployment with a provider, to hand work over";
+    private Started notHanded(String stepCode) {
+        if (fleet.aPlace(tenant)) {
+            // Not a refusal of the tenant: the work is handed over where the
+            // tenant's provider is, and a place is not there.
+            return refused(409, "not_here", stepCode + " hands its work to the provider at "
+                    + "this tenant's origin, and a place of it hands nothing over: ask there");
+        }
+        return refused(409, "refused", stepCode + " hands its work to the provider under a "
+                + "row of this tenant's register, and the row does not stand: authorise it in "
+                + "this tenant's declaration, on a deployment with a provider, to hand work "
+                + "over");
     }
 
     /** What may be said of lasting work, as the last segment of its address. */
@@ -974,7 +986,7 @@ final class StepSurface implements HttpHandler {
         String stepCode = found.get().process() + "." + found.get().step();
         String provider = "hand".equals(act) ? fleet.handedTo(tenant, stepCode) : null;
         if ("hand".equals(act) && provider == null) {
-            return refused(409, "refused", notHandedBecause(stepCode));
+            return notHanded(stepCode);
         }
         try {
             Run moved = switch (act) {
