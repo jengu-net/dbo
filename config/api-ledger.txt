@@ -3331,6 +3331,7 @@ cloud.jengu.dbo.promises.DboPromises                                   PROC_TASK
 cloud.jengu.dbo.promises.DboPromises                                   PROC_THE_ASKER_READS_NOTHING_WHILE_THE_WORK_IS_DONE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_THE_JOINER_OFFERS_EVERY_TENANTS_WORK:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_THE_LANE_HAS_TWO_BOUNDS:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   PROC_THE_PROVIDERS_PEOPLE_JOIN_HANDED_WORK:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_THE_PROVIDER_SEES_WHO_ACKNOWLEDGED:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_THE_REGISTER_IS_READ_AT_A_DOOR:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_THE_ROUTER_HOLDS_THE_CLAIM:cloud.jengu.dbo.promises.DboPromises
@@ -5624,9 +5625,13 @@ cloud.jengu.dbo.work.Run.Addressee                                     client():
 cloud.jengu.dbo.work.Run.Addressee                                     equals(Object):boolean
 cloud.jengu.dbo.work.Run.Addressee                                     executor():String
 cloud.jengu.dbo.work.Run.Addressee                                     hashCode():int
+cloud.jengu.dbo.work.Run.Addressee                                     joined():List
+cloud.jengu.dbo.work.Run.Addressee                                     joining(String):cloud.jengu.dbo.work.Run.Addressee
+cloud.jengu.dbo.work.Run.Addressee                                     leaving(String):cloud.jengu.dbo.work.Run.Addressee
 cloud.jengu.dbo.work.Run.Addressee                                     names(String,String):boolean
 cloud.jengu.dbo.work.Run.Addressee                                     new(String,String)
 cloud.jengu.dbo.work.Run.Addressee                                     new(String,String,String)
+cloud.jengu.dbo.work.Run.Addressee                                     new(String,String,String,List)
 cloud.jengu.dbo.work.Run.Addressee                                     provider():String
 cloud.jengu.dbo.work.Run.Addressee                                     provider(String):cloud.jengu.dbo.work.Run.Addressee
 cloud.jengu.dbo.work.Run.Addressee                                     record
@@ -5884,7 +5889,9 @@ cloud.jengu.dbo.work.Runs                                              handBack(
 cloud.jengu.dbo.work.Runs                                              handed(cloud.jengu.dbo.work.Run,String,String,String):cloud.jengu.dbo.work.Run
 cloud.jengu.dbo.work.Runs                                              item(cloud.jengu.dbo.work.Run,String,cloud.jengu.dbo.work.Failure,String):cloud.jengu.dbo.work.Run
 cloud.jengu.dbo.work.Runs                                              items(cloud.jengu.dbo.work.Run):List
+cloud.jengu.dbo.work.Runs                                              joined(cloud.jengu.dbo.work.Run,String,String):cloud.jengu.dbo.work.Run
 cloud.jengu.dbo.work.Runs                                              lapsed(Instant):List
+cloud.jengu.dbo.work.Runs                                              left(cloud.jengu.dbo.work.Run,String,String):cloud.jengu.dbo.work.Run
 cloud.jengu.dbo.work.Runs                                              letGo(cloud.jengu.dbo.work.Run,String,String):cloud.jengu.dbo.work.Run
 cloud.jengu.dbo.work.Runs                                              matching(String,String,cloud.jengu.dbo.work.Awaits,int):List
 cloud.jengu.dbo.work.Runs                                              milestone(cloud.jengu.dbo.work.Run,String,Map,Instant):cloud.jengu.dbo.work.Run

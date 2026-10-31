@@ -954,7 +954,7 @@ final class StepSurface implements HttpHandler {
 
     /** What may be said of lasting work, as the last segment of its address. */
     static final java.util.Set<String> SAID = java.util.Set.of("accept", "reject", "stage", "end",
-            "hand", "take-back");
+            "hand", "take-back", "leave");
 
     /**
      * An act said of lasting work, by whoever says it: accepted, rejected and
@@ -980,6 +980,7 @@ final class StepSurface implements HttpHandler {
             Run moved = switch (act) {
                 case "hand" -> runs.handed(found.get(), provider, by, because);
                 case "take-back" -> runs.takenBack(found.get(), by, because);
+                case "leave" -> runs.left(found.get(), Json.strOpt(body, "person"), by);
                 case "accept" -> runs.accepted(found.get(), by, because);
                 case "reject" -> runs.rejected(found.get(), by, because);
                 case "stage" -> runs.reached(found.get(), Json.strOpt(body, "stage"), by, because);
@@ -987,8 +988,8 @@ final class StepSurface implements HttpHandler {
                         Optional.ofNullable(Json.strOpt(body, "status")).orElse("completed")),
                         by, because);
                 default -> throw new IllegalArgumentException("'" + act + "' is not said of "
-                        + "lasting work; it is accepted, rejected, staged, ended, handed or "
-                        + "taken back");
+                        + "lasting work; it is accepted, rejected, staged, ended, handed, "
+                        + "taken back, or somebody joined is taken off it");
             };
             return new Started(200, "{\"run\":" + quote(moved.id()) + ",\"key\":"
                     + quote(moved.key()) + ",\"status\":" + quote(moved.status().wire())
@@ -1092,6 +1093,7 @@ final class StepSurface implements HttpHandler {
             collect(exchange, segments, found.get());
             return;
         }
+
         // A run that has ended answers exactly as one that never existed. The
         // context is the work, so it lasts as long as the work does: a run
         // closed an hour ago whose base url still served would be a standing
@@ -1102,8 +1104,9 @@ final class StepSurface implements HttpHandler {
         // And a run somebody ELSE holds answers the same, for the same
         // reason: the context is the performer's door, and a second
         // credential that may act in work is not performing this run because
-        // it learned its id.
-        if (!held(found, asking)) {
+        // it learned its id. A colleague the holder brought into handed work
+        // reads it as the holder does, and that is the one exception.
+        if (!held(found, asking) && !joined(found, admitted)) {
             fail(exchange, 404, "not_found", "no such run");
             return;
         }
@@ -1499,7 +1502,7 @@ final class StepSurface implements HttpHandler {
 
     /** What a person of the provider says of handed work they hold. */
     static final java.util.Set<String> HOLDERS_SAY =
-            java.util.Set.of("accept", "reject", "stage", "end", "let-go");
+            java.util.Set.of("accept", "reject", "stage", "end", "let-go", "join", "leave");
 
     /**
      * An act said of handed work by the person of the provider holding it,
@@ -1520,6 +1523,26 @@ final class StepSurface implements HttpHandler {
         }
         Object body = Json.parse(new String(exchange.getRequestBody().readAllBytes(),
                 StandardCharsets.UTF_8));
+        if ("join".equals(act) || "leave".equals(act)) {
+            String person = colleague(asking, Json.strOpt(body, "person"));
+            if (person == null) {
+                fail(exchange, 400, "invalid_request", "a colleague is named as person, by "
+                        + "their Practitioner at the provider");
+                return;
+            }
+            Started said;
+            try {
+                Run moved = "join".equals(act) ? runs.joined(found.get(), person, asking.fhirUser())
+                        : runs.left(found.get(), person, asking.fhirUser());
+                said = new Started(200, "{\"run\":" + quote(moved.id()) + ",\"joined\":["
+                        + String.join(",", moved.addressee().joined().stream()
+                                .map(StepSurface::quote).toList()) + "]}");
+            } catch (IllegalStateException standing) {
+                said = refused(409, "conflict", standing.getMessage());
+            }
+            respond(exchange, said.status(), said.body());
+            return;
+        }
         if (!"let-go".equals(act)) {
             Started said = saying(id, act, body, asking.fhirUser());
             respond(exchange, said.status(), said.body());
@@ -1538,6 +1561,23 @@ final class StepSurface implements HttpHandler {
         respond(exchange, 200, "{\"run\":" + quote(released.id()) + ",\"key\":"
                 + quote(released.key()) + ",\"status\":"
                 + quote(released.status().wire()) + "}");
+    }
+
+    /**
+     * A colleague the holder names, by absolute reference to the provider's
+     * base: the holder's own base, so nobody of another organisation is
+     * brought into the work in the provider's name. Null where it names
+     * nobody there.
+     */
+    private static String colleague(TenantAuthority.AuthContext holder, String named) {
+        int at = holder.clientId().lastIndexOf("Practitioner/");
+        if (named == null || at < 0) {
+            return null;
+        }
+        String base = holder.clientId().substring(0, at);
+        String person = named.startsWith("Practitioner/") ? base + named : named;
+        return person.startsWith(base + "Practitioner/")
+                && person.length() > (base + "Practitioner/").length() ? person : null;
     }
 
     /**
@@ -1656,6 +1696,19 @@ final class StepSurface implements HttpHandler {
     /** Whether the client asking holds this run now, which opens it to its performer. */
     private boolean held(Optional<Run> run, String asking) {
         return run.isPresent() && run.get().heldBy(asking, clock.instant());
+    }
+
+    /**
+     * Whether a person of the provider is one its holder joined to this
+     * handed work, while it is open and handed, and their token still reaches
+     * its step.
+     */
+    private boolean joined(Optional<Run> run, TenantAuthority.AuthContext asking) {
+        return asking.vouched() != null && run.isPresent() && run.get().lasting()
+                && run.get().open() && run.get().addressee() != null
+                && asking.vouched().provider().equals(run.get().addressee().provider())
+                && run.get().addressee().joined().contains(asking.clientId())
+                && covers(asking, run.get().process() + "." + run.get().step());
     }
 
     /**

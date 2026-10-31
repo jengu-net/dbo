@@ -1300,6 +1300,17 @@ public enum DboPromises implements Promise {
             + "not authorised or has withdrawn answer them as work that does not exist, "
             + "asked again at each request."),
 
+    PROC_THE_PROVIDERS_PEOPLE_JOIN_HANDED_WORK(
+            "A person of the provider holding work a tenant handed it joins colleagues of the "
+            + "provider to it, each named by absolute reference to the provider's base, and "
+            + "each join an act recorded under the work naming them, so the tenant sees who "
+            + "works it. A colleague joined reads the work's context with the provider's token "
+            + "and holds no claim: the work's acts and starting its parts answer them as work "
+            + "that does not exist, taking it while it is held is the conflict it is for "
+            + "anybody, and once the work is over or taken back it answers them as work that "
+            + "does not exist. The tenant takes any of them off, and the provider only through the "
+            + "holder; each is an act recorded under the work."),
+
     PROC_A_PERSON_OF_THE_PROVIDER_ACTS_ON_WORK_THEY_HOLD(
             "A person of the provider holding work a tenant handed it says the work's own "
             + "acts — accepted, or rejected and why, a stage reached, ended and why — each "

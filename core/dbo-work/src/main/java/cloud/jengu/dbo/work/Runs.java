@@ -698,6 +698,46 @@ public final class Runs {
         });
     }
 
+    /**
+     * One of the provider's people joined to handed work by whoever holds
+     * it: they read it and write in it, and act on nothing else under it.
+     *
+     * @param person the colleague, by absolute reference to the provider's base
+     * @param by     the holder naming them
+     */
+    public Run joined(Run lasting, String person, String by) {
+        java.util.Objects.requireNonNull(person, "person");
+        return said(lasting, "joined", by, person, null, snapshot -> {
+            Run.Addressee handed = snapshot.standing().addressee();
+            if (handed == null || handed.provider() == null) {
+                throw new IllegalStateException("'" + lasting.key() + "' is not handed to the "
+                        + "provider, and only the provider's people join it");
+            }
+            if (handed.joined().contains(person) || (snapshot.assignment() != null
+                    && person.equals(snapshot.assignment().claimant()))) {
+                throw new IllegalStateException(person + " works '" + lasting.key()
+                        + "' already");
+            }
+            return snapshot.withStanding(snapshot.standing().addressedTo(handed.joining(person)));
+        });
+    }
+
+    /**
+     * One of the provider's people taken off handed work they joined, by the
+     * tenant or by whoever holds it.
+     */
+    public Run left(Run lasting, String person, String by) {
+        java.util.Objects.requireNonNull(person, "person");
+        return said(lasting, "left", by, person, null, snapshot -> {
+            Run.Addressee handed = snapshot.standing().addressee();
+            if (handed == null || !handed.joined().contains(person)) {
+                throw new IllegalStateException(person + " has not joined '" + lasting.key()
+                        + "'");
+            }
+            return snapshot.withStanding(snapshot.standing().addressedTo(handed.leaving(person)));
+        });
+    }
+
     private static void requireBecause(String act, String because) {
         if (because == null || because.isBlank()) {
             throw new IllegalArgumentException("lasting work " + act + " says why");
@@ -2614,6 +2654,11 @@ public final class Runs {
                 if (standing.addressee().provider() != null) {
                     json.append("\"provider\":")
                             .append(Json.quoted(standing.addressee().provider()));
+                    if (!standing.addressee().joined().isEmpty()) {
+                        json.append(",\"joined\":[").append(String.join(",",
+                                standing.addressee().joined().stream().map(Json::quoted)
+                                        .toList())).append(']');
+                    }
                 }
                 if (standing.addressee().client() != null) {
                     json.append("\"client\":").append(Json.quoted(standing.addressee().client()));

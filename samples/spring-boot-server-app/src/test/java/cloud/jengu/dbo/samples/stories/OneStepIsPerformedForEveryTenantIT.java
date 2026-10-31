@@ -694,6 +694,7 @@ class OneStepIsPerformedForEveryTenantIT {
             DboPromises.PROC_LASTING_WORK_IS_HANDED_TO_THE_PROVIDER_AND_TAKEN_BACK,
             DboPromises.PROC_A_PERSON_OF_THE_PROVIDER_TAKES_WORK_HANDED_TO_IT,
             DboPromises.PROC_A_PERSON_OF_THE_PROVIDER_STARTS_PARTS_OF_WORK_THEY_HOLD,
+            DboPromises.PROC_THE_PROVIDERS_PEOPLE_JOIN_HANDED_WORK,
             DboPromises.PROC_A_PERSON_OF_THE_PROVIDER_ACTS_ON_WORK_THEY_HOLD})
     void aPersonOfTheProviderWorksWhatTheClinicHandsIt() throws Exception {
         String declines = ",\"declines\":[\"" + STEP + "\"]";
@@ -768,7 +769,7 @@ class OneStepIsPerformedForEveryTenantIT {
 
         // Holding it, she says what the repair's own acts say, and nobody else
         // of the provider's people does.
-        providersPerson("grace");
+        String graceAt = providersPerson("grace");
         String colleague = signedInAtTheProvider("grace");
         Proves.that(DboPromises.PROC_A_PERSON_OF_THE_PROVIDER_ACTS_ON_WORK_THEY_HOLD,
                 atTheRun(handed, "accept", colleague, "{\"because\":\"on it\"}")
@@ -825,6 +826,49 @@ class OneStepIsPerformedForEveryTenantIT {
                 until(() -> startPart(DIAGNOSE, pump, repair, token).statusCode() == 404,
                         Duration.ofMinutes(2)),
                 "the clinic withdrew the part's row and she could still start it");
+
+        // A colleague she brings in reads the repair, holds no claim, and acts
+        // on nothing under it.
+        String context = "fhir/Basic/" + pump;
+        Proves.that(DboPromises.PROC_THE_PROVIDERS_PEOPLE_JOIN_HANDED_WORK,
+                atTheRun(handed, context, colleague, null).statusCode() == 404,
+                "a colleague nobody joined read the repair");
+        assertEquals(200, atTheRun(handed, "join", token,
+                "{\"person\":\"Practitioner/" + graceAt + "\"}").statusCode());
+        Run joined = runs(CLINIC).byId(handed).orElseThrow();
+        String grace = joined.addressee().joined().get(0);
+        Proves.that(DboPromises.PROC_THE_PROVIDERS_PEOPLE_JOIN_HANDED_WORK,
+                grace.endsWith("/t/" + MANAGEMENT + "/fhir/Practitioner/" + graceAt)
+                        && runs(CLINIC).items(joined).stream().anyMatch(act ->
+                                "joined".equals(act.step()) && act.assignment() != null
+                                        && grace.equals(act.assignment().note())
+                                        && String.valueOf(act.assignment().claimant())
+                                                .endsWith(person)),
+                "the clinic's account of the repair does not say whom she brought in: "
+                        + joined.addressee());
+        Proves.that(DboPromises.PROC_THE_PROVIDERS_PEOPLE_JOIN_HANDED_WORK,
+                atTheRun(handed, context, colleague, null).statusCode() == 200
+                        && atTheRun(handed, "stage", colleague,
+                                "{\"stage\":\"looked\",\"because\":\"x\"}").statusCode() == 404
+                        && atTheRun(handed, "claim", colleague, null).statusCode() == 409
+                        && startPart(DIAGNOSE, pump, repair, colleague).statusCode() == 404
+                        && !runs(CLINIC).byId(handed).orElseThrow().heldBy(grace,
+                                java.time.Instant.now()),
+                "the colleague she brought in does not read the repair, or acted on it");
+        assertEquals(200, atTheRun(handed, "leave", token,
+                "{\"person\":\"Practitioner/" + graceAt + "\"}").statusCode());
+        Proves.that(DboPromises.PROC_THE_PROVIDERS_PEOPLE_JOIN_HANDED_WORK,
+                atTheRun(handed, context, colleague, null).statusCode() == 404,
+                "the colleague she took off still read the repair");
+        assertEquals(200, atTheRun(handed, "join", token,
+                "{\"person\":\"Practitioner/" + graceAt + "\"}").statusCode());
+        assertEquals(200, atTheRun(handed, "leave", dbo.workToken(CLINIC),
+                "{\"person\":\"" + grace + "\"}").statusCode());
+        Proves.that(DboPromises.PROC_THE_PROVIDERS_PEOPLE_JOIN_HANDED_WORK,
+                atTheRun(handed, context, colleague, null).statusCode() == 404,
+                "the clinic took the colleague off and she still read the repair");
+        assertEquals(200, atTheRun(handed, "join", token,
+                "{\"person\":\"Practitioner/" + graceAt + "\"}").statusCode());
         Proves.that(DboPromises.PROC_A_PERSON_OF_THE_PROVIDER_ACTS_ON_WORK_THEY_HOLD,
                 atTheRun(handed, "take-back", token, "{\"because\":\"mine\"}")
                         .statusCode() == 404
@@ -847,6 +891,9 @@ class OneStepIsPerformedForEveryTenantIT {
                 atTheRun(handed, "fhir/Basic/" + pump, token, null).statusCode() == 404
                         && atTheRun(handed, "claim", token, null).statusCode() == 404,
                 "work the clinic took back still admitted the person of the provider");
+        Proves.that(DboPromises.PROC_THE_PROVIDERS_PEOPLE_JOIN_HANDED_WORK,
+                atTheRun(handed, "fhir/Basic/" + pump, colleague, null).statusCode() == 404,
+                "work the clinic took back still admitted a colleague joined to it");
 
         assertEquals(200, atTheRun(handed, "hand", dbo.workToken(CLINIC),
                 "{\"because\":\"he could not fix it\"}").statusCode());
