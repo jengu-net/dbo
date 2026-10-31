@@ -141,13 +141,14 @@ public final class RegisterHandler implements HttpHandler {
         return Map.of("unauthorised", unauthorised, "disagreements", disagreements);
     }
 
-    private static List<Map<String, Object>> rows(List<FleetRegister.Row> rows) {
+    static List<Map<String, Object>> rows(List<FleetRegister.Row> rows) {
         List<Map<String, Object>> said = new ArrayList<>();
         for (FleetRegister.Row row : rows) {
             Map<String, Object> one = new LinkedHashMap<>();
             one.put("step", row.step());
             // A jurisdiction's process is over whatever its members exchange,
-            // not over one slot of one step, so it has neither.
+            // not over one slot of one step, so it has neither; nor has a
+            // part a holder of handed work starts, which opens nothing.
             if (row.slot() != null) {
                 one.put("slot", row.slot());
                 one.put("type", row.type());
@@ -155,6 +156,9 @@ public final class RegisterHandler implements HttpHandler {
             one.put("authority", row.authority().name().toLowerCase(java.util.Locale.ROOT));
             if (row.by() != null) {
                 one.put("by", row.by());
+            }
+            if (row.partOf() != null) {
+                one.put("partOf", row.partOf());
             }
             if (!row.subProcessors().isEmpty()) {
                 one.put("subProcessors", row.subProcessors());

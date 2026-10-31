@@ -270,6 +270,50 @@ Whoever holds a `work` credential for the step says them at the run's address:
 work, naming who said it. A part reads the work it is part of, request and stage,
 as `Work.parent()`.
 
+A tenant may hand such work to its service provider, for the provider's people to
+carry out, by saying so on the step:
+
+```json
+{ "code": "care.incidents.work", "slots": { "incident": "Reference(CommunicationRequest)" },
+  "lasts": true, "handsTo": "provider" }
+```
+
+Its [register](a-step-for-every-tenant.md#a-tenant-reads-what-is-done-to-its-data)
+then carries a row of the tenant's own, `"authority": "tenant"`, for the request
+the work fulfils. The row stands once the tenant has authorised it, and removing
+`handsTo` declines it. Only work that lasts is handed, and only to the provider. A provider
+cannot hand its own work to itself, and a deployment with no provider refuses the
+tenant.
+
+`holdersStart` beside `handsTo` names the steps a person of the provider holding
+the work may start as its parts:
+
+```json
+{ "code": "care.incidents.work", "slots": { "incident": "Reference(CommunicationRequest)" },
+  "lasts": true, "handsTo": "provider", "holdersStart": ["care.incidents.diagnose"] }
+```
+
+Each named step is a row of its own on the register, `"partOf"` the handed step
+and over no slot, and stands once the tenant has authorised it, so naming another
+step is authorised on its own. A named step is one of the tenant's own, performed
+in one sitting: a step the tenant does not declare, one that lasts, one whose work
+is handed too, and the handed step itself are each refused.
+
+While the row stands, work is handed over as it is opened, with
+`"for": { "provider": true }` in the step door's body, or afterwards, and the
+tenant takes it back the same way:
+
+```http
+POST /t/<tenant>/run/<id>/hand        { "because": "the device is theirs" }
+POST /t/<tenant>/run/<id>/take-back   { "because": "we will do it ourselves" }
+```
+
+The door names the deployment's provider. Handed, the
+work's `Task.owner` is the provider, as an `Organization` identified under
+`urn:dbo:tenant`, and no participant is offered it. Taken back, it is the
+tenant's own again and held by nobody. Both are acts under the work, each naming
+who said it and why.
+
 The work reads as FHIR's fulfilment `Task`. `focus` is the request,
 `instantiatesCanonical` the step as `urn:dbo:step:<code>`, `businessStatus` the
 stage, and its parts are `Task`s `partOf` it.

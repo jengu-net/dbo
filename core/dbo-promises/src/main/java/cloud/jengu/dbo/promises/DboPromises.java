@@ -1240,6 +1240,68 @@ public enum DboPromises implements Promise {
             + "match — which would be a deployment approving its own widening. Never having "
             + "read a register is a different answer from having read a different one."),
 
+    PROC_WORK_HANDED_TO_THE_PROVIDER_IS_ON_THE_TENANTS_REGISTER(
+            "A tenant may declare that the work one of its steps lasts for is handed to the "
+            + "service provider, and its register then carries a row of its own for the "
+            + "request that work fulfils: the tenant's process, carried out by the provider's "
+            + "people. The row stands only once the tenant has authorised it and is never "
+            + "required; removing the declaration declines it. Only work that lasts is handed, "
+            + "and only to the provider; a step handing anything else, a provider handing "
+            + "work to itself, and a tenant handing work on a deployment with no provider are "
+            + "each refused by name."),
+
+    PROC_A_TENANT_SAYS_WHAT_A_HOLDER_OF_HANDED_WORK_MAY_START(
+            "A tenant handing a step's work to the service provider names the steps a holder "
+            + "of that work may start as its parts, each a row of the tenant's register "
+            + "standing only once the tenant has authorised it, so naming another is "
+            + "authorised as itself. A step it does not declare, one that lasts, one whose own "
+            + "work is handed, the handed step itself, and a list on work not handed are each "
+            + "refused by name."),
+
+    PROC_LASTING_WORK_IS_HANDED_TO_THE_PROVIDER_AND_TAKEN_BACK(
+            "A tenant hands work that lasts to the service provider, as it opens it or "
+            + "afterwards, and takes it back, each with a reason and each an act recorded "
+            + "under the work naming who said it. The door hands work over only while the "
+            + "row the tenant's register carries for its step stands authorised, and to the "
+            + "deployment's provider alone. Handed, the work names "
+            + "the provider as what is responsible for it and is offered to no participant; "
+            + "taken back, it is the tenant's own as it was opened, held by nobody. Work "
+            + "already handed is not handed again, work nobody was handed is not taken back, "
+            + "work that is over is neither, and a run that does not last is never handed."),
+
+    PROC_A_PERSON_OF_THE_PROVIDER_TAKES_WORK_HANDED_TO_IT(
+            "A person signed in at the service provider takes work a tenant handed the "
+            + "provider with that token, holding no credential of the tenant's: the token is "
+            + "admitted while a row of the tenant's register handing a step stands, and "
+            + "reaches those steps, and the parts the tenant lets their holder start, and "
+            + "nothing else — no record. The "
+            + "person holds the work, with no deadline, as a role the provider vouched for in "
+            + "the token, and the work names that role as its owner by absolute reference to "
+            + "the provider's base; taking it is an act recorded under the work naming the "
+            + "person the same way. "
+            + "While they hold it the work's context answers them and nobody else. Work not "
+            + "handed to the provider, no longer open, or taken back answers them as work "
+            + "that does not exist; work one of the provider's people holds is a conflict; "
+            + "and a row the tenant withdraws stops them at the next request."),
+
+    PROC_A_PERSON_OF_THE_PROVIDER_STARTS_PARTS_OF_WORK_THEY_HOLD(
+            "A person of the provider holding work a tenant handed it starts, as parts of that "
+            + "work, the steps the tenant named for it, each the tenant's run recorded as "
+            + "asked for by them by absolute reference to the provider's base. Any other "
+            + "step, a part of work they do not hold, and a part whose row the tenant has "
+            + "not authorised or has withdrawn answer them as work that does not exist, "
+            + "asked again at each request."),
+
+    PROC_A_PERSON_OF_THE_PROVIDER_ACTS_ON_WORK_THEY_HOLD(
+            "A person of the provider holding work a tenant handed it says the work's own "
+            + "acts — accepted, or rejected and why, a stage reached, ended and why — each "
+            + "recorded under the work naming them by absolute reference to the provider's "
+            + "base, and lets the work go, which leaves it handed to the provider for another "
+            + "of its people and held by nobody. Only the holder says them: another of the "
+            + "provider's people, and the holder once the work has ended or been let go, are "
+            + "answered as for work that does not exist, and handing work over or taking it "
+            + "back stays the tenant's."),
+
     PROC_AN_UNAUTHORISED_ROW_OBEYS_ITS_POSTURE(
             "What happens to work under a row a tenant has not authorised is the row's own "
             + "posture, stated by the deployment where the row is declared. A row that says NOT "

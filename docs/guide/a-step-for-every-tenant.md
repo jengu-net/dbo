@@ -153,6 +153,48 @@ GET /runtime/fleet/steps/fleet.update.acknowledge?notice=Communication/<id>
 A retention such as `keep` is a duration in days, hours or less, so a year is
 `P365D`.
 
+## Work a tenant hands to the provider
+
+Some of a tenant's work is better done by the provider's people: a repair on a
+device the provider supplied, say. The tenant hands it over
+([work that lasts](processes-and-steps.md#work-that-lasts)) under a register row
+it authorised, and a person signed in at the provider takes it with the token
+the provider issued them:
+
+```http
+POST /t/<tenant>/run/<id>/claim          Authorization: Bearer <the provider's token>
+GET  /t/<tenant>/run/<id>/fhir/Basic/<incident>
+```
+
+The token reaches the steps whose work the tenant hands over, and nothing else:
+the tenant's records surface refuses it, and its step door starts nothing for it
+but the parts below. The person
+holds the work as the role the provider vouched for in the token, with no
+deadline, and the work's `Task.owner` names that role by absolute reference to
+the provider's base, `…/t/mom/fhir/PractitionerRole/<id>`. Taking the work is an
+act under it naming the person the same way. While they hold it the work's
+context answers them and nobody else, and they say its own acts at its address
+as the tenant's people do: `accept`, `reject`, `stage` and `end`, each with a
+`because`, each recorded naming them. `let-go` hands it back to the provider for
+another of its people. Handing work over and taking it back stay the tenant's.
+
+The holder starts the parts the tenant named for the work in
+[`holdersStart`](processes-and-steps.md#work-that-lasts), at the step door, with
+`partOf` naming the work by its key:
+
+```http
+POST /t/<tenant>/step/<part>   { "inputs": { … }, "partOf": "<the work's key>" }
+```
+
+Each part is the tenant's run, recorded as asked for by the person by absolute
+reference to the provider's base, and offered to the tenant's own participants as
+any part is. A step the tenant did not name, work the person does not hold, and a
+part whose row the tenant has not authorised answer as work that does not exist.
+
+Work the tenant kept, work that is over and work the tenant took back answer the
+person as work that does not exist. A tenant that withdraws the row stops them
+at their next request, because the row is asked for on every one.
+
 ## What the store guarantees
 
 - **A step code belongs to one level**, checked where it is declared, and the
@@ -175,6 +217,8 @@ names the test behind each.
 
 ## What the store cannot do yet
 
+- **A person of the provider writes nothing through handed work.** No person
+  gives a run's result yet, the tenant's own people included.
 - **A fleet step writes nothing.** No tenant's declaration says what the
   deployment's step may write, so its result is a tally and no records.
 - **A deployment cannot name its processor** in configuration, so none is

@@ -115,6 +115,13 @@ class OneStepIsPerformedForEveryTenantIT {
                     .taking("notes", "Basic");
     private static final String SHAPER = NAMES.value("shaper");
 
+    /** A step of the clinic's own whose work it hands to the provider. */
+    private static final String REPAIR = MODULE + ".devices.repair";
+    private static final String DIAGNOSE = MODULE + ".devices.diagnose";
+
+    /** Where the provider's support desk takes its people back to after they sign in. */
+    private static final String DESK = "http://127.0.0.1/provider-desk";
+
     @Autowired
     DboTestContext dbo;
 
@@ -674,6 +681,346 @@ class OneStepIsPerformedForEveryTenantIT {
                                 && "provider".equals(row.get("authority"))),
                 "the hospital's register does not name what its jurisdiction permits beside "
                         + "what the deployment does: " + register.body());
+    }
+
+    // ── work the clinic hands to the provider ──
+
+    @Test
+    @Order(15)
+    @DisplayName("the clinic hands a repair to the provider under a row it authorised, a person "
+            + "signed in at the provider takes it with that token alone and is named for it, and "
+            + "taken back, ended or withdrawn it admits them no longer")
+    @Proving({DboPromises.PROC_WORK_HANDED_TO_THE_PROVIDER_IS_ON_THE_TENANTS_REGISTER,
+            DboPromises.PROC_LASTING_WORK_IS_HANDED_TO_THE_PROVIDER_AND_TAKEN_BACK,
+            DboPromises.PROC_A_PERSON_OF_THE_PROVIDER_TAKES_WORK_HANDED_TO_IT,
+            DboPromises.PROC_A_PERSON_OF_THE_PROVIDER_STARTS_PARTS_OF_WORK_THEY_HOLD,
+            DboPromises.PROC_A_PERSON_OF_THE_PROVIDER_ACTS_ON_WORK_THEY_HOLD})
+    void aPersonOfTheProviderWorksWhatTheClinicHandsIt() throws Exception {
+        String declines = ",\"declines\":[\"" + STEP + "\"]";
+        dbo.declare(CLINIC, handing(declines));
+        Proves.that(DboPromises.PROC_WORK_HANDED_TO_THE_PROVIDER_IS_ON_THE_TENANTS_REGISTER,
+                until(() -> handedRow() != null, Duration.ofMinutes(2)),
+                "the clinic hands its repairs to the provider and its register has no row "
+                        + "saying so: " + dbo.get(dbo.at(CLINIC) + "/register",
+                        configurationToken(CLINIC)).body());
+        Map<?, ?> row = handedRow();
+        Proves.that(DboPromises.PROC_WORK_HANDED_TO_THE_PROVIDER_IS_ON_THE_TENANTS_REGISTER,
+                "not-until-approved".equals(row.get("posture"))
+                        && Boolean.FALSE.equals(row.get("required"))
+                        && "request".equals(row.get("slot")),
+                "the row handing the repairs over stands without the clinic's word, or is "
+                        + "required: " + row);
+
+        String pump = basicAt(CLINIC, "the ward's infusion pump alarms");
+        HttpResponse<String> unauthorised = openRepair(pump, true);
+        Proves.that(DboPromises.PROC_LASTING_WORK_IS_HANDED_TO_THE_PROVIDER_AND_TAKEN_BACK,
+                unauthorised.statusCode() == 409,
+                "work was handed to the provider under a row the clinic never authorised: "
+                        + unauthorised.statusCode() + " " + unauthorised.body());
+
+        dbo.declare(CLINIC, handing(declines + ",\"authorised\":[\"" + row.get("digest")
+                + "\"]"));
+        Proves.that(DboPromises.PROC_LASTING_WORK_IS_HANDED_TO_THE_PROVIDER_AND_TAKEN_BACK,
+                until(() -> openRepair(pump, true).statusCode() == 201, Duration.ofMinutes(2)),
+                "the clinic authorised the row and still cannot hand the repair over");
+        String handed = runOf(openRepair(pump, true));
+        Proves.that(DboPromises.PROC_LASTING_WORK_IS_HANDED_TO_THE_PROVIDER_AND_TAKEN_BACK,
+                Run.Addressee.provider(MANAGEMENT).equals(
+                        runs(CLINIC).byId(handed).orElseThrow().addressee()),
+                "the repair the clinic handed over does not name the provider");
+
+        // Signed in at the provider, holding nothing of the clinic's.
+        String practitioner = providersPerson("ada");
+        String token = signedInAtTheProvider("ada");
+        String person = "/t/" + MANAGEMENT + "/fhir/Practitioner/" + practitioner;
+        Proves.that(DboPromises.PROC_A_PERSON_OF_THE_PROVIDER_TAKES_WORK_HANDED_TO_IT,
+                dbo.get(dbo.at(CLINIC) + "/fhir/Basic/" + pump, token).statusCode() != 200
+                        && openRepairAs(pump, token).statusCode() == 404,
+                "a person of the provider read the clinic's records or started its work");
+
+        String kept = runOf(openRepair(basicAt(CLINIC, "the lift is slow"), false));
+        Proves.that(DboPromises.PROC_A_PERSON_OF_THE_PROVIDER_TAKES_WORK_HANDED_TO_IT,
+                atTheRun(kept, "claim", token, null).statusCode() == 404,
+                "a person of the provider took work the clinic kept");
+
+        HttpResponse<String> taken = atTheRun(handed, "claim", token, null);
+        assertEquals(200, taken.statusCode(), taken.body());
+        Run holding = runs(CLINIC).byId(handed).orElseThrow();
+        Proves.that(DboPromises.PROC_A_PERSON_OF_THE_PROVIDER_TAKES_WORK_HANDED_TO_IT,
+                String.valueOf(holding.assignment().role()).contains(
+                        "/t/" + MANAGEMENT + "/fhir/PractitionerRole/")
+                        && String.valueOf(holding.assignment().claimant()).endsWith(person)
+                        && holding.assignment().until() == null,
+                "the repair is not held as the provider's role, by its person, for as long "
+                        + "as the work lasts: " + holding.assignment());
+        Proves.that(DboPromises.PROC_A_PERSON_OF_THE_PROVIDER_TAKES_WORK_HANDED_TO_IT,
+                runs(CLINIC).items(holding).stream().anyMatch(act ->
+                        "taken".equals(act.step()) && act.assignment() != null
+                                && String.valueOf(act.assignment().claimant()).endsWith(person)),
+                "the clinic's account of the repair does not say who of the provider took it");
+        Proves.that(DboPromises.PROC_A_PERSON_OF_THE_PROVIDER_TAKES_WORK_HANDED_TO_IT,
+                atTheRun(handed, "fhir/Basic/" + pump, token, null).statusCode() == 200
+                        && atTheRun(handed, "fhir/Basic/" + pump, dbo.workToken(CLINIC), null)
+                                .statusCode() == 404
+                        && atTheRun(handed, "claim", token, null).statusCode() == 409,
+                "the repair's context does not answer the person holding it alone, or a held "
+                        + "repair was taken again");
+
+        // Holding it, she says what the repair's own acts say, and nobody else
+        // of the provider's people does.
+        providersPerson("grace");
+        String colleague = signedInAtTheProvider("grace");
+        Proves.that(DboPromises.PROC_A_PERSON_OF_THE_PROVIDER_ACTS_ON_WORK_THEY_HOLD,
+                atTheRun(handed, "accept", colleague, "{\"because\":\"on it\"}")
+                        .statusCode() == 404,
+                "a person of the provider said an act of work a colleague holds");
+        assertEquals(200, atTheRun(handed, "accept", token,
+                "{\"because\":\"a technician is on the way\"}").statusCode());
+        assertEquals(200, atTheRun(handed, "stage", token,
+                "{\"stage\":\"diagnosed\",\"because\":\"a cracked valve\"}").statusCode());
+        Run accepted = runs(CLINIC).byId(handed).orElseThrow();
+        Proves.that(DboPromises.PROC_A_PERSON_OF_THE_PROVIDER_ACTS_ON_WORK_THEY_HOLD,
+                "accepted".equals(accepted.status().wire())
+                        && "diagnosed".equals(accepted.milestone().name())
+                        && runs(CLINIC).items(accepted).stream().anyMatch(act ->
+                                "accepted".equals(act.step()) && act.assignment() != null
+                                        && String.valueOf(act.assignment().claimant())
+                                                .endsWith(person)),
+                "the repair does not stand where she said, or its account does not name her: "
+                        + accepted);
+
+        // A part of the repair, of the step the clinic named for it, under a
+        // row the clinic authorises as itself.
+        String repair = accepted.key();
+        String standsAlone = "\"authorised\":[\"" + row.get("digest") + "\"]";
+        Proves.that(DboPromises.PROC_A_PERSON_OF_THE_PROVIDER_STARTS_PARTS_OF_WORK_THEY_HOLD,
+                startPart(DIAGNOSE, pump, repair, token).statusCode() == 404,
+                "a part of the repair started under a row the clinic never authorised");
+        Map<?, ?> part = partRow();
+        dbo.declare(CLINIC, handing(declines + ",\"authorised\":[\"" + row.get("digest")
+                + "\",\"" + part.get("digest") + "\"]"));
+        String[] diagnosis = new String[1];
+        Proves.that(DboPromises.PROC_A_PERSON_OF_THE_PROVIDER_STARTS_PARTS_OF_WORK_THEY_HOLD,
+                until(() -> {
+                    HttpResponse<String> started = startPart(DIAGNOSE, pump, repair, token);
+                    diagnosis[0] = started.statusCode() == 201 ? runOf(started) : null;
+                    return diagnosis[0] != null;
+                }, Duration.ofMinutes(2)),
+                "the clinic authorised the part's row and she still cannot start it");
+        Run diagnosing = runs(CLINIC).byId(diagnosis[0]).orElseThrow();
+        Proves.that(DboPromises.PROC_A_PERSON_OF_THE_PROVIDER_STARTS_PARTS_OF_WORK_THEY_HOLD,
+                repair.equals(diagnosing.parent())
+                        && String.valueOf(diagnosing.requester()).endsWith(person),
+                "the diagnosis is not the repair's part, or does not say she asked for it: "
+                        + diagnosing);
+        String keptKey = runs(CLINIC).byId(kept).orElseThrow().key();
+        Proves.that(DboPromises.PROC_A_PERSON_OF_THE_PROVIDER_STARTS_PARTS_OF_WORK_THEY_HOLD,
+                startPart(DIAGNOSE, pump, repair, colleague).statusCode() == 404
+                        && startPart(DIAGNOSE, pump, keptKey, token).statusCode() == 404
+                        && startPart(OWN_STEP, pump, repair, token).statusCode() == 404,
+                "a part was started by somebody not holding the repair, under work she does "
+                        + "not hold, or of a step the clinic did not name");
+        dbo.declare(CLINIC, handing(declines + "," + standsAlone));
+        Proves.that(DboPromises.PROC_A_PERSON_OF_THE_PROVIDER_STARTS_PARTS_OF_WORK_THEY_HOLD,
+                until(() -> startPart(DIAGNOSE, pump, repair, token).statusCode() == 404,
+                        Duration.ofMinutes(2)),
+                "the clinic withdrew the part's row and she could still start it");
+        Proves.that(DboPromises.PROC_A_PERSON_OF_THE_PROVIDER_ACTS_ON_WORK_THEY_HOLD,
+                atTheRun(handed, "take-back", token, "{\"because\":\"mine\"}")
+                        .statusCode() == 404
+                        && atTheRun(handed, "hand", token, "{\"because\":\"yours\"}")
+                                .statusCode() == 404,
+                "a person of the provider handed the clinic's work over or took it back");
+        assertEquals(200, atTheRun(handed, "let-go", token,
+                "{\"because\":\"needs a part we do not stock\"}").statusCode());
+        Proves.that(DboPromises.PROC_A_PERSON_OF_THE_PROVIDER_ACTS_ON_WORK_THEY_HOLD,
+                atTheRun(handed, "fhir/Basic/" + pump, token, null).statusCode() == 404
+                        && atTheRun(handed, "claim", colleague, null).statusCode() == 200
+                        && atTheRun(handed, "let-go", colleague,
+                                "{\"because\":\"the part is in\"}").statusCode() == 200
+                        && atTheRun(handed, "claim", token, null).statusCode() == 200,
+                "work she let go still admitted her, or stayed out of her colleagues' reach");
+
+        assertEquals(200, atTheRun(handed, "take-back", dbo.workToken(CLINIC),
+                "{\"because\":\"our own technician is back\"}").statusCode());
+        Proves.that(DboPromises.PROC_A_PERSON_OF_THE_PROVIDER_TAKES_WORK_HANDED_TO_IT,
+                atTheRun(handed, "fhir/Basic/" + pump, token, null).statusCode() == 404
+                        && atTheRun(handed, "claim", token, null).statusCode() == 404,
+                "work the clinic took back still admitted the person of the provider");
+
+        assertEquals(200, atTheRun(handed, "hand", dbo.workToken(CLINIC),
+                "{\"because\":\"he could not fix it\"}").statusCode());
+        assertEquals(200, atTheRun(handed, "claim", token, null).statusCode());
+        assertEquals(200, atTheRun(handed, "end", token,
+                "{\"status\":\"completed\",\"because\":\"the valve is replaced\"}")
+                .statusCode());
+        Proves.that(DboPromises.PROC_A_PERSON_OF_THE_PROVIDER_TAKES_WORK_HANDED_TO_IT,
+                atTheRun(handed, "fhir/Basic/" + pump, token, null).statusCode() == 404
+                        && atTheRun(handed, "stage", token,
+                                "{\"stage\":\"again\",\"because\":\"x\"}")
+                                .statusCode() == 404,
+                "work that ended still admitted the person of the provider");
+
+        String monitor = basicAt(CLINIC, "the monitor flickers");
+        String standing = runOf(openRepair(monitor, true));
+        dbo.declare(CLINIC, handing(declines));
+        Proves.that(DboPromises.PROC_A_PERSON_OF_THE_PROVIDER_TAKES_WORK_HANDED_TO_IT,
+                until(() -> atTheRun(standing, "claim", token, null).statusCode() == 401,
+                        Duration.ofMinutes(2)),
+                "the clinic withdrew the row and the person of the provider was still let in");
+    }
+
+    /** The clinic's declaration with a step whose work it hands to the provider. */
+    private static String handing(String more) {
+        return clinic(OWN_STEP, more).replace("\"steps\":[", "\"steps\":["
+                + "{\"code\":\"" + REPAIR + "\",\"slots\":{\"request\":\"Reference(Basic)\"},"
+                + "\"lasts\":true,\"handsTo\":\"provider\",\"holdersStart\":[\"" + DIAGNOSE
+                + "\"]},{\"code\":\"" + DIAGNOSE + "\","
+                + "\"slots\":{\"request\":\"Reference(Basic)\"}},");
+    }
+
+    /** The clinic's register row letting a holder of a repair start a diagnosis. */
+    private Map<?, ?> partRow() {
+        return rowsOf(dbo.get(dbo.at(CLINIC) + "/register", configurationToken(CLINIC)).body(),
+                "rows").stream()
+                .filter(row -> REPAIR.equals(row.get("partOf"))
+                        && DIAGNOSE.equals(row.get("step")))
+                .findFirst().orElseThrow();
+    }
+
+    /** A part of handed work, asked for at the clinic's step door. */
+    private HttpResponse<String> startPart(String step, String request, String partOf,
+            String token) {
+        return dbo.send(HttpRequest.newBuilder(URI.create(dbo.at(CLINIC) + "/step/" + step))
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString("{\"inputs\":{\"request\":\"Basic/"
+                        + request + "\"},\"partOf\":\"" + partOf + "\"}")), token);
+    }
+
+    /**
+     * The clinic's register row handing its repairs over, or null while there
+     * is none or the clinic has no authority to ask.
+     */
+    private Map<?, ?> handedRow() {
+        if (tenants.authority(CLINIC).isEmpty()) {
+            return null;
+        }
+        return rowsOf(dbo.get(dbo.at(CLINIC) + "/register", configurationToken(CLINIC)).body(),
+                "rows").stream()
+                .filter(row -> "tenant".equals(row.get("authority"))
+                        && REPAIR.equals(row.get("step")))
+                .findFirst().orElse(null);
+    }
+
+    /** A repair opened at the clinic's step door, handed to the provider or kept. */
+    private HttpResponse<String> openRepair(String request, boolean handed) {
+        return openRepairAs(request, dbo.workToken(CLINIC), handed);
+    }
+
+    private HttpResponse<String> openRepairAs(String request, String token) {
+        return openRepairAs(request, token, false);
+    }
+
+    private HttpResponse<String> openRepairAs(String request, String token, boolean handed) {
+        String body = "{\"inputs\":{\"request\":\"Basic/" + request + "\"}"
+                + (handed ? ",\"for\":{\"provider\":true}" : "") + "}";
+        return dbo.send(HttpRequest.newBuilder(URI.create(dbo.at(CLINIC) + "/step/" + REPAIR))
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(body)), token);
+    }
+
+    private String runOf(HttpResponse<String> opened) {
+        assertEquals(201, opened.statusCode(), opened.body());
+        return dbo.says(opened).one("run").orElseThrow();
+    }
+
+    /** A request at a run's own address: POSTed with a body, read without one. */
+    private HttpResponse<String> atTheRun(String run, String path, String token, String body) {
+        HttpRequest.Builder request = HttpRequest.newBuilder(
+                URI.create(dbo.at(CLINIC) + "/run/" + run + "/" + path));
+        if (body != null || !path.startsWith("fhir/")) {
+            request.header("Content-Type", "application/json")
+                    .POST(HttpRequest.BodyPublishers.ofString(body == null ? "{}" : body));
+        }
+        return dbo.send(request, token);
+    }
+
+    /**
+     * A person at the provider: a practitioner, the person who is one, a role
+     * on the support desk, and a password. Returns the practitioner's id.
+     */
+    private String providersPerson(String login) {
+        TenantAuthority authority = tenants.authority(MANAGEMENT).orElseThrow();
+        authority.ensureRoleGrant("support", List.of("user/Organization.read"));
+        authority.ensureClient(desk(), null, List.of("user/Organization.read"), "public-pkce",
+                List.of(DESK));
+        var practitioner = dbo.write(MANAGEMENT, "Practitioner", """
+                {"resourceType":"Practitioner",
+                 "identifier":[{"system":"urn:rl:nid","value":"%s"}]}"""
+                .formatted(NAMES.value(login)));
+        assertTrue(practitioner.accepted(), practitioner.body());
+        var person = dbo.write(MANAGEMENT, "Person", """
+                {"resourceType":"Person",
+                 "identifier":[{"system":"urn:rl:nid","value":"%s"}],
+                 "link":[{"target":{"reference":"Practitioner/%s"},"assurance":"level3"}]}"""
+                .formatted(NAMES.value(login), practitioner.idOrFail()));
+        assertTrue(person.accepted(), person.body());
+        var role = dbo.write(MANAGEMENT, "PractitionerRole", """
+                {"resourceType":"PractitionerRole",
+                 "practitioner":{"reference":"Practitioner/%s"},
+                 "code":[{"coding":[{"system":"urn:rl:role","code":"support"}]}]}"""
+                .formatted(practitioner.idOrFail()));
+        assertTrue(role.accepted(), role.body());
+        authority.ensureLocalCredential(NAMES.value(login), "a-secret-for-" + login,
+                person.idOrFail());
+        return practitioner.idOrFail();
+    }
+
+    private static String desk() {
+        return NAMES.value("provider-desk");
+    }
+
+    /**
+     * Signs a person in at the provider's desk the way a browser does: the
+     * provider's own login form, a code, and the code exchanged with the proof
+     * the desk kept. Returns the access token.
+     */
+    private String signedInAtTheProvider(String login) throws Exception {
+        String oidc = dbo.at(MANAGEMENT) + "/oidc";
+        byte[] random = new byte[32];
+        new java.security.SecureRandom().nextBytes(random);
+        String verifier = java.util.Base64.getUrlEncoder().withoutPadding()
+                .encodeToString(random);
+        String challenge = java.util.Base64.getUrlEncoder().withoutPadding().encodeToString(
+                java.security.MessageDigest.getInstance("SHA-256").digest(
+                        verifier.getBytes(StandardCharsets.US_ASCII)));
+        HttpResponse<String> signIn = form(oidc + "/authorize/login", "client_id=" + desk()
+                + "&redirect_uri=" + encoded(DESK) + "&state=desk"
+                + "&code_challenge=" + challenge + "&login=" + encoded(NAMES.value(login))
+                + "&password=" + encoded("a-secret-for-" + login));
+        assertEquals(302, signIn.statusCode(), signIn.body());
+        String location = signIn.headers().firstValue("Location").orElseThrow();
+        String code = java.util.Arrays.stream(URI.create(location).getRawQuery().split("&"))
+                .filter(pair -> pair.startsWith("code="))
+                .map(pair -> java.net.URLDecoder.decode(pair.substring(5),
+                        StandardCharsets.UTF_8))
+                .findFirst().orElseThrow(() -> new AssertionError("no code: " + location));
+        HttpResponse<String> tokens = form(oidc + "/token",
+                "grant_type=authorization_code&client_id=" + desk() + "&code="
+                        + encoded(code) + "&redirect_uri=" + encoded(DESK)
+                        + "&code_verifier=" + verifier);
+        assertEquals(200, tokens.statusCode(), tokens.body());
+        return dbo.says(tokens).one("access_token").orElseThrow();
+    }
+
+    private HttpResponse<String> form(String url, String body) {
+        return dbo.send(HttpRequest.newBuilder(URI.create(url))
+                .header("Content-Type", "application/x-www-form-urlencoded")
+                .POST(HttpRequest.BodyPublishers.ofString(body)), null);
+    }
+
+    private static String encoded(String value) {
+        return java.net.URLEncoder.encode(value, StandardCharsets.UTF_8);
     }
 
     /**

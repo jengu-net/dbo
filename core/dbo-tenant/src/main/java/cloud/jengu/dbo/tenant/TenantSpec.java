@@ -126,6 +126,11 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
      *                 from the tenant whose data it is
      * @param secrets  the secrets of the tenant a run of it may reach, by name:
      *                 a step reaches what it declares and nothing else
+     * @param handsToProvider whether its work is handed to the service
+     *                 provider, for the provider's people to carry out
+     * @param holdersStart the steps a person of the provider holding its work
+     *                 may start as parts of it, each its own row of the
+     *                 tenant's register
      */
     /**
      * Whether a step's declared secrets reach a name: one of them is the
@@ -150,7 +155,27 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
     public record Step(String code, java.util.Map<String, String> slots,
             java.util.Set<String> writes, cloud.jengu.dbo.core.process.RetryPolicy retry,
             cloud.jengu.dbo.core.process.AutomationCriterion automate, Answer answer,
-            Starts starts, boolean lasts, Awaits awaits, java.util.Set<String> secrets) {
+            Starts starts, boolean lasts, Awaits awaits, java.util.Set<String> secrets,
+            boolean handsToProvider, List<String> holdersStart) {
+
+        /** Work whose holders start nothing under it. */
+        public Step(String code, java.util.Map<String, String> slots,
+                java.util.Set<String> writes, cloud.jengu.dbo.core.process.RetryPolicy retry,
+                cloud.jengu.dbo.core.process.AutomationCriterion automate, Answer answer,
+                Starts starts, boolean lasts, Awaits awaits, java.util.Set<String> secrets,
+                boolean handsToProvider) {
+            this(code, slots, writes, retry, automate, answer, starts, lasts, awaits, secrets,
+                    handsToProvider, List.of());
+        }
+
+        /** Work this tenant keeps to itself, handed to nobody. */
+        public Step(String code, java.util.Map<String, String> slots,
+                java.util.Set<String> writes, cloud.jengu.dbo.core.process.RetryPolicy retry,
+                cloud.jengu.dbo.core.process.AutomationCriterion automate, Answer answer,
+                Starts starts, boolean lasts, Awaits awaits, java.util.Set<String> secrets) {
+            this(code, slots, writes, retry, automate, answer, starts, lasts, awaits, secrets,
+                    false);
+        }
 
         /** A step that reaches no secret. */
         public Step(String code, java.util.Map<String, String> slots,
@@ -214,6 +239,20 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
 
         public Step {
             writes = java.util.Set.copyOf(writes);
+            holdersStart = holdersStart == null ? List.of() : List.copyOf(holdersStart);
+            if (!holdersStart.isEmpty() && !handsToProvider) {
+                // Its own people start whatever their credential reaches; the
+                // list is what a person of the provider may, and nobody else.
+                throw new IllegalArgumentException(code + ": names what a holder of its "
+                        + "work may start, and only work handed to the provider is held "
+                        + "under such a list — declare \"handsTo\": \"provider\"");
+            }
+            if (holdersStart.contains(code)
+                    || new java.util.HashSet<>(holdersStart).size() != holdersStart.size()) {
+                throw new IllegalArgumentException(code + ": a holder of its work starts "
+                        + holdersStart + ", and names each part once and never the work "
+                        + "itself");
+            }
             secrets = secrets == null ? java.util.Set.of() : java.util.Set.copyOf(secrets);
             for (String secret : secrets) {
                 // A FAMILY IS A TRAILING .* AND NOTHING ELSE: a prefix the
@@ -258,6 +297,11 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
                     throw new IllegalArgumentException(code + ": lasts, and is opened for a "
                             + "request — a clock names none");
                 }
+            } else if (handsToProvider) {
+                // What is handed is work somebody takes and holds for days; a
+                // run performed and closed in one sitting is nobody's to hold.
+                throw new IllegalArgumentException(code + ": hands its work to the provider, "
+                        + "and only work that lasts is handed — declare it to last");
             }
             if (starts != null && starts.every() != null && !slots.isEmpty()) {
                 throw new IllegalArgumentException(code + ": starts on a calendar rule and "
@@ -1279,9 +1323,34 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
                                 + "' — " + wrong.getMessage(), wrong);
                     }
                 }
+                String handsTo = Json.strOpt(step, "handsTo");
+                if (handsTo != null && !"provider".equals(handsTo)) {
+                    throw new IllegalArgumentException(code + ": step '" + stepCode
+                            + "' hands its work to '" + handsTo + "', and work is handed to "
+                            + "the provider or to nobody");
+                }
                 steps.add(new Step(stepCode, slots, writes, retry, automate,
                         answer(code, stepCode, step, policies), starts, Json.bool(step, "lasts"),
-                        awaits, Set.copyOf(Json.strings(step, "secrets"))));
+                        awaits, Set.copyOf(Json.strings(step, "secrets")), handsTo != null,
+                        Json.strings(step, "holdersStart")));
+            }
+        }
+        // What a holder of handed work may start is one of this tenant's
+        // steps performed in one sitting: work that lasts is opened for a
+        // request, not started under another's, and a part handed over too
+        // would be the provider's people handing work to themselves.
+        for (Step handed : steps) {
+            for (String part : handed.holdersStart()) {
+                Step named = steps.stream().filter(one -> one.code().equals(part))
+                        .findFirst().orElse(null);
+                if (named == null || named.lasts() || named.handsToProvider()) {
+                    throw new IllegalArgumentException(code + ": a holder of '" + handed.code()
+                            + "' starts '" + part + "', and " + (named == null
+                                    ? "this tenant declares no such step"
+                                    : named.lasts() ? "that is work that lasts"
+                                    : "that is work handed to the provider itself")
+                            + " — name a step of this tenant's own performed in one sitting");
+                }
             }
         }
         // The steps the DEPLOYMENT performs, which only the management

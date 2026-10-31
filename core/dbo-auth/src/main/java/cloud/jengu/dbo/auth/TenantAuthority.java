@@ -60,7 +60,35 @@ public final class TenantAuthority {
      */
     private record Trusted(java.util.function.Supplier<String> jwks,
             java.util.function.Function<Object, Optional<String>> admits,
+            java.util.function.Function<Object, Optional<Handed>> people,
             Map<String, RSAPublicKey> keys) {}
+
+    /**
+     * What a person of the provider may reach here: the work this tenant
+     * hands to the provider, and nothing else.
+     *
+     * @param provider the provider whose person it is
+     * @param steps    the steps whose work this tenant hands it, under a row
+     *                 that stands now
+     */
+    public record Handed(String provider, List<String> steps) {
+
+        public Handed {
+            steps = List.copyOf(steps);
+        }
+    }
+
+    /**
+     * A person of the provider, as a tenant it serves admits one: the
+     * provider, and the roles there the provider vouched for when it issued
+     * the token, each as an absolute reference to the provider's base.
+     */
+    public record Vouched(String provider, List<String> roles) {
+
+        public Vouched {
+            roles = List.copyOf(roles);
+        }
+    }
 
     /** What a partner may ask of a managed tenant: the journey, never the documents. */
     public static final List<String> PARTNER_SCOPES =
@@ -78,7 +106,19 @@ public final class TenantAuthority {
      */
     public void trust(String issuer, java.util.function.Supplier<String> jwks,
             java.util.function.Function<Object, Optional<String>> admits) {
-        trusted.put(issuer, new Trusted(jwks, admits, new ConcurrentHashMap<>()));
+        trust(issuer, jwks, admits, claims -> Optional.empty());
+    }
+
+    /**
+     * The same, also admitting the provider's own people to the work this
+     * tenant hands the provider: a token naming a practitioner there and the
+     * roles it holds there, admitted while the gate names steps whose work is
+     * handed — asked per token, as a partner is.
+     */
+    public void trust(String issuer, java.util.function.Supplier<String> jwks,
+            java.util.function.Function<Object, Optional<String>> admits,
+            java.util.function.Function<Object, Optional<Handed>> people) {
+        trusted.put(issuer, new Trusted(jwks, admits, people, new ConcurrentHashMap<>()));
     }
     /** §16: the tenant's main store — subjects and grants are ITS records. */
     private volatile ObjectStore subjectStore;
@@ -2137,13 +2177,20 @@ public final class TenantAuthority {
         List<String> reach = evaluateGrants(personId).organisations();
         String orgClaim = reach.isEmpty() ? ""
                 : ",\"org\":[\"" + String.join("\",\"", reach) + "\"]";
+        // The roles held now, by id: what a tenant handing work to this one
+        // admits the person as, read off the token this authority signed
+        // because it may not serve that tenant's store.
+        List<String> held = fhirUser.startsWith("Practitioner/")
+                ? activeRoles(fhirUser.substring("Practitioner/".length())) : List.of();
+        String heldClaim = held.isEmpty() ? ""
+                : ",\"practitionerRoles\":[\"" + String.join("\",\"", held) + "\"]";
         String signedIn = ",\"sid\":\"" + session.sid() + "\""
                 + ",\"auth_time\":" + session.authTime()
                 + ",\"amr\":" + Json.render(session.amr());
         String base = "\"iss\":\"" + issuer + "\",\"sub\":\"" + personId + "\""
                 + ",\"aud\":\"" + issuer + "\",\"client_id\":\"" + clientId + "\""
                 + ",\"fhirUser\":\"" + fhirUser + "\""
-                + ",\"roles\":" + rolesJson + orgClaim
+                + ",\"roles\":" + rolesJson + orgClaim + heldClaim
                 + ",\"scope\":\"" + scope + "\",\"iat\":" + now + signedIn;
         String access = "{" + base + ",\"jti\":\"" + UuidV7.newId() + "\""
                 + ",\"exp\":" + (now + TOKEN_TTL_SECONDS) + "}";
@@ -2360,10 +2407,18 @@ public final class TenantAuthority {
      */
     public record AuthContext(String clientId, String fhirUser, String actClient,
             List<String> scopes, String purposeOfUse, List<String> organisations,
-            String audience, List<String> roles) {
+            String audience, List<String> roles, Vouched vouched) {
 
         public AuthContext {
             roles = roles == null ? List.of() : List.copyOf(roles);
+        }
+
+        /** Anybody but a person of the provider. */
+        public AuthContext(String clientId, String fhirUser, String actClient,
+                List<String> scopes, String purposeOfUse, List<String> organisations,
+                String audience, List<String> roles) {
+            this(clientId, fhirUser, actClient, scopes, purposeOfUse, organisations, audience,
+                    roles, null);
         }
 
         public AuthContext(String clientId, String fhirUser, String actClient,
@@ -2449,6 +2504,9 @@ public final class TenantAuthority {
         if ("refresh".equals(Json.strOpt(claims, "typ"))) {
             return Optional.empty();
         }
+        if (!Json.str(claims, "sub").equals(Json.strOpt(claims, "client_id"))) {
+            return asProvidersPerson(partner, claims);
+        }
         Optional<String> admitted = partner.admits().apply(claims);
         if (admitted.isEmpty()) {
             return Optional.empty();
@@ -2457,6 +2515,37 @@ public final class TenantAuthority {
         // it was: the provider's authority issued it, and the partner used it.
         return Optional.of(new AuthContext(PARTNER_AUDIENCE + ":" + admitted.get(),
                 null, null, PARTNER_SCOPES, null, null, PARTNER_AUDIENCE));
+    }
+
+    /**
+     * A person of the provider, admitted to the work this tenant hands the
+     * provider and to nothing else.
+     *
+     * <p>Named by absolute reference to the provider's own base, as the
+     * practitioner and as each role: a bare {@code Practitioner/x} on this
+     * tenant's trail would name one of its own people. No scope reaches a
+     * record; the step scopes reach the steps whose work is handed, and the
+     * door decides which of their runs.
+     */
+    private Optional<AuthContext> asProvidersPerson(Trusted partner, Object claims) {
+        String fhirUser = Json.strOpt(claims, "fhirUser");
+        String iss = Json.str(claims, "iss");
+        List<String> held = Json.strings(claims, "practitionerRoles");
+        if (fhirUser == null || !fhirUser.startsWith("Practitioner/") || held.isEmpty()
+                || !iss.endsWith("/oidc")) {
+            return Optional.empty();
+        }
+        Optional<Handed> handed = partner.people().apply(claims);
+        if (handed.isEmpty() || handed.get().steps().isEmpty()) {
+            return Optional.empty();
+        }
+        String base = iss.substring(0, iss.length() - "/oidc".length()) + "/fhir/";
+        List<String> scopes = handed.get().steps().stream()
+                .map(step -> Scopes.WORK + "/" + step).toList();
+        List<String> roles = held.stream().map(role -> base + "PractitionerRole/" + role)
+                .toList();
+        return Optional.of(new AuthContext(base + fhirUser, base + fhirUser, null, scopes, null,
+                null, null, List.of(), new Vouched(handed.get().provider(), roles)));
     }
 
     /**

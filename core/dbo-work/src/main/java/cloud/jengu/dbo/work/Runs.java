@@ -507,6 +507,18 @@ public final class Runs {
      */
     public Run opening(cloud.jengu.dbo.core.process.StepDeclaration step, String slot,
             String request, String requester, Run parent) {
+        return opening(step, slot, request, requester, parent, null);
+    }
+
+    /**
+     * The same, handed to the service provider as it is opened, and said so
+     * under it. Work found again is returned as it stands: handing it over is
+     * then an act of its own.
+     *
+     * @param provider the provider it is handed to, or null for work kept here
+     */
+    public Run opening(cloud.jengu.dbo.core.process.StepDeclaration step, String slot,
+            String request, String requester, Run parent, String provider) {
         if (!step.slots().keySet().equals(java.util.Set.of(slot))) {
             throw new IllegalArgumentException(step.id() + " lasts, and is opened for the one "
                     + "request in its one slot; it takes " + step.slots().keySet());
@@ -517,16 +529,26 @@ public final class Runs {
             return already.get();
         }
         partStarted(parent);
-        return byKey(key).orElseGet(() -> write(new State(key, step.id().processId(),
+        Optional<Run> raced = byKey(key);
+        if (raced.isPresent()) {
+            return raced.get();
+        }
+        Run opened = write(new State(key, step.id().processId(),
                 step.id().step(), RunKind.LASTING,
-                Standing.OPEN.as(Status.RECEIVED).openTo(false),
+                Standing.OPEN.as(Status.RECEIVED).openTo(false).addressedTo(
+                        provider == null ? null : Run.Addressee.provider(provider)),
                 parent == null ? null : parent.key(),
                 parent == null ? null : parent.correlation(),
                 parent == null ? null : parent.trace(),
                 Map.of(), null, List.copyOf(step.writes()),
                 requester == null ? null : new Run.Assignment(null, null, null, null, requester),
                 Run.Produced.NOTHING, step.version(),
-                Map.of(slot, RunSlot.referring(request)), null, requester, null, null)));
+                Map.of(slot, RunSlot.referring(request)), null, requester, null, null));
+        if (provider != null) {
+            act(opened, ACTS, "handed", opened.id() + "/" + UuidV7.newId(), requester,
+                    "handed to the provider '" + provider + "' as it was opened");
+        }
+        return opened;
     }
 
     /** The process an act said of lasting work is recorded under. */
@@ -575,6 +597,105 @@ public final class Runs {
         requireBecause("ended", because);
         return said(lasting, "ended", by, how.wire() + ": " + because, null,
                 snapshot -> snapshot.withStanding(snapshot.standing().as(how).because(because)));
+    }
+
+    /**
+     * Lasting work handed to the service provider, for its people to take:
+     * offered to no participant from here, and said so under the work with
+     * who handed it and why. Work already handed is not handed again.
+     */
+    public Run handed(Run lasting, String provider, String by, String because) {
+        java.util.Objects.requireNonNull(provider, "provider");
+        requireBecause("handed", because);
+        return said(lasting, "handed", by, "to the provider '" + provider + "': " + because,
+                null, snapshot -> {
+                    if (snapshot.standing().addressee() != null) {
+                        throw new IllegalStateException("'" + lasting.key() + "' is handed "
+                                + "to " + snapshot.standing().addressee() + " already");
+                    }
+                    return snapshot.withStanding(snapshot.standing()
+                            .addressedTo(Run.Addressee.provider(provider)));
+                });
+    }
+
+    /**
+     * Lasting work the tenant takes back from the provider: whoever of the
+     * provider's people held it holds it no longer, and it is the tenant's
+     * own again, as it was opened.
+     */
+    public Run takenBack(Run lasting, String by, String because) {
+        requireBecause("taken back", because);
+        return said(lasting, "taken-back", by, because, null, snapshot -> {
+            if (snapshot.standing().addressee() == null
+                    || snapshot.standing().addressee().provider() == null) {
+                throw new IllegalStateException("'" + lasting.key() + "' is not handed to "
+                        + "the provider, so there is nothing to take back");
+            }
+            return snapshot.withStanding(snapshot.standing().addressedTo(null))
+                    .withAssignment(snapshot.requester() == null ? null
+                            : new Run.Assignment(null, null, null, null, snapshot.requester()));
+        });
+    }
+
+    /**
+     * Lasting work handed to the provider, taken by one of its people as a
+     * role the provider vouched for, and said so under the work.
+     *
+     * <p><b>Held with no deadline.</b> The work lasts days, so it is held
+     * until it ends, the holder lets it go, or the tenant takes it back.
+     * Taking it does not move where it stands; its parts and acts do.
+     *
+     * @param role     the role taken as, by absolute reference to the
+     *                 provider's base, which this tenant does not hold
+     * @param claimant who then reads its context and acts on it
+     * @return the work as taken, or empty when one of the provider's people
+     *         holds it already
+     * @throws IllegalArgumentException where the work is not open, lasting
+     *         and handed to that provider
+     */
+    public Optional<Run> takenForTheProvider(Run handed, String provider, String role,
+            String claimant) {
+        refuseIfAuthoredElsewhere(handed, "taken");
+        Run current = byKey(handed.key()).orElse(null);
+        if (current == null || !current.lasting() || !current.open()
+                || current.addressee() == null
+                || !provider.equals(current.addressee().provider())) {
+            throw new IllegalArgumentException("'" + handed.key() + "' is not open work handed "
+                    + "to the provider '" + provider + "'");
+        }
+        if (current.assignment() != null && current.assignment().role() != null) {
+            return Optional.empty();
+        }
+        State taken = state(current).withAssignment(new Run.Assignment(null, null, null, null,
+                claimant, role, UuidV7.newId()));
+        try {
+            store.put(new PutRequest(WorkModel.TYPE, current.id(), current.versionId(),
+                    authored(taken.payload(), current.authored())));
+        } catch (cloud.jengu.dbo.core.api.VersionConflictException lost) {
+            return Optional.empty();
+        }
+        Run moved = byKey(handed.key()).orElseThrow();
+        act(moved, ACTS, "taken", moved.id() + "/" + UuidV7.newId(), claimant, "as " + role);
+        return Optional.of(moved);
+    }
+
+    /**
+     * Lasting work one of the provider's people lets go of: still handed to
+     * the provider, for another of its people to take, and held by nobody.
+     *
+     * @param claimant who holds it, which nobody else may let go for them
+     */
+    public Run letGo(Run lasting, String claimant, String because) {
+        requireBecause("let go", because);
+        return said(lasting, "let-go", claimant, because, null, snapshot -> {
+            if (snapshot.assignment() == null || snapshot.assignment().role() == null
+                    || !java.util.Objects.equals(claimant, snapshot.assignment().claimant())) {
+                throw new IllegalStateException("'" + lasting.key() + "' is not held by "
+                        + claimant + ", so it is not theirs to let go");
+            }
+            return snapshot.withAssignment(snapshot.requester() == null ? null
+                    : new Run.Assignment(null, null, null, null, snapshot.requester()));
+        });
     }
 
     private static void requireBecause(String act, String because) {
@@ -2478,6 +2599,10 @@ public final class Runs {
             if (standing.addressee() != null) {
                 json.append(",\"for\":{");
                 String comma = "";
+                if (standing.addressee().provider() != null) {
+                    json.append("\"provider\":")
+                            .append(Json.quoted(standing.addressee().provider()));
+                }
                 if (standing.addressee().client() != null) {
                     json.append("\"client\":").append(Json.quoted(standing.addressee().client()));
                     comma = ",";

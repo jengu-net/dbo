@@ -71,6 +71,8 @@ final class ElementRecordProjection implements RecordProjection {
     private static final String EXECUTOR = "urn:dbo:executor";
     private static final String AUDIT_CODE_SYSTEM = "urn:dbo:audit";
     private static final String AUTH_CLIENT_ID = "urn:dbo:auth:client-id";
+    /** A tenant by its code, as the deployment's declarations identify one. */
+    private static final String TENANT = "urn:dbo:tenant";
 
     private final String domain;
     private final boolean auditIsCategorised;
@@ -711,6 +713,15 @@ final class ElementRecordProjection implements RecordProjection {
             return;
         }
         if (!(run.get("executor") instanceof Map<?, ?>)) {
+            if (run.get("for") instanceof Map<?, ?> addressee && addressee.get("provider") != null) {
+                // Handed to the provider and taken by none of its people yet:
+                // the provider is the one responsible for it meanwhile.
+                json.append(",\"owner\":{\"type\":\"Organization\",\"identifier\":{\"system\":\"")
+                        .append(TENANT).append("\",\"value\":")
+                        .append(Json.quoted(String.valueOf(addressee.get("provider"))))
+                        .append("},\"display\":\"the service provider\"}");
+                return;
+            }
             if (run.get("for") instanceof Map<?, ?> addressee) {
                 // Nobody holds it, and only one participant may: the device
                 // it waits for is the one responsible for it meanwhile.

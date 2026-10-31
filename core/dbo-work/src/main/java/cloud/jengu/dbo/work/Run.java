@@ -183,27 +183,51 @@ public record Run(String id, long versionId, String key, String process, String 
      * who holds it, replaced when it is released or reopened, and who may
      * take it outlives every holder.
      *
+     * <p>Or the service provider, for work that lasts which a tenant handed
+     * to it: then the provider's people take it.
+     *
      * @param client   the client the run is for, or null for any
      * @param executor the executor's name, or null for any
+     * @param provider the provider the work was handed to
      */
-    public record Addressee(String client, String executor) {
+    public record Addressee(String client, String executor, String provider) {
 
         public Addressee {
-            if (client == null && executor == null) {
+            if (provider != null && (client != null || executor != null)) {
+                throw new IllegalArgumentException("work handed to the provider is its "
+                        + "people's to take, and names no participant");
+            }
+            if (client == null && executor == null && provider == null) {
                 throw new IllegalArgumentException("a run addressed to nobody in particular "
                         + "is a run addressed to nobody: name a client, an executor, or both");
             }
         }
 
+        /** A participant, by its client, its executor's name, or both. */
+        public Addressee(String client, String executor) {
+            this(client, executor, null);
+        }
+
+        /** Work that lasts, handed to the service provider. */
+        public static Addressee provider(String provider) {
+            return new Addressee(null, null, java.util.Objects.requireNonNull(provider));
+        }
+
         @Override
         public String toString() {
-            return client == null ? "the executor '" + executor + "'"
+            return provider != null ? "the provider '" + provider + "'"
+                    : client == null ? "the executor '" + executor + "'"
                     : "'" + client + "'" + (executor == null ? "" : " as '" + executor + "'");
         }
 
-        /** Whether a participant asking as that client and executor is the one named. */
+        /**
+         * Whether a participant asking as that client and executor is the one
+         * named. Never for work handed to the provider, whose client and
+         * executor are both unnamed and would otherwise name everybody.
+         */
         public boolean names(String askingClient, String askingExecutor) {
-            return (client == null || client.equals(askingClient))
+            return provider == null
+                    && (client == null || client.equals(askingClient))
                     && (executor == null || executor.equals(askingExecutor));
         }
     }
@@ -665,6 +689,10 @@ public record Run(String id, long versionId, String key, String process, String 
     /** Who the run is for, as it recorded them, or null where it names nobody. */
     private static Addressee addressee(Object json) {
         if (((Map<?, ?>) json).get("for") instanceof Map<?, ?> named) {
+            String provider = str(named, "provider");
+            if (provider != null) {
+                return Addressee.provider(provider);
+            }
             String client = str(named, "client");
             String executor = str(named, "executor");
             return client == null && executor == null ? null : new Addressee(client, executor);

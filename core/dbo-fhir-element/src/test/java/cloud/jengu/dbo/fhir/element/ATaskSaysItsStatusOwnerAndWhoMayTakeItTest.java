@@ -80,6 +80,23 @@ class ATaskSaysItsStatusOwnerAndWhoMayTakeItTest {
     }
 
     @Test
+    @DisplayName("work handed to the provider is owned by the provider while none of its "
+            + "people holds it")
+    @Proving(DboPromises.PROC_LASTING_WORK_IS_HANDED_TO_THE_PROVIDER_AND_TAKEN_BACK)
+    void workHandedToTheProviderIsOwnedByIt() {
+        String handed = """
+                {"key":"care.incidents.work/CommunicationRequest/1","process":"care.incidents",
+                 "step":"work","kind":"lasting","status":"received","performerType":["person"],
+                 "for":{"provider":"mom"}}""";
+        for (String code : List.of("r4", "r5")) {
+            assertEquals(Map.of("type", "Organization",
+                            "identifier", Map.of("system", "urn:dbo:tenant", "value", "mom"),
+                            "display", "the service provider"),
+                    rendered(code, handed).get("owner"), code);
+        }
+    }
+
+    @Test
     @DisplayName("a run a person holds is in progress and owned by the role they took it as")
     @Proving(DboPromises.PROC_A_PERSON_CLAIMS_AS_A_PRACTITIONER_ROLE)
     void aPersonsRunIsOwnedByTheirRole() {

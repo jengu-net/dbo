@@ -394,6 +394,7 @@ cloud.jengu.dbo.auth.TenantAuthority                                   signsInWi
 cloud.jengu.dbo.auth.TenantAuthority                                   token(String,String,String):cloud.jengu.dbo.auth.TenantAuthority.TokenResult
 cloud.jengu.dbo.auth.TenantAuthority                                   token(String,String,String,String):cloud.jengu.dbo.auth.TenantAuthority.TokenResult
 cloud.jengu.dbo.auth.TenantAuthority                                   trust(String,Supplier,Function):void
+cloud.jengu.dbo.auth.TenantAuthority                                   trust(String,Supplier,Function,Function):void
 cloud.jengu.dbo.auth.TenantAuthority                                   userInfo(String):Optional
 cloud.jengu.dbo.auth.TenantAuthority                                   userInfoJwt(String):Optional
 cloud.jengu.dbo.auth.TenantAuthority                                   validate(String):Optional
@@ -412,12 +413,14 @@ cloud.jengu.dbo.auth.TenantAuthority.AuthContext                       new(Strin
 cloud.jengu.dbo.auth.TenantAuthority.AuthContext                       new(String,String,String,List,String,List)
 cloud.jengu.dbo.auth.TenantAuthority.AuthContext                       new(String,String,String,List,String,List,String)
 cloud.jengu.dbo.auth.TenantAuthority.AuthContext                       new(String,String,String,List,String,List,String,List)
+cloud.jengu.dbo.auth.TenantAuthority.AuthContext                       new(String,String,String,List,String,List,String,List,cloud.jengu.dbo.auth.TenantAuthority.Vouched)
 cloud.jengu.dbo.auth.TenantAuthority.AuthContext                       organisations():List
 cloud.jengu.dbo.auth.TenantAuthority.AuthContext                       purposeOfUse():String
 cloud.jengu.dbo.auth.TenantAuthority.AuthContext                       record
 cloud.jengu.dbo.auth.TenantAuthority.AuthContext                       roles():List
 cloud.jengu.dbo.auth.TenantAuthority.AuthContext                       scopes():List
 cloud.jengu.dbo.auth.TenantAuthority.AuthContext                       toString():String
+cloud.jengu.dbo.auth.TenantAuthority.AuthContext                       vouched():cloud.jengu.dbo.auth.TenantAuthority.Vouched
 cloud.jengu.dbo.auth.TenantAuthority.AuthorizeResult                   interface
 cloud.jengu.dbo.auth.TenantAuthority.AuthorizeResult.LoginRequired     clientId():String
 cloud.jengu.dbo.auth.TenantAuthority.AuthorizeResult.LoginRequired     equals(Object):boolean
@@ -483,6 +486,13 @@ cloud.jengu.dbo.auth.TenantAuthority.Grants                            record
 cloud.jengu.dbo.auth.TenantAuthority.Grants                            roles():List
 cloud.jengu.dbo.auth.TenantAuthority.Grants                            scopes():List
 cloud.jengu.dbo.auth.TenantAuthority.Grants                            toString():String
+cloud.jengu.dbo.auth.TenantAuthority.Handed                            equals(Object):boolean
+cloud.jengu.dbo.auth.TenantAuthority.Handed                            hashCode():int
+cloud.jengu.dbo.auth.TenantAuthority.Handed                            new(String,List)
+cloud.jengu.dbo.auth.TenantAuthority.Handed                            provider():String
+cloud.jengu.dbo.auth.TenantAuthority.Handed                            record
+cloud.jengu.dbo.auth.TenantAuthority.Handed                            steps():List
+cloud.jengu.dbo.auth.TenantAuthority.Handed                            toString():String
 cloud.jengu.dbo.auth.TenantAuthority.LoginResult                       interface
 cloud.jengu.dbo.auth.TenantAuthority.LoginResult.Denied                equals(Object):boolean
 cloud.jengu.dbo.auth.TenantAuthority.LoginResult.Denied                error():String
@@ -545,6 +555,13 @@ cloud.jengu.dbo.auth.TenantAuthority.TokenResult.Rejected              hashCode(
 cloud.jengu.dbo.auth.TenantAuthority.TokenResult.Rejected              new(String,String)
 cloud.jengu.dbo.auth.TenantAuthority.TokenResult.Rejected              record
 cloud.jengu.dbo.auth.TenantAuthority.TokenResult.Rejected              toString():String
+cloud.jengu.dbo.auth.TenantAuthority.Vouched                           equals(Object):boolean
+cloud.jengu.dbo.auth.TenantAuthority.Vouched                           hashCode():int
+cloud.jengu.dbo.auth.TenantAuthority.Vouched                           new(String,List)
+cloud.jengu.dbo.auth.TenantAuthority.Vouched                           provider():String
+cloud.jengu.dbo.auth.TenantAuthority.Vouched                           record
+cloud.jengu.dbo.auth.TenantAuthority.Vouched                           roles():List
+cloud.jengu.dbo.auth.TenantAuthority.Vouched                           toString():String
 cloud.jengu.dbo.auth.UserClaims                                        RESERVED:Set
 cloud.jengu.dbo.auth.UserClaims                                        contribute(cloud.jengu.dbo.auth.Subject):Map
 cloud.jengu.dbo.auth.UserClaims                                        interface
@@ -3208,6 +3225,9 @@ cloud.jengu.dbo.promises.DboPromises                                   PROC_A_PA
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_PARTICIPANT_SIGNS_BEFORE_IT_IS_ADMITTED:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_PASS_THAT_CHANGES_NOTHING_WRITES_NOTHING:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_PERSON_CLAIMS_AS_A_PRACTITIONER_ROLE:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   PROC_A_PERSON_OF_THE_PROVIDER_ACTS_ON_WORK_THEY_HOLD:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   PROC_A_PERSON_OF_THE_PROVIDER_STARTS_PARTS_OF_WORK_THEY_HOLD:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   PROC_A_PERSON_OF_THE_PROVIDER_TAKES_WORK_HANDED_TO_IT:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_PLACES_RUN_IS_LISTED_AT_HOME_UNDER_ITS_PLACE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_PROCESSOR_IS_ENROLLED_PER_TENANT:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_PROVIDERS_PARTNERS_ARE_NAMED_ON_THE_REGISTER:cloud.jengu.dbo.promises.DboPromises
@@ -3244,6 +3264,7 @@ cloud.jengu.dbo.promises.DboPromises                                   PROC_A_TA
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_TENANT_ADMITS_OR_DECLINES_WHAT_IS_DONE_TO_IT:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_TENANT_AUTHORISES_A_REGISTER_AND_SEES_IT_CHANGE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_TENANT_READS_WHAT_IS_OPENED_OF_ITS_DATA:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   PROC_A_TENANT_SAYS_WHAT_A_HOLDER_OF_HANDED_WORK_MAY_START:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_TRACKABLE_MAY_ROUTE_OTHERS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_WAKE_UP_IS_NOT_HOW_WORK_ARRIVES:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_CATALOGUE_IN_STORE:cloud.jengu.dbo.promises.DboPromises
@@ -3272,6 +3293,7 @@ cloud.jengu.dbo.promises.DboPromises                                   PROC_INTR
 cloud.jengu.dbo.promises.DboPromises                                   PROC_LANE_APPLY_IS_REPLAY_AND_REORDER_SAFE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_LANE_EPOCH:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_LANE_IS_A_TENANT_SERVICE:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   PROC_LASTING_WORK_IS_HANDED_TO_THE_PROVIDER_AND_TAKEN_BACK:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_MACHINERY_WRITES_UNDER_ITS_RUN:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_MANDATORY_STEPS_CLASSIFY_INCIDENTS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_MILESTONES_ARE_DECLARED:cloud.jengu.dbo.promises.DboPromises
@@ -3317,6 +3339,7 @@ cloud.jengu.dbo.promises.DboPromises                                   PROC_TRAC
 cloud.jengu.dbo.promises.DboPromises                                   PROC_TRACE_RIDES_THE_LANE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_WHO_OWES_THE_NEXT_ACT_IS_DERIVED:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_WORK_DRIVEN_ARRIVAL_AND_EXPIRY:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   PROC_WORK_HANDED_TO_THE_PROVIDER_IS_ON_THE_TENANTS_REGISTER:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_WORK_IN_PROCESS_NAMES_THE_PERSON_IT_IS_FOR:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_WORK_IS_AUTHORED_ON_THE_SURFACE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_WORK_THAT_LASTS_IS_MOVED_BY_ITS_PARTS:cloud.jengu.dbo.promises.DboPromises
@@ -4665,10 +4688,12 @@ cloud.jengu.dbo.tenant.FleetHandler                                    handle(Ht
 cloud.jengu.dbo.tenant.FleetHandler                                    new(cloud.jengu.dbo.auth.TenantAuthority,cloud.jengu.dbo.work.Runs,String)
 cloud.jengu.dbo.tenant.FleetRegister                                   class
 cloud.jengu.dbo.tenant.FleetRegister                                   digestOf(List):String
+cloud.jengu.dbo.tenant.FleetRegister                                   handed(List):List
 cloud.jengu.dbo.tenant.FleetRegister                                   of(List,Set):List
 cloud.jengu.dbo.tenant.FleetRegister                                   ofZones(List,Function):List
 cloud.jengu.dbo.tenant.FleetRegister                                   unapproved(List,Set):List
 cloud.jengu.dbo.tenant.FleetRegister.Authority                         PROVIDER:cloud.jengu.dbo.tenant.FleetRegister.Authority
+cloud.jengu.dbo.tenant.FleetRegister.Authority                         TENANT:cloud.jengu.dbo.tenant.FleetRegister.Authority
 cloud.jengu.dbo.tenant.FleetRegister.Authority                         ZONE:cloud.jengu.dbo.tenant.FleetRegister.Authority
 cloud.jengu.dbo.tenant.FleetRegister.Authority                         enum
 cloud.jengu.dbo.tenant.FleetRegister.Authority                         valueOf(String):cloud.jengu.dbo.tenant.FleetRegister.Authority
@@ -4680,6 +4705,8 @@ cloud.jengu.dbo.tenant.FleetRegister.Row                               equals(Ob
 cloud.jengu.dbo.tenant.FleetRegister.Row                               hashCode():int
 cloud.jengu.dbo.tenant.FleetRegister.Row                               new(String,String,String,boolean,cloud.jengu.dbo.tenant.TenantSpec.FleetStep.Posture)
 cloud.jengu.dbo.tenant.FleetRegister.Row                               new(String,String,String,boolean,cloud.jengu.dbo.tenant.TenantSpec.FleetStep.Posture,cloud.jengu.dbo.tenant.FleetRegister.Authority,String,List)
+cloud.jengu.dbo.tenant.FleetRegister.Row                               new(String,String,String,boolean,cloud.jengu.dbo.tenant.TenantSpec.FleetStep.Posture,cloud.jengu.dbo.tenant.FleetRegister.Authority,String,List,String)
+cloud.jengu.dbo.tenant.FleetRegister.Row                               partOf():String
 cloud.jengu.dbo.tenant.FleetRegister.Row                               posture():cloud.jengu.dbo.tenant.TenantSpec.FleetStep.Posture
 cloud.jengu.dbo.tenant.FleetRegister.Row                               record
 cloud.jengu.dbo.tenant.FleetRegister.Row                               required():boolean
@@ -5080,7 +5107,9 @@ cloud.jengu.dbo.tenant.TenantSpec.Step                                 automate(
 cloud.jengu.dbo.tenant.TenantSpec.Step                                 awaits():cloud.jengu.dbo.tenant.TenantSpec.Step.Awaits
 cloud.jengu.dbo.tenant.TenantSpec.Step                                 code():String
 cloud.jengu.dbo.tenant.TenantSpec.Step                                 equals(Object):boolean
+cloud.jengu.dbo.tenant.TenantSpec.Step                                 handsToProvider():boolean
 cloud.jengu.dbo.tenant.TenantSpec.Step                                 hashCode():int
+cloud.jengu.dbo.tenant.TenantSpec.Step                                 holdersStart():List
 cloud.jengu.dbo.tenant.TenantSpec.Step                                 lasts():boolean
 cloud.jengu.dbo.tenant.TenantSpec.Step                                 new(String,Map)
 cloud.jengu.dbo.tenant.TenantSpec.Step                                 new(String,Map,Set)
@@ -5090,6 +5119,8 @@ cloud.jengu.dbo.tenant.TenantSpec.Step                                 new(Strin
 cloud.jengu.dbo.tenant.TenantSpec.Step                                 new(String,Map,Set,cloud.jengu.dbo.core.process.RetryPolicy,cloud.jengu.dbo.core.process.AutomationCriterion,cloud.jengu.dbo.tenant.TenantSpec.Answer,cloud.jengu.dbo.tenant.TenantSpec.Starts,boolean)
 cloud.jengu.dbo.tenant.TenantSpec.Step                                 new(String,Map,Set,cloud.jengu.dbo.core.process.RetryPolicy,cloud.jengu.dbo.core.process.AutomationCriterion,cloud.jengu.dbo.tenant.TenantSpec.Answer,cloud.jengu.dbo.tenant.TenantSpec.Starts,boolean,cloud.jengu.dbo.tenant.TenantSpec.Step.Awaits)
 cloud.jengu.dbo.tenant.TenantSpec.Step                                 new(String,Map,Set,cloud.jengu.dbo.core.process.RetryPolicy,cloud.jengu.dbo.core.process.AutomationCriterion,cloud.jengu.dbo.tenant.TenantSpec.Answer,cloud.jengu.dbo.tenant.TenantSpec.Starts,boolean,cloud.jengu.dbo.tenant.TenantSpec.Step.Awaits,Set)
+cloud.jengu.dbo.tenant.TenantSpec.Step                                 new(String,Map,Set,cloud.jengu.dbo.core.process.RetryPolicy,cloud.jengu.dbo.core.process.AutomationCriterion,cloud.jengu.dbo.tenant.TenantSpec.Answer,cloud.jengu.dbo.tenant.TenantSpec.Starts,boolean,cloud.jengu.dbo.tenant.TenantSpec.Step.Awaits,Set,boolean)
+cloud.jengu.dbo.tenant.TenantSpec.Step                                 new(String,Map,Set,cloud.jengu.dbo.core.process.RetryPolicy,cloud.jengu.dbo.core.process.AutomationCriterion,cloud.jengu.dbo.tenant.TenantSpec.Answer,cloud.jengu.dbo.tenant.TenantSpec.Starts,boolean,cloud.jengu.dbo.tenant.TenantSpec.Step.Awaits,Set,boolean,List)
 cloud.jengu.dbo.tenant.TenantSpec.Step                                 record
 cloud.jengu.dbo.tenant.TenantSpec.Step                                 retry():cloud.jengu.dbo.core.process.RetryPolicy
 cloud.jengu.dbo.tenant.TenantSpec.Step                                 secrets():Set
@@ -5593,6 +5624,9 @@ cloud.jengu.dbo.work.Run.Addressee                                     executor(
 cloud.jengu.dbo.work.Run.Addressee                                     hashCode():int
 cloud.jengu.dbo.work.Run.Addressee                                     names(String,String):boolean
 cloud.jengu.dbo.work.Run.Addressee                                     new(String,String)
+cloud.jengu.dbo.work.Run.Addressee                                     new(String,String,String)
+cloud.jengu.dbo.work.Run.Addressee                                     provider():String
+cloud.jengu.dbo.work.Run.Addressee                                     provider(String):cloud.jengu.dbo.work.Run.Addressee
 cloud.jengu.dbo.work.Run.Addressee                                     record
 cloud.jengu.dbo.work.Run.Addressee                                     toString():String
 cloud.jengu.dbo.work.Run.Assignment                                    at():cloud.jengu.dbo.work.Scope
@@ -5844,9 +5878,11 @@ cloud.jengu.dbo.work.Runs                                              filling(c
 cloud.jengu.dbo.work.Runs                                              forPeople(cloud.jengu.dbo.work.Run,String):cloud.jengu.dbo.work.Run
 cloud.jengu.dbo.work.Runs                                              forPeople(cloud.jengu.dbo.work.Run,cloud.jengu.dbo.work.Executor,String):cloud.jengu.dbo.work.Run
 cloud.jengu.dbo.work.Runs                                              handBack(cloud.jengu.dbo.work.Run,Instant):Optional
+cloud.jengu.dbo.work.Runs                                              handed(cloud.jengu.dbo.work.Run,String,String,String):cloud.jengu.dbo.work.Run
 cloud.jengu.dbo.work.Runs                                              item(cloud.jengu.dbo.work.Run,String,cloud.jengu.dbo.work.Failure,String):cloud.jengu.dbo.work.Run
 cloud.jengu.dbo.work.Runs                                              items(cloud.jengu.dbo.work.Run):List
 cloud.jengu.dbo.work.Runs                                              lapsed(Instant):List
+cloud.jengu.dbo.work.Runs                                              letGo(cloud.jengu.dbo.work.Run,String,String):cloud.jengu.dbo.work.Run
 cloud.jengu.dbo.work.Runs                                              matching(String,String,cloud.jengu.dbo.work.Awaits,int):List
 cloud.jengu.dbo.work.Runs                                              milestone(cloud.jengu.dbo.work.Run,String,Map,Instant):cloud.jengu.dbo.work.Run
 cloud.jengu.dbo.work.Runs                                              milestone(cloud.jengu.dbo.work.Run,cloud.jengu.dbo.work.Executor,String,Map,Duration):cloud.jengu.dbo.work.Run
@@ -5858,6 +5894,7 @@ cloud.jengu.dbo.work.Runs                                              of(cloud.
 cloud.jengu.dbo.work.Runs                                              of(cloud.jengu.dbo.core.process.StepDeclaration,cloud.jengu.dbo.work.RunKind,String,Map):cloud.jengu.dbo.work.Run
 cloud.jengu.dbo.work.Runs                                              openItems(cloud.jengu.dbo.work.Run):List
 cloud.jengu.dbo.work.Runs                                              opening(cloud.jengu.dbo.core.process.StepDeclaration,String,String,String,cloud.jengu.dbo.work.Run):cloud.jengu.dbo.work.Run
+cloud.jengu.dbo.work.Runs                                              opening(cloud.jengu.dbo.core.process.StepDeclaration,String,String,String,cloud.jengu.dbo.work.Run,String):cloud.jengu.dbo.work.Run
 cloud.jengu.dbo.work.Runs                                              over(cloud.jengu.dbo.work.Run,String,String,Instant,int):List
 cloud.jengu.dbo.work.Runs                                              pass(cloud.jengu.dbo.work.Run):cloud.jengu.dbo.work.Runs.Pass
 cloud.jengu.dbo.work.Runs                                              pipeline(String,String):cloud.jengu.dbo.work.Run
@@ -5881,6 +5918,8 @@ cloud.jengu.dbo.work.Runs                                              started(c
 cloud.jengu.dbo.work.Runs                                              started(cloud.jengu.dbo.core.process.StepDeclaration,String,Map,String,cloud.jengu.dbo.work.Run,String):cloud.jengu.dbo.work.Run
 cloud.jengu.dbo.work.Runs                                              sweep(String,String,String):cloud.jengu.dbo.work.Run
 cloud.jengu.dbo.work.Runs                                              sweep(String,String,String,List):cloud.jengu.dbo.work.Run
+cloud.jengu.dbo.work.Runs                                              takenBack(cloud.jengu.dbo.work.Run,String,String):cloud.jengu.dbo.work.Run
+cloud.jengu.dbo.work.Runs                                              takenForTheProvider(cloud.jengu.dbo.work.Run,String,String,String):Optional
 cloud.jengu.dbo.work.Runs                                              tally(cloud.jengu.dbo.work.Run,Map):cloud.jengu.dbo.work.Run
 cloud.jengu.dbo.work.Runs                                              traced(cloud.jengu.dbo.work.Run,String):cloud.jengu.dbo.work.Run
 cloud.jengu.dbo.work.Runs                                              waiting(cloud.jengu.dbo.work.Run,String):Optional

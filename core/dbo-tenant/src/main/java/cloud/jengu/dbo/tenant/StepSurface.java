@@ -182,6 +182,27 @@ final class StepSurface implements HttpHandler {
             return null;
         }
 
+        /**
+         * The provider this tenant's work of one of its own steps may be
+         * handed to: the deployment's, while the row the tenant's declaration
+         * puts on its register for that step stands authorised.
+         *
+         * @return the provider's code, or null where the work may not be handed
+         */
+        default String handedTo(String tenant, String stepCode) {
+            return null;
+        }
+
+        /**
+         * Whether a holder of this tenant's handed work of one step may start
+         * another as its part: while the work is handed and the row the
+         * tenant's declaration puts on its register for that part stands
+         * authorised.
+         */
+        default boolean holdersStart(String tenant, String handedStep, String part) {
+            return false;
+        }
+
         /** The step's slots, and why it is not startable here if it is not. */
         record Offer(Map<String, String> slots, String refusedBecause,
                 TenantSpec.Step.Awaits awaits) {
@@ -263,7 +284,13 @@ final class StepSurface implements HttpHandler {
             // client.
             cloud.jengu.dbo.core.api.Caller.set(admitted.fhirUser() != null
                     ? admitted.fhirUser() : admitted.clientId());
-            if (starting) {
+            if (starting && admitted.vouched() != null) {
+                // Not a door onto the tenant's steps: a part of work they
+                // hold, of a step the tenant named for it, and nothing else.
+                // No purpose is accepted here either, as at the door below.
+                cloud.jengu.dbo.core.api.Disclosure.clear();
+                startPart(exchange, relative, admitted);
+            } else if (starting) {
                 // NO PURPOSE IS STATED HERE, and none is accepted. A slot may
                 // be filled by a search, and a stated purpose is what opens an
                 // exact lookup on an identifying element through the vault —
@@ -349,6 +376,44 @@ final class StepSurface implements HttpHandler {
         Object body = Json.parse(new String(exchange.getRequestBody().readAllBytes(),
                 StandardCharsets.UTF_8));
         Started started = starting(stepCode, body, requester);
+        respond(exchange, started.status(), started.body());
+    }
+
+    /**
+     * POST /step/&lt;code&gt; by a person of the provider — a part of handed
+     * work they hold, of a step the tenant named for that work.
+     *
+     * <p>Every other start is answered as a run that does not exist, as the
+     * work it names is to anybody who does not hold it: a person of the
+     * provider learns nothing of the tenant's work by asking to start some.
+     * Asked again of the register each time, so a row the tenant withdraws,
+     * or a hold that ended, stops the next part.
+     */
+    private void startPart(HttpExchange exchange, String stepCode,
+            TenantAuthority.AuthContext asking) throws IOException {
+        if (!"POST".equals(exchange.getRequestMethod())) {
+            fail(exchange, 405, "invalid_request", "a run is started by POSTing to the step");
+            return;
+        }
+        Object body = Json.parse(new String(exchange.getRequestBody().readAllBytes(),
+                StandardCharsets.UTF_8));
+        if (Json.objOpt(body, "for") != null || Json.objOpt(body, "crossing") != null) {
+            fail(exchange, 400, "invalid_request", "a part of handed work names what it is "
+                    + "over and the work it is part of, and goes nowhere else");
+            return;
+        }
+        String partOf = Json.strOpt(body, "partOf");
+        Run work = partOf == null ? null : runs.byKey(partOf).orElse(null);
+        String handedStep = work == null ? null : work.process() + "." + work.step();
+        TenantSpec.Step handed = handedStep == null ? null : declared.get(handedStep);
+        if (handed == null || !work.lasting() || !work.open()
+                || !work.heldBy(asking.clientId(), clock.instant())
+                || !handed.holdersStart().contains(stepCode)
+                || !fleet.holdersStart(tenant, handedStep, stepCode)) {
+            fail(exchange, 404, "not_found", "no such run");
+            return;
+        }
+        Started started = starting(stepCode, body, asking.clientId());
         respond(exchange, started.status(), started.body());
     }
 
@@ -518,7 +583,22 @@ final class StepSurface implements HttpHandler {
             }
         }
         cloud.jengu.dbo.work.Run.Addressee addressee = null;
-        if (Json.objOpt(body, "for") instanceof Map<?, ?> named) {
+        String provider = null;
+        if (Json.objOpt(body, "for") instanceof Map<?, ?> named && named.containsKey("provider")) {
+            if (!Boolean.TRUE.equals(named.get("provider")) || named.size() != 1) {
+                return refused(400, "invalid_request", "'for' hands work to the provider as "
+                        + "{\"provider\":true}, naming nobody else: the provider is the "
+                        + "deployment's, not the asker's to name");
+            }
+            if (step == null || !step.handsToProvider()) {
+                return refused(400, "invalid_request", stepCode + " is not declared to hand "
+                        + "its work to the provider");
+            }
+            provider = fleet.handedTo(tenant, stepCode);
+            if (provider == null) {
+                return refused(409, "refused", notHandedBecause(stepCode));
+            }
+        } else if (Json.objOpt(body, "for") instanceof Map<?, ?> named) {
             Object client = named.get("client");
             Object executor = named.get("executor");
             if (client == null && executor == null) {
@@ -559,7 +639,7 @@ final class StepSurface implements HttpHandler {
             declaration = declaration.retrying(step.retry());
         }
         if (step != null && step.lasts()) {
-            Run opened = opened(step, declaration, inputs, requester, parent);
+            Run opened = opened(step, declaration, inputs, requester, parent, provider);
             return new Started(201, "{\"run\":" + quote(opened.id()) + ",\"key\":"
                     + quote(opened.key()) + ",\"step\":" + quote(stepCode) + "}");
         }
@@ -803,7 +883,7 @@ final class StepSurface implements HttpHandler {
             Map<String, cloud.jengu.dbo.work.RunSlot> inputs, Run parent, String by) {
         StepDeclaration declaration = declaration(step.code(), step.slots());
         if (step.lasts()) {
-            return opened(step, declaration, inputs, by, parent);
+            return opened(step, declaration, inputs, by, parent, null);
         }
         if (step.retry() != null) {
             declaration = declaration.retrying(step.retry());
@@ -842,23 +922,33 @@ final class StepSurface implements HttpHandler {
      * again, or changing it again, finds the same.
      */
     private Run opened(TenantSpec.Step step, StepDeclaration declaration,
-            Map<String, cloud.jengu.dbo.work.RunSlot> inputs, String requester, Run parent) {
+            Map<String, cloud.jengu.dbo.work.RunSlot> inputs, String requester, Run parent,
+            String provider) {
         String slot = step.slots().keySet().iterator().next();
         cloud.jengu.dbo.work.RunSlot filled = inputs.get(slot);
         if (filled == null || filled.values().size() != 1) {
             throw new IllegalArgumentException(step.code() + " lasts, and is opened for the one "
                     + "request its slot '" + slot + "' names");
         }
-        return runs.opening(declaration, slot, filled.values().get(0), requester, parent);
+        return runs.opening(declaration, slot, filled.values().get(0), requester, parent,
+                provider);
+    }
+
+    /** Why this tenant's work of a step may not be handed to the provider now. */
+    private static String notHandedBecause(String stepCode) {
+        return stepCode + " hands its work to the provider under a row of this tenant's "
+                + "register, and the row does not stand: authorise it in this tenant's "
+                + "declaration, on a deployment with a provider, to hand work over";
     }
 
     /** What may be said of lasting work, as the last segment of its address. */
-    static final java.util.Set<String> SAID = java.util.Set.of("accept", "reject", "stage", "end");
+    static final java.util.Set<String> SAID = java.util.Set.of("accept", "reject", "stage", "end",
+            "hand", "take-back");
 
     /**
      * An act said of lasting work, by whoever says it: accepted, rejected and
-     * why, a stage reached, or ended — completed, failed or cancelled — and
-     * why. The door has decided they may; this decides whether the work can
+     * why, a stage reached, ended — completed, failed or cancelled — and why,
+     * or handed to the provider and taken back, and why. The door has decided they may; this decides whether the work can
      * be said to be so.
      *
      * @param body {@code because}, and {@code stage} or {@code status} where
@@ -870,8 +960,15 @@ final class StepSurface implements HttpHandler {
             return refused(404, "not_found", "no such run");
         }
         String because = Json.strOpt(body, "because");
+        String stepCode = found.get().process() + "." + found.get().step();
+        String provider = "hand".equals(act) ? fleet.handedTo(tenant, stepCode) : null;
+        if ("hand".equals(act) && provider == null) {
+            return refused(409, "refused", notHandedBecause(stepCode));
+        }
         try {
             Run moved = switch (act) {
+                case "hand" -> runs.handed(found.get(), provider, by, because);
+                case "take-back" -> runs.takenBack(found.get(), by, because);
                 case "accept" -> runs.accepted(found.get(), by, because);
                 case "reject" -> runs.rejected(found.get(), by, because);
                 case "stage" -> runs.reached(found.get(), Json.strOpt(body, "stage"), by, because);
@@ -879,7 +976,8 @@ final class StepSurface implements HttpHandler {
                         Optional.ofNullable(Json.strOpt(body, "status")).orElse("completed")),
                         by, because);
                 default -> throw new IllegalArgumentException("'" + act + "' is not said of "
-                        + "lasting work; it is accepted, rejected, staged or ended");
+                        + "lasting work; it is accepted, rejected, staged, ended, handed or "
+                        + "taken back");
             };
             return new Started(200, "{\"run\":" + quote(moved.id()) + ",\"key\":"
                     + quote(moved.key()) + ",\"status\":" + quote(moved.status().wire())
@@ -923,6 +1021,21 @@ final class StepSurface implements HttpHandler {
             TenantAuthority.AuthContext admitted) throws IOException {
         String asking = admitted.clientId();
         String[] segments = relative.split("/");
+        if (admitted.vouched() != null && segments.length == 2) {
+            // A person of the provider takes handed work, and once they hold
+            // it says its own acts and lets it go. Handing it over and taking
+            // it back are the tenant's; those, and every act on work they do
+            // not hold, are answered as for a run that is not there, which is
+            // all it is to them.
+            if ("claim".equals(segments[1])) {
+                takeHanded(exchange, segments[0], admitted);
+            } else if (HOLDERS_SAY.contains(segments[1])) {
+                sayHeld(exchange, segments[0], segments[1], admitted);
+            } else {
+                fail(exchange, 404, "not_found", "no such run");
+            }
+            return;
+        }
         if (segments.length == 2 && SAID.contains(segments[1])) {
             if (!"POST".equals(exchange.getRequestMethod())) {
                 fail(exchange, 405, "invalid_request", "an act is said by POSTing it");
@@ -1260,6 +1373,106 @@ final class StepSurface implements HttpHandler {
                 + quote(taken.get().status().wire()) + ",\"owner\":"
                 + quote(taken.get().assignment().role()) + ",\"until\":"
                 + quote(String.valueOf(taken.get().assignment().until())) + "}");
+    }
+
+    /** What a person of the provider says of handed work they hold. */
+    static final java.util.Set<String> HOLDERS_SAY =
+            java.util.Set.of("accept", "reject", "stage", "end", "let-go");
+
+    /**
+     * An act said of handed work by the person of the provider holding it,
+     * recorded under the work naming them. Ending it, or letting it go, is
+     * the last thing they say of it: either way they hold it no longer.
+     */
+    private void sayHeld(HttpExchange exchange, String id, String act,
+            TenantAuthority.AuthContext asking) throws IOException {
+        if (!"POST".equals(exchange.getRequestMethod())) {
+            fail(exchange, 405, "invalid_request", "an act is said by POSTing it");
+            return;
+        }
+        Optional<Run> found = runs.byId(id);
+        if (found.isEmpty() || !found.get().lasting()
+                || !found.get().heldBy(asking.clientId(), clock.instant())) {
+            fail(exchange, 404, "not_found", "no such run");
+            return;
+        }
+        Object body = Json.parse(new String(exchange.getRequestBody().readAllBytes(),
+                StandardCharsets.UTF_8));
+        if (!"let-go".equals(act)) {
+            Started said = saying(id, act, body, asking.fhirUser());
+            respond(exchange, said.status(), said.body());
+            return;
+        }
+        Run released;
+        try {
+            released = runs.letGo(found.get(), asking.clientId(), Json.strOpt(body, "because"));
+        } catch (IllegalArgumentException wrong) {
+            fail(exchange, 400, "invalid_request", wrong.getMessage());
+            return;
+        } catch (IllegalStateException standing) {
+            fail(exchange, 404, "not_found", "no such run");
+            return;
+        }
+        respond(exchange, 200, "{\"run\":" + quote(released.id()) + ",\"key\":"
+                + quote(released.key()) + ",\"status\":"
+                + quote(released.status().wire()) + "}");
+    }
+
+    /**
+     * POST /run/&lt;id&gt;/claim, by a person of the provider — the work the
+     * tenant handed the provider, taken as a role the provider vouched for.
+     *
+     * <p>The role is the provider's, named by absolute reference to its base,
+     * and the run names it as what holds the work: this tenant holds no such
+     * record and needs none, because the provider's signature on the token is
+     * what vouches for it. Work not handed to the provider, or no longer
+     * open, is answered as a run that does not exist; work another of the
+     * provider's people holds is a conflict.
+     */
+    private void takeHanded(HttpExchange exchange, String id,
+            TenantAuthority.AuthContext asking) throws IOException {
+        if (!"POST".equals(exchange.getRequestMethod())) {
+            fail(exchange, 405, "invalid_request", "a run is taken by POSTing to it");
+            return;
+        }
+        String provider = asking.vouched().provider();
+        Optional<Run> found = runs.byId(id);
+        if (found.isEmpty() || !found.get().lasting() || !found.get().open()
+                || found.get().addressee() == null
+                || !provider.equals(found.get().addressee().provider())
+                || !covers(asking, found.get().process() + "." + found.get().step())) {
+            fail(exchange, 404, "not_found", "no such run");
+            return;
+        }
+        List<String> held = asking.vouched().roles();
+        String asked = query(exchange, "role");
+        // Asked by its absolute reference, as PractitionerRole/<id>, or by id.
+        String roleId = asked == null ? null : asked.startsWith("PractitionerRole/")
+                ? asked.substring("PractitionerRole/".length()) : asked;
+        String role = asked == null ? held.get(0)
+                : held.stream().filter(one -> one.equals(asked)
+                        || one.endsWith("/PractitionerRole/" + roleId))
+                        .findFirst().orElse(null);
+        if (role == null) {
+            fail(exchange, 403, "access_denied", "the provider does not vouch for "
+                    + asked + " as a role this person holds");
+            return;
+        }
+        Optional<Run> taken;
+        try {
+            taken = runs.takenForTheProvider(found.get(), provider, role, asking.clientId());
+        } catch (IllegalArgumentException goneMeanwhile) {
+            fail(exchange, 404, "not_found", "no such run");
+            return;
+        }
+        if (taken.isEmpty()) {
+            fail(exchange, 409, "conflict", "somebody of the provider holds this work");
+            return;
+        }
+        respond(exchange, 200, "{\"run\":" + quote(taken.get().id()) + ",\"key\":"
+                + quote(taken.get().key()) + ",\"status\":"
+                + quote(taken.get().status().wire()) + ",\"owner\":"
+                + quote(taken.get().assignment().role()) + "}");
     }
 
     /**

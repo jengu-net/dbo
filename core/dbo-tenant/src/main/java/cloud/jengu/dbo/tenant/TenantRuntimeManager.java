@@ -1991,6 +1991,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
             throw new UncheckedIOException("the management tenant's spec cannot be read: "
                     + specFile, e);
         }
+        workIsHandedToAProvider(spec, spec.code());
         if (!runtimes.containsKey(spec.code())) {
             bringUp(spec);
             states.put(spec.code(), TenantState.State.SERVING);
@@ -2264,6 +2265,10 @@ public final class TenantRuntimeManager implements AutoCloseable {
     public List<FleetRegister.Row> fleetRegister(String tenant) {
         List<FleetRegister.Row> rows = new java.util.ArrayList<>(
                 FleetRegister.of(declaredFleetSteps, declinedBy(tenant)));
+        TenantRuntime serving = runtimes.get(tenant);
+        if (serving != null) {
+            rows.addAll(FleetRegister.handed(serving.spec().steps()));
+        }
         rows.addAll(FleetRegister.ofZones(zones.chainOf(tenant), zones::permitted));
         return List.copyOf(rows);
     }
@@ -2444,7 +2449,42 @@ public final class TenantRuntimeManager implements AutoCloseable {
         public StepSurface.Fleet.Offer exchange(String tenant, String stepCode, String to) {
             return exchangeOf(tenant, stepCode, to);
         }
+
+        @Override
+        public String handedTo(String tenant, String stepCode) {
+            return handedToOf(tenant, stepCode);
+        }
+
+        @Override
+        public boolean holdersStart(String tenant, String handedStep, String part) {
+            if (handedToOf(tenant, handedStep) == null) {
+                return false;
+            }
+            // The one row, by the work it is part of: the same step named
+            // under other handed work is authorised as itself.
+            java.util.function.Predicate<FleetRegister.Row> thePart = row ->
+                    row.authority() == FleetRegister.Authority.TENANT
+                            && handedStep.equals(row.partOf()) && part.equals(row.step());
+            return fleetRegister(tenant).stream().anyMatch(thePart)
+                    && unapprovedRows(tenant).stream().noneMatch(thePart);
+        }
     };
+
+    /**
+     * The provider a tenant's work of its own step may be handed to: asked
+     * each time, so a withdrawn row stops the next hand-over.
+     */
+    private String handedToOf(String tenant, String stepCode) {
+        String provider = managementCode;
+        if (provider == null || provider.equals(tenant)
+                || withheldFrom(tenant).contains(stepCode)) {
+            return null;
+        }
+        boolean stands = fleetRegister(tenant).stream().anyMatch(row ->
+                row.authority() == FleetRegister.Authority.TENANT && row.partOf() == null
+                        && row.step().equals(stepCode));
+        return stands ? provider : null;
+    }
 
     /**
      * An exchange a jurisdiction above this tenant declares, asked for to go
@@ -2733,6 +2773,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 tree.refuseTakingFromAPeer(spec, managementCode);
                 aPartnerIsTheProvidersPartner(spec);
                 aPartnerIsNotDeclaredByTheTenantItFollows(spec);
+                workIsHandedToAProvider(spec, managementCode);
                 // It parsed and it is being served, so a later refusal of the
                 // same file is news rather than a repeat.
                 refusals.applied(named);
@@ -3168,7 +3209,9 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 fleetRegisterChanged(code).ifPresent(changed ->
                         row.put("changedSinceAuthorised", changed));
                 row.put("unapproved", unapprovedRows(code).stream()
-                        .map(unapproved -> unapproved.slot() == null
+                        .map(unapproved -> unapproved.partOf() != null
+                                ? unapproved.step() + " (part of " + unapproved.partOf() + ")"
+                                : unapproved.slot() == null
                                 ? unapproved.step() + " (" + unapproved.by() + ")"
                                 : unapproved.step() + "/" + unapproved.slot())
                         .toList());
@@ -3615,6 +3658,30 @@ public final class TenantRuntimeManager implements AutoCloseable {
     }
 
     /**
+     * A deployment with no provider would carry a row nobody could act on,
+     * and a row handing a provider's work to itself grants nobody anything
+     * new.
+     *
+     * @param provider the deployment's service provider, or null where it has none
+     */
+    static void workIsHandedToAProvider(TenantSpec spec, String provider) {
+        List<String> handed = spec.steps().stream()
+                .filter(TenantSpec.Step::handsToProvider).map(TenantSpec.Step::code).toList();
+        if (handed.isEmpty()) {
+            return;
+        }
+        if (provider == null) {
+            throw new IllegalArgumentException("tenant '" + spec.code() + "' hands " + handed
+                    + " to the provider, and this deployment has no service provider to take it");
+        }
+        if (provider.equals(spec.code())) {
+            throw new IllegalArgumentException("the service provider '" + spec.code()
+                    + "' hands " + handed + " to the provider, which is itself: its own "
+                    + "people work it already. Remove handsTo");
+        }
+    }
+
+    /**
      * A tenant no longer names who may follow its work. A partner follows a
      * tenant only because the provider's process hands it work, named on the
      * tenant's register where the tenant may decline it — so a tenant naming
@@ -3652,6 +3719,26 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 .filter(row -> !withheld.contains(row.step()))
                 .anyMatch(row -> row.subProcessors().contains(client));
         return named ? Optional.of(client) : Optional.empty();
+    }
+
+    /**
+     * What a person of the provider reaches in this tenant: the steps whose
+     * work it hands the provider under a row that stands now, or empty where
+     * there are none and the person is not admitted at all.
+     */
+    private Optional<cloud.jengu.dbo.auth.TenantAuthority.Handed> handedToPeople(String tenant) {
+        TenantRuntime serving = runtimes.get(tenant);
+        if (serving == null) {
+            return Optional.empty();
+        }
+        List<String> steps = serving.spec().steps().stream()
+                .filter(TenantSpec.Step::handsToProvider)
+                .map(TenantSpec.Step::code)
+                .filter(step -> handedToOf(tenant, step) != null)
+                .toList();
+        return steps.isEmpty() ? Optional.empty()
+                : Optional.of(new cloud.jengu.dbo.auth.TenantAuthority.Handed(managementCode,
+                        steps));
     }
 
     /** The declarations that parse; one that does not is refused where it is begun. */
@@ -5121,10 +5208,15 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 // tenant's register names that partner on a row it has not
                 // declined or withheld — asked per token, so that withdrawing
                 // is a line in this tenant's declaration and nothing more.
+                // The provider's own people come the same way, to the work
+                // this tenant hands the provider and nothing else, and on
+                // the same per-token terms: a row withdrawn stops them at
+                // the next request.
                 final String code = spec.code();
                 authority.trust(partnerIssuer(authority.issuer(), code, provider),
                         () -> authorities.get(provider).jwksJson(),
-                        claims -> admittedPartner(code, claims));
+                        claims -> admittedPartner(code, claims),
+                        claims -> handedToPeople(code));
             }
             sharedServer.createContext(workPath, new cloud.jengu.dbo.runner.http.LaneHandler(
                     workPath, verbs));
