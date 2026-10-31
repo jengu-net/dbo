@@ -2458,8 +2458,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
 
     /**
      * The provider a tenant's work of its own step may be handed to: asked
-     * each time, so a row the tenant withdraws or a register that moves
-     * under it stops the next hand-over, not the next bring-up.
+     * each time, so a withdrawn row stops the next hand-over.
      */
     private String handedToOf(String tenant, String stepCode) {
         String provider = managementCode;
@@ -3642,11 +3641,9 @@ public final class TenantRuntimeManager implements AutoCloseable {
     }
 
     /**
-     * Work a tenant hands to the provider needs a provider to take it, and
-     * one that is not the tenant itself. A deployment with none would carry a
-     * row nobody could act on, read by the tenant as somebody it agreed may
-     * hold its work; and the provider's people already work its own work, so
-     * a row handing it to itself grants nobody new.
+     * A deployment with no provider would carry a row nobody could act on,
+     * and a row handing a provider's work to itself grants nobody anything
+     * new.
      *
      * @param provider the deployment's service provider, or null where it has none
      */

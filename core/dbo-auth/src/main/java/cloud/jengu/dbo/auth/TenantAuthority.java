@@ -2178,9 +2178,8 @@ public final class TenantAuthority {
         String orgClaim = reach.isEmpty() ? ""
                 : ",\"org\":[\"" + String.join("\",\"", reach) + "\"]";
         // The roles held now, by id: what a tenant handing work to this one
-        // admits the person as, read off a token this authority signed rather
-        // than off a store it may not serve. Absent where none is held, so a
-        // person holding no role carries exactly what it did before.
+        // admits the person as, read off the token this authority signed
+        // because it may not serve that tenant's store.
         List<String> held = fhirUser.startsWith("Practitioner/")
                 ? activeRoles(fhirUser.substring("Practitioner/".length())) : List.of();
         String heldClaim = held.isEmpty() ? ""

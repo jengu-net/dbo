@@ -641,11 +641,9 @@ public final class Runs {
      * Lasting work handed to the provider, taken by one of its people as a
      * role the provider vouched for, and said so under the work.
      *
-     * <p><b>Held with no deadline.</b> A person's lease is measured against
-     * an hour at a ward screen, and this is work that lasts days: it is held
+     * <p><b>Held with no deadline.</b> The work lasts days, so it is held
      * until it ends, the holder lets it go, or the tenant takes it back.
-     * Where it stands is not moved by taking it, because taking work is not
-     * starting it; its parts and its acts say that.
+     * Taking it does not move where it stands; its parts and acts do.
      *
      * @param role     the role taken as, by absolute reference to the
      *                 provider's base, which this tenant does not hold

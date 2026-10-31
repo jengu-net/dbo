@@ -203,9 +203,8 @@ names the test behind each.
 
 ## What the store cannot do yet
 
-- **A person of the provider neither starts parts of handed work nor writes
-  through it.** They reach only the steps whose work is handed, and no tenant
-  has a way yet to say which of its other steps a holder may ask for.
+- **A person of the provider cannot start parts of handed work or write through
+  it.** No tenant can yet say which of its other steps a holder may ask for.
 - **A fleet step writes nothing.** No tenant's declaration says what the
   deployment's step may write, so its result is a tally and no records.
 - **A deployment cannot name its processor** in configuration, so none is

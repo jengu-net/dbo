@@ -840,8 +840,7 @@ class OneStepIsPerformedForEveryTenantIT {
 
     /**
      * The clinic's register row handing its repairs over, or null while there
-     * is none — including while the clinic is being rewired for the step it
-     * just declared, and has no authority to ask.
+     * is none or the clinic has no authority to ask.
      */
     private Map<?, ?> handedRow() {
         if (tenants.authority(CLINIC).isEmpty()) {

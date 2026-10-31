@@ -1378,7 +1378,7 @@ final class StepSurface implements HttpHandler {
      * record and needs none, because the provider's signature on the token is
      * what vouches for it. Work not handed to the provider, or no longer
      * open, is answered as a run that does not exist; work another of the
-     * provider's people holds is a conflict, as for any person.
+     * provider's people holds is a conflict.
      */
     private void takeHanded(HttpExchange exchange, String id,
             TenantAuthority.AuthContext asking) throws IOException {

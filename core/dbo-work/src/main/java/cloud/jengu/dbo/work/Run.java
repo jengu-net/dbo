@@ -184,12 +184,11 @@ public record Run(String id, long versionId, String key, String process, String 
      * take it outlives every holder.
      *
      * <p>Or the service provider, for work that lasts which a tenant handed
-     * to it: then the provider's people take it, and no participant does.
+     * to it: then the provider's people take it.
      *
      * @param client   the client the run is for, or null for any
      * @param executor the executor's name, or null for any
-     * @param provider the provider the work was handed to, naming neither
-     *                 a client nor an executor
+     * @param provider the provider the work was handed to
      */
     public record Addressee(String client, String executor, String provider) {
 

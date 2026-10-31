@@ -195,12 +195,10 @@ public final class FleetRegister {
      * step whose work it hands to the provider, over the request that work
      * fulfils.
      *
-     * <p><b>Not until approved, and never required.</b> A provider's row is
-     * admitted by the tenant saying nothing, because joining was the
-     * agreement. Handing work over is not something joining agreed to: the
-     * provider's people would hold the tenant's work under the provider's
-     * name, so the row stands only once the tenant has authorised it, and
-     * removing the line that declared it is how the tenant declines it.
+     * <p><b>Not until approved, and never required.</b> Unlike a provider's
+     * row, it stands only once the tenant has authorised it, because handing
+     * work over is not what joining agreed to. Removing the line that
+     * declared it declines it.
      */
     public static List<Row> handed(List<TenantSpec.Step> declared) {
         List<Row> rows = new ArrayList<>();

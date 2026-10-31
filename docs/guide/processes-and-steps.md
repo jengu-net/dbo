@@ -280,9 +280,8 @@ carry out, by saying so on the step:
 
 Its [register](a-step-for-every-tenant.md#a-tenant-reads-what-is-done-to-its-data)
 then carries a row of the tenant's own, `"authority": "tenant"`, for the request
-the work fulfils. Unlike a provider's row it does not stand while the tenant says
-nothing: it stands once the tenant has authorised it, and removing `handsTo`
-declines it. Only work that lasts is handed, and only to the provider. A provider
+the work fulfils. The row stands once the tenant has authorised it, and removing
+`handsTo` declines it. Only work that lasts is handed, and only to the provider. A provider
 cannot hand its own work to itself, and a deployment with no provider refuses the
 tenant.
 
@@ -295,7 +294,7 @@ POST /t/<tenant>/run/<id>/hand        { "because": "the device is theirs" }
 POST /t/<tenant>/run/<id>/take-back   { "because": "we will do it ourselves" }
 ```
 
-The door names the deployment's provider, never one the asker chose. Handed, the
+The door names the deployment's provider. Handed, the
 work's `Task.owner` is the provider, as an `Organization` identified under
 `urn:dbo:tenant`, and no participant is offered it. Taken back, it is the
 tenant's own again and held by nobody. Both are acts under the work, each naming
