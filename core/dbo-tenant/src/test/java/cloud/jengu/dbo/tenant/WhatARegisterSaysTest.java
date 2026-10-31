@@ -168,6 +168,66 @@ class WhatARegisterSaysTest {
                 "the provider handed its own work to itself");
     }
 
+    @Test
+    @DisplayName("each step a holder of handed work may start is a row of the tenant's own, "
+            + "authorised as itself, and only a step of the tenant's performed in one sitting "
+            + "is named")
+    @Proving(DboPromises.PROC_A_TENANT_SAYS_WHAT_A_HOLDER_OF_HANDED_WORK_MAY_START)
+    void eachStepAHolderMayStartIsARowOfItsOwn() {
+        String clinic = """
+                {"code":"clinic","face":"r5",
+                 "types":[{"name":"CommunicationRequest","identity":"internal",
+                           "handling":"operational"}],
+                 "steps":[{"code":"care.incidents.work",
+                   "slots":{"incident":"Reference(CommunicationRequest)"}%s},
+                  {"code":"care.incidents.diagnose",
+                   "slots":{"incident":"Reference(CommunicationRequest)"}%s},
+                  {"code":"care.incidents.order",
+                   "slots":{"incident":"Reference(CommunicationRequest)"}}]}""";
+        String handing = ",\"lasts\":true,\"handsTo\":\"provider\",\"holdersStart\":%s";
+        List<FleetRegister.Row> one = FleetRegister.handed(TenantSpec.parse(clinic.formatted(
+                handing.formatted("[\"care.incidents.diagnose\"]"), "")).steps());
+        List<FleetRegister.Row> two = FleetRegister.handed(TenantSpec.parse(clinic.formatted(
+                handing.formatted("[\"care.incidents.diagnose\",\"care.incidents.order\"]"),
+                "")).steps());
+
+        FleetRegister.Row diagnose = new FleetRegister.Row("care.incidents.diagnose", null,
+                null, false, TenantSpec.FleetStep.Posture.NOT_UNTIL_APPROVED,
+                FleetRegister.Authority.TENANT, null, List.of(), "care.incidents.work");
+        assertEquals(diagnose, one.get(1),
+                "a step a holder may start did not reach the register as the tenant's own");
+        assertEquals(2, one.size(), "rows other than the handed work and its part: " + one);
+        Set<String> authorised = Set.of(one.get(0).digest(), one.get(1).digest());
+        assertEquals(List.of("care.incidents.order"), FleetRegister.unapproved(two, authorised)
+                        .stream().map(FleetRegister.Row::step).toList(),
+                "naming another part stood inside rows the tenant had already authorised");
+        assertFalse(diagnose.digest().equals(new FleetRegister.Row(diagnose.step(), null, null,
+                        false, diagnose.posture(), FleetRegister.Authority.TENANT, null,
+                        List.of(), "care.incidents.other").digest()),
+                "a part authorised under one piece of handed work stood under another");
+        assertEquals("care.incidents.work", RegisterHandler.rows(one).get(1).get("partOf"),
+                "the register did not say whose part the step is");
+
+        assertTrue(assertThrowsIllegal(() -> TenantSpec.parse(clinic.formatted(
+                        handing.formatted("[\"care.incidents.nowhere\"]"), ""))),
+                "a holder was let start a step the tenant does not declare");
+        assertTrue(assertThrowsIllegal(() -> TenantSpec.parse(clinic.formatted(
+                        handing.formatted("[\"care.incidents.diagnose\"]"),
+                        ",\"lasts\":true"))),
+                "a holder was let start work that lasts");
+        assertTrue(assertThrowsIllegal(() -> TenantSpec.parse(clinic.formatted(
+                        handing.formatted("[\"care.incidents.diagnose\"]"),
+                        ",\"lasts\":true,\"handsTo\":\"provider\""))),
+                "a holder was let start work handed to the provider itself");
+        assertTrue(assertThrowsIllegal(() -> TenantSpec.parse(clinic.formatted(
+                        handing.formatted("[\"care.incidents.work\"]"), ""))),
+                "a holder was let start the work they hold");
+        assertTrue(assertThrowsIllegal(() -> TenantSpec.parse(clinic.formatted(
+                        ",\"lasts\":true,\"holdersStart\":[\"care.incidents.diagnose\"]",
+                        ""))),
+                "work the tenant keeps named what a holder may start");
+    }
+
     private static boolean assertThrowsIllegal(Runnable parsing) {
         try {
             parsing.run();

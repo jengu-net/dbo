@@ -52,12 +52,19 @@ public final class FleetRegister {
      * @param subProcessors the partners the provider's process is carried out
      *                 by on its behalf, named so that the tenant knows who
      *                 handles its data; empty when the provider does it itself
+     * @param partOf   for a step of the tenant's own a person of the provider
+     *                 may start, the handed step whose holder starts it; it
+     *                 opens no slot, so the row names none
      */
     public record Row(String step, String slot, String type, boolean required,
             TenantSpec.FleetStep.Posture posture, Authority authority, String by,
-            List<String> subProcessors) {
+            List<String> subProcessors, String partOf) {
 
         public Row {
+            if (partOf != null && (authority != Authority.TENANT || slot != null)) {
+                throw new IllegalArgumentException(step + ": a part a holder of handed work "
+                        + "starts is the tenant's own row, and opens no slot");
+            }
             if (authority == null) {
                 throw new IllegalArgumentException(step + ": a row names whose process it is");
             }
@@ -66,6 +73,13 @@ public final class FleetRegister {
                         + "the provider's names none");
             }
             subProcessors = List.copyOf(subProcessors);
+        }
+
+        /** A row that is no part of handed work. */
+        public Row(String step, String slot, String type, boolean required,
+                TenantSpec.FleetStep.Posture posture, Authority authority, String by,
+                List<String> subProcessors) {
+            this(step, slot, type, required, posture, authority, by, subProcessors, null);
         }
 
         /** The provider's own process, carried out by nobody else. */
@@ -101,6 +115,9 @@ public final class FleetRegister {
             }
             if (authority == Authority.TENANT) {
                 canonical.append("\u0000handed");
+            }
+            if (partOf != null) {
+                canonical.append("\u0000part-of\u0000").append(partOf);
             }
             if (!subProcessors.isEmpty()) {
                 canonical.append("\u0000sub\u0000")
@@ -193,12 +210,16 @@ public final class FleetRegister {
     /**
      * The rows a tenant's own declaration puts on its register: one for each
      * step whose work it hands to the provider, over the request that work
-     * fulfils.
+     * fulfils, and one for each step a holder of that work may start.
      *
      * <p><b>Not until approved, and never required.</b> Unlike a provider's
      * row, it stands only once the tenant has authorised it, because handing
      * work over is not what joining agreed to. Removing the line that
      * declared it declines it.
+     *
+     * <p><b>A row per part</b>, so a tenant widening what a holder may start
+     * authorises the widening rather than finding it inside a row it already
+     * authorised.
      */
     public static List<Row> handed(List<TenantSpec.Step> declared) {
         List<Row> rows = new ArrayList<>();
@@ -209,6 +230,11 @@ public final class FleetRegister {
                 rows.add(new Row(step.code(), request.getKey(), request.getValue(), false,
                         TenantSpec.FleetStep.Posture.NOT_UNTIL_APPROVED, Authority.TENANT,
                         null, List.of()));
+                for (String part : step.holdersStart()) {
+                    rows.add(new Row(part, null, null, false,
+                            TenantSpec.FleetStep.Posture.NOT_UNTIL_APPROVED, Authority.TENANT,
+                            null, List.of(), step.code()));
+                }
             }
         }
         return List.copyOf(rows);

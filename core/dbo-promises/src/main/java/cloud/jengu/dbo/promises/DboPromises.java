@@ -1250,6 +1250,14 @@ public enum DboPromises implements Promise {
             + "work to itself, and a tenant handing work on a deployment with no provider are "
             + "each refused by name."),
 
+    PROC_A_TENANT_SAYS_WHAT_A_HOLDER_OF_HANDED_WORK_MAY_START(
+            "A tenant handing a step's work to the service provider names the steps a holder "
+            + "of that work may start as its parts, each a row of the tenant's register "
+            + "standing only once the tenant has authorised it, so naming another is "
+            + "authorised as itself. A step it does not declare, one that lasts, one whose own "
+            + "work is handed, the handed step itself, and a list on work not handed are each "
+            + "refused by name."),
+
     PROC_LASTING_WORK_IS_HANDED_TO_THE_PROVIDER_AND_TAKEN_BACK(
             "A tenant hands work that lasts to the service provider, as it opens it or "
             + "afterwards, and takes it back, each with a reason and each an act recorded "

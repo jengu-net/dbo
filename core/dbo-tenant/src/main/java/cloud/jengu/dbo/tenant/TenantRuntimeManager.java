@@ -2467,7 +2467,8 @@ public final class TenantRuntimeManager implements AutoCloseable {
             return null;
         }
         boolean stands = fleetRegister(tenant).stream().anyMatch(row ->
-                row.authority() == FleetRegister.Authority.TENANT && row.step().equals(stepCode));
+                row.authority() == FleetRegister.Authority.TENANT && row.partOf() == null
+                        && row.step().equals(stepCode));
         return stands ? provider : null;
     }
 
@@ -3194,7 +3195,9 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 fleetRegisterChanged(code).ifPresent(changed ->
                         row.put("changedSinceAuthorised", changed));
                 row.put("unapproved", unapprovedRows(code).stream()
-                        .map(unapproved -> unapproved.slot() == null
+                        .map(unapproved -> unapproved.partOf() != null
+                                ? unapproved.step() + " (part of " + unapproved.partOf() + ")"
+                                : unapproved.slot() == null
                                 ? unapproved.step() + " (" + unapproved.by() + ")"
                                 : unapproved.step() + "/" + unapproved.slot())
                         .toList());

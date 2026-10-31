@@ -252,6 +252,12 @@ spec:
                       handsTo:
                         type: string
                         enum: [provider]
+                      # The steps a person of the provider holding its work
+                      # may start as parts of it.
+                      holdersStart:
+                        type: array
+                        items:
+                          type: string
                       starts:
                         type: object
                         required: [keep, where]

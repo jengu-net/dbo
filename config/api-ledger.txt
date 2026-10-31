@@ -3263,6 +3263,7 @@ cloud.jengu.dbo.promises.DboPromises                                   PROC_A_TA
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_TENANT_ADMITS_OR_DECLINES_WHAT_IS_DONE_TO_IT:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_TENANT_AUTHORISES_A_REGISTER_AND_SEES_IT_CHANGE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_TENANT_READS_WHAT_IS_OPENED_OF_ITS_DATA:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   PROC_A_TENANT_SAYS_WHAT_A_HOLDER_OF_HANDED_WORK_MAY_START:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_TRACKABLE_MAY_ROUTE_OTHERS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_WAKE_UP_IS_NOT_HOW_WORK_ARRIVES:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_CATALOGUE_IN_STORE:cloud.jengu.dbo.promises.DboPromises
@@ -4703,6 +4704,8 @@ cloud.jengu.dbo.tenant.FleetRegister.Row                               equals(Ob
 cloud.jengu.dbo.tenant.FleetRegister.Row                               hashCode():int
 cloud.jengu.dbo.tenant.FleetRegister.Row                               new(String,String,String,boolean,cloud.jengu.dbo.tenant.TenantSpec.FleetStep.Posture)
 cloud.jengu.dbo.tenant.FleetRegister.Row                               new(String,String,String,boolean,cloud.jengu.dbo.tenant.TenantSpec.FleetStep.Posture,cloud.jengu.dbo.tenant.FleetRegister.Authority,String,List)
+cloud.jengu.dbo.tenant.FleetRegister.Row                               new(String,String,String,boolean,cloud.jengu.dbo.tenant.TenantSpec.FleetStep.Posture,cloud.jengu.dbo.tenant.FleetRegister.Authority,String,List,String)
+cloud.jengu.dbo.tenant.FleetRegister.Row                               partOf():String
 cloud.jengu.dbo.tenant.FleetRegister.Row                               posture():cloud.jengu.dbo.tenant.TenantSpec.FleetStep.Posture
 cloud.jengu.dbo.tenant.FleetRegister.Row                               record
 cloud.jengu.dbo.tenant.FleetRegister.Row                               required():boolean
@@ -5105,6 +5108,7 @@ cloud.jengu.dbo.tenant.TenantSpec.Step                                 code():St
 cloud.jengu.dbo.tenant.TenantSpec.Step                                 equals(Object):boolean
 cloud.jengu.dbo.tenant.TenantSpec.Step                                 handsToProvider():boolean
 cloud.jengu.dbo.tenant.TenantSpec.Step                                 hashCode():int
+cloud.jengu.dbo.tenant.TenantSpec.Step                                 holdersStart():List
 cloud.jengu.dbo.tenant.TenantSpec.Step                                 lasts():boolean
 cloud.jengu.dbo.tenant.TenantSpec.Step                                 new(String,Map)
 cloud.jengu.dbo.tenant.TenantSpec.Step                                 new(String,Map,Set)
@@ -5115,6 +5119,7 @@ cloud.jengu.dbo.tenant.TenantSpec.Step                                 new(Strin
 cloud.jengu.dbo.tenant.TenantSpec.Step                                 new(String,Map,Set,cloud.jengu.dbo.core.process.RetryPolicy,cloud.jengu.dbo.core.process.AutomationCriterion,cloud.jengu.dbo.tenant.TenantSpec.Answer,cloud.jengu.dbo.tenant.TenantSpec.Starts,boolean,cloud.jengu.dbo.tenant.TenantSpec.Step.Awaits)
 cloud.jengu.dbo.tenant.TenantSpec.Step                                 new(String,Map,Set,cloud.jengu.dbo.core.process.RetryPolicy,cloud.jengu.dbo.core.process.AutomationCriterion,cloud.jengu.dbo.tenant.TenantSpec.Answer,cloud.jengu.dbo.tenant.TenantSpec.Starts,boolean,cloud.jengu.dbo.tenant.TenantSpec.Step.Awaits,Set)
 cloud.jengu.dbo.tenant.TenantSpec.Step                                 new(String,Map,Set,cloud.jengu.dbo.core.process.RetryPolicy,cloud.jengu.dbo.core.process.AutomationCriterion,cloud.jengu.dbo.tenant.TenantSpec.Answer,cloud.jengu.dbo.tenant.TenantSpec.Starts,boolean,cloud.jengu.dbo.tenant.TenantSpec.Step.Awaits,Set,boolean)
+cloud.jengu.dbo.tenant.TenantSpec.Step                                 new(String,Map,Set,cloud.jengu.dbo.core.process.RetryPolicy,cloud.jengu.dbo.core.process.AutomationCriterion,cloud.jengu.dbo.tenant.TenantSpec.Answer,cloud.jengu.dbo.tenant.TenantSpec.Starts,boolean,cloud.jengu.dbo.tenant.TenantSpec.Step.Awaits,Set,boolean,List)
 cloud.jengu.dbo.tenant.TenantSpec.Step                                 record
 cloud.jengu.dbo.tenant.TenantSpec.Step                                 retry():cloud.jengu.dbo.core.process.RetryPolicy
 cloud.jengu.dbo.tenant.TenantSpec.Step                                 secrets():Set

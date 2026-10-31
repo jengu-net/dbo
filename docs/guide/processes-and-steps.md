@@ -285,6 +285,20 @@ the work fulfils. The row stands once the tenant has authorised it, and removing
 cannot hand its own work to itself, and a deployment with no provider refuses the
 tenant.
 
+`holdersStart` beside `handsTo` names the steps a person of the provider holding
+the work may start as its parts:
+
+```json
+{ "code": "care.incidents.work", "slots": { "incident": "Reference(CommunicationRequest)" },
+  "lasts": true, "handsTo": "provider", "holdersStart": ["care.incidents.diagnose"] }
+```
+
+Each named step is a row of its own on the register, `"partOf"` the handed step
+and over no slot, and stands once the tenant has authorised it, so naming another
+step is authorised on its own. A named step is one of the tenant's own, performed
+in one sitting: a step the tenant does not declare, one that lasts, one whose work
+is handed too, and the handed step itself are each refused.
+
 While the row stands, work is handed over as it is opened, with
 `"for": { "provider": true }` in the step door's body, or afterwards, and the
 tenant takes it back the same way:
