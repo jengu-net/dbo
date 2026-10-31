@@ -2449,7 +2449,28 @@ public final class TenantRuntimeManager implements AutoCloseable {
         public StepSurface.Fleet.Offer exchange(String tenant, String stepCode, String to) {
             return exchangeOf(tenant, stepCode, to);
         }
+
+        @Override
+        public String handedTo(String tenant, String stepCode) {
+            return handedToOf(tenant, stepCode);
+        }
     };
+
+    /**
+     * The provider a tenant's work of its own step may be handed to: asked
+     * each time, so a row the tenant withdraws or a register that moves
+     * under it stops the next hand-over, not the next bring-up.
+     */
+    private String handedToOf(String tenant, String stepCode) {
+        String provider = managementCode;
+        if (provider == null || provider.equals(tenant)
+                || withheldFrom(tenant).contains(stepCode)) {
+            return null;
+        }
+        boolean stands = fleetRegister(tenant).stream().anyMatch(row ->
+                row.authority() == FleetRegister.Authority.TENANT && row.step().equals(stepCode));
+        return stands ? provider : null;
+    }
 
     /**
      * An exchange a jurisdiction above this tenant declares, asked for to go

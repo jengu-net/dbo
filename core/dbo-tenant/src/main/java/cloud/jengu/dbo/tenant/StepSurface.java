@@ -182,6 +182,17 @@ final class StepSurface implements HttpHandler {
             return null;
         }
 
+        /**
+         * The provider this tenant's work of one of its own steps may be
+         * handed to: the deployment's, while the row the tenant's declaration
+         * puts on its register for that step stands authorised.
+         *
+         * @return the provider's code, or null where the work may not be handed
+         */
+        default String handedTo(String tenant, String stepCode) {
+            return null;
+        }
+
         /** The step's slots, and why it is not startable here if it is not. */
         record Offer(Map<String, String> slots, String refusedBecause,
                 TenantSpec.Step.Awaits awaits) {
@@ -518,7 +529,22 @@ final class StepSurface implements HttpHandler {
             }
         }
         cloud.jengu.dbo.work.Run.Addressee addressee = null;
-        if (Json.objOpt(body, "for") instanceof Map<?, ?> named) {
+        String provider = null;
+        if (Json.objOpt(body, "for") instanceof Map<?, ?> named && named.containsKey("provider")) {
+            if (!Boolean.TRUE.equals(named.get("provider")) || named.size() != 1) {
+                return refused(400, "invalid_request", "'for' hands work to the provider as "
+                        + "{\"provider\":true}, naming nobody else: the provider is the "
+                        + "deployment's, not the asker's to name");
+            }
+            if (step == null || !step.handsToProvider()) {
+                return refused(400, "invalid_request", stepCode + " is not declared to hand "
+                        + "its work to the provider");
+            }
+            provider = fleet.handedTo(tenant, stepCode);
+            if (provider == null) {
+                return refused(409, "refused", notHandedBecause(stepCode));
+            }
+        } else if (Json.objOpt(body, "for") instanceof Map<?, ?> named) {
             Object client = named.get("client");
             Object executor = named.get("executor");
             if (client == null && executor == null) {
@@ -559,7 +585,7 @@ final class StepSurface implements HttpHandler {
             declaration = declaration.retrying(step.retry());
         }
         if (step != null && step.lasts()) {
-            Run opened = opened(step, declaration, inputs, requester, parent);
+            Run opened = opened(step, declaration, inputs, requester, parent, provider);
             return new Started(201, "{\"run\":" + quote(opened.id()) + ",\"key\":"
                     + quote(opened.key()) + ",\"step\":" + quote(stepCode) + "}");
         }
@@ -803,7 +829,7 @@ final class StepSurface implements HttpHandler {
             Map<String, cloud.jengu.dbo.work.RunSlot> inputs, Run parent, String by) {
         StepDeclaration declaration = declaration(step.code(), step.slots());
         if (step.lasts()) {
-            return opened(step, declaration, inputs, by, parent);
+            return opened(step, declaration, inputs, by, parent, null);
         }
         if (step.retry() != null) {
             declaration = declaration.retrying(step.retry());
@@ -842,23 +868,33 @@ final class StepSurface implements HttpHandler {
      * again, or changing it again, finds the same.
      */
     private Run opened(TenantSpec.Step step, StepDeclaration declaration,
-            Map<String, cloud.jengu.dbo.work.RunSlot> inputs, String requester, Run parent) {
+            Map<String, cloud.jengu.dbo.work.RunSlot> inputs, String requester, Run parent,
+            String provider) {
         String slot = step.slots().keySet().iterator().next();
         cloud.jengu.dbo.work.RunSlot filled = inputs.get(slot);
         if (filled == null || filled.values().size() != 1) {
             throw new IllegalArgumentException(step.code() + " lasts, and is opened for the one "
                     + "request its slot '" + slot + "' names");
         }
-        return runs.opening(declaration, slot, filled.values().get(0), requester, parent);
+        return runs.opening(declaration, slot, filled.values().get(0), requester, parent,
+                provider);
+    }
+
+    /** Why this tenant's work of a step may not be handed to the provider now. */
+    private static String notHandedBecause(String stepCode) {
+        return stepCode + " hands its work to the provider under a row of this tenant's "
+                + "register, and the row does not stand: authorise it in this tenant's "
+                + "declaration, on a deployment with a provider, to hand work over";
     }
 
     /** What may be said of lasting work, as the last segment of its address. */
-    static final java.util.Set<String> SAID = java.util.Set.of("accept", "reject", "stage", "end");
+    static final java.util.Set<String> SAID = java.util.Set.of("accept", "reject", "stage", "end",
+            "hand", "take-back");
 
     /**
      * An act said of lasting work, by whoever says it: accepted, rejected and
-     * why, a stage reached, or ended — completed, failed or cancelled — and
-     * why. The door has decided they may; this decides whether the work can
+     * why, a stage reached, ended — completed, failed or cancelled — and why,
+     * or handed to the provider and taken back, and why. The door has decided they may; this decides whether the work can
      * be said to be so.
      *
      * @param body {@code because}, and {@code stage} or {@code status} where
@@ -870,8 +906,15 @@ final class StepSurface implements HttpHandler {
             return refused(404, "not_found", "no such run");
         }
         String because = Json.strOpt(body, "because");
+        String stepCode = found.get().process() + "." + found.get().step();
+        String provider = "hand".equals(act) ? fleet.handedTo(tenant, stepCode) : null;
+        if ("hand".equals(act) && provider == null) {
+            return refused(409, "refused", notHandedBecause(stepCode));
+        }
         try {
             Run moved = switch (act) {
+                case "hand" -> runs.handed(found.get(), provider, by, because);
+                case "take-back" -> runs.takenBack(found.get(), by, because);
                 case "accept" -> runs.accepted(found.get(), by, because);
                 case "reject" -> runs.rejected(found.get(), by, because);
                 case "stage" -> runs.reached(found.get(), Json.strOpt(body, "stage"), by, because);
@@ -879,7 +922,8 @@ final class StepSurface implements HttpHandler {
                         Optional.ofNullable(Json.strOpt(body, "status")).orElse("completed")),
                         by, because);
                 default -> throw new IllegalArgumentException("'" + act + "' is not said of "
-                        + "lasting work; it is accepted, rejected, staged or ended");
+                        + "lasting work; it is accepted, rejected, staged, ended, handed or "
+                        + "taken back");
             };
             return new Started(200, "{\"run\":" + quote(moved.id()) + ",\"key\":"
                     + quote(moved.key()) + ",\"status\":" + quote(moved.status().wire())

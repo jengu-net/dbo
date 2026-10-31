@@ -286,6 +286,21 @@ declines it. Only work that lasts is handed, and only to the provider. A provide
 cannot hand its own work to itself, and a deployment with no provider refuses the
 tenant.
 
+While the row stands, work is handed over as it is opened, with
+`"for": { "provider": true }` in the step door's body, or afterwards, and the
+tenant takes it back the same way:
+
+```http
+POST /t/<tenant>/run/<id>/hand        { "because": "the device is theirs" }
+POST /t/<tenant>/run/<id>/take-back   { "because": "we will do it ourselves" }
+```
+
+The door names the deployment's provider, never one the asker chose. Handed, the
+work's `Task.owner` is the provider, as an `Organization` identified under
+`urn:dbo:tenant`, and no participant is offered it. Taken back, it is the
+tenant's own again and held by nobody. Both are acts under the work, each naming
+who said it and why.
+
 The work reads as FHIR's fulfilment `Task`. `focus` is the request,
 `instantiatesCanonical` the step as `urn:dbo:step:<code>`, `businessStatus` the
 stage, and its parts are `Task`s `partOf` it.

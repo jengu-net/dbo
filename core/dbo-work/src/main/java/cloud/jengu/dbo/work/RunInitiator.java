@@ -323,6 +323,11 @@ public interface RunInitiator {
         if (addressee == null) {
             return "";
         }
+        if (addressee.provider() != null) {
+            // The door hands work to the deployment's provider, and to no
+            // other: the code the asker named is not the asker's to choose.
+            return ",\"for\":{\"provider\":true}";
+        }
         return ",\"for\":{" + (addressee.client() == null ? ""
                 : "\"client\":" + quoted(addressee.client())
                         + (addressee.executor() == null ? "" : ","))
