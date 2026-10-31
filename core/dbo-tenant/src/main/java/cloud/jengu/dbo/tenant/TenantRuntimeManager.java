@@ -1676,7 +1676,8 @@ public final class TenantRuntimeManager implements AutoCloseable {
                     String registerPath = "/t/" + code + "/register";
                     registerContexts.put(code, registerPath);
                     sharedServer.createContext(registerPath, new RegisterHandler(
-                            tenant.authority(), () -> registerOf(code), registerPath));
+                            tenant.authority(), () -> registerOf(code), registerPath,
+                            (digests, by) -> authoriseRegister(code, digests, by)));
                     return null;
                 });
 
@@ -2182,10 +2183,69 @@ public final class TenantRuntimeManager implements AutoCloseable {
      */
     public java.util.Optional<Boolean> fleetRegisterChanged(String tenant) {
         TenantRuntime serving = runtimes.get(tenant);
-        if (serving == null || serving.spec().authorised().isEmpty()) {
+        if (serving == null || (serving.spec().authorised().isEmpty()
+                && authorisationsOf(serving).given().isEmpty())) {
             return java.util.Optional.empty();
         }
         return java.util.Optional.of(!unapprovedRows(tenant).isEmpty());
+    }
+
+    /**
+     * The rows this tenant authorised, by digest: what it said at its own
+     * door, once it has, and otherwise what its declaration says.
+     *
+     * <p><b>The tenant's own record replaces the declaration's list</b>, not
+     * adds to it. The declaration is the provider's to write, and a row the
+     * tenant withdrew at its door must not stand because the provider's file
+     * still names it. Read on every ask, so a withdrawal reaches the next
+     * request on every node.
+     */
+    Set<String> authorisedBy(TenantRuntime serving) {
+        return authorisationsOf(serving).given().map(Map::keySet)
+                .<Set<String>>map(Set::copyOf).orElse(serving.spec().authorised());
+    }
+
+    /** Who of the tenant authorised each row at its door, or empty where it never has. */
+    Optional<Map<String, RegisterAuthorisations.Given>> authorisedAtTheDoor(String tenant) {
+        TenantRuntime serving = runtimes.get(tenant);
+        return serving == null ? Optional.empty() : authorisationsOf(serving).given();
+    }
+
+    /**
+     * The tenant authorises exactly these rows of its register, withdrawing
+     * every other, as {@code by}.
+     *
+     * @throws IllegalStateException at a place, whose origin is where a
+     *         tenant authorises
+     * @throws IllegalArgumentException naming a digest the register does not
+     *         carry, since a tenant agrees to what it read
+     */
+    Map<String, RegisterAuthorisations.Given> authoriseRegister(String tenant,
+            List<String> digests, String by) {
+        TenantRuntime serving = runtimes.get(tenant);
+        if (serving == null) {
+            throw new IllegalArgumentException("no tenant '" + tenant + "' is served here");
+        }
+        if (places.contains(tenant)) {
+            throw new IllegalStateException(tenant + " is served here as a place of it, and "
+                    + "it authorises its register at its origin: ask there");
+        }
+        Set<String> read = fleetRegister(tenant).stream().map(FleetRegister.Row::digest)
+                .collect(java.util.stream.Collectors.toSet());
+        List<String> unread = digests.stream().filter(digest -> !read.contains(digest))
+                .toList();
+        if (!unread.isEmpty()) {
+            throw new IllegalArgumentException("the register does not carry " + unread
+                    + ": a tenant authorises the rows it read, so read the register again");
+        }
+        return authorisationsOf(serving).authorise(digests, by, java.time.Instant.now());
+    }
+
+    private static RegisterAuthorisations authorisationsOf(TenantRuntime serving) {
+        // The runtime's engine is the policy store every write and trail
+        // entry of the tenant goes through.
+        return new RegisterAuthorisations(
+                (cloud.jengu.dbo.policy.PolicyObjectStore) serving.engine());
     }
 
     /**
@@ -2200,7 +2260,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
     public List<FleetRegister.Row> unapprovedRows(String tenant) {
         TenantRuntime serving = runtimes.get(tenant);
         return serving == null ? List.of()
-                : FleetRegister.unapproved(fleetRegister(tenant), serving.spec().authorised());
+                : FleetRegister.unapproved(fleetRegister(tenant), authorisedBy(serving));
     }
 
     /**
@@ -2323,6 +2383,16 @@ public final class TenantRuntimeManager implements AutoCloseable {
             @Override
             public List<RegisterVersusTrail.Incident> disagreements() {
                 return fleetDisagreements(code);
+            }
+
+            @Override
+            public Optional<Map<String, RegisterHandler.Authorised>> authorised() {
+                return authorisedAtTheDoor(code).map(given -> {
+                    Map<String, RegisterHandler.Authorised> said = new java.util.LinkedHashMap<>();
+                    given.forEach((digest, row) -> said.put(digest,
+                            new RegisterHandler.Authorised(row.by(), row.at())));
+                    return said;
+                });
             }
         };
     }
@@ -6605,6 +6675,8 @@ public final class TenantRuntimeManager implements AutoCloseable {
         // What each file of an owner's configuration applied, so a source
         // withdraws what it stopped declaring and nothing anybody else wrote.
         all.addAll(ConfigFiles.registrations());
+        // What a tenant authorised of its register, at its own door.
+        all.addAll(RegisterAuthorisations.registrations());
         // And the replication lane's own bookkeeping: where each peer
         // has reached, and what arrived for which work. Same argument again —
         // a lane's state is this tenant's, dropped when the tenant is. Without

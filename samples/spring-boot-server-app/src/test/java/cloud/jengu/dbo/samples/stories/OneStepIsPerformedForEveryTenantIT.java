@@ -696,6 +696,7 @@ class OneStepIsPerformedForEveryTenantIT {
             DboPromises.PROC_A_PERSON_OF_THE_PROVIDER_STARTS_PARTS_OF_WORK_THEY_HOLD,
             DboPromises.PROC_THE_PROVIDERS_PEOPLE_JOIN_HANDED_WORK,
             DboPromises.PROC_WORK_THAT_LASTS_IS_WRITTEN_IN_WHILE_OPEN,
+            DboPromises.PROC_A_TENANT_AUTHORISES_ITS_REGISTER_AT_ITS_DOOR,
             DboPromises.PROC_A_PERSON_OF_THE_PROVIDER_ACTS_ON_WORK_THEY_HOLD})
     void aPersonOfTheProviderWorksWhatTheClinicHandsIt() throws Exception {
         String declines = ",\"declines\":[\"" + STEP + "\"]";
@@ -794,13 +795,28 @@ class OneStepIsPerformedForEveryTenantIT {
         // A part of the repair, of the step the clinic named for it, under a
         // row the clinic authorises as itself.
         String repair = accepted.key();
-        String standsAlone = "\"authorised\":[\"" + row.get("digest") + "\"]";
         Proves.that(DboPromises.PROC_A_PERSON_OF_THE_PROVIDER_STARTS_PARTS_OF_WORK_THEY_HOLD,
                 startPart(DIAGNOSE, pump, repair, token).statusCode() == 404,
                 "a part of the repair started under a row the clinic never authorised");
+        // Authorised at the clinic's own door this time, by the credential it
+        // says what it agrees to with, and the declaration left as it is.
         Map<?, ?> part = partRow();
-        dbo.declare(CLINIC, handing(declines + ",\"authorised\":[\"" + row.get("digest")
-                + "\",\"" + part.get("digest") + "\"]"));
+        List<String> both = List.of(String.valueOf(row.get("digest")),
+                String.valueOf(part.get("digest")));
+        Proves.that(DboPromises.PROC_A_TENANT_AUTHORISES_ITS_REGISTER_AT_ITS_DOOR,
+                authoriseAtTheDoor(both, dbo.workToken(CLINIC)).statusCode() == 403
+                        && authoriseAtTheDoor(List.of("not-a-row"), configurationToken(CLINIC))
+                                .statusCode() == 422,
+                "a credential without the configuration scope authorised the register, or a "
+                        + "row the register does not carry was authorised");
+        HttpResponse<String> authorised = authoriseAtTheDoor(both, configurationToken(CLINIC));
+        assertEquals(200, authorised.statusCode(), authorised.body());
+        Map<?, ?> given = partRow();
+        Proves.that(DboPromises.PROC_A_TENANT_AUTHORISES_ITS_REGISTER_AT_ITS_DOOR,
+                String.valueOf(given.get("authorisedBy")).equals(NAMES.value("registrar"))
+                        && given.get("authorisedAt") != null,
+                "the register does not say who of the clinic authorised the part's row and "
+                        + "when: " + given);
         String[] diagnosis = new String[1];
         Proves.that(DboPromises.PROC_A_PERSON_OF_THE_PROVIDER_STARTS_PARTS_OF_WORK_THEY_HOLD,
                 until(() -> {
@@ -822,11 +838,15 @@ class OneStepIsPerformedForEveryTenantIT {
                         && startPart(OWN_STEP, pump, repair, token).statusCode() == 404,
                 "a part was started by somebody not holding the repair, under work she does "
                         + "not hold, or of a step the clinic did not name");
-        dbo.declare(CLINIC, handing(declines + "," + standsAlone));
+        assertEquals(200, authoriseAtTheDoor(List.of(String.valueOf(row.get("digest"))),
+                configurationToken(CLINIC)).statusCode());
         Proves.that(DboPromises.PROC_A_PERSON_OF_THE_PROVIDER_STARTS_PARTS_OF_WORK_THEY_HOLD,
-                until(() -> startPart(DIAGNOSE, pump, repair, token).statusCode() == 404,
-                        Duration.ofMinutes(2)),
+                startPart(DIAGNOSE, pump, repair, token).statusCode() == 404,
                 "the clinic withdrew the part's row and she could still start it");
+        Proves.that(DboPromises.PROC_A_TENANT_AUTHORISES_ITS_REGISTER_AT_ITS_DOOR,
+                startPart(DIAGNOSE, pump, repair, token).statusCode() == 404
+                        && partRow().get("authorisedBy") == null,
+                "a part's row the clinic withdrew at its door still stood");
 
         // A colleague she brings in reads the repair, holds no claim, and acts
         // on nothing under it.
@@ -938,11 +958,20 @@ class OneStepIsPerformedForEveryTenantIT {
 
         String monitor = basicAt(CLINIC, "the monitor flickers");
         String standing = runOf(openRepair(monitor, true));
-        dbo.declare(CLINIC, handing(declines));
+        // Withdrawn at the door, which is where the clinic now says what it
+        // agrees to: its declaration, which still names the row, is no longer
+        // read for it.
+        assertEquals(200, authoriseAtTheDoor(List.of(), configurationToken(CLINIC))
+                .statusCode());
         Proves.that(DboPromises.PROC_A_PERSON_OF_THE_PROVIDER_TAKES_WORK_HANDED_TO_IT,
-                until(() -> atTheRun(standing, "claim", token, null).statusCode() == 401,
-                        Duration.ofMinutes(2)),
+                atTheRun(standing, "claim", token, null).statusCode() == 401,
                 "the clinic withdrew the row and the person of the provider was still let in");
+        Proves.that(DboPromises.PROC_A_TENANT_AUTHORISES_ITS_REGISTER_AT_ITS_DOOR,
+                openRepair(basicAt(CLINIC, "the fridge hums"), true).statusCode() == 409
+                        && new ATenantsDoor(dbo, CLINIC).get("/AuditEvent?_count=200").body()
+                                .contains("register-authorised"),
+                "work was handed over under a row the clinic withdrew at its door, or its "
+                        + "trail does not say it authorised and withdrew");
     }
 
     /** The clinic's declaration with a step whose work it hands to the provider. */
@@ -972,6 +1001,16 @@ class OneStepIsPerformedForEveryTenantIT {
         return atTheRun(run, "fhir", token, "{\"resourceType\":\"Bundle\","
                 + "\"type\":\"transaction\",\"entry\":[{\"resource\":" + record
                 + ",\"request\":{\"method\":\"POST\",\"url\":\"" + type + "\"}}]}");
+    }
+
+    /** The rows the clinic authorises at its own door, every other withdrawn. */
+    private HttpResponse<String> authoriseAtTheDoor(List<String> digests, String token) {
+        return dbo.send(HttpRequest.newBuilder(URI.create(dbo.at(CLINIC)
+                        + "/register/authorisation"))
+                .header("Content-Type", "application/json")
+                .PUT(HttpRequest.BodyPublishers.ofString("{\"rows\":[" + String.join(",",
+                        digests.stream().map(digest -> "\"" + digest + "\"").toList())
+                        + "]}")), token);
     }
 
     /** A part of handed work, asked for at the clinic's step door. */

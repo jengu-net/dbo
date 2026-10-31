@@ -3264,6 +3264,7 @@ cloud.jengu.dbo.promises.DboPromises                                   PROC_A_SW
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_TASK_SEARCH_LISTS_ROOTS_AND_PARTS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_TENANT_ADMITS_OR_DECLINES_WHAT_IS_DONE_TO_IT:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_TENANT_AUTHORISES_A_REGISTER_AND_SEES_IT_CHANGE:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   PROC_A_TENANT_AUTHORISES_ITS_REGISTER_AT_ITS_DOOR:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_TENANT_READS_WHAT_IS_OPENED_OF_ITS_DATA:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_TENANT_SAYS_WHAT_A_HOLDER_OF_HANDED_WORK_MAY_START:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_TRACKABLE_MAY_ROUTE_OTHERS:cloud.jengu.dbo.promises.DboPromises
@@ -4764,6 +4765,17 @@ cloud.jengu.dbo.tenant.RegisterHandler                                 SCOPE:Str
 cloud.jengu.dbo.tenant.RegisterHandler                                 class
 cloud.jengu.dbo.tenant.RegisterHandler                                 handle(HttpExchange):void
 cloud.jengu.dbo.tenant.RegisterHandler                                 new(cloud.jengu.dbo.auth.TenantAuthority,Supplier,String)
+cloud.jengu.dbo.tenant.RegisterHandler                                 new(cloud.jengu.dbo.auth.TenantAuthority,Supplier,String,cloud.jengu.dbo.tenant.RegisterHandler.Authorising)
+cloud.jengu.dbo.tenant.RegisterHandler.Authorised                      at():Instant
+cloud.jengu.dbo.tenant.RegisterHandler.Authorised                      by():String
+cloud.jengu.dbo.tenant.RegisterHandler.Authorised                      equals(Object):boolean
+cloud.jengu.dbo.tenant.RegisterHandler.Authorised                      hashCode():int
+cloud.jengu.dbo.tenant.RegisterHandler.Authorised                      new(String,Instant)
+cloud.jengu.dbo.tenant.RegisterHandler.Authorised                      record
+cloud.jengu.dbo.tenant.RegisterHandler.Authorised                      toString():String
+cloud.jengu.dbo.tenant.RegisterHandler.Authorising                     authorise(List,String):void
+cloud.jengu.dbo.tenant.RegisterHandler.Authorising                     interface
+cloud.jengu.dbo.tenant.RegisterHandler.Reading                         authorised():Optional
 cloud.jengu.dbo.tenant.RegisterHandler.Reading                         changed():Optional
 cloud.jengu.dbo.tenant.RegisterHandler.Reading                         declined():Set
 cloud.jengu.dbo.tenant.RegisterHandler.Reading                         disagreements():List

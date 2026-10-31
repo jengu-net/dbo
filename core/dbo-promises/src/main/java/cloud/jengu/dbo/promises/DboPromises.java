@@ -1276,6 +1276,18 @@ public enum DboPromises implements Promise {
             + "work is handed, the handed step itself, and a list on work not handed are each "
             + "refused by name."),
 
+    PROC_A_TENANT_AUTHORISES_ITS_REGISTER_AT_ITS_DOOR(
+            "A tenant authorises rows of its register at its own door, with a credential "
+            + "carrying the configuration scope, naming the digests of the rows it read; each "
+            + "authorisation replaces the last, so a row it leaves out is withdrawn, and a row "
+            + "the register does not carry is refused by name. The store keeps it as the "
+            + "tenant's own record, each row with who of the tenant agreed to it and when, "
+            + "shown on the register, and each authorisation is an entry on the tenant's "
+            + "trail. Once the tenant has authorised at its door, that record and not its "
+            + "declaration says which rows stand, read at every request, so a withdrawal "
+            + "stops what stands on the row at the next one; until then the declaration's "
+            + "authorised rows are read. A credential without the scope can do neither."),
+
     PROC_LASTING_WORK_IS_HANDED_TO_THE_PROVIDER_AND_TAKEN_BACK(
             "A tenant hands work that lasts to the service provider, as it opens it or "
             + "afterwards, and takes it back, each with a reason and each an act recorded "

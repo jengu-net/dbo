@@ -28,11 +28,13 @@ import java.util.function.Supplier;
  * register does not.
  *
  * <p><b>The configuration scope, because reading the register is half of
- * authorising it.</b> A tenant authorises a register by writing its digest
- * into its own declaration, which is handed in at the configuration door
- * under that scope. Whoever may say what the tenant agrees to is whoever must
- * be able to read what it is agreeing to — and a credential that merely reads
- * records has no business learning what the deployment is entitled to open.
+ * authorising it.</b> A tenant authorises the rows it read at {@code PUT
+ * /t/<code>/register/authorisation}, under that scope, and the register then
+ * says who of it agreed to each row and when; a tenant that has never done so
+ * still has its declaration's {@code authorised} read. Whoever may say what the
+ * tenant agrees to is whoever must be able to read what it is agreeing to —
+ * and a credential that merely reads records has no business learning what
+ * the deployment is entitled to open.
  *
  * <p><b>Derived on every ask, never stored.</b> The register is computed from
  * the deployment's declaration and the tenant's, and the incidents from the
@@ -58,32 +60,70 @@ public final class RegisterHandler implements HttpHandler {
         List<UnapprovedProcessing.Incident> unapprovedProcessing();
 
         List<RegisterVersusTrail.Incident> disagreements();
+
+        /**
+         * Who of the tenant authorised each row at its door, by digest, or
+         * empty where it never has and its declaration is what is read.
+         */
+        default Optional<Map<String, Authorised>> authorised() {
+            return Optional.empty();
+        }
+    }
+
+    /** One row a tenant authorised at its door: who of it agreed, and when. */
+    public record Authorised(String by, java.time.Instant at) {
+    }
+
+    /** What authorising at the door does: exactly these rows, as whoever asked. */
+    public interface Authorising {
+        /**
+         * @throws IllegalArgumentException naming a digest the register does
+         *         not carry
+         * @throws IllegalStateException where the tenant authorises elsewhere
+         */
+        void authorise(List<String> digests, String by);
     }
 
     private final TenantAuthority authority;
     private final Supplier<Reading> reading;
     private final String base;
+    private final Authorising authorising;
 
+    /** A door that reads the register and authorises none of it. */
     public RegisterHandler(TenantAuthority authority, Supplier<Reading> reading, String base) {
+        this(authority, reading, base, (digests, by) -> {
+            throw new IllegalStateException("this door reads the register; the tenant "
+                    + "authorises it through its declaration");
+        });
+    }
+
+    public RegisterHandler(TenantAuthority authority, Supplier<Reading> reading, String base,
+            Authorising authorising) {
         this.authority = authority;
         this.reading = reading;
         this.base = base;
+        this.authorising = authorising;
     }
 
     @Override
     public void handle(HttpExchange exchange) throws IOException {
         try {
-            if (!"GET".equals(exchange.getRequestMethod())) {
-                fail(exchange, 405, "invalid_request", "the register is read, not written: a "
-                        + "tenant authorises one through its own declaration");
-                return;
-            }
-            if (!permitted(exchange)) {
+            Optional<TenantAuthority.AuthContext> asking = permitted(exchange);
+            if (asking.isEmpty()) {
                 return;
             }
             String rest = exchange.getRequestURI().getPath().substring(base.length());
             while (rest.startsWith("/")) {
                 rest = rest.substring(1);
+            }
+            if ("authorisation".equals(rest) && "PUT".equals(exchange.getRequestMethod())) {
+                authorise(exchange, asking.get());
+                return;
+            }
+            if (!"GET".equals(exchange.getRequestMethod())) {
+                fail(exchange, 405, "invalid_request", "the register is read; the rows a "
+                        + "tenant authorises are PUT at " + base + "/authorisation");
+                return;
             }
             Reading now = reading.get();
             switch (rest) {
@@ -100,11 +140,60 @@ public final class RegisterHandler implements HttpHandler {
         }
     }
 
+    /**
+     * The rows the tenant authorises, as whoever the credential names: the
+     * person it was issued to where it names one, otherwise its client.
+     */
+    private void authorise(HttpExchange exchange, TenantAuthority.AuthContext asking)
+            throws IOException {
+        Object body;
+        try {
+            body = RecordWire.read(new String(exchange.getRequestBody().readAllBytes(),
+                    StandardCharsets.UTF_8));
+        } catch (RuntimeException unreadable) {
+            fail(exchange, 400, "invalid_request", "the authorisation is JSON naming rows");
+            return;
+        }
+        if (!(body instanceof Map<?, ?> named) || !(named.get("rows") instanceof List<?> listed)
+                || listed.stream().anyMatch(digest -> !(digest instanceof String))) {
+            fail(exchange, 400, "invalid_request", "the authorisation names the digests of "
+                    + "the rows authorised, as rows, and every row it leaves out is withdrawn");
+            return;
+        }
+        try {
+            authorising.authorise(listed.stream().map(String::valueOf).distinct().toList(),
+                    asking.fhirUser() != null ? asking.fhirUser() : asking.clientId());
+        } catch (IllegalArgumentException unread) {
+            fail(exchange, 422, "invalid_request", String.valueOf(unread.getMessage()));
+            return;
+        } catch (IllegalStateException elsewhere) {
+            fail(exchange, 409, "not_here", String.valueOf(elsewhere.getMessage()));
+            return;
+        }
+        respond(exchange, 200, register(reading.get()));
+    }
+
     static Map<String, Object> register(Reading now) {
         List<FleetRegister.Row> rows = now.register();
         Map<String, Object> answer = new LinkedHashMap<>();
         answer.put("digest", FleetRegister.digestOf(rows));
-        answer.put("rows", rows(rows));
+        List<Map<String, Object>> said = rows(rows);
+        // Who agreed to each row and when, where the tenant said so at its
+        // door; a row its declaration authorises says only that.
+        Optional<Map<String, Authorised>> atTheDoor = now.authorised();
+        Set<String> unapproved = new java.util.HashSet<>();
+        now.unapproved().forEach(row -> unapproved.add(row.digest()));
+        for (Map<String, Object> one : said) {
+            String digest = String.valueOf(one.get("digest"));
+            Authorised given = atTheDoor.map(door -> door.get(digest)).orElse(null);
+            if (given != null) {
+                one.put("authorisedBy", given.by());
+                one.put("authorisedAt", given.at().toString());
+            } else if (atTheDoor.isEmpty() && !unapproved.contains(digest)) {
+                one.put("authorisedIn", "declaration");
+            }
+        }
+        answer.put("rows", said);
         answer.put("declined", List.copyOf(new java.util.TreeSet<>(now.declined())));
         // Absent rather than false when nothing was ever authorised: never
         // having read a register is a different answer from having read this
@@ -172,7 +261,8 @@ public final class RegisterHandler implements HttpHandler {
         return said;
     }
 
-    private boolean permitted(HttpExchange exchange) throws IOException {
+    private Optional<TenantAuthority.AuthContext> permitted(HttpExchange exchange)
+            throws IOException {
         String header = exchange.getRequestHeaders().getFirst("Authorization");
         String bearer = header != null && header.regionMatches(true, 0, "Bearer ", 0, 7)
                 ? header.substring(7).trim() : null;
@@ -181,11 +271,10 @@ public final class RegisterHandler implements HttpHandler {
         if (context.isEmpty() || !context.get().scopes().contains(SCOPE)) {
             exchange.getResponseHeaders().set("WWW-Authenticate", "Bearer");
             fail(exchange, context.isEmpty() ? 401 : 403, "access_denied",
-                    "reading the register needs the '" + SCOPE + "' scope, the one a tenant "
-                            + "authorises a register with");
-            return false;
+                    "the register is read and authorised with the '" + SCOPE + "' scope");
+            return Optional.empty();
         }
-        return true;
+        return context;
     }
 
     private static void respond(HttpExchange exchange, int status, Map<String, Object> body)
