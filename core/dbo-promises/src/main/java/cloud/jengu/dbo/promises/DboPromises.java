@@ -1240,6 +1240,17 @@ public enum DboPromises implements Promise {
             + "match — which would be a deployment approving its own widening. Never having "
             + "read a register is a different answer from having read a different one."),
 
+    PROC_WORK_HANDED_TO_THE_PROVIDER_IS_ON_THE_TENANTS_REGISTER(
+            "A tenant may declare that the work one of its steps lasts for is handed to the "
+            + "service provider, and its register then carries a row of its own for the "
+            + "request that work fulfils: the tenant's process, carried out by the provider's "
+            + "people. The row stands only once the tenant has authorised it, never by the "
+            + "tenant saying nothing as a provider's row does, and it is never required, "
+            + "because removing the declaration declines it. Only work that lasts is handed, "
+            + "and only to the provider; a step handing anything else, a provider handing "
+            + "work to itself, and a tenant handing work on a deployment with no provider are "
+            + "each refused by name."),
+
     PROC_AN_UNAUTHORISED_ROW_OBEYS_ITS_POSTURE(
             "What happens to work under a row a tenant has not authorised is the row's own "
             + "posture, stated by the deployment where the row is declared. A row that says NOT "

@@ -45,7 +45,8 @@ public final class FleetRegister {
      *                 authorised
      * @param authority whose process it is: the service provider's, which the
      *                 tenant agreed to by joining and may decline unless it is
-     *                 required, or a jurisdiction's, which binds it
+     *                 required, a jurisdiction's, which binds it, or the
+     *                 tenant's own, handed to the provider to carry out
      * @param by       the zone whose process it is, or null for the provider,
      *                 of which a deployment has one
      * @param subProcessors the partners the provider's process is carried out
@@ -98,6 +99,9 @@ public final class FleetRegister {
             if (authority == Authority.ZONE) {
                 canonical.append("\u0000zone\u0000").append(by);
             }
+            if (authority == Authority.TENANT) {
+                canonical.append("\u0000handed");
+            }
             if (!subProcessors.isEmpty()) {
                 canonical.append("\u0000sub\u0000")
                         .append(String.join(",", new java.util.TreeSet<>(subProcessors)));
@@ -111,7 +115,9 @@ public final class FleetRegister {
         /** The service provider's: what the deployment does for every tenant. */
         PROVIDER,
         /** A jurisdiction's: what a zone above the tenant obliges or permits. */
-        ZONE
+        ZONE,
+        /** The tenant's own work, which it hands to the provider's people to carry out. */
+        TENANT
     }
 
     private FleetRegister() {
@@ -179,6 +185,32 @@ public final class FleetRegister {
             for (String process : new java.util.TreeSet<>(permitted.apply(zone))) {
                 rows.add(new Row(process, null, null, true,
                         TenantSpec.FleetStep.Posture.APPLIED, Authority.ZONE, zone, List.of()));
+            }
+        }
+        return List.copyOf(rows);
+    }
+
+    /**
+     * The rows a tenant's own declaration puts on its register: one for each
+     * step whose work it hands to the provider, over the request that work
+     * fulfils.
+     *
+     * <p><b>Not until approved, and never required.</b> A provider's row is
+     * admitted by the tenant saying nothing, because joining was the
+     * agreement. Handing work over is not something joining agreed to: the
+     * provider's people would hold the tenant's work under the provider's
+     * name, so the row stands only once the tenant has authorised it, and
+     * removing the line that declared it is how the tenant declines it.
+     */
+    public static List<Row> handed(List<TenantSpec.Step> declared) {
+        List<Row> rows = new ArrayList<>();
+        for (TenantSpec.Step step : declared) {
+            if (step.handsToProvider()) {
+                java.util.Map.Entry<String, String> request =
+                        step.slots().entrySet().iterator().next();
+                rows.add(new Row(step.code(), request.getKey(), request.getValue(), false,
+                        TenantSpec.FleetStep.Posture.NOT_UNTIL_APPROVED, Authority.TENANT,
+                        null, List.of()));
             }
         }
         return List.copyOf(rows);

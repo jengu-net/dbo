@@ -150,7 +150,17 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
     public record Step(String code, java.util.Map<String, String> slots,
             java.util.Set<String> writes, cloud.jengu.dbo.core.process.RetryPolicy retry,
             cloud.jengu.dbo.core.process.AutomationCriterion automate, Answer answer,
-            Starts starts, boolean lasts, Awaits awaits, java.util.Set<String> secrets) {
+            Starts starts, boolean lasts, Awaits awaits, java.util.Set<String> secrets,
+            boolean handsToProvider) {
+
+        /** Work this tenant keeps to itself, handed to nobody. */
+        public Step(String code, java.util.Map<String, String> slots,
+                java.util.Set<String> writes, cloud.jengu.dbo.core.process.RetryPolicy retry,
+                cloud.jengu.dbo.core.process.AutomationCriterion automate, Answer answer,
+                Starts starts, boolean lasts, Awaits awaits, java.util.Set<String> secrets) {
+            this(code, slots, writes, retry, automate, answer, starts, lasts, awaits, secrets,
+                    false);
+        }
 
         /** A step that reaches no secret. */
         public Step(String code, java.util.Map<String, String> slots,
@@ -258,6 +268,11 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
                     throw new IllegalArgumentException(code + ": lasts, and is opened for a "
                             + "request — a clock names none");
                 }
+            } else if (handsToProvider) {
+                // What is handed is work somebody takes and holds for days; a
+                // run performed and closed in one sitting is nobody's to hold.
+                throw new IllegalArgumentException(code + ": hands its work to the provider, "
+                        + "and only work that lasts is handed — declare it to last");
             }
             if (starts != null && starts.every() != null && !slots.isEmpty()) {
                 throw new IllegalArgumentException(code + ": starts on a calendar rule and "
@@ -1279,9 +1294,15 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
                                 + "' — " + wrong.getMessage(), wrong);
                     }
                 }
+                String handsTo = Json.strOpt(step, "handsTo");
+                if (handsTo != null && !"provider".equals(handsTo)) {
+                    throw new IllegalArgumentException(code + ": step '" + stepCode
+                            + "' hands its work to '" + handsTo + "', and work is handed to "
+                            + "the provider or to nobody");
+                }
                 steps.add(new Step(stepCode, slots, writes, retry, automate,
                         answer(code, stepCode, step, policies), starts, Json.bool(step, "lasts"),
-                        awaits, Set.copyOf(Json.strings(step, "secrets"))));
+                        awaits, Set.copyOf(Json.strings(step, "secrets")), handsTo != null));
             }
         }
         // The steps the DEPLOYMENT performs, which only the management

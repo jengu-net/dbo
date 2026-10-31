@@ -120,6 +120,54 @@ class WhatARegisterSaysTest {
                 "a tenant was taken as its own partner");
     }
 
+    @Test
+    @DisplayName("work a tenant hands to the provider is a row of the tenant's own, standing "
+            + "only once authorised, and only work that lasts is handed, only to the provider")
+    @Proving(DboPromises.PROC_WORK_HANDED_TO_THE_PROVIDER_IS_ON_THE_TENANTS_REGISTER)
+    void workHandedToTheProviderIsARowOfTheTenantsOwn() {
+        String clinic = """
+                {"code":"clinic","face":"r5",
+                 "types":[{"name":"CommunicationRequest","identity":"internal",
+                           "handling":"operational"}],
+                 "steps":[{"code":"care.incidents.work",
+                   "slots":{"incident":"Reference(CommunicationRequest)"}%s}]}""";
+        List<FleetRegister.Row> kept = FleetRegister.handed(TenantSpec.parse(
+                clinic.formatted(",\"lasts\":true")).steps());
+        List<FleetRegister.Row> handed = FleetRegister.handed(TenantSpec.parse(
+                clinic.formatted(",\"lasts\":true,\"handsTo\":\"provider\"")).steps());
+
+        assertTrue(kept.isEmpty(), "work the tenant keeps reached its register: " + kept);
+        assertEquals(List.of(new FleetRegister.Row("care.incidents.work", "incident",
+                        "Reference(CommunicationRequest)", false,
+                        TenantSpec.FleetStep.Posture.NOT_UNTIL_APPROVED,
+                        FleetRegister.Authority.TENANT, null, List.of())), handed,
+                "handing the work over did not put the tenant's own row on its register");
+        FleetRegister.Row row = handed.get(0);
+        assertFalse(row.digest().equals(new FleetRegister.Row(row.step(), row.slot(),
+                        row.type(), row.required(), row.posture()).digest()),
+                "a row handing the tenant's work over authorised as the provider's own");
+        assertEquals(handed, FleetRegister.unapproved(handed, Set.of()),
+                "work handed over stood without the tenant authorising it");
+        assertTrue(FleetRegister.unapproved(handed, Set.of(row.digest())).isEmpty(),
+                "authorising the row left it unapproved");
+
+        assertTrue(assertThrowsIllegal(() -> TenantSpec.parse(
+                        clinic.formatted(",\"handsTo\":\"provider\""))),
+                "work that does not last was handed to the provider");
+        assertTrue(assertThrowsIllegal(() -> TenantSpec.parse(
+                        clinic.formatted(",\"lasts\":true,\"handsTo\":\"support-desk\""))),
+                "work was handed to somebody other than the provider");
+        TenantSpec handing = TenantSpec.parse(
+                clinic.formatted(",\"lasts\":true,\"handsTo\":\"provider\""));
+        TenantRuntimeManager.workIsHandedToAProvider(handing, "mom");
+        assertTrue(assertThrowsIllegal(() ->
+                        TenantRuntimeManager.workIsHandedToAProvider(handing, null)),
+                "work was handed over on a deployment with no provider to take it");
+        assertTrue(assertThrowsIllegal(() ->
+                        TenantRuntimeManager.workIsHandedToAProvider(handing, "clinic")),
+                "the provider handed its own work to itself");
+    }
+
     private static boolean assertThrowsIllegal(Runnable parsing) {
         try {
             parsing.run();

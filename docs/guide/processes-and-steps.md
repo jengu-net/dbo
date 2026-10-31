@@ -270,6 +270,22 @@ Whoever holds a `work` credential for the step says them at the run's address:
 work, naming who said it. A part reads the work it is part of, request and stage,
 as `Work.parent()`.
 
+A tenant may hand such work to its service provider, for the provider's people to
+carry out, by saying so on the step:
+
+```json
+{ "code": "care.incidents.work", "slots": { "incident": "Reference(CommunicationRequest)" },
+  "lasts": true, "handsTo": "provider" }
+```
+
+Its [register](a-step-for-every-tenant.md#a-tenant-reads-what-is-done-to-its-data)
+then carries a row of the tenant's own, `"authority": "tenant"`, for the request
+the work fulfils. Unlike a provider's row it does not stand while the tenant says
+nothing: it stands once the tenant has authorised it, and removing `handsTo`
+declines it. Only work that lasts is handed, and only to the provider. A provider
+cannot hand its own work to itself, and a deployment with no provider refuses the
+tenant.
+
 The work reads as FHIR's fulfilment `Task`. `focus` is the request,
 `instantiatesCanonical` the step as `urn:dbo:step:<code>`, `businessStatus` the
 stage, and its parts are `Task`s `partOf` it.

@@ -1991,6 +1991,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
             throw new UncheckedIOException("the management tenant's spec cannot be read: "
                     + specFile, e);
         }
+        workIsHandedToAProvider(spec, spec.code());
         if (!runtimes.containsKey(spec.code())) {
             bringUp(spec);
             states.put(spec.code(), TenantState.State.SERVING);
@@ -2264,6 +2265,10 @@ public final class TenantRuntimeManager implements AutoCloseable {
     public List<FleetRegister.Row> fleetRegister(String tenant) {
         List<FleetRegister.Row> rows = new java.util.ArrayList<>(
                 FleetRegister.of(declaredFleetSteps, declinedBy(tenant)));
+        TenantRuntime serving = runtimes.get(tenant);
+        if (serving != null) {
+            rows.addAll(FleetRegister.handed(serving.spec().steps()));
+        }
         rows.addAll(FleetRegister.ofZones(zones.chainOf(tenant), zones::permitted));
         return List.copyOf(rows);
     }
@@ -2733,6 +2738,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 tree.refuseTakingFromAPeer(spec, managementCode);
                 aPartnerIsTheProvidersPartner(spec);
                 aPartnerIsNotDeclaredByTheTenantItFollows(spec);
+                workIsHandedToAProvider(spec, managementCode);
                 // It parsed and it is being served, so a later refusal of the
                 // same file is news rather than a repeat.
                 refusals.applied(named);
@@ -3612,6 +3618,32 @@ public final class TenantRuntimeManager implements AutoCloseable {
                         : "this deployment's service provider is '" + managementCode + "'")
                 + ". A partner is carried work by the provider, so it is the provider's "
                 + "partner or nobody's");
+    }
+
+    /**
+     * Work a tenant hands to the provider needs a provider to take it, and
+     * one that is not the tenant itself. A deployment with none would carry a
+     * row nobody could act on, read by the tenant as somebody it agreed may
+     * hold its work; and the provider's people already work its own work, so
+     * a row handing it to itself grants nobody new.
+     *
+     * @param provider the deployment's service provider, or null where it has none
+     */
+    static void workIsHandedToAProvider(TenantSpec spec, String provider) {
+        List<String> handed = spec.steps().stream()
+                .filter(TenantSpec.Step::handsToProvider).map(TenantSpec.Step::code).toList();
+        if (handed.isEmpty()) {
+            return;
+        }
+        if (provider == null) {
+            throw new IllegalArgumentException("tenant '" + spec.code() + "' hands " + handed
+                    + " to the provider, and this deployment has no service provider to take it");
+        }
+        if (provider.equals(spec.code())) {
+            throw new IllegalArgumentException("the service provider '" + spec.code()
+                    + "' hands " + handed + " to the provider, which is itself: its own "
+                    + "people work it already. Remove handsTo");
+        }
     }
 
     /**
