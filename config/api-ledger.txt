@@ -3225,6 +3225,7 @@ cloud.jengu.dbo.promises.DboPromises                                   PROC_A_PA
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_PARTICIPANT_SIGNS_BEFORE_IT_IS_ADMITTED:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_PASS_THAT_CHANGES_NOTHING_WRITES_NOTHING:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_PERSON_CLAIMS_AS_A_PRACTITIONER_ROLE:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   PROC_A_PERSON_GIVES_THE_RESULT_OF_A_RUN_THEY_HOLD:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_PERSON_OF_THE_PROVIDER_ACTS_ON_WORK_THEY_HOLD:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_PERSON_OF_THE_PROVIDER_STARTS_PARTS_OF_WORK_THEY_HOLD:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_PERSON_OF_THE_PROVIDER_TAKES_WORK_HANDED_TO_IT:cloud.jengu.dbo.promises.DboPromises
@@ -3704,6 +3705,7 @@ cloud.jengu.dbo.runner.Lane.Keys                                       interface
 cloud.jengu.dbo.runner.Lane.Keys                                       of(String):Optional
 cloud.jengu.dbo.runner.Lane.Keys                                       signing(String):Optional
 cloud.jengu.dbo.runner.Lane.Results                                    commit(cloud.jengu.dbo.work.Run,List):List
+cloud.jengu.dbo.runner.Lane.Results                                    given(cloud.jengu.dbo.work.Run,List,List):List
 cloud.jengu.dbo.runner.Lane.Results                                    interface
 cloud.jengu.dbo.runner.Lane.Results                                    requireStartable(cloud.jengu.dbo.work.Run,List):void
 cloud.jengu.dbo.runner.Lane.Results                                    start(cloud.jengu.dbo.work.Run,List):List
@@ -5859,6 +5861,7 @@ cloud.jengu.dbo.work.Runs                                              class
 cloud.jengu.dbo.work.Runs                                              closed(cloud.jengu.dbo.work.Run):cloud.jengu.dbo.work.Run
 cloud.jengu.dbo.work.Runs                                              closed(cloud.jengu.dbo.work.Run,List):cloud.jengu.dbo.work.Run
 cloud.jengu.dbo.work.Runs                                              closed(cloud.jengu.dbo.work.Run,String):cloud.jengu.dbo.work.Run
+cloud.jengu.dbo.work.Runs                                              closed(cloud.jengu.dbo.work.Run,String,List):cloud.jengu.dbo.work.Run
 cloud.jengu.dbo.work.Runs                                              closed(cloud.jengu.dbo.work.Run,cloud.jengu.dbo.work.Executor):cloud.jengu.dbo.work.Run
 cloud.jengu.dbo.work.Runs                                              closed(cloud.jengu.dbo.work.Run,cloud.jengu.dbo.work.Executor,List):cloud.jengu.dbo.work.Run
 cloud.jengu.dbo.work.Runs                                              collected(cloud.jengu.dbo.work.Run,String,Instant):Optional
