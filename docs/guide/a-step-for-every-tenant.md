@@ -153,6 +153,31 @@ GET /runtime/fleet/steps/fleet.update.acknowledge?notice=Communication/<id>
 A retention such as `keep` is a duration in days, hours or less, so a year is
 `P365D`.
 
+## Work a tenant hands to the provider
+
+Some of a tenant's work is better done by the provider's people: a repair on a
+device the provider supplied, say. The tenant hands it over
+([work that lasts](processes-and-steps.md#work-that-lasts)) under a register row
+it authorised, and a person signed in at the provider takes it with the token
+the provider issued them:
+
+```http
+POST /t/<tenant>/run/<id>/claim          Authorization: Bearer <the provider's token>
+GET  /t/<tenant>/run/<id>/fhir/Basic/<incident>
+```
+
+The token reaches the steps whose work the tenant hands over, and nothing else:
+the tenant's records surface refuses it, and so does its step door. The person
+holds the work as the role the provider vouched for in the token, with no
+deadline, and the work's `Task.owner` names that role by absolute reference to
+the provider's base, `…/t/mom/fhir/PractitionerRole/<id>`. Taking the work is an
+act under it naming the person the same way. While they hold it the work's
+context answers them and nobody else.
+
+Work the tenant kept, work that is over and work the tenant took back answer the
+person as work that does not exist. A tenant that withdraws the row stops them
+at their next request, because the row is asked for on every one.
+
 ## What the store guarantees
 
 - **A step code belongs to one level**, checked where it is declared, and the
@@ -175,6 +200,9 @@ names the test behind each.
 
 ## What the store cannot do yet
 
+- **A person of the provider takes handed work and reads it, and does nothing
+  else with it yet.** Saying acts of the work, starting parts of it and writing
+  through it are still the tenant's.
 - **A fleet step writes nothing.** No tenant's declaration says what the
   deployment's step may write, so its result is a tally and no records.
 - **A deployment cannot name its processor** in configuration, so none is

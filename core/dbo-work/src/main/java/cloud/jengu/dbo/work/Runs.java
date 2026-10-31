@@ -637,6 +637,50 @@ public final class Runs {
         });
     }
 
+    /**
+     * Lasting work handed to the provider, taken by one of its people as a
+     * role the provider vouched for, and said so under the work.
+     *
+     * <p><b>Held with no deadline.</b> A person's lease is measured against
+     * an hour at a ward screen, and this is work that lasts days: it is held
+     * until it ends, the holder lets it go, or the tenant takes it back.
+     * Where it stands is not moved by taking it, because taking work is not
+     * starting it; its parts and its acts say that.
+     *
+     * @param role     the role taken as, by absolute reference to the
+     *                 provider's base, which this tenant does not hold
+     * @param claimant who then reads its context and acts on it
+     * @return the work as taken, or empty when one of the provider's people
+     *         holds it already
+     * @throws IllegalArgumentException where the work is not open, lasting
+     *         and handed to that provider
+     */
+    public Optional<Run> takenForTheProvider(Run handed, String provider, String role,
+            String claimant) {
+        refuseIfAuthoredElsewhere(handed, "taken");
+        Run current = byKey(handed.key()).orElse(null);
+        if (current == null || !current.lasting() || !current.open()
+                || current.addressee() == null
+                || !provider.equals(current.addressee().provider())) {
+            throw new IllegalArgumentException("'" + handed.key() + "' is not open work handed "
+                    + "to the provider '" + provider + "'");
+        }
+        if (current.assignment() != null && current.assignment().role() != null) {
+            return Optional.empty();
+        }
+        State taken = state(current).withAssignment(new Run.Assignment(null, null, null, null,
+                claimant, role, UuidV7.newId()));
+        try {
+            store.put(new PutRequest(WorkModel.TYPE, current.id(), current.versionId(),
+                    authored(taken.payload(), current.authored())));
+        } catch (cloud.jengu.dbo.core.api.VersionConflictException lost) {
+            return Optional.empty();
+        }
+        Run moved = byKey(handed.key()).orElseThrow();
+        act(moved, ACTS, "taken", moved.id() + "/" + UuidV7.newId(), claimant, "as " + role);
+        return Optional.of(moved);
+    }
+
     private static void requireBecause(String act, String because) {
         if (because == null || because.isBlank()) {
             throw new IllegalArgumentException("lasting work " + act + " says why");

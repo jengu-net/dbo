@@ -274,7 +274,12 @@ final class StepSurface implements HttpHandler {
             // client.
             cloud.jengu.dbo.core.api.Caller.set(admitted.fhirUser() != null
                     ? admitted.fhirUser() : admitted.clientId());
-            if (starting) {
+            if (starting && admitted.vouched() != null) {
+                // A person of the provider works what the tenant handed it,
+                // and asks for nothing here: starting work is the tenant's.
+                fail(exchange, 403, "access_denied", "a person of the provider takes work "
+                        + "the tenant handed it, and starts none");
+            } else if (starting) {
                 // NO PURPOSE IS STATED HERE, and none is accepted. A slot may
                 // be filled by a search, and a stated purpose is what opens an
                 // exact lookup on an identifying element through the vault —
@@ -967,6 +972,17 @@ final class StepSurface implements HttpHandler {
             TenantAuthority.AuthContext admitted) throws IOException {
         String asking = admitted.clientId();
         String[] segments = relative.split("/");
+        if (admitted.vouched() != null && segments.length == 2) {
+            // Taking handed work is the one act a person of the provider has
+            // here yet; anything else is answered as for a run that is not
+            // there, which is all it is to them.
+            if ("claim".equals(segments[1])) {
+                takeHanded(exchange, segments[0], admitted);
+            } else {
+                fail(exchange, 404, "not_found", "no such run");
+            }
+            return;
+        }
         if (segments.length == 2 && SAID.contains(segments[1])) {
             if (!"POST".equals(exchange.getRequestMethod())) {
                 fail(exchange, 405, "invalid_request", "an act is said by POSTing it");
@@ -1304,6 +1320,63 @@ final class StepSurface implements HttpHandler {
                 + quote(taken.get().status().wire()) + ",\"owner\":"
                 + quote(taken.get().assignment().role()) + ",\"until\":"
                 + quote(String.valueOf(taken.get().assignment().until())) + "}");
+    }
+
+    /**
+     * POST /run/&lt;id&gt;/claim, by a person of the provider — the work the
+     * tenant handed the provider, taken as a role the provider vouched for.
+     *
+     * <p>The role is the provider's, named by absolute reference to its base,
+     * and the run names it as what holds the work: this tenant holds no such
+     * record and needs none, because the provider's signature on the token is
+     * what vouches for it. Work not handed to the provider, or no longer
+     * open, is answered as a run that does not exist; work another of the
+     * provider's people holds is a conflict, as for any person.
+     */
+    private void takeHanded(HttpExchange exchange, String id,
+            TenantAuthority.AuthContext asking) throws IOException {
+        if (!"POST".equals(exchange.getRequestMethod())) {
+            fail(exchange, 405, "invalid_request", "a run is taken by POSTing to it");
+            return;
+        }
+        String provider = asking.vouched().provider();
+        Optional<Run> found = runs.byId(id);
+        if (found.isEmpty() || !found.get().lasting() || !found.get().open()
+                || found.get().addressee() == null
+                || !provider.equals(found.get().addressee().provider())
+                || !covers(asking, found.get().process() + "." + found.get().step())) {
+            fail(exchange, 404, "not_found", "no such run");
+            return;
+        }
+        List<String> held = asking.vouched().roles();
+        String asked = query(exchange, "role");
+        // Asked by its absolute reference, as PractitionerRole/<id>, or by id.
+        String roleId = asked == null ? null : asked.startsWith("PractitionerRole/")
+                ? asked.substring("PractitionerRole/".length()) : asked;
+        String role = asked == null ? held.get(0)
+                : held.stream().filter(one -> one.equals(asked)
+                        || one.endsWith("/PractitionerRole/" + roleId))
+                        .findFirst().orElse(null);
+        if (role == null) {
+            fail(exchange, 403, "access_denied", "the provider does not vouch for "
+                    + asked + " as a role this person holds");
+            return;
+        }
+        Optional<Run> taken;
+        try {
+            taken = runs.takenForTheProvider(found.get(), provider, role, asking.clientId());
+        } catch (IllegalArgumentException goneMeanwhile) {
+            fail(exchange, 404, "not_found", "no such run");
+            return;
+        }
+        if (taken.isEmpty()) {
+            fail(exchange, 409, "conflict", "somebody of the provider holds this work");
+            return;
+        }
+        respond(exchange, 200, "{\"run\":" + quote(taken.get().id()) + ",\"key\":"
+                + quote(taken.get().key()) + ",\"status\":"
+                + quote(taken.get().status().wire()) + ",\"owner\":"
+                + quote(taken.get().assignment().role()) + "}");
     }
 
     /**

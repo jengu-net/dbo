@@ -1254,11 +1254,27 @@ public enum DboPromises implements Promise {
     PROC_LASTING_WORK_IS_HANDED_TO_THE_PROVIDER_AND_TAKEN_BACK(
             "A tenant hands work that lasts to the service provider, as it opens it or "
             + "afterwards, and takes it back, each with a reason and each an act recorded "
-            + "under the work naming who said it. Handed, the work names "
+            + "under the work naming who said it. The door hands work over only while the "
+            + "row the tenant's register carries for its step stands authorised, and to the "
+            + "deployment's provider alone, never one the asker names. Handed, the work names "
             + "the provider as what is responsible for it and is offered to no participant; "
             + "taken back, it is the tenant's own as it was opened, held by nobody. Work "
             + "already handed is not handed again, work nobody was handed is not taken back, "
             + "work that is over is neither, and a run that does not last is never handed."),
+
+    PROC_A_PERSON_OF_THE_PROVIDER_TAKES_WORK_HANDED_TO_IT(
+            "A person signed in at the service provider takes work a tenant handed the "
+            + "provider with that token, holding no credential of the tenant's: the token is "
+            + "admitted while a row of the tenant's register handing a step stands, and "
+            + "reaches those steps and nothing else — no record, and no work to start. The "
+            + "person holds the work, with no deadline, as a role the provider vouched for in "
+            + "the token, and the work names that role as its owner by absolute reference to "
+            + "the provider's base; taking it is an act recorded under the work naming the "
+            + "person the same way, so the tenant's account says who of the provider it was. "
+            + "While they hold it the work's context answers them and nobody else. Work not "
+            + "handed to the provider, no longer open, or taken back answers them as work "
+            + "that does not exist; work one of the provider's people holds is a conflict; "
+            + "and a row the tenant withdraws stops them at the next request."),
 
     PROC_AN_UNAUTHORISED_ROW_OBEYS_ITS_POSTURE(
             "What happens to work under a row a tenant has not authorised is the row's own "

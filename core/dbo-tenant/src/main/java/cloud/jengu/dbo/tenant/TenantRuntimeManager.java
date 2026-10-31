@@ -3707,6 +3707,26 @@ public final class TenantRuntimeManager implements AutoCloseable {
         return named ? Optional.of(client) : Optional.empty();
     }
 
+    /**
+     * What a person of the provider reaches in this tenant: the steps whose
+     * work it hands the provider under a row that stands now, or empty where
+     * there are none and the person is not admitted at all.
+     */
+    private Optional<cloud.jengu.dbo.auth.TenantAuthority.Handed> handedToPeople(String tenant) {
+        TenantRuntime serving = runtimes.get(tenant);
+        if (serving == null) {
+            return Optional.empty();
+        }
+        List<String> steps = serving.spec().steps().stream()
+                .filter(TenantSpec.Step::handsToProvider)
+                .map(TenantSpec.Step::code)
+                .filter(step -> handedToOf(tenant, step) != null)
+                .toList();
+        return steps.isEmpty() ? Optional.empty()
+                : Optional.of(new cloud.jengu.dbo.auth.TenantAuthority.Handed(managementCode,
+                        steps));
+    }
+
     /** The declarations that parse; one that does not is refused where it is begun. */
     private static List<TenantSpec> parsedOf(
             List<cloud.jengu.dbo.sync.ConfigApplication.Declared> declarations) {
@@ -5174,10 +5194,15 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 // tenant's register names that partner on a row it has not
                 // declined or withheld — asked per token, so that withdrawing
                 // is a line in this tenant's declaration and nothing more.
+                // The provider's own people come the same way, to the work
+                // this tenant hands the provider and nothing else, and on
+                // the same per-token terms: a row withdrawn stops them at
+                // the next request.
                 final String code = spec.code();
                 authority.trust(partnerIssuer(authority.issuer(), code, provider),
                         () -> authorities.get(provider).jwksJson(),
-                        claims -> admittedPartner(code, claims));
+                        claims -> admittedPartner(code, claims),
+                        claims -> handedToPeople(code));
             }
             sharedServer.createContext(workPath, new cloud.jengu.dbo.runner.http.LaneHandler(
                     workPath, verbs));
