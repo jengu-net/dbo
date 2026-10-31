@@ -697,6 +697,7 @@ class OneStepIsPerformedForEveryTenantIT {
             DboPromises.PROC_THE_PROVIDERS_PEOPLE_JOIN_HANDED_WORK,
             DboPromises.PROC_WORK_THAT_LASTS_IS_WRITTEN_IN_WHILE_OPEN,
             DboPromises.PROC_A_TENANT_AUTHORISES_ITS_REGISTER_AT_ITS_DOOR,
+            DboPromises.PROC_AN_APPLICATION_AUTHORISES_A_REGISTER_FOR_A_PERSON,
             DboPromises.PROC_A_PERSON_OF_THE_PROVIDER_ACTS_ON_WORK_THEY_HOLD})
     void aPersonOfTheProviderWorksWhatTheClinicHandsIt() throws Exception {
         String declines = ",\"declines\":[\"" + STEP + "\"]";
@@ -847,6 +848,27 @@ class OneStepIsPerformedForEveryTenantIT {
                 startPart(DIAGNOSE, pump, repair, token).statusCode() == 404
                         && partRow().get("authorisedBy") == null,
                 "a part's row the clinic withdrew at its door still stood");
+
+        // The clinic's application authorises the part's row again, for the
+        // nurse it is acting for, and withdraws it as itself.
+        String nurse = "Practitioner/" + NAMES.value("nurse");
+        Proves.that(DboPromises.PROC_AN_APPLICATION_AUTHORISES_A_REGISTER_FOR_A_PERSON,
+                authoriseFor(both, nurse, dbo.workToken(CLINIC)).statusCode() == 403
+                        && authoriseFor(both, NAMES.value("nurse"), configurationToken(CLINIC))
+                                .statusCode() == 400
+                        && partRow().get("authorisedBy") == null,
+                "a credential without the configuration scope authorised for a person, or a "
+                        + "person named by a bare name was taken as one");
+        HttpResponse<String> forTheNurse = authoriseFor(both, nurse, configurationToken(CLINIC));
+        assertEquals(200, forTheNurse.statusCode(), forTheNurse.body());
+        Proves.that(DboPromises.PROC_AN_APPLICATION_AUTHORISES_A_REGISTER_FOR_A_PERSON,
+                nurse.equals(partRow().get("authorisedBy"))
+                        && NAMES.value("registrar").equals(handedRow().get("authorisedBy"))
+                        && trailNames(NAMES.value("registrar"), nurse),
+                "the register does not name the nurse as having authorised the part's row, or "
+                        + "the trail does not name both the application and her");
+        assertEquals(200, authoriseAtTheDoor(List.of(String.valueOf(row.get("digest"))),
+                configurationToken(CLINIC)).statusCode());
 
         // A colleague she brings in reads the repair, holds no claim, and acts
         // on nothing under it.
@@ -1011,6 +1033,31 @@ class OneStepIsPerformedForEveryTenantIT {
                 .PUT(HttpRequest.BodyPublishers.ofString("{\"rows\":[" + String.join(",",
                         digests.stream().map(digest -> "\"" + digest + "\"").toList())
                         + "]}")), token);
+    }
+
+    /** The same, for a person the application acting at the door names. */
+    private HttpResponse<String> authoriseFor(List<String> digests, String person,
+            String token) {
+        return dbo.send(HttpRequest.newBuilder(URI.create(dbo.at(CLINIC)
+                        + "/register/authorisation"))
+                .header("Content-Type", "application/json")
+                .PUT(HttpRequest.BodyPublishers.ofString("{\"rows\":[" + String.join(",",
+                        digests.stream().map(digest -> "\"" + digest + "\"").toList())
+                        + "],\"onBehalfOf\":\"" + person + "\"}")), token);
+    }
+
+    /**
+     * Whether the clinic's trail has an authorisation of its register asked
+     * for by this client and made for this person.
+     */
+    private boolean trailNames(String client, String person) {
+        return rowsOf(new ATenantsDoor(dbo, CLINIC).get("/AuditEvent?_count=200").body(),
+                "entry").stream()
+                .map(entry -> entry.get("resource"))
+                .filter(resource -> String.valueOf(resource).contains("register-authorised"))
+                .map(resource -> String.valueOf(((Map<?, ?>) resource).get("agent")))
+                .anyMatch(agents -> agents.contains("value=" + client)
+                        && agents.contains("reference=" + person));
     }
 
     /** A part of handed work, asked for at the clinic's step door. */

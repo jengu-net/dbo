@@ -3185,6 +3185,7 @@ cloud.jengu.dbo.promises.DboPromises                                   POL_TRAVE
 cloud.jengu.dbo.promises.DboPromises                                   PRM_A_STORY_IS_CITED_NOT_CLAIMED:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PRM_COVERAGE_ON_THE_RESULTS_PAGE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PRM_PROJECTION_IS_GENERATED:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   PROC_AN_APPLICATION_AUTHORISES_A_REGISTER_FOR_A_PERSON:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_AN_APPLICATION_STEP_IS_THE_DEPLOYMENTS_TO_DECLARE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_AN_AUTHORITY_OUT_OF_REACH_IS_THE_LINK_DOWN:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_AN_UNAUTHORISED_ROW_OBEYS_ITS_POSTURE:cloud.jengu.dbo.promises.DboPromises
