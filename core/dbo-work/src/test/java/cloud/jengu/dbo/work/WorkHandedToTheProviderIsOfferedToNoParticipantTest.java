@@ -72,6 +72,36 @@ class WorkHandedToTheProviderIsOfferedToNoParticipantTest {
     }
 
     @Test
+    @DisplayName("the provider's person holding the work lets it go, and it stays handed for "
+            + "another of the provider's people; nobody else lets it go for them")
+    @Proving(DboPromises.PROC_A_PERSON_OF_THE_PROVIDER_ACTS_ON_WORK_THEY_HOLD)
+    void theHolderLetsItGo() {
+        String ada = "https://mom.example/t/mom/fhir/Practitioner/ada";
+        Run handed = runs.opening(INCIDENTS, "incident", "CommunicationRequest/5",
+                "Practitioner/admin", null, "mom");
+        Run held = runs.takenForTheProvider(handed, "mom",
+                "https://mom.example/t/mom/fhir/PractitionerRole/support", ada).orElseThrow();
+
+        assertThrows(IllegalStateException.class,
+                () -> runs.letGo(held, "https://mom.example/t/mom/fhir/Practitioner/grace",
+                        "not mine"),
+                "somebody who does not hold the work let it go");
+        assertThrows(IllegalArgumentException.class, () -> runs.letGo(held, ada, null),
+                "the work was let go without saying why");
+        Run released = runs.letGo(held, ada, "needs a part we do not stock");
+        assertEquals(Run.Addressee.provider("mom"), released.addressee(),
+                "work let go is no longer handed to the provider");
+        assertEquals(handed.assignment(), released.assignment(),
+                "work let go is still held");
+        assertFalse(released.heldBy(ada, java.time.Instant.now()),
+                "the person who let the work go still holds it");
+        assertEquals(true, runs.takenForTheProvider(released, "mom",
+                "https://mom.example/t/mom/fhir/PractitionerRole/support",
+                "https://mom.example/t/mom/fhir/Practitioner/grace").isPresent(),
+                "another of the provider's people could not take work let go");
+    }
+
+    @Test
     @DisplayName("work that is over is neither handed nor taken back, and a run that does not "
             + "last is never handed")
     @Proving(DboPromises.PROC_LASTING_WORK_IS_HANDED_TO_THE_PROVIDER_AND_TAKEN_BACK)

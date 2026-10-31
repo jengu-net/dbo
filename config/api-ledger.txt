@@ -3225,6 +3225,7 @@ cloud.jengu.dbo.promises.DboPromises                                   PROC_A_PA
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_PARTICIPANT_SIGNS_BEFORE_IT_IS_ADMITTED:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_PASS_THAT_CHANGES_NOTHING_WRITES_NOTHING:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_PERSON_CLAIMS_AS_A_PRACTITIONER_ROLE:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   PROC_A_PERSON_OF_THE_PROVIDER_ACTS_ON_WORK_THEY_HOLD:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_PERSON_OF_THE_PROVIDER_TAKES_WORK_HANDED_TO_IT:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_PLACES_RUN_IS_LISTED_AT_HOME_UNDER_ITS_PLACE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_PROCESSOR_IS_ENROLLED_PER_TENANT:cloud.jengu.dbo.promises.DboPromises
@@ -5875,6 +5876,7 @@ cloud.jengu.dbo.work.Runs                                              handed(cl
 cloud.jengu.dbo.work.Runs                                              item(cloud.jengu.dbo.work.Run,String,cloud.jengu.dbo.work.Failure,String):cloud.jengu.dbo.work.Run
 cloud.jengu.dbo.work.Runs                                              items(cloud.jengu.dbo.work.Run):List
 cloud.jengu.dbo.work.Runs                                              lapsed(Instant):List
+cloud.jengu.dbo.work.Runs                                              letGo(cloud.jengu.dbo.work.Run,String,String):cloud.jengu.dbo.work.Run
 cloud.jengu.dbo.work.Runs                                              matching(String,String,cloud.jengu.dbo.work.Awaits,int):List
 cloud.jengu.dbo.work.Runs                                              milestone(cloud.jengu.dbo.work.Run,String,Map,Instant):cloud.jengu.dbo.work.Run
 cloud.jengu.dbo.work.Runs                                              milestone(cloud.jengu.dbo.work.Run,cloud.jengu.dbo.work.Executor,String,Map,Duration):cloud.jengu.dbo.work.Run

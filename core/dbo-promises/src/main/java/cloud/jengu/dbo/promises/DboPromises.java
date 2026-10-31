@@ -1276,6 +1276,16 @@ public enum DboPromises implements Promise {
             + "that does not exist; work one of the provider's people holds is a conflict; "
             + "and a row the tenant withdraws stops them at the next request."),
 
+    PROC_A_PERSON_OF_THE_PROVIDER_ACTS_ON_WORK_THEY_HOLD(
+            "A person of the provider holding work a tenant handed it says the work's own "
+            + "acts — accepted, or rejected and why, a stage reached, ended and why — each "
+            + "recorded under the work naming them by absolute reference to the provider's "
+            + "base, and lets the work go, which leaves it handed to the provider for another "
+            + "of its people and held by nobody. Only the holder says them: another of the "
+            + "provider's people, and the holder once the work has ended or been let go, are "
+            + "answered as for work that does not exist, and handing work over or taking it "
+            + "back stays the tenant's."),
+
     PROC_AN_UNAUTHORISED_ROW_OBEYS_ITS_POSTURE(
             "What happens to work under a row a tenant has not authorised is the row's own "
             + "posture, stated by the deployment where the row is declared. A row that says NOT "

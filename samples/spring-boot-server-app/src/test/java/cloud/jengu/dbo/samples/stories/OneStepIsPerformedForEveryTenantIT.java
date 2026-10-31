@@ -691,7 +691,8 @@ class OneStepIsPerformedForEveryTenantIT {
             + "taken back, ended or withdrawn it admits them no longer")
     @Proving({DboPromises.PROC_WORK_HANDED_TO_THE_PROVIDER_IS_ON_THE_TENANTS_REGISTER,
             DboPromises.PROC_LASTING_WORK_IS_HANDED_TO_THE_PROVIDER_AND_TAKEN_BACK,
-            DboPromises.PROC_A_PERSON_OF_THE_PROVIDER_TAKES_WORK_HANDED_TO_IT})
+            DboPromises.PROC_A_PERSON_OF_THE_PROVIDER_TAKES_WORK_HANDED_TO_IT,
+            DboPromises.PROC_A_PERSON_OF_THE_PROVIDER_ACTS_ON_WORK_THEY_HOLD})
     void aPersonOfTheProviderWorksWhatTheClinicHandsIt() throws Exception {
         String declines = ",\"declines\":[\"" + STEP + "\"]";
         dbo.declare(CLINIC, handing(declines));
@@ -763,6 +764,44 @@ class OneStepIsPerformedForEveryTenantIT {
                 "the repair's context does not answer the person holding it alone, or a held "
                         + "repair was taken again");
 
+        // Holding it, she says what the repair's own acts say, and nobody else
+        // of the provider's people does.
+        providersPerson("grace");
+        String colleague = signedInAtTheProvider("grace");
+        Proves.that(DboPromises.PROC_A_PERSON_OF_THE_PROVIDER_ACTS_ON_WORK_THEY_HOLD,
+                atTheRun(handed, "accept", colleague, "{\"because\":\"on it\"}")
+                        .statusCode() == 404,
+                "a person of the provider said an act of work a colleague holds");
+        assertEquals(200, atTheRun(handed, "accept", token,
+                "{\"because\":\"a technician is on the way\"}").statusCode());
+        assertEquals(200, atTheRun(handed, "stage", token,
+                "{\"stage\":\"diagnosed\",\"because\":\"a cracked valve\"}").statusCode());
+        Run accepted = runs(CLINIC).byId(handed).orElseThrow();
+        Proves.that(DboPromises.PROC_A_PERSON_OF_THE_PROVIDER_ACTS_ON_WORK_THEY_HOLD,
+                "accepted".equals(accepted.status().wire())
+                        && "diagnosed".equals(accepted.milestone().name())
+                        && runs(CLINIC).items(accepted).stream().anyMatch(act ->
+                                "accepted".equals(act.step()) && act.assignment() != null
+                                        && String.valueOf(act.assignment().claimant())
+                                                .endsWith(person)),
+                "the repair does not stand where she said, or its account does not name her: "
+                        + accepted);
+        Proves.that(DboPromises.PROC_A_PERSON_OF_THE_PROVIDER_ACTS_ON_WORK_THEY_HOLD,
+                atTheRun(handed, "take-back", token, "{\"because\":\"mine\"}")
+                        .statusCode() == 404
+                        && atTheRun(handed, "hand", token, "{\"because\":\"yours\"}")
+                                .statusCode() == 404,
+                "a person of the provider handed the clinic's work over or took it back");
+        assertEquals(200, atTheRun(handed, "let-go", token,
+                "{\"because\":\"needs a part we do not stock\"}").statusCode());
+        Proves.that(DboPromises.PROC_A_PERSON_OF_THE_PROVIDER_ACTS_ON_WORK_THEY_HOLD,
+                atTheRun(handed, "fhir/Basic/" + pump, token, null).statusCode() == 404
+                        && atTheRun(handed, "claim", colleague, null).statusCode() == 200
+                        && atTheRun(handed, "let-go", colleague,
+                                "{\"because\":\"the part is in\"}").statusCode() == 200
+                        && atTheRun(handed, "claim", token, null).statusCode() == 200,
+                "work she let go still admitted her, or stayed out of her colleagues' reach");
+
         assertEquals(200, atTheRun(handed, "take-back", dbo.workToken(CLINIC),
                 "{\"because\":\"our own technician is back\"}").statusCode());
         Proves.that(DboPromises.PROC_A_PERSON_OF_THE_PROVIDER_TAKES_WORK_HANDED_TO_IT,
@@ -773,11 +812,14 @@ class OneStepIsPerformedForEveryTenantIT {
         assertEquals(200, atTheRun(handed, "hand", dbo.workToken(CLINIC),
                 "{\"because\":\"he could not fix it\"}").statusCode());
         assertEquals(200, atTheRun(handed, "claim", token, null).statusCode());
-        assertEquals(200, atTheRun(handed, "end", dbo.workToken(CLINIC),
-                "{\"status\":\"cancelled\",\"because\":\"the pump is replaced\"}")
+        assertEquals(200, atTheRun(handed, "end", token,
+                "{\"status\":\"completed\",\"because\":\"the valve is replaced\"}")
                 .statusCode());
         Proves.that(DboPromises.PROC_A_PERSON_OF_THE_PROVIDER_TAKES_WORK_HANDED_TO_IT,
-                atTheRun(handed, "fhir/Basic/" + pump, token, null).statusCode() == 404,
+                atTheRun(handed, "fhir/Basic/" + pump, token, null).statusCode() == 404
+                        && atTheRun(handed, "stage", token,
+                                "{\"stage\":\"again\",\"because\":\"x\"}")
+                                .statusCode() == 404,
                 "work that ended still admitted the person of the provider");
 
         String monitor = basicAt(CLINIC, "the monitor flickers");

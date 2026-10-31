@@ -681,6 +681,25 @@ public final class Runs {
         return Optional.of(moved);
     }
 
+    /**
+     * Lasting work one of the provider's people lets go of: still handed to
+     * the provider, for another of its people to take, and held by nobody.
+     *
+     * @param claimant who holds it, which nobody else may let go for them
+     */
+    public Run letGo(Run lasting, String claimant, String because) {
+        requireBecause("let go", because);
+        return said(lasting, "let-go", claimant, because, null, snapshot -> {
+            if (snapshot.assignment() == null || snapshot.assignment().role() == null
+                    || !java.util.Objects.equals(claimant, snapshot.assignment().claimant())) {
+                throw new IllegalStateException("'" + lasting.key() + "' is not held by "
+                        + claimant + ", so it is not theirs to let go");
+            }
+            return snapshot.withAssignment(snapshot.requester() == null ? null
+                    : new Run.Assignment(null, null, null, null, snapshot.requester()));
+        });
+    }
+
     private static void requireBecause(String act, String because) {
         if (because == null || because.isBlank()) {
             throw new IllegalArgumentException("lasting work " + act + " says why");

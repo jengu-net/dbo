@@ -172,7 +172,10 @@ holds the work as the role the provider vouched for in the token, with no
 deadline, and the work's `Task.owner` names that role by absolute reference to
 the provider's base, `…/t/mom/fhir/PractitionerRole/<id>`. Taking the work is an
 act under it naming the person the same way. While they hold it the work's
-context answers them and nobody else.
+context answers them and nobody else, and they say its own acts at its address
+as the tenant's people do: `accept`, `reject`, `stage` and `end`, each with a
+`because`, each recorded naming them. `let-go` hands it back to the provider for
+another of its people. Handing work over and taking it back stay the tenant's.
 
 Work the tenant kept, work that is over and work the tenant took back answer the
 person as work that does not exist. A tenant that withdraws the row stops them
@@ -200,9 +203,9 @@ names the test behind each.
 
 ## What the store cannot do yet
 
-- **A person of the provider takes handed work and reads it, and does nothing
-  else with it yet.** Saying acts of the work, starting parts of it and writing
-  through it are still the tenant's.
+- **A person of the provider neither starts parts of handed work nor writes
+  through it.** They reach only the steps whose work is handed, and no tenant
+  has a way yet to say which of its other steps a holder may ask for.
 - **A fleet step writes nothing.** No tenant's declaration says what the
   deployment's step may write, so its result is a tally and no records.
 - **A deployment cannot name its processor** in configuration, so none is

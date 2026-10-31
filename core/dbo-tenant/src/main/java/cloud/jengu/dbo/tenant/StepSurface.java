@@ -973,11 +973,15 @@ final class StepSurface implements HttpHandler {
         String asking = admitted.clientId();
         String[] segments = relative.split("/");
         if (admitted.vouched() != null && segments.length == 2) {
-            // Taking handed work is the one act a person of the provider has
-            // here yet; anything else is answered as for a run that is not
-            // there, which is all it is to them.
+            // A person of the provider takes handed work, and once they hold
+            // it says its own acts and lets it go. Handing it over and taking
+            // it back are the tenant's; those, and every act on work they do
+            // not hold, are answered as for a run that is not there, which is
+            // all it is to them.
             if ("claim".equals(segments[1])) {
                 takeHanded(exchange, segments[0], admitted);
+            } else if (HOLDERS_SAY.contains(segments[1])) {
+                sayHeld(exchange, segments[0], segments[1], admitted);
             } else {
                 fail(exchange, 404, "not_found", "no such run");
             }
@@ -1320,6 +1324,49 @@ final class StepSurface implements HttpHandler {
                 + quote(taken.get().status().wire()) + ",\"owner\":"
                 + quote(taken.get().assignment().role()) + ",\"until\":"
                 + quote(String.valueOf(taken.get().assignment().until())) + "}");
+    }
+
+    /** What a person of the provider says of handed work they hold. */
+    static final java.util.Set<String> HOLDERS_SAY =
+            java.util.Set.of("accept", "reject", "stage", "end", "let-go");
+
+    /**
+     * An act said of handed work by the person of the provider holding it,
+     * recorded under the work naming them. Ending it, or letting it go, is
+     * the last thing they say of it: either way they hold it no longer.
+     */
+    private void sayHeld(HttpExchange exchange, String id, String act,
+            TenantAuthority.AuthContext asking) throws IOException {
+        if (!"POST".equals(exchange.getRequestMethod())) {
+            fail(exchange, 405, "invalid_request", "an act is said by POSTing it");
+            return;
+        }
+        Optional<Run> found = runs.byId(id);
+        if (found.isEmpty() || !found.get().lasting()
+                || !found.get().heldBy(asking.clientId(), clock.instant())) {
+            fail(exchange, 404, "not_found", "no such run");
+            return;
+        }
+        Object body = Json.parse(new String(exchange.getRequestBody().readAllBytes(),
+                StandardCharsets.UTF_8));
+        if (!"let-go".equals(act)) {
+            Started said = saying(id, act, body, asking.fhirUser());
+            respond(exchange, said.status(), said.body());
+            return;
+        }
+        Run released;
+        try {
+            released = runs.letGo(found.get(), asking.clientId(), Json.strOpt(body, "because"));
+        } catch (IllegalArgumentException wrong) {
+            fail(exchange, 400, "invalid_request", wrong.getMessage());
+            return;
+        } catch (IllegalStateException standing) {
+            fail(exchange, 404, "not_found", "no such run");
+            return;
+        }
+        respond(exchange, 200, "{\"run\":" + quote(released.id()) + ",\"key\":"
+                + quote(released.key()) + ",\"status\":"
+                + quote(released.status().wire()) + "}");
     }
 
     /**
