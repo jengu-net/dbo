@@ -217,8 +217,9 @@ names the test behind each.
 
 ## What the store cannot do yet
 
-- **A person of the provider writes nothing through handed work.** No person
-  gives a run's result yet, the tenant's own people included.
+- **A person of the provider writes nothing through handed work.** Handed work
+  lasts, and work that lasts writes nothing of its own; the parts they start are
+  performed by the tenant's own participants and people.
 - **A fleet step writes nothing.** No tenant's declaration says what the
   deployment's step may write, so its result is a tally and no records.
 - **A deployment cannot name its processor** in configuration, so none is

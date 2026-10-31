@@ -1397,6 +1397,18 @@ public final class Runs {
                 snapshot.withStanding(snapshot.standing().as(Status.COMPLETED))));
     }
 
+    /**
+     * Done over a result the client holding the run at the step door gave,
+     * as {@link #closed(Run, Executor, List)} says for a participant.
+     *
+     * @param claimant the client the authority read off the credential asking
+     * @throws NotHeld when the run is not that client's now; nothing is written
+     */
+    public Run closed(Run run, String claimant, List<String> versions) {
+        requireAction(run, "close");
+        return advanceHeldByClient(run, claimant, "closed", closing(versions));
+    }
+
     /** The deadline moved to {@code holdFor} from now; whose the work is does not change. */
     private State extended(State snapshot, java.time.Duration holdFor) {
         java.util.Objects.requireNonNull(holdFor, "holdFor");

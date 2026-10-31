@@ -1117,6 +1117,14 @@ public enum DboPromises implements Promise {
             + "writes are accepted. The run then names each version it produced, which is how "
             + "the application that asked for the work learns which record it made."),
 
+    PROC_A_PERSON_GIVES_THE_RESULT_OF_A_RUN_THEY_HOLD(
+            "A person holding a run gives its result as they end it — the records the step "
+            + "lets its holder write, and the parts it starts — checked before anything is "
+            + "written exactly as a result given on the lane is, and written as the tenant "
+            + "under the run, each version naming them. A result the tenant will not hold is "
+            + "answered with its words, nothing of it is written, and the run stays theirs; "
+            + "anybody else is answered as for a run that does not exist."),
+
     PROC_A_REFUSED_RESULT_ENDS_THE_RUN(
             "A result the tenant refuses for what it says — a record its profile rejects, an "
             + "identity it already holds, a type the step does not write — ends the run with "

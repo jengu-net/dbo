@@ -130,6 +130,13 @@ final class StepSurface implements HttpHandler {
     private final java.util.function.Function<String, List<String>> roles;
 
     /**
+     * Where a result a person gives becomes the tenant's records, by the
+     * rules a participant's result is held to. The parts it names start at
+     * this tenant's own door, which this is.
+     */
+    private final cloud.jengu.dbo.runner.Lane.Results results;
+
+    /**
      * What "now" is, for every question this door asks of a run's time —
      * who holds it, and whether its asker's window is open. A field so a
      * test can stand at the instant a window shuts rather than wait for it.
@@ -257,6 +264,10 @@ final class StepSurface implements HttpHandler {
         this.tenant = tenant;
         this.fleet = fleet;
         steps.forEach(step -> declared.put(step.code(), step));
+        // A zone's exchange is answered by the participant performing it,
+        // never by a person at this door, so nothing it writes is offered.
+        this.results = new RunResults(tenant, steps, store, step -> java.util.Set.of(),
+                () -> this);
     }
 
     @Override
@@ -1056,7 +1067,7 @@ final class StepSurface implements HttpHandler {
             return;
         }
         if (segments.length == 2 && "done".equals(segments[1])) {
-            done(exchange, segments[0], asking);
+            done(exchange, segments[0], admitted);
             return;
         }
         if (segments.length == 2 && "claim".equals(segments[1])) {
@@ -1262,8 +1273,16 @@ final class StepSurface implements HttpHandler {
      * by the difference between the two refusals, which runs exist. Ending a
      * run twice is not an error — the second call finds a run nobody holds,
      * which is what it asked for.
+     *
+     * <p><b>With its result, where the holder gives one</b>: the records the
+     * step lets its holder write, and the parts it starts, as a participant's
+     * result carries them and held to the same rules. A result the tenant
+     * will not hold is answered with its words and written nowhere, and the
+     * run stays the holder's.
      */
-    private void done(HttpExchange exchange, String id, String asking) throws IOException {
+    private void done(HttpExchange exchange, String id, TenantAuthority.AuthContext admitted)
+            throws IOException {
+        String asking = admitted.clientId();
         if (!"POST".equals(exchange.getRequestMethod())) {
             fail(exchange, 405, "invalid_request", "a run is ended by POSTing to it");
             return;
@@ -1293,13 +1312,23 @@ final class StepSurface implements HttpHandler {
             fail(exchange, 404, "not_found", "no such run");
             return;
         }
+        String sent = new String(exchange.getRequestBody().readAllBytes(),
+                StandardCharsets.UTF_8);
+        Object body = sent.isBlank() ? null : Json.parse(sent);
+        List<cloud.jengu.dbo.runner.Outcome.Write> writes = writesOf(body);
+        List<cloud.jengu.dbo.runner.Outcome.Part> parts = partsOf(body);
         Run ended;
         try {
-            // Conditional on holding, asked again of the version the close
-            // replaces: a lease that lapsed and was handed back, or a lane
-            // that took the run, between the look above and this write is a
-            // write that landed first, and the asker no longer holds the run.
-            ended = runs.closed(found.get(), asking);
+            if (writes.isEmpty() && parts.isEmpty()) {
+                // Conditional on holding, asked again of the version the close
+                // replaces: a lease that lapsed and was handed back, or a lane
+                // that took the run, between the look above and this write is
+                // a write that landed first, and the asker no longer holds the
+                // run.
+                ended = runs.closed(found.get(), asking);
+            } else {
+                ended = closedOver(found.get(), asking, writes, parts);
+            }
         } catch (Runs.NotHeld lost) {
             // Answered as anybody who does not hold the run is, word for
             // word: the asker held it a moment ago, and the difference
@@ -1313,9 +1342,102 @@ final class StepSurface implements HttpHandler {
             // breakage.
             fail(exchange, 409, "not_an_action", String.valueOf(refused.getMessage()));
             return;
+        } catch (cloud.jengu.dbo.runner.Lane.Results.Refused refused) {
+            // NOT ENDED, unlike a participant's: a person reads the tenant's
+            // words and gives the result again, where a participant would
+            // only send the same one.
+            fail(exchange, 422, "refused", String.valueOf(refused.getMessage()));
+            return;
         }
         respond(exchange, 200, "{\"run\":" + quote(ended.id()) + ",\"key\":"
                 + quote(ended.key()) + ",\"status\":" + quote(ended.status().wire()) + "}");
+    }
+
+    /**
+     * The run closed over the result its holder gave: the records written as
+     * the tenant, under the run and naming the person, and its parts
+     * started, all of it or none of it.
+     */
+    private Run closedOver(Run run, String asking,
+            List<cloud.jengu.dbo.runner.Outcome.Write> writes,
+            List<cloud.jengu.dbo.runner.Outcome.Part> parts) {
+        // Asked before anything is written: the one refusal closing can
+        // make, made while it still strands nothing.
+        runs.requireClosable(run);
+        List<String> versions;
+        String outer = cloud.jengu.dbo.core.api.Caller.run();
+        cloud.jengu.dbo.core.api.Caller.setRun(run.key());
+        try {
+            versions = results.given(run, writes, parts);
+        } finally {
+            if (outer == null) {
+                cloud.jengu.dbo.core.api.Caller.clearRun();
+            } else {
+                cloud.jengu.dbo.core.api.Caller.setRun(outer);
+            }
+        }
+        // Conditional on holding, as a close without a result is. The records
+        // are the tenant's by now; what a lost hold refuses is the run's
+        // account of them.
+        return runs.closed(run, asking, versions);
+    }
+
+    /**
+     * A result's {@code writes}: each a record, created unless it names a
+     * {@code method} and {@code url}, as a transaction bundle entry would.
+     */
+    private static List<cloud.jengu.dbo.runner.Outcome.Write> writesOf(Object body) {
+        List<cloud.jengu.dbo.runner.Outcome.Write> writes = new java.util.ArrayList<>();
+        for (Object entry : Json.objOpt(body, "writes") instanceof List<?> given
+                ? given : List.of()) {
+            if (!(Json.objOpt(entry, "resource") instanceof Map<?, ?> record)) {
+                throw new IllegalArgumentException("each of a result's writes carries the "
+                        + "record it writes, as resource");
+            }
+            String resource = cloud.jengu.dbo.core.wire.RecordWire.write(record);
+            String url = Json.strOpt(entry, "url");
+            String ifMatch = Json.strOpt(entry, "ifMatch");
+            writes.add(new cloud.jengu.dbo.runner.Outcome.Write(
+                    Optional.ofNullable(Json.strOpt(entry, "method")).orElse("POST"),
+                    url != null ? url : String.valueOf(record.get("resourceType")),
+                    Json.strOpt(entry, "fullUrl"),
+                    ifMatch == null ? null : Long.valueOf(ifMatch), resource));
+        }
+        return writes;
+    }
+
+    /**
+     * A result's {@code parts}: each a step and the inputs it is started
+     * over, filled as the step door's body fills them, and an optional key.
+     */
+    private static List<cloud.jengu.dbo.runner.Outcome.Part> partsOf(Object body) {
+        List<cloud.jengu.dbo.runner.Outcome.Part> parts = new java.util.ArrayList<>();
+        for (Object entry : Json.objOpt(body, "parts") instanceof List<?> given
+                ? given : List.of()) {
+            Map<String, cloud.jengu.dbo.work.RunInitiator.Slot> inputs = new LinkedHashMap<>();
+            if (Json.objOpt(entry, "inputs") instanceof Map<?, ?> named) {
+                named.forEach((slot, value) -> inputs.put(String.valueOf(slot), slotOf(value)));
+            }
+            parts.add(new cloud.jengu.dbo.runner.Outcome.Part(Json.str(entry, "step"), inputs,
+                    Json.strOpt(entry, "key"), null));
+        }
+        return parts;
+    }
+
+    /** A reference or a search, an object, or several of either. */
+    private static cloud.jengu.dbo.work.RunInitiator.Slot slotOf(Object value) {
+        if (value instanceof List<?> many) {
+            boolean objects = many.stream().anyMatch(one -> one instanceof Map<?, ?>);
+            List<String> values = many.stream().map(one -> objects
+                    ? cloud.jengu.dbo.core.wire.RecordWire.write(one)
+                    : String.valueOf(one)).toList();
+            return objects ? cloud.jengu.dbo.work.RunInitiator.Slot.objects(values)
+                    : cloud.jengu.dbo.work.RunInitiator.Slot.references(values);
+        }
+        return value instanceof Map<?, ?>
+                ? cloud.jengu.dbo.work.RunInitiator.Slot.object(
+                        cloud.jengu.dbo.core.wire.RecordWire.write(value))
+                : cloud.jengu.dbo.work.RunInitiator.Slot.reference(String.valueOf(value));
     }
 
     /**

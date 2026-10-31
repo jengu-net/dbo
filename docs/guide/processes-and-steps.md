@@ -43,7 +43,11 @@ and so is a declared one left unfilled.
 
 `writes` lists the types a step's result may ask the tenant to write. A record
 of any other type, or one whose own type is not the one its write names, is
-refused before anything is read. A step that declares nothing writes nothing.
+refused before anything is read. A step that declares nothing writes nothing. A
+result is given by the participant performing the run, on the lane, or by
+whoever holds it at the step door, as it ends it
+([a run's own context](work-leaves-and-comes-back.md#a-runs-own-context)); the
+same rules hold either way.
 
 ## `automate`: when a machine may take it
 
