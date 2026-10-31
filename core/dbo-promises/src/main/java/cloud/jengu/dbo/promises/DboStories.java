@@ -104,6 +104,9 @@ public enum DboStories implements Story {
                     DboPromises.PROC_A_RUN_ANSWERS_ITS_INITIATOR,
                     DboPromises.PROC_A_RESULT_IS_WRITTEN_BY_THE_TENANT,
                     DboPromises.PROC_A_REFUSED_RESULT_ENDS_THE_RUN,
+                    // A person holding a run gives its result as a participant
+                    // does, and corrects it where the tenant will not hold it.
+                    DboPromises.PROC_A_PERSON_GIVES_THE_RESULT_OF_A_RUN_THEY_HOLD,
                     // Carried without being read, and the trail telling the
                     // two apart afterwards.
                     DboPromises.PROC_WORK_TRAVELS_SEALED,
@@ -243,7 +246,17 @@ public enum DboStories implements Story {
                     DboPromises.PROC_A_TENANT_AUTHORISES_A_REGISTER_AND_SEES_IT_CHANGE,
                     DboPromises.PROC_AN_UNAUTHORISED_ROW_OBEYS_ITS_POSTURE,
                     // And reads all of that at its own door.
-                    DboPromises.PROC_THE_REGISTER_IS_READ_AT_A_DOOR
+                    DboPromises.PROC_THE_REGISTER_IS_READ_AT_A_DOOR,
+                    // The other way round: a tenant hands its own work to the
+                    // provider's people, under a row of its register it authorises.
+                    DboPromises.PROC_WORK_HANDED_TO_THE_PROVIDER_IS_ON_THE_TENANTS_REGISTER,
+                    DboPromises.PROC_LASTING_WORK_IS_HANDED_TO_THE_PROVIDER_AND_TAKEN_BACK,
+                    DboPromises.PROC_A_TENANT_SAYS_WHAT_A_HOLDER_OF_HANDED_WORK_MAY_START,
+                    DboPromises.PROC_A_PERSON_OF_THE_PROVIDER_TAKES_WORK_HANDED_TO_IT,
+                    DboPromises.PROC_A_PERSON_OF_THE_PROVIDER_ACTS_ON_WORK_THEY_HOLD,
+                    DboPromises.PROC_A_PERSON_OF_THE_PROVIDER_STARTS_PARTS_OF_WORK_THEY_HOLD,
+                    DboPromises.PROC_THE_PROVIDERS_PEOPLE_JOIN_HANDED_WORK,
+                    DboPromises.PROC_WORK_THAT_LASTS_IS_WRITTEN_IN_WHILE_OPEN
             )),
 
     ON_THE_STREAM("A deployment whose participants hold their lanes over its own durable "
