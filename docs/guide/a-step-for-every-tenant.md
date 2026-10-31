@@ -100,7 +100,21 @@ declaration says which rows stand, and a withdrawal stops what stands on a row a
 the next request. A tenant that never has keeps its declaration's `authorised`,
 the digests of the rows it read, and the register marks those rows
 `authorisedIn: declaration`. A place of the tenant answers `409 not_here`: it is
-authorised at its origin. The register says whether what is done changed since it
+authorised at its origin.
+
+An application that signs the tenant's people in asks with its own client, since
+their tokens carry no `configuration` scope and should not: that scope also
+applies configuration. It names the person who agreed:
+
+```http
+PUT /t/<code>/register/authorisation   { "rows": [ … ], "onBehalfOf": "Practitioner/<id>" }
+```
+
+The register then names that person as `authorisedBy` of each row the
+authorisation added, and the trail's entry names the application as who asked and
+the person as who it acted for. The client is trusted to name its person, as an
+application naming who a write is for is; a credential issued to a person names
+nobody else. The register says whether what is done changed since it
 was authorised, and nothing of the kind to a tenant that never authorised one.
 
 `GET /t/<code>/register/incidents` is the account kept against it: work that ran

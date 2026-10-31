@@ -1288,6 +1288,15 @@ public enum DboPromises implements Promise {
             + "stops what stands on the row at the next one; until then the declaration's "
             + "authorised rows are read. A credential without the scope can do neither."),
 
+    PROC_AN_APPLICATION_AUTHORISES_A_REGISTER_FOR_A_PERSON(
+            "An application authorises a tenant's register at its door for a person it names "
+            + "by reference in onBehalfOf, its own credential's configuration scope admitting "
+            + "it: the register names that person as having authorised each row it added, "
+            + "and the trail's entry names both the application, as who asked, and the "
+            + "person. Without the scope neither can authorise or withdraw; a credential "
+            + "issued to a person names nobody else, and a person named by a bare name is "
+            + "refused. Naming nobody, the application is recorded, as before."),
+
     PROC_LASTING_WORK_IS_HANDED_TO_THE_PROVIDER_AND_TAKEN_BACK(
             "A tenant hands work that lasts to the service provider, as it opens it or "
             + "afterwards, and takes it back, each with a reason and each an act recorded "

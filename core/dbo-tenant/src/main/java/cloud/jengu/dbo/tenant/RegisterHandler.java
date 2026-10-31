@@ -30,7 +30,8 @@ import java.util.function.Supplier;
  * <p><b>The configuration scope, because reading the register is half of
  * authorising it.</b> A tenant authorises the rows it read at {@code PUT
  * /t/<code>/register/authorisation}, under that scope, and the register then
- * says who of it agreed to each row and when; a tenant that has never done so
+ * says who of it agreed to each row and when — a person an application names
+ * as acting for, where it names one; a tenant that has never done so
  * still has its declaration's {@code authorised} read. Whoever may say what the
  * tenant agrees to is whoever must be able to read what it is agreeing to —
  * and a credential that merely reads records has no business learning what
@@ -142,7 +143,16 @@ public final class RegisterHandler implements HttpHandler {
 
     /**
      * The rows the tenant authorises, as whoever the credential names: the
-     * person it was issued to where it names one, otherwise its client.
+     * person it was issued to where it names one, otherwise its client — or
+     * the person a client names in {@code onBehalfOf}, the client staying on
+     * the trail as who asked.
+     *
+     * <p><b>The client is trusted to name its person</b>, as an application
+     * naming who a write is for is: its own scope admits the authorisation
+     * with or without one, so naming a person changes who the record says
+     * agreed and never what may be agreed to. A person's token carries no
+     * such scope and should not, because the same scope applies
+     * configuration.
      */
     private void authorise(HttpExchange exchange, TenantAuthority.AuthContext asking)
             throws IOException {
@@ -160,15 +170,45 @@ public final class RegisterHandler implements HttpHandler {
                     + "the rows authorised, as rows, and every row it leaves out is withdrawn");
             return;
         }
+        Object person = named.get("onBehalfOf");
+        if (person != null && (asking.fhirUser() != null || !(person instanceof String reference)
+                || reference.indexOf('/') <= 0)) {
+            // A bare name is how a client is recorded, so a person named by
+            // one would read on the register as an application.
+            fail(exchange, 400, "invalid_request", asking.fhirUser() != null
+                    ? "a credential issued to a person authorises as that person, and names "
+                            + "nobody else in onBehalfOf"
+                    : "onBehalfOf names a person by reference, such as Practitioner/<id>");
+            return;
+        }
+        String actor;
+        String forWhom;
+        if (person != null) {
+            actor = asking.clientId();
+            forWhom = (String) person;
+        } else if (asking.actClient() != null) {
+            // a person's token exchanged by an application: both, as every
+            // other door records them
+            actor = asking.actClient();
+            forWhom = asking.fhirUser();
+        } else {
+            actor = asking.fhirUser() != null ? asking.fhirUser() : asking.clientId();
+            forWhom = null;
+        }
+        String outer = cloud.jengu.dbo.core.api.Caller.authenticated();
+        String outerFor = cloud.jengu.dbo.core.api.Caller.onBehalfOf();
+        cloud.jengu.dbo.core.api.Caller.setChain(actor, forWhom);
         try {
             authorising.authorise(listed.stream().map(String::valueOf).distinct().toList(),
-                    asking.fhirUser() != null ? asking.fhirUser() : asking.clientId());
+                    forWhom != null ? forWhom : actor);
         } catch (IllegalArgumentException unread) {
             fail(exchange, 422, "invalid_request", String.valueOf(unread.getMessage()));
             return;
         } catch (IllegalStateException elsewhere) {
             fail(exchange, 409, "not_here", String.valueOf(elsewhere.getMessage()));
             return;
+        } finally {
+            cloud.jengu.dbo.core.api.Caller.setChain(outer, outerFor);
         }
         respond(exchange, 200, register(reading.get()));
     }
