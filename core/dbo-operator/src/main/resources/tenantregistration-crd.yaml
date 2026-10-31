@@ -247,6 +247,11 @@ spec:
                       # nobody, moved and ended by the runs that are its parts.
                       lasts:
                         type: boolean
+                      # Whether its work, which lasts, is handed to the service
+                      # provider for the provider's people to carry out.
+                      handsTo:
+                        type: string
+                        enum: [provider]
                       starts:
                         type: object
                         required: [keep, where]
