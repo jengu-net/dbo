@@ -698,6 +698,61 @@ public final class Runs {
         });
     }
 
+    /**
+     * Records written under lasting work while it is open, by somebody working
+     * it: kept among what the work produced, and an act under it naming who.
+     *
+     * @param versions what was written, as {@code Type/id/version}
+     */
+    public Run written(Run lasting, List<String> versions, String by) {
+        if (versions.isEmpty()) {
+            throw new IllegalArgumentException("nothing was written under '" + lasting.key()
+                    + "'");
+        }
+        return said(lasting, "written", by, String.join(" ", versions), null,
+                producing(versions));
+    }
+
+    /**
+     * One of the provider's people joined to handed work by whoever holds
+     * it: they read it and write in it, and act on nothing else under it.
+     *
+     * @param person the colleague, by absolute reference to the provider's base
+     * @param by     the holder naming them
+     */
+    public Run joined(Run lasting, String person, String by) {
+        java.util.Objects.requireNonNull(person, "person");
+        return said(lasting, "joined", by, person, null, snapshot -> {
+            Run.Addressee handed = snapshot.standing().addressee();
+            if (handed == null || handed.provider() == null) {
+                throw new IllegalStateException("'" + lasting.key() + "' is not handed to the "
+                        + "provider, and only the provider's people join it");
+            }
+            if (handed.joined().contains(person) || (snapshot.assignment() != null
+                    && person.equals(snapshot.assignment().claimant()))) {
+                throw new IllegalStateException(person + " works '" + lasting.key()
+                        + "' already");
+            }
+            return snapshot.withStanding(snapshot.standing().addressedTo(handed.joining(person)));
+        });
+    }
+
+    /**
+     * One of the provider's people taken off handed work they joined, by the
+     * tenant or by whoever holds it.
+     */
+    public Run left(Run lasting, String person, String by) {
+        java.util.Objects.requireNonNull(person, "person");
+        return said(lasting, "left", by, person, null, snapshot -> {
+            Run.Addressee handed = snapshot.standing().addressee();
+            if (handed == null || !handed.joined().contains(person)) {
+                throw new IllegalStateException(person + " has not joined '" + lasting.key()
+                        + "'");
+            }
+            return snapshot.withStanding(snapshot.standing().addressedTo(handed.leaving(person)));
+        });
+    }
+
     private static void requireBecause(String act, String because) {
         if (because == null || because.isBlank()) {
             throw new IllegalArgumentException("lasting work " + act + " says why");
@@ -1397,6 +1452,18 @@ public final class Runs {
                 snapshot.withStanding(snapshot.standing().as(Status.COMPLETED))));
     }
 
+    /**
+     * Done over a result the client holding the run at the step door gave,
+     * as {@link #closed(Run, Executor, List)} says for a participant.
+     *
+     * @param claimant the client the authority read off the credential asking
+     * @throws NotHeld when the run is not that client's now; nothing is written
+     */
+    public Run closed(Run run, String claimant, List<String> versions) {
+        requireAction(run, "close");
+        return advanceHeldByClient(run, claimant, "closed", closing(versions));
+    }
+
     /** The deadline moved to {@code holdFor} from now; whose the work is does not change. */
     private State extended(State snapshot, java.time.Duration holdFor) {
         java.util.Objects.requireNonNull(holdFor, "holdFor");
@@ -1640,6 +1707,12 @@ public final class Runs {
 
     /** What closing over a committed result writes: the versions named, and done. */
     private java.util.function.UnaryOperator<State> closing(List<String> versions) {
+        return snapshot -> answered(producing(versions).apply(snapshot)
+                .withStanding(snapshot.standing().as(Status.COMPLETED)));
+    }
+
+    /** The versions named among what the run produced, beyond a watermark past a few. */
+    private java.util.function.UnaryOperator<State> producing(List<String> versions) {
         return snapshot -> {
             Run.Produced before = snapshot.produced();
             List<String> named = new ArrayList<>(before.versions());
@@ -1652,9 +1725,8 @@ public final class Runs {
                     watermark.merge(parts[0], Long.parseLong(parts[2]), Math::max);
                 }
             }
-            return answered(snapshot.withProduced(new Run.Produced(List.copyOf(named),
-                            Map.copyOf(watermark), before.counted() + versions.size()))
-                    .withStanding(snapshot.standing().as(Status.COMPLETED)));
+            return snapshot.withProduced(new Run.Produced(List.copyOf(named),
+                    Map.copyOf(watermark), before.counted() + versions.size()));
         };
     }
 
@@ -2602,6 +2674,11 @@ public final class Runs {
                 if (standing.addressee().provider() != null) {
                     json.append("\"provider\":")
                             .append(Json.quoted(standing.addressee().provider()));
+                    if (!standing.addressee().joined().isEmpty()) {
+                        json.append(",\"joined\":[").append(String.join(",",
+                                standing.addressee().joined().stream().map(Json::quoted)
+                                        .toList())).append(']');
+                    }
                 }
                 if (standing.addressee().client() != null) {
                     json.append("\"client\":").append(Json.quoted(standing.addressee().client()));

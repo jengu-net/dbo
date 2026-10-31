@@ -6,10 +6,13 @@ import cloud.jengu.dbo.promises.Proving;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * A clinic hands an incident to its service provider, and takes it back.
@@ -99,6 +102,66 @@ class WorkHandedToTheProviderIsOfferedToNoParticipantTest {
                 "https://mom.example/t/mom/fhir/PractitionerRole/support",
                 "https://mom.example/t/mom/fhir/Practitioner/grace").isPresent(),
                 "another of the provider's people could not take work let go");
+    }
+
+    @Test
+    @DisplayName("the holder joins a colleague to handed work and takes them off, the tenant "
+            + "takes anybody off, and taking the work back clears whoever joined it")
+    @Proving(DboPromises.PROC_THE_PROVIDERS_PEOPLE_JOIN_HANDED_WORK)
+    void colleaguesJoinAndLeave() {
+        String ada = "https://mom.example/t/mom/fhir/Practitioner/ada";
+        String grace = "https://mom.example/t/mom/fhir/Practitioner/grace";
+        String alan = "https://mom.example/t/mom/fhir/Practitioner/alan";
+        Run handed = runs.opening(INCIDENTS, "incident", "CommunicationRequest/6",
+                "Practitioner/admin", null, "mom");
+        Run held = runs.takenForTheProvider(handed, "mom",
+                "https://mom.example/t/mom/fhir/PractitionerRole/support", ada).orElseThrow();
+
+        Run joined = runs.joined(runs.joined(held, grace, ada), alan, ada);
+        assertEquals(List.of(grace, alan), joined.addressee().joined(),
+                "the colleagues the holder named are not on the work");
+        assertEquals(joined.addressee(), runs.byKey(joined.key()).orElseThrow().addressee(),
+                "who joined the work did not survive being read back");
+        assertTrue(runs.items(joined).stream().anyMatch(act -> "joined".equals(act.step())),
+                "the work's account does not say somebody joined it");
+        assertThrows(IllegalStateException.class, () -> runs.joined(joined, grace, ada),
+                "a colleague was joined twice");
+        assertThrows(IllegalStateException.class, () -> runs.joined(joined, ada, ada),
+                "the holder joined the work they hold");
+
+        Run without = runs.left(joined, alan, "Practitioner/admin");
+        assertEquals(List.of(grace), without.addressee().joined(),
+                "the tenant could not take a colleague off its work");
+        assertThrows(IllegalStateException.class, () -> runs.left(without, alan, ada),
+                "somebody not joined was taken off");
+        Run back = runs.takenBack(without, "Practitioner/admin", "our own technician");
+        assertNull(back.addressee(), "work taken back still names who joined it");
+
+        Run kept = runs.opening(INCIDENTS, "incident", "CommunicationRequest/7",
+                "Practitioner/admin", null);
+        assertThrows(IllegalStateException.class, () -> runs.joined(kept, grace, ada),
+                "somebody of the provider joined work the tenant kept");
+    }
+
+    @Test
+    @DisplayName("what is written under open work is kept among what it produced, said under "
+            + "it naming who wrote, and leaves the work where it stood")
+    @Proving(DboPromises.PROC_WORK_THAT_LASTS_IS_WRITTEN_IN_WHILE_OPEN)
+    void writtenUnderOpenWork() {
+        String grace = "https://mom.example/t/mom/fhir/Practitioner/grace";
+        Run open = runs.opening(INCIDENTS, "incident", "CommunicationRequest/8",
+                "Practitioner/admin", null, "mom");
+        Run written = runs.written(open, List.of("Basic/1/1"), grace);
+        assertEquals(List.of("Basic/1/1"), written.produced().versions(),
+                "what was written is not among what the work produced");
+        assertEquals(open.status(), written.status(), "writing moved the work");
+        assertTrue(runs.items(written).stream().anyMatch(act -> "written".equals(act.step())
+                        && act.assignment() != null && grace.equals(act.assignment().claimant())),
+                "the work's account does not say who wrote under it");
+        Run over = runs.ended(written, Status.COMPLETED, "Practitioner/admin", "fixed");
+        assertThrows(IllegalStateException.class,
+                () -> runs.written(over, List.of("Basic/2/1"), grace),
+                "something was written under work that is over");
     }
 
     @Test

@@ -420,6 +420,16 @@ public enum DboPromises implements Promise {
             + "Work that is over is neither accepted nor moved, and a part's result that would "
             + "move it is refused whole."),
 
+    PROC_WORK_THAT_LASTS_IS_WRITTEN_IN_WHILE_OPEN(
+            "Work that lasts may declare what it writes, and while it is open whoever holds it, "
+            + "and a colleague of the provider its holder joined to it, write those records "
+            + "under it as a transaction: held to the step's declaration exactly as a result "
+            + "is, written as the tenant under the work, kept among what the work produced, "
+            + "and each write an act recorded under the work naming who wrote. The work stays "
+            + "where it stood. A write the tenant will not hold is answered with its words "
+            + "and nothing of it is written; anybody else, and work that is over, is answered "
+            + "as work that does not exist."),
+
     PROC_WORK_THAT_LASTS_READS_AS_A_FULFILMENT_TASK("Work that lasts reads as FHIR's "
             + "fulfilment Task: its focus is the request it fulfils, it instantiates its step, "
             + "its status goes from received through accepted or rejected and in progress to "
@@ -1117,6 +1127,14 @@ public enum DboPromises implements Promise {
             + "writes are accepted. The run then names each version it produced, which is how "
             + "the application that asked for the work learns which record it made."),
 
+    PROC_A_PERSON_GIVES_THE_RESULT_OF_A_RUN_THEY_HOLD(
+            "A person holding a run gives its result as they end it — the records the step "
+            + "lets its holder write, and the parts it starts — checked before anything is "
+            + "written exactly as a result given on the lane is, and written as the tenant "
+            + "under the run, each version naming them. A result the tenant will not hold is "
+            + "answered with its words, nothing of it is written, and the run stays theirs; "
+            + "anybody else is answered as for a run that does not exist."),
+
     PROC_A_REFUSED_RESULT_ENDS_THE_RUN(
             "A result the tenant refuses for what it says — a record its profile rejects, an "
             + "identity it already holds, a type the step does not write — ends the run with "
@@ -1274,7 +1292,7 @@ public enum DboPromises implements Promise {
             + "provider with that token, holding no credential of the tenant's: the token is "
             + "admitted while a row of the tenant's register handing a step stands, and "
             + "reaches those steps, and the parts the tenant lets their holder start, and "
-            + "nothing else — no record. The "
+            + "nothing else — no record outside the work they hold. The "
             + "person holds the work, with no deadline, as a role the provider vouched for in "
             + "the token, and the work names that role as its owner by absolute reference to "
             + "the provider's base; taking it is an act recorded under the work naming the "
@@ -1291,6 +1309,17 @@ public enum DboPromises implements Promise {
             + "step, a part of work they do not hold, and a part whose row the tenant has "
             + "not authorised or has withdrawn answer them as work that does not exist, "
             + "asked again at each request."),
+
+    PROC_THE_PROVIDERS_PEOPLE_JOIN_HANDED_WORK(
+            "A person of the provider holding work a tenant handed it joins colleagues of the "
+            + "provider to it, each named by absolute reference to the provider's base, and "
+            + "each join an act recorded under the work naming them, so the tenant sees who "
+            + "works it. A colleague joined reads the work's context with the provider's token "
+            + "and holds no claim: the work's acts and starting its parts answer them as work "
+            + "that does not exist, taking it while it is held is the conflict it is for "
+            + "anybody, and once the work is over or taken back it answers them as work that "
+            + "does not exist. The tenant takes any of them off, and the provider only through the "
+            + "holder; each is an act recorded under the work."),
 
     PROC_A_PERSON_OF_THE_PROVIDER_ACTS_ON_WORK_THEY_HOLD(
             "A person of the provider holding work a tenant handed it says the work's own "

@@ -146,6 +146,23 @@ work is ended, at `/t/<tenant>/run/<id>/done`, the context answers its
 performer as a run that never existed, so performing a step leaves no standing
 way in behind it.
 
+Whoever holds the run at the door, a person or the client that started it, ends
+it with its result in the body: the records the step lets it write, and the
+parts it starts.
+
+```http
+POST /t/<tenant>/run/<id>/done
+{ "writes": [ { "resource": { "resourceType": "Observation", … } } ],
+  "parts":  [ { "step": "<code>", "inputs": { "patient": "Patient/<id>" } } ] }
+```
+
+A write creates its record unless it names a `method`, a `url` and, for an
+update, `ifMatch`, as a transaction bundle entry does. The result is held to
+the rules a participant's is ([what a step may ask for](processes-and-steps.md#writes-what-a-step-may-ask-for)),
+and each version is written under the run naming who gave it. A result the
+tenant will not hold is answered `422` with its words, nothing of it is
+written, and the run stays the holder's to give again.
+
 A step that declares an answer — `"answers"` naming an audience, `"collect"` a
 duration — opens the same context to the application that asked for the run,
 once the work is over and for that long. It reads what the run was given and

@@ -191,6 +191,23 @@ reference to the provider's base, and offered to the tenant's own participants a
 any part is. A step the tenant did not name, work the person does not hold, and a
 part whose row the tenant has not authorised answer as work that does not exist.
 
+The holder brings colleagues of the provider into the work, each named by their
+`Practitioner` at the provider:
+
+```http
+POST /t/<tenant>/run/<id>/join    { "person": "Practitioner/<id>" }
+POST /t/<tenant>/run/<id>/leave   { "person": "Practitioner/<id>" }
+```
+
+A colleague joined reads the work's context with their own token from the
+provider, and writes under it what the step declares
+([work that lasts](processes-and-steps.md#work-that-lasts)); they hold no claim,
+and its acts and its parts stay the holder's. The work
+lists them in `for.joined`, by absolute reference to the provider's base, and each
+join is an act under the work naming them. The tenant takes any of them off with
+`leave` and that reference; the provider takes them off only through the holder.
+Work taken back, or over, admits none of them.
+
 Work the tenant kept, work that is over and work the tenant took back answer the
 person as work that does not exist. A tenant that withdraws the row stops them
 at their next request, because the row is asked for on every one.
@@ -217,8 +234,6 @@ names the test behind each.
 
 ## What the store cannot do yet
 
-- **A person of the provider writes nothing through handed work.** No person
-  gives a run's result yet, the tenant's own people included.
 - **A fleet step writes nothing.** No tenant's declaration says what the
   deployment's step may write, so its result is a tally and no records.
 - **A deployment cannot name its processor** in configuration, so none is

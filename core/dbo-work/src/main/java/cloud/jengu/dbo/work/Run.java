@@ -189,10 +189,19 @@ public record Run(String id, long versionId, String key, String process, String 
      * @param client   the client the run is for, or null for any
      * @param executor the executor's name, or null for any
      * @param provider the provider the work was handed to
+     * @param joined   the provider's people its holder brought in to read and
+     *                 write in it besides themselves, each by absolute
+     *                 reference to the provider's base
      */
-    public record Addressee(String client, String executor, String provider) {
+    public record Addressee(String client, String executor, String provider,
+            java.util.List<String> joined) {
 
         public Addressee {
+            joined = joined == null ? java.util.List.of() : java.util.List.copyOf(joined);
+            if (!joined.isEmpty() && provider == null) {
+                throw new IllegalArgumentException("only the provider's people join work, and "
+                        + "only work handed to it");
+            }
             if (provider != null && (client != null || executor != null)) {
                 throw new IllegalArgumentException("work handed to the provider is its "
                         + "people's to take, and names no participant");
@@ -203,9 +212,27 @@ public record Run(String id, long versionId, String key, String process, String 
             }
         }
 
+        /** Nobody joined besides whoever holds it. */
+        public Addressee(String client, String executor, String provider) {
+            this(client, executor, provider, java.util.List.of());
+        }
+
         /** A participant, by its client, its executor's name, or both. */
         public Addressee(String client, String executor) {
             this(client, executor, null);
+        }
+
+        /** The same, with one more of the provider's people joined. */
+        public Addressee joining(String person) {
+            java.util.List<String> more = new java.util.ArrayList<>(joined);
+            more.add(person);
+            return new Addressee(client, executor, provider, more);
+        }
+
+        /** The same, with one of them taken off. */
+        public Addressee leaving(String person) {
+            return new Addressee(client, executor, provider,
+                    joined.stream().filter(one -> !one.equals(person)).toList());
         }
 
         /** Work that lasts, handed to the service provider. */
@@ -691,7 +718,9 @@ public record Run(String id, long versionId, String key, String process, String 
         if (((Map<?, ?>) json).get("for") instanceof Map<?, ?> named) {
             String provider = str(named, "provider");
             if (provider != null) {
-                return Addressee.provider(provider);
+                return new Addressee(null, null, provider,
+                        named.get("joined") instanceof java.util.List<?> people
+                                ? people.stream().map(String::valueOf).toList() : null);
             }
             String client = str(named, "client");
             String executor = str(named, "executor");

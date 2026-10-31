@@ -70,7 +70,10 @@ The provider's own people come through the same relation, to less. A tenant
 that hands work to its provider says so on its register, and while that row
 stands a token the provider issued one of its people reaches the steps whose
 work is handed, and the parts the tenant named for its holder to start, each
-under a row of its own; no record, and no other work. The person
+under a row of its own; no record outside that work, and no other work. Inside
+it they write what the step declares. The holder may bring colleagues of the
+provider in to read and write in the work, each named on it so the tenant sees
+who they are and can take them off. The person
 takes handed work as a role the provider vouched for when it signed the token,
 and the tenant names both the person and the role by absolute reference to the
 provider's base, because a bare reference would name one of the tenant's own

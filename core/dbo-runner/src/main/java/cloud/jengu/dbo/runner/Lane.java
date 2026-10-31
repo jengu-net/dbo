@@ -723,6 +723,26 @@ public interface Lane {
             return List.of();
         }
 
+        /**
+         * A whole result, under the run: its parts checked before anything is
+         * written, then its records, then its parts started once what the run
+         * wrote is there to read. Whoever gives a result, a participant or a
+         * person, gives it in this order, so a refusal strands nothing.
+         *
+         * @return each version written, as {@link #commit} returns them
+         * @throws Refused when the tenant will not hold all of it
+         */
+        default List<String> given(Run run, List<Outcome.Write> result,
+                List<Outcome.Part> parts) {
+            requireStartable(run, parts);
+            List<String> versions = result.isEmpty() ? List.of() : commit(run, result);
+            // Not in the records' commit — runs are the work's and the
+            // records the tenant's — and so keyed: a result given again after
+            // a failure between the two finds its parts started.
+            start(run, parts);
+            return versions;
+        }
+
         /** What the tenant answered a result it will not hold, in its own words. */
         final class Refused extends RuntimeException {
             public Refused(String reason) {
@@ -1038,16 +1058,10 @@ public interface Lane {
                 String outer = cloud.jengu.dbo.core.api.Caller.run();
                 cloud.jengu.dbo.core.api.Caller.setRun(current.key());
                 try {
-                    // The parts first, while a refusal still strands nothing:
-                    // a result is refused whole, records and parts together.
-                    results.requireStartable(current, parts);
+                    // A result is refused whole, so what it says of the work
+                    // it is a part of is checked before anything is written.
                     Run lasting = said == null ? null : lastingOf(current);
-                    versions = result.isEmpty() ? List.of() : results.commit(current, result);
-                    // Then started, once what the run wrote is there to read.
-                    // Not in the records' commit — runs are the work's and the
-                    // records the tenant's — and so keyed: a result given again
-                    // after a failure between the two finds its parts started.
-                    results.start(current, parts);
+                    versions = results.given(current, result, parts);
                     // And what it says of the work it is a part of, as the
                     // part that said it.
                     if (lasting != null && said.stage() != null) {

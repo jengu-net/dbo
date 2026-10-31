@@ -246,8 +246,14 @@ class WorkLeavesTheClinicAndComesBackIT {
                 {"code":"%s","face":"r4","audit":{"level":"writes"},
                  "types":[
                   {"name":"Patient","identity":"internal","handling":"operational"},
-                  {"name":"Observation","identity":"internal","handling":"operational"}],
-                 "steps":[{"code":"%s","slots":{"patient":"Reference(Patient)"}}]}"""
+                  {"name":"Observation","identity":"internal","handling":"operational"},
+                  {"name":"Person","identity":"identifier","systems":["urn:rl:nid"],
+                   "handling":"operational"},
+                  {"name":"Practitioner","identity":"identifier","systems":["urn:rl:nid"],
+                   "handling":"operational"},
+                  {"name":"PractitionerRole","identity":"internal","handling":"operational"}],
+                 "steps":[{"code":"%s","slots":{"patient":"Reference(Patient)"},
+                           "writes":["Observation"]}]}"""
                 .formatted(WARD, FETCH));
     }
 
@@ -3099,6 +3105,115 @@ class WorkLeavesTheClinicAndComesBackIT {
         return practitioner.idOrFail();
     }
 
+    /** Where the ward's own desk sends a porter back to after they sign in. */
+    private static final String WARD_DESK = "http://127.0.0.1/ward-desk";
+
+    @Test
+    @Order(59)
+    @DisplayName("a porter signed in at the ward finishes a fetch with its result: the "
+            + "observation is written under the run naming them, its part is started, and a "
+            + "result the ward will not hold is answered and leaves the fetch theirs")
+    @Proving(DboPromises.PROC_A_PERSON_GIVES_THE_RESULT_OF_A_RUN_THEY_HOLD)
+    void aPorterFinishesAFetchWithItsResult() throws Exception {
+        assertTrue(dbo.until(WARD, true, Duration.ofMinutes(10)),
+                "the ward never came up: " + dbo.serving());
+        String patient = dbo.write(WARD, "Patient",
+                "{\"resourceType\":\"Patient\",\"name\":[{\"family\":\"Lovegood\"}]}")
+                .idOrFail();
+        String practitioner = porter("argus");
+        String token = signedIn(WARD, wardDesk(), WARD_DESK, "argus");
+        String fetch = fetchAs(patient, token);
+
+        String observed = NAMES.value("fetched");
+        HttpResponse<String> refused = finish(fetch, token, "{\"writes\":[{\"resource\":"
+                + "{\"resourceType\":\"Patient\",\"name\":[{\"family\":\"" + observed
+                + "\"}]}}]}");
+        Runs ward = new Runs(tenants.store(WARD).orElseThrow());
+        Proves.that(DboPromises.PROC_A_PERSON_GIVES_THE_RESULT_OF_A_RUN_THEY_HOLD,
+                refused.statusCode() == 422 && refused.body().contains("Patient")
+                        && ward.byId(fetch).orElseThrow().open()
+                        && ward.byId(fetch).orElseThrow().produced().versions().isEmpty(),
+                "a result writing what the fetch does not declare was not refused by name, "
+                        + "or the fetch did not stay the porter's: " + refused.statusCode() + " "
+                        + refused.body());
+        String result = "{\"writes\":[{\"resource\":{\"resourceType\":\"Observation\","
+                + "\"status\":\"final\",\"code\":{\"text\":\"" + observed + "\"},"
+                + "\"subject\":{\"reference\":\"Patient/" + patient + "\"}}}],"
+                + "\"parts\":[{\"step\":\"" + FETCH + "\",\"inputs\":{\"patient\":"
+                + "\"Patient/" + patient + "\"}}]}";
+        Proves.that(DboPromises.PROC_A_PERSON_GIVES_THE_RESULT_OF_A_RUN_THEY_HOLD,
+                finish(fetch, dbo.workToken(WARD), result).statusCode() == 404,
+                "somebody not holding the fetch gave its result");
+
+        HttpResponse<String> done = finish(fetch, token, result);
+        assertEquals(200, done.statusCode(), done.body());
+        Run finished = ward.byId(fetch).orElseThrow();
+        List<String> versions = finished.produced().versions();
+        Proves.that(DboPromises.PROC_A_PERSON_GIVES_THE_RESULT_OF_A_RUN_THEY_HOLD,
+                "completed".equals(finished.status().wire()) && versions.size() == 1
+                        && versions.get(0).startsWith("Observation/"),
+                "the fetch did not close over the observation the porter wrote: " + finished);
+        Proves.that(DboPromises.PROC_A_PERSON_GIVES_THE_RESULT_OF_A_RUN_THEY_HOLD,
+                new ATenantsDoor(dbo, WARD).get("/AuditEvent?run=" + java.net.URLEncoder.encode(
+                        finished.key(), java.nio.charset.StandardCharsets.UTF_8)).body()
+                        .contains("Practitioner/" + practitioner),
+                "the observation written under the fetch does not name the porter");
+        Proves.that(DboPromises.PROC_A_PERSON_GIVES_THE_RESULT_OF_A_RUN_THEY_HOLD,
+                ward.matching(PROCESS, null, null, 50).stream()
+                        .anyMatch(part -> finished.key().equals(part.parent())),
+                "the fetch the porter's result named was not started as its part");
+    }
+
+    /** A porter at the ward: a practitioner, the person who is one, a role, and a password. */
+    private String porter(String login) {
+        TenantAuthority authority = tenants.authority(WARD).orElseThrow();
+        authority.ensureRoleGrant("porter", List.of("work/" + FETCH));
+        authority.ensureClient(wardDesk(), null, List.of("work/" + FETCH), "public-pkce",
+                List.of(WARD_DESK));
+        var practitioner = dbo.write(WARD, "Practitioner", """
+                {"resourceType":"Practitioner",
+                 "identifier":[{"system":"urn:rl:nid","value":"%s"}]}"""
+                .formatted(NAMES.value(login)));
+        assertTrue(practitioner.accepted(), practitioner.body());
+        var person = dbo.write(WARD, "Person", """
+                {"resourceType":"Person",
+                 "identifier":[{"system":"urn:rl:nid","value":"%s"}],
+                 "link":[{"target":{"reference":"Practitioner/%s"},"assurance":"level3"}]}"""
+                .formatted(NAMES.value(login), practitioner.idOrFail()));
+        assertTrue(person.accepted(), person.body());
+        var role = dbo.write(WARD, "PractitionerRole", """
+                {"resourceType":"PractitionerRole",
+                 "practitioner":{"reference":"Practitioner/%s"},
+                 "code":[{"coding":[{"system":"urn:rl:role","code":"porter"}]}]}"""
+                .formatted(practitioner.idOrFail()));
+        assertTrue(role.accepted(), role.body());
+        authority.ensureLocalCredential(NAMES.value(login), "a-secret-for-" + login,
+                person.idOrFail());
+        return practitioner.idOrFail();
+    }
+
+    private static String wardDesk() {
+        return NAMES.value("ward-desk");
+    }
+
+    /** A fetch the bearer asks for at the ward's step door, and so holds. */
+    private String fetchAs(String patient, String token) {
+        HttpResponse<String> started = dbo.send(HttpRequest.newBuilder(
+                        URI.create(dbo.at(WARD) + "/step/" + FETCH))
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(
+                        "{\"inputs\":{\"patient\":\"Patient/" + patient + "\"}}")), token);
+        assertEquals(201, started.statusCode(), started.body());
+        return dbo.says(started).one("run").orElseThrow();
+    }
+
+    /** The fetch ended at its address, with a result or without one. */
+    private HttpResponse<String> finish(String run, String token, String result) {
+        return dbo.send(HttpRequest.newBuilder(URI.create(dbo.at(WARD) + "/run/" + run + "/done"))
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(result)), token);
+    }
+
     /** The ward screen, as a client of the hospital: public, proving its code. */
     private static String wardScreen() {
         return NAMES.value("ward-screen");
@@ -3110,7 +3225,13 @@ class WorkLeavesTheClinicAndComesBackIT {
      * proof the screen kept. Returns the access token.
      */
     private String signedIn(String login) throws Exception {
-        String oidc = dbo.at(HOSPITAL) + "/oidc";
+        return signedIn(HOSPITAL, wardScreen(), SCREEN, login);
+    }
+
+    /** The same, at a tenant's own login form, through the client and address named. */
+    private String signedIn(String tenant, String client, String redirect, String login)
+            throws Exception {
+        String oidc = dbo.at(tenant) + "/oidc";
         byte[] random = new byte[32];
         new java.security.SecureRandom().nextBytes(random);
         String verifier = java.util.Base64.getUrlEncoder().withoutPadding()
@@ -3119,7 +3240,7 @@ class WorkLeavesTheClinicAndComesBackIT {
                 java.security.MessageDigest.getInstance("SHA-256").digest(
                         verifier.getBytes(java.nio.charset.StandardCharsets.US_ASCII)));
         HttpResponse<String> signIn = form(oidc + "/authorize/login", "client_id="
-                + wardScreen() + "&redirect_uri=" + encoded(SCREEN) + "&state=ward"
+                + client + "&redirect_uri=" + encoded(redirect) + "&state=ward"
                 + "&code_challenge=" + challenge + "&login=" + encoded(NAMES.value(login))
                 + "&password=" + encoded("a-secret-for-" + login));
         assertEquals(302, signIn.statusCode(), signIn.body());
@@ -3130,8 +3251,8 @@ class WorkLeavesTheClinicAndComesBackIT {
                         java.nio.charset.StandardCharsets.UTF_8))
                 .findFirst().orElseThrow(() -> new AssertionError("no code: " + location));
         HttpResponse<String> tokens = form(oidc + "/token",
-                "grant_type=authorization_code&client_id=" + wardScreen() + "&code="
-                        + encoded(code) + "&redirect_uri=" + encoded(SCREEN)
+                "grant_type=authorization_code&client_id=" + client + "&code="
+                        + encoded(code) + "&redirect_uri=" + encoded(redirect)
                         + "&code_verifier=" + verifier);
         assertEquals(200, tokens.statusCode(), tokens.body());
         return dbo.says(tokens).one("access_token").orElseThrow();
