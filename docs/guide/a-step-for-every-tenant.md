@@ -167,7 +167,8 @@ GET  /t/<tenant>/run/<id>/fhir/Basic/<incident>
 ```
 
 The token reaches the steps whose work the tenant hands over, and nothing else:
-the tenant's records surface refuses it, and so does its step door. The person
+the tenant's records surface refuses it, and its step door starts nothing for it
+but the parts below. The person
 holds the work as the role the provider vouched for in the token, with no
 deadline, and the work's `Task.owner` names that role by absolute reference to
 the provider's base, `…/t/mom/fhir/PractitionerRole/<id>`. Taking the work is an
@@ -176,6 +177,19 @@ context answers them and nobody else, and they say its own acts at its address
 as the tenant's people do: `accept`, `reject`, `stage` and `end`, each with a
 `because`, each recorded naming them. `let-go` hands it back to the provider for
 another of its people. Handing work over and taking it back stay the tenant's.
+
+The holder starts the parts the tenant named for the work in
+[`holdersStart`](processes-and-steps.md#work-that-lasts), at the step door, with
+`partOf` naming the work by its key:
+
+```http
+POST /t/<tenant>/step/<part>   { "inputs": { … }, "partOf": "<the work's key>" }
+```
+
+Each part is the tenant's run, recorded as asked for by the person by absolute
+reference to the provider's base, and offered to the tenant's own participants as
+any part is. A step the tenant did not name, work the person does not hold, and a
+part whose row the tenant has not authorised answer as work that does not exist.
 
 Work the tenant kept, work that is over and work the tenant took back answer the
 person as work that does not exist. A tenant that withdraws the row stops them
@@ -203,8 +217,8 @@ names the test behind each.
 
 ## What the store cannot do yet
 
-- **A person of the provider cannot start parts of handed work or write through
-  it.** No tenant can yet say which of its other steps a holder may ask for.
+- **A person of the provider writes nothing through handed work.** No person
+  gives a run's result yet, the tenant's own people included.
 - **A fleet step writes nothing.** No tenant's declaration says what the
   deployment's step may write, so its result is a tally and no records.
 - **A deployment cannot name its processor** in configuration, so none is

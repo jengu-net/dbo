@@ -117,6 +117,7 @@ class OneStepIsPerformedForEveryTenantIT {
 
     /** A step of the clinic's own whose work it hands to the provider. */
     private static final String REPAIR = MODULE + ".devices.repair";
+    private static final String DIAGNOSE = MODULE + ".devices.diagnose";
 
     /** Where the provider's support desk takes its people back to after they sign in. */
     private static final String DESK = "http://127.0.0.1/provider-desk";
@@ -692,6 +693,7 @@ class OneStepIsPerformedForEveryTenantIT {
     @Proving({DboPromises.PROC_WORK_HANDED_TO_THE_PROVIDER_IS_ON_THE_TENANTS_REGISTER,
             DboPromises.PROC_LASTING_WORK_IS_HANDED_TO_THE_PROVIDER_AND_TAKEN_BACK,
             DboPromises.PROC_A_PERSON_OF_THE_PROVIDER_TAKES_WORK_HANDED_TO_IT,
+            DboPromises.PROC_A_PERSON_OF_THE_PROVIDER_STARTS_PARTS_OF_WORK_THEY_HOLD,
             DboPromises.PROC_A_PERSON_OF_THE_PROVIDER_ACTS_ON_WORK_THEY_HOLD})
     void aPersonOfTheProviderWorksWhatTheClinicHandsIt() throws Exception {
         String declines = ",\"declines\":[\"" + STEP + "\"]";
@@ -733,7 +735,7 @@ class OneStepIsPerformedForEveryTenantIT {
         String person = "/t/" + MANAGEMENT + "/fhir/Practitioner/" + practitioner;
         Proves.that(DboPromises.PROC_A_PERSON_OF_THE_PROVIDER_TAKES_WORK_HANDED_TO_IT,
                 dbo.get(dbo.at(CLINIC) + "/fhir/Basic/" + pump, token).statusCode() != 200
-                        && openRepairAs(pump, token).statusCode() == 403,
+                        && openRepairAs(pump, token).statusCode() == 404,
                 "a person of the provider read the clinic's records or started its work");
 
         String kept = runOf(openRepair(basicAt(CLINIC, "the lift is slow"), false));
@@ -786,6 +788,43 @@ class OneStepIsPerformedForEveryTenantIT {
                                                 .endsWith(person)),
                 "the repair does not stand where she said, or its account does not name her: "
                         + accepted);
+
+        // A part of the repair, of the step the clinic named for it, under a
+        // row the clinic authorises as itself.
+        String repair = accepted.key();
+        String standsAlone = "\"authorised\":[\"" + row.get("digest") + "\"]";
+        Proves.that(DboPromises.PROC_A_PERSON_OF_THE_PROVIDER_STARTS_PARTS_OF_WORK_THEY_HOLD,
+                startPart(DIAGNOSE, pump, repair, token).statusCode() == 404,
+                "a part of the repair started under a row the clinic never authorised");
+        Map<?, ?> part = partRow();
+        dbo.declare(CLINIC, handing(declines + ",\"authorised\":[\"" + row.get("digest")
+                + "\",\"" + part.get("digest") + "\"]"));
+        String[] diagnosis = new String[1];
+        Proves.that(DboPromises.PROC_A_PERSON_OF_THE_PROVIDER_STARTS_PARTS_OF_WORK_THEY_HOLD,
+                until(() -> {
+                    HttpResponse<String> started = startPart(DIAGNOSE, pump, repair, token);
+                    diagnosis[0] = started.statusCode() == 201 ? runOf(started) : null;
+                    return diagnosis[0] != null;
+                }, Duration.ofMinutes(2)),
+                "the clinic authorised the part's row and she still cannot start it");
+        Run diagnosing = runs(CLINIC).byId(diagnosis[0]).orElseThrow();
+        Proves.that(DboPromises.PROC_A_PERSON_OF_THE_PROVIDER_STARTS_PARTS_OF_WORK_THEY_HOLD,
+                repair.equals(diagnosing.parent())
+                        && String.valueOf(diagnosing.requester()).endsWith(person),
+                "the diagnosis is not the repair's part, or does not say she asked for it: "
+                        + diagnosing);
+        String keptKey = runs(CLINIC).byId(kept).orElseThrow().key();
+        Proves.that(DboPromises.PROC_A_PERSON_OF_THE_PROVIDER_STARTS_PARTS_OF_WORK_THEY_HOLD,
+                startPart(DIAGNOSE, pump, repair, colleague).statusCode() == 404
+                        && startPart(DIAGNOSE, pump, keptKey, token).statusCode() == 404
+                        && startPart(OWN_STEP, pump, repair, token).statusCode() == 404,
+                "a part was started by somebody not holding the repair, under work she does "
+                        + "not hold, or of a step the clinic did not name");
+        dbo.declare(CLINIC, handing(declines + "," + standsAlone));
+        Proves.that(DboPromises.PROC_A_PERSON_OF_THE_PROVIDER_STARTS_PARTS_OF_WORK_THEY_HOLD,
+                until(() -> startPart(DIAGNOSE, pump, repair, token).statusCode() == 404,
+                        Duration.ofMinutes(2)),
+                "the clinic withdrew the part's row and she could still start it");
         Proves.that(DboPromises.PROC_A_PERSON_OF_THE_PROVIDER_ACTS_ON_WORK_THEY_HOLD,
                 atTheRun(handed, "take-back", token, "{\"because\":\"mine\"}")
                         .statusCode() == 404
@@ -835,7 +874,27 @@ class OneStepIsPerformedForEveryTenantIT {
     private static String handing(String more) {
         return clinic(OWN_STEP, more).replace("\"steps\":[", "\"steps\":["
                 + "{\"code\":\"" + REPAIR + "\",\"slots\":{\"request\":\"Reference(Basic)\"},"
-                + "\"lasts\":true,\"handsTo\":\"provider\"},");
+                + "\"lasts\":true,\"handsTo\":\"provider\",\"holdersStart\":[\"" + DIAGNOSE
+                + "\"]},{\"code\":\"" + DIAGNOSE + "\","
+                + "\"slots\":{\"request\":\"Reference(Basic)\"}},");
+    }
+
+    /** The clinic's register row letting a holder of a repair start a diagnosis. */
+    private Map<?, ?> partRow() {
+        return rowsOf(dbo.get(dbo.at(CLINIC) + "/register", configurationToken(CLINIC)).body(),
+                "rows").stream()
+                .filter(row -> REPAIR.equals(row.get("partOf"))
+                        && DIAGNOSE.equals(row.get("step")))
+                .findFirst().orElseThrow();
+    }
+
+    /** A part of handed work, asked for at the clinic's step door. */
+    private HttpResponse<String> startPart(String step, String request, String partOf,
+            String token) {
+        return dbo.send(HttpRequest.newBuilder(URI.create(dbo.at(CLINIC) + "/step/" + step))
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString("{\"inputs\":{\"request\":\"Basic/"
+                        + request + "\"},\"partOf\":\"" + partOf + "\"}")), token);
     }
 
     /**

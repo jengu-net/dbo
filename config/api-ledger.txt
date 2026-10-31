@@ -3226,6 +3226,7 @@ cloud.jengu.dbo.promises.DboPromises                                   PROC_A_PA
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_PASS_THAT_CHANGES_NOTHING_WRITES_NOTHING:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_PERSON_CLAIMS_AS_A_PRACTITIONER_ROLE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_PERSON_OF_THE_PROVIDER_ACTS_ON_WORK_THEY_HOLD:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   PROC_A_PERSON_OF_THE_PROVIDER_STARTS_PARTS_OF_WORK_THEY_HOLD:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_PERSON_OF_THE_PROVIDER_TAKES_WORK_HANDED_TO_IT:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_PLACES_RUN_IS_LISTED_AT_HOME_UNDER_ITS_PLACE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_PROCESSOR_IS_ENROLLED_PER_TENANT:cloud.jengu.dbo.promises.DboPromises

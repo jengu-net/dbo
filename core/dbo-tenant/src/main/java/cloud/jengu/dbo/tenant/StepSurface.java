@@ -193,6 +193,16 @@ final class StepSurface implements HttpHandler {
             return null;
         }
 
+        /**
+         * Whether a holder of this tenant's handed work of one step may start
+         * another as its part: while the work is handed and the row the
+         * tenant's declaration puts on its register for that part stands
+         * authorised.
+         */
+        default boolean holdersStart(String tenant, String handedStep, String part) {
+            return false;
+        }
+
         /** The step's slots, and why it is not startable here if it is not. */
         record Offer(Map<String, String> slots, String refusedBecause,
                 TenantSpec.Step.Awaits awaits) {
@@ -275,10 +285,11 @@ final class StepSurface implements HttpHandler {
             cloud.jengu.dbo.core.api.Caller.set(admitted.fhirUser() != null
                     ? admitted.fhirUser() : admitted.clientId());
             if (starting && admitted.vouched() != null) {
-                // A person of the provider works what the tenant handed it,
-                // and asks for nothing here: starting work is the tenant's.
-                fail(exchange, 403, "access_denied", "a person of the provider takes work "
-                        + "the tenant handed it, and starts none");
+                // Not a door onto the tenant's steps: a part of work they
+                // hold, of a step the tenant named for it, and nothing else.
+                // No purpose is accepted here either, as at the door below.
+                cloud.jengu.dbo.core.api.Disclosure.clear();
+                startPart(exchange, relative, admitted);
             } else if (starting) {
                 // NO PURPOSE IS STATED HERE, and none is accepted. A slot may
                 // be filled by a search, and a stated purpose is what opens an
@@ -365,6 +376,44 @@ final class StepSurface implements HttpHandler {
         Object body = Json.parse(new String(exchange.getRequestBody().readAllBytes(),
                 StandardCharsets.UTF_8));
         Started started = starting(stepCode, body, requester);
+        respond(exchange, started.status(), started.body());
+    }
+
+    /**
+     * POST /step/&lt;code&gt; by a person of the provider — a part of handed
+     * work they hold, of a step the tenant named for that work.
+     *
+     * <p>Every other start is answered as a run that does not exist, as the
+     * work it names is to anybody who does not hold it: a person of the
+     * provider learns nothing of the tenant's work by asking to start some.
+     * Asked again of the register each time, so a row the tenant withdraws,
+     * or a hold that ended, stops the next part.
+     */
+    private void startPart(HttpExchange exchange, String stepCode,
+            TenantAuthority.AuthContext asking) throws IOException {
+        if (!"POST".equals(exchange.getRequestMethod())) {
+            fail(exchange, 405, "invalid_request", "a run is started by POSTing to the step");
+            return;
+        }
+        Object body = Json.parse(new String(exchange.getRequestBody().readAllBytes(),
+                StandardCharsets.UTF_8));
+        if (Json.objOpt(body, "for") != null || Json.objOpt(body, "crossing") != null) {
+            fail(exchange, 400, "invalid_request", "a part of handed work names what it is "
+                    + "over and the work it is part of, and goes nowhere else");
+            return;
+        }
+        String partOf = Json.strOpt(body, "partOf");
+        Run work = partOf == null ? null : runs.byKey(partOf).orElse(null);
+        String handedStep = work == null ? null : work.process() + "." + work.step();
+        TenantSpec.Step handed = handedStep == null ? null : declared.get(handedStep);
+        if (handed == null || !work.lasting() || !work.open()
+                || !work.heldBy(asking.clientId(), clock.instant())
+                || !handed.holdersStart().contains(stepCode)
+                || !fleet.holdersStart(tenant, handedStep, stepCode)) {
+            fail(exchange, 404, "not_found", "no such run");
+            return;
+        }
+        Started started = starting(stepCode, body, asking.clientId());
         respond(exchange, started.status(), started.body());
     }
 

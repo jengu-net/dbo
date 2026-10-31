@@ -2454,6 +2454,20 @@ public final class TenantRuntimeManager implements AutoCloseable {
         public String handedTo(String tenant, String stepCode) {
             return handedToOf(tenant, stepCode);
         }
+
+        @Override
+        public boolean holdersStart(String tenant, String handedStep, String part) {
+            if (handedToOf(tenant, handedStep) == null) {
+                return false;
+            }
+            // The one row, by the work it is part of: the same step named
+            // under other handed work is authorised as itself.
+            java.util.function.Predicate<FleetRegister.Row> thePart = row ->
+                    row.authority() == FleetRegister.Authority.TENANT
+                            && handedStep.equals(row.partOf()) && part.equals(row.step());
+            return fleetRegister(tenant).stream().anyMatch(thePart)
+                    && unapprovedRows(tenant).stream().noneMatch(thePart);
+        }
     };
 
     /**

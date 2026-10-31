@@ -1273,7 +1273,8 @@ public enum DboPromises implements Promise {
             "A person signed in at the service provider takes work a tenant handed the "
             + "provider with that token, holding no credential of the tenant's: the token is "
             + "admitted while a row of the tenant's register handing a step stands, and "
-            + "reaches those steps and nothing else — no record, and no work to start. The "
+            + "reaches those steps, and the parts the tenant lets their holder start, and "
+            + "nothing else — no record. The "
             + "person holds the work, with no deadline, as a role the provider vouched for in "
             + "the token, and the work names that role as its owner by absolute reference to "
             + "the provider's base; taking it is an act recorded under the work naming the "
@@ -1282,6 +1283,14 @@ public enum DboPromises implements Promise {
             + "handed to the provider, no longer open, or taken back answers them as work "
             + "that does not exist; work one of the provider's people holds is a conflict; "
             + "and a row the tenant withdraws stops them at the next request."),
+
+    PROC_A_PERSON_OF_THE_PROVIDER_STARTS_PARTS_OF_WORK_THEY_HOLD(
+            "A person of the provider holding work a tenant handed it starts, as parts of that "
+            + "work, the steps the tenant named for it, each the tenant's run recorded as "
+            + "asked for by them by absolute reference to the provider's base. Any other "
+            + "step, a part of work they do not hold, and a part whose row the tenant has "
+            + "not authorised or has withdrawn answer them as work that does not exist, "
+            + "asked again at each request."),
 
     PROC_A_PERSON_OF_THE_PROVIDER_ACTS_ON_WORK_THEY_HOLD(
             "A person of the provider holding work a tenant handed it says the work's own "
