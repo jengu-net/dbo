@@ -84,10 +84,24 @@ of its data, with the step, the slot, the type, whether it may be declined and
 what happens to work it has not authorised. The check opens the organisation
 and only carries the proposal and the notes, so the register has one row. A
 clinic reads it at its own door, `GET /t/<code>/register`, with a credential
-carrying the `configuration` scope: the same scope it authorises a register
-with, by writing the digests of the rows it read into its declaration as
-`authorised`. The register then says whether what is done changed since, and
-says nothing of the kind to a tenant that never authorised one.
+carrying the `configuration` scope, and authorises the rows it read at the same
+door with the same scope:
+
+```http
+PUT /t/<code>/register/authorisation   { "rows": [ "<digest>", … ] }
+```
+
+Each authorisation replaces the last, so a row left out is withdrawn, and a digest
+the register does not carry is refused. The store keeps it as the tenant's own
+record: the register names who of the tenant authorised each row and when, as
+`authorisedBy` and `authorisedAt`, and each authorisation is an entry on the
+tenant's trail. Once a tenant has authorised at its door, that record and not its
+declaration says which rows stand, and a withdrawal stops what stands on a row at
+the next request. A tenant that never has keeps its declaration's `authorised`,
+the digests of the rows it read, and the register marks those rows
+`authorisedIn: declaration`. A place of the tenant answers `409 not_here`: it is
+authorised at its origin. The register says whether what is done changed since it
+was authorised, and nothing of the kind to a tenant that never authorised one.
 
 `GET /t/<code>/register/incidents` is the account kept against it: work that ran
 under a row the tenant never authorised, naming the step, the slot and since

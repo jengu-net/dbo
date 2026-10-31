@@ -256,7 +256,9 @@ public enum DboStories implements Story {
                     DboPromises.PROC_A_PERSON_OF_THE_PROVIDER_ACTS_ON_WORK_THEY_HOLD,
                     DboPromises.PROC_A_PERSON_OF_THE_PROVIDER_STARTS_PARTS_OF_WORK_THEY_HOLD,
                     DboPromises.PROC_THE_PROVIDERS_PEOPLE_JOIN_HANDED_WORK,
-                    DboPromises.PROC_WORK_THAT_LASTS_IS_WRITTEN_IN_WHILE_OPEN
+                    DboPromises.PROC_WORK_THAT_LASTS_IS_WRITTEN_IN_WHILE_OPEN,
+                    // And the tenant says what it agrees to at its own door.
+                    DboPromises.PROC_A_TENANT_AUTHORISES_ITS_REGISTER_AT_ITS_DOOR
             )),
 
     ON_THE_STREAM("A deployment whose participants hold their lanes over its own durable "
