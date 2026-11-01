@@ -3232,6 +3232,7 @@ cloud.jengu.dbo.promises.DboPromises                                   PROC_A_PE
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_PERSON_OF_THE_PROVIDER_STARTS_PARTS_OF_WORK_THEY_HOLD:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_PERSON_OF_THE_PROVIDER_TAKES_WORK_HANDED_TO_IT:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_PLACES_RUN_IS_LISTED_AT_HOME_UNDER_ITS_PLACE:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   PROC_A_PLACE_REFUSES_WHAT_DOES_NOT_STAND_THERE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_PROCESSOR_IS_ENROLLED_PER_TENANT:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_PROVIDERS_PARTNERS_ARE_NAMED_ON_THE_REGISTER:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_REFERENCE_MAY_BE_A_SEARCH:cloud.jengu.dbo.promises.DboPromises
@@ -3397,6 +3398,7 @@ cloud.jengu.dbo.promises.DboPromises                                   SRCH_TIER
 cloud.jengu.dbo.promises.DboPromises                                   SRCH_TYPED_ORDERING:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_ANY_TYPE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_A_PERSON_LETS_A_LOCAL_OVERRIDE_GO:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   SYNC_A_PLACE_ACTS_ON_THE_LAST_AUTHORISATION_IT_HOLDS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_A_PLACE_COMES_UP_FROM_ITS_ORIGIN:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_A_PLACE_HANDS_ITS_TRAIL_TO_ITS_TENANT:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_A_PLACE_HANDS_ITS_WORK_TO_ITS_TENANT:cloud.jengu.dbo.promises.DboPromises

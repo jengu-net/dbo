@@ -6,6 +6,7 @@ import cloud.jengu.dbo.work.RunInitiator;
 import cloud.jengu.dbo.work.Status;
 
 import cloud.jengu.dbo.auth.TenantAuthority;
+import cloud.jengu.dbo.core.api.PutRequest;
 import cloud.jengu.dbo.core.api.feed.FeedChunk;
 import cloud.jengu.dbo.core.api.feed.FeedItem;
 import cloud.jengu.dbo.core.api.feed.FeedSelection;
@@ -13,6 +14,7 @@ import cloud.jengu.dbo.promises.DboPromises;
 import cloud.jengu.dbo.promises.Proving;
 import cloud.jengu.dbo.runner.http.HttpLane;
 import cloud.jengu.dbo.runner.transport.Place;
+import cloud.jengu.dbo.tenant.FleetRegister;
 import cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner;
 import cloud.jengu.dbo.tenant.TenantRuntimeManager;
 import cloud.jengu.dbo.tenant.TenantState;
@@ -945,6 +947,118 @@ class ASecondPlaceComesUpFromItsOriginIT {
         assertTrue(java.time.Instant.parse(register(site).path("held").path("authorisedAt")
                         .asText()).isAfter(held),
                 "an authorisation given after the first did not reach the site");
+    }
+
+    @Test
+    @Order(22)
+    @DisplayName("the site refuses a step whose row its clinic never authorised, naming what the "
+            + "step is for, and keeps a row processed without authorisation on its incidents; "
+            + "once the clinic authorises the purpose in the cloud, both stand on the site")
+    @Proving(DboPromises.PROC_A_PLACE_REFUSES_WHAT_DOES_NOT_STAND_THERE)
+    void aPlaceRefusesWhatDoesNotStandThere() throws Exception {
+        // The same deployment on both nodes: what a provider runs for the
+        // clinic in the cloud it runs on the site as well.
+        Path management = Files.createTempDirectory("dbo-place-management")
+                .resolve(OPERATOR + ".json");
+        Files.writeString(management, OPERATOR_DECLARATION);
+        cloud.manages(management);
+        site.manages(management);
+        assertEquals(benchDigests(cloud), benchDigests(site),
+                "the site's register is not the one its clinic authorises in the cloud");
+
+        RunInitiator.Started refusal = startWithheldOnTheSite();
+        assertTrue(!refusal.accepted() && refusal.body().contains(UPKEEP),
+                "the site started work under a row its clinic never authorised, or refused "
+                        + "it without saying what it was for: " + refusal.status() + " "
+                        + refusal.body());
+        assertTrue(site.unapprovedProcessing(CLINIC).stream().anyMatch(incident ->
+                        BENCH_NAMED.equals(incident.step()) && UPKEEP.equals(incident.purpose())),
+                "the site keeps no incident, naming the purpose, for a row processed without "
+                        + "authorisation: " + site.unapprovedProcessing(CLINIC));
+
+        HttpResponse<String> given = authorise(cloud,
+                "{\"rows\":[],\"purposes\":[\"" + UPKEEP + "\"]}");
+        assertEquals(200, given.statusCode(), given.body());
+        site.syncRound();
+
+        assertEquals(java.util.Set.of(), benchSteps(site.unapprovedRows(CLINIC)),
+                "the clinic authorised the purpose in the cloud and its rows do not stand on "
+                        + "the site");
+        assertTrue(site.unapprovedProcessing(CLINIC).stream()
+                        .noneMatch(incident -> BENCH_NAMED.equals(incident.step())),
+                "the incident stands on the site although the purpose was authorised");
+        assertEquals(register(cloud).path("purposes"), register(site).path("purposes"),
+                "the site reads the purpose otherwise than the clinic does at home");
+    }
+
+    @Test
+    @Order(23)
+    @DisplayName("cut off from the cloud, the site acts on the last authorisation it holds and "
+            + "says how old it is; a withdrawal given meanwhile reaches it once it is back")
+    @Proving(DboPromises.SYNC_A_PLACE_ACTS_ON_THE_LAST_AUTHORISATION_IT_HOLDS)
+    void aPlaceActsOnTheLastAuthorisationItHolds() throws Exception {
+        String heard = register(site).path("held").path("heardAt").asText();
+        site.readsItsOriginThrough(CLINIC, null);
+        assertEquals(200, authorise(cloud, "{\"rows\":[],\"purposes\":[]}").statusCode());
+        site.syncRound();
+
+        assertEquals(java.util.Set.of(), benchSteps(site.unapprovedRows(CLINIC)),
+                "the site stopped acting on what it holds while it could not hear its origin");
+        assertEquals(heard, register(site).path("held").path("heardAt").asText(),
+                "the site says it heard its origin while it was cut off");
+
+        site.readsItsOriginThrough(CLINIC, connected());
+        site.syncRound();
+
+        assertEquals(java.util.Set.of(BENCH_WITHHELD, BENCH_NAMED),
+                benchSteps(site.unapprovedRows(CLINIC)),
+                "the withdrawal given while the site was cut off did not reach it");
+        RunInitiator.Started refusal = startWithheldOnTheSite();
+        assertTrue(!refusal.accepted() && refusal.body().contains(UPKEEP),
+                "the site started work under a withdrawn row: " + refusal.status() + " "
+                        + refusal.body());
+        assertTrue(java.time.Instant.parse(register(site).path("held").path("heardAt").asText())
+                        .isAfter(java.time.Instant.parse(heard)),
+                "the site does not say it heard its origin again");
+    }
+
+    /** Who runs the deployment, on both nodes alike, and the steps it runs for every tenant. */
+    private static final String OPERATOR = "haldur";
+    private static final String UPKEEP = "bench-upkeep";
+    private static final String BENCH_WITHHELD = "fleet.bench.withheld";
+    private static final String BENCH_NAMED = "fleet.bench.named";
+    private static final String OPERATOR_DECLARATION = """
+            {"code":"%s","face":"r4","types":[
+               {"name":"Observation","identity":"internal","handling":"operational"}],
+             "purposes":{"%s":"Keeping the clinic's benches calibrated, by the provider alone"},
+             "fleetSteps":[
+               {"code":"%s","slots":{"record":"Reference(Observation)"},"opens":["record"],
+                "posture":"not-until-approved","registerPurpose":"%s"},
+               {"code":"%s","slots":{"record":"Reference(Observation)"},"opens":["record"],
+                "registerPurpose":"%s"}]}"""
+            .formatted(OPERATOR, UPKEEP, BENCH_WITHHELD, UPKEEP, BENCH_NAMED, UPKEEP);
+
+    /** The withheld step asked for on the site, for an observation the site holds. */
+    private static RunInitiator.Started startWithheldOnTheSite() {
+        String record = site.runtime(CLINIC).orElseThrow().engine().put(PutRequest.create(
+                "Observation", OBSERVATION.getBytes(java.nio.charset.StandardCharsets.UTF_8)))
+                .id();
+        return site.runInitiator().start(CLINIC, BENCH_WITHHELD,
+                java.util.Map.of("record", "Observation/" + record));
+    }
+
+    private static java.util.Set<String> benchDigests(TenantRuntimeManager node) {
+        java.util.Set<String> digests = new java.util.TreeSet<>();
+        node.fleetRegister(CLINIC).stream().filter(row -> row.step().startsWith("fleet.bench."))
+                .forEach(row -> digests.add(row.digest()));
+        return digests;
+    }
+
+    private static java.util.Set<String> benchSteps(List<FleetRegister.Row> rows) {
+        java.util.Set<String> steps = new java.util.TreeSet<>();
+        rows.stream().map(FleetRegister.Row::step).filter(step -> step.startsWith("fleet.bench."))
+                .forEach(steps::add);
+        return steps;
     }
 
     /** The clinic's register, as the given node's door reads it. */

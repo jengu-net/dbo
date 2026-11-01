@@ -1300,6 +1300,12 @@ public enum DboPromises implements Promise {
             + "is new. A purpose leaves the row's digest unchanged where none is named, and "
             + "moves it where one is; a purpose no row serves is refused by name."),
 
+    PROC_A_PLACE_REFUSES_WHAT_DOES_NOT_STAND_THERE(
+            "The store at a place of a tenant refuses a step whose row does not stand by the "
+            + "authorisation the place holds, as the origin does, naming what the step is for; "
+            + "a row processed without authorisation is on the place's incidents, naming its "
+            + "purpose. Once the tenant authorises at its origin and the place holds it, the "
+            + "row stands at the place too."),
     PROC_THE_REGISTER_NAMES_WHO_RECEIVES_WHAT(
             "A fleet step names the role of an organisation that receives what it opens for "
             + "its own purpose, such as a national registry; the nearest zone above the "
@@ -3163,6 +3169,12 @@ public enum DboPromises implements Promise {
             + "points to the origin. A place's register reads it as the origin reads its own, "
             + "and says when the record it holds was given and when the place last read its "
             + "origin to the end."),
+    SYNC_A_PLACE_ACTS_ON_THE_LAST_AUTHORISATION_IT_HOLDS(
+            "While a place cannot read its origin it keeps acting on the last authorisation it "
+            + "holds, and its register says when it last read its origin to the end, which "
+            + "stays put while it is cut off. An authorisation or withdrawal given at the "
+            + "origin meanwhile reaches the place once it can read again, and the place acts "
+            + "on it from then."),
     SYNC_A_PLACE_LETS_GO_OF_WHAT_ITS_OLD_CONFIGURATION_APPLIED(
             "A place releases what its owner's configuration applied there before the place "
             + "left that configuration to its origin, wherever it holds back a version the "

@@ -69,7 +69,11 @@ that use it.
   withdrawal, and is read-only there. The site's register at
   `GET /t/clinic/register` reads it as the cloud's does, and its `held` says
   when the record the site holds was given and when the site last read the
-  cloud to the end.
+  cloud to the end. The site refuses a step whose row does not stand by what it
+  holds, naming what the step is for, and keeps a row processed without
+  authorisation on its incidents, as the cloud does. Cut off, it acts on the
+  last record it holds and `heardAt` stays where it was; what the clinic
+  authorised or withdrew meanwhile reaches it once the line is back.
 - **A place hands home only what is its own.** Each store mints its own ids,
   so a record a site's run wrote comes home naming what it points at by what
   that says it is, and the cloud stores it pointing at its own record of the
