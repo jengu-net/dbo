@@ -63,6 +63,25 @@ class APlaceReadsWhatTheTenantReplicatesTest {
     }
 
     @Test
+    @DisplayName("a place reads what the tenant authorised of its register on a feed of its own, "
+            + "and a tenant that hands none says so")
+    @Proving(DboPromises.SYNC_A_PLACE_READS_ONLY_WHAT_THE_TENANT_DID_NOT_AUTHOR)
+    void aPlaceReadsTheAuthorisationOnAFeedOfItsOwn() throws Exception {
+        Tenant tenant = new Tenant();
+
+        List<FeedItem> authorised = tenant.laneFor("site-a").placeFeed(Place.AUTHORISATION)
+                .readFor("ignored", 50, FeedSelection.EVERYTHING).items();
+        assertEquals(List.of("RegisterAuthorisation"),
+                authorised.stream().map(FeedItem::typeName).toList());
+
+        tenant.handsNoAuthorisation = true;
+        IllegalStateException refused = assertThrows(IllegalStateException.class,
+                () -> tenant.laneFor("site-a").placeFeed(Place.AUTHORISATION)
+                        .readFor("ignored", 50, FeedSelection.EVERYTHING));
+        assertTrue(refused.getMessage().contains("no authorisation"), refused.getMessage());
+    }
+
+    @Test
     @DisplayName("a credential that holds no place reads nothing, and is told so")
     @Proving(DboPromises.SYNC_A_PLACE_READS_ONLY_WHAT_THE_TENANT_DID_NOT_AUTHOR)
     void noPlaceReadsNothing() throws Exception {
@@ -120,6 +139,12 @@ class APlaceReadsWhatTheTenantReplicatesTest {
                 item(1, "StructureDefinition", "a profile"),
                 item(2, "CodeSystem", "stored in parts")), positions);
 
+        private final ChangeFeed authorisation = new Feed(List.of(
+                item(1, "RegisterAuthorisation", "the register as authorised")), positions);
+
+        /** Whether this tenant hands its places what it authorised. */
+        volatile boolean handsNoAuthorisation;
+
         private final GrainCodec grain = new GrainCodec() {
             @Override
             public boolean handles(String typeName) {
@@ -153,7 +178,8 @@ class APlaceReadsWhatTheTenantReplicatesTest {
                         throw new AssertionError("a place's verb reached a lane");
                     },
                     () -> Optional.of(new Place(records, definitions, Set.of("Organization"),
-                            grain)));
+                            grain, () -> null, ids -> Set.of(), null, null,
+                            handsNoAuthorisation ? null : authorisation)));
             com.sun.net.httpserver.HttpServer server =
                     com.sun.net.httpserver.HttpServer.create(new InetSocketAddress(0), 0);
             server.createContext("/work", new LaneHandler("/work", verbs));

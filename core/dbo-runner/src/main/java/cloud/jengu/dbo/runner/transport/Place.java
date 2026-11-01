@@ -14,7 +14,8 @@ import java.util.Set;
  * definitions and the records it takes from upstream. What the tenant
  * authors travels as work and never on this feed, so a place asking for a
  * type it may not read is answered with nothing of it, whatever its
- * credential says.
+ * credential says. The one exception is what the tenant authorised of its
+ * register, which a place acts on, and which has a feed of its own.
  *
  * @param records         the tenant's records feed
  * @param definitions     the tenant's definitions feed
@@ -26,12 +27,26 @@ import java.util.Set;
  *                        what a place with a face root of its own is not sent
  * @param trailOf         a participant's trail as the tenant takes it, or null for a
  *                        tenant that takes none
+ * @param authorisation   what the tenant authorised of its register, the one record it
+ *                        hands its places of all it authors, or null for a tenant that
+ *                        hands none
  */
 public record Place(ChangeFeed records, ChangeFeed definitions, Set<String> readableRecords,
         GrainCodec grain, java.util.function.Supplier<String> declaration,
         java.util.function.Function<java.util.Collection<String>, Set<String>> fromTheFace,
         java.util.function.Function<String, Trail> trailOf,
-        java.util.function.Function<String, Handover> workOf) {
+        java.util.function.Function<String, Handover> workOf,
+        ChangeFeed authorisation) {
+
+    /** A tenant that hands its places no authorisation. */
+    public Place(ChangeFeed records, ChangeFeed definitions, Set<String> readableRecords,
+            GrainCodec grain, java.util.function.Supplier<String> declaration,
+            java.util.function.Function<java.util.Collection<String>, Set<String>> fromTheFace,
+            java.util.function.Function<String, Trail> trailOf,
+            java.util.function.Function<String, Handover> workOf) {
+        this(records, definitions, readableRecords, grain, declaration, fromTheFace, trailOf,
+                workOf, null);
+    }
 
     /** A tenant that takes no work from its places. */
     public Place(ChangeFeed records, ChangeFeed definitions, Set<String> readableRecords,
@@ -59,6 +74,8 @@ public record Place(ChangeFeed records, ChangeFeed definitions, Set<String> read
     public static final String RECORDS = "records";
     /** The definitions feed, by name on the wire. */
     public static final String DEFINITIONS = "definitions";
+    /** The authorisation feed, by name on the wire. */
+    public static final String AUTHORISATION = "authorisation";
 
     public Place {
         readableRecords = Set.copyOf(readableRecords);

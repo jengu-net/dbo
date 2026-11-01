@@ -82,7 +82,8 @@ final class PlacesConfigSource implements ConfigSource {
             serving.servesAPlaceOf(origin.tenant());
             serving.readsItsOriginThrough(origin.tenant(),
                     new TenantRuntimeManager.OriginFeeds(origin.records(), origin.definitions(),
-                            origin.definitionsWithoutTheFace(), origin.trail(), origin.work()));
+                            origin.definitionsWithoutTheFace(), origin.trail(), origin.work(),
+                            origin.authorisation()));
         }
     }
 

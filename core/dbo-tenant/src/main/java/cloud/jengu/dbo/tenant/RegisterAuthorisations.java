@@ -65,10 +65,37 @@ final class RegisterAuthorisations {
         this.store = store;
     }
 
-    static List<TypeRegistration> registrations() {
+    /**
+     * @param atAPlace whether the tenant is served here as a place of it,
+     *                 where the record is a copy of its origin's that only
+     *                 the stream from the origin writes
+     */
+    static List<TypeRegistration> registrations(boolean atAPlace) {
         return List.of(new TypeRegistration(TYPE, cloud.jengu.dbo.work.WorkModel.DOMAIN,
-                IdentityClass.IDENTIFIER, Set.of(SYSTEM), Handling.storeAuthored(),
+                IdentityClass.IDENTIFIER, Set.of(SYSTEM),
+                atAPlace ? Handling.replicated() : Handling.storeAuthored(),
                 extractor(), List.of()));
+    }
+
+    /** The record as it is stored, or empty where the tenant never authorised here. */
+    Optional<StoredObject> current() {
+        return stored();
+    }
+
+    /**
+     * When the record standing was given, or empty where the tenant never
+     * authorised at its door. A withdrawal is an authorisation too, so this
+     * moves with every one, where a row's own time does not.
+     */
+    Optional<Instant> authorisedAt() {
+        return stored().map(record -> {
+            Object parsed = Json.parse(new String(record.payload(), StandardCharsets.UTF_8));
+            String at = Json.objOpt(parsed, "at") instanceof String said ? said : null;
+            // Absent from a record written before it was stamped: the latest
+            // time anything in it was agreed to is the nearest it can say.
+            return at != null ? Instant.parse(at) : standingOf(record).rows().values().stream()
+                    .map(Given::at).max(Instant::compareTo).orElse(record.lastUpdated());
+        });
     }
 
     /**
@@ -103,7 +130,8 @@ final class RegisterAuthorisations {
             agreed.put(code, was != null && was.agreement().equals(agreement) ? was
                     : new Agreed(by, at, agreement));
         });
-        StringBuilder payload = new StringBuilder("{\"key\":\"" + KEY + "\",\"rows\":[");
+        StringBuilder payload = new StringBuilder("{\"key\":\"" + KEY + "\",\"at\":"
+                + quoted(at.toString()) + ",\"rows\":[");
         String comma = "";
         for (Map.Entry<String, Given> row : now.entrySet()) {
             payload.append(comma).append("{\"digest\":").append(quoted(row.getKey()))

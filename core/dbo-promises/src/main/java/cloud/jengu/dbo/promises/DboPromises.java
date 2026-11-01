@@ -3112,11 +3112,12 @@ public enum DboPromises implements Promise {
             "A newly declared dependency catches up from the upstream's full history; "
             + "pre-existing content arrives the same way live changes do."),
     SYNC_A_PLACE_READS_ONLY_WHAT_THE_TENANT_DID_NOT_AUTHOR(
-            "A second place of a tenant reads, over the lane, the tenant's definitions and the "
-            + "records of the types it takes from upstream, and nothing else. A type the "
-            + "tenant authors is not on that feed whatever the place asks for, because it "
-            + "travels as work; a type stored in parts arrives whole; and a credential that "
-            + "holds no place reads nothing at all."),
+            "A second place of a tenant reads, over the lane, the tenant's definitions, the "
+            + "records of the types it takes from upstream and, on a feed of its own, what the "
+            + "tenant authorised of its register, and nothing else. Any other type the tenant "
+            + "authors is not on those feeds whatever the place asks for, because it travels "
+            + "as work; a type stored in parts arrives whole; and a credential that holds no "
+            + "place reads nothing at all."),
     SYNC_A_PLACE_READS_ON_FROM_WHERE_IT_ACKNOWLEDGED(
             "The tenant keeps each place's position, under the participant's name and per "
             + "feed, and moves it forward only. A place reads from where it last acknowledged, "
@@ -3155,6 +3156,13 @@ public enum DboPromises implements Promise {
             + "cannot read rather than on every round. When it can read again it carries on "
             + "from where it last acknowledged. A place that has never received anything has "
             + "nothing to serve, and waits for its origin as a tenant waits for an upstream."),
+    SYNC_A_PLACE_HOLDS_WHAT_ITS_TENANT_AUTHORISED(
+            "What a tenant authorised of its register at its origin reaches each of its "
+            + "places, as the record stands, and every later authorisation or withdrawal "
+            + "reaches it too. It is read-only there: authorising at a place is refused and "
+            + "points to the origin. A place's register reads it as the origin reads its own, "
+            + "and says when the record it holds was given and when the place last read its "
+            + "origin to the end."),
     SYNC_A_PLACE_LETS_GO_OF_WHAT_ITS_OLD_CONFIGURATION_APPLIED(
             "A place releases what its owner's configuration applied there before the place "
             + "left that configuration to its origin, wherever it holds back a version the "

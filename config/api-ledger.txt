@@ -3400,6 +3400,7 @@ cloud.jengu.dbo.promises.DboPromises                                   SYNC_A_PE
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_A_PLACE_COMES_UP_FROM_ITS_ORIGIN:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_A_PLACE_HANDS_ITS_TRAIL_TO_ITS_TENANT:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_A_PLACE_HANDS_ITS_WORK_TO_ITS_TENANT:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   SYNC_A_PLACE_HOLDS_WHAT_ITS_TENANT_AUTHORISED:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_A_PLACE_IS_DECLARED_AS_ITS_ORIGIN_IS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_A_PLACE_LEAVES_HANDING_WORK_OVER_TO_ITS_ORIGIN:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_A_PLACE_LEAVES_ITS_OWNERS_CONFIGURATION_TO_ITS_ORIGIN:cloud.jengu.dbo.promises.DboPromises
@@ -4110,6 +4111,7 @@ cloud.jengu.dbo.runner.transport.LaneVerbs                             valueOf(S
 cloud.jengu.dbo.runner.transport.LaneVerbs                             values():cloud.jengu.dbo.runner.transport.LaneVerbs[]
 cloud.jengu.dbo.runner.transport.Lanes                                 interface
 cloud.jengu.dbo.runner.transport.Lanes                                 laneFor(String,cloud.jengu.dbo.work.Executor,cloud.jengu.dbo.runner.Lane.Entitlement):cloud.jengu.dbo.runner.Lane
+cloud.jengu.dbo.runner.transport.Origin                                authorisation():cloud.jengu.dbo.core.api.feed.ChangeFeed
 cloud.jengu.dbo.runner.transport.Origin                                declaration():String
 cloud.jengu.dbo.runner.transport.Origin                                definitions():cloud.jengu.dbo.core.api.feed.ChangeFeed
 cloud.jengu.dbo.runner.transport.Origin                                definitionsWithoutTheFace():cloud.jengu.dbo.core.api.feed.ChangeFeed
@@ -4118,8 +4120,10 @@ cloud.jengu.dbo.runner.transport.Origin                                records()
 cloud.jengu.dbo.runner.transport.Origin                                tenant():String
 cloud.jengu.dbo.runner.transport.Origin                                trail():cloud.jengu.dbo.runner.transport.Trail
 cloud.jengu.dbo.runner.transport.Origin                                work():cloud.jengu.dbo.runner.transport.Handover
+cloud.jengu.dbo.runner.transport.Place                                 AUTHORISATION:String
 cloud.jengu.dbo.runner.transport.Place                                 DEFINITIONS:String
 cloud.jengu.dbo.runner.transport.Place                                 RECORDS:String
+cloud.jengu.dbo.runner.transport.Place                                 authorisation():cloud.jengu.dbo.core.api.feed.ChangeFeed
 cloud.jengu.dbo.runner.transport.Place                                 consumerOf(String,String):String
 cloud.jengu.dbo.runner.transport.Place                                 declaration():Supplier
 cloud.jengu.dbo.runner.transport.Place                                 definitions():cloud.jengu.dbo.core.api.feed.ChangeFeed
@@ -4131,6 +4135,7 @@ cloud.jengu.dbo.runner.transport.Place                                 new(cloud
 cloud.jengu.dbo.runner.transport.Place                                 new(cloud.jengu.dbo.core.api.feed.ChangeFeed,cloud.jengu.dbo.core.api.feed.ChangeFeed,Set,cloud.jengu.dbo.core.face.GrainCodec,Supplier,Function)
 cloud.jengu.dbo.runner.transport.Place                                 new(cloud.jengu.dbo.core.api.feed.ChangeFeed,cloud.jengu.dbo.core.api.feed.ChangeFeed,Set,cloud.jengu.dbo.core.face.GrainCodec,Supplier,Function,Function)
 cloud.jengu.dbo.runner.transport.Place                                 new(cloud.jengu.dbo.core.api.feed.ChangeFeed,cloud.jengu.dbo.core.api.feed.ChangeFeed,Set,cloud.jengu.dbo.core.face.GrainCodec,Supplier,Function,Function,Function)
+cloud.jengu.dbo.runner.transport.Place                                 new(cloud.jengu.dbo.core.api.feed.ChangeFeed,cloud.jengu.dbo.core.api.feed.ChangeFeed,Set,cloud.jengu.dbo.core.face.GrainCodec,Supplier,Function,Function,Function,cloud.jengu.dbo.core.api.feed.ChangeFeed)
 cloud.jengu.dbo.runner.transport.Place                                 readableRecords():Set
 cloud.jengu.dbo.runner.transport.Place                                 record
 cloud.jengu.dbo.runner.transport.Place                                 records():cloud.jengu.dbo.core.api.feed.ChangeFeed
@@ -4817,12 +4822,20 @@ cloud.jengu.dbo.tenant.RegisterHandler.Authorised                      record
 cloud.jengu.dbo.tenant.RegisterHandler.Authorised                      toString():String
 cloud.jengu.dbo.tenant.RegisterHandler.Authorising                     authorise(List,List,String):void
 cloud.jengu.dbo.tenant.RegisterHandler.Authorising                     interface
+cloud.jengu.dbo.tenant.RegisterHandler.Held                            authorisedAt():Instant
+cloud.jengu.dbo.tenant.RegisterHandler.Held                            equals(Object):boolean
+cloud.jengu.dbo.tenant.RegisterHandler.Held                            hashCode():int
+cloud.jengu.dbo.tenant.RegisterHandler.Held                            heardAt():Instant
+cloud.jengu.dbo.tenant.RegisterHandler.Held                            new(Instant,Instant)
+cloud.jengu.dbo.tenant.RegisterHandler.Held                            record
+cloud.jengu.dbo.tenant.RegisterHandler.Held                            toString():String
 cloud.jengu.dbo.tenant.RegisterHandler.Reading                         agreedInTerms():Map
 cloud.jengu.dbo.tenant.RegisterHandler.Reading                         agreedPurposes():Map
 cloud.jengu.dbo.tenant.RegisterHandler.Reading                         authorised():Optional
 cloud.jengu.dbo.tenant.RegisterHandler.Reading                         changed():Optional
 cloud.jengu.dbo.tenant.RegisterHandler.Reading                         declined():Set
 cloud.jengu.dbo.tenant.RegisterHandler.Reading                         disagreements():List
+cloud.jengu.dbo.tenant.RegisterHandler.Reading                         held():Optional
 cloud.jengu.dbo.tenant.RegisterHandler.Reading                         interface
 cloud.jengu.dbo.tenant.RegisterHandler.Reading                         purposesInTerms():Map
 cloud.jengu.dbo.tenant.RegisterHandler.Reading                         register():List
@@ -4987,6 +5000,7 @@ cloud.jengu.dbo.tenant.TenantRuntimeManager.AuthorityConfig            upstream(
 cloud.jengu.dbo.tenant.TenantRuntimeManager.Listener                   interface
 cloud.jengu.dbo.tenant.TenantRuntimeManager.Listener                   tenantDown(String):void
 cloud.jengu.dbo.tenant.TenantRuntimeManager.Listener                   tenantUp(cloud.jengu.dbo.tenant.TenantRuntimeManager.TenantRuntime):void
+cloud.jengu.dbo.tenant.TenantRuntimeManager.OriginFeeds                authorisation():cloud.jengu.dbo.core.api.feed.ChangeFeed
 cloud.jengu.dbo.tenant.TenantRuntimeManager.OriginFeeds                definitions():cloud.jengu.dbo.core.api.feed.ChangeFeed
 cloud.jengu.dbo.tenant.TenantRuntimeManager.OriginFeeds                definitionsWithoutTheFace():cloud.jengu.dbo.core.api.feed.ChangeFeed
 cloud.jengu.dbo.tenant.TenantRuntimeManager.OriginFeeds                equals(Object):boolean
@@ -4994,6 +5008,7 @@ cloud.jengu.dbo.tenant.TenantRuntimeManager.OriginFeeds                hashCode(
 cloud.jengu.dbo.tenant.TenantRuntimeManager.OriginFeeds                new(cloud.jengu.dbo.core.api.feed.ChangeFeed,cloud.jengu.dbo.core.api.feed.ChangeFeed,cloud.jengu.dbo.core.api.feed.ChangeFeed)
 cloud.jengu.dbo.tenant.TenantRuntimeManager.OriginFeeds                new(cloud.jengu.dbo.core.api.feed.ChangeFeed,cloud.jengu.dbo.core.api.feed.ChangeFeed,cloud.jengu.dbo.core.api.feed.ChangeFeed,cloud.jengu.dbo.runner.transport.Trail)
 cloud.jengu.dbo.tenant.TenantRuntimeManager.OriginFeeds                new(cloud.jengu.dbo.core.api.feed.ChangeFeed,cloud.jengu.dbo.core.api.feed.ChangeFeed,cloud.jengu.dbo.core.api.feed.ChangeFeed,cloud.jengu.dbo.runner.transport.Trail,cloud.jengu.dbo.runner.transport.Handover)
+cloud.jengu.dbo.tenant.TenantRuntimeManager.OriginFeeds                new(cloud.jengu.dbo.core.api.feed.ChangeFeed,cloud.jengu.dbo.core.api.feed.ChangeFeed,cloud.jengu.dbo.core.api.feed.ChangeFeed,cloud.jengu.dbo.runner.transport.Trail,cloud.jengu.dbo.runner.transport.Handover,cloud.jengu.dbo.core.api.feed.ChangeFeed)
 cloud.jengu.dbo.tenant.TenantRuntimeManager.OriginFeeds                record
 cloud.jengu.dbo.tenant.TenantRuntimeManager.OriginFeeds                records():cloud.jengu.dbo.core.api.feed.ChangeFeed
 cloud.jengu.dbo.tenant.TenantRuntimeManager.OriginFeeds                toString():String

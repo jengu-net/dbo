@@ -657,7 +657,7 @@ class ASecondPlaceComesUpFromItsOriginIT {
     private static TenantRuntimeManager.OriginFeeds connected() {
         return new TenantRuntimeManager.OriginFeeds(lane.placeFeed(Place.RECORDS),
                 lane.placeFeed(Place.DEFINITIONS), lane.definitionsWithoutTheFace(),
-                lane.origin().trail(), lane.origin().work());
+                lane.origin().trail(), lane.origin().work(), lane.origin().authorisation());
     }
 
     /**
@@ -903,6 +903,76 @@ class ASecondPlaceComesUpFromItsOriginIT {
         site.syncRound();
         assertTrue(!read(cloud, CLINIC, "Basic").contains("set-up-on-the-site"),
                 "what only the configuration writes reached the tenant from a site");
+    }
+
+    @Test
+    @Order(21)
+    @DisplayName("what the clinic authorised in the cloud reaches the site and every later "
+            + "authorisation with it; the site reads its register as the cloud does, says when "
+            + "what it holds was given, and refuses to be authorised itself")
+    @Proving(DboPromises.SYNC_A_PLACE_HOLDS_WHAT_ITS_TENANT_AUTHORISED)
+    void aPlaceHoldsWhatItsTenantAuthorised() throws Exception {
+        java.time.Instant before = java.time.Instant.now();
+        HttpResponse<String> given = authorise(cloud, "{\"rows\":[],\"purposes\":[]}");
+        assertEquals(200, given.statusCode(), given.body());
+        java.time.Instant after = java.time.Instant.now();
+        site.syncRound();
+
+        com.fasterxml.jackson.databind.JsonNode atHome = register(cloud);
+        com.fasterxml.jackson.databind.JsonNode onTheSite = register(site);
+        java.time.Instant held = java.time.Instant.parse(
+                onTheSite.path("held").path("authorisedAt").asText(before.minusSeconds(1)
+                        .toString()));
+        assertTrue(!held.isBefore(before.truncatedTo(java.time.temporal.ChronoUnit.MILLIS))
+                        && !held.isAfter(after),
+                "the site does not say it holds the authorisation the clinic just gave: "
+                        + onTheSite);
+        assertTrue(onTheSite.path("held").hasNonNull("heardAt"),
+                "the site does not say when it last heard its origin: " + onTheSite);
+        assertEquals(atHome.path("rows"), onTheSite.path("rows"),
+                "the site reads its register otherwise than the clinic does at home");
+        assertEquals(atHome.path("purposes"), onTheSite.path("purposes"),
+                "the site reads its purposes otherwise than the clinic does at home");
+        assertTrue(atHome.path("held").isMissingNode(),
+                "the clinic at home says it holds a copy: " + atHome);
+
+        HttpResponse<String> here = authorise(site, "{\"rows\":[],\"purposes\":[]}");
+        assertEquals(409, here.statusCode(), here.body());
+        assertTrue(here.body().contains("not_here"), here.body());
+
+        assertEquals(200, authorise(cloud, "{\"rows\":[],\"purposes\":[]}").statusCode());
+        site.syncRound();
+        assertTrue(java.time.Instant.parse(register(site).path("held").path("authorisedAt")
+                        .asText()).isAfter(held),
+                "an authorisation given after the first did not reach the site");
+    }
+
+    /** The clinic's register, as the given node's door reads it. */
+    private static com.fasterxml.jackson.databind.JsonNode register(TenantRuntimeManager node)
+            throws Exception {
+        HttpResponse<String> read = http.send(HttpRequest.newBuilder(
+                        URI.create(base(node, CLINIC) + "/register"))
+                        .header("Authorization", "Bearer " + registrar(node)).build(),
+                HttpResponse.BodyHandlers.ofString());
+        assertEquals(200, read.statusCode(), read.body());
+        return new com.fasterxml.jackson.databind.ObjectMapper().readTree(read.body());
+    }
+
+    /** Exactly what the body names, authorised at the given node's door. */
+    private static HttpResponse<String> authorise(TenantRuntimeManager node, String body)
+            throws Exception {
+        return http.send(HttpRequest.newBuilder(
+                        URI.create(base(node, CLINIC) + "/register/authorisation"))
+                        .header("Content-Type", "application/json")
+                        .header("Authorization", "Bearer " + registrar(node))
+                        .PUT(HttpRequest.BodyPublishers.ofString(body)).build(),
+                HttpResponse.BodyHandlers.ofString());
+    }
+
+    private static String registrar(TenantRuntimeManager node) {
+        node.authority(CLINIC).ensureClient("registrar", "registrar-secret",
+                List.of("configuration"));
+        return clientToken(node, CLINIC, "registrar", "registrar-secret");
     }
 
     /**

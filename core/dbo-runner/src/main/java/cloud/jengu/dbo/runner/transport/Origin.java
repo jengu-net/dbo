@@ -3,8 +3,8 @@ package cloud.jengu.dbo.runner.transport;
 import cloud.jengu.dbo.core.api.feed.ChangeFeed;
 
 /**
- * A tenant elsewhere, as a second place of it reads it: its declaration and
- * its two feeds, over whatever link reaches it.
+ * A tenant elsewhere, as a second place of it reads it: its declaration, its
+ * two feeds and what it authorised, over whatever link reaches it.
  *
  * <p>Registered by whoever holds that link with synchronisation on, and
  * withdrawn when it is turned off or the link is let go. While one is
@@ -47,6 +47,14 @@ public interface Origin {
 
     /** Where this place hands the work it did, or null for a link that carries none. */
     default Handover work() {
+        return null;
+    }
+
+    /**
+     * What the tenant authorised of its register, read from where this place
+     * stands, or null for a link that carries none.
+     */
+    default ChangeFeed authorisation() {
         return null;
     }
 }
