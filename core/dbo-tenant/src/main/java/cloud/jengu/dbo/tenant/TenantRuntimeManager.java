@@ -385,6 +385,8 @@ public final class TenantRuntimeManager implements AutoCloseable {
      * by tenant and consumer.
      */
     private final Map<String, Map<String, Long>> authorisationHanded = new ConcurrentHashMap<>();
+    /** What stands of each tenant's register, as its listeners are told it. */
+    private final Map<String, StandingWatch> standings = new ConcurrentHashMap<>();
     /** Each place's own trail, handed to its tenant over the link it reads through. */
     private final Map<String, TrailPusher> trailPushers = new ConcurrentHashMap<>();
     /** Each place's work, handed up the link it reads through, as its trail is. */
@@ -2294,8 +2296,65 @@ public final class TenantRuntimeManager implements AutoCloseable {
             }
             agreed.put(purpose, FleetRegister.Agreement.over(rows));
         }
-        return authorisationsOf(serving).authorise(digests, agreed, by,
-                java.time.Instant.now());
+        RegisterAuthorisations.Standing now = authorisationsOf(serving).authorise(digests,
+                agreed, by, java.time.Instant.now());
+        tellWhatStands(tenant);
+        return now;
+    }
+
+    /**
+     * What stands of this tenant's register here, for an application beside
+     * the store: read on the spot, and telling its listeners when it changes.
+     * The same one across the tenant's rebuilds.
+     */
+    public cloud.jengu.dbo.tenant.api.RegisterStanding registerStanding(String tenant) {
+        return standings.computeIfAbsent(tenant,
+                code -> new StandingWatch(code, () -> standingOf(code)));
+    }
+
+    private cloud.jengu.dbo.tenant.api.RegisterStanding.Standing standingOf(String code) {
+        RegisterHandler.Reading reading = registerOf(code);
+        List<FleetRegister.Row> rows = reading.register();
+        Map<String, cloud.jengu.dbo.tenant.api.RegisterStanding.State> purposes =
+                new java.util.LinkedHashMap<>();
+        for (Map<String, Object> purpose : RegisterHandler.purposes(rows,
+                reading.agreedPurposes(), reading.purposesInTerms())) {
+            purposes.put(String.valueOf(purpose.get("code")),
+                    cloud.jengu.dbo.tenant.api.RegisterStanding.State.valueOf(
+                            String.valueOf(purpose.get("state"))
+                                    .toUpperCase(java.util.Locale.ROOT)));
+        }
+        // A row going to nobody named is never unapproved and never stands.
+        Set<String> notStanding = new java.util.HashSet<>();
+        unapprovedRows(code).forEach(row -> notStanding.add(row.step()));
+        rows.stream().filter(FleetRegister.Row::goesNowhereKnown)
+                .forEach(row -> notStanding.add(row.step()));
+        Set<String> steps = new java.util.TreeSet<>();
+        rows.stream().map(FleetRegister.Row::step).filter(step -> !notStanding.contains(step))
+                .forEach(steps::add);
+        TenantRuntime serving = runtimes.get(code);
+        return new cloud.jengu.dbo.tenant.api.RegisterStanding.Standing(purposes, steps,
+                serving == null ? null : authorisationsOf(serving).authorisedAt().orElse(null),
+                places.contains(code) ? readToTheEnd.get(authorisationStreamOf(code)) : null);
+    }
+
+    /** Tells every serving tenant's listeners what stands, where it changed. */
+    private void tellWhatStands() {
+        standings.keySet().forEach(this::tellWhatStands);
+    }
+
+    private void tellWhatStands(String tenant) {
+        StandingWatch watch = standings.get(tenant);
+        if (watch == null || !runtimes.containsKey(tenant)) {
+            return;
+        }
+        try {
+            watch.tell();
+        } catch (RuntimeException unread) {
+            // The register could not be read this round; the next one tells.
+            LOG.warn("what stands of tenant {}'s register could not be read: {}", tenant,
+                    unread.toString());
+        }
     }
 
     private static RegisterAuthorisations authorisationsOf(TenantRuntime serving) {
@@ -2860,6 +2919,8 @@ public final class TenantRuntimeManager implements AutoCloseable {
         synchronized (this) {
             settle();
         }
+        // A declaration read this beat may leave a row standing no more.
+        tellWhatStands();
         return codes();
     }
 
@@ -6748,6 +6809,8 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 }
             }
         });
+        // What arrived may be a place's authorisation from its origin.
+        tellWhatStands();
         return seen.get();
     }
 
@@ -7121,6 +7184,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
             recordRetraction(code, because);
         }
         listener.tenantDown(code);
+        standings.remove(code);
         redeclared.remove(code);
         unmount(code, runtime);
     }

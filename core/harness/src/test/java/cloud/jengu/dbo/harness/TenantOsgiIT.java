@@ -387,6 +387,11 @@ class TenantOsgiIT {
         ServiceReference<?>[] feeds = ctx.getAllServiceReferences(
                 "cloud.jengu.dbo.core.api.feed.ChangeFeed", "(tenant=konteiner)");
         assertTrue(feeds != null && feeds.length == 1);
+        // What stands of its register, for an application beside the store.
+        ServiceReference<?>[] standing = ctx.getAllServiceReferences(
+                "cloud.jengu.dbo.tenant.api.RegisterStanding", "(tenant=konteiner)");
+        assertTrue(standing != null && standing.length == 1,
+                "RegisterStanding(tenant=konteiner) must be registered");
 
         // Registration is half the promise; the other half is that what a
         // consumer obtains this way is USABLE, and that obtaining it involved

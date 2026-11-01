@@ -1300,6 +1300,14 @@ public enum DboPromises implements Promise {
             + "is new. A purpose leaves the row's digest unchanged where none is named, and "
             + "moves it where one is; a purpose no row serves is refused by name."),
 
+    PROC_AN_APPLICATION_AT_A_PLACE_IS_TOLD_WHAT_STANDS(
+            "An application embedding the store reads, in-process and for each tenant, what "
+            + "stands of the tenant's register: each purpose's state, the steps that stand, "
+            + "when the authorisation was given and, at a place, when the place last heard "
+            + "its origin. At a place this is the copy the place holds, so it answers while "
+            + "the line to the origin is down. A listener is told the whole of what stands "
+            + "whenever it changes, an authorisation or withdrawal arriving from the origin "
+            + "included, and not when nothing changed."),
     PROC_A_PLACE_REFUSES_WHAT_DOES_NOT_STAND_THERE(
             "The store at a place of a tenant refuses a step whose row does not stand by the "
             + "authorisation the place holds, as the origin does, naming what the step is for; "

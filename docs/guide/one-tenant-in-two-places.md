@@ -73,7 +73,10 @@ that use it.
   holds, naming what the step is for, and keeps a row processed without
   authorisation on its incidents, as the cloud does. Cut off, it acts on the
   last record it holds and `heardAt` stays where it was; what the clinic
-  authorised or withdrew meanwhile reaches it once the line is back.
+  authorised or withdrew meanwhile reaches it once the line is back. An
+  application embedding the store on the site reads the same in-process from
+  the clinic's `RegisterStanding` service, which `standing.now().permits(purpose)`
+  answers, and `whenChanged` tells it the moment a withdrawal arrives.
 - **A place hands home only what is its own.** Each store mints its own ids,
   so a record a site's run wrote comes home naming what it points at by what
   that says it is, and the cloud stores it pointing at its own record of the

@@ -18,6 +18,7 @@ import cloud.jengu.dbo.tenant.FleetRegister;
 import cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner;
 import cloud.jengu.dbo.tenant.TenantRuntimeManager;
 import cloud.jengu.dbo.tenant.TenantState;
+import cloud.jengu.dbo.tenant.api.RegisterStanding;
 import cloud.jengu.dbo.core.process.StepDeclaration;
 import cloud.jengu.dbo.runner.Lane;
 import cloud.jengu.dbo.runner.Outcome;
@@ -1020,6 +1021,50 @@ class ASecondPlaceComesUpFromItsOriginIT {
         assertTrue(java.time.Instant.parse(register(site).path("held").path("heardAt").asText())
                         .isAfter(java.time.Instant.parse(heard)),
                 "the site does not say it heard its origin again");
+    }
+
+    @Test
+    @Order(24)
+    @DisplayName("an application beside the site reads what stands of its clinic's register "
+            + "in-process and is told when it changes, an authorisation and a withdrawal "
+            + "arriving from the cloud alike, and not when nothing changed")
+    @Proving(DboPromises.PROC_AN_APPLICATION_AT_A_PLACE_IS_TOLD_WHAT_STANDS)
+    void anApplicationAtAPlaceIsToldWhatStands() throws Exception {
+        RegisterStanding standing = site.registerStanding(CLINIC);
+        assertTrue(!standing.now().permits(UPKEEP)
+                        && !standing.now().steps().contains(BENCH_WITHHELD),
+                "the site's application reads a purpose withdrawn as standing: "
+                        + standing.now());
+        List<RegisterStanding.Standing> told =
+                new java.util.concurrent.CopyOnWriteArrayList<>();
+        AutoCloseable telling = standing.whenChanged(told::add);
+
+        assertEquals(200, authorise(cloud,
+                "{\"rows\":[],\"purposes\":[\"" + UPKEEP + "\"]}").statusCode());
+        site.syncRound();
+        assertEquals(1, told.size(), "the application was not told once of the authorisation "
+                + "arriving from the cloud: " + told);
+        assertTrue(told.get(0).permits(UPKEEP)
+                        && told.get(0).steps().containsAll(List.of(BENCH_WITHHELD, BENCH_NAMED))
+                        && told.get(0).heardAt() != null,
+                "what the application was told is not what stands: " + told.get(0));
+
+        site.syncRound();
+        assertEquals(1, told.size(), "the application was told again with nothing changed");
+
+        assertEquals(200, authorise(cloud, "{\"rows\":[],\"purposes\":[]}").statusCode());
+        site.syncRound();
+        assertEquals(2, told.size(), "the application was not told of the withdrawal");
+        assertEquals(RegisterStanding.State.NOT, told.get(1).purposes().get(UPKEEP),
+                String.valueOf(told.get(1)));
+
+        telling.close();
+        assertEquals(200, authorise(cloud,
+                "{\"rows\":[],\"purposes\":[\"" + UPKEEP + "\"]}").statusCode());
+        site.syncRound();
+        assertEquals(2, told.size(), "an application that stopped listening was told");
+        assertTrue(standing.now().permits(UPKEEP), "reading on the spot did not see the "
+                + "authorisation: " + standing.now());
     }
 
     /** Who runs the deployment, on both nodes alike, and the steps it runs for every tenant. */
