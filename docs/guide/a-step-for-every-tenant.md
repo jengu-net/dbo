@@ -117,6 +117,54 @@ application naming who a write is for is; a credential issued to a person names
 nobody else. The register says whether what is done changed since it
 was authorised, and nothing of the kind to a tenant that never authorised one.
 
+A person agrees to a purpose, not to a slot of a step. The declaration that holds a
+step can name the purpose its rows serve, in the words a person agrees to:
+
+```json
+{ "purposes": { "registry-reporting": "Laboratory results with the patient's identity, to the national health registry" },
+  "fleetSteps": [{ "code": "fleet.registry.report", "registerPurpose": "registry-reporting", … }] }
+```
+
+A slot can name its own in `registerPurposes`. The register groups its rows under
+`purposes`, and the tenant authorises a purpose at the same door as rows, with
+`"purposes": ["registry-reporting"]`. A purpose is agreed to who handles the data and
+which data. A row serving it stands while its partners and its type are among those,
+so a step renamed or added under the purpose is covered. A new partner or a new kind
+of data waits until the tenant authorises the purpose again. Meanwhile the purpose
+reads `partly` and names what is `new`. Leaving a purpose out withdraws its rows,
+except any also named by digest. Work refused or kept on the incidents account under
+a row serving a purpose names the purpose.
+
+Data a step sends to an organisation that receives it for its own purpose, such as a
+national registry, is named on the row. The step names a role, `"recipient":
+"national-registry"`, and a declaration says who that is:
+
+```json
+{ "recipients": [{ "role": "national-registry", "identifier": "<system>|<value>", "name": "National Health Registry" }] }
+```
+
+The nearest zone above the tenant that names the role binds; otherwise the tenant's own
+declaration names it. The row shows the role, the organisation and `resolvedBy`, the
+zone or tenant that named it. The organisation is part of what a tenant authorises, so
+when the zone names another one the row stands no more until the tenant authorises it
+again. A role nothing names is shown with no organisation, never stands, and
+authorising it is refused.
+
+Some rows were agreed before the tenant ever used the deployment, in the terms it
+signed. Its declaration names them:
+
+```json
+{ "terms": [{ "name": "Service agreement 2026-03", "rows": ["<digest>"],
+              "purposes": [{ "code": "registry-reporting", "participants": ["provider", "<system>|<value>"],
+                             "types": ["Reference(Observation)"] }] }] }
+```
+
+Those rows stand whatever the door says. The register marks each `authorisedIn:
+terms`, names the terms, and says `withdrawable: false`; an authorisation that leaves
+them out leaves them standing, because what a contract agreed is changed by changing
+the contract. A purpose agreed in terms lists who handles the data and which data, as
+one authorised at the door records them, and covers nothing beyond that.
+
 `GET /t/<code>/register/incidents` is the account kept against it: work that ran
 under a row the tenant never authorised, naming the step, the slot and since
 when, and openings its trail shows that the register does not. Whoever operates

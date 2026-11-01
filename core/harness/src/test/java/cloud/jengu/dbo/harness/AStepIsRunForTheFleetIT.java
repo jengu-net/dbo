@@ -146,6 +146,18 @@ class AStepIsRunForTheFleetIT {
     // ---- An unauthorised row obeys its posture. ----
 
     private static final String POSTURES = "postures";
+    /** What the purpose legs' steps serve, in the words a person agrees to. */
+    private static final String TIDYING = "records-tidy";
+    private static final String PURPOSED_NAMED = "fleet.purposed.named";
+    private static final String PURPOSED_WITHHELD = "fleet.purposed.withheld";
+    private static final String PURPOSED_SAME = "fleet.purposed.same";
+    private static final String PURPOSED_WIDER = "fleet.purposed.wider";
+    /** A jurisdiction naming the registry, and a member of it naming its own partner. */
+    private static final String REGISTRY_ZONE = "registry-zone";
+    private static final String REPORTING = "reporting";
+    private static final String SENT_TO_REGISTRY = "fleet.sending.registry";
+    private static final String SENT_TO_PARTNER = "fleet.sending.partner";
+    private static final String SENT_NOWHERE = "fleet.sending.nowhere";
     private static final String POSTURE_NAMED = "fleet.posture.named";
     private static final String POSTURE_WITHHELD = "fleet.posture.withheld";
     private static final String POSTURE_APPLIED = "fleet.posture.applied";
@@ -278,6 +290,12 @@ class AStepIsRunForTheFleetIT {
                         + "\"substrate\":\"postures\""));
         declared.put(POSTURE_APPLIED, step(POSTURE_APPLIED, basic,
                 ",\"opens\":[\"record\"],\"posture\":\"applied\",\"substrate\":\"postures\""));
+        declared.put(PURPOSED_NAMED, step(PURPOSED_NAMED, basic,
+                ",\"opens\":[\"record\"],\"substrate\":\"postures\",\"registerPurpose\":\""
+                        + TIDYING + "\""));
+        declared.put(PURPOSED_WITHHELD, step(PURPOSED_WITHHELD, basic,
+                ",\"opens\":[\"record\"],\"posture\":\"not-until-approved\","
+                        + "\"substrate\":\"postures\",\"registerPurpose\":\"" + TIDYING + "\""));
         String observation = "{\"record\":\"Reference(Observation)\"}";
         declared.put(RETENTION_SWEEP, step(RETENTION_SWEEP, observation,
                 ",\"substrate\":\"retention\""));
@@ -1129,6 +1147,279 @@ class AStepIsRunForTheFleetIT {
                 "the run closed anyway, so the refusal was a message rather than a rule");
     }
 
+    // ======== A tenant authorises its register by purpose ========
+
+    @Test
+    @Order(29)
+    @DisplayName("the register names what each row is for, work refused or run under a row "
+            + "never authorised names it too, and authorising the purpose at the door lets "
+            + "every row of it stand")
+    @Proving({DboPromises.PROC_A_TENANT_AUTHORISES_ITS_REGISTER_BY_PURPOSE,
+            DboPromises.PROC_AN_INCIDENT_NAMES_THE_PURPOSE_REACHED_FOR})
+    void aPurposeIsAuthorisedAtTheDoor() throws Exception {
+        assertTrue(purposedRows().size() == 2 && purposedRows().stream()
+                        .allMatch(row -> TIDYING.equals(row.purpose().code())),
+                "the register does not say what the purpose legs' rows are for: "
+                        + purposedRows());
+
+        Run named = authorPostureRun(PURPOSED_NAMED);
+        manager.stepJoiner().orElseThrow().joinOnce(200);
+        assertTrue(queuedIds(PURPOSED_NAMED).contains(FleetWork.idFor(POSTURES, named.id())),
+                "work under a row processed and named was not offered");
+        UnapprovedProcessing.Incident ran = manager.unapprovedProcessing(POSTURES).stream()
+                .filter(one -> PURPOSED_NAMED.equals(one.step())).findFirst().orElseThrow();
+        assertTrue(TIDYING.equals(ran.purpose()) && ran.says().contains(TIDYING),
+                "the incident does not say what the work it kept was for: " + ran.says());
+        String record = manager.runtime(POSTURES).orElseThrow().engine()
+                .put(PutRequest.create("Basic",
+                        "{\"resourceType\":\"Basic\",\"code\":{\"text\":\"t\"}}"
+                                .getBytes(StandardCharsets.UTF_8))).id();
+        var refused = manager.runInitiator().start(POSTURES, PURPOSED_WITHHELD,
+                Map.of("record", "Basic/" + record));
+        assertTrue(!refused.accepted() && refused.body().contains(TIDYING),
+                "work under a row not until approved was started, or refused without saying "
+                        + "what it was for: " + refused.status() + " " + refused.body());
+
+        var unknown = authorise("[]", "[\"no-such-purpose\"]");
+        assertEquals(422, unknown.statusCode(), unknown.body());
+        var authorised = authorise("[]", "[\"" + TIDYING + "\"]");
+        assertEquals(200, authorised.statusCode(), authorised.body());
+        Set<String> unapproved = new java.util.HashSet<>();
+        manager.unapprovedRows(POSTURES).forEach(row -> unapproved.add(row.step()));
+        assertFalse(unapproved.contains(PURPOSED_NAMED) || unapproved.contains(PURPOSED_WITHHELD),
+                "the tenant authorised the purpose and its rows do not stand: " + unapproved);
+        assertTrue(manager.unapprovedProcessing(POSTURES).stream()
+                        .noneMatch(one -> PURPOSED_NAMED.equals(one.step())),
+                "the incident stands although its purpose was authorised");
+        Map<?, ?> purpose = purposeOnTheRegister();
+        assertTrue("authorised".equals(purpose.get("state"))
+                        && "registrar".equals(purpose.get("authorisedBy")),
+                "the register does not read the purpose as authorised, by whom: " + purpose);
+    }
+
+    @Test
+    @Order(30)
+    @DisplayName("a step added under an authorised purpose with the same data stands unasked, "
+            + "one opening a new kind of data waits and the register names it, and leaving "
+            + "the purpose out withdraws every row of it")
+    @Proving(DboPromises.PROC_A_TENANT_AUTHORISES_ITS_REGISTER_BY_PURPOSE)
+    void aPurposeIsAskedAgainOnlyForWhatIsNew() throws Exception {
+        declared.put(PURPOSED_SAME, step(PURPOSED_SAME, "{\"record\":\"Reference(Basic)\"}",
+                ",\"opens\":[\"record\"],\"substrate\":\"postures\",\"registerPurpose\":\""
+                        + TIDYING + "\""));
+        declared.put(PURPOSED_WIDER, step(PURPOSED_WIDER,
+                "{\"record\":\"Reference(Observation)\"}",
+                ",\"opens\":[\"record\"],\"substrate\":\"postures\",\"registerPurpose\":\""
+                        + TIDYING + "\""));
+        declare();
+        assertEquals(4, purposedRows().size(), "the added steps are not on the register");
+
+        Set<String> unapproved = new java.util.HashSet<>();
+        manager.unapprovedRows(POSTURES).forEach(row -> unapproved.add(row.step()));
+        assertFalse(unapproved.contains(PURPOSED_SAME),
+                "a step opening the same data for the same purpose waited to be agreed to "
+                        + "again, so every rename asks the tenant about nothing new");
+        assertTrue(unapproved.contains(PURPOSED_WIDER),
+                "a step opening a kind of data the purpose was never agreed to stood on it");
+        Map<?, ?> purpose = purposeOnTheRegister();
+        assertEquals("partly", purpose.get("state"), String.valueOf(purpose));
+        assertEquals(Map.of("participants", List.of(), "types", List.of("Reference(Observation)")),
+                purpose.get("new"), "the register does not name what is new: " + purpose);
+
+        assertEquals(200, authorise("[]", "[]").statusCode());
+        Set<String> withdrawn = new java.util.HashSet<>();
+        manager.unapprovedRows(POSTURES).forEach(row -> withdrawn.add(row.step()));
+        assertTrue(withdrawn.containsAll(List.of(PURPOSED_NAMED, PURPOSED_WITHHELD,
+                        PURPOSED_SAME, PURPOSED_WIDER)),
+                "a purpose left out still stands for some of its rows: " + withdrawn);
+    }
+
+    // ======== The register names who receives what ========
+
+    @Test
+    @Order(31)
+    @DisplayName("a row names the organisation its data goes to, as the tenant's zone names it "
+            + "before the tenant may; one going nowhere named cannot be authorised, and the "
+            + "zone naming another organisation leaves the row standing no more")
+    @Proving(DboPromises.PROC_THE_REGISTER_NAMES_WHO_RECEIVES_WHAT)
+    void theRegisterNamesWhoReceivesWhat() throws Exception {
+        // SEEN BY THIS LEG ALONE: a zone and its one member, so the steps
+        // below stand on nobody else's register in a way any leg reads.
+        Files.writeString(dir.resolve(REGISTRY_ZONE + ".json"), registryZone("90000001"));
+        Files.writeString(dir.resolve(REPORTING + ".json"), basicTenant(REPORTING,
+                ",\"zone\":\"" + REGISTRY_ZONE + "\",\"recipients\":["
+                        + "{\"role\":\"national-registry\",\"identifier\":\"urn:test:org|1\","
+                        + "\"name\":\"Not the registry\"},"
+                        + "{\"role\":\"partner-exchange\",\"identifier\":\"urn:test:org|2\","
+                        + "\"name\":\"Partner Exchange\"}]"));
+        UntilServed.scan(manager, REGISTRY_ZONE, REPORTING);
+        String basic = "{\"record\":\"Reference(Basic)\"}";
+        declared.put(SENT_TO_REGISTRY, step(SENT_TO_REGISTRY, basic,
+                ",\"opens\":[\"record\"],\"substrate\":\"postures\","
+                        + "\"recipient\":\"national-registry\""));
+        declared.put(SENT_TO_PARTNER, step(SENT_TO_PARTNER, basic,
+                ",\"opens\":[\"record\"],\"substrate\":\"postures\","
+                        + "\"recipient\":\"partner-exchange\""));
+        declared.put(SENT_NOWHERE, step(SENT_NOWHERE, basic,
+                ",\"opens\":[\"record\"],\"substrate\":\"postures\","
+                        + "\"recipient\":\"unnamed-body\""));
+        declare();
+
+        FleetRegister.Recipient registry = sendingRow(SENT_TO_REGISTRY).recipient();
+        FleetRegister.Recipient partner = sendingRow(SENT_TO_PARTNER).recipient();
+        assertTrue(registry.organisation() != null
+                        && "urn:test:registry|90000001".equals(registry.organisation().identifier())
+                        && REGISTRY_ZONE.equals(registry.resolvedBy()),
+                "the registry is not the one the zone names, so a member could point it "
+                        + "anywhere: " + registry);
+        assertTrue(partner.organisation() != null
+                        && "urn:test:org|2".equals(partner.organisation().identifier())
+                        && REPORTING.equals(partner.resolvedBy()),
+                "a role no zone names is not the one the tenant named: " + partner);
+        assertTrue(sendingRow(SENT_NOWHERE).goesNowhereKnown(),
+                "a role nothing names reads as resolved");
+
+        var nowhere = authorise(REPORTING,
+                "[\"" + sendingRow(SENT_NOWHERE).digest() + "\"]", "[]");
+        assertEquals(422, nowhere.statusCode(),
+                "a row sending to an organisation nobody named was authorised: " + nowhere.body());
+        var given = authorise(REPORTING, "[\"" + sendingRow(SENT_TO_REGISTRY).digest() + "\",\""
+                + sendingRow(SENT_TO_PARTNER).digest() + "\"]", "[]");
+        assertEquals(200, given.statusCode(), given.body());
+        assertTrue(given.body().contains("\"resolvedBy\":\"" + REGISTRY_ZONE + "\"")
+                        && given.body().contains("urn:test:registry|90000001"),
+                "the register does not name the organisation and who named it: "
+                        + given.body());
+        assertTrue(sendingSteps(manager.unapprovedRows(REPORTING)).equals(Set.of(SENT_NOWHERE)),
+                "the rows the tenant authorised do not stand, or the one going nowhere does: "
+                        + sendingSteps(manager.unapprovedRows(REPORTING)));
+
+        Files.writeString(dir.resolve(REGISTRY_ZONE + ".json"), registryZone("90000002"));
+        manager.scanOnce();
+        assertEquals("urn:test:registry|90000002",
+                sendingRow(SENT_TO_REGISTRY).recipient().organisation().identifier(),
+                "the register still names the organisation the zone no longer does");
+        assertEquals(Set.of(SENT_TO_REGISTRY, SENT_NOWHERE),
+                sendingSteps(manager.unapprovedRows(REPORTING)),
+                "the data now goes to another organisation and the row still stands on what "
+                        + "the tenant agreed to before, or the partner's row stopped with it");
+    }
+
+    // ======== A row agreed by terms says so ========
+
+    @Test
+    @Order(32)
+    @DisplayName("a row agreed in the terms a tenant signed stands whatever its door says, and "
+            + "the register names the terms and offers it for no withdrawal; a purpose agreed "
+            + "in terms covers only what the terms list")
+    @Proving(DboPromises.PROC_A_ROW_AGREED_BY_TERMS_SAYS_SO)
+    void aRowAgreedByTermsSaysSo() throws Exception {
+        // The registry's row as it stands since the zone renamed the registry,
+        // which the tenant's door no longer authorises.
+        String registry = sendingRow(SENT_TO_REGISTRY).digest();
+        String signed = "Service agreement 2026-03";
+        Files.writeString(dir.resolve(REPORTING + ".json"), basicTenant(REPORTING,
+                ",\"zone\":\"" + REGISTRY_ZONE + "\",\"terms\":[{\"name\":\"" + signed
+                        + "\",\"rows\":[\"" + registry + "\"],\"purposes\":[{\"code\":\""
+                        + TIDYING + "\",\"participants\":[\"provider\"],"
+                        + "\"types\":[\"Reference(Basic)\"]}]}]"));
+        manager.scanOnce();
+
+        Set<String> unapproved = new java.util.TreeSet<>();
+        manager.unapprovedRows(REPORTING).forEach(row -> unapproved.add(row.step()));
+        assertFalse(unapproved.contains(SENT_TO_REGISTRY) || unapproved.contains(PURPOSED_NAMED)
+                        || unapproved.contains(PURPOSED_SAME),
+                "rows agreed in the terms do not stand: " + unapproved);
+        assertTrue(unapproved.contains(PURPOSED_WIDER),
+                "a row opening a kind of data the terms do not list stood on them");
+
+        var withdrawn = authorise(REPORTING, "[]", "[]");
+        assertEquals(200, withdrawn.statusCode(), withdrawn.body());
+        Set<String> after = new java.util.TreeSet<>();
+        manager.unapprovedRows(REPORTING).forEach(row -> after.add(row.step()));
+        assertFalse(after.contains(SENT_TO_REGISTRY) || after.contains(PURPOSED_NAMED),
+                "withdrawing everything at the door withdrew rows agreed in terms: " + after);
+        Map<?, ?> row = ((List<?>) ((Map<?, ?>) cloud.jengu.dbo.core.wire.RecordWire
+                .read(withdrawn.body())).get("rows")).stream().map(one -> (Map<?, ?>) one)
+                .filter(one -> SENT_TO_REGISTRY.equals(one.get("step"))).findFirst()
+                .orElseThrow();
+        assertTrue("terms".equals(row.get("authorisedIn")) && signed.equals(row.get("terms"))
+                        && Boolean.FALSE.equals(row.get("withdrawable")),
+                "the register does not say the row stands by the terms, which, and that the "
+                        + "door does not withdraw it: " + row);
+    }
+
+    private FleetRegister.Row sendingRow(String step) {
+        return manager.fleetRegister(REPORTING).stream()
+                .filter(row -> row.step().equals(step)).findFirst().orElseThrow();
+    }
+
+    private static Set<String> sendingSteps(List<FleetRegister.Row> rows) {
+        Set<String> steps = new java.util.TreeSet<>();
+        rows.stream().map(FleetRegister.Row::step)
+                .filter(step -> step.startsWith("fleet.sending.")).forEach(steps::add);
+        return steps;
+    }
+
+    private static String registryZone(String registry) {
+        return """
+                {"code":"%s","face":"r4","zoneRoot":true,"types":[
+                   {"name":"Basic","identity":"internal","handling":"operational"}],
+                 "recipients":[{"role":"national-registry",
+                                "identifier":"urn:test:registry|%s",
+                                "name":"National Registry"}]}"""
+                .formatted(REGISTRY_ZONE, registry);
+    }
+
+    private List<FleetRegister.Row> purposedRows() {
+        return manager.fleetRegister(POSTURES).stream()
+                .filter(row -> row.step().startsWith("fleet.purposed.")).toList();
+    }
+
+    /** The purpose legs' purpose as the register door reads it. */
+    private Map<?, ?> purposeOnTheRegister() throws Exception {
+        var read = java.net.http.HttpClient.newHttpClient().send(
+                java.net.http.HttpRequest.newBuilder(java.net.URI.create("http://127.0.0.1:"
+                                + manager.port() + "/t/" + POSTURES + "/register"))
+                        .header("Authorization", "Bearer " + registrarToken(POSTURES)).build(),
+                java.net.http.HttpResponse.BodyHandlers.ofString());
+        assertEquals(200, read.statusCode(), read.body());
+        Object purposes = ((Map<?, ?>) cloud.jengu.dbo.core.wire.RecordWire.read(read.body()))
+                .get("purposes");
+        return ((List<?>) purposes).stream().map(one -> (Map<?, ?>) one)
+                .filter(one -> TIDYING.equals(one.get("code"))).findFirst().orElseThrow();
+    }
+
+    /** Exactly these rows and purposes, authorised at the posture tenant's door. */
+    private java.net.http.HttpResponse<String> authorise(String rows, String purposes)
+            throws Exception {
+        return authorise(POSTURES, rows, purposes);
+    }
+
+    private java.net.http.HttpResponse<String> authorise(String tenant, String rows,
+            String purposes) throws Exception {
+        return java.net.http.HttpClient.newHttpClient().send(
+                java.net.http.HttpRequest.newBuilder(java.net.URI.create("http://127.0.0.1:"
+                                + manager.port() + "/t/" + tenant + "/register/authorisation"))
+                        .header("Content-Type", "application/json")
+                        .header("Authorization", "Bearer " + registrarToken(tenant))
+                        .PUT(java.net.http.HttpRequest.BodyPublishers.ofString(
+                                "{\"rows\":" + rows + ",\"purposes\":" + purposes + "}"))
+                        .build(),
+                java.net.http.HttpResponse.BodyHandlers.ofString());
+    }
+
+    private String registrarToken(String tenant) {
+        var authority = manager.authority(tenant);
+        authority.ensureClient("registrar", "registrar-secret",
+                List.of(cloud.jengu.dbo.auth.Scopes.CONFIGURATION));
+        if (authority.token("registrar", "registrar-secret", null)
+                instanceof cloud.jengu.dbo.auth.TenantAuthority.TokenResult.Issued issued) {
+            return issued.accessToken();
+        }
+        throw new AssertionError(tenant + " issued no token for its registrar");
+    }
+
     // ======== The management declaration ========
 
     /** Writes the declaration as it stands and has the deployment read it. */
@@ -1137,8 +1428,9 @@ class AStepIsRunForTheFleetIT {
                 {"code":"%s","face":"r4","types":[
                    {"name":"Basic","identity":"internal","handling":"operational"},
                    {"name":"Observation","identity":"internal","handling":"operational"}],
+                 "purposes":{"%s":"Tidying a tenant's records, by the provider alone"},
                  "fleetSteps":[%s]}"""
-                .formatted(MANAGEMENT, String.join(",", declared.values())));
+                .formatted(MANAGEMENT, TIDYING, String.join(",", declared.values())));
         manager.manages(managementSpec);
     }
 

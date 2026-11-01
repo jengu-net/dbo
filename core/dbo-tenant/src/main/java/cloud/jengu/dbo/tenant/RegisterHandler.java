@@ -37,6 +37,12 @@ import java.util.function.Supplier;
  * and a credential that merely reads records has no business learning what
  * the deployment is entitled to open.
  *
+ * <p><b>By purpose as well as by row.</b> A person agrees to what data is
+ * used for, so the register groups its rows by the purpose each serves and
+ * the tenant may authorise a purpose in place of its rows. What that agrees to
+ * is who handles the data and which data; a row outside either is asked about
+ * again, and the register names what is new.
+ *
  * <p><b>Derived on every ask, never stored.</b> The register is computed from
  * the deployment's declaration and the tenant's, and the incidents from the
  * tenant's own records, so this door and the joiner that acts on them cannot
@@ -69,20 +75,46 @@ public final class RegisterHandler implements HttpHandler {
         default Optional<Map<String, Authorised>> authorised() {
             return Optional.empty();
         }
+
+        /** Each purpose the tenant authorised at its door, by code. */
+        default Map<String, AgreedPurpose> agreedPurposes() {
+            return Map.of();
+        }
+
+        /** The rows standing by terms the tenant signed, by digest, naming the terms. */
+        default Map<String, String> agreedInTerms() {
+            return Map.of();
+        }
+
+        /**
+         * Each purpose agreed in terms the tenant signed, by code, the terms'
+         * name standing as who agreed and with no time.
+         */
+        default Map<String, AgreedPurpose> purposesInTerms() {
+            return Map.of();
+        }
     }
 
     /** One row a tenant authorised at its door: who of it agreed, and when. */
     public record Authorised(String by, java.time.Instant at) {
     }
 
-    /** What authorising at the door does: exactly these rows, as whoever asked. */
+    /**
+     * One purpose a tenant authorised: who agreed, when, and to what. Agreed
+     * in terms, {@code by} is the terms' name and {@code at} is null.
+     */
+    public record AgreedPurpose(String by, java.time.Instant at,
+            FleetRegister.Agreement agreement) {
+    }
+
+    /** What authorising at the door does: exactly these rows and purposes, as whoever asked. */
     public interface Authorising {
         /**
          * @throws IllegalArgumentException naming a digest the register does
-         *         not carry
+         *         not carry, or a purpose none of its rows serves
          * @throws IllegalStateException where the tenant authorises elsewhere
          */
-        void authorise(List<String> digests, String by);
+        void authorise(List<String> digests, List<String> purposes, String by);
     }
 
     private final TenantAuthority authority;
@@ -92,7 +124,7 @@ public final class RegisterHandler implements HttpHandler {
 
     /** A door that reads the register and authorises none of it. */
     public RegisterHandler(TenantAuthority authority, Supplier<Reading> reading, String base) {
-        this(authority, reading, base, (digests, by) -> {
+        this(authority, reading, base, (digests, purposes, by) -> {
             throw new IllegalStateException("this door reads the register; the tenant "
                     + "authorises it through its declaration");
         });
@@ -164,10 +196,22 @@ public final class RegisterHandler implements HttpHandler {
             fail(exchange, 400, "invalid_request", "the authorisation is JSON naming rows");
             return;
         }
-        if (!(body instanceof Map<?, ?> named) || !(named.get("rows") instanceof List<?> listed)
-                || listed.stream().anyMatch(digest -> !(digest instanceof String))) {
+        Object purposesNamed = body instanceof Map<?, ?> map ? map.get("purposes") : null;
+        if (!(body instanceof Map<?, ?> named)
+                || !(named.get("rows") instanceof List<?> || purposesNamed != null)
+                || (named.get("rows") != null && !(named.get("rows") instanceof List<?>))
+                || (purposesNamed != null && !(purposesNamed instanceof List<?>))) {
             fail(exchange, 400, "invalid_request", "the authorisation names the digests of "
-                    + "the rows authorised, as rows, and every row it leaves out is withdrawn");
+                    + "the rows authorised, as rows, and the purposes authorised, as "
+                    + "purposes; every row and purpose it leaves out is withdrawn");
+            return;
+        }
+        List<?> listed = named.get("rows") instanceof List<?> rows ? rows : List.of();
+        List<?> purposes = purposesNamed instanceof List<?> codes ? codes : List.of();
+        if (listed.stream().anyMatch(digest -> !(digest instanceof String))
+                || purposes.stream().anyMatch(code -> !(code instanceof String))) {
+            fail(exchange, 400, "invalid_request", "a row is named by its digest and a "
+                    + "purpose by its code, each as a string");
             return;
         }
         Object person = named.get("onBehalfOf");
@@ -200,6 +244,7 @@ public final class RegisterHandler implements HttpHandler {
         cloud.jengu.dbo.core.api.Caller.setChain(actor, forWhom);
         try {
             authorising.authorise(listed.stream().map(String::valueOf).distinct().toList(),
+                    purposes.stream().map(String::valueOf).distinct().toList(),
                     forWhom != null ? forWhom : actor);
         } catch (IllegalArgumentException unread) {
             fail(exchange, 422, "invalid_request", String.valueOf(unread.getMessage()));
@@ -221,19 +266,35 @@ public final class RegisterHandler implements HttpHandler {
         // Who agreed to each row and when, where the tenant said so at its
         // door; a row its declaration authorises says only that.
         Optional<Map<String, Authorised>> atTheDoor = now.authorised();
+        Map<String, AgreedPurpose> agreed = now.agreedPurposes();
+        Map<String, String> inTerms = now.agreedInTerms();
         Set<String> unapproved = new java.util.HashSet<>();
         now.unapproved().forEach(row -> unapproved.add(row.digest()));
-        for (Map<String, Object> one : said) {
-            String digest = String.valueOf(one.get("digest"));
+        for (int at = 0; at < rows.size(); at++) {
+            Map<String, Object> one = said.get(at);
+            String digest = rows.get(at).digest();
             Authorised given = atTheDoor.map(door -> door.get(digest)).orElse(null);
-            if (given != null) {
+            AgreedPurpose under = rows.get(at).purpose() == null ? null
+                    : agreed.get(rows.get(at).purpose().code());
+            if (inTerms.containsKey(digest)) {
+                // Not the door's to withdraw: changed by changing the terms.
+                one.put("authorisedIn", "terms");
+                one.put("terms", inTerms.get(digest));
+                one.put("withdrawable", false);
+            } else if (given != null) {
                 one.put("authorisedBy", given.by());
                 one.put("authorisedAt", given.at().toString());
+            } else if (under != null && !unapproved.contains(digest)) {
+                // Standing because what it is for was agreed to, and within it.
+                one.put("authorisedUnder", rows.get(at).purpose().code());
+                one.put("authorisedBy", under.by());
+                one.put("authorisedAt", under.at().toString());
             } else if (atTheDoor.isEmpty() && !unapproved.contains(digest)) {
                 one.put("authorisedIn", "declaration");
             }
         }
         answer.put("rows", said);
+        answer.put("purposes", purposes(rows, agreed, now.purposesInTerms()));
         answer.put("declined", List.copyOf(new java.util.TreeSet<>(now.declined())));
         // Absent rather than false when nothing was ever authorised: never
         // having read a register is a different answer from having read this
@@ -243,6 +304,60 @@ public final class RegisterHandler implements HttpHandler {
         return answer;
     }
 
+    /**
+     * The register by what it is done for: each purpose a row serves, the
+     * words a person agrees to, and whether what it was agreed to still
+     * covers every row serving it. Where it does not, what is new is named —
+     * the partner or the kind of data — since that is what the tenant is
+     * asked about again.
+     */
+    static List<Map<String, Object>> purposes(List<FleetRegister.Row> rows,
+            Map<String, AgreedPurpose> agreed) {
+        return purposes(rows, agreed, Map.of());
+    }
+
+    /**
+     * The same, with the purposes agreed in terms read where the door agreed
+     * nothing for them.
+     */
+    static List<Map<String, Object>> purposes(List<FleetRegister.Row> rows,
+            Map<String, AgreedPurpose> agreed, Map<String, AgreedPurpose> inTerms) {
+        Map<String, TenantSpec.Purpose> served = new LinkedHashMap<>();
+        rows.stream().map(FleetRegister.Row::purpose).filter(java.util.Objects::nonNull)
+                .forEach(purpose -> served.putIfAbsent(purpose.code(), purpose));
+        List<Map<String, Object>> said = new ArrayList<>();
+        for (TenantSpec.Purpose purpose : served.values()) {
+            List<FleetRegister.Row> serving = FleetRegister.serving(rows, purpose.code());
+            Map<String, Object> one = new LinkedHashMap<>();
+            one.put("code", purpose.code());
+            one.put("words", purpose.words());
+            one.put("rows", serving.stream().map(FleetRegister.Row::digest).toList());
+            AgreedPurpose given = agreed.get(purpose.code());
+            AgreedPurpose signed = given == null ? inTerms.get(purpose.code()) : null;
+            if (given == null && signed == null) {
+                one.put("state", "not");
+            } else {
+                FleetRegister.Agreement beyond = (given != null ? given : signed).agreement()
+                        .beyond(serving);
+                one.put("state", beyond.isEmpty() ? "authorised" : "partly");
+                if (given != null) {
+                    one.put("authorisedBy", given.by());
+                    one.put("authorisedAt", given.at().toString());
+                } else {
+                    one.put("authorisedIn", "terms");
+                    one.put("terms", signed.by());
+                    one.put("withdrawable", false);
+                }
+                if (!beyond.isEmpty()) {
+                    one.put("new", Map.of("participants", List.copyOf(beyond.participants()),
+                            "types", List.copyOf(beyond.types())));
+                }
+            }
+            said.add(one);
+        }
+        return said;
+    }
+
     static Map<String, Object> incidents(Reading now) {
         List<Map<String, Object>> unauthorised = new ArrayList<>();
         for (UnapprovedProcessing.Incident incident : now.unapprovedProcessing()) {
@@ -250,6 +365,9 @@ public final class RegisterHandler implements HttpHandler {
             row.put("step", incident.step());
             row.put("slot", incident.slot());
             row.put("type", incident.type());
+            if (incident.purpose() != null) {
+                row.put("purpose", incident.purpose());
+            }
             incident.since().ifPresent(since -> row.put("since", since.toString()));
             row.put("days", incident.days());
             row.put("says", incident.says());
@@ -281,6 +399,24 @@ public final class RegisterHandler implements HttpHandler {
             if (row.slot() != null) {
                 one.put("slot", row.slot());
                 one.put("type", row.type());
+            }
+            if (row.purpose() != null) {
+                one.put("purpose", row.purpose().code());
+            }
+            if (row.recipient() != null) {
+                // The organisation as well as the role, and none where
+                // nothing resolves it: the row then cannot be authorised.
+                Map<String, Object> to = new LinkedHashMap<>();
+                to.put("role", row.recipient().role());
+                if (row.recipient().organisation() != null) {
+                    to.put("organisation", Map.of(
+                            "identifier", row.recipient().organisation().identifier(),
+                            "name", row.recipient().organisation().name()));
+                    to.put("resolvedBy", row.recipient().resolvedBy());
+                } else {
+                    to.put("organisation", null);
+                }
+                one.put("recipient", to);
             }
             one.put("authority", row.authority().name().toLowerCase(java.util.Locale.ROOT));
             if (row.by() != null) {

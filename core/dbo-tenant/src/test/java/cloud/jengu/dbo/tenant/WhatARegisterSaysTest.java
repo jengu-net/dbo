@@ -256,6 +256,57 @@ class WhatARegisterSaysTest {
                 "the same rows give two values, so no tenant could ever authorise anything");
     }
 
+    @Test
+    @DisplayName("a purpose stands for the rows within the partners and the data it was agreed "
+            + "to, so a step added under it is covered and a new partner or a new kind of data "
+            + "is asked about again, by name")
+    @Proving(DboPromises.PROC_A_TENANT_AUTHORISES_ITS_REGISTER_BY_PURPOSE)
+    void aPurposeIsAgreedToWhoAndWhat() {
+        TenantSpec.Purpose reporting = new TenantSpec.Purpose("registry-reporting",
+                "Laboratory results with the patient's identity, to the national registry");
+        FleetRegister.Row results = purposed("fleet.registry.report", "Reference(Observation)",
+                List.of(), reporting);
+        FleetRegister.Agreement agreed = FleetRegister.Agreement.over(List.of(results));
+
+        FleetRegister.Row renamed = purposed("fleet.registry.send", "Reference(Observation)",
+                List.of(), reporting);
+        FleetRegister.Row wider = purposed("fleet.registry.report", "Reference(Patient)",
+                List.of(), reporting);
+        FleetRegister.Row partnered = purposed("fleet.registry.report",
+                "Reference(Observation)", List.of("lab-partner"), reporting);
+        List<FleetRegister.Row> now = List.of(results, renamed, wider, partnered);
+        assertEquals(Set.of(results.digest(), renamed.digest()),
+                FleetRegister.standing(now, Set.of(), Map.of(reporting.code(), agreed)),
+                "a purpose agreed to stood for a row with a partner or a kind of data nobody "
+                        + "agreed to, or not for a step that changed neither");
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> said = ((List<Map<String, Object>>) RegisterHandler.purposes(now,
+                Map.of(reporting.code(), new RegisterHandler.AgreedPurpose("Practitioner/p1",
+                        java.time.Instant.EPOCH, agreed)))).get(0);
+        assertEquals("partly", said.get("state"));
+        assertEquals(Map.of("participants", List.of("lab-partner"),
+                        "types", List.of("Reference(Patient)")), said.get("new"),
+                "the register does not say what is new under the purpose: " + said);
+        assertEquals(reporting.words(), said.get("words"));
+        assertEquals("not", RegisterHandler.purposes(now, Map.of()).get(0).get("state"));
+
+        assertFalse(results.digest().equals(purposed(results.step(), results.type(), List.of(),
+                        null).digest()),
+                "a row moved to another purpose still matches what the tenant authorised");
+        assertEquals(CHECKED.digest(), new FleetRegister.Row(CHECKED.step(), CHECKED.slot(),
+                        CHECKED.type(), CHECKED.required(), CHECKED.posture(),
+                        FleetRegister.Authority.PROVIDER, null, List.of(), null, null).digest(),
+                "a row serving no purpose no longer matches what tenants authorised before");
+    }
+
+    private static FleetRegister.Row purposed(String step, String type, List<String> partners,
+            TenantSpec.Purpose purpose) {
+        return new FleetRegister.Row(step, "result", type, false,
+                TenantSpec.FleetStep.Posture.PROCESSED_AND_NAMED,
+                FleetRegister.Authority.PROVIDER, null, partners, null, purpose);
+    }
+
     private static RegisterHandler.Reading reading(Optional<Boolean> changed) {
         return new RegisterHandler.Reading() {
             @Override

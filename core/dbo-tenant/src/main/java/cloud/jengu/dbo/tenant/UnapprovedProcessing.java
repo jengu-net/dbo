@@ -32,14 +32,25 @@ import java.util.Optional;
  */
 public final class UnapprovedProcessing {
 
-    /** One row that is being acted on without authorisation, and since when. */
+    /**
+     * One row that is being acted on without authorisation, and since when.
+     *
+     * @param purpose what the row is done for, or null where it names nothing
+     */
     public record Incident(String tenant, String step, String slot, String type,
-            Optional<Instant> since) {
+            Optional<Instant> since, String purpose) {
+
+        /** A row serving no named purpose. */
+        public Incident(String tenant, String step, String slot, String type,
+                Optional<Instant> since) {
+            this(tenant, step, slot, type, since, null);
+        }
 
         /** What a tenant is told, in one line it can act on. */
         public String says() {
             return "'" + step + "' has been opening " + type + " in slot '" + slot
-                    + "' of " + tenant + "'s work" + since
+                    + "' of " + tenant + "'s work"
+                    + (purpose == null ? "" : " for '" + purpose + "'") + since
                     .map(when -> " since " + when + " (" + days() + " days)")
                     .orElse(" and has not run yet")
                     + ", and " + tenant + " has not authorised that row.";
@@ -78,7 +89,8 @@ public final class UnapprovedProcessing {
                 continue;
             }
             incidents.add(new Incident(tenant, row.step(), row.slot(), row.type(),
-                    earliestRunOf(row.step(), engine)));
+                    earliestRunOf(row.step(), engine),
+                    row.purpose() == null ? null : row.purpose().code()));
         }
         return List.copyOf(incidents);
     }

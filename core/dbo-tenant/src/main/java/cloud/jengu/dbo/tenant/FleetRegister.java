@@ -55,10 +55,16 @@ public final class FleetRegister {
      * @param partOf   for a step of the tenant's own a person of the provider
      *                 may start, the handed step whose holder starts it; it
      *                 opens no slot, so the row names none
+     * @param purpose  what the row is done for, which a tenant may authorise
+     *                 in place of the rows serving it; null for none
+     * @param recipient the organisation that receives what is opened for its
+     *                 own purpose, as this tenant's zone or its own
+     *                 declaration resolves the role; null for none
      */
     public record Row(String step, String slot, String type, boolean required,
             TenantSpec.FleetStep.Posture posture, Authority authority, String by,
-            List<String> subProcessors, String partOf) {
+            List<String> subProcessors, String partOf, TenantSpec.Purpose purpose,
+            Recipient recipient) {
 
         public Row {
             if (partOf != null && (authority != Authority.TENANT || slot != null)) {
@@ -73,6 +79,53 @@ public final class FleetRegister {
                         + "the provider's names none");
             }
             subProcessors = List.copyOf(subProcessors);
+        }
+
+        /** A row sending what it opens to nobody receiving it for themselves. */
+        public Row(String step, String slot, String type, boolean required,
+                TenantSpec.FleetStep.Posture posture, Authority authority, String by,
+                List<String> subProcessors, String partOf, TenantSpec.Purpose purpose) {
+            this(step, slot, type, required, posture, authority, by, subProcessors, partOf,
+                    purpose, null);
+        }
+
+        /**
+         * Whether the row sends to a role nothing resolves: it cannot stand,
+         * since nobody can agree to give data to an organisation the register
+         * cannot name.
+         */
+        public boolean goesNowhereKnown() {
+            return recipient != null && recipient.organisation() == null;
+        }
+
+        /** A row serving no purpose a declaration named. */
+        public Row(String step, String slot, String type, boolean required,
+                TenantSpec.FleetStep.Posture posture, Authority authority, String by,
+                List<String> subProcessors, String partOf) {
+            this(step, slot, type, required, posture, authority, by, subProcessors, partOf,
+                    null);
+        }
+
+        /**
+         * Who handles what this row opens: the provider and the partners it
+         * carries its process out with, or the zone whose process it is.
+         *
+         * <p>Half of what a purpose is agreed to, beside the types it opens. A
+         * person deciding about a purpose decides who gets the data and which
+         * data, and a step renamed or split changes neither.
+         */
+        public java.util.SortedSet<String> participants() {
+            java.util.SortedSet<String> who = new java.util.TreeSet<>();
+            if (authority == Authority.ZONE) {
+                who.add(by);
+            } else {
+                who.add(PROVIDER_PARTICIPANT);
+                who.addAll(subProcessors);
+            }
+            if (recipient != null && recipient.organisation() != null) {
+                who.add(recipient.organisation().identifier());
+            }
+            return java.util.Collections.unmodifiableSortedSet(who);
         }
 
         /** A row that is no part of handed work. */
@@ -123,8 +176,124 @@ public final class FleetRegister {
                 canonical.append("\u0000sub\u0000")
                         .append(String.join(",", new java.util.TreeSet<>(subProcessors)));
             }
+            if (purpose != null) {
+                // Moved to another purpose, a row is not the one the tenant
+                // agreed to: what it is done for is part of what it is.
+                canonical.append("\u0000purpose\u0000").append(purpose.code());
+            }
+            if (recipient != null) {
+                // The organisation and not only the role: a zone naming
+                // another registry is data going somewhere nobody agreed to,
+                // so the row a tenant authorised is no longer this one.
+                canonical.append("\u0000to\u0000").append(recipient.role()).append('\u0000')
+                        .append(recipient.organisation() == null ? ""
+                                : recipient.organisation().identifier());
+            }
             return digestOver(canonical.toString());
         }
+    }
+
+    /**
+     * Who receives what a row opens for their own purpose: the role the step
+     * names and the organisation it resolves to for this tenant.
+     *
+     * @param role         as the step names it
+     * @param organisation who that is, or null where nothing resolves it
+     * @param resolvedBy   the zone or the tenant whose declaration said so, or
+     *                     null with the organisation
+     */
+    public record Recipient(String role, TenantSpec.Organisation organisation,
+            String resolvedBy) {
+    }
+
+    /** How a row names the service provider among those handling its data. */
+    public static final String PROVIDER_PARTICIPANT = "provider";
+
+    /**
+     * What a tenant agreed to when it authorised a purpose: who handles the
+     * data and which data.
+     *
+     * <p><b>Who and what, and nothing else.</b> A row of the purpose stands
+     * while its participants and its type are among these, so a step renamed,
+     * split or added under the purpose is covered, and a new partner or a new
+     * kind of data is not until the tenant agrees again. That is the change a
+     * processor tells a controller of, and the one a person decides
+     * differently about; a digest moves for far less, and a register that
+     * asked again for every move would be clicked through. The posture and
+     * whether a row is required say what happens before agreement, not what
+     * is agreed to, so they are no part of it.
+     *
+     * @param participants who handles the data, as {@link Row#participants()}
+     *                     names them
+     * @param types        what is opened, in the form the steps declared it
+     */
+    public record Agreement(java.util.SortedSet<String> participants,
+            java.util.SortedSet<String> types) {
+
+        public Agreement {
+            participants = java.util.Collections.unmodifiableSortedSet(
+                    new java.util.TreeSet<>(participants));
+            types = java.util.Collections.unmodifiableSortedSet(new java.util.TreeSet<>(types));
+        }
+
+        /** Everything these rows carry: what authorising their purpose now agrees to. */
+        public static Agreement over(List<Row> rows) {
+            java.util.SortedSet<String> who = new java.util.TreeSet<>();
+            java.util.SortedSet<String> what = new java.util.TreeSet<>();
+            for (Row row : rows) {
+                who.addAll(row.participants());
+                if (row.type() != null) {
+                    what.add(row.type());
+                }
+            }
+            return new Agreement(who, what);
+        }
+
+        /** Whether this row is within what was agreed. */
+        public boolean covers(Row row) {
+            return participants.containsAll(row.participants())
+                    && (row.type() == null || types.contains(row.type()));
+        }
+
+        /** What these rows carry that was not agreed to: what a tenant is asked again about. */
+        public Agreement beyond(List<Row> rows) {
+            Agreement now = over(rows);
+            java.util.SortedSet<String> who = new java.util.TreeSet<>(now.participants());
+            who.removeAll(participants);
+            java.util.SortedSet<String> what = new java.util.TreeSet<>(now.types());
+            what.removeAll(types);
+            return new Agreement(who, what);
+        }
+
+        public boolean isEmpty() {
+            return participants.isEmpty() && types.isEmpty();
+        }
+    }
+
+    /**
+     * The digests of the rows that stand: each named itself, or serving a
+     * purpose the tenant agreed to and within what it agreed to.
+     */
+    public static Set<String> standing(List<Row> rows, Set<String> digests,
+            java.util.Map<String, Agreement> purposes) {
+        Set<String> standing = new java.util.LinkedHashSet<>();
+        for (Row row : rows) {
+            Agreement agreed = row.purpose() == null ? null
+                    : purposes.get(row.purpose().code());
+            if (row.goesNowhereKnown()) {
+                continue;
+            }
+            if (digests.contains(row.digest()) || (agreed != null && agreed.covers(row))) {
+                standing.add(row.digest());
+            }
+        }
+        return standing;
+    }
+
+    /** The rows of the register serving a purpose, in register order. */
+    public static List<Row> serving(List<Row> rows, String purpose) {
+        return rows.stream().filter(row -> row.purpose() != null
+                && row.purpose().code().equals(purpose)).toList();
     }
 
     /** Whose process a row is. */
@@ -166,7 +335,8 @@ public final class FleetRegister {
 
     /** Which rows this tenant has not authorised: the new ones and the widened. */
     public static List<Row> unapproved(List<Row> rows, Set<String> authorised) {
-        return rows.stream().filter(row -> !authorised.contains(row.digest())).toList();
+        return rows.stream().filter(row -> row.goesNowhereKnown()
+                || !authorised.contains(row.digest())).toList();
     }
 
     private static String digestOver(String canonical) {
@@ -229,11 +399,16 @@ public final class FleetRegister {
                         step.slots().entrySet().iterator().next();
                 rows.add(new Row(step.code(), request.getKey(), request.getValue(), false,
                         TenantSpec.FleetStep.Posture.NOT_UNTIL_APPROVED, Authority.TENANT,
-                        null, List.of()));
+                        null, List.of(), null, step.purposes().of(request.getKey())));
                 for (String part : step.holdersStart()) {
+                    // What the part serves is the part's own to say, since it
+                    // is a step of its own the tenant may hand under other work.
+                    TenantSpec.Purpose served = declared.stream()
+                            .filter(one -> one.code().equals(part)).findFirst()
+                            .map(one -> one.purposes().step()).orElse(null);
                     rows.add(new Row(part, null, null, false,
                             TenantSpec.FleetStep.Posture.NOT_UNTIL_APPROVED, Authority.TENANT,
-                            null, List.of(), step.code()));
+                            null, List.of(), step.code(), served));
                 }
             }
         }
@@ -250,6 +425,17 @@ public final class FleetRegister {
      * can act on.
      */
     public static List<Row> of(List<TenantSpec.FleetStep> declared, Set<String> declined) {
+        return of(declared, declined, role -> new Recipient(role, null, null));
+    }
+
+    /**
+     * The same, each recipient role resolved for the tenant reading it.
+     *
+     * @param resolve the organisation a role is for this tenant, as a
+     *                recipient naming none where nothing resolves it
+     */
+    public static List<Row> of(List<TenantSpec.FleetStep> declared, Set<String> declined,
+            java.util.function.Function<String, Recipient> resolve) {
         List<Row> rows = new ArrayList<>();
         for (TenantSpec.FleetStep step : declared) {
             if (declined.contains(step.code()) || !step.isProcessor()) {
@@ -262,7 +448,9 @@ public final class FleetRegister {
                 if (step.opens().contains(slot)) {
                     rows.add(new Row(step.code(), slot, type, step.required(), step.posture(),
                             Authority.PROVIDER, null,
-                            List.copyOf(new java.util.TreeSet<>(step.delegatesTo()))));
+                            List.copyOf(new java.util.TreeSet<>(step.delegatesTo())), null,
+                            step.purposes().of(slot),
+                            step.recipient() == null ? null : resolve.apply(step.recipient())));
                 }
             });
         }

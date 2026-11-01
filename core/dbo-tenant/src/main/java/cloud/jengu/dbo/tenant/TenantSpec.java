@@ -26,7 +26,99 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
         String managedBy, boolean faceRoot, List<Step> steps, boolean zoneRoot,
         boolean indexFace, List<FleetStep> fleetSteps, Set<String> declines,
         Set<String> authorised, Set<String> exchanges, String partnerOf,
-        Configuration configuration, WorkingKey workingKey, String kind) {
+        Configuration configuration, WorkingKey workingKey, String kind,
+        java.util.Map<String, Organisation> recipients, List<Terms> terms) {
+
+    /** Under no terms signed outside the store. */
+    public TenantSpec(String code, String face, List<FhirTypeConfig> types,
+            boolean pdi, cloud.jengu.dbo.policy.TenantPolicies policies,
+            String zone, String broker, List<String> acceptedBrokers,
+            List<Dependency> dependencies, Scim scim, List<String> mandatorySteps,
+            String managedBy, boolean faceRoot, List<Step> steps, boolean zoneRoot,
+            boolean indexFace, List<FleetStep> fleetSteps, Set<String> declines,
+            Set<String> authorised, Set<String> exchanges, String partnerOf,
+            Configuration configuration, WorkingKey workingKey, String kind,
+            java.util.Map<String, Organisation> recipients) {
+        this(code, face, types, pdi, policies, zone, broker, acceptedBrokers,
+                dependencies, scim, mandatorySteps, managedBy, faceRoot, steps, zoneRoot,
+                indexFace, fleetSteps, declines, authorised, exchanges, partnerOf,
+                configuration, workingKey, kind, recipients, List.of());
+    }
+
+    /**
+     * Rows of the register a tenant agreed to by terms it signed before using
+     * the deployment, rather than at its door.
+     *
+     * <p><b>Named, and not withdrawn at the door.</b> What was agreed in a
+     * contract is changed by changing the contract, so these rows stand
+     * whatever the tenant's door says, and the register says so and by which
+     * terms rather than letting them pass for agreement given there.
+     *
+     * <p><b>A purpose agreed in terms is agreed to who and what</b>, listed in
+     * the terms as a purpose authorised at the door records them: a partner or
+     * a kind of data the terms do not list is not covered by them.
+     *
+     * @param name     the terms as the tenant knows them, such as a contract's
+     *                 title and date
+     * @param rows     rows agreed one by one, by digest
+     * @param purposes purposes agreed, each with the participants and types
+     *                 the terms list
+     */
+    public record Terms(String name, Set<String> rows,
+            java.util.Map<String, FleetRegister.Agreement> purposes) {
+
+        public Terms {
+            if (name == null || name.isBlank()) {
+                throw new IllegalArgumentException("terms are named, so the register can "
+                        + "say which terms a row was agreed in");
+            }
+            rows = Set.copyOf(rows);
+            purposes = java.util.Map.copyOf(purposes);
+        }
+    }
+
+    /**
+     * Without saying who receives what: what every tenant was before a
+     * register named recipients.
+     */
+    public TenantSpec(String code, String face, List<FhirTypeConfig> types,
+            boolean pdi, cloud.jengu.dbo.policy.TenantPolicies policies,
+            String zone, String broker, List<String> acceptedBrokers,
+            List<Dependency> dependencies, Scim scim, List<String> mandatorySteps,
+            String managedBy, boolean faceRoot, List<Step> steps, boolean zoneRoot,
+            boolean indexFace, List<FleetStep> fleetSteps, Set<String> declines,
+            Set<String> authorised, Set<String> exchanges, String partnerOf,
+            Configuration configuration, WorkingKey workingKey, String kind) {
+        this(code, face, types, pdi, policies, zone, broker, acceptedBrokers,
+                dependencies, scim, mandatorySteps, managedBy, faceRoot, steps, zoneRoot,
+                indexFace, fleetSteps, declines, authorised, exchanges, partnerOf,
+                configuration, workingKey, kind, java.util.Map.of());
+    }
+
+    /**
+     * An organisation that receives data for its own purpose, named as a
+     * register names it to a person.
+     *
+     * <p>By identifier, because a reference names a record in one tenant and
+     * the organisation is named the same way to every tenant of a zone.
+     *
+     * @param identifier {@code system|value}
+     * @param name       what a person reading the register is told
+     */
+    public record Organisation(String identifier, String name) {
+
+        public Organisation {
+            int bar = identifier == null ? -1 : identifier.indexOf('|');
+            if (bar <= 0 || bar == identifier.length() - 1) {
+                throw new IllegalArgumentException("an organisation is named by its "
+                        + "identifier, as system|value, and '" + identifier + "' is not one");
+            }
+            if (name == null || name.isBlank()) {
+                throw new IllegalArgumentException("organisation " + identifier + " has no "
+                        + "name, and a register naming who receives data names it to a person");
+            }
+        }
+    }
 
     /**
      * What wraps the tenant's working key, where it is not the deployment's
@@ -131,7 +223,69 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
      * @param holdersStart the steps a person of the provider holding its work
      *                 may start as parts of it, each its own row of the
      *                 tenant's register
+     * @param purposes what the rows its work puts on the tenant's register
+     *                 are done for
      */
+    /**
+     * What a row of a tenant's register is done for, in the words a person
+     * agrees to.
+     *
+     * <p><b>The declaring party's own code, not a PurposeOfUse.</b> A person
+     * agrees to a sentence such as <i>laboratory results with the patient's
+     * identity, to the national health registry</i>, and {@code PUBHLTH}
+     * would cover that and every other public-health use at once. The words
+     * travel with the code because they are what was agreed to.
+     *
+     * @param code  how a step and an authorisation name it
+     * @param words what a person reads before agreeing
+     */
+    public record Purpose(String code, String words) {
+
+        public Purpose {
+            if (code == null || !code.matches("[a-z0-9]+(-[a-z0-9]+)*")) {
+                throw new IllegalArgumentException("a purpose is named by a code such as "
+                        + "registry-reporting, and '" + code + "' is not one");
+            }
+            if (words == null || words.isBlank()) {
+                throw new IllegalArgumentException("purpose '" + code + "' says nothing a "
+                        + "person could agree to: give it the words, as \"purposes\": {\""
+                        + code + "\": \"…\"}");
+            }
+        }
+    }
+
+    /**
+     * The purposes a step's rows serve: the step's own, and any a slot it
+     * opens names instead.
+     *
+     * @param step  what every row of the step serves, or null for none
+     * @param slots slot name to the purpose its row serves in place of the
+     *              step's
+     */
+    public record Purposes(Purpose step, java.util.Map<String, Purpose> slots) {
+
+        /** No row of the step names a purpose. */
+        public static final Purposes NONE = new Purposes(null, java.util.Map.of());
+
+        public Purposes {
+            slots = java.util.Map.copyOf(slots);
+        }
+
+        /** What the row over this slot serves, or the step's own for a row over none. */
+        public Purpose of(String slot) {
+            return slot != null && slots.containsKey(slot) ? slots.get(slot) : step;
+        }
+
+        void within(String code, java.util.Map<String, String> taken) {
+            for (String slot : slots.keySet()) {
+                if (!taken.containsKey(slot)) {
+                    throw new IllegalArgumentException(code + ": names a purpose for slot '"
+                            + slot + "' and does not take it");
+                }
+            }
+        }
+    }
+
     /**
      * Whether a step's declared secrets reach a name: one of them is the
      * name, or a family whose prefix the name extends — connection.* reaches
@@ -156,7 +310,17 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
             java.util.Set<String> writes, cloud.jengu.dbo.core.process.RetryPolicy retry,
             cloud.jengu.dbo.core.process.AutomationCriterion automate, Answer answer,
             Starts starts, boolean lasts, Awaits awaits, java.util.Set<String> secrets,
-            boolean handsToProvider, List<String> holdersStart) {
+            boolean handsToProvider, List<String> holdersStart, Purposes purposes) {
+
+        /** Work whose rows name no purpose. */
+        public Step(String code, java.util.Map<String, String> slots,
+                java.util.Set<String> writes, cloud.jengu.dbo.core.process.RetryPolicy retry,
+                cloud.jengu.dbo.core.process.AutomationCriterion automate, Answer answer,
+                Starts starts, boolean lasts, Awaits awaits, java.util.Set<String> secrets,
+                boolean handsToProvider, List<String> holdersStart) {
+            this(code, slots, writes, retry, automate, answer, starts, lasts, awaits, secrets,
+                    handsToProvider, holdersStart, Purposes.NONE);
+        }
 
         /** Work whose holders start nothing under it. */
         public Step(String code, java.util.Map<String, String> slots,
@@ -240,6 +404,8 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
         public Step {
             writes = java.util.Set.copyOf(writes);
             holdersStart = holdersStart == null ? List.of() : List.copyOf(holdersStart);
+            purposes = purposes == null ? Purposes.NONE : purposes;
+            purposes.within(code, slots);
             if (!holdersStart.isEmpty() && !handsToProvider) {
                 // Its own people start whatever their credential reaches; the
                 // list is what a person of the provider may, and nobody else.
@@ -486,10 +652,33 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
      *                  yet approved
      * @param substrate where this step's queue lives; absent means the
      *                  deployment's own. Several steps may name one
+     * @param purposes  what the rows it puts on each tenant's register are
+     *                  done for
+     * @param recipient the role of the organisation that receives what it
+     *                  opens for its own purpose, such as national-registry;
+     *                  a zone or the tenant says which organisation that is.
+     *                  Null for none
      */
     public record FleetStep(String code, java.util.Map<String, String> slots,
             Set<String> opens, boolean required, Posture posture, String substrate,
-            Set<String> delegatesTo, boolean lasts, Starts starts) {
+            Set<String> delegatesTo, boolean lasts, Starts starts, Purposes purposes,
+            String recipient) {
+
+        /** A step sending what it opens to no organisation of its own. */
+        public FleetStep(String code, java.util.Map<String, String> slots,
+                Set<String> opens, boolean required, Posture posture, String substrate,
+                Set<String> delegatesTo, boolean lasts, Starts starts, Purposes purposes) {
+            this(code, slots, opens, required, posture, substrate, delegatesTo, lasts, starts,
+                    purposes, null);
+        }
+
+        /** A step whose rows name no purpose. */
+        public FleetStep(String code, java.util.Map<String, String> slots,
+                Set<String> opens, boolean required, Posture posture, String substrate,
+                Set<String> delegatesTo, boolean lasts, Starts starts) {
+            this(code, slots, opens, required, posture, substrate, delegatesTo, lasts, starts,
+                    Purposes.NONE);
+        }
 
         /** Carried out by the provider itself, handed to no partner. */
         public FleetStep(String code, java.util.Map<String, String> slots,
@@ -595,6 +784,16 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
                 posture = Posture.PROCESSED_AND_NAMED;
             }
             delegatesTo = Set.copyOf(delegatesTo);
+            purposes = purposes == null ? Purposes.NONE : purposes;
+            purposes.within(code, slots);
+            if (recipient != null && (!recipient.matches("[a-z0-9]+(-[a-z0-9]+)*")
+                    || opens.isEmpty())) {
+                throw new IllegalArgumentException(code + ": " + (opens.isEmpty()
+                        ? "sends to '" + recipient + "' and opens nothing, so no tenant's "
+                                + "register could say what it sends"
+                        : "a recipient is a role such as national-registry, and '"
+                                + recipient + "' is not one"));
+            }
             if (!delegatesTo.isEmpty() && opens.isEmpty()) {
                 // A partner is named so that a tenant knows who handles its
                 // data, on the register row for what is opened. A step that
@@ -964,6 +1163,8 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
     }
 
     public TenantSpec {
+        recipients = recipients == null ? java.util.Map.of() : java.util.Map.copyOf(recipients);
+        terms = terms == null ? List.of() : List.copyOf(terms);
         if (code == null || !CODE.matcher(code).matches()) {
             throw new IllegalArgumentException("invalid tenant code: " + code);
         }
@@ -1213,6 +1414,9 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
         // first run of it: the spec is where a declaration disagreeing with
         // itself is cheapest to find.
         List<Step> steps = new java.util.ArrayList<>();
+        // Read before the steps, because a step names a purpose and is
+        // refused where it names one this declaration never put into words.
+        java.util.Map<String, Purpose> declaredPurposes = purposesOf(code, root);
         // Read before the steps, because a step names an audience and is
         // refused where it names one this tenant never declared.
         cloud.jengu.dbo.policy.TenantPolicies policies =
@@ -1335,7 +1539,8 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
                 steps.add(new Step(stepCode, slots, writes, retry, automate,
                         answer(code, stepCode, step, policies), starts, Json.bool(step, "lasts"),
                         awaits, Set.copyOf(Json.strings(step, "secrets")), handsTo != null,
-                        Json.strings(step, "holdersStart")));
+                        Json.strings(step, "holdersStart"),
+                        purposesOf(code, stepCode, step, declaredPurposes)));
             }
         }
         // What a holder of handed work may start is one of this tenant's
@@ -1395,7 +1600,9 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
                         FleetStep.Posture.of(Json.strOpt(one, "posture"), stepCode),
                         Json.strOpt(one, "substrate"),
                         Set.copyOf(Json.strings(one, "delegatesTo")),
-                        Json.bool(one, "lasts"), fleetStarts));
+                        Json.bool(one, "lasts"), fleetStarts,
+                        purposesOf(code, stepCode, one, declaredPurposes),
+                        Json.strOpt(one, "recipient")));
             }
         }
         return new TenantSpec(code, face, types, pdi, policies,
@@ -1451,7 +1658,12 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
                 // WHAT WRAPS ITS WORKING KEY, where it is not the deployment's.
                 workingKeyOf(root),
                 // WHAT KIND IT IS, where it says: a label, deciding nothing here.
-                Json.strOpt(root, "kind"));
+                Json.strOpt(root, "kind"),
+                // WHO A RECIPIENT ROLE IS, for the rows of its members' registers
+                // (a zone's) or of its own.
+                recipientsOf(code, root),
+                // WHAT IT AGREED TO OUTSIDE THE STORE, by the terms it signed.
+                termsOf(code, root));
     }
 
     private static WorkingKey workingKeyOf(Object root) {
@@ -1763,5 +1975,93 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
         } catch (java.security.NoSuchAlgorithmException e) {
             throw new IllegalStateException(e);
         }
+    }
+
+    /** The terms a tenant signed, each with the rows and purposes agreed in them. */
+    private static List<Terms> termsOf(String code, Object root) {
+        List<Terms> signed = new java.util.ArrayList<>();
+        for (Object term : Json.array(root, "terms")) {
+            java.util.Map<String, FleetRegister.Agreement> purposes =
+                    new java.util.LinkedHashMap<>();
+            for (Object agreed : Json.array(term, "purposes")) {
+                purposes.put(Json.str(agreed, "code"), new FleetRegister.Agreement(
+                        new java.util.TreeSet<>(Json.strings(agreed, "participants")),
+                        new java.util.TreeSet<>(Json.strings(agreed, "types"))));
+            }
+            try {
+                signed.add(new Terms(Json.strOpt(term, "name"),
+                        Set.copyOf(Json.strings(term, "rows")), purposes));
+            } catch (IllegalArgumentException wrong) {
+                throw new IllegalArgumentException(code + ": " + wrong.getMessage(), wrong);
+            }
+        }
+        return signed;
+    }
+
+    /** The organisations a declaration says recipient roles are, by role. */
+    private static java.util.Map<String, Organisation> recipientsOf(String code, Object root) {
+        java.util.Map<String, Organisation> named = new java.util.LinkedHashMap<>();
+        for (Object recipient : Json.array(root, "recipients")) {
+            String role = Json.strOpt(recipient, "role");
+            if (role == null || named.containsKey(role)) {
+                throw new IllegalArgumentException(code + ": a recipient names its role, once: "
+                        + (role == null ? "one names none" : "'" + role + "' is named twice"));
+            }
+            try {
+                named.put(role, new Organisation(Json.strOpt(recipient, "identifier"),
+                        Json.strOpt(recipient, "name")));
+            } catch (IllegalArgumentException wrong) {
+                throw new IllegalArgumentException(code + ": recipient '" + role + "' — "
+                        + wrong.getMessage(), wrong);
+            }
+        }
+        return named;
+    }
+
+    /** The purposes a declaration puts into words, by code. */
+    private static java.util.Map<String, Purpose> purposesOf(String code, Object root) {
+        java.util.Map<String, Purpose> declared = new java.util.LinkedHashMap<>();
+        if (Json.objOpt(root, "purposes") instanceof java.util.Map<?, ?> named) {
+            named.forEach((purpose, words) -> {
+                try {
+                    declared.put(String.valueOf(purpose), new Purpose(String.valueOf(purpose),
+                            words instanceof String said ? said : null));
+                } catch (IllegalArgumentException wrong) {
+                    throw new IllegalArgumentException(code + ": " + wrong.getMessage(), wrong);
+                }
+            });
+        }
+        return declared;
+    }
+
+    /**
+     * What a step's rows serve, from {@code registerPurpose} and
+     * {@code registerPurposes}: named apart from {@code purpose}, which is the
+     * PurposeOfUse a step reads a person for.
+     */
+    private static Purposes purposesOf(String code, String stepCode, Object step,
+            java.util.Map<String, Purpose> declared) {
+        String own = Json.strOpt(step, "registerPurpose");
+        java.util.Map<String, Purpose> bySlot = new java.util.LinkedHashMap<>();
+        if (Json.objOpt(step, "registerPurposes") instanceof java.util.Map<?, ?> named) {
+            named.forEach((slot, purpose) -> bySlot.put(String.valueOf(slot),
+                    declaredPurpose(code, stepCode, String.valueOf(purpose), declared)));
+        }
+        if (own == null && bySlot.isEmpty()) {
+            return Purposes.NONE;
+        }
+        return new Purposes(own == null ? null : declaredPurpose(code, stepCode, own, declared),
+                bySlot);
+    }
+
+    private static Purpose declaredPurpose(String code, String stepCode, String purpose,
+            java.util.Map<String, Purpose> declared) {
+        Purpose found = declared.get(purpose);
+        if (found == null) {
+            throw new IllegalArgumentException(code + ": step '" + stepCode + "' serves '"
+                    + purpose + "', which this declaration does not put into words under "
+                    + "'purposes': a person agrees to the words, not to the code");
+        }
+        return found;
     }
 }

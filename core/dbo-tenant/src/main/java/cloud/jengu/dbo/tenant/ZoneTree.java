@@ -146,6 +146,28 @@ final class ZoneTree {
         return last < 0 ? stepCode : stepCode.substring(0, last);
     }
 
+    /**
+     * The organisation a recipient role is for this tenant: the nearest zone
+     * above it that names one, else its own declaration.
+     *
+     * <p><b>A jurisdiction's word binds.</b> A tenant names only roles no zone
+     * of its names: a member pointing the national registry somewhere else
+     * would make its register say the data goes where it does not.
+     */
+    FleetRegister.Recipient recipient(String tenant, String role) {
+        for (String zone : chainOf(tenant)) {
+            TenantSpec spec = declared.get(zone);
+            if (spec != null && spec.recipients().containsKey(role)) {
+                return new FleetRegister.Recipient(role, spec.recipients().get(role), zone);
+            }
+        }
+        TenantSpec own = declared.get(tenant);
+        if (own != null && own.recipients().containsKey(role)) {
+            return new FleetRegister.Recipient(role, own.recipients().get(role), tenant);
+        }
+        return new FleetRegister.Recipient(role, null, null);
+    }
+
     /** What a zone permits its members to do for each other; nothing, if it says nothing. */
     Set<String> permitted(String zone) {
         TenantSpec spec = declared.get(zone);

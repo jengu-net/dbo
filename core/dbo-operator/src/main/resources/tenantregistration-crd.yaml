@@ -258,6 +258,15 @@ spec:
                         type: array
                         items:
                           type: string
+                      # What the rows it puts on a tenant's register are done
+                      # for: a code this declaration puts into words under
+                      # purposes, and per slot one in place of it.
+                      registerPurpose:
+                        type: string
+                      registerPurposes:
+                        type: object
+                        additionalProperties:
+                          type: string
                       starts:
                         type: object
                         required: [keep, where]
@@ -329,6 +338,19 @@ spec:
                         type: array
                         items:
                           type: string
+                      # The role of an organisation that receives what it opens
+                      # for its own purpose; a zone or the tenant names who.
+                      recipient:
+                        type: string
+                      # What the rows it puts on a tenant's register are done
+                      # for: a code this declaration puts into words under
+                      # purposes, and per slot one in place of it.
+                      registerPurpose:
+                        type: string
+                      registerPurposes:
+                        type: object
+                        additionalProperties:
+                          type: string
                       # Whether a run of it in each tenant is work that lasts.
                       lasts:
                         type: boolean
@@ -364,6 +386,58 @@ spec:
                 declines:
                   type: array
                   items:
+                    type: string
+                # The terms this tenant signed before using the deployment,
+                # and the rows and purposes agreed in them: they stand
+                # whatever its door says.
+                terms:
+                  type: array
+                  items:
+                    type: object
+                    required: [name]
+                    properties:
+                      name:
+                        type: string
+                      rows:
+                        type: array
+                        items:
+                          type: string
+                      purposes:
+                        type: array
+                        items:
+                          type: object
+                          required: [code]
+                          properties:
+                            code:
+                              type: string
+                            participants:
+                              type: array
+                              items:
+                                type: string
+                            types:
+                              type: array
+                              items:
+                                type: string
+                # Who a recipient role is: a zone's binds its members, and a
+                # tenant names only roles no zone above it names.
+                recipients:
+                  type: array
+                  items:
+                    type: object
+                    required: [role, identifier, name]
+                    properties:
+                      role:
+                        type: string
+                      identifier:
+                        type: string
+                      name:
+                        type: string
+                # What the rows of the register are done for, each code in
+                # the words a person agrees to. A step names one as its
+                # registerPurpose.
+                purposes:
+                  type: object
+                  additionalProperties:
                     type: string
                 # Which rows of the register this tenant authorised, each by
                 # its own digest. All at once and per row, which sound opposed

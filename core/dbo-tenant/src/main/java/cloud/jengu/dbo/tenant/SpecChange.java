@@ -169,6 +169,14 @@ public record SpecChange(Kind kind, List<String> fields) {
         if (!Objects.equals(serving.authorised(), declared.authorised())) {
             hot.add("authorised");
         }
+        // The terms it signed and who its recipient roles are: what its
+        // register reads on every ask, and nothing it is made of.
+        if (!Objects.equals(serving.terms(), declared.terms())) {
+            hot.add("terms");
+        }
+        if (!Objects.equals(serving.recipients(), declared.recipients())) {
+            hot.add("recipients");
+        }
         if (!Objects.equals(serving.mandatorySteps(), declared.mandatorySteps())) {
             hot.add("mandatorySteps");
         }
