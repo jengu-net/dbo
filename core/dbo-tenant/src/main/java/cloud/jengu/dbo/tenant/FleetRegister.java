@@ -57,10 +57,14 @@ public final class FleetRegister {
      *                 opens no slot, so the row names none
      * @param purpose  what the row is done for, which a tenant may authorise
      *                 in place of the rows serving it; null for none
+     * @param recipient the organisation that receives what is opened for its
+     *                 own purpose, as this tenant's zone or its own
+     *                 declaration resolves the role; null for none
      */
     public record Row(String step, String slot, String type, boolean required,
             TenantSpec.FleetStep.Posture posture, Authority authority, String by,
-            List<String> subProcessors, String partOf, TenantSpec.Purpose purpose) {
+            List<String> subProcessors, String partOf, TenantSpec.Purpose purpose,
+            Recipient recipient) {
 
         public Row {
             if (partOf != null && (authority != Authority.TENANT || slot != null)) {
@@ -75,6 +79,23 @@ public final class FleetRegister {
                         + "the provider's names none");
             }
             subProcessors = List.copyOf(subProcessors);
+        }
+
+        /** A row sending what it opens to nobody receiving it for themselves. */
+        public Row(String step, String slot, String type, boolean required,
+                TenantSpec.FleetStep.Posture posture, Authority authority, String by,
+                List<String> subProcessors, String partOf, TenantSpec.Purpose purpose) {
+            this(step, slot, type, required, posture, authority, by, subProcessors, partOf,
+                    purpose, null);
+        }
+
+        /**
+         * Whether the row sends to a role nothing resolves: it cannot stand,
+         * since nobody can agree to give data to an organisation the register
+         * cannot name.
+         */
+        public boolean goesNowhereKnown() {
+            return recipient != null && recipient.organisation() == null;
         }
 
         /** A row serving no purpose a declaration named. */
@@ -100,6 +121,9 @@ public final class FleetRegister {
             } else {
                 who.add(PROVIDER_PARTICIPANT);
                 who.addAll(subProcessors);
+            }
+            if (recipient != null && recipient.organisation() != null) {
+                who.add(recipient.organisation().identifier());
             }
             return java.util.Collections.unmodifiableSortedSet(who);
         }
@@ -157,8 +181,29 @@ public final class FleetRegister {
                 // agreed to: what it is done for is part of what it is.
                 canonical.append("\u0000purpose\u0000").append(purpose.code());
             }
+            if (recipient != null) {
+                // The organisation and not only the role: a zone naming
+                // another registry is data going somewhere nobody agreed to,
+                // so the row a tenant authorised is no longer this one.
+                canonical.append("\u0000to\u0000").append(recipient.role()).append('\u0000')
+                        .append(recipient.organisation() == null ? ""
+                                : recipient.organisation().identifier());
+            }
             return digestOver(canonical.toString());
         }
+    }
+
+    /**
+     * Who receives what a row opens for their own purpose: the role the step
+     * names and the organisation it resolves to for this tenant.
+     *
+     * @param role         as the step names it
+     * @param organisation who that is, or null where nothing resolves it
+     * @param resolvedBy   the zone or the tenant whose declaration said so, or
+     *                     null with the organisation
+     */
+    public record Recipient(String role, TenantSpec.Organisation organisation,
+            String resolvedBy) {
     }
 
     /** How a row names the service provider among those handling its data. */
@@ -235,6 +280,9 @@ public final class FleetRegister {
         for (Row row : rows) {
             Agreement agreed = row.purpose() == null ? null
                     : purposes.get(row.purpose().code());
+            if (row.goesNowhereKnown()) {
+                continue;
+            }
             if (digests.contains(row.digest()) || (agreed != null && agreed.covers(row))) {
                 standing.add(row.digest());
             }
@@ -287,7 +335,8 @@ public final class FleetRegister {
 
     /** Which rows this tenant has not authorised: the new ones and the widened. */
     public static List<Row> unapproved(List<Row> rows, Set<String> authorised) {
-        return rows.stream().filter(row -> !authorised.contains(row.digest())).toList();
+        return rows.stream().filter(row -> row.goesNowhereKnown()
+                || !authorised.contains(row.digest())).toList();
     }
 
     private static String digestOver(String canonical) {
@@ -376,6 +425,17 @@ public final class FleetRegister {
      * can act on.
      */
     public static List<Row> of(List<TenantSpec.FleetStep> declared, Set<String> declined) {
+        return of(declared, declined, role -> new Recipient(role, null, null));
+    }
+
+    /**
+     * The same, each recipient role resolved for the tenant reading it.
+     *
+     * @param resolve the organisation a role is for this tenant, as a
+     *                recipient naming none where nothing resolves it
+     */
+    public static List<Row> of(List<TenantSpec.FleetStep> declared, Set<String> declined,
+            java.util.function.Function<String, Recipient> resolve) {
         List<Row> rows = new ArrayList<>();
         for (TenantSpec.FleetStep step : declared) {
             if (declined.contains(step.code()) || !step.isProcessor()) {
@@ -389,7 +449,8 @@ public final class FleetRegister {
                     rows.add(new Row(step.code(), slot, type, step.required(), step.posture(),
                             Authority.PROVIDER, null,
                             List.copyOf(new java.util.TreeSet<>(step.delegatesTo())), null,
-                            step.purposes().of(slot)));
+                            step.purposes().of(slot),
+                            step.recipient() == null ? null : resolve.apply(step.recipient())));
                 }
             });
         }

@@ -338,6 +338,10 @@ spec:
                         type: array
                         items:
                           type: string
+                      # The role of an organisation that receives what it opens
+                      # for its own purpose; a zone or the tenant names who.
+                      recipient:
+                        type: string
                       # What the rows it puts on a tenant's register are done
                       # for: a code this declaration puts into words under
                       # purposes, and per slot one in place of it.
@@ -383,6 +387,20 @@ spec:
                   type: array
                   items:
                     type: string
+                # Who a recipient role is: a zone's binds its members, and a
+                # tenant names only roles no zone above it names.
+                recipients:
+                  type: array
+                  items:
+                    type: object
+                    required: [role, identifier, name]
+                    properties:
+                      role:
+                        type: string
+                      identifier:
+                        type: string
+                      name:
+                        type: string
                 # What the rows of the register are done for, each code in
                 # the words a person agrees to. A step names one as its
                 # registerPurpose.

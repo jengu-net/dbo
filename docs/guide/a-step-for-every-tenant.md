@@ -135,6 +135,21 @@ reads `partly` and names what is `new`. Leaving a purpose out withdraws its rows
 except any also named by digest. Work refused or kept on the incidents account under
 a row serving a purpose names the purpose.
 
+Data a step sends to an organisation that receives it for its own purpose, such as a
+national registry, is named on the row. The step names a role, `"recipient":
+"national-registry"`, and a declaration says who that is:
+
+```json
+{ "recipients": [{ "role": "national-registry", "identifier": "<system>|<value>", "name": "National Health Registry" }] }
+```
+
+The nearest zone above the tenant that names the role binds; otherwise the tenant's own
+declaration names it. The row shows the role, the organisation and `resolvedBy`, the
+zone or tenant that named it. The organisation is part of what a tenant authorises, so
+when the zone names another one the row stands no more until the tenant authorises it
+again. A role nothing names is shown with no organisation, never stands, and
+authorising it is refused.
+
 `GET /t/<code>/register/incidents` is the account kept against it: work that ran
 under a row the tenant never authorised, naming the step, the slot and since
 when, and openings its trail shows that the register does not. Whoever operates

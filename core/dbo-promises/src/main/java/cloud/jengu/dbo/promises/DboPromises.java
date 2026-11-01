@@ -1300,6 +1300,17 @@ public enum DboPromises implements Promise {
             + "is new. A purpose leaves the row's digest unchanged where none is named, and "
             + "moves it where one is; a purpose no row serves is refused by name."),
 
+    PROC_THE_REGISTER_NAMES_WHO_RECEIVES_WHAT(
+            "A fleet step names the role of an organisation that receives what it opens for "
+            + "its own purpose, such as a national registry; the nearest zone above the "
+            + "tenant that names an organisation for the role binds, and otherwise the "
+            + "tenant's own declaration names it. The register shows the role, the "
+            + "organisation and whose declaration named it. The organisation is part of what "
+            + "a tenant authorises, so a zone naming another organisation leaves the row "
+            + "standing no more until the tenant authorises it again; a role nothing "
+            + "resolves is shown with no organisation, never stands, and authorising it is "
+            + "refused."),
+
     PROC_AN_INCIDENT_NAMES_THE_PURPOSE_REACHED_FOR(
             "Work under a row the tenant has not authorised is refused or kept on the "
             + "incidents account as before, and both name the purpose the row serves, so "

@@ -2248,6 +2248,15 @@ public final class TenantRuntimeManager implements AutoCloseable {
             throw new IllegalArgumentException("the register does not carry " + unread
                     + ": a tenant authorises the rows it read, so read the register again");
         }
+        for (FleetRegister.Row row : register) {
+            if (row.goesNowhereKnown() && (digests.contains(row.digest())
+                    || (row.purpose() != null && purposes.contains(row.purpose().code())))) {
+                throw new IllegalArgumentException("'" + row.step() + "' sends to '"
+                        + row.recipient().role() + "', which neither this tenant's zone nor "
+                        + "its declaration names an organisation for, and nobody can agree "
+                        + "to give data to an organisation the register cannot name");
+            }
+        }
         Map<String, FleetRegister.Agreement> agreed = new java.util.LinkedHashMap<>();
         for (String purpose : purposes) {
             List<FleetRegister.Row> rows = FleetRegister.serving(register, purpose);
@@ -2344,8 +2353,10 @@ public final class TenantRuntimeManager implements AutoCloseable {
      * describes cannot drift apart.
      */
     public List<FleetRegister.Row> fleetRegister(String tenant) {
+        ZoneTree tree = zones;
         List<FleetRegister.Row> rows = new java.util.ArrayList<>(
-                FleetRegister.of(declaredFleetSteps, declinedBy(tenant)));
+                FleetRegister.of(declaredFleetSteps, declinedBy(tenant),
+                        role -> tree.recipient(tenant, role)));
         TenantRuntime serving = runtimes.get(tenant);
         // Rows a place would never act on, since its origin hands the work
         // over: a register listing them would be one nobody can act on.

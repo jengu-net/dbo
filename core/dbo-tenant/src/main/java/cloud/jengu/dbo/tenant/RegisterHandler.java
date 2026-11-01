@@ -364,6 +364,21 @@ public final class RegisterHandler implements HttpHandler {
             if (row.purpose() != null) {
                 one.put("purpose", row.purpose().code());
             }
+            if (row.recipient() != null) {
+                // The organisation as well as the role, and none where
+                // nothing resolves it: the row then cannot be authorised.
+                Map<String, Object> to = new LinkedHashMap<>();
+                to.put("role", row.recipient().role());
+                if (row.recipient().organisation() != null) {
+                    to.put("organisation", Map.of(
+                            "identifier", row.recipient().organisation().identifier(),
+                            "name", row.recipient().organisation().name()));
+                    to.put("resolvedBy", row.recipient().resolvedBy());
+                } else {
+                    to.put("organisation", null);
+                }
+                one.put("recipient", to);
+            }
             one.put("authority", row.authority().name().toLowerCase(java.util.Locale.ROOT));
             if (row.by() != null) {
                 one.put("by", row.by());
