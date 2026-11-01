@@ -28,6 +28,11 @@ import java.util.Set;
  * the tenant gives and withdraws it itself, at its own door, and the record
  * says who of it agreed to each row and when.
  *
+ * <p><b>A purpose is kept as what it was agreed to</b>: who handles the data
+ * and which data, read against the rows serving it each time. A purpose kept
+ * as a name would let a row added under it later stand on an agreement given
+ * before it existed.
+ *
  * <p>One record, replaced whole by each authorisation, because a tenant
  * authorises the register it read rather than a row at a time. Store-authored
  * and versioned: its history is every authorisation and withdrawal the tenant
@@ -46,6 +51,14 @@ final class RegisterAuthorisations {
     record Given(String by, Instant at) {
     }
 
+    /** One purpose authorised: who agreed, when, and to what. */
+    record Agreed(String by, Instant at, FleetRegister.Agreement agreement) {
+    }
+
+    /** Everything the tenant authorised at its door: rows by digest, purposes by code. */
+    record Standing(Map<String, Given> rows, Map<String, Agreed> purposes) {
+    }
+
     private final cloud.jengu.dbo.policy.PolicyObjectStore store;
 
     RegisterAuthorisations(cloud.jengu.dbo.policy.PolicyObjectStore store) {
@@ -59,34 +72,55 @@ final class RegisterAuthorisations {
     }
 
     /**
-     * Each row the tenant authorised by digest, or empty where it has never
-     * authorised one here and its declaration is what is read.
+     * What the tenant authorised at its door, or empty where it has never
+     * authorised anything here and its declaration is what is read.
      */
-    Optional<Map<String, Given>> given() {
-        return standing().map(RegisterAuthorisations::rowsOf);
+    Optional<Standing> given() {
+        return stored().map(RegisterAuthorisations::standingOf);
     }
 
     /**
-     * Authorises exactly these rows, withdrawing every other, and says so on
-     * the tenant's trail. A row authorised before keeps who agreed to it and
-     * when.
+     * Authorises exactly these rows and these purposes, withdrawing every
+     * other, and says so on the tenant's trail. A row authorised before keeps
+     * who agreed to it and when, and so does a purpose agreed to the same
+     * participants and types as before.
      *
+     * @param purposes each purpose authorised, with what it is agreed to now
      * @return what stands now
      */
-    Map<String, Given> authorise(List<String> digests, String by, Instant at) {
-        Optional<StoredObject> standing = standing();
-        Map<String, Given> before = standing.map(RegisterAuthorisations::rowsOf)
-                .orElse(Map.of());
+    Standing authorise(List<String> digests, Map<String, FleetRegister.Agreement> purposes,
+            String by, Instant at) {
+        Optional<StoredObject> standing = stored();
+        Standing before = standing.map(RegisterAuthorisations::standingOf)
+                .orElse(new Standing(Map.of(), Map.of()));
         Map<String, Given> now = new LinkedHashMap<>();
         for (String digest : digests) {
-            now.put(digest, before.getOrDefault(digest, new Given(by, at)));
+            now.put(digest, before.rows().getOrDefault(digest, new Given(by, at)));
         }
+        Map<String, Agreed> agreed = new LinkedHashMap<>();
+        purposes.forEach((code, agreement) -> {
+            Agreed was = before.purposes().get(code);
+            agreed.put(code, was != null && was.agreement().equals(agreement) ? was
+                    : new Agreed(by, at, agreement));
+        });
         StringBuilder payload = new StringBuilder("{\"key\":\"" + KEY + "\",\"rows\":[");
         String comma = "";
         for (Map.Entry<String, Given> row : now.entrySet()) {
-            payload.append(comma).append("{\"digest\":").append(cloud.jengu.dbo.work.RunInitiator.quoted(row.getKey()))
-                    .append(",\"by\":").append(cloud.jengu.dbo.work.RunInitiator.quoted(row.getValue().by()))
-                    .append(",\"at\":").append(cloud.jengu.dbo.work.RunInitiator.quoted(row.getValue().at().toString()))
+            payload.append(comma).append("{\"digest\":").append(quoted(row.getKey()))
+                    .append(",\"by\":").append(quoted(row.getValue().by()))
+                    .append(",\"at\":").append(quoted(row.getValue().at().toString()))
+                    .append('}');
+            comma = ",";
+        }
+        payload.append("],\"purposes\":[");
+        comma = "";
+        for (Map.Entry<String, Agreed> purpose : agreed.entrySet()) {
+            payload.append(comma).append("{\"code\":").append(quoted(purpose.getKey()))
+                    .append(",\"by\":").append(quoted(purpose.getValue().by()))
+                    .append(",\"at\":").append(quoted(purpose.getValue().at().toString()))
+                    .append(",\"participants\":")
+                    .append(listed(purpose.getValue().agreement().participants()))
+                    .append(",\"types\":").append(listed(purpose.getValue().agreement().types()))
                     .append('}');
             comma = ",";
         }
@@ -100,21 +134,34 @@ final class RegisterAuthorisations {
                     PutRequest.create(TYPE, bytes)).id();
         }
         List<String> added = new ArrayList<>(now.keySet());
-        added.removeAll(before.keySet());
-        List<String> withdrawn = new ArrayList<>(before.keySet());
+        added.removeAll(before.rows().keySet());
+        List<String> withdrawn = new ArrayList<>(before.rows().keySet());
         withdrawn.removeAll(now.keySet());
+        List<String> purposesWithdrawn = new ArrayList<>(before.purposes().keySet());
+        purposesWithdrawn.removeAll(agreed.keySet());
         store.recordCustom("register-authorised", TYPE, id, Map.of(
                 "by", by, "added", String.join(" ", added),
-                "withdrawn", String.join(" ", withdrawn)));
-        return now;
+                "withdrawn", String.join(" ", withdrawn),
+                "purposes", String.join(" ", agreed.keySet()),
+                "purposesWithdrawn", String.join(" ", purposesWithdrawn)));
+        return new Standing(now, agreed);
     }
 
-    private Optional<StoredObject> standing() {
+    private static String quoted(String value) {
+        return cloud.jengu.dbo.work.RunInitiator.quoted(value);
+    }
+
+    private static String listed(java.util.Collection<String> values) {
+        return values.stream().map(RegisterAuthorisations::quoted)
+                .collect(java.util.stream.Collectors.joining(",", "[", "]"));
+    }
+
+    private Optional<StoredObject> stored() {
         return store.getByIdentifier(TYPE, List.of(new Identifier(SYSTEM, KEY))).stream()
                 .filter(found -> !found.deleted()).findFirst();
     }
 
-    private static Map<String, Given> rowsOf(StoredObject record) {
+    private static Standing standingOf(StoredObject record) {
         Object parsed = Json.parse(new String(record.payload(), StandardCharsets.UTF_8));
         Map<String, Given> rows = new LinkedHashMap<>();
         for (Object row : Json.objOpt(parsed, "rows") instanceof List<?> listed
@@ -122,7 +169,16 @@ final class RegisterAuthorisations {
             rows.put(Json.str(row, "digest"), new Given(Json.str(row, "by"),
                     Instant.parse(Json.str(row, "at"))));
         }
-        return rows;
+        // Absent from a record written before purposes were authorised.
+        Map<String, Agreed> purposes = new LinkedHashMap<>();
+        for (Object purpose : Json.objOpt(parsed, "purposes") instanceof List<?> listed
+                ? listed : List.of()) {
+            purposes.put(Json.str(purpose, "code"), new Agreed(Json.str(purpose, "by"),
+                    Instant.parse(Json.str(purpose, "at")), new FleetRegister.Agreement(
+                            new java.util.TreeSet<>(Json.strings(purpose, "participants")),
+                            new java.util.TreeSet<>(Json.strings(purpose, "types")))));
+        }
+        return new Standing(rows, purposes);
     }
 
     private static EnvelopeExtractor extractor() {

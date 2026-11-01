@@ -1677,7 +1677,8 @@ public final class TenantRuntimeManager implements AutoCloseable {
                     registerContexts.put(code, registerPath);
                     sharedServer.createContext(registerPath, new RegisterHandler(
                             tenant.authority(), () -> registerOf(code), registerPath,
-                            (digests, by) -> authoriseRegister(code, digests, by)));
+                            (digests, purposes, by) -> authoriseRegister(code, digests,
+                                    purposes, by)));
                     return null;
                 });
 
@@ -2200,28 +2201,36 @@ public final class TenantRuntimeManager implements AutoCloseable {
      * still names it. Read on every ask, so a withdrawal reaches the next
      * request on every node.
      */
-    Set<String> authorisedBy(TenantRuntime serving) {
-        return authorisationsOf(serving).given().map(Map::keySet)
-                .<Set<String>>map(Set::copyOf).orElse(serving.spec().authorised());
+    Set<String> authorisedBy(String tenant, TenantRuntime serving) {
+        Optional<RegisterAuthorisations.Standing> door = authorisationsOf(serving).given();
+        if (door.isEmpty()) {
+            return serving.spec().authorised();
+        }
+        Map<String, FleetRegister.Agreement> purposes = new java.util.HashMap<>();
+        door.get().purposes().forEach((code, agreed) -> purposes.put(code, agreed.agreement()));
+        return FleetRegister.standing(fleetRegister(tenant), door.get().rows().keySet(),
+                purposes);
     }
 
-    /** Who of the tenant authorised each row at its door, or empty where it never has. */
-    Optional<Map<String, RegisterAuthorisations.Given>> authorisedAtTheDoor(String tenant) {
+    /** What the tenant authorised at its door, or empty where it never has. */
+    Optional<RegisterAuthorisations.Standing> authorisedAtTheDoor(String tenant) {
         TenantRuntime serving = runtimes.get(tenant);
         return serving == null ? Optional.empty() : authorisationsOf(serving).given();
     }
 
     /**
-     * The tenant authorises exactly these rows of its register, withdrawing
-     * every other, as {@code by}.
+     * The tenant authorises exactly these rows and purposes of its register,
+     * withdrawing every other, as {@code by}. A purpose is agreed to the
+     * participants and types of the rows serving it now.
      *
      * @throws IllegalStateException at a place, whose origin is where a
      *         tenant authorises
      * @throws IllegalArgumentException naming a digest the register does not
-     *         carry, since a tenant agrees to what it read
+     *         carry, or a purpose no row of it serves, since a tenant agrees
+     *         to what it read
      */
-    Map<String, RegisterAuthorisations.Given> authoriseRegister(String tenant,
-            List<String> digests, String by) {
+    RegisterAuthorisations.Standing authoriseRegister(String tenant, List<String> digests,
+            List<String> purposes, String by) {
         TenantRuntime serving = runtimes.get(tenant);
         if (serving == null) {
             throw new IllegalArgumentException("no tenant '" + tenant + "' is served here");
@@ -2230,7 +2239,8 @@ public final class TenantRuntimeManager implements AutoCloseable {
             throw new IllegalStateException(tenant + " is served here as a place of it, and "
                     + "it authorises its register at its origin: ask there");
         }
-        Set<String> read = fleetRegister(tenant).stream().map(FleetRegister.Row::digest)
+        List<FleetRegister.Row> register = fleetRegister(tenant);
+        Set<String> read = register.stream().map(FleetRegister.Row::digest)
                 .collect(java.util.stream.Collectors.toSet());
         List<String> unread = digests.stream().filter(digest -> !read.contains(digest))
                 .toList();
@@ -2238,7 +2248,18 @@ public final class TenantRuntimeManager implements AutoCloseable {
             throw new IllegalArgumentException("the register does not carry " + unread
                     + ": a tenant authorises the rows it read, so read the register again");
         }
-        return authorisationsOf(serving).authorise(digests, by, java.time.Instant.now());
+        Map<String, FleetRegister.Agreement> agreed = new java.util.LinkedHashMap<>();
+        for (String purpose : purposes) {
+            List<FleetRegister.Row> rows = FleetRegister.serving(register, purpose);
+            if (rows.isEmpty()) {
+                throw new IllegalArgumentException("no row of the register serves '" + purpose
+                        + "': a tenant authorises the purposes it read, so read the register "
+                        + "again");
+            }
+            agreed.put(purpose, FleetRegister.Agreement.over(rows));
+        }
+        return authorisationsOf(serving).authorise(digests, agreed, by,
+                java.time.Instant.now());
     }
 
     private static RegisterAuthorisations authorisationsOf(TenantRuntime serving) {
@@ -2260,7 +2281,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
     public List<FleetRegister.Row> unapprovedRows(String tenant) {
         TenantRuntime serving = runtimes.get(tenant);
         return serving == null ? List.of()
-                : FleetRegister.unapproved(fleetRegister(tenant), authorisedBy(serving));
+                : FleetRegister.unapproved(fleetRegister(tenant), authorisedBy(tenant, serving));
     }
 
     /**
@@ -2389,10 +2410,19 @@ public final class TenantRuntimeManager implements AutoCloseable {
             public Optional<Map<String, RegisterHandler.Authorised>> authorised() {
                 return authorisedAtTheDoor(code).map(given -> {
                     Map<String, RegisterHandler.Authorised> said = new java.util.LinkedHashMap<>();
-                    given.forEach((digest, row) -> said.put(digest,
+                    given.rows().forEach((digest, row) -> said.put(digest,
                             new RegisterHandler.Authorised(row.by(), row.at())));
                     return said;
                 });
+            }
+
+            @Override
+            public Map<String, RegisterHandler.AgreedPurpose> agreedPurposes() {
+                Map<String, RegisterHandler.AgreedPurpose> said = new java.util.LinkedHashMap<>();
+                authorisedAtTheDoor(code).ifPresent(given -> given.purposes().forEach(
+                        (purpose, agreed) -> said.put(purpose, new RegisterHandler.AgreedPurpose(
+                                agreed.by(), agreed.at(), agreed.agreement()))));
+                return said;
             }
         };
     }
@@ -2617,10 +2647,16 @@ public final class TenantRuntimeManager implements AutoCloseable {
                     + "from 'declines' in this tenant's declaration to ask for it");
         }
         if (withheldFrom(tenant).contains(stepCode)) {
+            List<String> purposes = unapprovedRows(tenant).stream()
+                    .filter(row -> row.step().equals(stepCode) && row.purpose() != null)
+                    .map(row -> "'" + row.purpose().code() + "'").distinct().toList();
             return new StepSurface.Fleet.Offer(declared.slots(), "'" + stepCode + "' opens "
-                    + "data of this tenant under a register row it has not authorised, and "
-                    + "the step is declared not to process until it is: authorise the row in "
-                    + "this tenant's declaration to ask for it");
+                    + "data of this tenant" + (purposes.isEmpty() ? ""
+                            : " for " + String.join(" and ", purposes))
+                    + " under a register row it has not authorised, and the step is declared "
+                    + "not to process until it is: authorise the row"
+                    + (purposes.isEmpty() ? "" : ", or what it is for,")
+                    + " at this tenant's register door to ask for it");
         }
         return new StepSurface.Fleet.Offer(declared.slots(), null);
     }

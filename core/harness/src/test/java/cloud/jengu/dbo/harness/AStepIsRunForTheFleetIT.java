@@ -146,6 +146,12 @@ class AStepIsRunForTheFleetIT {
     // ---- An unauthorised row obeys its posture. ----
 
     private static final String POSTURES = "postures";
+    /** What the purpose legs' steps serve, in the words a person agrees to. */
+    private static final String TIDYING = "records-tidy";
+    private static final String PURPOSED_NAMED = "fleet.purposed.named";
+    private static final String PURPOSED_WITHHELD = "fleet.purposed.withheld";
+    private static final String PURPOSED_SAME = "fleet.purposed.same";
+    private static final String PURPOSED_WIDER = "fleet.purposed.wider";
     private static final String POSTURE_NAMED = "fleet.posture.named";
     private static final String POSTURE_WITHHELD = "fleet.posture.withheld";
     private static final String POSTURE_APPLIED = "fleet.posture.applied";
@@ -278,6 +284,12 @@ class AStepIsRunForTheFleetIT {
                         + "\"substrate\":\"postures\""));
         declared.put(POSTURE_APPLIED, step(POSTURE_APPLIED, basic,
                 ",\"opens\":[\"record\"],\"posture\":\"applied\",\"substrate\":\"postures\""));
+        declared.put(PURPOSED_NAMED, step(PURPOSED_NAMED, basic,
+                ",\"opens\":[\"record\"],\"substrate\":\"postures\",\"registerPurpose\":\""
+                        + TIDYING + "\""));
+        declared.put(PURPOSED_WITHHELD, step(PURPOSED_WITHHELD, basic,
+                ",\"opens\":[\"record\"],\"posture\":\"not-until-approved\","
+                        + "\"substrate\":\"postures\",\"registerPurpose\":\"" + TIDYING + "\""));
         String observation = "{\"record\":\"Reference(Observation)\"}";
         declared.put(RETENTION_SWEEP, step(RETENTION_SWEEP, observation,
                 ",\"substrate\":\"retention\""));
@@ -1129,6 +1141,137 @@ class AStepIsRunForTheFleetIT {
                 "the run closed anyway, so the refusal was a message rather than a rule");
     }
 
+    // ======== A tenant authorises its register by purpose ========
+
+    @Test
+    @Order(29)
+    @DisplayName("the register names what each row is for, work refused or run under a row "
+            + "never authorised names it too, and authorising the purpose at the door lets "
+            + "every row of it stand")
+    @Proving({DboPromises.PROC_A_TENANT_AUTHORISES_ITS_REGISTER_BY_PURPOSE,
+            DboPromises.PROC_AN_INCIDENT_NAMES_THE_PURPOSE_REACHED_FOR})
+    void aPurposeIsAuthorisedAtTheDoor() throws Exception {
+        assertTrue(purposedRows().size() == 2 && purposedRows().stream()
+                        .allMatch(row -> TIDYING.equals(row.purpose().code())),
+                "the register does not say what the purpose legs' rows are for: "
+                        + purposedRows());
+
+        Run named = authorPostureRun(PURPOSED_NAMED);
+        manager.stepJoiner().orElseThrow().joinOnce(200);
+        assertTrue(queuedIds(PURPOSED_NAMED).contains(FleetWork.idFor(POSTURES, named.id())),
+                "work under a row processed and named was not offered");
+        UnapprovedProcessing.Incident ran = manager.unapprovedProcessing(POSTURES).stream()
+                .filter(one -> PURPOSED_NAMED.equals(one.step())).findFirst().orElseThrow();
+        assertTrue(TIDYING.equals(ran.purpose()) && ran.says().contains(TIDYING),
+                "the incident does not say what the work it kept was for: " + ran.says());
+        String record = manager.runtime(POSTURES).orElseThrow().engine()
+                .put(PutRequest.create("Basic",
+                        "{\"resourceType\":\"Basic\",\"code\":{\"text\":\"t\"}}"
+                                .getBytes(StandardCharsets.UTF_8))).id();
+        var refused = manager.runInitiator().start(POSTURES, PURPOSED_WITHHELD,
+                Map.of("record", "Basic/" + record));
+        assertTrue(!refused.accepted() && refused.body().contains(TIDYING),
+                "work under a row not until approved was started, or refused without saying "
+                        + "what it was for: " + refused.status() + " " + refused.body());
+
+        var unknown = authorise("[]", "[\"no-such-purpose\"]");
+        assertEquals(422, unknown.statusCode(), unknown.body());
+        var authorised = authorise("[]", "[\"" + TIDYING + "\"]");
+        assertEquals(200, authorised.statusCode(), authorised.body());
+        Set<String> unapproved = new java.util.HashSet<>();
+        manager.unapprovedRows(POSTURES).forEach(row -> unapproved.add(row.step()));
+        assertFalse(unapproved.contains(PURPOSED_NAMED) || unapproved.contains(PURPOSED_WITHHELD),
+                "the tenant authorised the purpose and its rows do not stand: " + unapproved);
+        assertTrue(manager.unapprovedProcessing(POSTURES).stream()
+                        .noneMatch(one -> PURPOSED_NAMED.equals(one.step())),
+                "the incident stands although its purpose was authorised");
+        Map<?, ?> purpose = purposeOnTheRegister();
+        assertTrue("authorised".equals(purpose.get("state"))
+                        && "registrar".equals(purpose.get("authorisedBy")),
+                "the register does not read the purpose as authorised, by whom: " + purpose);
+    }
+
+    @Test
+    @Order(30)
+    @DisplayName("a step added under an authorised purpose with the same data stands unasked, "
+            + "one opening a new kind of data waits and the register names it, and leaving "
+            + "the purpose out withdraws every row of it")
+    @Proving(DboPromises.PROC_A_TENANT_AUTHORISES_ITS_REGISTER_BY_PURPOSE)
+    void aPurposeIsAskedAgainOnlyForWhatIsNew() throws Exception {
+        declared.put(PURPOSED_SAME, step(PURPOSED_SAME, "{\"record\":\"Reference(Basic)\"}",
+                ",\"opens\":[\"record\"],\"substrate\":\"postures\",\"registerPurpose\":\""
+                        + TIDYING + "\""));
+        declared.put(PURPOSED_WIDER, step(PURPOSED_WIDER,
+                "{\"record\":\"Reference(Observation)\"}",
+                ",\"opens\":[\"record\"],\"substrate\":\"postures\",\"registerPurpose\":\""
+                        + TIDYING + "\""));
+        declare();
+        assertEquals(4, purposedRows().size(), "the added steps are not on the register");
+
+        Set<String> unapproved = new java.util.HashSet<>();
+        manager.unapprovedRows(POSTURES).forEach(row -> unapproved.add(row.step()));
+        assertFalse(unapproved.contains(PURPOSED_SAME),
+                "a step opening the same data for the same purpose waited to be agreed to "
+                        + "again, so every rename asks the tenant about nothing new");
+        assertTrue(unapproved.contains(PURPOSED_WIDER),
+                "a step opening a kind of data the purpose was never agreed to stood on it");
+        Map<?, ?> purpose = purposeOnTheRegister();
+        assertEquals("partly", purpose.get("state"), String.valueOf(purpose));
+        assertEquals(Map.of("participants", List.of(), "types", List.of("Reference(Observation)")),
+                purpose.get("new"), "the register does not name what is new: " + purpose);
+
+        assertEquals(200, authorise("[]", "[]").statusCode());
+        Set<String> withdrawn = new java.util.HashSet<>();
+        manager.unapprovedRows(POSTURES).forEach(row -> withdrawn.add(row.step()));
+        assertTrue(withdrawn.containsAll(List.of(PURPOSED_NAMED, PURPOSED_WITHHELD,
+                        PURPOSED_SAME, PURPOSED_WIDER)),
+                "a purpose left out still stands for some of its rows: " + withdrawn);
+    }
+
+    private List<FleetRegister.Row> purposedRows() {
+        return manager.fleetRegister(POSTURES).stream()
+                .filter(row -> row.step().startsWith("fleet.purposed.")).toList();
+    }
+
+    /** The purpose legs' purpose as the register door reads it. */
+    private Map<?, ?> purposeOnTheRegister() throws Exception {
+        var read = java.net.http.HttpClient.newHttpClient().send(
+                java.net.http.HttpRequest.newBuilder(java.net.URI.create("http://127.0.0.1:"
+                                + manager.port() + "/t/" + POSTURES + "/register"))
+                        .header("Authorization", "Bearer " + registrarToken()).build(),
+                java.net.http.HttpResponse.BodyHandlers.ofString());
+        assertEquals(200, read.statusCode(), read.body());
+        Object purposes = ((Map<?, ?>) cloud.jengu.dbo.core.wire.RecordWire.read(read.body()))
+                .get("purposes");
+        return ((List<?>) purposes).stream().map(one -> (Map<?, ?>) one)
+                .filter(one -> TIDYING.equals(one.get("code"))).findFirst().orElseThrow();
+    }
+
+    /** Exactly these rows and purposes, authorised at the tenant's door. */
+    private java.net.http.HttpResponse<String> authorise(String rows, String purposes)
+            throws Exception {
+        return java.net.http.HttpClient.newHttpClient().send(
+                java.net.http.HttpRequest.newBuilder(java.net.URI.create("http://127.0.0.1:"
+                                + manager.port() + "/t/" + POSTURES + "/register/authorisation"))
+                        .header("Content-Type", "application/json")
+                        .header("Authorization", "Bearer " + registrarToken())
+                        .PUT(java.net.http.HttpRequest.BodyPublishers.ofString(
+                                "{\"rows\":" + rows + ",\"purposes\":" + purposes + "}"))
+                        .build(),
+                java.net.http.HttpResponse.BodyHandlers.ofString());
+    }
+
+    private String registrarToken() {
+        var authority = manager.authority(POSTURES);
+        authority.ensureClient("registrar", "registrar-secret",
+                List.of(cloud.jengu.dbo.auth.Scopes.CONFIGURATION));
+        if (authority.token("registrar", "registrar-secret", null)
+                instanceof cloud.jengu.dbo.auth.TenantAuthority.TokenResult.Issued issued) {
+            return issued.accessToken();
+        }
+        throw new AssertionError(POSTURES + " issued no token for its registrar");
+    }
+
     // ======== The management declaration ========
 
     /** Writes the declaration as it stands and has the deployment read it. */
@@ -1137,8 +1280,9 @@ class AStepIsRunForTheFleetIT {
                 {"code":"%s","face":"r4","types":[
                    {"name":"Basic","identity":"internal","handling":"operational"},
                    {"name":"Observation","identity":"internal","handling":"operational"}],
+                 "purposes":{"%s":"Tidying a tenant's records, by the provider alone"},
                  "fleetSteps":[%s]}"""
-                .formatted(MANAGEMENT, String.join(",", declared.values())));
+                .formatted(MANAGEMENT, TIDYING, String.join(",", declared.values())));
         manager.manages(managementSpec);
     }
 

@@ -1288,6 +1288,23 @@ public enum DboPromises implements Promise {
             + "stops what stands on the row at the next one; until then the declaration's "
             + "authorised rows are read. A credential without the scope can do neither."),
 
+    PROC_A_TENANT_AUTHORISES_ITS_REGISTER_BY_PURPOSE(
+            "A step, or a slot it opens, names the purpose its register row serves, as a code "
+            + "the declaration puts into the words a person agrees to; the register groups "
+            + "its rows by purpose, and a tenant authorises a purpose at its door as well as "
+            + "rows. A purpose authorised is agreed to who handles the data and which data: "
+            + "a row serving it stands while its participants and its type are among those, "
+            + "so a step renamed or added under it is covered, and a new partner or a new "
+            + "kind of data stands only once the tenant authorises the purpose again. "
+            + "Meanwhile the register shows the purpose as partly authorised and names what "
+            + "is new. A purpose leaves the row's digest unchanged where none is named, and "
+            + "moves it where one is; a purpose no row serves is refused by name."),
+
+    PROC_AN_INCIDENT_NAMES_THE_PURPOSE_REACHED_FOR(
+            "Work under a row the tenant has not authorised is refused or kept on the "
+            + "incidents account as before, and both name the purpose the row serves, so "
+            + "the tenant reads what the work was for as well as what it opened."),
+
     PROC_AN_APPLICATION_AUTHORISES_A_REGISTER_FOR_A_PERSON(
             "An application authorises a tenant's register at its door for a person it names "
             + "by reference in onBehalfOf, its own credential's configuration scope admitting "

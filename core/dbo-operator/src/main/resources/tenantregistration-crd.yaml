@@ -258,6 +258,15 @@ spec:
                         type: array
                         items:
                           type: string
+                      # What the rows it puts on a tenant's register are done
+                      # for: a code this declaration puts into words under
+                      # purposes, and per slot one in place of it.
+                      registerPurpose:
+                        type: string
+                      registerPurposes:
+                        type: object
+                        additionalProperties:
+                          type: string
                       starts:
                         type: object
                         required: [keep, where]
@@ -329,6 +338,15 @@ spec:
                         type: array
                         items:
                           type: string
+                      # What the rows it puts on a tenant's register are done
+                      # for: a code this declaration puts into words under
+                      # purposes, and per slot one in place of it.
+                      registerPurpose:
+                        type: string
+                      registerPurposes:
+                        type: object
+                        additionalProperties:
+                          type: string
                       # Whether a run of it in each tenant is work that lasts.
                       lasts:
                         type: boolean
@@ -364,6 +382,13 @@ spec:
                 declines:
                   type: array
                   items:
+                    type: string
+                # What the rows of the register are done for, each code in
+                # the words a person agrees to. A step names one as its
+                # registerPurpose.
+                purposes:
+                  type: object
+                  additionalProperties:
                     type: string
                 # Which rows of the register this tenant authorised, each by
                 # its own digest. All at once and per row, which sound opposed

@@ -117,6 +117,24 @@ application naming who a write is for is; a credential issued to a person names
 nobody else. The register says whether what is done changed since it
 was authorised, and nothing of the kind to a tenant that never authorised one.
 
+A person agrees to a purpose, not to a slot of a step. The declaration that holds a
+step can name the purpose its rows serve, in the words a person agrees to:
+
+```json
+{ "purposes": { "registry-reporting": "Laboratory results with the patient's identity, to the national health registry" },
+  "fleetSteps": [{ "code": "fleet.registry.report", "registerPurpose": "registry-reporting", … }] }
+```
+
+A slot can name its own in `registerPurposes`. The register groups its rows under
+`purposes`, and the tenant authorises a purpose at the same door as rows, with
+`"purposes": ["registry-reporting"]`. A purpose is agreed to who handles the data and
+which data. A row serving it stands while its partners and its type are among those,
+so a step renamed or added under the purpose is covered. A new partner or a new kind
+of data waits until the tenant authorises the purpose again. Meanwhile the purpose
+reads `partly` and names what is `new`. Leaving a purpose out withdraws its rows,
+except any also named by digest. Work refused or kept on the incidents account under
+a row serving a purpose names the purpose.
+
 `GET /t/<code>/register/incidents` is the account kept against it: work that ran
 under a row the tenant never authorised, naming the step, the slot and since
 when, and openings its trail shows that the register does not. Whoever operates
