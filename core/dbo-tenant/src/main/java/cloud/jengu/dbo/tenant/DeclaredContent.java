@@ -114,6 +114,11 @@ final class DeclaredContent implements BlobStore {
     }
 
     @Override
+    public java.util.List<String> keysSealedTo(String person) {
+        return kept.keysSealedTo(person);
+    }
+
+    @Override
     public boolean arrive(String key, byte[] content, String media, String kind,
             java.time.Instant written) {
         if (kind != null && !kinds.containsKey(kind)) {

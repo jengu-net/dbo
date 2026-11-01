@@ -132,6 +132,16 @@ public interface BlobStore {
     }
 
     /**
+     * The keys of the content sealed to a person, so asking what is held
+     * about them answers with it too.
+     *
+     * @param person who it is sealed to, as the vault names them
+     */
+    default java.util.List<String> keysSealedTo(String person) {
+        return java.util.List.of();
+    }
+
+    /**
      * Keeps content handed from another place of the tenant, under the key
      * that place gave it, sealed as content of its kind put here would be.
      *

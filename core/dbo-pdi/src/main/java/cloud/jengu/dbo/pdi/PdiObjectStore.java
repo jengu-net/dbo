@@ -869,6 +869,22 @@ public final class PdiObjectStore implements ObjectStore {
      */
     public String exportPerson(String typeName, String personId,
             List<LinkedType> linkedTypes) {
+        return exportPerson(typeName, personId, linkedTypes, null);
+    }
+
+    /**
+     * The same, and the content the tenant holds sealed to them: each whole,
+     * under its key, media type and kind.
+     *
+     * <p>Opened through the tenant's content as any other reading of it is, so
+     * each piece is an access entry naming the subject's request as its
+     * purpose. Content whose person cannot be told is sealed to its window
+     * instead, and is in nobody's answer.
+     *
+     * @param content the tenant's content, or null to answer with records alone
+     */
+    public String exportPerson(String typeName, String personId,
+            List<LinkedType> linkedTypes, cloud.jengu.dbo.core.api.BlobStore content) {
         // The subject's own data, handed to the subject: Article 20 is not
         // satisfied by a pseudonymous file, and ciphertext they hold no key for
         // satisfies it even less. So this states its purpose rather than
@@ -880,14 +896,14 @@ public final class PdiObjectStore implements ObjectStore {
         cloud.jengu.dbo.core.api.Disclosure.set(
                 cloud.jengu.dbo.core.api.Disclosure.Mode.INCLUDE, "PATRQT");
         try {
-            return exportedPerson(typeName, personId, linkedTypes);
+            return exportedPerson(typeName, personId, linkedTypes, content);
         } finally {
             cloud.jengu.dbo.core.api.Disclosure.set(restore, restorePurpose);
         }
     }
 
     private String exportedPerson(String typeName, String personId,
-            List<LinkedType> linkedTypes) {
+            List<LinkedType> linkedTypes, cloud.jengu.dbo.core.api.BlobStore content) {
         StoredObject person = get(typeName, personId)
                 .orElseThrow(() -> new IllegalArgumentException("no such person"));
         StringBuilder sb = new StringBuilder("{\"person\":")
@@ -904,7 +920,40 @@ public final class PdiObjectStore implements ObjectStore {
                 sb.append(new String(record.payload(), StandardCharsets.UTF_8));
             }
         }
-        return sb.append("]}").toString();
+        sb.append(']');
+        if (content != null) {
+            sb.append(",\"content\":").append(Json.render(sealedTo(typeName, personId, content)));
+        }
+        return sb.append('}').toString();
+    }
+
+    private List<Object> sealedTo(String typeName, String personId,
+            cloud.jengu.dbo.core.api.BlobStore content) {
+        List<Object> held = new ArrayList<>();
+        Optional<String> person = vault.personOf(typeName, personId);
+        if (person.isEmpty()) {
+            return held;
+        }
+        for (String key : content.keysSealedTo(person.get())) {
+            Optional<cloud.jengu.dbo.core.api.BlobStore.Blob> blob;
+            try {
+                blob = content.get(key);
+            } catch (cloud.jengu.dbo.core.api.BlobStore.ErasedException erased) {
+                // Their key is destroyed, so there is nothing of theirs to hand them.
+                continue;
+            }
+            blob.ifPresent(b -> {
+                Map<String, Object> piece = new LinkedHashMap<>();
+                piece.put("key", b.key());
+                piece.put("media", b.media());
+                if (b.kind() != null) {
+                    piece.put("kind", b.kind());
+                }
+                piece.put("content", Base64.getEncoder().encodeToString(b.content()));
+                held.add(piece);
+            });
+        }
+        return held;
     }
 
     /** A record type + the reference path pointing at the person. */

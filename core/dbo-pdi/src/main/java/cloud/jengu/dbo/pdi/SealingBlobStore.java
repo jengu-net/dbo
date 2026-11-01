@@ -168,6 +168,11 @@ public final class SealingBlobStore implements BlobStore {
     }
 
     @Override
+    public java.util.List<String> keysSealedTo(String person) {
+        return kept.keysSealedTo(person);
+    }
+
+    @Override
     public boolean arrive(String key, byte[] content, String media, String kind,
             java.time.Instant written) {
         Optional<Blob> here;

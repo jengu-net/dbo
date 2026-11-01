@@ -107,6 +107,7 @@ public enum DboQualities implements Quality {
                     DboPromises.PDI_PLAINTEXT_IN_FLIGHT_LEAVES_NO_TRACE,
                     DboPromises.PDI_SHRED_LEDGER,
                     DboPromises.PDI_RIGHTS_AS_OPERATIONS,
+                    DboPromises.PDI_WHAT_IS_HELD_ABOUT_A_PERSON_INCLUDES_THEIR_CONTENT,
                     DboPromises.PDI_ERASURE_IS_A_RUN)),
 
     PORTABILITY("Portability: one sealed archive is backup, restore, migration and export.",

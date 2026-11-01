@@ -610,6 +610,7 @@ cloud.jengu.dbo.core.api.BlobStore                                     drop(Stri
 cloud.jengu.dbo.core.api.BlobStore                                     get(String):Optional
 cloud.jengu.dbo.core.api.BlobStore                                     interface
 cloud.jengu.dbo.core.api.BlobStore                                     keysPutBy(String):List
+cloud.jengu.dbo.core.api.BlobStore                                     keysSealedTo(String):List
 cloud.jengu.dbo.core.api.BlobStore                                     put(byte[],String):String
 cloud.jengu.dbo.core.api.BlobStore                                     put(byte[],String,String):String
 cloud.jengu.dbo.core.api.BlobStore                                     put(byte[],String,String,String):String
@@ -2716,6 +2717,7 @@ cloud.jengu.dbo.pdi.PdiObjectStore                                     count(clo
 cloud.jengu.dbo.pdi.PdiObjectStore                                     delete(String,String,Long):void
 cloud.jengu.dbo.pdi.PdiObjectStore                                     delete(String,String,Long,cloud.jengu.dbo.core.api.Handling.Authority):void
 cloud.jengu.dbo.pdi.PdiObjectStore                                     exportPerson(String,String,List):String
+cloud.jengu.dbo.pdi.PdiObjectStore                                     exportPerson(String,String,List,cloud.jengu.dbo.core.api.BlobStore):String
 cloud.jengu.dbo.pdi.PdiObjectStore                                     get(String,String):Optional
 cloud.jengu.dbo.pdi.PdiObjectStore                                     getByIdentifier(String,List):List
 cloud.jengu.dbo.pdi.PdiObjectStore                                     history(String,String):List
@@ -2825,6 +2827,7 @@ cloud.jengu.dbo.pdi.SealingBlobStore                                   count():l
 cloud.jengu.dbo.pdi.SealingBlobStore                                   drop(String):boolean
 cloud.jengu.dbo.pdi.SealingBlobStore                                   get(String):Optional
 cloud.jengu.dbo.pdi.SealingBlobStore                                   keysPutBy(String):List
+cloud.jengu.dbo.pdi.SealingBlobStore                                   keysSealedTo(String):List
 cloud.jengu.dbo.pdi.SealingBlobStore                                   new(cloud.jengu.dbo.core.api.BlobStore,cloud.jengu.dbo.pdi.PersonVault)
 cloud.jengu.dbo.pdi.SealingBlobStore                                   new(cloud.jengu.dbo.core.api.BlobStore,cloud.jengu.dbo.pdi.PersonVault,Set)
 cloud.jengu.dbo.pdi.SealingBlobStore                                   put(byte[],String):String
@@ -2947,6 +2950,7 @@ cloud.jengu.dbo.postgres.PgBlobStore                                   count():l
 cloud.jengu.dbo.postgres.PgBlobStore                                   drop(String):boolean
 cloud.jengu.dbo.postgres.PgBlobStore                                   get(String):Optional
 cloud.jengu.dbo.postgres.PgBlobStore                                   keysPutBy(String):List
+cloud.jengu.dbo.postgres.PgBlobStore                                   keysSealedTo(String):List
 cloud.jengu.dbo.postgres.PgBlobStore                                   new(DataSource)
 cloud.jengu.dbo.postgres.PgBlobStore                                   put(byte[],String):String
 cloud.jengu.dbo.postgres.PgBlobStore                                   put(byte[],String,String):String
@@ -3218,6 +3222,7 @@ cloud.jengu.dbo.promises.DboPromises                                   PDI_RIGHT
 cloud.jengu.dbo.promises.DboPromises                                   PDI_SHRED_LEDGER:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PDI_STRUCTURAL_VAULT:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PDI_UNFINDABLE_AFTER_ERASURE:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   PDI_WHAT_IS_HELD_ABOUT_A_PERSON_INCLUDES_THEIR_CONTENT:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   POL_ACTOR_FROM_AUTHORITY:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   POL_APPEND_ONLY_DISCIPLINE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   POL_AUDIT_AS_RECORDS:cloud.jengu.dbo.promises.DboPromises

@@ -28,7 +28,7 @@ statuses of the promises themselves.
 | Declared handling: a type states what kind of data it is and the engine enforces it rather than trusting the caller. | `CORE`, `POL`, `TEN` | 10/10 |
 | One API: configuration, identity and authorization are ordinary records on the same surface as the data. | `AUTH`, `POL`, `SCIM`, `TEN` | 7/7 |
 | Jurisdiction as configuration: zones, brokers and identifier systems are records and terminology rather than code. | `AUTH`, `TERM`, `ZONE` | 7/7 |
-| Personal data under structural control: identifying elements are encrypted in place and erasure destroys a key. | `PDI` | 8/8 |
+| Personal data under structural control: identifying elements are encrypted in place and erasure destroys a key. | `PDI` | 9/9 |
 | Portability: one sealed archive is backup, restore, migration and export. | `MNT`, `OPS` | 6/7 |
 | FHIR-version plurality: several versions are served at once, and the engine holds no version knowledge. | `SHAPE`, `VER` | 8/8 |
 | Performance as a first-class property: measured on reference hardware, on the production serving path. | `CONT`, `SCAL` | 1/6 — 1 gap |

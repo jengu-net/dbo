@@ -516,6 +516,7 @@ public enum DboStories implements Story {
                     DboPromises.AUTH_NO_SUBJECT_ENUMERATION,
                     // And what being forgotten actually does.
                     DboPromises.PDI_RIGHTS_AS_OPERATIONS,
+                    DboPromises.PDI_WHAT_IS_HELD_ABOUT_A_PERSON_INCLUDES_THEIR_CONTENT,
                     DboPromises.PDI_ERASURE_IS_A_RUN,
                     DboPromises.PDI_ERASURE_SAYS_HOW_FAR_IT_GOT,
                     DboPromises.PDI_CRYPTO_SHREDDING,

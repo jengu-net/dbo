@@ -71,6 +71,10 @@ public final class PgBlobStore implements BlobStore {
                 + " ON state.blob (run) WHERE run IS NOT NULL")) {
             ps.execute();
         }
+        try (PreparedStatement ps = c.prepareStatement("CREATE INDEX IF NOT EXISTS blob_person"
+                + " ON state.blob (person) WHERE person IS NOT NULL")) {
+            ps.execute();
+        }
         try (PreparedStatement ps = c.prepareStatement("CREATE INDEX IF NOT EXISTS blob_kind_age"
                 + " ON state.blob (kind, written_at) WHERE kind IS NOT NULL")) {
             ps.execute();
@@ -148,6 +152,24 @@ public final class PgBlobStore implements BlobStore {
             }
         } catch (SQLException e) {
             throw failed("finding a run's blobs", e);
+        }
+        return keys;
+    }
+
+    @Override
+    public java.util.List<String> keysSealedTo(String person) {
+        java.util.List<String> keys = new java.util.ArrayList<>();
+        try (Connection c = ds.getConnection();
+             PreparedStatement ps = c.prepareStatement(
+                     "SELECT key::text FROM state.blob WHERE person = ?::uuid ORDER BY key")) {
+            ps.setString(1, person);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    keys.add(rs.getString(1));
+                }
+            }
+        } catch (SQLException e) {
+            throw failed("finding a person's blobs", e);
         }
         return keys;
     }

@@ -82,7 +82,8 @@ sent. Once the window has passed for the last of a day's content, the retention
 sweep destroys that day's key and the trail says so by kind and day. A copy
 still held under it, in a backup or a replica, answers `410` that its window
 passed. Content put under the same kind naming a person is sealed to that
-person instead, so erasing them reaches it. Only a tenant behind the membrane
+person instead, so erasing them reaches it, and the store's answer to what it
+holds about them carries it whole. Only a tenant behind the membrane
 holds keys, so a declaration outside it is refused.
 
 With `"purpose": "required"` the message is read only by a reader who says why,

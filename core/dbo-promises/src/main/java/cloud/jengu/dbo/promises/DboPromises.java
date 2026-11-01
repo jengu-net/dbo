@@ -165,6 +165,12 @@ public enum DboPromises implements Promise {
     PDI_RIGHTS_AS_OPERATIONS("Access, portability and restriction are standard machinery "
             + "operations over the vault join, not per-request projects."),
 
+    PDI_WHAT_IS_HELD_ABOUT_A_PERSON_INCLUDES_THEIR_CONTENT("Asking for what is held about a "
+            + "person answers with the content the tenant holds sealed to them beside their "
+            + "records — each piece whole, under its key, media type and kind — and with "
+            + "nobody else's. An answer that was not given the tenant's content says nothing "
+            + "about it, rather than that there is none."),
+
     PDI_EXACT_RESOLUTION("An exact, purpose-stated lookup on a vault-indexed value — a "
             + "claimed identifier (system|value) or an indexed contact point — resolves "
             + "through the vault to the records holding it, served under the caller's "
