@@ -246,6 +246,77 @@ class PolicyIT {
                 "bring-up sweep re-applies policy before serving");
     }
 
+    /**
+     * Content of a kind goes when its window passes, by the window of the
+     * node it is on, and only content of a kind does.
+     */
+    @Test
+    @Order(7)
+    @Proving(DboPromises.POL_CONTENT_IS_OF_A_DECLARED_KIND)
+    void contentGoesWhenItsKindsWindowPasses() throws Exception {
+        TenantPolicies kinds = TenantPolicies.parse(Map.of(
+                "audit", Map.of("level", "writes"),
+                "content", Map.of("analyser-message",
+                        Map.of("keepAtPlace", "P1D", "keepAtTenant", "P30D"))));
+        PolicyObjectStore audited = new PolicyObjectStore(engine, kinds);
+        cloud.jengu.dbo.core.api.BlobStore blobs = new cloud.jengu.dbo.postgres.PgBlobStore(ds);
+        byte[] garbled = "MSH|^~\\&|ANALYSER|vana-sõnum".getBytes(StandardCharsets.UTF_8);
+        String week = blobs.put(garbled, "x-application/hl7-v2+er7", null, "analyser-message");
+        String season = blobs.put(garbled, "x-application/hl7-v2+er7", null, "analyser-message");
+        String kindless = blobs.put(garbled, "text/plain");
+        backdateContent(week, "3 days");
+        backdateContent(season, "45 days");
+        backdateContent(kindless, "45 days");
+        assertEquals("analyser-message", blobs.get(week).orElseThrow().kind(),
+                "the kind it was put under is not kept with it");
+
+        cloud.jengu.dbo.work.Runs runs = new cloud.jengu.dbo.work.Runs(engine);
+        new RetentionSweep(ds, R4Personality.DOMAIN, kinds, audited, runs, false).sweepOnce();
+        assertTrue(blobs.get(season).isEmpty(), "content past the tenant's window was kept");
+        assertTrue(blobs.get(week).isPresent(),
+                "the tenant removed content inside its window, by a place's window");
+        assertTrue(blobs.get(kindless).isPresent(), "content of no kind was removed");
+
+        new RetentionSweep(ds, R4Personality.DOMAIN, kinds, audited, runs, true).sweepOnce();
+        assertTrue(blobs.get(week).isEmpty(), "a place kept content past its own window");
+        assertTrue(blobs.get(kindless).isPresent(), "content of no kind was removed");
+
+        String audit = store.select(Criteria.of("AuditEntry")).stream()
+                .map(e -> new String(e.payload(), StandardCharsets.UTF_8))
+                .reduce("", String::concat);
+        assertTrue(audit.contains(season) && audit.contains(week)
+                        && audit.contains("kind=analyser-message"),
+                "a removal of content is not audited by its key and kind: " + audit);
+        assertFalse(audit.contains("vana-sõnum"), "the audit kept what the content held");
+    }
+
+    /** Incoherent kinds of content never parse. */
+    @Test
+    @Order(8)
+    @Proving(DboPromises.POL_CONTENT_IS_OF_A_DECLARED_KIND)
+    void aKindSaysBothWindows() {
+        IllegalArgumentException halfSaid = assertThrows(IllegalArgumentException.class,
+                () -> TenantPolicies.parse(Map.of("content", Map.of("analyser-message",
+                        Map.of("keepAtTenant", "P30D")))));
+        assertTrue(halfSaid.getMessage().contains("analyser-message")
+                && halfSaid.getMessage().contains("keepAtPlace"), halfSaid.getMessage());
+        assertThrows(IllegalArgumentException.class, () -> TenantPolicies.parse(Map.of(
+                "content", Map.of("Analyser Message",
+                        Map.of("keepAtPlace", "P1D", "keepAtTenant", "P30D")))));
+        assertThrows(IllegalArgumentException.class, () -> TenantPolicies.parse(Map.of(
+                "content", Map.of("analyser-message",
+                        Map.of("keepAtPlace", "PT0S", "keepAtTenant", "P30D")))));
+    }
+
+    private void backdateContent(String key, String interval) throws Exception {
+        try (Connection c = ds.getConnection();
+             PreparedStatement ps = c.prepareStatement("UPDATE state.blob SET written_at = "
+                     + "now() - interval '" + interval + "' WHERE key = ?::uuid")) {
+            ps.setString(1, key);
+            assertEquals(1, ps.executeUpdate(), "no content to backdate under " + key);
+        }
+    }
+
     private void backdate(String id, String interval) throws Exception {
         try (Connection c = ds.getConnection()) {
             for (String sql : List.of(

@@ -120,6 +120,38 @@ class AnArchiveCarriesTheContentItsRecordsPointAtIT {
         assertTrue(refused.getMessage().contains("blob"), refused.getMessage());
     }
 
+    @Test
+    @DisplayName("content put under a kind arrives under it, so its window still passes where "
+            + "it was restored")
+    @Proving(DboPromises.POL_CONTENT_IS_OF_A_DECLARED_KIND)
+    void theKindTravels() throws Exception {
+        PGSimpleDataSource kinded = database("archive_with_kinds");
+        new PgObjectStore(kinded, TYPES);
+        BlobStore leaving = new PgBlobStore(kinded);
+        String message = leaving.put("MSH|^~\\&|ANALYSER".getBytes(
+                java.nio.charset.StandardCharsets.UTF_8), "text/plain; charset=utf-8", null,
+                "analyser-message");
+        String form = leaving.put(new byte[] {1, 2, 3}, "application/pdf");
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        TenantExport.export(kinded, DOMAIN, OWNER_KEY, out, TYPES,
+                TenantExport.Kind.PORTABLE_EXPORT,
+                (payload, id, versionId) ->
+                        new String(payload, java.nio.charset.StandardCharsets.UTF_8), null);
+
+        PGSimpleDataSource fresh = database("archive_with_kinds_target");
+        ObjectStore target = new PgObjectStore(fresh, TYPES);
+        BlobStore restored = new PgBlobStore(fresh);
+        importInto(target, out.toByteArray(), restored);
+
+        BlobStore.Blob back = restored.get(message).orElseThrow();
+        assertEquals("analyser-message", back.kind(),
+                "the kind did not travel, so restored content is kept for ever");
+        assertEquals("text/plain; charset=utf-8", back.media(),
+                "a media type holding a space did not travel whole");
+        assertTrue(restored.get(form).orElseThrow().kind() == null,
+                "content put under no kind arrived under one");
+    }
+
     private static void importInto(ObjectStore target, byte[] sealed, BlobStore into)
             throws Exception {
         KeyPair vendor = KeyPairGenerator.getInstance("Ed25519").generateKeyPair();

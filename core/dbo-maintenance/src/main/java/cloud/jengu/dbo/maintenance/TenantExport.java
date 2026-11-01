@@ -734,13 +734,18 @@ public final class TenantExport {
             // on the way fails the same check everything else does.
             long blobs = 0;
             StringBuilder index = new StringBuilder();
+            StringBuilder kinds = new StringBuilder();
             if (tableExists(c, "state", "blob")) {
                 try (PreparedStatement ps = c.prepareStatement(
-                        "SELECT key, media FROM state.blob ORDER BY key");
+                        "SELECT key, media, kind FROM state.blob ORDER BY key");
                      ResultSet rs = ps.executeQuery()) {
                     while (rs.next()) {
                         index.append(rs.getString(1)).append(' ')
                                 .append(rs.getString(2)).append('\n');
+                        if (rs.getString(3) != null) {
+                            kinds.append(rs.getString(1)).append(' ')
+                                    .append(rs.getString(3)).append('\n');
+                        }
                         blobs++;
                     }
                 }
@@ -766,6 +771,14 @@ public final class TenantExport {
                 zip.putNextEntry(new ZipEntry("blobs/index.txt"));
                 zip.write(index.toString().getBytes(StandardCharsets.UTF_8));
                 zip.closeEntry();
+                // And the kind each was put under, apart from the media types
+                // because a media type may hold a space: content that left
+                // with a window arrives with it, rather than kept for ever.
+                if (!kinds.isEmpty()) {
+                    zip.putNextEntry(new ZipEntry("blobs/kinds.txt"));
+                    zip.write(kinds.toString().getBytes(StandardCharsets.UTF_8));
+                    zip.closeEntry();
+                }
             }
         }
 

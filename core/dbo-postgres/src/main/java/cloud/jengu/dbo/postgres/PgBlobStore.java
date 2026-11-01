@@ -53,19 +53,33 @@ public final class PgBlobStore implements BlobStore {
                   written_at  timestamptz NOT NULL DEFAULT now())""")) {
             ps.execute();
         }
+        // The kind says how long it is kept, so the sweep asks by kind and age.
+        try (PreparedStatement ps = c.prepareStatement(
+                "ALTER TABLE state.blob ADD COLUMN IF NOT EXISTS kind text")) {
+            ps.execute();
+        }
+        try (PreparedStatement ps = c.prepareStatement("CREATE INDEX IF NOT EXISTS blob_kind_age"
+                + " ON state.blob (kind, written_at) WHERE kind IS NOT NULL")) {
+            ps.execute();
+        }
+    }
+
+    @Override
+    public String put(byte[] content, String media, String person, String kind) {
+        return kept(content, media, person, kind);
     }
 
     @Override
     public String put(byte[] content, String media, String person) {
-        return kept(content, media, person);
+        return kept(content, media, person, null);
     }
 
     @Override
     public String put(byte[] content, String media) {
-        return kept(content, media, null);
+        return kept(content, media, null, null);
     }
 
-    private String kept(byte[] content, String media, String person) {
+    private String kept(byte[] content, String media, String person, String kind) {
         if (content == null) {
             throw new IllegalArgumentException("a blob is bytes; there are none here");
         }
@@ -74,8 +88,8 @@ public final class PgBlobStore implements BlobStore {
         String key = UuidV7.newId();
         try (Connection c = ds.getConnection();
              PreparedStatement ps = c.prepareStatement(
-                     "INSERT INTO state.blob (key, media, content, person)"
-                             + " VALUES (?::uuid, ?, ?, ?::uuid)")) {
+                     "INSERT INTO state.blob (key, media, content, person, kind)"
+                             + " VALUES (?::uuid, ?, ?, ?::uuid, ?)")) {
             ps.setString(1, key);
             ps.setString(2, media == null || media.isBlank()
                     ? "application/octet-stream" : media);
@@ -85,6 +99,7 @@ public final class PgBlobStore implements BlobStore {
             // they are about so whoever CAN unseal them knows which key to
             // ask for.
             ps.setString(4, person);
+            ps.setString(5, kind);
             ps.executeUpdate();
             return key;
         } catch (SQLException e) {
@@ -94,14 +109,19 @@ public final class PgBlobStore implements BlobStore {
 
     @Override
     public void restore(String key, byte[] content, String media) {
+        restore(key, content, media, null);
+    }
+
+    @Override
+    public void restore(String key, byte[] content, String media, String kind) {
         if (!isKey(key)) {
             throw new IllegalArgumentException("not a key this store could have issued: " + key);
         }
         try (Connection c = ds.getConnection();
              PreparedStatement ps = c.prepareStatement(
-                     "INSERT INTO state.blob (key, media, content) VALUES (?::uuid, ?, ?)"
+                     "INSERT INTO state.blob (key, media, content, kind) VALUES (?::uuid, ?, ?, ?)"
                              + " ON CONFLICT (key) DO UPDATE SET media = EXCLUDED.media,"
-                             + " content = EXCLUDED.content")) {
+                             + " content = EXCLUDED.content, kind = EXCLUDED.kind")) {
             // Idempotent, because a restore is retried: an import that failed
             // half way is run again, and the second pass must land on the same
             // content rather than refuse what it already put there.
@@ -109,6 +129,7 @@ public final class PgBlobStore implements BlobStore {
             ps.setString(2, media == null || media.isBlank()
                     ? "application/octet-stream" : media);
             ps.setBytes(3, content);
+            ps.setString(4, kind);
             ps.executeUpdate();
         } catch (SQLException e) {
             throw failed("putting a blob back", e);
@@ -125,13 +146,13 @@ public final class PgBlobStore implements BlobStore {
         }
         try (Connection c = ds.getConnection();
              PreparedStatement ps = c.prepareStatement(
-                     "SELECT media, content, person::text FROM state.blob"
+                     "SELECT media, content, person::text, kind FROM state.blob"
                              + " WHERE key = ?::uuid")) {
             ps.setString(1, key);
             try (ResultSet rs = ps.executeQuery()) {
                 return rs.next()
                         ? Optional.of(new Blob(key, rs.getString(1), rs.getBytes(2),
-                                rs.getString(3)))
+                                rs.getString(3), rs.getString(4)))
                         : Optional.empty();
             }
         } catch (SQLException e) {

@@ -143,11 +143,12 @@ public final class TenantRuntimeManager implements AutoCloseable {
      * it refuses content named for a person rather than storing it in the
      * clear while whoever wrote it believes it is protected.
      */
-    private cloud.jengu.dbo.core.api.BlobStore blobsFor(String code,
+    private cloud.jengu.dbo.core.api.BlobStore blobsFor(TenantSpec spec,
             cloud.jengu.dbo.core.api.BlobStore plain) {
-        cloud.jengu.dbo.pdi.PersonVault vault = vaults.get(code);
-        return vault == null ? plain
-                : new cloud.jengu.dbo.pdi.SealingBlobStore(plain, vault);
+        cloud.jengu.dbo.pdi.PersonVault vault = vaults.get(spec.code());
+        return new DeclaredContent(spec.code(), vault == null ? plain
+                : new cloud.jengu.dbo.pdi.SealingBlobStore(plain, vault),
+                spec.policies().content());
     }
 
     /**
@@ -5123,7 +5124,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 // one of them is kept under that key — so erasing the person
                 // destroys the recording, rather than leaving it readable
                 // beside a receipt that says otherwise.
-                blobsFor(spec.code(), new cloud.jengu.dbo.postgres.PgBlobStore(
+                blobsFor(spec, new cloud.jengu.dbo.postgres.PgBlobStore(
                         db.dataSource())),
                 // Null where the tenant has none, which is the whole of what
                 // a host is told about a tenant nobody can sign in to.
@@ -6553,6 +6554,29 @@ public final class TenantRuntimeManager implements AutoCloseable {
     }
 
     /**
+     * Removes what each tenant served here keeps past its retention: records
+     * past their type's ceiling, and content past its kind's window — a
+     * place's own window where this node serves a place of the tenant.
+     *
+     * <p>The reconciler calls it hourly; one tenant's sweep failing is that
+     * tenant's, and the others are swept.
+     *
+     * @return how much was removed this round
+     */
+    public int retentionRound() {
+        int removed = 0;
+        for (Map.Entry<String, cloud.jengu.dbo.policy.RetentionSweep> sweep : sweeps.entrySet()) {
+            try {
+                removed += sweep.getValue().sweepOnce();
+            } catch (RuntimeException failed) {
+                LOG.warn("tenant {}: its retention sweep failed: {}", sweep.getKey(),
+                        failed.toString());
+            }
+        }
+        return removed;
+    }
+
+    /**
      * One round of watching each tenant's own change feed for profiles that
      * arrived without this facade's knowledge.
      *
@@ -6923,13 +6947,15 @@ public final class TenantRuntimeManager implements AutoCloseable {
         runStores.put(spec.code(), engine);
         cloud.jengu.dbo.policy.PolicyObjectStore policyStore =
                 new cloud.jengu.dbo.policy.PolicyObjectStore(engine, policiesOf(spec));
-        if (!spec.policies().retention().isEmpty()) {
+        if (!spec.policies().retention().isEmpty() || !spec.policies().content().isEmpty()) {
             cloud.jengu.dbo.policy.RetentionSweep sweep = new cloud.jengu.dbo.policy.RetentionSweep(
                     db.dataSource(), domain, spec.policies(), policyStore,
                     // an audit entry per checkpoint would record the runtime
                     // interacting with its own bookkeeping, doubling the writes
                     // to say nothing about a caller
-                    new cloud.jengu.dbo.work.Runs(engine));
+                    new cloud.jengu.dbo.work.Runs(engine),
+                    // A place keeps content for its own window, not its tenant's.
+                    places.contains(spec.code()));
             sweep.sweepOnce();
             sweeps.put(spec.code(), sweep);
         }
@@ -7685,7 +7711,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
                     shapesRound();
                     if (System.currentTimeMillis() - lastSweepMillis > 3_600_000) {
                         lastSweepMillis = System.currentTimeMillis();
-                        sweeps.values().forEach(cloud.jengu.dbo.policy.RetentionSweep::sweepOnce);
+                        retentionRound();
                         // The runs steps started themselves, under each
                         // step's own retention, one tenant's failure not
                         // another's.

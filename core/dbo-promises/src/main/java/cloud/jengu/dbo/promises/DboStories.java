@@ -565,6 +565,7 @@ public enum DboStories implements Story {
                     DboPromises.SYNC_A_PLACE_ACTS_ON_THE_LAST_AUTHORISATION_IT_HOLDS,
                     DboPromises.PROC_A_PLACE_REFUSES_WHAT_DOES_NOT_STAND_THERE,
                     DboPromises.PROC_AN_APPLICATION_AT_A_PLACE_IS_TOLD_WHAT_STANDS,
+                    DboPromises.POL_CONTENT_IS_OF_A_DECLARED_KIND,
                     DboPromises.SYNC_A_PERSON_LETS_A_LOCAL_OVERRIDE_GO,
                     DboPromises.SYNC_LETTING_AN_OVERRIDE_GO_SAYS_WHAT_IT_WAS_FOR,
                     DboPromises.PROC_A_LANE_IS_ATTACHED_WHILE_THE_APPLICATION_RUNS,

@@ -128,18 +128,31 @@ public final class BlobHandler implements HttpHandler {
         // guessed: this store cannot read opaque bytes and so cannot judge
         // whether they are about somebody, and it does not have to — the
         // writer knows, and says.
-        String person = subjectOf(exchange);
+        String person = queried(exchange, "person");
         if (person != null && !blobs.seals()) {
             fail(exchange, 400, "this tenant holds no keys, so content cannot be sealed to a "
                     + "person here: put it without a subject, or serve it behind the membrane");
             return;
         }
-        String key = person == null
-                ? blobs.put(content, media)
-                : blobs.put(content, media, person);
+        String kind = queried(exchange, "kind");
+        String key;
+        try {
+            key = blobs.put(content, media, person, kind);
+        } catch (IllegalArgumentException refused) {
+            // A kind the tenant does not declare, or none where it declares
+            // some: the writer's to correct, and told which kinds there are.
+            fail(exchange, 400, refused.getMessage());
+            return;
+        }
         exchange.getResponseHeaders().set("Location", base + "/" + key);
-        respond(exchange, 201, RecordWire.write(Map.of("key", key, "size", content.length))
-                .getBytes(StandardCharsets.UTF_8), "application/json");
+        Map<String, Object> said = new java.util.LinkedHashMap<>();
+        said.put("key", key);
+        said.put("size", content.length);
+        if (kind != null) {
+            said.put("kind", kind);
+        }
+        respond(exchange, 201, RecordWire.write(said).getBytes(StandardCharsets.UTF_8),
+                "application/json");
     }
 
     private void get(HttpExchange exchange, String key) throws IOException {
@@ -181,15 +194,18 @@ public final class BlobHandler implements HttpHandler {
         }
     }
 
-    /** The person a writer says the content is about, from {@code ?person=}. */
-    private static String subjectOf(HttpExchange exchange) {
+    /**
+     * What a writer says of the content in the query: the person it is about
+     * ({@code ?person=}), and the kind it is put under ({@code ?kind=}).
+     */
+    private static String queried(HttpExchange exchange, String name) {
         String query = exchange.getRequestURI().getQuery();
         if (query == null) {
             return null;
         }
         for (String part : query.split("&")) {
-            if (part.startsWith("person=")) {
-                String said = part.substring("person=".length()).trim();
+            if (part.startsWith(name + "=")) {
+                String said = part.substring(name.length() + 1).trim();
                 return said.isEmpty() ? null : said;
             }
         }

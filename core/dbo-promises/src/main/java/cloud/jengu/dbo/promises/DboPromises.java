@@ -2256,6 +2256,16 @@ public enum DboPromises implements Promise {
             "A durable scheduled sweep executes removal as the one sanctioned mutation "
             + "of history, and every removal is audited without retaining the removed "
             + "data."),
+    POL_CONTENT_IS_OF_A_DECLARED_KIND(
+            "A tenant declares the kinds of content it holds whole, each with how long a "
+            + "place of the tenant keeps it and how long the tenant does, and content is put "
+            + "under one of them — over the wire and in-process alike. A kind the tenant does "
+            + "not declare is refused by name, saying which it does; once a tenant declares "
+            + "any, content put under none is refused the same way, so nothing it holds is "
+            + "kept for ever beside content that goes. When its window passes the content is "
+            + "removed, each removal audited by key and kind without what it held: a place "
+            + "removes it at a place's window, the tenant at its own. An archive carries each "
+            + "piece's kind, so content restored elsewhere goes when it would have."),
     POL_POLICY_REPLAY_ON_RESTORE(
             "Before a restored tenant serves, the machinery re-applies the shred ledger "
             + "and the retention sweep — an archive cannot resurrect what policy required "

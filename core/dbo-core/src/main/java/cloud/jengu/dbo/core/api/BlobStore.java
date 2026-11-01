@@ -30,13 +30,19 @@ public interface BlobStore {
      * @param key      what this store calls it, chosen by the store
      * @param media    the media type as the writer stated it, never inferred
      * @param content  the bytes, exactly as they were written
+     * @param person   who it is sealed to, or null
+     * @param kind     the tenant's kind it was put under, or null for content put
+     *                 under none
      */
-    record Blob(String key, String media, byte[] content, String person) {
+    record Blob(String key, String media, byte[] content, String person, String kind) {
 
-        public Blob(String key, String media, byte[] content) {
-            this(key, media, content, null);
+        public Blob(String key, String media, byte[] content, String person) {
+            this(key, media, content, person, null);
         }
 
+        public Blob(String key, String media, byte[] content) {
+            this(key, media, content, null, null);
+        }
 
         public int size() {
             return content.length;
@@ -70,6 +76,26 @@ public interface BlobStore {
         throw new UnsupportedOperationException("this store cannot seal content to a person: "
                 + "it holds no key for one, so content named for somebody would be kept in "
                 + "the clear while whoever wrote it believed otherwise");
+    }
+
+    /**
+     * The same, put under one of the tenant's kinds of content, which says
+     * how long it is kept.
+     *
+     * <p>Refused by a store that keeps no kinds, for the reason a store that
+     * cannot seal refuses a person: content its writer believes will go when
+     * its window passes would otherwise be kept for ever.
+     *
+     * @param person who the content is about, or null
+     * @param kind   the kind, or null for content put under none
+     */
+    default String put(byte[] content, String media, String person, String kind) {
+        if (kind != null) {
+            throw new UnsupportedOperationException("this store keeps no kinds of content, so "
+                    + "content put under '" + kind + "' would outlive the window its writer "
+                    + "put it under");
+        }
+        return person == null ? put(content, media) : put(content, media, person);
     }
 
     /** Whether content named for a person is sealed to them here. */
@@ -115,6 +141,18 @@ public interface BlobStore {
      * content uses {@link #put} and is given a key.
      */
     void restore(String key, byte[] content, String media);
+
+    /**
+     * The same, for content an archive says was put under a kind: restored
+     * under that kind, so its window still passes.
+     */
+    default void restore(String key, byte[] content, String media, String kind) {
+        if (kind != null) {
+            throw new UnsupportedOperationException("this store keeps no kinds of content, so "
+                    + "content restored under '" + kind + "' would outlive its window");
+        }
+        restore(key, content, media);
+    }
 
     /** The content under this key, or nothing — never a different blob. */
     Optional<Blob> get(String key);

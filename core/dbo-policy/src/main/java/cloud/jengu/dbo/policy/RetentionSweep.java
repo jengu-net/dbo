@@ -43,14 +43,27 @@ public final class RetentionSweep {
     private final TenantPolicies policies;
     private final PolicyObjectStore auditSink;
     private final Runs runs;
+    private final boolean atAPlace;
 
+    /** A sweep on the node the tenant's own records are kept on. */
     public RetentionSweep(DataSource dataSource, String domain, TenantPolicies policies,
             PolicyObjectStore auditSink, Runs runs) {
+        this(dataSource, domain, policies, auditSink, runs, false);
+    }
+
+    /**
+     * @param atAPlace whether this node serves a place of the tenant, which keeps
+     *                 content for the kind's window at a place rather than at the
+     *                 tenant
+     */
+    public RetentionSweep(DataSource dataSource, String domain, TenantPolicies policies,
+            PolicyObjectStore auditSink, Runs runs, boolean atAPlace) {
         this.ds = dataSource;
         this.domain = domain;
         this.policies = policies;
         this.auditSink = auditSink;
         this.runs = runs;
+        this.atAPlace = atAPlace;
     }
 
     /**
@@ -82,11 +95,49 @@ public final class RetentionSweep {
                     pass.item(rule.getKey(), Failure.of(e), String.valueOf(e.getMessage()));
                 }
             }
+            for (Map.Entry<String, TenantPolicies.ContentKind> kind
+                    : policies.content().entrySet()) {
+                try {
+                    removed += sweepContent(kind.getKey(), kind.getValue().keep(atAPlace));
+                } catch (RuntimeException e) {
+                    pass.item("content " + kind.getKey(), Failure.of(e),
+                            String.valueOf(e.getMessage()));
+                }
+            }
         } finally {
             cloud.jengu.dbo.core.api.Caller.clearRun();
         }
         pass.counted("removed", removed).done();
         return removed;
+    }
+
+    /**
+     * Content of a kind put longer ago than its window, removed and audited
+     * by key and rule as a record is — never with what it held.
+     */
+    private int sweepContent(String kind, java.time.Duration keep) {
+        List<String> expired = new ArrayList<>();
+        try (Connection c = ds.getConnection();
+             PreparedStatement ps = c.prepareStatement("""
+                     DELETE FROM state.blob WHERE key IN (
+                       SELECT key FROM state.blob WHERE kind = ? AND written_at < ? LIMIT 500)
+                     RETURNING key::text""")) {
+            ps.setString(1, kind);
+            ps.setTimestamp(2, java.sql.Timestamp.from(Instant.now().minus(keep)));
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    expired.add(rs.getString(1));
+                }
+            }
+        } catch (SQLException e) {
+            throw new IllegalStateException("retention sweep failed for content '" + kind + "'",
+                    e);
+        }
+        for (String key : expired) {
+            auditSink.record("retention-remove", "Binary", key,
+                    "kind=" + kind + " keep=" + keep + (atAPlace ? " at a place" : ""));
+        }
+        return expired.size();
     }
 
     private int sweepType(String typeName, Instant ceiling, TenantPolicies.Retention rule) {

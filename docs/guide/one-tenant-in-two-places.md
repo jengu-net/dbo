@@ -77,6 +77,18 @@ that use it.
   application embedding the store on the site reads the same in-process from
   the clinic's `RegisterStanding` service, which `standing.now().permits(purpose)`
   answers, and `whenChanged` tells it the moment a withdrawal arrives.
+- **Each place keeps content for its own window.** The clinic declares the
+  kinds of content it holds whole, each with how long a place keeps it and how
+  long the clinic does:
+  `"content":{"analyser-message":{"keepAtPlace":"P1D","keepAtTenant":"P30D"}}`.
+  An analyser's message the site could not take is put as it arrived, at
+  `POST /t/clinic/blob?kind=analyser-message`, or in-process through the
+  clinic's `BlobStore` with the kind named. A kind the clinic does not declare
+  is refused by name, and so is content put under none once the clinic
+  declares any, with the kinds it does declare. The site's hourly sweep
+  removes the message once a day has passed; the cloud keeps one for thirty. Each removal is on the
+  trail by key and kind, without what the message held, and an archive carries
+  each piece's kind.
 - **A place hands home only what is its own.** Each store mints its own ids,
   so a record a site's run wrote comes home naming what it points at by what
   that says it is, and the cloud stores it pointing at its own record of the
@@ -116,6 +128,8 @@ names the test behind each.
   something outside carries the bytes, authenticates and reconnects. The
   sample applications carry none, so the story drives the hospital's lane
   itself.
+- **Content a place keeps stays on the place.** It is not handed home with
+  the run that put it, or with a record that points at it.
 - **Moving work between places is a person's act.** A replica that dies
   holding work it authored keeps that work until it returns.
 - **A dependency on a type the upstream does not publish receives nothing**,

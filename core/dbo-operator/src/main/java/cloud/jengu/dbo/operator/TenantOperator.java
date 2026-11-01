@@ -333,7 +333,8 @@ public final class TenantOperator implements AutoCloseable {
         if (Boolean.TRUE.equals(spec.get("indexFace"))) {
             sb.append(",\"indexFace\":true");
         }
-        for (String block : java.util.List.of("audit", "writeDiscipline", "retention")) {
+        for (String block : java.util.List.of("audit", "writeDiscipline", "retention",
+                "content")) {
             if (spec.get(block) instanceof Map<?, ?> value) {
                 sb.append(",\"").append(block).append("\":").append(genericJson(value));
             }

@@ -47,13 +47,25 @@ public final class SealingBlobStore implements BlobStore {
 
     @Override
     public String put(byte[] content, String media, String person) {
-        if (person == null || person.isBlank()) {
+        if (person == null) {
+            throw new IllegalArgumentException("name the person this content is about, or "
+                    + "put it without one");
+        }
+        return put(content, media, person, null);
+    }
+
+    @Override
+    public String put(byte[] content, String media, String person, String kind) {
+        if (person == null) {
+            return kept.put(content, media, null, kind);
+        }
+        if (person.isBlank()) {
             throw new IllegalArgumentException("name the person this content is about, or "
                     + "put it without one");
         }
         String whose = personOf(person);
         byte[] key = vault.keyFor(whose, true).orElseThrow(() -> new ErasedException(person));
-        return kept.put(vault.encrypt(key, content), media, whose);
+        return kept.put(vault.encrypt(key, content), media, whose, kind);
     }
 
     @Override
@@ -74,6 +86,11 @@ public final class SealingBlobStore implements BlobStore {
     }
 
     @Override
+    public void restore(String key, byte[] content, String media, String kind) {
+        kept.restore(key, content, media, kind);
+    }
+
+    @Override
     public Optional<Blob> get(String key) {
         Optional<Blob> held = kept.get(key);
         if (held.isEmpty() || held.get().person() == null) {
@@ -88,7 +105,7 @@ public final class SealingBlobStore implements BlobStore {
             throw new ErasedException(key);
         }
         return Optional.of(new Blob(sealed.key(), sealed.media(),
-                vault.decrypt(person, sealed.content()), sealed.person()));
+                vault.decrypt(person, sealed.content()), sealed.person(), sealed.kind()));
     }
 
     /**

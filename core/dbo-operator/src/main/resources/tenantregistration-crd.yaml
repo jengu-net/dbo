@@ -152,6 +152,18 @@ spec:
                             type: string
                           removeAfter:
                             type: string
+                # The kinds of content the tenant holds whole, each with how
+                # long a place of it keeps it and how long the tenant does.
+                content:
+                  type: object
+                  additionalProperties:
+                    type: object
+                    required: [keepAtPlace, keepAtTenant]
+                    properties:
+                      keepAtPlace:
+                        type: string
+                      keepAtTenant:
+                        type: string
                 # A tenant whose people are provisioned by an identity
                 # provider names the system it accepts them from.
                 scim:
