@@ -87,7 +87,10 @@ final class DeclaredContent implements BlobStore {
     @Override
     public Optional<Blob> get(String key) {
         Optional<Blob> held = kept.get(key);
-        if (held.isEmpty() || held.get().kind() == null) {
+        if (held.isEmpty() || held.get().kind() == null
+                || cloud.jengu.dbo.core.api.Caller.readingForMachinery()) {
+            // The machinery's own read — a place reading what it hands home —
+            // discloses to nobody, and is neither asked why nor recorded.
             return held;
         }
         String kind = held.get().kind();
@@ -103,6 +106,21 @@ final class DeclaredContent implements BlobStore {
         }
         trail.recordCustom("access", "Binary", key, detail);
         return held;
+    }
+
+    @Override
+    public java.util.List<String> keysPutBy(String run) {
+        return kept.keysPutBy(run);
+    }
+
+    @Override
+    public boolean arrive(String key, byte[] content, String media, String kind,
+            java.time.Instant written) {
+        if (kind != null && !kinds.containsKey(kind)) {
+            throw new IllegalArgumentException("'" + kind + "' is not a kind of content " + tenant
+                    + " declares, so content of it handed from a place is not kept here");
+        }
+        return kept.arrive(key, content, media, kind, written);
     }
 
     @Override

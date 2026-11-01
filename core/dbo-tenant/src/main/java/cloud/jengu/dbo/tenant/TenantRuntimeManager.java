@@ -1675,7 +1675,10 @@ public final class TenantRuntimeManager implements AutoCloseable {
                     // bring-up fails, having served perfectly the first time.
                     blobContexts.put(code, blobPath);
                     sharedServer.createContext(blobPath,
-                            new BlobHandler(tenant.guard(), tenant.runtime().blobs(), blobPath));
+                            new BlobHandler(tenant.guard(), tenant.runtime().blobs(), blobPath,
+                                    run -> !cloud.jengu.dbo.work.WorkModel.authoredElsewhere(run)
+                                            && new cloud.jengu.dbo.work.Runs(runStores.get(code))
+                                                    .byKey(run).isPresent()));
                     return null;
                 });
 
@@ -5078,6 +5081,15 @@ public final class TenantRuntimeManager implements AutoCloseable {
         // naming others as questions, answered here as the configuration's
         // are, by the same face.
         replication.namingAcrossStores(store.references().orElse(null));
+        // Sealed where there is a vault to seal with. A tenant behind the
+        // membrane holds its people's keys, and content named for one of them
+        // is kept under that key — so erasing the person destroys the
+        // recording, rather than leaving it readable beside a receipt that says
+        // otherwise. The same store a place hands its runs' content home from,
+        // and the tenant keeps what arrives in.
+        cloud.jengu.dbo.core.api.BlobStore content = blobsFor(spec,
+                new cloud.jengu.dbo.postgres.PgBlobStore(db.dataSource()), engine);
+        replication.carryingContent(content);
         // What a place handed home and this tenant did not take is on the
         // tenant's trail as the place's, under the run that produced it —
         // through the contributed-event path, so actor and time are the
@@ -5125,14 +5137,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
                         // capability statement's own URL come from here.
                         base), spec),
                         version.face(), engine),
-                terminology, replication,
-                // Sealed where there is a vault to seal with. A tenant behind
-                // the membrane holds its people's keys, and content named for
-                // one of them is kept under that key — so erasing the person
-                // destroys the recording, rather than leaving it readable
-                // beside a receipt that says otherwise.
-                blobsFor(spec, new cloud.jengu.dbo.postgres.PgBlobStore(
-                        db.dataSource()), engine),
+                terminology, replication, content,
                 // Null where the tenant has none, which is the whole of what
                 // a host is told about a tenant nobody can sign in to.
                 tenantAuthority);

@@ -119,7 +119,7 @@ public final class SealingBlobStore implements BlobStore {
                     .orElseThrow(() -> new WindowPassedException(key));
             return Optional.of(new Blob(sealed.key(), sealed.media(),
                     vault.decrypt(window, sealed.content()), null, sealed.kind(),
-                    sealed.window()));
+                    sealed.window(), sealed.written()));
         }
         if (held.isEmpty() || held.get().person() == null) {
             return held;
@@ -133,7 +133,8 @@ public final class SealingBlobStore implements BlobStore {
             throw new ErasedException(key);
         }
         return Optional.of(new Blob(sealed.key(), sealed.media(),
-                vault.decrypt(person, sealed.content()), sealed.person(), sealed.kind()));
+                vault.decrypt(person, sealed.content()), sealed.person(), sealed.kind(), null,
+                sealed.written()));
     }
 
     /**
@@ -159,6 +160,43 @@ public final class SealingBlobStore implements BlobStore {
                 .orElseThrow(() -> new IllegalArgumentException(
                         "no person is known for " + subject + ", so content named for them "
                                 + "could only be sealed under a key belonging to nobody"));
+    }
+
+    @Override
+    public java.util.List<String> keysPutBy(String run) {
+        return kept.keysPutBy(run);
+    }
+
+    @Override
+    public boolean arrive(String key, byte[] content, String media, String kind,
+            java.time.Instant written) {
+        Optional<Blob> here;
+        try {
+            here = get(key);
+        } catch (WindowPassedException | ErasedException gone) {
+            // Held here once, and gone on purpose: not kept again.
+            return false;
+        }
+        if (here.isPresent()) {
+            if (!java.util.Arrays.equals(here.get().content(), content)) {
+                throw new IllegalStateException("a different blob is held under " + key);
+            }
+            return false;
+        }
+        if (kind == null || !windowed.contains(kind)) {
+            return kept.arrive(key, content, media, kind, written);
+        }
+        // Under the day it was put where it was captured, so its window here
+        // counts from then, as it would have had it been put here.
+        java.time.LocalDate day = java.time.LocalDate.ofInstant(
+                written == null ? java.time.Instant.now() : written, java.time.ZoneOffset.UTC);
+        Optional<byte[]> window = vault.windowKey(kind, day, true);
+        if (window.isEmpty()) {
+            // That day's window has passed here already.
+            return false;
+        }
+        return kept.arriveSealed(key, vault.encrypt(window.get(), content), media, kind, day,
+                written);
     }
 
     @Override

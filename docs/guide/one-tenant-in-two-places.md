@@ -91,6 +91,16 @@ that use it.
   each piece's kind. A kind may also be sealed to its window, so a message
   whose patient nobody can tell is not kept in the clear
   ([personal data](personal-data.md#content-whose-person-nobody-can-tell)).
+- **Content goes home with the run it belongs to.** A message put at the site
+  naming a run the site performed, `POST /t/clinic/blob?kind=analyser-message&run=<key>`
+  or in-process while that run is the one in progress, goes home with the run
+  in the site's sync round; so does a message a record the run wrote points at
+  by its `/blob/<key>`. The cloud keeps each under the key the site gave it, so
+  the record still points at it, filed under the site's run and sealed as the
+  cloud seals its kind, and each arrives once. It travels as the run's records
+  do, on the site's lane and credential, and waits on the site while the link
+  is down. Content put outside any run, and content sealed to a person, whose
+  key is the site's, stay on the site.
 - **A place hands home only what is its own.** Each store mints its own ids,
   so a record a site's run wrote comes home naming what it points at by what
   that says it is, and the cloud stores it pointing at its own record of the
@@ -130,8 +140,6 @@ names the test behind each.
   something outside carries the bytes, authenticates and reconnects. The
   sample applications carry none, so the story drives the hospital's lane
   itself.
-- **Content a place keeps stays on the place.** It is not handed home with
-  the run that put it, or with a record that points at it.
 - **Moving work between places is a person's act.** A replica that dies
   holding work it authored keeps that work until it returns.
 - **A dependency on a type the upstream does not publish receives nothing**,

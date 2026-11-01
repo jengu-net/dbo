@@ -35,20 +35,26 @@ public interface BlobStore {
      *                 under none
      * @param window   the day whose key of its kind it is sealed under, or null for
      *                 content not sealed to a window
+     * @param written  when it was put, where it was first put; null where unknown
      */
     record Blob(String key, String media, byte[] content, String person, String kind,
-            java.time.LocalDate window) {
+            java.time.LocalDate window, java.time.Instant written) {
+
+        public Blob(String key, String media, byte[] content, String person, String kind,
+                java.time.LocalDate window) {
+            this(key, media, content, person, kind, window, null);
+        }
 
         public Blob(String key, String media, byte[] content, String person, String kind) {
-            this(key, media, content, person, kind, null);
+            this(key, media, content, person, kind, null, null);
         }
 
         public Blob(String key, String media, byte[] content, String person) {
-            this(key, media, content, person, null, null);
+            this(key, media, content, person, null, null, null);
         }
 
         public Blob(String key, String media, byte[] content) {
-            this(key, media, content, null, null, null);
+            this(key, media, content, null, null, null, null);
         }
 
         public int size() {
@@ -114,6 +120,42 @@ public interface BlobStore {
      */
     default String putSealed(byte[] sealed, String media, String kind,
             java.time.LocalDate window) {
+        throw new UnsupportedOperationException("this store keeps nothing sealed to a window");
+    }
+
+    /**
+     * The keys of the content put under a run: put while that run was in
+     * progress on the putting thread, or naming it.
+     */
+    default java.util.List<String> keysPutBy(String run) {
+        return java.util.List.of();
+    }
+
+    /**
+     * Keeps content handed from another place of the tenant, under the key
+     * that place gave it, sealed as content of its kind put here would be.
+     *
+     * <p>The one other case beside {@link #restore} where a key arrives with
+     * content: the place chose it, and a record the place's run produced
+     * points at it by that key, so another would leave it pointing at
+     * nothing.
+     *
+     * @param written when it was put at the place, which its window counts from
+     * @return whether it is kept now: false where this key already holds it, or
+     *         where its kind's window has passed here already
+     * @throws IllegalStateException where this key holds different content
+     */
+    default boolean arrive(String key, byte[] content, String media, String kind,
+            java.time.Instant written) {
+        throw new UnsupportedOperationException("this store keeps nothing handed from a place");
+    }
+
+    /**
+     * The same for content already sealed to its window, for a store that
+     * seals handing what it sealed to the store beneath it.
+     */
+    default boolean arriveSealed(String key, byte[] sealed, String media, String kind,
+            java.time.LocalDate window, java.time.Instant written) {
         throw new UnsupportedOperationException("this store keeps nothing sealed to a window");
     }
 

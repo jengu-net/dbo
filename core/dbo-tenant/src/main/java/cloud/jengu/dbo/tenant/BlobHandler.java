@@ -51,11 +51,22 @@ public final class BlobHandler implements HttpHandler {
     private final RequestAuthenticator guard;
     private final BlobStore blobs;
     private final String base;
+    private final java.util.function.Predicate<String> performedHere;
 
     public BlobHandler(RequestAuthenticator guard, BlobStore blobs, String base) {
+        this(guard, blobs, base, run -> false);
+    }
+
+    /**
+     * @param performedHere whether a run, by key, is one this node performed: what
+     *                      content may be put under, so it goes home with it
+     */
+    public BlobHandler(RequestAuthenticator guard, BlobStore blobs, String base,
+            java.util.function.Predicate<String> performedHere) {
         this.guard = guard;
         this.blobs = blobs;
         this.base = base;
+        this.performedHere = performedHere;
     }
 
     @Override
@@ -135,8 +146,18 @@ public final class BlobHandler implements HttpHandler {
             return;
         }
         String kind = queried(exchange, "kind");
+        // The run it is put under, where the writer names one: a place hands
+        // the content home with that run. Only a run performed here, since a
+        // run that arrived from elsewhere goes home from nowhere.
+        String run = queried(exchange, "run");
+        if (run != null && !performedHere.test(run)) {
+            fail(exchange, 400, "no run '" + run + "' was performed here, so nothing can be "
+                    + "put under it");
+            return;
+        }
         String key;
-        try {
+        try (cloud.jengu.dbo.core.api.Caller.InRun under = run == null ? () -> { }
+                : cloud.jengu.dbo.core.api.Caller.underRun(run)) {
             key = blobs.put(content, media, person, kind);
         } catch (IllegalArgumentException refused) {
             // A kind the tenant does not declare, or none where it declares

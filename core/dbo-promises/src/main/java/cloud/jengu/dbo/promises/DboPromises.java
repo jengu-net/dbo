@@ -3123,6 +3123,16 @@ public enum DboPromises implements Promise {
             + "did not take is on the tenant's trail as the site's, about the record it was "
             + "for."),
 
+    SYNC_CONTENT_TRAVELS_HOME_WITH_ITS_RUN(
+            "Content a place's run put — named by its writer at the content door or "
+            + "in-process — and content a record that run produced points at, reach the tenant "
+            + "with that run in the place's sync round: under the keys the place gave them, so "
+            + "what points at them still does, filed under the place's run as the tenant mirrors "
+            + "it, sealed there as content of its kind put there would be, and each once. They "
+            + "travel as the run's records do, over the lane the place holds and on its "
+            + "credential; while the link is down they wait on the place, and content put "
+            + "outside any run stays there. Content sealed to a person stays on the place, whose "
+            + "key it is."),
     SYNC_A_PLACE_HANDS_ITS_WORK_TO_ITS_TENANT(
             "A place's runs, and what each produced, reach its tenant by the node itself: up "
             + "the lane the place already holds, in its sync round, with no host and no "

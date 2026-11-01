@@ -568,6 +568,7 @@ public enum DboStories implements Story {
                     DboPromises.POL_CONTENT_IS_OF_A_DECLARED_KIND,
                     DboPromises.POL_CONTENT_IS_SEALED_TO_ITS_WINDOW,
                     DboPromises.POL_CONTENT_IS_READ_FOR_A_PURPOSE,
+                    DboPromises.SYNC_CONTENT_TRAVELS_HOME_WITH_ITS_RUN,
                     DboPromises.SYNC_A_PERSON_LETS_A_LOCAL_OVERRIDE_GO,
                     DboPromises.SYNC_LETTING_AN_OVERRIDE_GO_SAYS_WHAT_IT_WAS_FOR,
                     DboPromises.PROC_A_LANE_IS_ATTACHED_WHILE_THE_APPLICATION_RUNS,
