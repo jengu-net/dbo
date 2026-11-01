@@ -6,6 +6,7 @@ import cloud.jengu.dbo.work.RunInitiator;
 import cloud.jengu.dbo.work.Status;
 
 import cloud.jengu.dbo.auth.TenantAuthority;
+import cloud.jengu.dbo.core.api.PutRequest;
 import cloud.jengu.dbo.core.api.feed.FeedChunk;
 import cloud.jengu.dbo.core.api.feed.FeedItem;
 import cloud.jengu.dbo.core.api.feed.FeedSelection;
@@ -13,9 +14,11 @@ import cloud.jengu.dbo.promises.DboPromises;
 import cloud.jengu.dbo.promises.Proving;
 import cloud.jengu.dbo.runner.http.HttpLane;
 import cloud.jengu.dbo.runner.transport.Place;
+import cloud.jengu.dbo.tenant.FleetRegister;
 import cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner;
 import cloud.jengu.dbo.tenant.TenantRuntimeManager;
 import cloud.jengu.dbo.tenant.TenantState;
+import cloud.jengu.dbo.tenant.api.RegisterStanding;
 import cloud.jengu.dbo.core.process.StepDeclaration;
 import cloud.jengu.dbo.runner.Lane;
 import cloud.jengu.dbo.runner.Outcome;
@@ -657,7 +660,7 @@ class ASecondPlaceComesUpFromItsOriginIT {
     private static TenantRuntimeManager.OriginFeeds connected() {
         return new TenantRuntimeManager.OriginFeeds(lane.placeFeed(Place.RECORDS),
                 lane.placeFeed(Place.DEFINITIONS), lane.definitionsWithoutTheFace(),
-                lane.origin().trail(), lane.origin().work());
+                lane.origin().trail(), lane.origin().work(), lane.origin().authorisation());
     }
 
     /**
@@ -903,6 +906,232 @@ class ASecondPlaceComesUpFromItsOriginIT {
         site.syncRound();
         assertTrue(!read(cloud, CLINIC, "Basic").contains("set-up-on-the-site"),
                 "what only the configuration writes reached the tenant from a site");
+    }
+
+    @Test
+    @Order(21)
+    @DisplayName("what the clinic authorised in the cloud reaches the site and every later "
+            + "authorisation with it; the site reads its register as the cloud does, says when "
+            + "what it holds was given, and refuses to be authorised itself")
+    @Proving(DboPromises.SYNC_A_PLACE_HOLDS_WHAT_ITS_TENANT_AUTHORISED)
+    void aPlaceHoldsWhatItsTenantAuthorised() throws Exception {
+        java.time.Instant before = java.time.Instant.now();
+        HttpResponse<String> given = authorise(cloud, "{\"rows\":[],\"purposes\":[]}");
+        assertEquals(200, given.statusCode(), given.body());
+        java.time.Instant after = java.time.Instant.now();
+        site.syncRound();
+
+        com.fasterxml.jackson.databind.JsonNode atHome = register(cloud);
+        com.fasterxml.jackson.databind.JsonNode onTheSite = register(site);
+        java.time.Instant held = java.time.Instant.parse(
+                onTheSite.path("held").path("authorisedAt").asText(before.minusSeconds(1)
+                        .toString()));
+        assertTrue(!held.isBefore(before.truncatedTo(java.time.temporal.ChronoUnit.MILLIS))
+                        && !held.isAfter(after),
+                "the site does not say it holds the authorisation the clinic just gave: "
+                        + onTheSite);
+        assertTrue(onTheSite.path("held").hasNonNull("heardAt"),
+                "the site does not say when it last heard its origin: " + onTheSite);
+        assertEquals(atHome.path("rows"), onTheSite.path("rows"),
+                "the site reads its register otherwise than the clinic does at home");
+        assertEquals(atHome.path("purposes"), onTheSite.path("purposes"),
+                "the site reads its purposes otherwise than the clinic does at home");
+        assertTrue(atHome.path("held").isMissingNode(),
+                "the clinic at home says it holds a copy: " + atHome);
+
+        HttpResponse<String> here = authorise(site, "{\"rows\":[],\"purposes\":[]}");
+        assertEquals(409, here.statusCode(), here.body());
+        assertTrue(here.body().contains("not_here"), here.body());
+
+        assertEquals(200, authorise(cloud, "{\"rows\":[],\"purposes\":[]}").statusCode());
+        site.syncRound();
+        assertTrue(java.time.Instant.parse(register(site).path("held").path("authorisedAt")
+                        .asText()).isAfter(held),
+                "an authorisation given after the first did not reach the site");
+    }
+
+    @Test
+    @Order(22)
+    @DisplayName("the site refuses a step whose row its clinic never authorised, naming what the "
+            + "step is for, and keeps a row processed without authorisation on its incidents; "
+            + "once the clinic authorises the purpose in the cloud, both stand on the site")
+    @Proving(DboPromises.PROC_A_PLACE_REFUSES_WHAT_DOES_NOT_STAND_THERE)
+    void aPlaceRefusesWhatDoesNotStandThere() throws Exception {
+        // The same deployment on both nodes: what a provider runs for the
+        // clinic in the cloud it runs on the site as well.
+        Path management = Files.createTempDirectory("dbo-place-management")
+                .resolve(OPERATOR + ".json");
+        Files.writeString(management, OPERATOR_DECLARATION);
+        cloud.manages(management);
+        site.manages(management);
+        assertEquals(benchDigests(cloud), benchDigests(site),
+                "the site's register is not the one its clinic authorises in the cloud");
+
+        RunInitiator.Started refusal = startWithheldOnTheSite();
+        assertTrue(!refusal.accepted() && refusal.body().contains(UPKEEP),
+                "the site started work under a row its clinic never authorised, or refused "
+                        + "it without saying what it was for: " + refusal.status() + " "
+                        + refusal.body());
+        assertTrue(site.unapprovedProcessing(CLINIC).stream().anyMatch(incident ->
+                        BENCH_NAMED.equals(incident.step()) && UPKEEP.equals(incident.purpose())),
+                "the site keeps no incident, naming the purpose, for a row processed without "
+                        + "authorisation: " + site.unapprovedProcessing(CLINIC));
+
+        HttpResponse<String> given = authorise(cloud,
+                "{\"rows\":[],\"purposes\":[\"" + UPKEEP + "\"]}");
+        assertEquals(200, given.statusCode(), given.body());
+        site.syncRound();
+
+        assertEquals(java.util.Set.of(), benchSteps(site.unapprovedRows(CLINIC)),
+                "the clinic authorised the purpose in the cloud and its rows do not stand on "
+                        + "the site");
+        assertTrue(site.unapprovedProcessing(CLINIC).stream()
+                        .noneMatch(incident -> BENCH_NAMED.equals(incident.step())),
+                "the incident stands on the site although the purpose was authorised");
+        assertEquals(register(cloud).path("purposes"), register(site).path("purposes"),
+                "the site reads the purpose otherwise than the clinic does at home");
+    }
+
+    @Test
+    @Order(23)
+    @DisplayName("cut off from the cloud, the site acts on the last authorisation it holds and "
+            + "says how old it is; a withdrawal given meanwhile reaches it once it is back")
+    @Proving(DboPromises.SYNC_A_PLACE_ACTS_ON_THE_LAST_AUTHORISATION_IT_HOLDS)
+    void aPlaceActsOnTheLastAuthorisationItHolds() throws Exception {
+        String heard = register(site).path("held").path("heardAt").asText();
+        site.readsItsOriginThrough(CLINIC, null);
+        assertEquals(200, authorise(cloud, "{\"rows\":[],\"purposes\":[]}").statusCode());
+        site.syncRound();
+
+        assertEquals(java.util.Set.of(), benchSteps(site.unapprovedRows(CLINIC)),
+                "the site stopped acting on what it holds while it could not hear its origin");
+        assertEquals(heard, register(site).path("held").path("heardAt").asText(),
+                "the site says it heard its origin while it was cut off");
+
+        site.readsItsOriginThrough(CLINIC, connected());
+        site.syncRound();
+
+        assertEquals(java.util.Set.of(BENCH_WITHHELD, BENCH_NAMED),
+                benchSteps(site.unapprovedRows(CLINIC)),
+                "the withdrawal given while the site was cut off did not reach it");
+        RunInitiator.Started refusal = startWithheldOnTheSite();
+        assertTrue(!refusal.accepted() && refusal.body().contains(UPKEEP),
+                "the site started work under a withdrawn row: " + refusal.status() + " "
+                        + refusal.body());
+        assertTrue(java.time.Instant.parse(register(site).path("held").path("heardAt").asText())
+                        .isAfter(java.time.Instant.parse(heard)),
+                "the site does not say it heard its origin again");
+    }
+
+    @Test
+    @Order(24)
+    @DisplayName("an application beside the site reads what stands of its clinic's register "
+            + "in-process and is told when it changes, an authorisation and a withdrawal "
+            + "arriving from the cloud alike, and not when nothing changed")
+    @Proving(DboPromises.PROC_AN_APPLICATION_AT_A_PLACE_IS_TOLD_WHAT_STANDS)
+    void anApplicationAtAPlaceIsToldWhatStands() throws Exception {
+        RegisterStanding standing = site.registerStanding(CLINIC);
+        assertTrue(!standing.now().permits(UPKEEP)
+                        && !standing.now().steps().contains(BENCH_WITHHELD),
+                "the site's application reads a purpose withdrawn as standing: "
+                        + standing.now());
+        List<RegisterStanding.Standing> told =
+                new java.util.concurrent.CopyOnWriteArrayList<>();
+        AutoCloseable telling = standing.whenChanged(told::add);
+
+        assertEquals(200, authorise(cloud,
+                "{\"rows\":[],\"purposes\":[\"" + UPKEEP + "\"]}").statusCode());
+        site.syncRound();
+        assertEquals(1, told.size(), "the application was not told once of the authorisation "
+                + "arriving from the cloud: " + told);
+        assertTrue(told.get(0).permits(UPKEEP)
+                        && told.get(0).steps().containsAll(List.of(BENCH_WITHHELD, BENCH_NAMED))
+                        && told.get(0).heardAt() != null,
+                "what the application was told is not what stands: " + told.get(0));
+
+        site.syncRound();
+        assertEquals(1, told.size(), "the application was told again with nothing changed");
+
+        assertEquals(200, authorise(cloud, "{\"rows\":[],\"purposes\":[]}").statusCode());
+        site.syncRound();
+        assertEquals(2, told.size(), "the application was not told of the withdrawal");
+        assertEquals(RegisterStanding.State.NOT, told.get(1).purposes().get(UPKEEP),
+                String.valueOf(told.get(1)));
+
+        telling.close();
+        assertEquals(200, authorise(cloud,
+                "{\"rows\":[],\"purposes\":[\"" + UPKEEP + "\"]}").statusCode());
+        site.syncRound();
+        assertEquals(2, told.size(), "an application that stopped listening was told");
+        assertTrue(standing.now().permits(UPKEEP), "reading on the spot did not see the "
+                + "authorisation: " + standing.now());
+    }
+
+    /** Who runs the deployment, on both nodes alike, and the steps it runs for every tenant. */
+    private static final String OPERATOR = "haldur";
+    private static final String UPKEEP = "bench-upkeep";
+    private static final String BENCH_WITHHELD = "fleet.bench.withheld";
+    private static final String BENCH_NAMED = "fleet.bench.named";
+    private static final String OPERATOR_DECLARATION = """
+            {"code":"%s","face":"r4","types":[
+               {"name":"Observation","identity":"internal","handling":"operational"}],
+             "purposes":{"%s":"Keeping the clinic's benches calibrated, by the provider alone"},
+             "fleetSteps":[
+               {"code":"%s","slots":{"record":"Reference(Observation)"},"opens":["record"],
+                "posture":"not-until-approved","registerPurpose":"%s"},
+               {"code":"%s","slots":{"record":"Reference(Observation)"},"opens":["record"],
+                "registerPurpose":"%s"}]}"""
+            .formatted(OPERATOR, UPKEEP, BENCH_WITHHELD, UPKEEP, BENCH_NAMED, UPKEEP);
+
+    /** The withheld step asked for on the site, for an observation the site holds. */
+    private static RunInitiator.Started startWithheldOnTheSite() {
+        String record = site.runtime(CLINIC).orElseThrow().engine().put(PutRequest.create(
+                "Observation", OBSERVATION.getBytes(java.nio.charset.StandardCharsets.UTF_8)))
+                .id();
+        return site.runInitiator().start(CLINIC, BENCH_WITHHELD,
+                java.util.Map.of("record", "Observation/" + record));
+    }
+
+    private static java.util.Set<String> benchDigests(TenantRuntimeManager node) {
+        java.util.Set<String> digests = new java.util.TreeSet<>();
+        node.fleetRegister(CLINIC).stream().filter(row -> row.step().startsWith("fleet.bench."))
+                .forEach(row -> digests.add(row.digest()));
+        return digests;
+    }
+
+    private static java.util.Set<String> benchSteps(List<FleetRegister.Row> rows) {
+        java.util.Set<String> steps = new java.util.TreeSet<>();
+        rows.stream().map(FleetRegister.Row::step).filter(step -> step.startsWith("fleet.bench."))
+                .forEach(steps::add);
+        return steps;
+    }
+
+    /** The clinic's register, as the given node's door reads it. */
+    private static com.fasterxml.jackson.databind.JsonNode register(TenantRuntimeManager node)
+            throws Exception {
+        HttpResponse<String> read = http.send(HttpRequest.newBuilder(
+                        URI.create(base(node, CLINIC) + "/register"))
+                        .header("Authorization", "Bearer " + registrar(node)).build(),
+                HttpResponse.BodyHandlers.ofString());
+        assertEquals(200, read.statusCode(), read.body());
+        return new com.fasterxml.jackson.databind.ObjectMapper().readTree(read.body());
+    }
+
+    /** Exactly what the body names, authorised at the given node's door. */
+    private static HttpResponse<String> authorise(TenantRuntimeManager node, String body)
+            throws Exception {
+        return http.send(HttpRequest.newBuilder(
+                        URI.create(base(node, CLINIC) + "/register/authorisation"))
+                        .header("Content-Type", "application/json")
+                        .header("Authorization", "Bearer " + registrar(node))
+                        .PUT(HttpRequest.BodyPublishers.ofString(body)).build(),
+                HttpResponse.BodyHandlers.ofString());
+    }
+
+    private static String registrar(TenantRuntimeManager node) {
+        node.authority(CLINIC).ensureClient("registrar", "registrar-secret",
+                List.of("configuration"));
+        return clientToken(node, CLINIC, "registrar", "registrar-secret");
     }
 
     /**

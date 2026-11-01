@@ -450,8 +450,9 @@ public class WireLane implements Lane {
      * keep, so the consumer the engine names is not sent — the participant
      * is the place, and the tenant names the position after it.
      *
-     * @param domain {@link cloud.jengu.dbo.runner.transport.Place#RECORDS} or
-     *               {@link cloud.jengu.dbo.runner.transport.Place#DEFINITIONS}
+     * @param domain {@link cloud.jengu.dbo.runner.transport.Place#RECORDS},
+     *               {@link cloud.jengu.dbo.runner.transport.Place#DEFINITIONS} or
+     *               {@link cloud.jengu.dbo.runner.transport.Place#AUTHORISATION}
      */
     public cloud.jengu.dbo.core.api.feed.ChangeFeed placeFeed(String domain) {
         return new PlaceFeed(domain, false);
@@ -467,8 +468,9 @@ public class WireLane implements Lane {
 
     /**
      * The tenant this lane reaches, as a place of it reads it: its
-     * declaration and its two feeds, on this lane's carrier and credential.
-     * The credential must hold a place for any of it to answer.
+     * declaration, its two feeds and what it authorised, on this lane's
+     * carrier and credential. The credential must hold a place for any of it
+     * to answer.
      */
     public cloud.jengu.dbo.runner.transport.Origin origin() {
         cloud.jengu.dbo.core.api.feed.ChangeFeed records =
@@ -476,6 +478,8 @@ public class WireLane implements Lane {
         cloud.jengu.dbo.core.api.feed.ChangeFeed definitions =
                 placeFeed(cloud.jengu.dbo.runner.transport.Place.DEFINITIONS);
         cloud.jengu.dbo.core.api.feed.ChangeFeed withoutTheFace = definitionsWithoutTheFace();
+        cloud.jengu.dbo.core.api.feed.ChangeFeed authorisation =
+                placeFeed(cloud.jengu.dbo.runner.transport.Place.AUTHORISATION);
         cloud.jengu.dbo.runner.transport.Trail trail = new cloud.jengu.dbo.runner.transport.Trail() {
             @Override
             public Position position() {
@@ -519,6 +523,11 @@ public class WireLane implements Lane {
             @Override
             public cloud.jengu.dbo.core.api.feed.ChangeFeed definitionsWithoutTheFace() {
                 return withoutTheFace;
+            }
+
+            @Override
+            public cloud.jengu.dbo.core.api.feed.ChangeFeed authorisation() {
+                return authorisation;
             }
 
             @Override

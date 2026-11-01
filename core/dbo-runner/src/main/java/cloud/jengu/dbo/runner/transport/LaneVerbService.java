@@ -174,13 +174,19 @@ public final class LaneVerbService {
             return work(served.get(), grant, body);
         }
         String domain = string(body, LaneVerbs.DOMAIN);
-        if (!Place.RECORDS.equals(domain) && !Place.DEFINITIONS.equals(domain)) {
-            return new Answer.Denied(400, null, "a place reads '" + Place.RECORDS + "' or '"
-                    + Place.DEFINITIONS + "', and this asked for '" + domain + "'");
+        if (!Place.RECORDS.equals(domain) && !Place.DEFINITIONS.equals(domain)
+                && !Place.AUTHORISATION.equals(domain)) {
+            return new Answer.Denied(400, null, "a place reads '" + Place.RECORDS + "', '"
+                    + Place.DEFINITIONS + "' or '" + Place.AUTHORISATION
+                    + "', and this asked for '" + domain + "'");
         }
         Place place = served.get();
-        cloud.jengu.dbo.core.api.feed.ChangeFeed feed =
-                Place.RECORDS.equals(domain) ? place.records() : place.definitions();
+        if (Place.AUTHORISATION.equals(domain) && place.authorisation() == null) {
+            return new Answer.Refused("this tenant hands its places no authorisation");
+        }
+        cloud.jengu.dbo.core.api.feed.ChangeFeed feed = Place.RECORDS.equals(domain)
+                ? place.records()
+                : Place.DEFINITIONS.equals(domain) ? place.definitions() : place.authorisation();
         String consumer = Place.consumerOf(participant, domain);
         try {
             if (verb == LaneVerbs.FEED_ACK) {

@@ -100,7 +100,10 @@ declaration says which rows stand, and a withdrawal stops what stands on a row a
 the next request. A tenant that never has keeps its declaration's `authorised`,
 the digests of the rows it read, and the register marks those rows
 `authorisedIn: declaration`. A place of the tenant answers `409 not_here`: it is
-authorised at its origin.
+authorised at its origin, and the place holds a copy of the record, so its own
+register reads what stands as the origin's does. Its register adds `held`: when
+the record it holds was given, as `authorisedAt`, and when it last read its
+origin to the end, as `heardAt`.
 
 An application that signs the tenant's people in asks with its own client, since
 their tokens carry no `configuration` scope and should not: that scope also

@@ -81,6 +81,14 @@ public final class RegisterHandler implements HttpHandler {
             return Map.of();
         }
 
+        /**
+         * At a place, the record of its origin's it acts on and how old it
+         * is; empty where the tenant authorises here.
+         */
+        default Optional<Held> held() {
+            return Optional.empty();
+        }
+
         /** The rows standing by terms the tenant signed, by digest, naming the terms. */
         default Map<String, String> agreedInTerms() {
             return Map.of();
@@ -97,6 +105,17 @@ public final class RegisterHandler implements HttpHandler {
 
     /** One row a tenant authorised at its door: who of it agreed, and when. */
     public record Authorised(String by, java.time.Instant at) {
+    }
+
+    /**
+     * What a place holds of its tenant's authorisation.
+     *
+     * @param authorisedAt when the record it holds was given at the origin, or null
+     *                     where it holds none and the declaration is what is read
+     * @param heardAt      when it last read its origin to the end, or null where it
+     *                     has not since it started
+     */
+    public record Held(java.time.Instant authorisedAt, java.time.Instant heardAt) {
     }
 
     /**
@@ -294,6 +313,18 @@ public final class RegisterHandler implements HttpHandler {
             }
         }
         answer.put("rows", said);
+        now.held().ifPresent(held -> {
+            // A place acts on the last record it holds, and says how old it
+            // is, so an application beside it can tell stale from current.
+            Map<String, Object> age = new LinkedHashMap<>();
+            if (held.authorisedAt() != null) {
+                age.put("authorisedAt", held.authorisedAt().toString());
+            }
+            if (held.heardAt() != null) {
+                age.put("heardAt", held.heardAt().toString());
+            }
+            answer.put("held", age);
+        });
         answer.put("purposes", purposes(rows, agreed, now.purposesInTerms()));
         answer.put("declined", List.copyOf(new java.util.TreeSet<>(now.declined())));
         // Absent rather than false when nothing was ever authorised: never

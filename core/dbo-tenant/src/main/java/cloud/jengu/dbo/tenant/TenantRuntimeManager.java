@@ -378,6 +378,15 @@ public final class TenantRuntimeManager implements AutoCloseable {
     private final java.util.Set<String> places = ConcurrentHashMap.newKeySet();
     /** How each place reads its origin right now; absent while it cannot. */
     private final Map<String, OriginFeeds> originFeeds = new ConcurrentHashMap<>();
+    /** When each stream last read its upstream to the end, by the stream's name. */
+    private final Map<String, java.time.Instant> readToTheEnd = new ConcurrentHashMap<>();
+    /**
+     * The version of each tenant's authorisation its places were last handed,
+     * by tenant and consumer.
+     */
+    private final Map<String, Map<String, Long>> authorisationHanded = new ConcurrentHashMap<>();
+    /** What stands of each tenant's register, as its listeners are told it. */
+    private final Map<String, StandingWatch> standings = new ConcurrentHashMap<>();
     /** Each place's own trail, handed to its tenant over the link it reads through. */
     private final Map<String, TrailPusher> trailPushers = new ConcurrentHashMap<>();
     /** Each place's work, handed up the link it reads through, as its trail is. */
@@ -2287,8 +2296,65 @@ public final class TenantRuntimeManager implements AutoCloseable {
             }
             agreed.put(purpose, FleetRegister.Agreement.over(rows));
         }
-        return authorisationsOf(serving).authorise(digests, agreed, by,
-                java.time.Instant.now());
+        RegisterAuthorisations.Standing now = authorisationsOf(serving).authorise(digests,
+                agreed, by, java.time.Instant.now());
+        tellWhatStands(tenant);
+        return now;
+    }
+
+    /**
+     * What stands of this tenant's register here, for an application beside
+     * the store: read on the spot, and telling its listeners when it changes.
+     * The same one across the tenant's rebuilds.
+     */
+    public cloud.jengu.dbo.tenant.api.RegisterStanding registerStanding(String tenant) {
+        return standings.computeIfAbsent(tenant,
+                code -> new StandingWatch(code, () -> standingOf(code)));
+    }
+
+    private cloud.jengu.dbo.tenant.api.RegisterStanding.Standing standingOf(String code) {
+        RegisterHandler.Reading reading = registerOf(code);
+        List<FleetRegister.Row> rows = reading.register();
+        Map<String, cloud.jengu.dbo.tenant.api.RegisterStanding.State> purposes =
+                new java.util.LinkedHashMap<>();
+        for (Map<String, Object> purpose : RegisterHandler.purposes(rows,
+                reading.agreedPurposes(), reading.purposesInTerms())) {
+            purposes.put(String.valueOf(purpose.get("code")),
+                    cloud.jengu.dbo.tenant.api.RegisterStanding.State.valueOf(
+                            String.valueOf(purpose.get("state"))
+                                    .toUpperCase(java.util.Locale.ROOT)));
+        }
+        // A row going to nobody named is never unapproved and never stands.
+        Set<String> notStanding = new java.util.HashSet<>();
+        unapprovedRows(code).forEach(row -> notStanding.add(row.step()));
+        rows.stream().filter(FleetRegister.Row::goesNowhereKnown)
+                .forEach(row -> notStanding.add(row.step()));
+        Set<String> steps = new java.util.TreeSet<>();
+        rows.stream().map(FleetRegister.Row::step).filter(step -> !notStanding.contains(step))
+                .forEach(steps::add);
+        TenantRuntime serving = runtimes.get(code);
+        return new cloud.jengu.dbo.tenant.api.RegisterStanding.Standing(purposes, steps,
+                serving == null ? null : authorisationsOf(serving).authorisedAt().orElse(null),
+                places.contains(code) ? readToTheEnd.get(authorisationStreamOf(code)) : null);
+    }
+
+    /** Tells every serving tenant's listeners what stands, where it changed. */
+    private void tellWhatStands() {
+        standings.keySet().forEach(this::tellWhatStands);
+    }
+
+    private void tellWhatStands(String tenant) {
+        StandingWatch watch = standings.get(tenant);
+        if (watch == null || !runtimes.containsKey(tenant)) {
+            return;
+        }
+        try {
+            watch.tell();
+        } catch (RuntimeException unread) {
+            // The register could not be read this round; the next one tells.
+            LOG.warn("what stands of tenant {}'s register could not be read: {}", tenant,
+                    unread.toString());
+        }
     }
 
     private static RegisterAuthorisations authorisationsOf(TenantRuntime serving) {
@@ -2466,6 +2532,17 @@ public final class TenantRuntimeManager implements AutoCloseable {
                     }
                 }
                 return said;
+            }
+
+            @Override
+            public Optional<RegisterHandler.Held> held() {
+                TenantRuntime serving = runtimes.get(code);
+                if (serving == null || !places.contains(code)) {
+                    return Optional.empty();
+                }
+                return Optional.of(new RegisterHandler.Held(
+                        authorisationsOf(serving).authorisedAt().orElse(null),
+                        readToTheEnd.get(authorisationStreamOf(code))));
             }
 
             @Override
@@ -2842,6 +2919,8 @@ public final class TenantRuntimeManager implements AutoCloseable {
         synchronized (this) {
             settle();
         }
+        // A declaration read this beat may leave a row standing no more.
+        tellWhatStands();
         return codes();
     }
 
@@ -5570,8 +5649,9 @@ public final class TenantRuntimeManager implements AutoCloseable {
      * it is serving now, so a redeclared dependency changes what a place may
      * read without the door being remounted.
      *
-     * <p>Nothing the tenant authors is on it. That travels as work, to the
-     * place that performs it and back as what the run wrote.
+     * <p>Nothing else the tenant authors is on it. That travels as work, to
+     * the place that performs it and back as what the run wrote. What it
+     * authorised of its register is the exception, since a place acts on it.
      */
     private java.util.Optional<cloud.jengu.dbo.runner.transport.Place> placeServedBy(String code) {
         TenantRuntime serving = runtimes.get(code);
@@ -5621,7 +5701,11 @@ public final class TenantRuntimeManager implements AutoCloseable {
                                     handed.contentCursor()));
                     return new cloud.jengu.dbo.runner.transport.Handover.Taken(
                             applied.applied(), applied.skipped(), applied.refused());
-                }));
+                },
+                // The one record of all it authors a place acts on.
+                new AuthorisationFeed(() -> authorisationsOf(serving).current(),
+                        authorisationHanded.computeIfAbsent(code,
+                                tenant -> new ConcurrentHashMap<>()))));
     }
 
     /**
@@ -5634,7 +5718,17 @@ public final class TenantRuntimeManager implements AutoCloseable {
             /** Where the place hands its own trail, or null for a link that carries none. */
             cloud.jengu.dbo.runner.transport.Trail trail,
             /** Where the place hands the work it did, or null for a link that carries none. */
-            cloud.jengu.dbo.runner.transport.Handover work) {
+            cloud.jengu.dbo.runner.transport.Handover work,
+            /** What the tenant authorised of its register, or null for a link that carries none. */
+            ChangeFeed authorisation) {
+
+        /** A link that carries no authorisation. */
+        public OriginFeeds(ChangeFeed records, ChangeFeed definitions,
+                ChangeFeed definitionsWithoutTheFace,
+                cloud.jengu.dbo.runner.transport.Trail trail,
+                cloud.jengu.dbo.runner.transport.Handover work) {
+            this(records, definitions, definitionsWithoutTheFace, trail, work, null);
+        }
 
         /** A link that carries no trail: the place keeps its own. */
         public OriginFeeds(ChangeFeed records, ChangeFeed definitions,
@@ -5705,7 +5799,8 @@ public final class TenantRuntimeManager implements AutoCloseable {
     private void wirePlace(TenantSpec spec, TenantRuntime runtime, javax.sql.DataSource on) {
         String origin = spec.code();
         OriginFeeds feeds = originFeeds.getOrDefault(spec.code(), new OriginFeeds(
-                new Unreachable(origin), new Unreachable(origin), new Unreachable(origin)));
+                new Unreachable(origin), new Unreachable(origin), new Unreachable(origin),
+                null, null, new Unreachable(origin)));
         if (feeds.trail() != null) {
             trailPushers.put(spec.code(), new TrailPusher(on, feeds.trail()));
         } else {
@@ -5755,7 +5850,23 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 cloud.jengu.dbo.core.api.Domains.DEFINITIONS, version.payloadVersion(),
                 CONVERTERS, "sync." + origin + "." + spec.code() + ".definitions",
                 null, runtime.grain())));
+        if (feeds.authorisation() != null) {
+            // Into the work domain, where the origin keeps it: the place's
+            // register reads it there as the origin's reads its own.
+            engines.add(withRuns(spec, new cloud.jengu.dbo.sync.ContentSyncEngine(
+                    new cloud.jengu.dbo.sync.ContentDependency(origin,
+                            java.util.Set.of(RegisterAuthorisations.TYPE)),
+                    feeds.authorisation(), runtime.engine(), on,
+                    cloud.jengu.dbo.work.WorkModel.DOMAIN,
+                    RegisterAuthorisations.registrations(true).get(0).payloadVersion(),
+                    CONVERTERS, authorisationStreamOf(spec.code()), null, null)));
+        }
         syncEngines.put(spec.code(), java.util.List.copyOf(engines));
+    }
+
+    /** The stream a place of this tenant reads its origin's authorisation on. */
+    private static String authorisationStreamOf(String code) {
+        return "sync." + code + "." + code + ".authorisation";
     }
 
     /** The dependency a tenant takes its face through, or null when it names none. */
@@ -5797,6 +5908,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
                     events = stream.syncOnce(500);
                     carried += events;
                 } while (events > 0);
+                readToTheEnd.put(stream.name(), java.time.Instant.now());
             }
         } catch (RuntimeException away) {
             if (!unreachable(away)) {
@@ -6599,6 +6711,9 @@ public final class TenantRuntimeManager implements AutoCloseable {
                     // what the cursor is for; carrying on would only mean
                     // reading through a pool somebody is closing.
                 } while (events > 0 && !closing);
+                if (!closing) {
+                    readToTheEnd.put(engine.name(), java.time.Instant.now());
+                }
                 // one recorded round: re-attempt what is parked and say
                 // what is left, which is the part a person can act on
                 engine.pass(500);
@@ -6694,6 +6809,8 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 }
             }
         });
+        // What arrived may be a place's authorisation from its origin.
+        tellWhatStands();
         return seen.get();
     }
 
@@ -6764,7 +6881,8 @@ public final class TenantRuntimeManager implements AutoCloseable {
         // withdraws what it stopped declaring and nothing anybody else wrote.
         all.addAll(ConfigFiles.registrations());
         // What a tenant authorised of its register, at its own door.
-        all.addAll(RegisterAuthorisations.registrations());
+        // At a place it is its origin's, copied here and read-only.
+        all.addAll(RegisterAuthorisations.registrations(places.contains(spec.code())));
         // And the replication lane's own bookkeeping: where each peer
         // has reached, and what arrived for which work. Same argument again —
         // a lane's state is this tenant's, dropped when the tenant is. Without
@@ -7066,6 +7184,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
             recordRetraction(code, because);
         }
         listener.tenantDown(code);
+        standings.remove(code);
         redeclared.remove(code);
         unmount(code, runtime);
     }
