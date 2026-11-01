@@ -167,6 +167,9 @@ spec:
                       sealed:
                         type: string
                         enum: [window]
+                      purpose:
+                        type: string
+                        enum: [required]
                 # A tenant whose people are provisioned by an identity
                 # provider names the system it accepts them from.
                 scim:

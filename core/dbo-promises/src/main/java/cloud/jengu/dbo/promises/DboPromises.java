@@ -2275,6 +2275,13 @@ public enum DboPromises implements Promise {
             + "the trail by kind and day, and any copy still held under it answers that its "
             + "window passed rather than opening — as erasure ends a person's content. Only a "
             + "tenant behind the membrane holds keys, so only one may declare such a kind."),
+    POL_CONTENT_IS_READ_FOR_A_PURPOSE(
+            "Reading content of a kind is opening it, so each read — over the wire or "
+            + "in-process — is an access entry on the tenant's trail about that content, "
+            + "naming who read it, its kind and the purpose stated, whatever the tenant's audit "
+            + "level. A kind may ask for a purpose: a reader stating none, in the "
+            + "Purpose-Of-Use header or on the token, is refused as an identifying read without "
+            + "a reason is, before anything is returned or recorded."),
     POL_POLICY_REPLAY_ON_RESTORE(
             "Before a restored tenant serves, the machinery re-applies the shred ledger "
             + "and the retention sweep — an archive cannot resurrect what policy required "

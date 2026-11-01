@@ -126,9 +126,9 @@ public final class SharedTenants {
          * declares one identity class — so the family of classes asking about
          * a person behind the membrane gets its own.
          *
-         * <p>It keeps a device's messages sealed to their window, which only a
-         * tenant holding keys can, so every put of content here names that
-         * kind.
+         * <p>It keeps a device's messages sealed to their window and read only
+         * for a purpose — sealing needs a tenant holding keys — and its log in
+         * the clear, so every put of content here names one of the two.
          */
         R4_PDI_PERSON("sharedr4pdiperson", """
                 [{"name":"Person","identity":"identifier","systems":["%s"],
@@ -137,7 +137,9 @@ public final class SharedTenants {
                  {"name":"Practitioner","identity":"internal","handling":"operational"}]"""
                 .formatted(EID), "r4", ",\"pdi\":true,\"content\":{\"device-message\":"
                         + "{\"keepAtPlace\":\"P1D\",\"keepAtTenant\":\"P7D\","
-                        + "\"sealed\":\"window\"}}", "none"),
+                        + "\"sealed\":\"window\",\"purpose\":\"required\"},"
+                        + "\"device-log\":{\"keepAtPlace\":\"P1D\",\"keepAtTenant\":\"P7D\"}}",
+                "none"),
 
         /**
          * r4 for converting stock from one shape to another.

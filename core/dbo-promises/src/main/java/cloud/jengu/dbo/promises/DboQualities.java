@@ -72,6 +72,7 @@ public enum DboQualities implements Quality {
                     DboPromises.POL_RETENTION_SWEEP,
                     DboPromises.POL_CONTENT_IS_OF_A_DECLARED_KIND,
                     DboPromises.POL_CONTENT_IS_SEALED_TO_ITS_WINDOW,
+                    DboPromises.POL_CONTENT_IS_READ_FOR_A_PURPOSE,
                     DboPromises.POL_ERASURE_COMPATIBLE,
                     DboPromises.CORE_DECLARED_TRUTH_FORM,
                     DboPromises.CORE_DECLARED_IDENTITY,

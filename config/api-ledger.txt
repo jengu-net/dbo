@@ -632,6 +632,9 @@ cloud.jengu.dbo.core.api.BlobStore.Blob                                window():
 cloud.jengu.dbo.core.api.BlobStore.ErasedException                     class
 cloud.jengu.dbo.core.api.BlobStore.ErasedException                     key():String
 cloud.jengu.dbo.core.api.BlobStore.ErasedException                     new(String)
+cloud.jengu.dbo.core.api.BlobStore.PurposeRequiredException            class
+cloud.jengu.dbo.core.api.BlobStore.PurposeRequiredException            kind():String
+cloud.jengu.dbo.core.api.BlobStore.PurposeRequiredException            new(String)
 cloud.jengu.dbo.core.api.BlobStore.WindowPassedException               class
 cloud.jengu.dbo.core.api.BlobStore.WindowPassedException               key():String
 cloud.jengu.dbo.core.api.BlobStore.WindowPassedException               new(String)
@@ -2912,6 +2915,8 @@ cloud.jengu.dbo.policy.TenantPolicies.ContentKind                      keepAtPla
 cloud.jengu.dbo.policy.TenantPolicies.ContentKind                      keepAtTenant():Duration
 cloud.jengu.dbo.policy.TenantPolicies.ContentKind                      new(Duration,Duration)
 cloud.jengu.dbo.policy.TenantPolicies.ContentKind                      new(Duration,Duration,boolean)
+cloud.jengu.dbo.policy.TenantPolicies.ContentKind                      new(Duration,Duration,boolean,boolean)
+cloud.jengu.dbo.policy.TenantPolicies.ContentKind                      purposeRequired():boolean
 cloud.jengu.dbo.policy.TenantPolicies.ContentKind                      record
 cloud.jengu.dbo.policy.TenantPolicies.ContentKind                      sealedToWindow():boolean
 cloud.jengu.dbo.policy.TenantPolicies.ContentKind                      toString():String
@@ -3209,6 +3214,7 @@ cloud.jengu.dbo.promises.DboPromises                                   POL_AUDIT
 cloud.jengu.dbo.promises.DboPromises                                   POL_A_RUNS_TRAIL_IS_CHAINED_FROM_THE_TASK:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   POL_COLLECTING_IS_A_READING:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   POL_CONTENT_IS_OF_A_DECLARED_KIND:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   POL_CONTENT_IS_READ_FOR_A_PURPOSE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   POL_CONTENT_IS_SEALED_TO_ITS_WINDOW:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   POL_CUSTOM_AUDIT_EVENTS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   POL_DECLARATIVE_RETENTION:cloud.jengu.dbo.promises.DboPromises

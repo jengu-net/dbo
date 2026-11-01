@@ -39,17 +39,27 @@ public record TenantPolicies(
      * replica's — as erasure ends a person's. Content whose person cannot be
      * told is neither sealed to nobody nor kept plain.
      *
+     * <p><b>Read for a purpose</b>, where the kind says so: a reader states
+     * why, as a PurposeOfUse code, or is refused. Every read of content of a
+     * kind is on the trail as an access entry whether or not it asks.
+     *
      * @param keepAtPlace     how long a place of the tenant keeps it after it was put
      * @param keepAtTenant    how long the tenant's origin keeps it after it was put
      * @param sealedToWindow  whether content of it naming no person is sealed to its
      *                        window
+     * @param purposeRequired whether reading it needs a stated purpose
      */
     public record ContentKind(Duration keepAtPlace, Duration keepAtTenant,
-            boolean sealedToWindow) {
+            boolean sealedToWindow, boolean purposeRequired) {
 
-        /** A kind kept plain where its writer names no person. */
+        /** A kind read without a stated purpose. */
+        public ContentKind(Duration keepAtPlace, Duration keepAtTenant, boolean sealedToWindow) {
+            this(keepAtPlace, keepAtTenant, sealedToWindow, false);
+        }
+
+        /** A kind kept plain where its writer names no person, read without a purpose. */
         public ContentKind(Duration keepAtPlace, Duration keepAtTenant) {
-            this(keepAtPlace, keepAtTenant, false);
+            this(keepAtPlace, keepAtTenant, false, false);
         }
 
         public ContentKind {
@@ -228,7 +238,8 @@ public record TenantPolicies(
      * {@code "audit":{"level":"writes"}, "writeDiscipline":{"default":"append-only",
      * "perType":{"Task":"standard"}}, "retention":{"perType":{"Encounter":
      * {"keepAtLeast":"P10Y","removeAfter":"P30Y"}}}, "content":{"analyser-message":
-     * {"keepAtPlace":"P7D","keepAtTenant":"P90D","sealed":"window"}}} — all optional.
+     * {"keepAtPlace":"P7D","keepAtTenant":"P90D","sealed":"window","purpose":"required"}}}
+     * — all optional.
      */
     @SuppressWarnings("unchecked")
     public static TenantPolicies parse(Object specRoot) {
@@ -300,13 +311,19 @@ public record TenantPolicies(
                     throw new IllegalArgumentException("content '" + kind + "' is sealed to "
                             + "'window' or not at all; it says '" + sealed + "'");
                 }
+                Object purpose = rule.get("purpose");
+                if (purpose != null && !"required".equals(purpose)) {
+                    throw new IllegalArgumentException("content '" + kind + "' is read for a "
+                            + "purpose that is 'required' or for none; it says '" + purpose
+                            + "'");
+                }
                 try {
                     content.put(kind, new ContentKind(
                             rule.get("keepAtPlace") != null
                                     ? period(String.valueOf(rule.get("keepAtPlace"))) : null,
                             rule.get("keepAtTenant") != null
                                     ? period(String.valueOf(rule.get("keepAtTenant"))) : null,
-                            sealed != null));
+                            sealed != null, purpose != null));
                 } catch (IllegalArgumentException wrong) {
                     throw new IllegalArgumentException("content '" + kind + "': "
                             + wrong.getMessage(), wrong);

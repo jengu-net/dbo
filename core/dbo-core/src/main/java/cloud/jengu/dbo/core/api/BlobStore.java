@@ -168,6 +168,28 @@ public interface BlobStore {
     }
 
     /**
+     * Content of a kind read only for a stated purpose, asked for without one.
+     *
+     * <p>Refused rather than answered: the content is there, and the reader
+     * may not read it this way — not without saying why.
+     */
+    class PurposeRequiredException extends RuntimeException {
+
+        private final String kind;
+
+        public PurposeRequiredException(String kind) {
+            super("content of the kind '" + kind + "' is read for a stated purpose: say why, as "
+                    + "a PurposeOfUse code such as TREAT, in the Purpose-Of-Use header or on "
+                    + "the token");
+            this.kind = kind;
+        }
+
+        public String kind() {
+            return kind;
+        }
+    }
+
+    /**
      * Puts content back under the key it already had.
      *
      * <p>The exception to the rule above, and it does not break it: a key

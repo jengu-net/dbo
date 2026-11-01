@@ -160,9 +160,26 @@ public final class BlobHandler implements HttpHandler {
             fail(exchange, 404, "name the content to read: " + base + "/{key}");
             return;
         }
+        // A reason stated per request, as the records door takes one, and
+        // replacing the token's: content of a kind may be read only for one.
+        String stated = exchange.getRequestHeaders().getFirst("Purpose-Of-Use");
+        if (stated != null && !stated.isBlank()) {
+            if (!cloud.jengu.dbo.core.api.Disclosure.statable(stated)) {
+                fail(exchange, 400, "Purpose-Of-Use must be a PurposeOfUse code such as TREAT "
+                        + "or PATRQT");
+                return;
+            }
+            cloud.jengu.dbo.core.api.Disclosure.set(cloud.jengu.dbo.core.api.Disclosure.mode(),
+                    stated.trim());
+        }
         Optional<BlobStore.Blob> held;
         try {
             held = blobs.get(key);
+        } catch (BlobStore.PurposeRequiredException unstated) {
+            // 403, as an identifying read without a reason is: well formed,
+            // and declined until it says why.
+            fail(exchange, 403, unstated.getMessage());
+            return;
         } catch (BlobStore.ErasedException erased) {
             // 410 rather than 404: it was here, and it is deliberately gone.
             // An auditor asking what became of a recording is owed the

@@ -144,7 +144,8 @@ public final class TenantRuntimeManager implements AutoCloseable {
      * clear while whoever wrote it believes it is protected.
      */
     private cloud.jengu.dbo.core.api.BlobStore blobsFor(TenantSpec spec,
-            cloud.jengu.dbo.core.api.BlobStore plain) {
+            cloud.jengu.dbo.core.api.BlobStore plain,
+            cloud.jengu.dbo.rest.AuditProjection.Recorder trail) {
         cloud.jengu.dbo.pdi.PersonVault vault = vaults.get(spec.code());
         java.util.Set<String> windowed = new java.util.HashSet<>();
         spec.policies().content().forEach((kind, declared) -> {
@@ -154,7 +155,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
         });
         return new DeclaredContent(spec.code(), vault == null ? plain
                 : new cloud.jengu.dbo.pdi.SealingBlobStore(plain, vault, windowed),
-                spec.policies().content());
+                spec.policies().content(), trail);
     }
 
     /**
@@ -5131,7 +5132,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 // destroys the recording, rather than leaving it readable
                 // beside a receipt that says otherwise.
                 blobsFor(spec, new cloud.jengu.dbo.postgres.PgBlobStore(
-                        db.dataSource())),
+                        db.dataSource()), engine),
                 // Null where the tenant has none, which is the whole of what
                 // a host is told about a tenant nobody can sign in to.
                 tenantAuthority);

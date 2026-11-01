@@ -73,7 +73,7 @@ like that is put under a kind the tenant declares sealed to its window:
 
 ```json
 "content": {"device-message": {"keepAtPlace": "P1D", "keepAtTenant": "P7D",
-                               "sealed": "window"}}
+                               "sealed": "window", "purpose": "required"}}
 ```
 
 Put naming no person, it is held under a key of the tenant's for that kind and
@@ -84,6 +84,14 @@ still held under it, in a backup or a replica, answers `410` that its window
 passed. Content put under the same kind naming a person is sealed to that
 person instead, so erasing them reaches it. Only a tenant behind the membrane
 holds keys, so a declaration outside it is refused.
+
+With `"purpose": "required"` the message is read only by a reader who says why,
+as a PurposeOfUse code in the `Purpose-Of-Use` header or on the token; one who
+does not is refused `403`. Whether or not a kind asks for a purpose, every read
+of its content is an access entry on the trail about that content, naming who
+read it, its kind and the purpose stated. The store cannot tell whether opaque
+bytes name somebody, so it records every opening rather than guessing which
+were disclosures.
 
 Erasing a whole tenant is different: an operator drops its database
 ([running it](running-it.md#a-tenant-is-erased)).
