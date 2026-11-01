@@ -80,13 +80,29 @@ public final class RegisterHandler implements HttpHandler {
         default Map<String, AgreedPurpose> agreedPurposes() {
             return Map.of();
         }
+
+        /** The rows standing by terms the tenant signed, by digest, naming the terms. */
+        default Map<String, String> agreedInTerms() {
+            return Map.of();
+        }
+
+        /**
+         * Each purpose agreed in terms the tenant signed, by code, the terms'
+         * name standing as who agreed and with no time.
+         */
+        default Map<String, AgreedPurpose> purposesInTerms() {
+            return Map.of();
+        }
     }
 
     /** One row a tenant authorised at its door: who of it agreed, and when. */
     public record Authorised(String by, java.time.Instant at) {
     }
 
-    /** One purpose a tenant authorised at its door: who agreed, when, and to what. */
+    /**
+     * One purpose a tenant authorised: who agreed, when, and to what. Agreed
+     * in terms, {@code by} is the terms' name and {@code at} is null.
+     */
     public record AgreedPurpose(String by, java.time.Instant at,
             FleetRegister.Agreement agreement) {
     }
@@ -251,6 +267,7 @@ public final class RegisterHandler implements HttpHandler {
         // door; a row its declaration authorises says only that.
         Optional<Map<String, Authorised>> atTheDoor = now.authorised();
         Map<String, AgreedPurpose> agreed = now.agreedPurposes();
+        Map<String, String> inTerms = now.agreedInTerms();
         Set<String> unapproved = new java.util.HashSet<>();
         now.unapproved().forEach(row -> unapproved.add(row.digest()));
         for (int at = 0; at < rows.size(); at++) {
@@ -259,7 +276,12 @@ public final class RegisterHandler implements HttpHandler {
             Authorised given = atTheDoor.map(door -> door.get(digest)).orElse(null);
             AgreedPurpose under = rows.get(at).purpose() == null ? null
                     : agreed.get(rows.get(at).purpose().code());
-            if (given != null) {
+            if (inTerms.containsKey(digest)) {
+                // Not the door's to withdraw: changed by changing the terms.
+                one.put("authorisedIn", "terms");
+                one.put("terms", inTerms.get(digest));
+                one.put("withdrawable", false);
+            } else if (given != null) {
                 one.put("authorisedBy", given.by());
                 one.put("authorisedAt", given.at().toString());
             } else if (under != null && !unapproved.contains(digest)) {
@@ -272,7 +294,7 @@ public final class RegisterHandler implements HttpHandler {
             }
         }
         answer.put("rows", said);
-        answer.put("purposes", purposes(rows, agreed));
+        answer.put("purposes", purposes(rows, agreed, now.purposesInTerms()));
         answer.put("declined", List.copyOf(new java.util.TreeSet<>(now.declined())));
         // Absent rather than false when nothing was ever authorised: never
         // having read a register is a different answer from having read this
@@ -291,6 +313,15 @@ public final class RegisterHandler implements HttpHandler {
      */
     static List<Map<String, Object>> purposes(List<FleetRegister.Row> rows,
             Map<String, AgreedPurpose> agreed) {
+        return purposes(rows, agreed, Map.of());
+    }
+
+    /**
+     * The same, with the purposes agreed in terms read where the door agreed
+     * nothing for them.
+     */
+    static List<Map<String, Object>> purposes(List<FleetRegister.Row> rows,
+            Map<String, AgreedPurpose> agreed, Map<String, AgreedPurpose> inTerms) {
         Map<String, TenantSpec.Purpose> served = new LinkedHashMap<>();
         rows.stream().map(FleetRegister.Row::purpose).filter(java.util.Objects::nonNull)
                 .forEach(purpose -> served.putIfAbsent(purpose.code(), purpose));
@@ -302,13 +333,21 @@ public final class RegisterHandler implements HttpHandler {
             one.put("words", purpose.words());
             one.put("rows", serving.stream().map(FleetRegister.Row::digest).toList());
             AgreedPurpose given = agreed.get(purpose.code());
-            if (given == null) {
+            AgreedPurpose signed = given == null ? inTerms.get(purpose.code()) : null;
+            if (given == null && signed == null) {
                 one.put("state", "not");
             } else {
-                FleetRegister.Agreement beyond = given.agreement().beyond(serving);
+                FleetRegister.Agreement beyond = (given != null ? given : signed).agreement()
+                        .beyond(serving);
                 one.put("state", beyond.isEmpty() ? "authorised" : "partly");
-                one.put("authorisedBy", given.by());
-                one.put("authorisedAt", given.at().toString());
+                if (given != null) {
+                    one.put("authorisedBy", given.by());
+                    one.put("authorisedAt", given.at().toString());
+                } else {
+                    one.put("authorisedIn", "terms");
+                    one.put("terms", signed.by());
+                    one.put("withdrawable", false);
+                }
                 if (!beyond.isEmpty()) {
                     one.put("new", Map.of("participants", List.copyOf(beyond.participants()),
                             "types", List.copyOf(beyond.types())));

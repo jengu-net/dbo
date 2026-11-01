@@ -2185,6 +2185,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
     public java.util.Optional<Boolean> fleetRegisterChanged(String tenant) {
         TenantRuntime serving = runtimes.get(tenant);
         if (serving == null || (serving.spec().authorised().isEmpty()
+                && serving.spec().terms().isEmpty()
                 && authorisationsOf(serving).given().isEmpty())) {
             return java.util.Optional.empty();
         }
@@ -2202,14 +2203,33 @@ public final class TenantRuntimeManager implements AutoCloseable {
      * request on every node.
      */
     Set<String> authorisedBy(String tenant, TenantRuntime serving) {
+        // What the terms agree to stands beside either, whatever the door says.
+        Set<String> standing = new java.util.LinkedHashSet<>(
+                agreedInTerms(tenant, serving).keySet());
         Optional<RegisterAuthorisations.Standing> door = authorisationsOf(serving).given();
         if (door.isEmpty()) {
-            return serving.spec().authorised();
+            standing.addAll(serving.spec().authorised());
+            return standing;
         }
         Map<String, FleetRegister.Agreement> purposes = new java.util.HashMap<>();
         door.get().purposes().forEach((code, agreed) -> purposes.put(code, agreed.agreement()));
-        return FleetRegister.standing(fleetRegister(tenant), door.get().rows().keySet(),
-                purposes);
+        standing.addAll(FleetRegister.standing(fleetRegister(tenant), door.get().rows().keySet(),
+                purposes));
+        return standing;
+    }
+
+    /** The rows standing by the terms the tenant signed, by digest, naming the terms. */
+    private Map<String, String> agreedInTerms(String tenant, TenantRuntime serving) {
+        Map<String, String> agreed = new java.util.LinkedHashMap<>();
+        if (serving.spec().terms().isEmpty()) {
+            return agreed;
+        }
+        List<FleetRegister.Row> rows = fleetRegister(tenant);
+        for (TenantSpec.Terms terms : serving.spec().terms()) {
+            FleetRegister.standing(rows, terms.rows(), terms.purposes())
+                    .forEach(digest -> agreed.putIfAbsent(digest, terms.name()));
+        }
+        return agreed;
     }
 
     /** What the tenant authorised at its door, or empty where it never has. */
@@ -2425,6 +2445,27 @@ public final class TenantRuntimeManager implements AutoCloseable {
                             new RegisterHandler.Authorised(row.by(), row.at())));
                     return said;
                 });
+            }
+
+            @Override
+            public Map<String, String> agreedInTerms() {
+                TenantRuntime serving = runtimes.get(code);
+                return serving == null ? Map.of()
+                        : TenantRuntimeManager.this.agreedInTerms(code, serving);
+            }
+
+            @Override
+            public Map<String, RegisterHandler.AgreedPurpose> purposesInTerms() {
+                TenantRuntime serving = runtimes.get(code);
+                Map<String, RegisterHandler.AgreedPurpose> said = new java.util.LinkedHashMap<>();
+                if (serving != null) {
+                    for (TenantSpec.Terms terms : serving.spec().terms()) {
+                        terms.purposes().forEach((purpose, agreement) -> said.putIfAbsent(
+                                purpose, new RegisterHandler.AgreedPurpose(terms.name(), null,
+                                        agreement)));
+                    }
+                }
+                return said;
             }
 
             @Override

@@ -262,7 +262,8 @@ public enum DboStories implements Story {
                     DboPromises.PROC_AN_APPLICATION_AUTHORISES_A_REGISTER_FOR_A_PERSON,
                     DboPromises.PROC_A_TENANT_AUTHORISES_ITS_REGISTER_BY_PURPOSE,
                     DboPromises.PROC_AN_INCIDENT_NAMES_THE_PURPOSE_REACHED_FOR,
-                    DboPromises.PROC_THE_REGISTER_NAMES_WHO_RECEIVES_WHAT
+                    DboPromises.PROC_THE_REGISTER_NAMES_WHO_RECEIVES_WHAT,
+                    DboPromises.PROC_A_ROW_AGREED_BY_TERMS_SAYS_SO
             )),
 
     ON_THE_STREAM("A deployment whose participants hold their lanes over its own durable "

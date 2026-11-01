@@ -27,7 +27,55 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
         boolean indexFace, List<FleetStep> fleetSteps, Set<String> declines,
         Set<String> authorised, Set<String> exchanges, String partnerOf,
         Configuration configuration, WorkingKey workingKey, String kind,
-        java.util.Map<String, Organisation> recipients) {
+        java.util.Map<String, Organisation> recipients, List<Terms> terms) {
+
+    /** Under no terms signed outside the store. */
+    public TenantSpec(String code, String face, List<FhirTypeConfig> types,
+            boolean pdi, cloud.jengu.dbo.policy.TenantPolicies policies,
+            String zone, String broker, List<String> acceptedBrokers,
+            List<Dependency> dependencies, Scim scim, List<String> mandatorySteps,
+            String managedBy, boolean faceRoot, List<Step> steps, boolean zoneRoot,
+            boolean indexFace, List<FleetStep> fleetSteps, Set<String> declines,
+            Set<String> authorised, Set<String> exchanges, String partnerOf,
+            Configuration configuration, WorkingKey workingKey, String kind,
+            java.util.Map<String, Organisation> recipients) {
+        this(code, face, types, pdi, policies, zone, broker, acceptedBrokers,
+                dependencies, scim, mandatorySteps, managedBy, faceRoot, steps, zoneRoot,
+                indexFace, fleetSteps, declines, authorised, exchanges, partnerOf,
+                configuration, workingKey, kind, recipients, List.of());
+    }
+
+    /**
+     * Rows of the register a tenant agreed to by terms it signed before using
+     * the deployment, rather than at its door.
+     *
+     * <p><b>Named, and not withdrawn at the door.</b> What was agreed in a
+     * contract is changed by changing the contract, so these rows stand
+     * whatever the tenant's door says, and the register says so and by which
+     * terms rather than letting them pass for agreement given there.
+     *
+     * <p><b>A purpose agreed in terms is agreed to who and what</b>, listed in
+     * the terms as a purpose authorised at the door records them: a partner or
+     * a kind of data the terms do not list is not covered by them.
+     *
+     * @param name     the terms as the tenant knows them, such as a contract's
+     *                 title and date
+     * @param rows     rows agreed one by one, by digest
+     * @param purposes purposes agreed, each with the participants and types
+     *                 the terms list
+     */
+    public record Terms(String name, Set<String> rows,
+            java.util.Map<String, FleetRegister.Agreement> purposes) {
+
+        public Terms {
+            if (name == null || name.isBlank()) {
+                throw new IllegalArgumentException("terms are named, so the register can "
+                        + "say which terms a row was agreed in");
+            }
+            rows = Set.copyOf(rows);
+            purposes = java.util.Map.copyOf(purposes);
+        }
+    }
 
     /**
      * Without saying who receives what: what every tenant was before a
@@ -1116,6 +1164,7 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
 
     public TenantSpec {
         recipients = recipients == null ? java.util.Map.of() : java.util.Map.copyOf(recipients);
+        terms = terms == null ? List.of() : List.copyOf(terms);
         if (code == null || !CODE.matcher(code).matches()) {
             throw new IllegalArgumentException("invalid tenant code: " + code);
         }
@@ -1612,7 +1661,9 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
                 Json.strOpt(root, "kind"),
                 // WHO A RECIPIENT ROLE IS, for the rows of its members' registers
                 // (a zone's) or of its own.
-                recipientsOf(code, root));
+                recipientsOf(code, root),
+                // WHAT IT AGREED TO OUTSIDE THE STORE, by the terms it signed.
+                termsOf(code, root));
     }
 
     private static WorkingKey workingKeyOf(Object root) {
@@ -1924,6 +1975,27 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
         } catch (java.security.NoSuchAlgorithmException e) {
             throw new IllegalStateException(e);
         }
+    }
+
+    /** The terms a tenant signed, each with the rows and purposes agreed in them. */
+    private static List<Terms> termsOf(String code, Object root) {
+        List<Terms> signed = new java.util.ArrayList<>();
+        for (Object term : Json.array(root, "terms")) {
+            java.util.Map<String, FleetRegister.Agreement> purposes =
+                    new java.util.LinkedHashMap<>();
+            for (Object agreed : Json.array(term, "purposes")) {
+                purposes.put(Json.str(agreed, "code"), new FleetRegister.Agreement(
+                        new java.util.TreeSet<>(Json.strings(agreed, "participants")),
+                        new java.util.TreeSet<>(Json.strings(agreed, "types"))));
+            }
+            try {
+                signed.add(new Terms(Json.strOpt(term, "name"),
+                        Set.copyOf(Json.strings(term, "rows")), purposes));
+            } catch (IllegalArgumentException wrong) {
+                throw new IllegalArgumentException(code + ": " + wrong.getMessage(), wrong);
+            }
+        }
+        return signed;
     }
 
     /** The organisations a declaration says recipient roles are, by role. */

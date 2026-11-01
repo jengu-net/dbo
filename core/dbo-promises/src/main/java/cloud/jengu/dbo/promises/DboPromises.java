@@ -1311,6 +1311,15 @@ public enum DboPromises implements Promise {
             + "resolves is shown with no organisation, never stands, and authorising it is "
             + "refused."),
 
+    PROC_A_ROW_AGREED_BY_TERMS_SAYS_SO(
+            "A tenant's declaration names the terms it signed before using the deployment, "
+            + "and the rows agreed in them, by digest, and the purposes agreed in them, each "
+            + "with the participants and types the terms list. Those rows stand whatever the "
+            + "tenant's door says: the register shows each as authorised in terms, naming "
+            + "them, and not withdrawable, and an authorisation at the door that leaves them "
+            + "out leaves them standing. A row under a purpose agreed in terms stands only "
+            + "within what the terms list."),
+
     PROC_AN_INCIDENT_NAMES_THE_PURPOSE_REACHED_FOR(
             "Work under a row the tenant has not authorised is refused or kept on the "
             + "incidents account as before, and both name the purpose the row serves, so "

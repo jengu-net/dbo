@@ -3239,6 +3239,7 @@ cloud.jengu.dbo.promises.DboPromises                                   PROC_A_RE
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_RESTARTED_NODE_WAITS_OUT_NO_DOOR_IT_LEFT:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_RESULT_IS_WRITTEN_BY_THE_TENANT:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_ROUTED_TREE_TRAVELS_AS_A_LANE_VERB:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   PROC_A_ROW_AGREED_BY_TERMS_SAYS_SO:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_RUNNER_ASKS_ONCE_IT_HOLDS_ITS_STEPS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_RUN_ANSWERS_ITS_INITIATOR:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_RUN_ANSWERS_ONLY_FOR_ITS_INPUTS:cloud.jengu.dbo.promises.DboPromises
@@ -4816,12 +4817,14 @@ cloud.jengu.dbo.tenant.RegisterHandler.Authorised                      record
 cloud.jengu.dbo.tenant.RegisterHandler.Authorised                      toString():String
 cloud.jengu.dbo.tenant.RegisterHandler.Authorising                     authorise(List,List,String):void
 cloud.jengu.dbo.tenant.RegisterHandler.Authorising                     interface
+cloud.jengu.dbo.tenant.RegisterHandler.Reading                         agreedInTerms():Map
 cloud.jengu.dbo.tenant.RegisterHandler.Reading                         agreedPurposes():Map
 cloud.jengu.dbo.tenant.RegisterHandler.Reading                         authorised():Optional
 cloud.jengu.dbo.tenant.RegisterHandler.Reading                         changed():Optional
 cloud.jengu.dbo.tenant.RegisterHandler.Reading                         declined():Set
 cloud.jengu.dbo.tenant.RegisterHandler.Reading                         disagreements():List
 cloud.jengu.dbo.tenant.RegisterHandler.Reading                         interface
+cloud.jengu.dbo.tenant.RegisterHandler.Reading                         purposesInTerms():Map
 cloud.jengu.dbo.tenant.RegisterHandler.Reading                         register():List
 cloud.jengu.dbo.tenant.RegisterHandler.Reading                         unapproved():List
 cloud.jengu.dbo.tenant.RegisterHandler.Reading                         unapprovedProcessing():List
@@ -5063,6 +5066,7 @@ cloud.jengu.dbo.tenant.TenantSpec                                      new(Strin
 cloud.jengu.dbo.tenant.TenantSpec                                      new(String,String,List,boolean,cloud.jengu.dbo.policy.TenantPolicies,String,String,List,List,cloud.jengu.dbo.tenant.TenantSpec.Scim,List,String,boolean,List,boolean,boolean,List,Set,Set,Set,String,cloud.jengu.dbo.tenant.TenantSpec.Configuration,cloud.jengu.dbo.tenant.TenantSpec.WorkingKey)
 cloud.jengu.dbo.tenant.TenantSpec                                      new(String,String,List,boolean,cloud.jengu.dbo.policy.TenantPolicies,String,String,List,List,cloud.jengu.dbo.tenant.TenantSpec.Scim,List,String,boolean,List,boolean,boolean,List,Set,Set,Set,String,cloud.jengu.dbo.tenant.TenantSpec.Configuration,cloud.jengu.dbo.tenant.TenantSpec.WorkingKey,String)
 cloud.jengu.dbo.tenant.TenantSpec                                      new(String,String,List,boolean,cloud.jengu.dbo.policy.TenantPolicies,String,String,List,List,cloud.jengu.dbo.tenant.TenantSpec.Scim,List,String,boolean,List,boolean,boolean,List,Set,Set,Set,String,cloud.jengu.dbo.tenant.TenantSpec.Configuration,cloud.jengu.dbo.tenant.TenantSpec.WorkingKey,String,Map)
+cloud.jengu.dbo.tenant.TenantSpec                                      new(String,String,List,boolean,cloud.jengu.dbo.policy.TenantPolicies,String,String,List,List,cloud.jengu.dbo.tenant.TenantSpec.Scim,List,String,boolean,List,boolean,boolean,List,Set,Set,Set,String,cloud.jengu.dbo.tenant.TenantSpec.Configuration,cloud.jengu.dbo.tenant.TenantSpec.WorkingKey,String,Map,List)
 cloud.jengu.dbo.tenant.TenantSpec                                      onlyTheDeploymentDeclaresFleetSteps(cloud.jengu.dbo.tenant.TenantSpec):void
 cloud.jengu.dbo.tenant.TenantSpec                                      parse(String):cloud.jengu.dbo.tenant.TenantSpec
 cloud.jengu.dbo.tenant.TenantSpec                                      partnerOf():String
@@ -5075,6 +5079,7 @@ cloud.jengu.dbo.tenant.TenantSpec                                      scim():cl
 cloud.jengu.dbo.tenant.TenantSpec                                      steps():List
 cloud.jengu.dbo.tenant.TenantSpec                                      substrateDatabaseName(String):String
 cloud.jengu.dbo.tenant.TenantSpec                                      substrateDatabaseName(String,String):String
+cloud.jengu.dbo.tenant.TenantSpec                                      terms():List
 cloud.jengu.dbo.tenant.TenantSpec                                      toString():String
 cloud.jengu.dbo.tenant.TenantSpec                                      types():List
 cloud.jengu.dbo.tenant.TenantSpec                                      workingKey():cloud.jengu.dbo.tenant.TenantSpec.WorkingKey
@@ -5224,6 +5229,14 @@ cloud.jengu.dbo.tenant.TenantSpec.Step.Awaits                          RECORDS:c
 cloud.jengu.dbo.tenant.TenantSpec.Step.Awaits                          enum
 cloud.jengu.dbo.tenant.TenantSpec.Step.Awaits                          valueOf(String):cloud.jengu.dbo.tenant.TenantSpec.Step.Awaits
 cloud.jengu.dbo.tenant.TenantSpec.Step.Awaits                          values():cloud.jengu.dbo.tenant.TenantSpec.Step.Awaits[]
+cloud.jengu.dbo.tenant.TenantSpec.Terms                                equals(Object):boolean
+cloud.jengu.dbo.tenant.TenantSpec.Terms                                hashCode():int
+cloud.jengu.dbo.tenant.TenantSpec.Terms                                name():String
+cloud.jengu.dbo.tenant.TenantSpec.Terms                                new(String,Set,Map)
+cloud.jengu.dbo.tenant.TenantSpec.Terms                                purposes():Map
+cloud.jengu.dbo.tenant.TenantSpec.Terms                                record
+cloud.jengu.dbo.tenant.TenantSpec.Terms                                rows():Set
+cloud.jengu.dbo.tenant.TenantSpec.Terms                                toString():String
 cloud.jengu.dbo.tenant.TenantSpec.WorkingKey                           authMount():String
 cloud.jengu.dbo.tenant.TenantSpec.WorkingKey                           equals(Object):boolean
 cloud.jengu.dbo.tenant.TenantSpec.WorkingKey                           hashCode():int

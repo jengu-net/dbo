@@ -150,6 +150,21 @@ when the zone names another one the row stands no more until the tenant authoris
 again. A role nothing names is shown with no organisation, never stands, and
 authorising it is refused.
 
+Some rows were agreed before the tenant ever used the deployment, in the terms it
+signed. Its declaration names them:
+
+```json
+{ "terms": [{ "name": "Service agreement 2026-03", "rows": ["<digest>"],
+              "purposes": [{ "code": "registry-reporting", "participants": ["provider", "<system>|<value>"],
+                             "types": ["Reference(Observation)"] }] }] }
+```
+
+Those rows stand whatever the door says. The register marks each `authorisedIn:
+terms`, names the terms, and says `withdrawable: false`; an authorisation that leaves
+them out leaves them standing, because what a contract agreed is changed by changing
+the contract. A purpose agreed in terms lists who handles the data and which data, as
+one authorised at the door records them, and covers nothing beyond that.
+
 `GET /t/<code>/register/incidents` is the account kept against it: work that ran
 under a row the tenant never authorised, naming the step, the slot and since
 when, and openings its trail shows that the register does not. Whoever operates

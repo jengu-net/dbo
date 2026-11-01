@@ -1305,6 +1305,50 @@ class AStepIsRunForTheFleetIT {
                         + "the tenant agreed to before, or the partner's row stopped with it");
     }
 
+    // ======== A row agreed by terms says so ========
+
+    @Test
+    @Order(32)
+    @DisplayName("a row agreed in the terms a tenant signed stands whatever its door says, and "
+            + "the register names the terms and offers it for no withdrawal; a purpose agreed "
+            + "in terms covers only what the terms list")
+    @Proving(DboPromises.PROC_A_ROW_AGREED_BY_TERMS_SAYS_SO)
+    void aRowAgreedByTermsSaysSo() throws Exception {
+        // The registry's row as it stands since the zone renamed the registry,
+        // which the tenant's door no longer authorises.
+        String registry = sendingRow(SENT_TO_REGISTRY).digest();
+        String signed = "Service agreement 2026-03";
+        Files.writeString(dir.resolve(REPORTING + ".json"), basicTenant(REPORTING,
+                ",\"zone\":\"" + REGISTRY_ZONE + "\",\"terms\":[{\"name\":\"" + signed
+                        + "\",\"rows\":[\"" + registry + "\"],\"purposes\":[{\"code\":\""
+                        + TIDYING + "\",\"participants\":[\"provider\"],"
+                        + "\"types\":[\"Reference(Basic)\"]}]}]"));
+        manager.scanOnce();
+
+        Set<String> unapproved = new java.util.TreeSet<>();
+        manager.unapprovedRows(REPORTING).forEach(row -> unapproved.add(row.step()));
+        assertFalse(unapproved.contains(SENT_TO_REGISTRY) || unapproved.contains(PURPOSED_NAMED)
+                        || unapproved.contains(PURPOSED_SAME),
+                "rows agreed in the terms do not stand: " + unapproved);
+        assertTrue(unapproved.contains(PURPOSED_WIDER),
+                "a row opening a kind of data the terms do not list stood on them");
+
+        var withdrawn = authorise(REPORTING, "[]", "[]");
+        assertEquals(200, withdrawn.statusCode(), withdrawn.body());
+        Set<String> after = new java.util.TreeSet<>();
+        manager.unapprovedRows(REPORTING).forEach(row -> after.add(row.step()));
+        assertFalse(after.contains(SENT_TO_REGISTRY) || after.contains(PURPOSED_NAMED),
+                "withdrawing everything at the door withdrew rows agreed in terms: " + after);
+        Map<?, ?> row = ((List<?>) ((Map<?, ?>) cloud.jengu.dbo.core.wire.RecordWire
+                .read(withdrawn.body())).get("rows")).stream().map(one -> (Map<?, ?>) one)
+                .filter(one -> SENT_TO_REGISTRY.equals(one.get("step"))).findFirst()
+                .orElseThrow();
+        assertTrue("terms".equals(row.get("authorisedIn")) && signed.equals(row.get("terms"))
+                        && Boolean.FALSE.equals(row.get("withdrawable")),
+                "the register does not say the row stands by the terms, which, and that the "
+                        + "door does not withdraw it: " + row);
+    }
+
     private FleetRegister.Row sendingRow(String step) {
         return manager.fleetRegister(REPORTING).stream()
                 .filter(row -> row.step().equals(step)).findFirst().orElseThrow();
