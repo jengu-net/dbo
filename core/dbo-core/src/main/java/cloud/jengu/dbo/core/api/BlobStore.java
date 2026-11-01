@@ -33,15 +33,22 @@ public interface BlobStore {
      * @param person   who it is sealed to, or null
      * @param kind     the tenant's kind it was put under, or null for content put
      *                 under none
+     * @param window   the day whose key of its kind it is sealed under, or null for
+     *                 content not sealed to a window
      */
-    record Blob(String key, String media, byte[] content, String person, String kind) {
+    record Blob(String key, String media, byte[] content, String person, String kind,
+            java.time.LocalDate window) {
+
+        public Blob(String key, String media, byte[] content, String person, String kind) {
+            this(key, media, content, person, kind, null);
+        }
 
         public Blob(String key, String media, byte[] content, String person) {
-            this(key, media, content, person, null);
+            this(key, media, content, person, null, null);
         }
 
         public Blob(String key, String media, byte[] content) {
-            this(key, media, content, null, null);
+            this(key, media, content, null, null, null);
         }
 
         public int size() {
@@ -98,6 +105,18 @@ public interface BlobStore {
         return person == null ? put(content, media) : put(content, media, person);
     }
 
+    /**
+     * Keeps content already sealed under the key of a kind for a day, and the
+     * day, so whoever can open it knows which key to ask for.
+     *
+     * <p>For a store that seals, handing what it sealed to the store beneath
+     * it; nothing else puts content this way.
+     */
+    default String putSealed(byte[] sealed, String media, String kind,
+            java.time.LocalDate window) {
+        throw new UnsupportedOperationException("this store keeps nothing sealed to a window");
+    }
+
     /** Whether content named for a person is sealed to them here. */
     default boolean seals() {
         return false;
@@ -117,6 +136,28 @@ public interface BlobStore {
 
         public ErasedException(String key) {
             super("the person this content was about has been erased, so it cannot be read: "
+                    + key);
+            this.key = key;
+        }
+
+        public String key() {
+            return key;
+        }
+    }
+
+    /**
+     * Content that was here and whose kind's window has passed, so the key it
+     * was sealed under is destroyed.
+     *
+     * <p>Told apart from erasure as well as from absence: it went because the
+     * tenant said how long it keeps such content, not because somebody asked.
+     */
+    class WindowPassedException extends RuntimeException {
+
+        private final String key;
+
+        public WindowPassedException(String key) {
+            super("the window this content was kept for has passed, so it cannot be read: "
                     + key);
             this.key = key;
         }

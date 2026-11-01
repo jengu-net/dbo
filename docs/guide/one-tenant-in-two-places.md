@@ -88,7 +88,9 @@ that use it.
   declares any, with the kinds it does declare. The site's hourly sweep
   removes the message once a day has passed; the cloud keeps one for thirty. Each removal is on the
   trail by key and kind, without what the message held, and an archive carries
-  each piece's kind.
+  each piece's kind. A kind may also be sealed to its window, so a message
+  whose patient nobody can tell is not kept in the clear
+  ([personal data](personal-data.md#content-whose-person-nobody-can-tell)).
 - **A place hands home only what is its own.** Each store mints its own ids,
   so a record a site's run wrote comes home naming what it points at by what
   that says it is, and the cloud stores it pointing at its own record of the

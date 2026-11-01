@@ -58,6 +58,10 @@ public final class PgBlobStore implements BlobStore {
                 "ALTER TABLE state.blob ADD COLUMN IF NOT EXISTS kind text")) {
             ps.execute();
         }
+        try (PreparedStatement ps = c.prepareStatement(
+                "ALTER TABLE state.blob ADD COLUMN IF NOT EXISTS sealed_window date")) {
+            ps.execute();
+        }
         try (PreparedStatement ps = c.prepareStatement("CREATE INDEX IF NOT EXISTS blob_kind_age"
                 + " ON state.blob (kind, written_at) WHERE kind IS NOT NULL")) {
             ps.execute();
@@ -66,20 +70,31 @@ public final class PgBlobStore implements BlobStore {
 
     @Override
     public String put(byte[] content, String media, String person, String kind) {
-        return kept(content, media, person, kind);
+        return kept(content, media, person, kind, null);
+    }
+
+    @Override
+    public String putSealed(byte[] sealed, String media, String kind,
+            java.time.LocalDate window) {
+        if (kind == null || window == null) {
+            throw new IllegalArgumentException("content sealed to a window names its kind "
+                    + "and its day, or nothing could find the key to open it");
+        }
+        return kept(sealed, media, null, kind, window);
     }
 
     @Override
     public String put(byte[] content, String media, String person) {
-        return kept(content, media, person, null);
+        return kept(content, media, person, null, null);
     }
 
     @Override
     public String put(byte[] content, String media) {
-        return kept(content, media, null, null);
+        return kept(content, media, null, null, null);
     }
 
-    private String kept(byte[] content, String media, String person, String kind) {
+    private String kept(byte[] content, String media, String person, String kind,
+            java.time.LocalDate window) {
         if (content == null) {
             throw new IllegalArgumentException("a blob is bytes; there are none here");
         }
@@ -88,8 +103,8 @@ public final class PgBlobStore implements BlobStore {
         String key = UuidV7.newId();
         try (Connection c = ds.getConnection();
              PreparedStatement ps = c.prepareStatement(
-                     "INSERT INTO state.blob (key, media, content, person, kind)"
-                             + " VALUES (?::uuid, ?, ?, ?::uuid, ?)")) {
+                     "INSERT INTO state.blob (key, media, content, person, kind, sealed_window)"
+                             + " VALUES (?::uuid, ?, ?, ?::uuid, ?, ?)")) {
             ps.setString(1, key);
             ps.setString(2, media == null || media.isBlank()
                     ? "application/octet-stream" : media);
@@ -100,6 +115,7 @@ public final class PgBlobStore implements BlobStore {
             // ask for.
             ps.setString(4, person);
             ps.setString(5, kind);
+            ps.setObject(6, window);
             ps.executeUpdate();
             return key;
         } catch (SQLException e) {
@@ -146,13 +162,14 @@ public final class PgBlobStore implements BlobStore {
         }
         try (Connection c = ds.getConnection();
              PreparedStatement ps = c.prepareStatement(
-                     "SELECT media, content, person::text, kind FROM state.blob"
+                     "SELECT media, content, person::text, kind, sealed_window FROM state.blob"
                              + " WHERE key = ?::uuid")) {
             ps.setString(1, key);
             try (ResultSet rs = ps.executeQuery()) {
                 return rs.next()
                         ? Optional.of(new Blob(key, rs.getString(1), rs.getBytes(2),
-                                rs.getString(3), rs.getString(4)))
+                                rs.getString(3), rs.getString(4),
+                                rs.getObject(5, java.time.LocalDate.class)))
                         : Optional.empty();
             }
         } catch (SQLException e) {

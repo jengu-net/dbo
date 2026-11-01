@@ -630,7 +630,8 @@ public final class TenantImport {
 
     private static String qualifiedTable(java.util.List<String> domains, String archiveName) {
         if (archiveName.equals("pdi.person") || archiveName.equals("pdi.identifier")
-                || archiveName.equals("pdi.shred_ledger")) {
+                || archiveName.equals("pdi.shred_ledger")
+                || archiveName.equals("pdi.window_key")) {
             return archiveName;
         }
         // The tenant's configuration repository: its own schema, its tables

@@ -843,10 +843,12 @@ public final class TenantExport {
             }
 
             // §14 vault (present only under PDI): wrapped keys, HMAC index,
-            // shred ledger — ciphertext and key material only, blind to the
-            // operator by construction; the identifying data itself rides
-            // encrypted inside the payload dumps above
-            for (String pdiTable : List.of("person", "identifier", "shred_ledger")) {
+            // shred ledger, the keys content is sealed to its window under —
+            // ciphertext and key material only, blind to the operator by
+            // construction; the identifying data itself rides encrypted inside
+            // the payload dumps above
+            for (String pdiTable : List.of("person", "identifier", "shred_ledger",
+                    "window_key")) {
                 if (!tableExists(c, "pdi", pdiTable)) {
                     continue;
                 }

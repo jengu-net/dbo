@@ -2266,6 +2266,15 @@ public enum DboPromises implements Promise {
             + "removed, each removal audited by key and kind without what it held: a place "
             + "removes it at a place's window, the tenant at its own. An archive carries each "
             + "piece's kind, so content restored elsewhere goes when it would have."),
+    POL_CONTENT_IS_SEALED_TO_ITS_WINDOW(
+            "Content of a kind declared sealed to its window, put naming no person, is held "
+            + "under a key of the tenant's for that kind and the day it was put, wrapped as "
+            + "its people's keys are, so what is at rest, in a backup or in a copy is "
+            + "ciphertext and reads back as it was sent. Once the kind's window has passed for "
+            + "the whole of a day, the retention sweep destroys that day's key and says so on "
+            + "the trail by kind and day, and any copy still held under it answers that its "
+            + "window passed rather than opening — as erasure ends a person's content. Only a "
+            + "tenant behind the membrane holds keys, so only one may declare such a kind."),
     POL_POLICY_REPLAY_ON_RESTORE(
             "Before a restored tenant serves, the machinery re-applies the shred ledger "
             + "and the retention sweep — an archive cannot resurrect what policy required "

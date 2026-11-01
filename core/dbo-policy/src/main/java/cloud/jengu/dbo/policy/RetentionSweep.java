@@ -44,6 +44,19 @@ public final class RetentionSweep {
     private final PolicyObjectStore auditSink;
     private final Runs runs;
     private final boolean atAPlace;
+    private final Windows windows;
+
+    /** Where the keys content of a kind is sealed under are kept, one per day. */
+    @FunctionalInterface
+    public interface Windows {
+
+        /**
+         * Destroys the kind's keys for every day before the one given.
+         *
+         * @return the days whose keys were destroyed now
+         */
+        List<java.time.LocalDate> destroyBefore(String kind, java.time.LocalDate day);
+    }
 
     /** A sweep on the node the tenant's own records are kept on. */
     public RetentionSweep(DataSource dataSource, String domain, TenantPolicies policies,
@@ -58,6 +71,16 @@ public final class RetentionSweep {
      */
     public RetentionSweep(DataSource dataSource, String domain, TenantPolicies policies,
             PolicyObjectStore auditSink, Runs runs, boolean atAPlace) {
+        this(dataSource, domain, policies, auditSink, runs, atAPlace, null);
+    }
+
+    /**
+     * @param windows where the tenant keeps the keys content of its kinds is sealed
+     *                to its window under, or null for a tenant that holds no keys
+     */
+    public RetentionSweep(DataSource dataSource, String domain, TenantPolicies policies,
+            PolicyObjectStore auditSink, Runs runs, boolean atAPlace, Windows windows) {
+        this.windows = windows;
         this.ds = dataSource;
         this.domain = domain;
         this.policies = policies;
@@ -99,6 +122,9 @@ public final class RetentionSweep {
                     : policies.content().entrySet()) {
                 try {
                     removed += sweepContent(kind.getKey(), kind.getValue().keep(atAPlace));
+                    if (kind.getValue().sealedToWindow() && windows != null) {
+                        destroyWindows(kind.getKey(), kind.getValue().keep(atAPlace));
+                    }
                 } catch (RuntimeException e) {
                     pass.item("content " + kind.getKey(), Failure.of(e),
                             String.valueOf(e.getMessage()));
@@ -138,6 +164,24 @@ public final class RetentionSweep {
                     "kind=" + kind + " keep=" + keep + (atAPlace ? " at a place" : ""));
         }
         return expired.size();
+    }
+
+    /**
+     * The kind's keys for every day whose window has passed for the last of
+     * its content, destroyed and audited by kind and day.
+     *
+     * <p>After the rows, as the backstop rather than the removal: content put
+     * on a day has gone by the time its day's key is, and what the key's
+     * destruction reaches is every copy no sweep can — a backup taken last
+     * month, a replica, an archive somebody kept.
+     */
+    private void destroyWindows(String kind, java.time.Duration keep) {
+        java.time.LocalDate passed = java.time.LocalDate.ofInstant(Instant.now().minus(keep),
+                java.time.ZoneOffset.UTC);
+        for (java.time.LocalDate day : windows.destroyBefore(kind, passed)) {
+            auditSink.record("retention-key-destroyed", "Binary", kind + "/" + day,
+                    "kind=" + kind + " keep=" + keep + (atAPlace ? " at a place" : ""));
+        }
     }
 
     private int sweepType(String typeName, Instant ceiling, TenantPolicies.Retention rule) {

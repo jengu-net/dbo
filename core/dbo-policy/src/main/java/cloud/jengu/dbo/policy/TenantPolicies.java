@@ -32,10 +32,25 @@ public record TenantPolicies(
      * the writer's statement about the format, and the same bytes may be kept
      * for a day or for years.
      *
-     * @param keepAtPlace  how long a place of the tenant keeps it after it was put
-     * @param keepAtTenant how long the tenant's origin keeps it after it was put
+     * <p><b>Sealed to its window</b>, where the kind says so: content of it
+     * that names no person is kept under a key of the tenant's for the kind
+     * and the day it was put, and destroying that key once the window has
+     * passed for the whole day ends every copy of it — a backup's, a
+     * replica's — as erasure ends a person's. Content whose person cannot be
+     * told is neither sealed to nobody nor kept plain.
+     *
+     * @param keepAtPlace     how long a place of the tenant keeps it after it was put
+     * @param keepAtTenant    how long the tenant's origin keeps it after it was put
+     * @param sealedToWindow  whether content of it naming no person is sealed to its
+     *                        window
      */
-    public record ContentKind(Duration keepAtPlace, Duration keepAtTenant) {
+    public record ContentKind(Duration keepAtPlace, Duration keepAtTenant,
+            boolean sealedToWindow) {
+
+        /** A kind kept plain where its writer names no person. */
+        public ContentKind(Duration keepAtPlace, Duration keepAtTenant) {
+            this(keepAtPlace, keepAtTenant, false);
+        }
 
         public ContentKind {
             if (keepAtPlace == null || keepAtTenant == null) {
@@ -213,7 +228,7 @@ public record TenantPolicies(
      * {@code "audit":{"level":"writes"}, "writeDiscipline":{"default":"append-only",
      * "perType":{"Task":"standard"}}, "retention":{"perType":{"Encounter":
      * {"keepAtLeast":"P10Y","removeAfter":"P30Y"}}}, "content":{"analyser-message":
-     * {"keepAtPlace":"P7D","keepAtTenant":"P90D"}}} — all optional.
+     * {"keepAtPlace":"P7D","keepAtTenant":"P90D","sealed":"window"}}} — all optional.
      */
     @SuppressWarnings("unchecked")
     public static TenantPolicies parse(Object specRoot) {
@@ -280,12 +295,18 @@ public record TenantPolicies(
                 }
                 Map<String, Object> rule = value instanceof Map<?, ?> said
                         ? (Map<String, Object>) said : Map.of();
+                Object sealed = rule.get("sealed");
+                if (sealed != null && !"window".equals(sealed)) {
+                    throw new IllegalArgumentException("content '" + kind + "' is sealed to "
+                            + "'window' or not at all; it says '" + sealed + "'");
+                }
                 try {
                     content.put(kind, new ContentKind(
                             rule.get("keepAtPlace") != null
                                     ? period(String.valueOf(rule.get("keepAtPlace"))) : null,
                             rule.get("keepAtTenant") != null
-                                    ? period(String.valueOf(rule.get("keepAtTenant"))) : null));
+                                    ? period(String.valueOf(rule.get("keepAtTenant"))) : null,
+                            sealed != null));
                 } catch (IllegalArgumentException wrong) {
                     throw new IllegalArgumentException("content '" + kind + "': "
                             + wrong.getMessage(), wrong);

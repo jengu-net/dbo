@@ -610,6 +610,7 @@ cloud.jengu.dbo.core.api.BlobStore                                     interface
 cloud.jengu.dbo.core.api.BlobStore                                     put(byte[],String):String
 cloud.jengu.dbo.core.api.BlobStore                                     put(byte[],String,String):String
 cloud.jengu.dbo.core.api.BlobStore                                     put(byte[],String,String,String):String
+cloud.jengu.dbo.core.api.BlobStore                                     putSealed(byte[],String,String,LocalDate):String
 cloud.jengu.dbo.core.api.BlobStore                                     restore(String,byte[],String):void
 cloud.jengu.dbo.core.api.BlobStore                                     restore(String,byte[],String,String):void
 cloud.jengu.dbo.core.api.BlobStore                                     seals():boolean
@@ -622,13 +623,18 @@ cloud.jengu.dbo.core.api.BlobStore.Blob                                media():S
 cloud.jengu.dbo.core.api.BlobStore.Blob                                new(String,String,byte[])
 cloud.jengu.dbo.core.api.BlobStore.Blob                                new(String,String,byte[],String)
 cloud.jengu.dbo.core.api.BlobStore.Blob                                new(String,String,byte[],String,String)
+cloud.jengu.dbo.core.api.BlobStore.Blob                                new(String,String,byte[],String,String,LocalDate)
 cloud.jengu.dbo.core.api.BlobStore.Blob                                person():String
 cloud.jengu.dbo.core.api.BlobStore.Blob                                record
 cloud.jengu.dbo.core.api.BlobStore.Blob                                size():int
 cloud.jengu.dbo.core.api.BlobStore.Blob                                toString():String
+cloud.jengu.dbo.core.api.BlobStore.Blob                                window():LocalDate
 cloud.jengu.dbo.core.api.BlobStore.ErasedException                     class
 cloud.jengu.dbo.core.api.BlobStore.ErasedException                     key():String
 cloud.jengu.dbo.core.api.BlobStore.ErasedException                     new(String)
+cloud.jengu.dbo.core.api.BlobStore.WindowPassedException               class
+cloud.jengu.dbo.core.api.BlobStore.WindowPassedException               key():String
+cloud.jengu.dbo.core.api.BlobStore.WindowPassedException               new(String)
 cloud.jengu.dbo.core.api.Caller                                        authenticated():String
 cloud.jengu.dbo.core.api.Caller                                        class
 cloud.jengu.dbo.core.api.Caller                                        clear():void
@@ -2762,6 +2768,7 @@ cloud.jengu.dbo.pdi.PersonVault                                        claimants
 cloud.jengu.dbo.pdi.PersonVault                                        claimed(String):boolean
 cloud.jengu.dbo.pdi.PersonVault                                        class
 cloud.jengu.dbo.pdi.PersonVault                                        decrypt(byte[],byte[]):byte[]
+cloud.jengu.dbo.pdi.PersonVault                                        destroyWindowsBefore(String,LocalDate):List
 cloud.jengu.dbo.pdi.PersonVault                                        encrypt(byte[],byte[]):byte[]
 cloud.jengu.dbo.pdi.PersonVault                                        findAllByIdentifier(String,String):List
 cloud.jengu.dbo.pdi.PersonVault                                        findByIdentifier(String,String):Optional
@@ -2784,6 +2791,7 @@ cloud.jengu.dbo.pdi.PersonVault                                        shred(Str
 cloud.jengu.dbo.pdi.PersonVault                                        storeAssigned(String):boolean
 cloud.jengu.dbo.pdi.PersonVault                                        survivorOf(String):String
 cloud.jengu.dbo.pdi.PersonVault                                        whoAnswersTo(String,String):Optional
+cloud.jengu.dbo.pdi.PersonVault                                        windowKey(String,LocalDate,boolean):Optional
 cloud.jengu.dbo.pdi.PersonVault.Sealed                                 equals(Object):boolean
 cloud.jengu.dbo.pdi.PersonVault.Sealed                                 hashCode():int
 cloud.jengu.dbo.pdi.PersonVault.Sealed                                 key():byte[]
@@ -2807,6 +2815,7 @@ cloud.jengu.dbo.pdi.SealingBlobStore                                   count():l
 cloud.jengu.dbo.pdi.SealingBlobStore                                   drop(String):boolean
 cloud.jengu.dbo.pdi.SealingBlobStore                                   get(String):Optional
 cloud.jengu.dbo.pdi.SealingBlobStore                                   new(cloud.jengu.dbo.core.api.BlobStore,cloud.jengu.dbo.pdi.PersonVault)
+cloud.jengu.dbo.pdi.SealingBlobStore                                   new(cloud.jengu.dbo.core.api.BlobStore,cloud.jengu.dbo.pdi.PersonVault,Set)
 cloud.jengu.dbo.pdi.SealingBlobStore                                   put(byte[],String):String
 cloud.jengu.dbo.pdi.SealingBlobStore                                   put(byte[],String,String):String
 cloud.jengu.dbo.pdi.SealingBlobStore                                   put(byte[],String,String,String):String
@@ -2855,7 +2864,10 @@ cloud.jengu.dbo.policy.RetentionSweep                                  STEP:Stri
 cloud.jengu.dbo.policy.RetentionSweep                                  class
 cloud.jengu.dbo.policy.RetentionSweep                                  new(DataSource,String,cloud.jengu.dbo.policy.TenantPolicies,cloud.jengu.dbo.policy.PolicyObjectStore,cloud.jengu.dbo.work.Runs)
 cloud.jengu.dbo.policy.RetentionSweep                                  new(DataSource,String,cloud.jengu.dbo.policy.TenantPolicies,cloud.jengu.dbo.policy.PolicyObjectStore,cloud.jengu.dbo.work.Runs,boolean)
+cloud.jengu.dbo.policy.RetentionSweep                                  new(DataSource,String,cloud.jengu.dbo.policy.TenantPolicies,cloud.jengu.dbo.policy.PolicyObjectStore,cloud.jengu.dbo.work.Runs,boolean,cloud.jengu.dbo.policy.RetentionSweep.Windows)
 cloud.jengu.dbo.policy.RetentionSweep                                  sweepOnce():int
+cloud.jengu.dbo.policy.RetentionSweep.Windows                          destroyBefore(String,LocalDate):List
+cloud.jengu.dbo.policy.RetentionSweep.Windows                          interface
 cloud.jengu.dbo.policy.TenantPolicies                                  audience(String):cloud.jengu.dbo.policy.TenantPolicies.Audience
 cloud.jengu.dbo.policy.TenantPolicies                                  audiences():Map
 cloud.jengu.dbo.policy.TenantPolicies                                  audit():cloud.jengu.dbo.policy.TenantPolicies.AuditLevel
@@ -2899,7 +2911,9 @@ cloud.jengu.dbo.policy.TenantPolicies.ContentKind                      keep(bool
 cloud.jengu.dbo.policy.TenantPolicies.ContentKind                      keepAtPlace():Duration
 cloud.jengu.dbo.policy.TenantPolicies.ContentKind                      keepAtTenant():Duration
 cloud.jengu.dbo.policy.TenantPolicies.ContentKind                      new(Duration,Duration)
+cloud.jengu.dbo.policy.TenantPolicies.ContentKind                      new(Duration,Duration,boolean)
 cloud.jengu.dbo.policy.TenantPolicies.ContentKind                      record
+cloud.jengu.dbo.policy.TenantPolicies.ContentKind                      sealedToWindow():boolean
 cloud.jengu.dbo.policy.TenantPolicies.ContentKind                      toString():String
 cloud.jengu.dbo.policy.TenantPolicies.Discipline                       APPEND_ONLY:cloud.jengu.dbo.policy.TenantPolicies.Discipline
 cloud.jengu.dbo.policy.TenantPolicies.Discipline                       STANDARD:cloud.jengu.dbo.policy.TenantPolicies.Discipline
@@ -2921,6 +2935,7 @@ cloud.jengu.dbo.postgres.PgBlobStore                                   new(DataS
 cloud.jengu.dbo.postgres.PgBlobStore                                   put(byte[],String):String
 cloud.jengu.dbo.postgres.PgBlobStore                                   put(byte[],String,String):String
 cloud.jengu.dbo.postgres.PgBlobStore                                   put(byte[],String,String,String):String
+cloud.jengu.dbo.postgres.PgBlobStore                                   putSealed(byte[],String,String,LocalDate):String
 cloud.jengu.dbo.postgres.PgBlobStore                                   restore(String,byte[],String):void
 cloud.jengu.dbo.postgres.PgBlobStore                                   restore(String,byte[],String,String):void
 cloud.jengu.dbo.postgres.PgChangeFeed                                  ack(String,String):void
@@ -3194,6 +3209,7 @@ cloud.jengu.dbo.promises.DboPromises                                   POL_AUDIT
 cloud.jengu.dbo.promises.DboPromises                                   POL_A_RUNS_TRAIL_IS_CHAINED_FROM_THE_TASK:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   POL_COLLECTING_IS_A_READING:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   POL_CONTENT_IS_OF_A_DECLARED_KIND:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   POL_CONTENT_IS_SEALED_TO_ITS_WINDOW:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   POL_CUSTOM_AUDIT_EVENTS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   POL_DECLARATIVE_RETENTION:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   POL_DECLARED_AT_CONFIGURATION:cloud.jengu.dbo.promises.DboPromises
@@ -4982,6 +4998,7 @@ cloud.jengu.dbo.tenant.TenantRuntimeManager                            redeclara
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            registerStanding(String):cloud.jengu.dbo.tenant.api.RegisterStanding
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            removeLifecycleListener(cloud.jengu.dbo.tenant.api.TenantLifecycleListener):void
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            retentionRound():int
+cloud.jengu.dbo.tenant.TenantRuntimeManager                            retentionRound(String):int
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            runInitiator():cloud.jengu.dbo.work.RunInitiator
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            runtime(String):Optional
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            scanOnce():Set

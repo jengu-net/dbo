@@ -1168,6 +1168,18 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
         if (code == null || !CODE.matcher(code).matches()) {
             throw new IllegalArgumentException("invalid tenant code: " + code);
         }
+        // A window's key is the tenant's, kept where its people's keys are,
+        // and only a tenant behind the membrane holds any: refused here rather
+        // than at the first put, which would find nothing to seal with.
+        if (!pdi && policies != null) {
+            for (var declared : policies.content().entrySet()) {
+                if (declared.getValue().sealedToWindow()) {
+                    throw new IllegalArgumentException(code + ": content '" + declared.getKey()
+                            + "' is sealed to its window under a key of the tenant's, and a "
+                            + "tenant holds keys only behind the membrane — declare pdi");
+                }
+            }
+        }
         // (databaseName() below derives a Postgres-safe name; the code
         // itself only has to be URL- and file-name-safe)
         // Which faces exist is not a spec's business and never was: a closed

@@ -146,8 +146,14 @@ public final class TenantRuntimeManager implements AutoCloseable {
     private cloud.jengu.dbo.core.api.BlobStore blobsFor(TenantSpec spec,
             cloud.jengu.dbo.core.api.BlobStore plain) {
         cloud.jengu.dbo.pdi.PersonVault vault = vaults.get(spec.code());
+        java.util.Set<String> windowed = new java.util.HashSet<>();
+        spec.policies().content().forEach((kind, declared) -> {
+            if (declared.sealedToWindow()) {
+                windowed.add(kind);
+            }
+        });
         return new DeclaredContent(spec.code(), vault == null ? plain
-                : new cloud.jengu.dbo.pdi.SealingBlobStore(plain, vault),
+                : new cloud.jengu.dbo.pdi.SealingBlobStore(plain, vault, windowed),
                 spec.policies().content());
     }
 
@@ -6565,15 +6571,30 @@ public final class TenantRuntimeManager implements AutoCloseable {
      */
     public int retentionRound() {
         int removed = 0;
-        for (Map.Entry<String, cloud.jengu.dbo.policy.RetentionSweep> sweep : sweeps.entrySet()) {
-            try {
-                removed += sweep.getValue().sweepOnce();
-            } catch (RuntimeException failed) {
-                LOG.warn("tenant {}: its retention sweep failed: {}", sweep.getKey(),
-                        failed.toString());
-            }
+        for (String code : sweeps.keySet()) {
+            removed += retentionRound(code);
         }
         return removed;
+    }
+
+    /**
+     * The same for one tenant, which a caller waiting on one tenant's
+     * retention runs rather than sweeping every tenant here.
+     *
+     * @return how much was removed; nothing where the tenant keeps nothing by
+     *         retention
+     */
+    public int retentionRound(String code) {
+        cloud.jengu.dbo.policy.RetentionSweep sweep = sweeps.get(code);
+        if (sweep == null) {
+            return 0;
+        }
+        try {
+            return sweep.sweepOnce();
+        } catch (RuntimeException failed) {
+            LOG.warn("tenant {}: its retention sweep failed: {}", code, failed.toString());
+            return 0;
+        }
     }
 
     /**
@@ -6955,7 +6976,10 @@ public final class TenantRuntimeManager implements AutoCloseable {
                     // to say nothing about a caller
                     new cloud.jengu.dbo.work.Runs(engine),
                     // A place keeps content for its own window, not its tenant's.
-                    places.contains(spec.code()));
+                    places.contains(spec.code()),
+                    // Made just above where the tenant is behind the membrane.
+                    vaults.get(spec.code()) == null ? null
+                            : vaults.get(spec.code())::destroyWindowsBefore);
             sweep.sweepOnce();
             sweeps.put(spec.code(), sweep);
         }

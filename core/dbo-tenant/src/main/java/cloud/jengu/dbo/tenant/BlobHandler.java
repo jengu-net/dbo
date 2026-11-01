@@ -170,6 +170,11 @@ public final class BlobHandler implements HttpHandler {
             fail(exchange, 410, "the person this content was about has been erased, so it "
                     + "cannot be read");
             return;
+        } catch (BlobStore.WindowPassedException passed) {
+            // Gone as deliberately, by what the tenant declared it keeps.
+            fail(exchange, 410, "the window this content was kept for has passed, so it "
+                    + "cannot be read");
+            return;
         }
         if (held.isEmpty()) {
             fail(exchange, 404, "nothing is held under that key");

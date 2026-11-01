@@ -164,6 +164,9 @@ spec:
                         type: string
                       keepAtTenant:
                         type: string
+                      sealed:
+                        type: string
+                        enum: [window]
                 # A tenant whose people are provisioned by an identity
                 # provider names the system it accepts them from.
                 scim:

@@ -34,10 +34,20 @@ public final class SealingBlobStore implements BlobStore {
 
     private final BlobStore kept;
     private final PersonVault vault;
+    private final java.util.Set<String> windowed;
 
     public SealingBlobStore(BlobStore kept, PersonVault vault) {
+        this(kept, vault, java.util.Set.of());
+    }
+
+    /**
+     * @param windowed the kinds whose content naming no person is sealed to its
+     *                 window: under the kind's key for the day it is put
+     */
+    public SealingBlobStore(BlobStore kept, PersonVault vault, java.util.Set<String> windowed) {
         this.kept = kept;
         this.vault = vault;
+        this.windowed = java.util.Set.copyOf(windowed);
     }
 
     @Override
@@ -56,6 +66,16 @@ public final class SealingBlobStore implements BlobStore {
 
     @Override
     public String put(byte[] content, String media, String person, String kind) {
+        if (person == null && kind != null && windowed.contains(kind)) {
+            // Under the day it is put, in one calendar for every node: a key
+            // per day is what lets a whole day's content go at once when its
+            // window has passed for the last of it.
+            java.time.LocalDate day = java.time.LocalDate.now(java.time.ZoneOffset.UTC);
+            byte[] key = vault.windowKey(kind, day, true).orElseThrow(() ->
+                    new IllegalStateException("the key of '" + kind + "' for " + day
+                            + " is destroyed while content is still being put under it"));
+            return kept.putSealed(vault.encrypt(key, content), media, kind, day);
+        }
         if (person == null) {
             return kept.put(content, media, null, kind);
         }
@@ -93,6 +113,14 @@ public final class SealingBlobStore implements BlobStore {
     @Override
     public Optional<Blob> get(String key) {
         Optional<Blob> held = kept.get(key);
+        if (held.isPresent() && held.get().window() != null) {
+            Blob sealed = held.get();
+            byte[] window = vault.windowKey(sealed.kind(), sealed.window(), false)
+                    .orElseThrow(() -> new WindowPassedException(key));
+            return Optional.of(new Blob(sealed.key(), sealed.media(),
+                    vault.decrypt(window, sealed.content()), null, sealed.kind(),
+                    sealed.window()));
+        }
         if (held.isEmpty() || held.get().person() == null) {
             return held;
         }
