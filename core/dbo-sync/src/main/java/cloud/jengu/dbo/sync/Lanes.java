@@ -514,13 +514,54 @@ public final class Lanes {
      */
     public int everyRunOf(String peer, String process, int limit,
             java.util.function.ToIntFunction<Batch> hand) {
+        return runsOf(open(peer), process, null, limit, hand);
+    }
+
+    /**
+     * Moves the position at a peer to the head of the work feed, having
+     * handed from the store every run of the processes asked for that
+     * changed since the oldest event the position had not read. Returns how
+     * many items went.
+     *
+     * <p>For a position so far behind that reading on to the head would hold
+     * the round for hours: the runs that matter are found by what they are
+     * rather than by reading past everything else the feed holds. The head is
+     * taken first, so a run written while they are handed is read from the
+     * feed after it, and nothing falls between the two.
+     *
+     * @param skew how far before the oldest unread event a run's own time may
+     *             fall: a run is stamped when it is written, and its event
+     *             when its transaction commits
+     */
+    public int caughtUpToTheHead(String peer, Set<String> processes, java.time.Duration skew,
+            int limit, java.util.function.ToIntFunction<Batch> hand) {
         Lane lane = open(peer);
+        String head = workFeed.headCursor();
+        List<FeedItem> oldest = workFeed.read(lane.ourCursor(), 1).items();
+        if (head == null || oldest.isEmpty()) {
+            return 0;
+        }
+        java.time.Instant since = oldest.get(0).committedAt().minus(skew);
+        int handed = 0;
+        for (String process : new java.util.TreeSet<>(processes)) {
+            handed += runsOf(lane, process, since, limit, hand);
+        }
+        write(new Lane(lane.key(), lane.peer(), lane.epoch(), head, lane.theirMarker(),
+                lane.contentCursor(), lane.covers()));
+        return handed;
+    }
+
+    private int runsOf(Lane lane, String process, java.time.Instant since, int limit,
+            java.util.function.ToIntFunction<Batch> hand) {
+        Criteria asked = Criteria.of(WorkModel.TYPE).eq("process", EnvelopeValue.of(process));
+        if (since != null) {
+            asked = asked.lastUpdated(Criteria.RangeOp.GE, since);
+        }
         int handed = 0;
         List<Item> work = new ArrayList<>();
         List<String> travelling = new ArrayList<>();
         try (java.util.stream.Stream<StoredObject> found = cloud.jengu.dbo.core.api.Answered
-                .pagedBy(store::page, Criteria.of(WorkModel.TYPE)
-                        .eq("process", EnvelopeValue.of(process)))) {
+                .pagedBy(store::page, asked)) {
             java.util.Iterator<StoredObject> each = found.iterator();
             while (each.hasNext()) {
                 StoredObject stored = each.next();
