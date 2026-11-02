@@ -109,25 +109,25 @@ public final class RetentionSweep {
         try {
             for (Map.Entry<String, TenantPolicies.Retention> rule : policies.retention().entrySet()) {
                 String type = rule.getKey();
-                java.util.Set<String> ruled = rule.getValue().profiles().keySet();
-                if (rule.getValue().removeAfter() != null) {
-                    try {
-                        removed += sweepType(type, null, ruled, rule.getValue().removeAfter());
-                    } catch (RuntimeException e) {
-                        pass.item(type, Failure.of(e), String.valueOf(e.getMessage()));
-                    }
+                TenantPolicies.Retention bounds = rule.getValue();
+                List<List<String>> claims;
+                try {
+                    claims = claimsOf(type, bounds);
+                } catch (RuntimeException e) {
+                    pass.item(type, Failure.of(e), String.valueOf(e.getMessage()));
+                    continue;
                 }
-                for (Map.Entry<String, TenantPolicies.Retention> profile
-                        : rule.getValue().profiles().entrySet()) {
-                    if (profile.getValue().removeAfter() == null) {
+                for (List<String> claimed : claims) {
+                    java.time.Duration removeAfter = bounds.heldBy(claimed).removeAfter();
+                    if (removeAfter == null) {
                         continue;
                     }
                     try {
-                        removed += sweepType(type, profile.getKey(), ruled,
-                                profile.getValue().removeAfter());
+                        removed += sweepType(type, claimed, bounds.profiles().keySet(),
+                                removeAfter);
                     } catch (RuntimeException e) {
-                        pass.item(type + " " + profile.getKey(), Failure.of(e),
-                                String.valueOf(e.getMessage()));
+                        pass.item(claimed.isEmpty() ? type : type + " " + claimed,
+                                Failure.of(e), String.valueOf(e.getMessage()));
                     }
                 }
             }
@@ -198,36 +198,74 @@ public final class RetentionSweep {
     }
 
     /**
-     * Records of a type older than a ceiling, removed and audited.
+     * Which of the type's profiles with bounds of their own its records claim
+     * together, among records old enough for the shortest ceiling the rule
+     * declares to reach: each set once, the empty one for records claiming none.
      *
-     * <p>Which records a rule reaches is read from the profiles they claim, as
-     * the envelope indexed them, whatever version each claims: the type's own
-     * rule reaches those claiming no profile with bounds of its own, and a
-     * profile's rule those claiming it and no other such profile. A record
-     * claiming two is reached by neither, and kept rather than removed under
-     * one rule while the other holds it.
+     * <p>Read from the profiles as the envelope indexed them, whatever version
+     * each record claims, so a payload sealed behind the membrane is never
+     * opened to ask.
+     */
+    private List<List<String>> claimsOf(String typeName, TenantPolicies.Retention bounds) {
+        java.time.Duration shortest = bounds.removeAfter();
+        for (TenantPolicies.Retention profile : bounds.profiles().values()) {
+            if (profile.removeAfter() != null
+                    && (shortest == null || profile.removeAfter().compareTo(shortest) < 0)) {
+                shortest = profile.removeAfter();
+            }
+        }
+        List<List<String>> claims = new ArrayList<>();
+        if (shortest == null) {
+            return claims;
+        }
+        try (Connection c = ds.getConnection();
+             PreparedStatement ps = c.prepareStatement("""
+                     SELECT DISTINCT %s
+                     FROM %s_data d
+                     WHERE type = ? AND last_updated < ?""".formatted(CLAIMED,
+                     Domains.tables(domain)))) {
+            ps.setArray(1, c.createArrayOf("text", bounds.profiles().keySet().toArray()));
+            ps.setString(2, typeName);
+            ps.setTimestamp(3, java.sql.Timestamp.from(Instant.now().minus(shortest)));
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    claims.add(List.of((String[]) rs.getArray(1).getArray()));
+                }
+            }
+        } catch (SQLException e) {
+            throw new IllegalStateException("retention sweep could not read which profiles "
+                    + typeName + " claims", e);
+        }
+        return claims;
+    }
+
+    /** The type's profiles with bounds of their own a record claims, in order. */
+    private static final String CLAIMED = """
+            ARRAY(SELECT DISTINCT split_part(p ->> 'v', '|', 1)
+                  FROM jsonb_array_elements(coalesce(d.envelope -> '_profile', '[]'::jsonb)) p
+                  WHERE split_part(p ->> 'v', '|', 1) = ANY (?)
+                  ORDER BY 1)""";
+
+    /**
+     * Records of a type claiming exactly these of its profiles with bounds of
+     * their own, older than the ceiling they are held to, removed and audited.
      *
-     * @param profile the profile whose rule this is, or null for the type's own
+     * @param claimed the profiles, in order; none for the type's own rule
      * @param ruled   the profiles within the type with bounds of their own
      */
-    private int sweepType(String typeName, String profile, java.util.Set<String> ruled,
+    private int sweepType(String typeName, List<String> claimed, java.util.Set<String> ruled,
             java.time.Duration removeAfter) {
         Instant ceiling = Instant.now().minus(removeAfter);
         List<String> expired = new ArrayList<>();
         try (Connection c = ds.getConnection()) {
             try (PreparedStatement ps = c.prepareStatement("""
                     SELECT id FROM %s_data d
-                    WHERE type = ? AND last_updated < ?
-                      AND ARRAY(SELECT DISTINCT split_part(p ->> 'v', '|', 1)
-                                FROM jsonb_array_elements(
-                                    coalesce(d.envelope -> '_profile', '[]'::jsonb)) p
-                                WHERE split_part(p ->> 'v', '|', 1) = ANY (?)) = ?::text[]
-                    LIMIT 500""".formatted(Domains.tables(domain)))) {
+                    WHERE type = ? AND last_updated < ? AND %s = ?::text[]
+                    LIMIT 500""".formatted(Domains.tables(domain), CLAIMED))) {
                 ps.setString(1, typeName);
                 ps.setTimestamp(2, java.sql.Timestamp.from(ceiling));
                 ps.setArray(3, c.createArrayOf("text", ruled.toArray()));
-                ps.setArray(4, c.createArrayOf("text",
-                        profile == null ? new Object[0] : new Object[] {profile}));
+                ps.setArray(4, c.createArrayOf("text", claimed.toArray()));
                 try (ResultSet rs = ps.executeQuery()) {
                     while (rs.next()) {
                         expired.add(rs.getString(1));
@@ -255,8 +293,9 @@ public final class RetentionSweep {
                     c.setAutoCommit(true);
                 }
                 auditSink.record("retention-remove", typeName, id,
-                        "removeAfter=" + removeAfter
-                                + (profile == null ? "" : " profile=" + profile));
+                        "removeAfter=" + removeAfter + claimed.stream()
+                                .map(profile -> " profile=" + profile)
+                                .collect(java.util.stream.Collectors.joining()));
             }
         } catch (SQLException e) {
             throw new IllegalStateException("retention sweep failed for " + typeName, e);

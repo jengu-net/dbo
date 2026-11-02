@@ -321,6 +321,13 @@ profile's bounds instead of the type's; every other record of the type is held
 to the type's. A rule naming one version of a profile is refused, since it would
 read as if the others were not covered.
 
+A record claiming two such profiles is kept while either floor holds it, and
+goes by the shortest ceiling that still respects the longer floor. Two profiles
+that would leave a record with a floor no ceiling of theirs reaches — one keeping
+it at least thirty days with no ceiling, the other removing it after seven — are
+refused at registration, naming both, because no record claiming both could be
+kept by one without breaking the other.
+
 Removal is **the one sanctioned mutation of history**. A scheduled, checkpointed
 sweep removes expired versions from state and history, and the removal is itself
 audited — what went, when, under which declared rule and, for a profile's,

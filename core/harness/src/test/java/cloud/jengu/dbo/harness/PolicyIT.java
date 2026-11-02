@@ -332,9 +332,9 @@ class PolicyIT {
         String recent = audited.put(PutRequest.create("Communication",
                 communication("värske teade", deviceMessage))).id();
         String conversation = audited.put(PutRequest.create("Communication",
-                communication("vestlus õega", null))).id();
+                communication("vestlus õega"))).id();
         String longAgo = audited.put(PutRequest.create("Communication",
-                communication("ammune vestlus", null))).id();
+                communication("ammune vestlus"))).id();
         backdate(message, "30 days");
         backdate(recent, "3 days");
         backdate(conversation, "30 days");
@@ -369,9 +369,76 @@ class PolicyIT {
                 versioned.getMessage());
     }
 
-    private static byte[] communication(String text, String profile) {
+    /**
+     * A record claiming two profiles is kept while either floor holds it, and
+     * goes by the shortest ceiling that respects the floor; two profiles whose
+     * bounds no record could meet together are refused by name.
+     */
+    @Test
+    @Order(10)
+    @Proving(DboPromises.POL_TWO_PROFILES_HOLD_A_RECORD_TO_THE_LONGER_FLOOR)
+    void aRecordOfTwoProfilesIsKeptWhileEitherHoldsIt() throws Exception {
+        String deviceMessage = "https://example.org/fhir/StructureDefinition/device-message";
+        String ofACase = "https://example.org/fhir/StructureDefinition/of-a-case";
+        String reviewed = "https://example.org/fhir/StructureDefinition/reviewed";
+        TenantPolicies byProfile = TenantPolicies.parse(Map.of(
+                "audit", Map.of("level", "writes"),
+                "retention", Map.of("perType", Map.of("Communication", Map.of(
+                        "profiles", Map.of(
+                                deviceMessage, Map.of("removeAfter", "P7D"),
+                                ofACase, Map.of("keepAtLeast", "P30D", "removeAfter", "P365D"),
+                                reviewed, Map.of("removeAfter", "P90D")))))));
+        PolicyObjectStore audited = new PolicyObjectStore(engine, byProfile);
+        String heldByItsCase = audited.put(PutRequest.create("Communication",
+                communication("seadme teade juhtumis", deviceMessage, ofACase))).id();
+        String pastItsCase = audited.put(PutRequest.create("Communication",
+                communication("vana seadme teade juhtumis", ofACase, deviceMessage + "|2.0")))
+                .id();
+        String reviewedInACase = audited.put(PutRequest.create("Communication",
+                communication("läbi vaadatud juhtumis", ofACase, reviewed))).id();
+        backdate(heldByItsCase, "100 days");
+        backdate(pastItsCase, "400 days");
+        backdate(reviewedInACase, "100 days");
+
+        new RetentionSweep(ds, R4Personality.DOMAIN, byProfile, audited,
+                new cloud.jengu.dbo.work.Runs(engine)).sweepOnce();
+
+        assertTrue(store.get("Communication", heldByItsCase).isPresent(),
+                "a device's message its case still holds went by the device's ceiling");
+        assertTrue(store.get("Communication", pastItsCase).isEmpty(),
+                "a record of two profiles past every ceiling respecting its floor was kept");
+        assertTrue(store.get("Communication", reviewedInACase).isEmpty(),
+                "a record of two profiles was not held to the shorter of their ceilings that "
+                        + "respects the floor");
+        String audit = store.select(Criteria.of("AuditEntry")).stream()
+                .map(e -> new String(e.payload(), StandardCharsets.UTF_8))
+                .reduce("", String::concat);
+        assertTrue(audit.contains(reviewedInACase) && audit.contains("profile=" + ofACase)
+                        && audit.contains("profile=" + reviewed),
+                "the removal does not name both profiles: " + audit);
+
+        IllegalArgumentException unmeetable = assertThrows(IllegalArgumentException.class,
+                () -> TenantPolicies.parse(Map.of("retention", Map.of("perType", Map.of(
+                        "Communication", Map.of("profiles", Map.of(
+                                ofACase, Map.of("keepAtLeast", "P30D"),
+                                deviceMessage, Map.of("removeAfter", "P7D"))))))));
+        assertTrue(unmeetable.getMessage().contains(ofACase)
+                        && unmeetable.getMessage().contains(deviceMessage)
+                        && unmeetable.getMessage().contains("Communication"),
+                unmeetable.getMessage());
+        TenantPolicies.parse(Map.of("retention", Map.of("perType", Map.of(
+                "Communication", Map.of("profiles", Map.of(
+                        ofACase, Map.of("keepAtLeast", "P30D"),
+                        reviewed, Map.of("removeAfter", "P90D")))))));
+    }
+
+    private static byte[] communication(String text, String... profiles) {
+        String claimed = java.util.Arrays.stream(profiles)
+                .filter(java.util.Objects::nonNull)
+                .map(p -> "\"" + p + "\"")
+                .collect(java.util.stream.Collectors.joining(","));
         return ("{\"resourceType\":\"Communication\",\"status\":\"completed\""
-                + (profile == null ? "" : ",\"meta\":{\"profile\":[\"" + profile + "\"]}")
+                + (claimed.isEmpty() ? "" : ",\"meta\":{\"profile\":[" + claimed + "]}")
                 + ",\"payload\":[{\"contentString\":\"" + text + "\"}]}")
                 .getBytes(StandardCharsets.UTF_8);
     }

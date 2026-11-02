@@ -71,6 +71,7 @@ public enum DboQualities implements Quality {
                     DboPromises.POL_DECLARATIVE_RETENTION,
                     DboPromises.POL_RETENTION_SWEEP,
                     DboPromises.POL_RETENTION_MAY_NAME_A_PROFILE,
+                    DboPromises.POL_TWO_PROFILES_HOLD_A_RECORD_TO_THE_LONGER_FLOOR,
                     DboPromises.POL_A_REMOVAL_NAMES_ITS_PROFILE,
                     DboPromises.POL_CONTENT_IS_OF_A_DECLARED_KIND,
                     DboPromises.POL_CONTENT_IS_SEALED_TO_ITS_WINDOW,

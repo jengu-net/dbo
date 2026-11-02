@@ -2267,6 +2267,11 @@ public enum DboPromises implements Promise {
             + "with bounds of its own: a record claiming that profile, in any version, is "
             + "held to them instead of the type's, and every other record of the type to "
             + "the type's. A rule naming one version of a profile is refused."),
+    POL_TWO_PROFILES_HOLD_A_RECORD_TO_THE_LONGER_FLOOR(
+            "A record claiming two profiles with bounds of their own is held to the longer "
+            + "keepAtLeast and the shortest removeAfter that still respects it. A declaration "
+            + "in which two profiles of a type would leave a record with a floor no ceiling "
+            + "of theirs reaches is refused, naming both profiles."),
     POL_A_REMOVAL_NAMES_ITS_PROFILE(
             "What retention removed under a profile's bounds is on the trail by type and "
             + "profile, as a removal under the type's own is by type — never with what the "
