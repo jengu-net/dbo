@@ -2302,6 +2302,15 @@ public enum DboPromises implements Promise {
             + "level. A kind may ask for a purpose: a reader stating none, in the "
             + "Purpose-Of-Use header or on the token, is refused as an identifying read without "
             + "a reason is, before anything is returned or recorded."),
+    POL_AN_APPLICATION_KEEPS_ITS_TENANTS_CONTENT_IN_PROCESS(
+            "An application embedding the store is offered each tenant's content where it is "
+            + "offered the tenant's records: on the whiteboard while the tenant serves, and "
+            + "beside its store in the server binding. It is the store the tenant's blob door "
+            + "holds, so a put naming no kind, or one the tenant does not declare, is refused "
+            + "naming the kinds there are; a read of a kind that asks for a purpose, stating "
+            + "none, is refused before anything is returned or recorded; and each read is an "
+            + "access entry naming who the application says is reading, the kind and the "
+            + "purpose."),
     POL_POLICY_REPLAY_ON_RESTORE(
             "Before a restored tenant serves, the machinery re-applies the shred ledger "
             + "and the retention sweep — an archive cannot resurrect what policy required "

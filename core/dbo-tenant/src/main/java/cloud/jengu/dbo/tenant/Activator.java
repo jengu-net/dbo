@@ -780,6 +780,12 @@ public final class Activator implements BundleActivator {
                         regs.add(ctx.registerService(
                                 cloud.jengu.dbo.tenant.api.RegisterStanding.class,
                                 manager.registerStanding(runtime.spec().code()), props));
+                        // The tenant's content, as the instance its door holds:
+                        // held to the same kinds, asked the same purpose and
+                        // on the same trail, because it is the same object
+                        // rather than a second path kept in step with it.
+                        regs.add(ctx.registerService(cloud.jengu.dbo.core.api.BlobStore.class,
+                                runtime.blobs(), props));
                         // The tenant's verbs, for a host that carries them
                         // over a transport of its own.
                         manager.verbs(runtime.spec().code()).ifPresent(verbs -> regs.add(

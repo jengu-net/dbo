@@ -63,6 +63,17 @@ public final class DboTenants {
     }
 
     /**
+     * A tenant's content, held to the kinds it declares.
+     *
+     * <p>The store its blob door holds, so a put here is refused for the same
+     * kinds, and a read asks the same purpose and is the same access entry,
+     * naming whoever {@code Caller} says is reading.
+     */
+    public Optional<cloud.jengu.dbo.core.api.BlobStore> content(String tenant) {
+        return runtime.lookup().one(cloud.jengu.dbo.core.api.BlobStore.class, forTenant(tenant));
+    }
+
+    /**
      * The questions a product asks a tenant about its own work.
      *
      * <p>{@code Questions} rather than the class behind it, which is final:
