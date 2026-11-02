@@ -3227,6 +3227,7 @@ cloud.jengu.dbo.promises.DboPromises                                   PDI_STRUC
 cloud.jengu.dbo.promises.DboPromises                                   PDI_UNFINDABLE_AFTER_ERASURE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PDI_WHAT_IS_HELD_ABOUT_A_PERSON_INCLUDES_THEIR_CONTENT:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   POL_ACTOR_FROM_AUTHORITY:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   POL_AN_APPLICATION_KEEPS_ITS_TENANTS_CONTENT_IN_PROCESS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   POL_APPEND_ONLY_DISCIPLINE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   POL_AUDIT_AS_RECORDS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   POL_AUDIT_UNCONDITIONALLY_APPEND_ONLY:cloud.jengu.dbo.promises.DboPromises

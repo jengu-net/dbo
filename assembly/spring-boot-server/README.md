@@ -78,6 +78,7 @@ One bean, injected anywhere:
 | `records(code)` | the FHIR facade — read, write, search |
 | `asking(code)` | the question surface: records, work, the trail |
 | `changes(code)` | the tenant's change feed |
+| `content(code)` | the tenant's content, held to its declared kinds: the store its blob door holds, so each read asks the same purpose and is the same access entry, naming whoever `Caller` says is reading |
 | `store(code)` | the object store under the face |
 | `authority(code)` | the tenant's own OIDC authority |
 
