@@ -1179,6 +1179,113 @@ class ASecondPlaceComesUpFromItsOriginIT {
                 "content put while cut off did not arrive once the site was back");
     }
 
+    @Test
+    @Order(29)
+    @DisplayName("a place whose first bring-up failed, and whose declaration gained a step after "
+            + "it came up, hands its tenant the runs of that step and of every other")
+    @Proving(DboPromises.SYNC_A_PLACE_HANDS_ITS_WORK_TO_ITS_TENANT)
+    void aPlaceThatFailedItsFirstBringUpHandsItsWork() throws Exception {
+        // The origin gains a step of a process it had none of. Last in the
+        // class, because the clinic is rebuilt where it stands.
+        Files.writeString(cloudDir.resolve(CLINIC + ".json"), withImaging(CLINIC_DECLARATION));
+        declares(cloud, IMAGING);
+
+        PostgreSQLContainer<?> outpostServer = new PostgreSQLContainer<>("postgres:17-alpine");
+        outpostServer.start();
+        Path outpostDir = Files.createTempDirectory("dbo-place-outpost");
+        TenantRuntimeManager outpost = node(outpostDir, new LocalDatabasePerTenantProvisioner(
+                outpostServer.getJdbcUrl(), outpostServer.getUsername(),
+                outpostServer.getPassword()));
+        try {
+            Files.writeString(outpostDir.resolve(ROOT + ".json"), ROOT_DECLARATION);
+            UntilServed.scan(outpost, ROOT);
+            // Applied before the node is told the clinic is a place, as a
+            // declaration read before the link is up is: an ordinary tenant
+            // handing its orders to a provider this node does not have.
+            Files.writeString(outpostDir.resolve(CLINIC + ".json"), HANDING_DECLARATION);
+            outpost.scanOnce();
+            assertEquals(TenantState.State.FAILED, stateOf(outpost, CLINIC),
+                    "the outpost's first bring-up did not fail: " + outpost.troubles());
+
+            cloud.authority(CLINIC).ensureClient("outpost", "outpost-secret", List.of("place"));
+            HttpLane toTheCloud = HttpLane.to(URI.create(base(cloud, CLINIC) + "/work"),
+                    new HeldToken(() -> clientToken(cloud, CLINIC, "outpost", "outpost-secret")),
+                    CLINIC, "outpost",
+                    new Executor("outpost", "1", "example.site", Scope.BASELINE));
+            outpost.servesAPlaceOf(CLINIC);
+            outpost.readsItsOriginThrough(CLINIC, new TenantRuntimeManager.OriginFeeds(
+                    toTheCloud.placeFeed(Place.RECORDS), toTheCloud.placeFeed(Place.DEFINITIONS),
+                    toTheCloud.definitionsWithoutTheFace(), toTheCloud.origin().trail(),
+                    toTheCloud.origin().work(), toTheCloud.origin().authorisation()));
+            UntilServed.scan(outpost, CLINIC);
+
+            // And the declaration it serves catches up with its origin's.
+            Files.writeString(outpostDir.resolve(CLINIC + ".json"),
+                    withImaging(HANDING_DECLARATION));
+            declares(outpost, IMAGING);
+
+            performedAt(outpost, IMAGING, "image", "read-at-the-outpost");
+            performedAt(outpost, RECORD, "specimen", "recorded-at-the-outpost");
+            outpost.syncRound();
+
+            Runs home = new Runs(cloud.runtime(CLINIC).orElseThrow().engine());
+            String atTheTenant = read(cloud, CLINIC, "Observation");
+            assertTrue(home.byKey("outpost" + Lanes.MIRROR_SEPARATOR + IMAGING
+                            + "/read-at-the-outpost").isPresent()
+                            && atTheTenant.contains("read-at-the-outpost"),
+                    "the run of the step the outpost was declared after it came up, or what "
+                            + "it wrote, did not reach its tenant");
+            assertTrue(home.byKey("outpost" + Lanes.MIRROR_SEPARATOR + RECORD
+                            + "/recorded-at-the-outpost").isPresent()
+                            && atTheTenant.contains("recorded-at-the-outpost"),
+                    "the run of a step the outpost was declared from the start, or what it "
+                            + "wrote, did not reach its tenant");
+        } finally {
+            outpost.close();
+            outpostServer.stop();
+        }
+    }
+
+    /** A step of a process the clinic had none of until it was declared. */
+    private static final String IMAGING = "jaam.imaging.read";
+
+    private static String withImaging(String declaration) {
+        return declaration.replace("\"steps\":[", "\"steps\":[{\"code\":\"" + IMAGING
+                + "\",\"slots\":{\"image\":\"Observation\"},\"writes\":[\"Observation\"]},");
+    }
+
+    /** Scans until the node's clinic serves a declaration naming the step. */
+    private static void declares(TenantRuntimeManager node, String step) {
+        long until = System.currentTimeMillis() + 120_000;
+        while (node.runtime(CLINIC).map(runtime -> runtime.spec().steps().stream()
+                .noneMatch(declared -> declared.code().equals(step))).orElse(true)) {
+            assertTrue(System.currentTimeMillis() < until, "the clinic never took the step "
+                    + step + ": " + node.troubles().get(CLINIC));
+            node.scanOnce();
+        }
+    }
+
+    /** A run of the step, filled and performed on the node, writing what it found. */
+    private static void performedAt(TenantRuntimeManager node, String step, String slot,
+            String found) {
+        Run run = new Runs(node.runtime(CLINIC).orElseThrow().engine()).filling(
+                StepDeclaration.of(step, "1", "r4").taking(slot, "Observation"),
+                RunKind.PIPELINE, found,
+                java.util.Map.of(slot, RunSlot.given(
+                        "{\"resourceType\":\"Observation\",\"status\":\"registered\","
+                                + "\"code\":{\"text\":\"" + slot + "\"}}")));
+        Executor analyser = new Executor("analyser", "1", "example.site", Scope.BASELINE);
+        Lane performing = node.fleetLane(CLINIC, step, analyser).orElseThrow();
+        int last = step.lastIndexOf('.');
+        performing.declare(new Declarations.Declared(step.substring(0, last),
+                step.substring(last + 1), analyser.name(),
+                analyser.version(), analyser.provider(), analyser.scope(), analyser.name()));
+        Run held = performing.claim(run, java.time.Duration.ofMinutes(5)).orElseThrow();
+        assertEquals(null, performing.committed(held, null, List.of(Outcome.Write.create("""
+                {"resourceType":"Observation","status":"final","code":{"text":"%s"}}"""
+                .formatted(found)))).refused(), "the node refused its own result");
+    }
+
     /** A run of the site's own step, filled on the site and not yet taken. */
     private static Run filledOnTheSite(String found) {
         return new Runs(site.runtime(CLINIC).orElseThrow().engine()).filling(
