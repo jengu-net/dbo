@@ -348,7 +348,7 @@ public final class Lanes {
      * refused by name rather than quietly left out.
      */
     public Batch outbound(String peer, int limit, Set<String> processes, Set<String> types) {
-        return outbound(peer, limit, processes, types, true);
+        return outbound(peer, limit, processes, types, true, process -> { }, () -> { });
     }
 
     /**
@@ -358,7 +358,19 @@ public final class Lanes {
      * tenant's own records, to be removed when the work closed.
      */
     public Batch outboundHome(String peer, int limit, Set<String> processes) {
-        return outbound(peer, limit, processes, Set.of(), false);
+        return outboundHome(peer, limit, processes, process -> { }, () -> { });
+    }
+
+    /**
+     * What a place sends home, saying the process of each run it read past
+     * because its process was not asked for, which is work that stays here,
+     * and whether the read reached the end of the feed. A read that comes
+     * back empty of work is no end: this lane's own position is kept on the
+     * feed it reads, so marking a batch sent puts one more event on it.
+     */
+    public Batch outboundHome(String peer, int limit, Set<String> processes,
+            java.util.function.Consumer<String> passedOver, Runnable atTheEnd) {
+        return outbound(peer, limit, processes, Set.of(), false, passedOver, atTheEnd);
     }
 
     /**
@@ -424,7 +436,8 @@ public final class Lanes {
     }
 
     private Batch outbound(String peer, int limit, Set<String> processes, Set<String> types,
-            boolean withInputs) {
+            boolean withInputs, java.util.function.Consumer<String> passedOver,
+            Runnable atTheEnd) {
         for (String type : types) {
             if (!admitted.contains(type)) {
                 throw new IllegalStateException(site + ": this lane does not carry '" + type
@@ -445,6 +458,9 @@ public final class Lanes {
                 continue;
             }
             Optional<Run> run = runs.byId(event.objectId());
+            if (run.isPresent() && !processes.contains(run.get().process())) {
+                passedOver.accept(run.get().process());
+            }
             if (run.isEmpty() || !processes.contains(run.get().process())) {
                 // The lane declares which processes travel. A site's own
                 // housekeeping is not the other side's business, and mirroring
@@ -475,8 +491,13 @@ public final class Lanes {
                 }
             }
         }
-        return assembled(lane, chunk.nextCursor(), work, travelling, forRuns, types, withInputs,
-                limit);
+        if (chunk.drained()) {
+            atTheEnd.run();
+        }
+        // A feed read at its end names no cursor. Marked sent, that would put
+        // the position back at the start of the feed, to be read again.
+        String cursor = chunk.nextCursor() != null ? chunk.nextCursor() : lane.ourCursor();
+        return assembled(lane, cursor, work, travelling, forRuns, types, withInputs, limit);
     }
 
     /**

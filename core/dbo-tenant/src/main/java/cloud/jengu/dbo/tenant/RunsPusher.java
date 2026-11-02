@@ -31,6 +31,11 @@ import java.util.function.Supplier;
  * read for the processes declared then, so runs of one declared since were
  * passed over, and the feed behind the position may have been let go of.
  * Those runs are still in the store, and are handed from there once.
+ *
+ * <p><b>What stays here is said.</b> A place handing its trail and none of
+ * its work looked healthy, because nothing that stays is a failure. So the
+ * pusher keeps why: processes it read past that are not the store's own, a
+ * tenant declaring nothing, a feed longer than a round reads.
  */
 final class RunsPusher {
 
@@ -46,16 +51,37 @@ final class RunsPusher {
      * fell further behind every round.
      */
     private static final int MOST_PER_ROUND = 50;
+    /**
+     * The store's own processes: its streams, sweeps and bring-ups, which
+     * stay here without a word, being nobody's work but this node's.
+     */
+    private static final String STORES = "dbo.";
 
     private final Lanes lanes;
     private final Handover home;
     private final Supplier<Set<String>> processes;
+    /** The processes of runs read past and not handed, until the tenant declares them. */
+    private final Set<String> passedOver = new java.util.concurrent.ConcurrentSkipListSet<>();
+    private volatile boolean nothingDeclared;
+    private volatile boolean behind;
 
     /** @param processes the processes the tenant declares steps of, asked each round */
     RunsPusher(Lanes lanes, Handover home, Supplier<Set<String>> processes) {
+        this(lanes, home, processes, null);
+    }
+
+    /**
+     * @param before the pusher this one replaces, whose account of what stays
+     *        here carries over: the runs it read past are behind the position
+     *        now, and would not be read past again to be said
+     */
+    RunsPusher(Lanes lanes, Handover home, Supplier<Set<String>> processes, RunsPusher before) {
         this.lanes = lanes;
         this.home = home;
         this.processes = processes;
+        if (before != null) {
+            passedOver.addAll(before.passedOver);
+        }
     }
 
     /** The processes of the steps a tenant declares: what its places send home. */
@@ -75,20 +101,23 @@ final class RunsPusher {
      */
     int round() {
         Set<String> declared = Set.copyOf(processes.get());
-        if (declared.isEmpty()) {
+        nothingDeclared = declared.isEmpty();
+        if (nothingDeclared) {
             return 0;
         }
+        passedOver.removeAll(declared);
         int handed = caughtUp(declared);
-        for (int read = 0; read < MOST_PER_ROUND; read++) {
-            String from = lanes.open(HOME).ourCursor();
-            Lanes.Batch batch = lanes.outboundHome(HOME, AT_ONCE, declared);
+        boolean[] ended = {false};
+        for (int read = 0; read < MOST_PER_ROUND && !ended[0]; read++) {
+            Lanes.Batch batch = lanes.outboundHome(HOME, AT_ONCE, declared, process -> {
+                if (!process.startsWith(STORES)) {
+                    passedOver.add(process);
+                }
+            }, () -> ended[0] = true);
             if (batch.isEmpty()) {
                 // Nothing of the declared work in this stretch of the feed:
                 // moved past, so it is not read again.
                 lanes.sent(HOME, batch);
-                if (java.util.Objects.equals(from, batch.cursor())) {
-                    break; // the end of the feed
-                }
                 continue;
             }
             List<String> refused = new ArrayList<>();
@@ -96,7 +125,28 @@ final class RunsPusher {
             lanes.sent(HOME, batch);
             refusedSaid(refused);
         }
+        behind = !ended[0];
         return handed;
+    }
+
+    /**
+     * What of this place's work stays here, and why, or empty when all of it
+     * goes. Said as one sentence, so that what changed is a different one.
+     */
+    String keptHere() {
+        List<String> why = new ArrayList<>();
+        if (nothingDeclared) {
+            why.add("its tenant declares no step, so none of its work goes home");
+        }
+        if (!passedOver.isEmpty()) {
+            why.add("runs of " + passedOver + " stay here, as its tenant declares no step of "
+                    + (passedOver.size() == 1 ? "it" : "them"));
+        }
+        if (behind) {
+            why.add("more of its work feed stands before its position home than a round "
+                    + "reads, so its work goes home rounds late");
+        }
+        return String.join("; ", why);
     }
 
     /**

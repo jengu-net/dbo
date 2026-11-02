@@ -51,6 +51,7 @@ import java.nio.file.Path;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -1202,9 +1203,11 @@ class ASecondPlaceComesUpFromItsOriginIT {
     @Order(30)
     @DisplayName("a place whose first bring-up failed, and whose declaration gained a step after "
             + "it came up, hands its tenant the runs of that step and of every other, the one "
-            + "it held from before the step was declared included")
+            + "it held from before the step was declared included, saying until then that "
+            + "the run stays with it")
     @Proving({DboPromises.SYNC_A_PLACE_HANDS_ITS_WORK_TO_ITS_TENANT,
-            DboPromises.SYNC_A_PLACE_HANDS_THE_WORK_OF_A_STEP_DECLARED_AFTER_IT_CAME_UP})
+            DboPromises.SYNC_A_PLACE_HANDS_THE_WORK_OF_A_STEP_DECLARED_AFTER_IT_CAME_UP,
+            DboPromises.SYNC_A_PLACE_SAYS_WHAT_OF_ITS_WORK_STAYS_WITH_IT})
     void aPlaceThatFailedItsFirstBringUpHandsItsWork() throws Exception {
         // The origin gains a step of a process it had none of. Last in the
         // class, because the clinic is rebuilt where it stands.
@@ -1249,6 +1252,10 @@ class ASecondPlaceComesUpFromItsOriginIT {
                     + "/filled-before-it-was-declared";
             assertTrue(home.byKey(before).isEmpty(),
                     "the outpost handed a run of a process it did not declare");
+            String kept = outpost.workKeptAtPlaces().getOrDefault(CLINIC, "");
+            assertTrue(kept.contains("jaam.imaging") && !kept.contains("dbo."),
+                    "the outpost did not say the run stays with it, or named its own "
+                            + "housekeeping beside it: " + kept);
 
             // And the declaration it serves catches up with its origin's.
             Files.writeString(outpostDir.resolve(CLINIC + ".json"),
@@ -1261,6 +1268,9 @@ class ASecondPlaceComesUpFromItsOriginIT {
 
             assertTrue(home.byKey(before).isPresent(), "the run the outpost held from before "
                     + "it declared the step was passed over for good");
+            assertFalse(outpost.workKeptAtPlaces().containsKey(CLINIC),
+                    "the outpost still says work stays with it once it went: "
+                            + outpost.workKeptAtPlaces());
             String atTheTenant = read(cloud, CLINIC, "Observation");
             assertTrue(home.byKey("outpost" + Lanes.MIRROR_SEPARATOR + IMAGING
                             + "/read-at-the-outpost").isPresent()

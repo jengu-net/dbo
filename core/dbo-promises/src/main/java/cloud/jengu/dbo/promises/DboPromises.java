@@ -3179,6 +3179,13 @@ public enum DboPromises implements Promise {
             + "already held, which its position home had passed over and its work feed may "
             + "have let go of, are handed from its store in the round after it is declared, "
             + "each once, and not again after a restart."),
+    SYNC_A_PLACE_SAYS_WHAT_OF_ITS_WORK_STAYS_WITH_IT(
+            "A place says when work of its own stays with it rather than going to its tenant, "
+            + "and why: runs of a process its tenant declares no step of, naming the process; "
+            + "a tenant that declares no step at all; or more of its work feed before its "
+            + "position home than a round reads. It says so once, and again when why changes, "
+            + "and an operator reads the same account from the node; the store's own "
+            + "housekeeping stays without a word."),
     SYNC_LOCAL_SHADOWING(
             "A tenant's own object with the same base identity overrides the streamed "
             + "copy — version-neutrally, across FHIR versions and business versions; "

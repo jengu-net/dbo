@@ -3476,6 +3476,7 @@ cloud.jengu.dbo.promises.DboPromises                                   SYNC_A_PL
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_A_PLACE_LETS_GO_OF_WHAT_ITS_OLD_CONFIGURATION_APPLIED:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_A_PLACE_READS_ONLY_WHAT_THE_TENANT_DID_NOT_AUTHOR:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_A_PLACE_READS_ON_FROM_WHERE_IT_ACKNOWLEDGED:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   SYNC_A_PLACE_SAYS_WHAT_OF_ITS_WORK_STAYS_WITH_IT:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_A_PLACE_SERVES_WHAT_IT_HOLDS_WHILE_ITS_ORIGIN_IS_AWAY:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_A_PLACE_TAKES_ITS_DECLARATION_WITHOUT_THE_REPOSITORY_IT_NAMES:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_A_PLACE_TAKES_ITS_FACE_FROM_A_ROOT_BESIDE_IT:cloud.jengu.dbo.promises.DboPromises
@@ -4561,6 +4562,7 @@ cloud.jengu.dbo.sync.Lanes                                             open(Stri
 cloud.jengu.dbo.sync.Lanes                                             outbound(String,int,Set):cloud.jengu.dbo.sync.Lanes.Batch
 cloud.jengu.dbo.sync.Lanes                                             outbound(String,int,Set,Set):cloud.jengu.dbo.sync.Lanes.Batch
 cloud.jengu.dbo.sync.Lanes                                             outboundHome(String,int,Set):cloud.jengu.dbo.sync.Lanes.Batch
+cloud.jengu.dbo.sync.Lanes                                             outboundHome(String,int,Set,Consumer,Runnable):cloud.jengu.dbo.sync.Lanes.Batch
 cloud.jengu.dbo.sync.Lanes                                             readings():List
 cloud.jengu.dbo.sync.Lanes                                             recordingWhence(BiConsumer):cloud.jengu.dbo.sync.Lanes
 cloud.jengu.dbo.sync.Lanes                                             revoke():cloud.jengu.dbo.sync.Lanes.Revoked
@@ -5065,6 +5067,7 @@ cloud.jengu.dbo.tenant.TenantRuntimeManager                            vault(clo
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            verbs(String):Optional
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            wakeupsFor(String):Optional
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            whatTheVersionCouldNotCarry(String):List
+cloud.jengu.dbo.tenant.TenantRuntimeManager                            workKeptAtPlaces():Map
 cloud.jengu.dbo.tenant.TenantRuntimeManager                            workingKeyRecheck(Duration):void
 cloud.jengu.dbo.tenant.TenantRuntimeManager.AuthorityConfig            brokerSecrets():Map
 cloud.jengu.dbo.tenant.TenantRuntimeManager.AuthorityConfig            equals(Object):boolean

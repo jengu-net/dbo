@@ -66,7 +66,11 @@ that use it.
   processes the clinic declares steps of as it declares them now, however much
   of the site's own housekeeping stands before them. A step declared after the
   site came up goes like any other, and runs of its process the site already
-  held are handed from its store the round after. A lane admits every declared
+  held are handed from its store the round after. Work that stays on the site
+  is said: runs of a process the clinic declares no step of, a clinic that
+  declares none, or a feed longer than a round reads. The site logs it once,
+  and again when why changes, and `workKeptAtPlaces()` answers the same; its
+  own housekeeping stays without a word. A lane admits every declared
   type except the ones about a person, which travel by work or not at all.
 - **A place knows what its tenant authorised.** What the clinic authorised of
   its register in the cloud reaches the site with every later authorisation and
