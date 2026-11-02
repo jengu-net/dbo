@@ -152,12 +152,23 @@ public final class Lanes {
         this.auditReplay = auditReplay;
     }
 
-    /** One lane's state: who it is with, under which epoch, and where both sides are. */
+    /**
+     * One lane's state: who it is with, under which epoch, and where both sides are.
+     *
+     * @param covers the processes its position on the work feed has been read
+     *               for, or null for a lane that has never said
+     */
     public record Lane(String key, String peer, String epoch, String ourCursor,
-            String theirMarker, String contentCursor) {
+            String theirMarker, String contentCursor, List<String> covers) {
         /** A lane before the second bound: no position on the content feed. */
         public Lane(String key, String peer, String epoch, String ourCursor, String theirMarker) {
             this(key, peer, epoch, ourCursor, theirMarker, null);
+        }
+
+        /** A lane that has not said which processes its position was read for. */
+        public Lane(String key, String peer, String epoch, String ourCursor, String theirMarker,
+                String contentCursor) {
+            this(key, peer, epoch, ourCursor, theirMarker, contentCursor, null);
         }
     }
 
@@ -294,7 +305,21 @@ public final class Lanes {
     public Lane mark(String peer, String theirMarker) {
         Lane lane = open(peer);
         return write(new Lane(lane.key(), lane.peer(), lane.epoch(), lane.ourCursor(),
-                theirMarker));
+                theirMarker, lane.contentCursor(), lane.covers()));
+    }
+
+    /**
+     * Records the processes this lane's position is read for from here on.
+     *
+     * <p>Kept with the position because the two are one fact: a run the
+     * position moved past while its process was not among these was never
+     * looked at, and only the lane can say so after a restart.
+     */
+    public Lane covering(String peer, Set<String> processes) {
+        Lane lane = open(peer);
+        return write(new Lane(lane.key(), lane.peer(), lane.epoch(), lane.ourCursor(),
+                lane.theirMarker(), lane.contentCursor(),
+                List.copyOf(new java.util.TreeSet<>(processes))));
     }
 
     // -------------------------------------------------------------- outbound
@@ -323,7 +348,7 @@ public final class Lanes {
      * refused by name rather than quietly left out.
      */
     public Batch outbound(String peer, int limit, Set<String> processes, Set<String> types) {
-        return outbound(peer, limit, processes, types, true);
+        return outbound(peer, limit, processes, types, true, process -> { }, () -> { });
     }
 
     /**
@@ -333,7 +358,19 @@ public final class Lanes {
      * tenant's own records, to be removed when the work closed.
      */
     public Batch outboundHome(String peer, int limit, Set<String> processes) {
-        return outbound(peer, limit, processes, Set.of(), false);
+        return outboundHome(peer, limit, processes, process -> { }, () -> { });
+    }
+
+    /**
+     * What a place sends home, saying the process of each run it read past
+     * because its process was not asked for, which is work that stays here,
+     * and whether the read reached the end of the feed. A read that comes
+     * back empty of work is no end: this lane's own position is kept on the
+     * feed it reads, so marking a batch sent puts one more event on it.
+     */
+    public Batch outboundHome(String peer, int limit, Set<String> processes,
+            java.util.function.Consumer<String> passedOver, Runnable atTheEnd) {
+        return outbound(peer, limit, processes, Set.of(), false, passedOver, atTheEnd);
     }
 
     /**
@@ -399,7 +436,8 @@ public final class Lanes {
     }
 
     private Batch outbound(String peer, int limit, Set<String> processes, Set<String> types,
-            boolean withInputs) {
+            boolean withInputs, java.util.function.Consumer<String> passedOver,
+            Runnable atTheEnd) {
         for (String type : types) {
             if (!admitted.contains(type)) {
                 throw new IllegalStateException(site + ": this lane does not carry '" + type
@@ -420,6 +458,9 @@ public final class Lanes {
                 continue;
             }
             Optional<Run> run = runs.byId(event.objectId());
+            if (run.isPresent() && !processes.contains(run.get().process())) {
+                passedOver.accept(run.get().process());
+            }
             if (run.isEmpty() || !processes.contains(run.get().process())) {
                 // The lane declares which processes travel. A site's own
                 // housekeeping is not the other side's business, and mirroring
@@ -450,6 +491,69 @@ public final class Lanes {
                 }
             }
         }
+        if (chunk.drained()) {
+            atTheEnd.run();
+        }
+        // A feed read at its end names no cursor. Marked sent, that would put
+        // the position back at the start of the feed, to be read again.
+        String cursor = chunk.nextCursor() != null ? chunk.nextCursor() : lane.ourCursor();
+        return assembled(lane, cursor, work, travelling, forRuns, types, withInputs, limit);
+    }
+
+    /**
+     * Every run of a process this place authored, from its store rather than
+     * its work feed, handed in batches of at most {@code limit} runs.
+     *
+     * <p>For a process the lane's position moved past while it was not among
+     * those the lane covers: the feed past that position was never looked at
+     * for it, and may already have been let go of, while the runs are still
+     * here. Each batch carries the lane's own epoch and position, so handing
+     * one moves nothing.
+     *
+     * @return what {@code hand} returned for each batch, summed
+     */
+    public int everyRunOf(String peer, String process, int limit,
+            java.util.function.ToIntFunction<Batch> hand) {
+        Lane lane = open(peer);
+        int handed = 0;
+        List<Item> work = new ArrayList<>();
+        List<String> travelling = new ArrayList<>();
+        try (java.util.stream.Stream<StoredObject> found = cloud.jengu.dbo.core.api.Answered
+                .pagedBy(store::page, Criteria.of(WorkModel.TYPE)
+                        .eq("process", EnvelopeValue.of(process)))) {
+            java.util.Iterator<StoredObject> each = found.iterator();
+            while (each.hasNext()) {
+                StoredObject stored = each.next();
+                Run run = Run.of(stored);
+                if (!process.equals(run.process()) || WorkModel.authoredElsewhere(run.key())) {
+                    continue;
+                }
+                work.add(Item.work(stored.id(), stored.versionId(), stored.lastUpdated(),
+                        stored.payload()));
+                travelling.add(run.key());
+                if (travelling.size() >= limit) {
+                    handed += hand.applyAsInt(assembled(lane, lane.ourCursor(), work, travelling,
+                            Map.of(), Set.of(), false, limit));
+                    work = new ArrayList<>();
+                    travelling = new ArrayList<>();
+                }
+            }
+        }
+        if (!travelling.isEmpty()) {
+            handed += hand.applyAsInt(assembled(lane, lane.ourCursor(), work, travelling,
+                    Map.of(), Set.of(), false, limit));
+        }
+        return handed;
+    }
+
+    /**
+     * A batch of the runs given: data first, then the runs, then their trail.
+     *
+     * @param cursor where the lane stands once the far side has taken it
+     */
+    private Batch assembled(Lane lane, String cursor, List<Item> work, List<String> travelling,
+            Map<String, List<String>> forRuns, Set<String> types, boolean withInputs,
+            int limit) {
         List<Item> items = new ArrayList<>();
         forRuns.forEach((reference, named) -> resolve(reference, named).ifPresent(items::add));
         // What a travelling run produced travels with it: individually while
@@ -507,8 +611,7 @@ public final class Lanes {
         // the run it was part of, and a trail arriving before the run it joins
         // to would be readable only in hindsight.
         items.addAll(trail(travelling));
-        return new Batch(lane.epoch(), site, chunk.nextCursor(), List.copyOf(items),
-                contentCursor);
+        return new Batch(lane.epoch(), site, cursor, List.copyOf(items), contentCursor);
     }
 
     /**
@@ -578,7 +681,8 @@ public final class Lanes {
         Lane lane = open(peer);
         return write(new Lane(lane.key(), lane.peer(), lane.epoch(), batch.cursor(),
                 lane.theirMarker(),
-                batch.contentCursor() != null ? batch.contentCursor() : lane.contentCursor()));
+                batch.contentCursor() != null ? batch.contentCursor() : lane.contentCursor(),
+                lane.covers()));
     }
 
     /**
@@ -1088,9 +1192,12 @@ public final class Lanes {
         return store.getByIdentifier(LaneModel.TYPE, List.of(LaneModel.key(peer)))
                 .stream().findFirst().map(stored -> {
                     Object json = Json.parse(new String(stored.payload(), StandardCharsets.UTF_8));
+                    Object covers = ((Map<?, ?>) json).get("covers");
                     return new Lane(Json.str(json, "key"), Json.str(json, "peer"),
                             Json.str(json, "epoch"), optional(json, "ourCursor"),
-                            optional(json, "theirMarker"), optional(json, "contentCursor"));
+                            optional(json, "theirMarker"), optional(json, "contentCursor"),
+                            covers instanceof List<?> named
+                                    ? named.stream().map(String::valueOf).toList() : null);
                 });
     }
 
@@ -1126,6 +1233,13 @@ public final class Lanes {
         }
         if (lane.contentCursor() != null) {
             json.append(",\"contentCursor\":").append(Json.quoted(lane.contentCursor()));
+        }
+        if (lane.covers() != null) {
+            json.append(",\"covers\":[");
+            for (int i = 0; i < lane.covers().size(); i++) {
+                json.append(i == 0 ? "" : ",").append(Json.quoted(lane.covers().get(i)));
+            }
+            json.append(']');
         }
         return json.append('}').toString().getBytes(StandardCharsets.UTF_8);
     }

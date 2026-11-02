@@ -399,6 +399,8 @@ public final class TenantRuntimeManager implements AutoCloseable {
     private final Map<String, TrailPusher> trailPushers = new ConcurrentHashMap<>();
     /** Each place's work, handed up the link it reads through, as its trail is. */
     private final Map<String, RunsPusher> runsPushers = new ConcurrentHashMap<>();
+    /** What of each place's work stays at it and why, as last said: said again when it changes. */
+    private final Map<String, String> keptAtPlaces = new ConcurrentHashMap<>();
     /**
      * Each tenant's declaration as it was last read, by code: what a place of
      * it elsewhere is handed, so the two are declared with the same text.
@@ -2871,6 +2873,16 @@ public final class TenantRuntimeManager implements AutoCloseable {
         Map<String, String> reasons = new java.util.LinkedHashMap<>();
         trouble.forEach((code, why) -> reasons.put(code, why.reason()));
         return reasons;
+    }
+
+    /**
+     * What of each place's work stays at it rather than going to its tenant,
+     * place code to why, as its last round found: a place handing its trail
+     * and none of its work is otherwise indistinguishable from one with no
+     * work to hand.
+     */
+    public Map<String, String> workKeptAtPlaces() {
+        return Map.copyOf(keptAtPlaces);
     }
 
     /** The tenant's own authority, for tools and tests that mint its clients. */
@@ -5820,10 +5832,17 @@ public final class TenantRuntimeManager implements AutoCloseable {
             trailPushers.remove(spec.code());
         }
         if (feeds.work() != null) {
+            // Asked of the declaration it serves each round, not of this one:
+            // a pusher holding the processes it was wired with goes on
+            // handing those whatever the tenant declares after.
             runsPushers.put(spec.code(), new RunsPusher(runtime.replication(), feeds.work(),
-                    RunsPusher.processesOf(spec)));
+                    () -> java.util.Optional.ofNullable(runtimes.get(origin))
+                            .map(serving -> RunsPusher.processesOf(serving.spec()))
+                            .orElse(java.util.Set.of()),
+                    runsPushers.get(spec.code())));
         } else {
             runsPushers.remove(spec.code());
+            keptAtPlaces.remove(spec.code());
         }
         FhirVersion version = versions.require(spec.face());
         TenantSpec.Dependency face = faceChainOf(spec);
@@ -6832,6 +6851,16 @@ public final class TenantRuntimeManager implements AutoCloseable {
                     LOG.warn("place {} could not hand its work to its tenant this round; it "
                             + "goes again next round", code, e);
                 }
+            }
+            // Work that stays here is not a failure, so nothing above says it:
+            // a place handing its trail and none of its work looked healthy.
+            // Said when it starts and whenever why changes, never each round.
+            String why = pusher.keptHere();
+            String was = why.isEmpty() ? keptAtPlaces.remove(code) : keptAtPlaces.put(code, why);
+            if (!why.isEmpty() && !why.equals(was)) {
+                LOG.warn("place {} keeps work from its tenant: {}", code, why);
+            } else if (why.isEmpty() && was != null) {
+                LOG.info("place {} keeps none of its work from its tenant now", code);
             }
         });
         trailPushers.forEach((code, pusher) -> {
