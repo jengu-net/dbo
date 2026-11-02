@@ -516,6 +516,7 @@ public enum DboStories implements Story {
                     DboPromises.AUTH_NO_SUBJECT_ENUMERATION,
                     // And what being forgotten actually does.
                     DboPromises.PDI_RIGHTS_AS_OPERATIONS,
+                    DboPromises.PDI_WHAT_IS_HELD_ABOUT_A_PERSON_INCLUDES_THEIR_CONTENT,
                     DboPromises.PDI_ERASURE_IS_A_RUN,
                     DboPromises.PDI_ERASURE_SAYS_HOW_FAR_IT_GOT,
                     DboPromises.PDI_CRYPTO_SHREDDING,
@@ -565,6 +566,10 @@ public enum DboStories implements Story {
                     DboPromises.SYNC_A_PLACE_ACTS_ON_THE_LAST_AUTHORISATION_IT_HOLDS,
                     DboPromises.PROC_A_PLACE_REFUSES_WHAT_DOES_NOT_STAND_THERE,
                     DboPromises.PROC_AN_APPLICATION_AT_A_PLACE_IS_TOLD_WHAT_STANDS,
+                    DboPromises.POL_CONTENT_IS_OF_A_DECLARED_KIND,
+                    DboPromises.POL_CONTENT_IS_SEALED_TO_ITS_WINDOW,
+                    DboPromises.POL_CONTENT_IS_READ_FOR_A_PURPOSE,
+                    DboPromises.SYNC_CONTENT_TRAVELS_HOME_WITH_ITS_RUN,
                     DboPromises.SYNC_A_PERSON_LETS_A_LOCAL_OVERRIDE_GO,
                     DboPromises.SYNC_LETTING_AN_OVERRIDE_GO_SAYS_WHAT_IT_WAS_FOR,
                     DboPromises.PROC_A_LANE_IS_ATTACHED_WHILE_THE_APPLICATION_RUNS,

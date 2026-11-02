@@ -66,5 +66,33 @@ Erasure is asked for like work and answered by a run: asking twice finds the
 same run, and its tally says how far it got and whether there was a key to
 destroy. The trail survives it, and stops naming anybody.
 
+## Content whose person nobody can tell
+
+A device's message may name a patient, and nothing can tell where. Content
+like that is put under a kind the tenant declares sealed to its window:
+
+```json
+"content": {"device-message": {"keepAtPlace": "P1D", "keepAtTenant": "P7D",
+                               "sealed": "window", "purpose": "required"}}
+```
+
+Put naming no person, it is held under a key of the tenant's for that kind and
+the day it was put, wrapped as its people's keys are, and read back as it was
+sent. Once the window has passed for the last of a day's content, the retention
+sweep destroys that day's key and the trail says so by kind and day. A copy
+still held under it, in a backup or a replica, answers `410` that its window
+passed. Content put under the same kind naming a person is sealed to that
+person instead, so erasing them reaches it, and the store's answer to what it
+holds about them carries it whole. Only a tenant behind the membrane
+holds keys, so a declaration outside it is refused.
+
+With `"purpose": "required"` the message is read only by a reader who says why,
+as a PurposeOfUse code in the `Purpose-Of-Use` header or on the token; one who
+does not is refused `403`. Whether or not a kind asks for a purpose, every read
+of its content is an access entry on the trail about that content, naming who
+read it, its kind and the purpose stated. The store cannot tell whether opaque
+bytes name somebody, so it records every opening rather than guessing which
+were disclosures.
+
 Erasing a whole tenant is different: an operator drops its database
 ([running it](running-it.md#a-tenant-is-erased)).

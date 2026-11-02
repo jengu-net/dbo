@@ -70,6 +70,9 @@ public enum DboQualities implements Quality {
             List.of(DboPromises.POL_DECLARED_AT_CONFIGURATION,
                     DboPromises.POL_DECLARATIVE_RETENTION,
                     DboPromises.POL_RETENTION_SWEEP,
+                    DboPromises.POL_CONTENT_IS_OF_A_DECLARED_KIND,
+                    DboPromises.POL_CONTENT_IS_SEALED_TO_ITS_WINDOW,
+                    DboPromises.POL_CONTENT_IS_READ_FOR_A_PURPOSE,
                     DboPromises.POL_ERASURE_COMPATIBLE,
                     DboPromises.CORE_DECLARED_TRUTH_FORM,
                     DboPromises.CORE_DECLARED_IDENTITY,
@@ -104,6 +107,7 @@ public enum DboQualities implements Quality {
                     DboPromises.PDI_PLAINTEXT_IN_FLIGHT_LEAVES_NO_TRACE,
                     DboPromises.PDI_SHRED_LEDGER,
                     DboPromises.PDI_RIGHTS_AS_OPERATIONS,
+                    DboPromises.PDI_WHAT_IS_HELD_ABOUT_A_PERSON_INCLUDES_THEIR_CONTENT,
                     DboPromises.PDI_ERASURE_IS_A_RUN)),
 
     PORTABILITY("Portability: one sealed archive is backup, restore, migration and export.",

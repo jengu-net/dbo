@@ -51,11 +51,22 @@ public final class BlobHandler implements HttpHandler {
     private final RequestAuthenticator guard;
     private final BlobStore blobs;
     private final String base;
+    private final java.util.function.Predicate<String> performedHere;
 
     public BlobHandler(RequestAuthenticator guard, BlobStore blobs, String base) {
+        this(guard, blobs, base, run -> false);
+    }
+
+    /**
+     * @param performedHere whether a run, by key, is one this node performed: what
+     *                      content may be put under, so it goes home with it
+     */
+    public BlobHandler(RequestAuthenticator guard, BlobStore blobs, String base,
+            java.util.function.Predicate<String> performedHere) {
         this.guard = guard;
         this.blobs = blobs;
         this.base = base;
+        this.performedHere = performedHere;
     }
 
     @Override
@@ -128,18 +139,41 @@ public final class BlobHandler implements HttpHandler {
         // guessed: this store cannot read opaque bytes and so cannot judge
         // whether they are about somebody, and it does not have to — the
         // writer knows, and says.
-        String person = subjectOf(exchange);
+        String person = queried(exchange, "person");
         if (person != null && !blobs.seals()) {
             fail(exchange, 400, "this tenant holds no keys, so content cannot be sealed to a "
                     + "person here: put it without a subject, or serve it behind the membrane");
             return;
         }
-        String key = person == null
-                ? blobs.put(content, media)
-                : blobs.put(content, media, person);
+        String kind = queried(exchange, "kind");
+        // The run it is put under, where the writer names one: a place hands
+        // the content home with that run. Only a run performed here, since a
+        // run that arrived from elsewhere goes home from nowhere.
+        String run = queried(exchange, "run");
+        if (run != null && !performedHere.test(run)) {
+            fail(exchange, 400, "no run '" + run + "' was performed here, so nothing can be "
+                    + "put under it");
+            return;
+        }
+        String key;
+        try (cloud.jengu.dbo.core.api.Caller.InRun under = run == null ? () -> { }
+                : cloud.jengu.dbo.core.api.Caller.underRun(run)) {
+            key = blobs.put(content, media, person, kind);
+        } catch (IllegalArgumentException refused) {
+            // A kind the tenant does not declare, or none where it declares
+            // some: the writer's to correct, and told which kinds there are.
+            fail(exchange, 400, refused.getMessage());
+            return;
+        }
         exchange.getResponseHeaders().set("Location", base + "/" + key);
-        respond(exchange, 201, RecordWire.write(Map.of("key", key, "size", content.length))
-                .getBytes(StandardCharsets.UTF_8), "application/json");
+        Map<String, Object> said = new java.util.LinkedHashMap<>();
+        said.put("key", key);
+        said.put("size", content.length);
+        if (kind != null) {
+            said.put("kind", kind);
+        }
+        respond(exchange, 201, RecordWire.write(said).getBytes(StandardCharsets.UTF_8),
+                "application/json");
     }
 
     private void get(HttpExchange exchange, String key) throws IOException {
@@ -147,14 +181,36 @@ public final class BlobHandler implements HttpHandler {
             fail(exchange, 404, "name the content to read: " + base + "/{key}");
             return;
         }
+        // A reason stated per request, as the records door takes one, and
+        // replacing the token's: content of a kind may be read only for one.
+        String stated = exchange.getRequestHeaders().getFirst("Purpose-Of-Use");
+        if (stated != null && !stated.isBlank()) {
+            if (!cloud.jengu.dbo.core.api.Disclosure.statable(stated)) {
+                fail(exchange, 400, "Purpose-Of-Use must be a PurposeOfUse code such as TREAT "
+                        + "or PATRQT");
+                return;
+            }
+            cloud.jengu.dbo.core.api.Disclosure.set(cloud.jengu.dbo.core.api.Disclosure.mode(),
+                    stated.trim());
+        }
         Optional<BlobStore.Blob> held;
         try {
             held = blobs.get(key);
+        } catch (BlobStore.PurposeRequiredException unstated) {
+            // 403, as an identifying read without a reason is: well formed,
+            // and declined until it says why.
+            fail(exchange, 403, unstated.getMessage());
+            return;
         } catch (BlobStore.ErasedException erased) {
             // 410 rather than 404: it was here, and it is deliberately gone.
             // An auditor asking what became of a recording is owed the
             // difference between destroyed and never known.
             fail(exchange, 410, "the person this content was about has been erased, so it "
+                    + "cannot be read");
+            return;
+        } catch (BlobStore.WindowPassedException passed) {
+            // Gone as deliberately, by what the tenant declared it keeps.
+            fail(exchange, 410, "the window this content was kept for has passed, so it "
                     + "cannot be read");
             return;
         }
@@ -181,15 +237,18 @@ public final class BlobHandler implements HttpHandler {
         }
     }
 
-    /** The person a writer says the content is about, from {@code ?person=}. */
-    private static String subjectOf(HttpExchange exchange) {
+    /**
+     * What a writer says of the content in the query: the person it is about
+     * ({@code ?person=}), and the kind it is put under ({@code ?kind=}).
+     */
+    private static String queried(HttpExchange exchange, String name) {
         String query = exchange.getRequestURI().getQuery();
         if (query == null) {
             return null;
         }
         for (String part : query.split("&")) {
-            if (part.startsWith("person=")) {
-                String said = part.substring("person=".length()).trim();
+            if (part.startsWith(name + "=")) {
+                String said = part.substring(name.length() + 1).trim();
                 return said.isEmpty() ? null : said;
             }
         }

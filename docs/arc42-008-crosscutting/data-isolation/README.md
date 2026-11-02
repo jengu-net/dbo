@@ -71,7 +71,8 @@ data — and a restore re-applies the ledger before serving resumes.
 
 **Rights as operations.** Erasure shreds the key and records the ledger entry.
 Access and portability are a vault-joined export through the ordinary
-maintenance machinery. Restriction is a flag the serving path honours.
+maintenance machinery, carrying the content sealed to the person beside their
+records. Restriction is a flag the serving path honours.
 
 ## What crosses, and why it is allowed to
 

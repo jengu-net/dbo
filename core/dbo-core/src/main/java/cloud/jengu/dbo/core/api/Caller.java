@@ -85,6 +85,11 @@ public final class Caller {
         return RUN.get() != null && !Boolean.TRUE.equals(MACHINERY.get());
     }
 
+    /** Whether a read now is the machinery's own, for a run it is writing for. */
+    public static boolean readingForMachinery() {
+        return RUN.get() != null && Boolean.TRUE.equals(MACHINERY.get());
+    }
+
     private static InRun marked(String runKey, Boolean machinery) {
         String outer = RUN.get();
         Boolean outerMachinery = MACHINERY.get();

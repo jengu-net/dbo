@@ -64,6 +64,7 @@ class PdiIT {
     static PGSimpleDataSource ds;
     static PersonVault vault;
     static PdiObjectStore store;
+    static cloud.jengu.dbo.core.api.BlobStore content;
     /** The membrane behind an actual door, because the defect was in the door. */
     static cloud.jengu.dbo.rest.FhirHttpServer server;
     static byte[] ownerKey = new byte[32];
@@ -107,6 +108,8 @@ class PdiIT {
                 // From the SAME pre-transform list the registrations came from:
                 // what identifies a person type is gone from them afterwards.
                 PdiSetup.identifiedBy(personality.registrations(), spec));
+        content = new cloud.jengu.dbo.pdi.SealingBlobStore(
+                new cloud.jengu.dbo.postgres.PgBlobStore(ds), vault);
         // Served over HTTP as well, because what went wrong was not what the
         // store decided but how the door reported it.
         server = new cloud.jengu.dbo.rest.FhirHttpServer(
@@ -344,6 +347,28 @@ class PdiIT {
         String export = store.exportPerson("Patient", personId, List.of());
         assertTrue(export.contains("Salakas-Uus"));
         assertFalse(export.contains("Kolmas"));
+    }
+
+    /** What is held about them includes what is sealed to them, and nobody else's. */
+    @Test
+    @Order(5)
+    @Proving(DboPromises.PDI_WHAT_IS_HELD_ABOUT_A_PERSON_INCLUDES_THEIR_CONTENT)
+    void theirAnswerCarriesTheContentSealedToThem() {
+        byte[] recording = "a recording of Salakas".getBytes(StandardCharsets.UTF_8);
+        String theirs = content.put(recording, "audio/ogg", "Patient/" + personId);
+        PutResult other = store.put(PutRequest.create("Patient", patient("Viies", "48001010041")));
+        String somebodyElses = content.put("a recording of Viies".getBytes(StandardCharsets.UTF_8),
+                "audio/ogg", "Patient/" + other.id());
+
+        String answer = store.exportPerson("Patient", personId, List.of(), content);
+
+        assertTrue(answer.contains("\"key\":\"" + theirs + "\"")
+                        && answer.contains(java.util.Base64.getEncoder().encodeToString(recording))
+                        && answer.contains("\"media\":\"audio/ogg\""),
+                "their recording, whole, under its key and media type: " + answer);
+        assertFalse(answer.contains(somebodyElses), "and nobody else's: " + answer);
+        assertFalse(store.exportPerson("Patient", personId, List.of()).contains("\"content\""),
+                "an answer that was given no content does not say there is none");
     }
 
     /**

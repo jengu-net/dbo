@@ -34,10 +34,20 @@ public final class SealingBlobStore implements BlobStore {
 
     private final BlobStore kept;
     private final PersonVault vault;
+    private final java.util.Set<String> windowed;
 
     public SealingBlobStore(BlobStore kept, PersonVault vault) {
+        this(kept, vault, java.util.Set.of());
+    }
+
+    /**
+     * @param windowed the kinds whose content naming no person is sealed to its
+     *                 window: under the kind's key for the day it is put
+     */
+    public SealingBlobStore(BlobStore kept, PersonVault vault, java.util.Set<String> windowed) {
         this.kept = kept;
         this.vault = vault;
+        this.windowed = java.util.Set.copyOf(windowed);
     }
 
     @Override
@@ -47,13 +57,35 @@ public final class SealingBlobStore implements BlobStore {
 
     @Override
     public String put(byte[] content, String media, String person) {
-        if (person == null || person.isBlank()) {
+        if (person == null) {
+            throw new IllegalArgumentException("name the person this content is about, or "
+                    + "put it without one");
+        }
+        return put(content, media, person, null);
+    }
+
+    @Override
+    public String put(byte[] content, String media, String person, String kind) {
+        if (person == null && kind != null && windowed.contains(kind)) {
+            // Under the day it is put, in one calendar for every node: a key
+            // per day is what lets a whole day's content go at once when its
+            // window has passed for the last of it.
+            java.time.LocalDate day = java.time.LocalDate.now(java.time.ZoneOffset.UTC);
+            byte[] key = vault.windowKey(kind, day, true).orElseThrow(() ->
+                    new IllegalStateException("the key of '" + kind + "' for " + day
+                            + " is destroyed while content is still being put under it"));
+            return kept.putSealed(vault.encrypt(key, content), media, kind, day);
+        }
+        if (person == null) {
+            return kept.put(content, media, null, kind);
+        }
+        if (person.isBlank()) {
             throw new IllegalArgumentException("name the person this content is about, or "
                     + "put it without one");
         }
         String whose = personOf(person);
         byte[] key = vault.keyFor(whose, true).orElseThrow(() -> new ErasedException(person));
-        return kept.put(vault.encrypt(key, content), media, whose);
+        return kept.put(vault.encrypt(key, content), media, whose, kind);
     }
 
     @Override
@@ -74,8 +106,21 @@ public final class SealingBlobStore implements BlobStore {
     }
 
     @Override
+    public void restore(String key, byte[] content, String media, String kind) {
+        kept.restore(key, content, media, kind);
+    }
+
+    @Override
     public Optional<Blob> get(String key) {
         Optional<Blob> held = kept.get(key);
+        if (held.isPresent() && held.get().window() != null) {
+            Blob sealed = held.get();
+            byte[] window = vault.windowKey(sealed.kind(), sealed.window(), false)
+                    .orElseThrow(() -> new WindowPassedException(key));
+            return Optional.of(new Blob(sealed.key(), sealed.media(),
+                    vault.decrypt(window, sealed.content()), null, sealed.kind(),
+                    sealed.window(), sealed.written()));
+        }
         if (held.isEmpty() || held.get().person() == null) {
             return held;
         }
@@ -88,7 +133,8 @@ public final class SealingBlobStore implements BlobStore {
             throw new ErasedException(key);
         }
         return Optional.of(new Blob(sealed.key(), sealed.media(),
-                vault.decrypt(person, sealed.content()), sealed.person()));
+                vault.decrypt(person, sealed.content()), sealed.person(), sealed.kind(), null,
+                sealed.written()));
     }
 
     /**
@@ -114,6 +160,48 @@ public final class SealingBlobStore implements BlobStore {
                 .orElseThrow(() -> new IllegalArgumentException(
                         "no person is known for " + subject + ", so content named for them "
                                 + "could only be sealed under a key belonging to nobody"));
+    }
+
+    @Override
+    public java.util.List<String> keysPutBy(String run) {
+        return kept.keysPutBy(run);
+    }
+
+    @Override
+    public java.util.List<String> keysSealedTo(String person) {
+        return kept.keysSealedTo(person);
+    }
+
+    @Override
+    public boolean arrive(String key, byte[] content, String media, String kind,
+            java.time.Instant written) {
+        Optional<Blob> here;
+        try {
+            here = get(key);
+        } catch (WindowPassedException | ErasedException gone) {
+            // Held here once, and gone on purpose: not kept again.
+            return false;
+        }
+        if (here.isPresent()) {
+            if (!java.util.Arrays.equals(here.get().content(), content)) {
+                throw new IllegalStateException("a different blob is held under " + key);
+            }
+            return false;
+        }
+        if (kind == null || !windowed.contains(kind)) {
+            return kept.arrive(key, content, media, kind, written);
+        }
+        // Under the day it was put where it was captured, so its window here
+        // counts from then, as it would have had it been put here.
+        java.time.LocalDate day = java.time.LocalDate.ofInstant(
+                written == null ? java.time.Instant.now() : written, java.time.ZoneOffset.UTC);
+        Optional<byte[]> window = vault.windowKey(kind, day, true);
+        if (window.isEmpty()) {
+            // That day's window has passed here already.
+            return false;
+        }
+        return kept.arriveSealed(key, vault.encrypt(window.get(), content), media, kind, day,
+                written);
     }
 
     @Override

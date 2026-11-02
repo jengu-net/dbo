@@ -143,11 +143,19 @@ public final class TenantRuntimeManager implements AutoCloseable {
      * it refuses content named for a person rather than storing it in the
      * clear while whoever wrote it believes it is protected.
      */
-    private cloud.jengu.dbo.core.api.BlobStore blobsFor(String code,
-            cloud.jengu.dbo.core.api.BlobStore plain) {
-        cloud.jengu.dbo.pdi.PersonVault vault = vaults.get(code);
-        return vault == null ? plain
-                : new cloud.jengu.dbo.pdi.SealingBlobStore(plain, vault);
+    private cloud.jengu.dbo.core.api.BlobStore blobsFor(TenantSpec spec,
+            cloud.jengu.dbo.core.api.BlobStore plain,
+            cloud.jengu.dbo.rest.AuditProjection.Recorder trail) {
+        cloud.jengu.dbo.pdi.PersonVault vault = vaults.get(spec.code());
+        java.util.Set<String> windowed = new java.util.HashSet<>();
+        spec.policies().content().forEach((kind, declared) -> {
+            if (declared.sealedToWindow()) {
+                windowed.add(kind);
+            }
+        });
+        return new DeclaredContent(spec.code(), vault == null ? plain
+                : new cloud.jengu.dbo.pdi.SealingBlobStore(plain, vault, windowed),
+                spec.policies().content(), trail);
     }
 
     /**
@@ -1667,7 +1675,10 @@ public final class TenantRuntimeManager implements AutoCloseable {
                     // bring-up fails, having served perfectly the first time.
                     blobContexts.put(code, blobPath);
                     sharedServer.createContext(blobPath,
-                            new BlobHandler(tenant.guard(), tenant.runtime().blobs(), blobPath));
+                            new BlobHandler(tenant.guard(), tenant.runtime().blobs(), blobPath,
+                                    run -> !cloud.jengu.dbo.work.WorkModel.authoredElsewhere(run)
+                                            && new cloud.jengu.dbo.work.Runs(runStores.get(code))
+                                                    .byKey(run).isPresent()));
                     return null;
                 });
 
@@ -5070,6 +5081,15 @@ public final class TenantRuntimeManager implements AutoCloseable {
         // naming others as questions, answered here as the configuration's
         // are, by the same face.
         replication.namingAcrossStores(store.references().orElse(null));
+        // Sealed where there is a vault to seal with. A tenant behind the
+        // membrane holds its people's keys, and content named for one of them
+        // is kept under that key — so erasing the person destroys the
+        // recording, rather than leaving it readable beside a receipt that says
+        // otherwise. The same store a place hands its runs' content home from,
+        // and the tenant keeps what arrives in.
+        cloud.jengu.dbo.core.api.BlobStore content = blobsFor(spec,
+                new cloud.jengu.dbo.postgres.PgBlobStore(db.dataSource()), engine);
+        replication.carryingContent(content);
         // What a place handed home and this tenant did not take is on the
         // tenant's trail as the place's, under the run that produced it —
         // through the contributed-event path, so actor and time are the
@@ -5117,14 +5137,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
                         // capability statement's own URL come from here.
                         base), spec),
                         version.face(), engine),
-                terminology, replication,
-                // Sealed where there is a vault to seal with. A tenant behind
-                // the membrane holds its people's keys, and content named for
-                // one of them is kept under that key — so erasing the person
-                // destroys the recording, rather than leaving it readable
-                // beside a receipt that says otherwise.
-                blobsFor(spec.code(), new cloud.jengu.dbo.postgres.PgBlobStore(
-                        db.dataSource())),
+                terminology, replication, content,
                 // Null where the tenant has none, which is the whole of what
                 // a host is told about a tenant nobody can sign in to.
                 tenantAuthority);
@@ -6553,6 +6566,44 @@ public final class TenantRuntimeManager implements AutoCloseable {
     }
 
     /**
+     * Removes what each tenant served here keeps past its retention: records
+     * past their type's ceiling, and content past its kind's window — a
+     * place's own window where this node serves a place of the tenant.
+     *
+     * <p>The reconciler calls it hourly; one tenant's sweep failing is that
+     * tenant's, and the others are swept.
+     *
+     * @return how much was removed this round
+     */
+    public int retentionRound() {
+        int removed = 0;
+        for (String code : sweeps.keySet()) {
+            removed += retentionRound(code);
+        }
+        return removed;
+    }
+
+    /**
+     * The same for one tenant, which a caller waiting on one tenant's
+     * retention runs rather than sweeping every tenant here.
+     *
+     * @return how much was removed; nothing where the tenant keeps nothing by
+     *         retention
+     */
+    public int retentionRound(String code) {
+        cloud.jengu.dbo.policy.RetentionSweep sweep = sweeps.get(code);
+        if (sweep == null) {
+            return 0;
+        }
+        try {
+            return sweep.sweepOnce();
+        } catch (RuntimeException failed) {
+            LOG.warn("tenant {}: its retention sweep failed: {}", code, failed.toString());
+            return 0;
+        }
+    }
+
+    /**
      * One round of watching each tenant's own change feed for profiles that
      * arrived without this facade's knowledge.
      *
@@ -6923,13 +6974,18 @@ public final class TenantRuntimeManager implements AutoCloseable {
         runStores.put(spec.code(), engine);
         cloud.jengu.dbo.policy.PolicyObjectStore policyStore =
                 new cloud.jengu.dbo.policy.PolicyObjectStore(engine, policiesOf(spec));
-        if (!spec.policies().retention().isEmpty()) {
+        if (!spec.policies().retention().isEmpty() || !spec.policies().content().isEmpty()) {
             cloud.jengu.dbo.policy.RetentionSweep sweep = new cloud.jengu.dbo.policy.RetentionSweep(
                     db.dataSource(), domain, spec.policies(), policyStore,
                     // an audit entry per checkpoint would record the runtime
                     // interacting with its own bookkeeping, doubling the writes
                     // to say nothing about a caller
-                    new cloud.jengu.dbo.work.Runs(engine));
+                    new cloud.jengu.dbo.work.Runs(engine),
+                    // A place keeps content for its own window, not its tenant's.
+                    places.contains(spec.code()),
+                    // Made just above where the tenant is behind the membrane.
+                    vaults.get(spec.code()) == null ? null
+                            : vaults.get(spec.code())::destroyWindowsBefore);
             sweep.sweepOnce();
             sweeps.put(spec.code(), sweep);
         }
@@ -7685,7 +7741,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
                     shapesRound();
                     if (System.currentTimeMillis() - lastSweepMillis > 3_600_000) {
                         lastSweepMillis = System.currentTimeMillis();
-                        sweeps.values().forEach(cloud.jengu.dbo.policy.RetentionSweep::sweepOnce);
+                        retentionRound();
                         // The runs steps started themselves, under each
                         // step's own retention, one tenant's failure not
                         // another's.

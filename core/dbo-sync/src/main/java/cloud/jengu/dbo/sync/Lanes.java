@@ -67,6 +67,11 @@ public final class Lanes {
 
     /** The audit type, which travels but is never written like other content. */
     private static final String AUDIT = "AuditEntry";
+    /** What content kept whole travels as: not a record, and applied as none. */
+    public static final String CONTENT = "dbo.content";
+    /** A tenant's content, as a record that points at it names it. */
+    private static final java.util.regex.Pattern POINTED_AT = java.util.regex.Pattern.compile(
+            "/blob/([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})");
 
     /** The run a copy is filed under in its placement: none, so revocation never takes it. */
     static final String COPY = "copy:";
@@ -195,6 +200,14 @@ public final class Lanes {
         public static Item copy(String typeName, String id, long version, Instant recordedAt,
                 byte[] payload) {
             return new Item(typeName, id, version, recordedAt, payload, false, List.of(), true);
+        }
+
+        /**
+         * Content kept whole, travelling with the run it goes home with: its
+         * media type, kind and bytes, under the key the place gave it.
+         */
+        public static Item content(String key, Instant put, byte[] payload, String run) {
+            return new Item(CONTENT, key, 1, put, payload, false, List.of(run), false);
         }
     }
 
@@ -346,6 +359,18 @@ public final class Lanes {
 
     private volatile cloud.jengu.dbo.core.face.ReferenceResolution references;
 
+    /**
+     * Where the tenant's content kept whole is: what a place hands home with
+     * its runs, and where the tenant keeps what a place handed. Without it a
+     * run goes home without its content and content arriving is refused.
+     */
+    public Lanes carryingContent(cloud.jengu.dbo.core.api.BlobStore content) {
+        this.content = content;
+        return this;
+    }
+
+    private volatile cloud.jengu.dbo.core.api.BlobStore content;
+
     /** Who is told of each record a place handed home that this side did not take. */
     public Lanes sayingWhatItDidNotTake(Untaken untaken) {
         this.untaken = untaken;
@@ -430,10 +455,27 @@ public final class Lanes {
         // What a travelling run produced travels with it: individually while
         // the run still names every version; past the cap the receiver holds
         // the watermark in the run itself and asks by type from it.
+        // And the content a travelling run put, or a record it produced
+        // points at, each piece once, with the run it goes home with.
+        Map<String, String> carried = new LinkedHashMap<>();
         for (String key : travelling) {
             runs.byKey(key).ifPresent(run -> run.produced().versions().forEach(produced ->
-                    producedVersion(produced).ifPresent(items::add)));
+                    producedVersion(produced).ifPresent(copy -> {
+                        items.add(copy);
+                        if (!withInputs) {
+                            java.util.regex.Matcher pointed = POINTED_AT.matcher(
+                                    new String(copy.payload(), StandardCharsets.UTF_8));
+                            while (pointed.find()) {
+                                carried.putIfAbsent(pointed.group(1), key);
+                            }
+                        }
+                    })));
+            if (!withInputs && content != null) {
+                content.keysPutBy(key).forEach(blob -> carried.putIfAbsent(blob, key));
+            }
         }
+        List<Item> contentItems = new ArrayList<>();
+        carried.forEach((blob, run) -> carriedContent(blob, run).ifPresent(contentItems::add));
         String contentCursor = lane.contentCursor();
         if (!types.isEmpty()) {
             FeedChunk<FeedItem> content = contentFeed.read(lane.contentCursor(), limit);
@@ -459,6 +501,7 @@ public final class Lanes {
                     item.version(), item.recordedAt(), askedAsWhatTheyAre(item.payload(), handed))
                     : item);
         }
+        items.addAll(0, contentItems);
         items.addAll(work);
         // Data, then work, then the account of what was done — an entry names
         // the run it was part of, and a trail arriving before the run it joins
@@ -666,6 +709,65 @@ public final class Lanes {
         }
     }
 
+    /**
+     * One piece of content as it goes home, read as the machinery's own for
+     * the run it goes with: handing it on discloses it to nobody here.
+     *
+     * <p>Content sealed to a person stays: that person's key is this place's,
+     * and nobody at home could open what it sealed. Content gone — erased, or
+     * past its window — has nothing left to hand.
+     */
+    private Optional<Item> carriedContent(String blob, String run) {
+        if (content == null) {
+            return Optional.empty();
+        }
+        Optional<cloud.jengu.dbo.core.api.BlobStore.Blob> held;
+        try (cloud.jengu.dbo.core.api.Caller.InRun reading =
+                     cloud.jengu.dbo.core.api.Caller.writingFor(run)) {
+            held = content.get(blob);
+        } catch (cloud.jengu.dbo.core.api.BlobStore.ErasedException
+                 | cloud.jengu.dbo.core.api.BlobStore.WindowPassedException gone) {
+            return Optional.empty();
+        }
+        if (held.isEmpty() || held.get().person() != null) {
+            return Optional.empty();
+        }
+        Map<String, Object> carried = new LinkedHashMap<>();
+        carried.put("media", held.get().media());
+        if (held.get().kind() != null) {
+            carried.put("kind", held.get().kind());
+        }
+        carried.put("content", java.util.Base64.getEncoder().encodeToString(
+                held.get().content()));
+        return Optional.of(Item.content(blob, held.get().written() == null ? Instant.now()
+                        : held.get().written(),
+                cloud.jengu.dbo.core.wire.RecordWire.write(carried)
+                        .getBytes(StandardCharsets.UTF_8), run));
+    }
+
+    /**
+     * Content a place handed home, kept under the key it gave it and the run
+     * it came with, filed under that place.
+     */
+    private boolean arriveContent(String from, Item item) {
+        if (content == null) {
+            throw new IllegalStateException("this side keeps no content, so what a place "
+                    + "handed of it cannot be kept");
+        }
+        Object carried = cloud.jengu.dbo.core.wire.RecordWire.read(
+                new String(item.payload(), StandardCharsets.UTF_8));
+        String run = item.forRuns().isEmpty() ? null
+                : WorkModel.mirroredKey(from, item.forRuns().get(0));
+        try (cloud.jengu.dbo.core.api.Caller.InRun keeping =
+                     cloud.jengu.dbo.core.api.Caller.writingFor(run)) {
+            return content.arrive(item.id(),
+                    java.util.Base64.getDecoder().decode(Json.str(carried, "content")),
+                    optional(carried, "media"),
+                    optional(carried, "kind"),
+                    item.recordedAt());
+        }
+    }
+
     private Applied apply(String peer, Batch batch, Home home) {
         Lane lane = adopt(peer, batch);
         if (!lane.epoch().equals(batch.epoch())) {
@@ -682,7 +784,9 @@ public final class Lanes {
         for (Item item : batch.items()) {
             try {
                 boolean written;
-                if (AUDIT.equals(item.typeName())) {
+                if (CONTENT.equals(item.typeName())) {
+                    written = arriveContent(batch.from(), item);
+                } else if (AUDIT.equals(item.typeName())) {
                     // The trail goes through the one admitted path, and
                     // is never placed: what arrived for a piece of work leaves
                     // when that work closes, and an account of what happened
@@ -693,7 +797,8 @@ public final class Lanes {
                     written = item.copy() ? copy(batch.from(), item, home)
                             : item.work() ? mirror(batch.from(), item) : replicate(item);
                 }
-                if (!item.work() && !item.copy() && !AUDIT.equals(item.typeName())) {
+                if (!item.work() && !item.copy() && !AUDIT.equals(item.typeName())
+                        && !CONTENT.equals(item.typeName())) {
                     // Note what brought it, so what arrives with work can leave
                     // with it. Without this the site cannot tell a copy
                     // from something of its own, and keeps everything.

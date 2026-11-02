@@ -43,14 +43,50 @@ public final class RetentionSweep {
     private final TenantPolicies policies;
     private final PolicyObjectStore auditSink;
     private final Runs runs;
+    private final boolean atAPlace;
+    private final Windows windows;
 
+    /** Where the keys content of a kind is sealed under are kept, one per day. */
+    @FunctionalInterface
+    public interface Windows {
+
+        /**
+         * Destroys the kind's keys for every day before the one given.
+         *
+         * @return the days whose keys were destroyed now
+         */
+        List<java.time.LocalDate> destroyBefore(String kind, java.time.LocalDate day);
+    }
+
+    /** A sweep on the node the tenant's own records are kept on. */
     public RetentionSweep(DataSource dataSource, String domain, TenantPolicies policies,
             PolicyObjectStore auditSink, Runs runs) {
+        this(dataSource, domain, policies, auditSink, runs, false);
+    }
+
+    /**
+     * @param atAPlace whether this node serves a place of the tenant, which keeps
+     *                 content for the kind's window at a place rather than at the
+     *                 tenant
+     */
+    public RetentionSweep(DataSource dataSource, String domain, TenantPolicies policies,
+            PolicyObjectStore auditSink, Runs runs, boolean atAPlace) {
+        this(dataSource, domain, policies, auditSink, runs, atAPlace, null);
+    }
+
+    /**
+     * @param windows where the tenant keeps the keys content of its kinds is sealed
+     *                to its window under, or null for a tenant that holds no keys
+     */
+    public RetentionSweep(DataSource dataSource, String domain, TenantPolicies policies,
+            PolicyObjectStore auditSink, Runs runs, boolean atAPlace, Windows windows) {
+        this.windows = windows;
         this.ds = dataSource;
         this.domain = domain;
         this.policies = policies;
         this.auditSink = auditSink;
         this.runs = runs;
+        this.atAPlace = atAPlace;
     }
 
     /**
@@ -82,11 +118,70 @@ public final class RetentionSweep {
                     pass.item(rule.getKey(), Failure.of(e), String.valueOf(e.getMessage()));
                 }
             }
+            for (Map.Entry<String, TenantPolicies.ContentKind> kind
+                    : policies.content().entrySet()) {
+                try {
+                    removed += sweepContent(kind.getKey(), kind.getValue().keep(atAPlace));
+                    if (kind.getValue().sealedToWindow() && windows != null) {
+                        destroyWindows(kind.getKey(), kind.getValue().keep(atAPlace));
+                    }
+                } catch (RuntimeException e) {
+                    pass.item("content " + kind.getKey(), Failure.of(e),
+                            String.valueOf(e.getMessage()));
+                }
+            }
         } finally {
             cloud.jengu.dbo.core.api.Caller.clearRun();
         }
         pass.counted("removed", removed).done();
         return removed;
+    }
+
+    /**
+     * Content of a kind put longer ago than its window, removed and audited
+     * by key and rule as a record is — never with what it held.
+     */
+    private int sweepContent(String kind, java.time.Duration keep) {
+        List<String> expired = new ArrayList<>();
+        try (Connection c = ds.getConnection();
+             PreparedStatement ps = c.prepareStatement("""
+                     DELETE FROM state.blob WHERE key IN (
+                       SELECT key FROM state.blob WHERE kind = ? AND written_at < ? LIMIT 500)
+                     RETURNING key::text""")) {
+            ps.setString(1, kind);
+            ps.setTimestamp(2, java.sql.Timestamp.from(Instant.now().minus(keep)));
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    expired.add(rs.getString(1));
+                }
+            }
+        } catch (SQLException e) {
+            throw new IllegalStateException("retention sweep failed for content '" + kind + "'",
+                    e);
+        }
+        for (String key : expired) {
+            auditSink.record("retention-remove", "Binary", key,
+                    "kind=" + kind + " keep=" + keep + (atAPlace ? " at a place" : ""));
+        }
+        return expired.size();
+    }
+
+    /**
+     * The kind's keys for every day whose window has passed for the last of
+     * its content, destroyed and audited by kind and day.
+     *
+     * <p>After the rows, as the backstop rather than the removal: content put
+     * on a day has gone by the time its day's key is, and what the key's
+     * destruction reaches is every copy no sweep can — a backup taken last
+     * month, a replica, an archive somebody kept.
+     */
+    private void destroyWindows(String kind, java.time.Duration keep) {
+        java.time.LocalDate passed = java.time.LocalDate.ofInstant(Instant.now().minus(keep),
+                java.time.ZoneOffset.UTC);
+        for (java.time.LocalDate day : windows.destroyBefore(kind, passed)) {
+            auditSink.record("retention-key-destroyed", "Binary", kind + "/" + day,
+                    "kind=" + kind + " keep=" + keep + (atAPlace ? " at a place" : ""));
+        }
     }
 
     private int sweepType(String typeName, Instant ceiling, TenantPolicies.Retention rule) {

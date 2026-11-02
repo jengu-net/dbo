@@ -30,13 +30,32 @@ public interface BlobStore {
      * @param key      what this store calls it, chosen by the store
      * @param media    the media type as the writer stated it, never inferred
      * @param content  the bytes, exactly as they were written
+     * @param person   who it is sealed to, or null
+     * @param kind     the tenant's kind it was put under, or null for content put
+     *                 under none
+     * @param window   the day whose key of its kind it is sealed under, or null for
+     *                 content not sealed to a window
+     * @param written  when it was put, where it was first put; null where unknown
      */
-    record Blob(String key, String media, byte[] content, String person) {
+    record Blob(String key, String media, byte[] content, String person, String kind,
+            java.time.LocalDate window, java.time.Instant written) {
 
-        public Blob(String key, String media, byte[] content) {
-            this(key, media, content, null);
+        public Blob(String key, String media, byte[] content, String person, String kind,
+                java.time.LocalDate window) {
+            this(key, media, content, person, kind, window, null);
         }
 
+        public Blob(String key, String media, byte[] content, String person, String kind) {
+            this(key, media, content, person, kind, null, null);
+        }
+
+        public Blob(String key, String media, byte[] content, String person) {
+            this(key, media, content, person, null, null, null);
+        }
+
+        public Blob(String key, String media, byte[] content) {
+            this(key, media, content, null, null, null, null);
+        }
 
         public int size() {
             return content.length;
@@ -72,6 +91,84 @@ public interface BlobStore {
                 + "the clear while whoever wrote it believed otherwise");
     }
 
+    /**
+     * The same, put under one of the tenant's kinds of content, which says
+     * how long it is kept.
+     *
+     * <p>Refused by a store that keeps no kinds, for the reason a store that
+     * cannot seal refuses a person: content its writer believes will go when
+     * its window passes would otherwise be kept for ever.
+     *
+     * @param person who the content is about, or null
+     * @param kind   the kind, or null for content put under none
+     */
+    default String put(byte[] content, String media, String person, String kind) {
+        if (kind != null) {
+            throw new UnsupportedOperationException("this store keeps no kinds of content, so "
+                    + "content put under '" + kind + "' would outlive the window its writer "
+                    + "put it under");
+        }
+        return person == null ? put(content, media) : put(content, media, person);
+    }
+
+    /**
+     * Keeps content already sealed under the key of a kind for a day, and the
+     * day, so whoever can open it knows which key to ask for.
+     *
+     * <p>For a store that seals, handing what it sealed to the store beneath
+     * it; nothing else puts content this way.
+     */
+    default String putSealed(byte[] sealed, String media, String kind,
+            java.time.LocalDate window) {
+        throw new UnsupportedOperationException("this store keeps nothing sealed to a window");
+    }
+
+    /**
+     * The keys of the content put under a run: put while that run was in
+     * progress on the putting thread, or naming it.
+     */
+    default java.util.List<String> keysPutBy(String run) {
+        return java.util.List.of();
+    }
+
+    /**
+     * The keys of the content sealed to a person, so asking what is held
+     * about them answers with it too.
+     *
+     * @param person who it is sealed to, as the vault names them
+     */
+    default java.util.List<String> keysSealedTo(String person) {
+        return java.util.List.of();
+    }
+
+    /**
+     * Keeps content handed from another place of the tenant, under the key
+     * that place gave it, sealed as content of its kind put here would be.
+     *
+     * <p>The one other case beside {@link #restore} where a key arrives with
+     * content: the place chose it, and a record the place's run produced
+     * points at it by that key, so another would leave it pointing at
+     * nothing.
+     *
+     * @param written when it was put at the place, which its window counts from
+     * @return whether it is kept now: false where this key already holds it, or
+     *         where its kind's window has passed here already
+     * @throws IllegalStateException where this key holds different content
+     */
+    default boolean arrive(String key, byte[] content, String media, String kind,
+            java.time.Instant written) {
+        throw new UnsupportedOperationException("this store keeps nothing handed from a place");
+    }
+
+    /**
+     * The same for content already sealed to its window, for a store that
+     * seals handing what it sealed to the store beneath it.
+     */
+    default boolean arriveSealed(String key, byte[] sealed, String media, String kind,
+            java.time.LocalDate window, java.time.Instant written) {
+        throw new UnsupportedOperationException("this store keeps nothing sealed to a window");
+    }
+
     /** Whether content named for a person is sealed to them here. */
     default boolean seals() {
         return false;
@@ -101,6 +198,50 @@ public interface BlobStore {
     }
 
     /**
+     * Content that was here and whose kind's window has passed, so the key it
+     * was sealed under is destroyed.
+     *
+     * <p>Told apart from erasure as well as from absence: it went because the
+     * tenant said how long it keeps such content, not because somebody asked.
+     */
+    class WindowPassedException extends RuntimeException {
+
+        private final String key;
+
+        public WindowPassedException(String key) {
+            super("the window this content was kept for has passed, so it cannot be read: "
+                    + key);
+            this.key = key;
+        }
+
+        public String key() {
+            return key;
+        }
+    }
+
+    /**
+     * Content of a kind read only for a stated purpose, asked for without one.
+     *
+     * <p>Refused rather than answered: the content is there, and the reader
+     * may not read it this way — not without saying why.
+     */
+    class PurposeRequiredException extends RuntimeException {
+
+        private final String kind;
+
+        public PurposeRequiredException(String kind) {
+            super("content of the kind '" + kind + "' is read for a stated purpose: say why, as "
+                    + "a PurposeOfUse code such as TREAT, in the Purpose-Of-Use header or on "
+                    + "the token");
+            this.kind = kind;
+        }
+
+        public String kind() {
+            return kind;
+        }
+    }
+
+    /**
      * Puts content back under the key it already had.
      *
      * <p>The exception to the rule above, and it does not break it: a key
@@ -115,6 +256,18 @@ public interface BlobStore {
      * content uses {@link #put} and is given a key.
      */
     void restore(String key, byte[] content, String media);
+
+    /**
+     * The same, for content an archive says was put under a kind: restored
+     * under that kind, so its window still passes.
+     */
+    default void restore(String key, byte[] content, String media, String kind) {
+        if (kind != null) {
+            throw new UnsupportedOperationException("this store keeps no kinds of content, so "
+                    + "content restored under '" + kind + "' would outlive its window");
+        }
+        restore(key, content, media);
+    }
 
     /** The content under this key, or nothing — never a different blob. */
     Optional<Blob> get(String key);

@@ -17,6 +17,7 @@ import cloud.jengu.dbo.runner.transport.Place;
 import cloud.jengu.dbo.tenant.FleetRegister;
 import cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner;
 import cloud.jengu.dbo.tenant.TenantRuntimeManager;
+import cloud.jengu.dbo.tenant.TenantSpec;
 import cloud.jengu.dbo.tenant.TenantState;
 import cloud.jengu.dbo.tenant.api.RegisterStanding;
 import cloud.jengu.dbo.core.process.StepDeclaration;
@@ -88,6 +89,7 @@ class ASecondPlaceComesUpFromItsOriginIT {
     private static final String CLINIC_DECLARATION = """
             {"code":"%s","face":"r4","audit":{"level":"writes"},
              "configuration":{"ref":"main"},
+             "content":{"analyser-message":{"keepAtPlace":"P1D","keepAtTenant":"P30D"}},
              "dependencies":[{"name":"%s","face":true,
                               "types":["StructureDefinition","SearchParameter","ValueSet","CodeSystem"]},
                              {"name":"%s","types":["Organization","CodeSystem"]}],
@@ -1065,6 +1067,179 @@ class ASecondPlaceComesUpFromItsOriginIT {
         assertEquals(2, told.size(), "an application that stopped listening was told");
         assertTrue(standing.now().permits(UPKEEP), "reading on the spot did not see the "
                 + "authorisation: " + standing.now());
+    }
+
+    @Test
+    @Order(25)
+    @DisplayName("the site keeps an analyser's message under the kind its clinic declares, and "
+            + "refuses one put under a kind the clinic does not declare or under none, saying "
+            + "which kinds there are")
+    @Proving(DboPromises.POL_CONTENT_IS_OF_A_DECLARED_KIND)
+    void contentIsPutUnderADeclaredKind() throws Exception {
+        HttpResponse<String> kept = putContent(site, "?kind=analyser-message");
+        assertEquals(201, kept.statusCode(), kept.body());
+        assertTrue(kept.body().contains("\"kind\":\"analyser-message\""), kept.body());
+
+        for (String undeclared : List.of("?kind=nonesuch", "")) {
+            HttpResponse<String> refused = putContent(site, undeclared);
+            assertEquals(400, refused.statusCode(), undeclared + ": " + refused.body());
+            assertTrue(refused.body().contains("analyser-message"),
+                    "the refusal does not say which kinds there are: " + refused.body());
+        }
+    }
+
+    @Test
+    @Order(26)
+    @DisplayName("the site lets an analyser's message go when a place's window passes, and the "
+            + "cloud keeps one as old for the tenant's")
+    @Proving(DboPromises.POL_CONTENT_IS_OF_A_DECLARED_KIND)
+    void eachPlaceKeepsContentForItsOwnWindow() throws Exception {
+        String atTheSite = Extracted.field(putContent(site, "?kind=analyser-message").body(),
+                "key");
+        String atHome = Extracted.field(putContent(cloud, "?kind=analyser-message").body(),
+                "key");
+        backdate(siteDatabases.provision(TenantSpec.parse(HANDING_DECLARATION)).dataSource(),
+                atTheSite);
+        backdate(cloudDatabases.provision(TenantSpec.parse(CLINIC_DECLARATION)).dataSource(),
+                atHome);
+
+        site.retentionRound();
+        cloud.retentionRound();
+        assertEquals(404, readContent(site, atTheSite),
+                "the site kept a message three days old past a place's window of one");
+        assertEquals(200, readContent(cloud, atHome),
+                "the cloud let a message three days old go inside the tenant's window of thirty");
+    }
+
+    @Test
+    @Order(27)
+    @DisplayName("an analyser's message a run on the site put, and one a record that run wrote "
+            + "points at, reach the cloud with the run, under the keys the site gave them and "
+            + "once; a message put outside any run stays on the site")
+    @Proving(DboPromises.SYNC_CONTENT_TRAVELS_HOME_WITH_ITS_RUN)
+    void contentGoesHomeWithItsRun() throws Exception {
+        String put = "MSH|^~\\&|ANALYSER|put-by-the-run";
+        String pointed = "MSH|^~\\&|ANALYSER|pointed-at";
+        String left = "MSH|^~\\&|ANALYSER|left-on-the-site";
+        Run run = filledOnTheSite("content-goes-home");
+        String byTheRun = Extracted.field(putContent(site,
+                "?kind=analyser-message&run=" + run.key(), put).body(), "key");
+        String pointedAt = Extracted.field(putContent(site, "?kind=analyser-message", pointed)
+                .body(), "key");
+        String leftHere = Extracted.field(putContent(site, "?kind=analyser-message", left)
+                .body(), "key");
+        assertEquals(400, putContent(site, "?kind=analyser-message&run=nonesuch/none", put)
+                .statusCode(), "content was put under a run the site never performed");
+
+        Run ended = committedOnTheSite(run, Outcome.Write.create("""
+                {"resourceType":"Observation","status":"final","code":{"text":"content-goes-home"},
+                 "note":[{"text":"the analyser's message: %s/blob/%s"}]}"""
+                .formatted(base(site, CLINIC), pointedAt)));
+        assertEquals(null, ended.refused(), "the site refused its own result: " + ended);
+        site.syncRound();
+
+        assertEquals(put, readContentText(cloud, byTheRun),
+                "what the site's run put did not reach the cloud as it was");
+        assertEquals(pointed, readContentText(cloud, pointedAt),
+                "what the site's record points at did not reach the cloud");
+        assertEquals(404, readContent(cloud, leftHere),
+                "what the site put outside any run reached the cloud");
+        String mirrored = "site" + Lanes.MIRROR_SEPARATOR + run.key();
+        assertEquals(List.of(byTheRun, pointedAt).stream().sorted().toList(),
+                cloud.runtime(CLINIC).orElseThrow().blobs().keysPutBy(mirrored).stream()
+                        .sorted().toList(),
+                "the content is not filed under the site's run at the cloud");
+
+        site.syncRound();
+        assertEquals(2, cloud.runtime(CLINIC).orElseThrow().blobs().keysPutBy(mirrored).size(),
+                "the content arrived again");
+    }
+
+    @Test
+    @Order(28)
+    @DisplayName("an analyser's message a run on the site put while it was cut off reaches the "
+            + "cloud once the site is back")
+    @Proving(DboPromises.SYNC_CONTENT_TRAVELS_HOME_WITH_ITS_RUN)
+    void contentWaitsWhileCutOff() throws Exception {
+        site.readsItsOriginThrough(CLINIC, null);
+        Run run = filledOnTheSite("content-cut-off");
+        String key = Extracted.field(putContent(site,
+                "?kind=analyser-message&run=" + run.key(), "MSH|^~\\&|ANALYSER|cut-off")
+                .body(), "key");
+        assertEquals(null, committedOnTheSite(run, Outcome.Write.create("""
+                {"resourceType":"Observation","status":"final","code":{"text":"content-cut-off"}}""")
+        ).refused());
+        site.syncRound();
+        assertEquals(404, readContent(cloud, key), "the site handed content while cut off");
+
+        site.readsItsOriginThrough(CLINIC, connected());
+        site.syncRound();
+        site.syncRound();
+        assertEquals("MSH|^~\\&|ANALYSER|cut-off", readContentText(cloud, key),
+                "content put while cut off did not arrive once the site was back");
+    }
+
+    /** A run of the site's own step, filled on the site and not yet taken. */
+    private static Run filledOnTheSite(String found) {
+        return new Runs(site.runtime(CLINIC).orElseThrow().engine()).filling(
+                StepDeclaration.of(RECORD, "1", "r4").taking("specimen", "Observation"),
+                RunKind.PIPELINE, found,
+                java.util.Map.of("specimen", RunSlot.given(
+                        "{\"resourceType\":\"Observation\",\"status\":\"registered\","
+                                + "\"code\":{\"text\":\"specimen\"}}")));
+    }
+
+    /** That run, taken by the site's analyser and ended with the writes given. */
+    private static Run committedOnTheSite(Run run, Outcome.Write... writes) {
+        Executor analyser = new Executor("analyser", "1", "example.site", Scope.BASELINE);
+        Lane analysing = site.fleetLane(CLINIC, RECORD, analyser).orElseThrow();
+        analysing.declare(new Declarations.Declared("jaam.lab", "record",
+                analyser.name(), analyser.version(), analyser.provider(), analyser.scope(),
+                analyser.name()));
+        Run held = analysing.claim(run, java.time.Duration.ofMinutes(5)).orElseThrow();
+        return analysing.committed(held, null, List.of(writes));
+    }
+
+    private static String readContentText(TenantRuntimeManager node, String key)
+            throws Exception {
+        HttpResponse<String> read = http.send(HttpRequest.newBuilder(
+                        URI.create(base(node, CLINIC) + "/blob/" + key))
+                        .header("Authorization", "Bearer " + writer(node, CLINIC)).GET().build(),
+                HttpResponse.BodyHandlers.ofString());
+        assertEquals(200, read.statusCode(), key + ": " + read.body());
+        return read.body();
+    }
+
+    /** An analyser's message the clinic could not take, put as it arrived. */
+    private static HttpResponse<String> putContent(TenantRuntimeManager node, String query)
+            throws Exception {
+        return putContent(node, query, "MSH|^~\\&|ANALYSER|garbled");
+    }
+
+    private static HttpResponse<String> putContent(TenantRuntimeManager node, String query,
+            String message) throws Exception {
+        return http.send(HttpRequest.newBuilder(URI.create(base(node, CLINIC) + "/blob" + query))
+                        .header("Content-Type", "text/plain")
+                        .header("Authorization", "Bearer " + writer(node, CLINIC))
+                        .POST(HttpRequest.BodyPublishers.ofString(message))
+                        .build(),
+                HttpResponse.BodyHandlers.ofString());
+    }
+
+    private static int readContent(TenantRuntimeManager node, String key) throws Exception {
+        return http.send(HttpRequest.newBuilder(URI.create(base(node, CLINIC) + "/blob/" + key))
+                        .header("Authorization", "Bearer " + writer(node, CLINIC)).GET().build(),
+                HttpResponse.BodyHandlers.discarding()).statusCode();
+    }
+
+    /** Content put three days ago, as far as its node's retention can tell. */
+    private static void backdate(javax.sql.DataSource tenant, String key) throws Exception {
+        try (java.sql.Connection c = tenant.getConnection();
+             java.sql.PreparedStatement ps = c.prepareStatement("UPDATE state.blob SET "
+                     + "written_at = now() - interval '3 days' WHERE key = ?::uuid")) {
+            ps.setString(1, key);
+            assertEquals(1, ps.executeUpdate(), "no content to backdate under " + key);
+        }
     }
 
     /** Who runs the deployment, on both nodes alike, and the steps it runs for every tenant. */

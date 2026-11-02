@@ -186,6 +186,7 @@ public final class TenantImport {
         long skipped = 0;
         Map<String, byte[]> carried = new LinkedHashMap<>();
         Map<String, String> media = new LinkedHashMap<>();
+        Map<String, String> kinds = new LinkedHashMap<>();
         try (ZipInputStream zip = new ZipInputStream(plain)) {
             ZipEntry entry;
             while ((entry = zip.getNextEntry()) != null) {
@@ -223,6 +224,16 @@ public final class TenantImport {
                         int space = line.indexOf(' ');
                         if (space > 0) {
                             media.put(line.substring(0, space), line.substring(space + 1).trim());
+                        }
+                    }
+                    continue;
+                }
+                if (entry.getName().equals("blobs/kinds.txt")) {
+                    for (String line : new String(zip.readAllBytes(), StandardCharsets.UTF_8)
+                            .split("\n")) {
+                        int space = line.indexOf(' ');
+                        if (space > 0) {
+                            kinds.put(line.substring(0, space), line.substring(space + 1).trim());
                         }
                     }
                     continue;
@@ -318,7 +329,8 @@ public final class TenantImport {
                 // every record pointing at a scan would arrive pointing at
                 // nothing.
                 blobs.restore(one.getKey(), one.getValue(),
-                        media.getOrDefault(one.getKey(), "application/octet-stream"));
+                        media.getOrDefault(one.getKey(), "application/octet-stream"),
+                        kinds.get(one.getKey()));
             }
         }
         return new PortableResult(imported, skipped);
@@ -618,7 +630,8 @@ public final class TenantImport {
 
     private static String qualifiedTable(java.util.List<String> domains, String archiveName) {
         if (archiveName.equals("pdi.person") || archiveName.equals("pdi.identifier")
-                || archiveName.equals("pdi.shred_ledger")) {
+                || archiveName.equals("pdi.shred_ledger")
+                || archiveName.equals("pdi.window_key")) {
             return archiveName;
         }
         // The tenant's configuration repository: its own schema, its tables

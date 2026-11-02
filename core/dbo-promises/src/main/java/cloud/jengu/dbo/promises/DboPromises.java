@@ -165,6 +165,12 @@ public enum DboPromises implements Promise {
     PDI_RIGHTS_AS_OPERATIONS("Access, portability and restriction are standard machinery "
             + "operations over the vault join, not per-request projects."),
 
+    PDI_WHAT_IS_HELD_ABOUT_A_PERSON_INCLUDES_THEIR_CONTENT("Asking for what is held about a "
+            + "person answers with the content the tenant holds sealed to them beside their "
+            + "records — each piece whole, under its key, media type and kind — and with "
+            + "nobody else's. An answer that was not given the tenant's content says nothing "
+            + "about it, rather than that there is none."),
+
     PDI_EXACT_RESOLUTION("An exact, purpose-stated lookup on a vault-indexed value — a "
             + "claimed identifier (system|value) or an indexed contact point — resolves "
             + "through the vault to the records holding it, served under the caller's "
@@ -2256,6 +2262,32 @@ public enum DboPromises implements Promise {
             "A durable scheduled sweep executes removal as the one sanctioned mutation "
             + "of history, and every removal is audited without retaining the removed "
             + "data."),
+    POL_CONTENT_IS_OF_A_DECLARED_KIND(
+            "A tenant declares the kinds of content it holds whole, each with how long a "
+            + "place of the tenant keeps it and how long the tenant does, and content is put "
+            + "under one of them — over the wire and in-process alike. A kind the tenant does "
+            + "not declare is refused by name, saying which it does; once a tenant declares "
+            + "any, content put under none is refused the same way, so nothing it holds is "
+            + "kept for ever beside content that goes. When its window passes the content is "
+            + "removed, each removal audited by key and kind without what it held: a place "
+            + "removes it at a place's window, the tenant at its own. An archive carries each "
+            + "piece's kind, so content restored elsewhere goes when it would have."),
+    POL_CONTENT_IS_SEALED_TO_ITS_WINDOW(
+            "Content of a kind declared sealed to its window, put naming no person, is held "
+            + "under a key of the tenant's for that kind and the day it was put, wrapped as "
+            + "its people's keys are, so what is at rest, in a backup or in a copy is "
+            + "ciphertext and reads back as it was sent. Once the kind's window has passed for "
+            + "the whole of a day, the retention sweep destroys that day's key and says so on "
+            + "the trail by kind and day, and any copy still held under it answers that its "
+            + "window passed rather than opening — as erasure ends a person's content. Only a "
+            + "tenant behind the membrane holds keys, so only one may declare such a kind."),
+    POL_CONTENT_IS_READ_FOR_A_PURPOSE(
+            "Reading content of a kind is opening it, so each read — over the wire or "
+            + "in-process — is an access entry on the tenant's trail about that content, "
+            + "naming who read it, its kind and the purpose stated, whatever the tenant's audit "
+            + "level. A kind may ask for a purpose: a reader stating none, in the "
+            + "Purpose-Of-Use header or on the token, is refused as an identifying read without "
+            + "a reason is, before anything is returned or recorded."),
     POL_POLICY_REPLAY_ON_RESTORE(
             "Before a restored tenant serves, the machinery re-applies the shred ledger "
             + "and the retention sweep — an archive cannot resurrect what policy required "
@@ -3097,6 +3129,16 @@ public enum DboPromises implements Promise {
             + "did not take is on the tenant's trail as the site's, about the record it was "
             + "for."),
 
+    SYNC_CONTENT_TRAVELS_HOME_WITH_ITS_RUN(
+            "Content a place's run put — named by its writer at the content door or "
+            + "in-process — and content a record that run produced points at, reach the tenant "
+            + "with that run in the place's sync round: under the keys the place gave them, so "
+            + "what points at them still does, filed under the place's run as the tenant mirrors "
+            + "it, sealed there as content of its kind put there would be, and each once. They "
+            + "travel as the run's records do, over the lane the place holds and on its "
+            + "credential; while the link is down they wait on the place, and content put "
+            + "outside any run stays there. Content sealed to a person stays on the place, whose "
+            + "key it is."),
     SYNC_A_PLACE_HANDS_ITS_WORK_TO_ITS_TENANT(
             "A place's runs, and what each produced, reach its tenant by the node itself: up "
             + "the lane the place already holds, in its sync round, with no host and no "

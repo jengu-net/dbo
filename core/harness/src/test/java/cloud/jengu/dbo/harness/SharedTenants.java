@@ -125,13 +125,21 @@ public final class SharedTenants {
          * not a detail two tenants can split the difference on — a type
          * declares one identity class — so the family of classes asking about
          * a person behind the membrane gets its own.
+         *
+         * <p>It keeps a device's messages sealed to their window and read only
+         * for a purpose — sealing needs a tenant holding keys — and its log in
+         * the clear, so every put of content here names one of the two.
          */
         R4_PDI_PERSON("sharedr4pdiperson", """
                 [{"name":"Person","identity":"identifier","systems":["%s"],
                   "handling":"operational"},
                  {"name":"Patient","identity":"internal","handling":"operational"},
                  {"name":"Practitioner","identity":"internal","handling":"operational"}]"""
-                .formatted(EID), "r4", ",\"pdi\":true", "none"),
+                .formatted(EID), "r4", ",\"pdi\":true,\"content\":{\"device-message\":"
+                        + "{\"keepAtPlace\":\"P1D\",\"keepAtTenant\":\"P7D\","
+                        + "\"sealed\":\"window\",\"purpose\":\"required\"},"
+                        + "\"device-log\":{\"keepAtPlace\":\"P1D\",\"keepAtTenant\":\"P7D\"}}",
+                "none"),
 
         /**
          * r4 for converting stock from one shape to another.
@@ -719,6 +727,14 @@ public final class SharedTenants {
                 stream.pass(500);
             }
             return carried;
+        }
+
+        /**
+         * This tenant's retention sweep, once, rather than the runtime's round,
+         * which sweeps every tenant here.
+         */
+        public int retentionOnce() {
+            return MANAGER.retentionRound(code);
         }
 
         /** The other feed: what the face gave this tenant, apart from its records. */

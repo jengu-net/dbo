@@ -81,12 +81,20 @@ public final class PersonVault {
         if (previous == null) {
             return 0;
         }
+        // A window's key is wrapped as a person's is, so it moves with them.
+        return rewrap("SELECT id, wrapped_key FROM pdi.person WHERE wrapped_key IS NOT NULL",
+                "UPDATE pdi.person SET wrapped_key = ? WHERE id = ? AND wrapped_key = ?")
+                + rewrap("SELECT (kind, day)::text, wrapped_key FROM pdi.window_key"
+                                + " WHERE wrapped_key IS NOT NULL",
+                        "UPDATE pdi.window_key SET wrapped_key = ? WHERE (kind, day)::text = ?"
+                                + " AND wrapped_key = ?");
+    }
+
+    private int rewrap(String selecting, String updating) {
         int moved = 0;
         try (Connection c = ds.getConnection();
-             PreparedStatement select = c.prepareStatement(
-                     "SELECT id, wrapped_key FROM pdi.person WHERE wrapped_key IS NOT NULL");
-             PreparedStatement update = c.prepareStatement(
-                     "UPDATE pdi.person SET wrapped_key = ? WHERE id = ? AND wrapped_key = ?");
+             PreparedStatement select = c.prepareStatement(selecting);
+             PreparedStatement update = c.prepareStatement(updating);
              ResultSet rs = select.executeQuery()) {
             while (rs.next()) {
                 byte[] wrapped = rs.getBytes(2);
@@ -187,6 +195,13 @@ public final class PersonVault {
                         person_id uuid PRIMARY KEY,
                         key_fingerprint text NOT NULL,
                         shredded_at timestamptz NOT NULL DEFAULT now())""",
+                    """
+                    CREATE TABLE IF NOT EXISTS pdi.window_key (
+                        kind text NOT NULL,
+                        day date NOT NULL,
+                        wrapped_key bytea,
+                        destroyed_at timestamptz,
+                        PRIMARY KEY (kind, day))""",
             }) {
                 try (PreparedStatement ps = c.prepareStatement(ddl)) {
                     ps.execute();
@@ -230,6 +245,78 @@ public final class PersonVault {
         } catch (SQLException e) {
             throw new IllegalStateException("vault key access failed", e);
         }
+    }
+
+    /**
+     * The key content of a kind put on a day is sealed under — created on
+     * first use; empty once destroyed, or where none was ever made and none
+     * is to be.
+     */
+    public Optional<byte[]> windowKey(String kind, java.time.LocalDate day,
+            boolean createIfAbsent) {
+        try (Connection c = ds.getConnection()) {
+            try (PreparedStatement ps = c.prepareStatement(
+                    "SELECT wrapped_key FROM pdi.window_key WHERE kind = ? AND day = ?")) {
+                ps.setString(1, kind);
+                ps.setObject(2, day);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        byte[] wrapped = rs.getBytes(1);
+                        return wrapped == null ? Optional.empty()
+                                : Optional.of(unwrap(wrapped));
+                    }
+                }
+            }
+            if (!createIfAbsent) {
+                return Optional.empty();
+            }
+            byte[] key = new byte[32];
+            RANDOM.nextBytes(key);
+            try (PreparedStatement ps = c.prepareStatement("""
+                    INSERT INTO pdi.window_key (kind, day, wrapped_key) VALUES (?, ?, ?)
+                    ON CONFLICT (kind, day) DO NOTHING""")) {
+                ps.setString(1, kind);
+                ps.setObject(2, day);
+                ps.setBytes(3, wrap(key));
+                ps.executeUpdate();
+            }
+            // A concurrent writer may have made it first; theirs is the key.
+            return windowKey(kind, day, false);
+        } catch (SQLException e) {
+            throw new IllegalStateException("window key access failed", e);
+        }
+    }
+
+    /**
+     * Destroys the keys of a kind for every day before the one given, and
+     * with them every copy of what was sealed under them.
+     *
+     * <p>The row stays, keyless, as a person's does once shredded: a restore
+     * bringing an older key back is undone by the next sweep, and a reader
+     * finding content under a destroyed key is told its window passed rather
+     * than that it never existed.
+     *
+     * @return the days whose keys were destroyed now
+     */
+    public List<java.time.LocalDate> destroyWindowsBefore(String kind,
+            java.time.LocalDate day) {
+        List<java.time.LocalDate> destroyed = new java.util.ArrayList<>();
+        try (Connection c = ds.getConnection();
+             PreparedStatement ps = c.prepareStatement("""
+                     UPDATE pdi.window_key SET wrapped_key = NULL, destroyed_at = now()
+                     WHERE kind = ? AND day < ? AND wrapped_key IS NOT NULL
+                     RETURNING day""")) {
+            ps.setString(1, kind);
+            ps.setObject(2, day);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    destroyed.add(rs.getObject(1, java.time.LocalDate.class));
+                }
+            }
+        } catch (SQLException e) {
+            throw new IllegalStateException("destroying window keys failed", e);
+        }
+        return destroyed;
     }
 
     public boolean restricted(String personId) {

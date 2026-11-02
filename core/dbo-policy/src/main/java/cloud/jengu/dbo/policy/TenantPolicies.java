@@ -15,7 +15,70 @@ public record TenantPolicies(
         Map<String, Discipline> perTypeDiscipline,
         Map<String, Retention> retention,
         Map<String, String> organisationPaths,
-        Map<String, Audience> audiences) {
+        Map<String, Audience> audiences,
+        Map<String, ContentKind> content) {
+
+    /**
+     * A kind of content the tenant holds whole, and how long each place
+     * keeps it.
+     *
+     * <p><b>Two windows, because the two places keep it for different
+     * reasons.</b> A place keeps what it captured until somebody there could
+     * still be asked about it; the tenant keeps it for as long as it answers
+     * for it. One window would be either too long where the content was
+     * captured or too short where it is accounted for.
+     *
+     * <p>Its own declaration rather than the media type's: the media type is
+     * the writer's statement about the format, and the same bytes may be kept
+     * for a day or for years.
+     *
+     * <p><b>Sealed to its window</b>, where the kind says so: content of it
+     * that names no person is kept under a key of the tenant's for the kind
+     * and the day it was put, and destroying that key once the window has
+     * passed for the whole day ends every copy of it — a backup's, a
+     * replica's — as erasure ends a person's. Content whose person cannot be
+     * told is neither sealed to nobody nor kept plain.
+     *
+     * <p><b>Read for a purpose</b>, where the kind says so: a reader states
+     * why, as a PurposeOfUse code, or is refused. Every read of content of a
+     * kind is on the trail as an access entry whether or not it asks.
+     *
+     * @param keepAtPlace     how long a place of the tenant keeps it after it was put
+     * @param keepAtTenant    how long the tenant's origin keeps it after it was put
+     * @param sealedToWindow  whether content of it naming no person is sealed to its
+     *                        window
+     * @param purposeRequired whether reading it needs a stated purpose
+     */
+    public record ContentKind(Duration keepAtPlace, Duration keepAtTenant,
+            boolean sealedToWindow, boolean purposeRequired) {
+
+        /** A kind read without a stated purpose. */
+        public ContentKind(Duration keepAtPlace, Duration keepAtTenant, boolean sealedToWindow) {
+            this(keepAtPlace, keepAtTenant, sealedToWindow, false);
+        }
+
+        /** A kind kept plain where its writer names no person, read without a purpose. */
+        public ContentKind(Duration keepAtPlace, Duration keepAtTenant) {
+            this(keepAtPlace, keepAtTenant, false, false);
+        }
+
+        public ContentKind {
+            if (keepAtPlace == null || keepAtTenant == null) {
+                throw new IllegalArgumentException("a kind of content says how long a place "
+                        + "keeps it and how long the tenant does: keepAtPlace and keepAtTenant");
+            }
+            if (keepAtPlace.isNegative() || keepAtPlace.isZero() || keepAtTenant.isNegative()
+                    || keepAtTenant.isZero()) {
+                throw new IllegalArgumentException("content kept for no time at all is content "
+                        + "refused: a kind keeps it for longer than nothing");
+            }
+        }
+
+        /** How long this node keeps content of the kind. */
+        public Duration keep(boolean atAPlace) {
+            return atAPlace ? keepAtPlace : keepAtTenant;
+        }
+    }
 
     /**
      * What one named recipient receives.
@@ -45,6 +108,14 @@ public record TenantPolicies(
                                 + "declaration — leave it undeclared instead");
             }
         }
+    }
+
+    /** Compatibility shape: no kinds of content declared. */
+    public TenantPolicies(AuditLevel audit, Discipline writeDiscipline,
+            Map<String, Discipline> perTypeDiscipline, Map<String, Retention> retention,
+            Map<String, String> organisationPaths, Map<String, Audience> audiences) {
+        this(audit, writeDiscipline, perTypeDiscipline, retention, organisationPaths, audiences,
+                Map.of());
     }
 
     /**
@@ -84,6 +155,7 @@ public record TenantPolicies(
         retention = Map.copyOf(retention);
         organisationPaths = Map.copyOf(organisationPaths);
         audiences = Map.copyOf(audiences);
+        content = Map.copyOf(content);
     }
 
     /**
@@ -129,7 +201,7 @@ public record TenantPolicies(
         Map<String, Audience> widened = new LinkedHashMap<>(audiences);
         widened.put(name, audience);
         return new TenantPolicies(audit, writeDiscipline, perTypeDiscipline, retention,
-                organisationPaths, widened);
+                organisationPaths, widened, content);
     }
 
     /** The declaration for this audience, or null when nobody declared one. */
@@ -157,14 +229,17 @@ public record TenantPolicies(
     public String describe() {
         return "audit=" + audit.name().toLowerCase()
                 + "; writeDiscipline=" + writeDiscipline.name().toLowerCase().replace('_', '-')
-                + (retention.isEmpty() ? "" : "; retention=" + retention.size() + " type rule(s)");
+                + (retention.isEmpty() ? "" : "; retention=" + retention.size() + " type rule(s)")
+                + (content.isEmpty() ? "" : "; content=" + content.size() + " kind(s)");
     }
 
     /**
      * Parses the spec's policy blocks:
      * {@code "audit":{"level":"writes"}, "writeDiscipline":{"default":"append-only",
      * "perType":{"Task":"standard"}}, "retention":{"perType":{"Encounter":
-     * {"keepAtLeast":"P10Y","removeAfter":"P30Y"}}}} — all optional.
+     * {"keepAtLeast":"P10Y","removeAfter":"P30Y"}}}, "content":{"analyser-message":
+     * {"keepAtPlace":"P7D","keepAtTenant":"P90D","sealed":"window","purpose":"required"}}}
+     * — all optional.
      */
     @SuppressWarnings("unchecked")
     public static TenantPolicies parse(Object specRoot) {
@@ -221,9 +296,46 @@ public record TenantPolicies(
                         new Audience(types, revealsOf(String.valueOf(rule.get("reveals")))));
             });
         }
+        Map<String, ContentKind> content = new LinkedHashMap<>();
+        if (root.get("content") instanceof Map<?, ?> kinds) {
+            kinds.forEach((name, value) -> {
+                String kind = String.valueOf(name);
+                if (!KIND.matcher(kind).matches()) {
+                    throw new IllegalArgumentException("a kind of content is named in lower "
+                            + "case, letters, digits and hyphens: '" + kind + "' is not");
+                }
+                Map<String, Object> rule = value instanceof Map<?, ?> said
+                        ? (Map<String, Object>) said : Map.of();
+                Object sealed = rule.get("sealed");
+                if (sealed != null && !"window".equals(sealed)) {
+                    throw new IllegalArgumentException("content '" + kind + "' is sealed to "
+                            + "'window' or not at all; it says '" + sealed + "'");
+                }
+                Object purpose = rule.get("purpose");
+                if (purpose != null && !"required".equals(purpose)) {
+                    throw new IllegalArgumentException("content '" + kind + "' is read for a "
+                            + "purpose that is 'required' or for none; it says '" + purpose
+                            + "'");
+                }
+                try {
+                    content.put(kind, new ContentKind(
+                            rule.get("keepAtPlace") != null
+                                    ? period(String.valueOf(rule.get("keepAtPlace"))) : null,
+                            rule.get("keepAtTenant") != null
+                                    ? period(String.valueOf(rule.get("keepAtTenant"))) : null,
+                            sealed != null, purpose != null));
+                } catch (IllegalArgumentException wrong) {
+                    throw new IllegalArgumentException("content '" + kind + "': "
+                            + wrong.getMessage(), wrong);
+                }
+            });
+        }
         return new TenantPolicies(audit, discipline, perType, retention, organisationPaths,
-                audiences);
+                audiences, content);
     }
+
+    private static final java.util.regex.Pattern KIND =
+            java.util.regex.Pattern.compile("[a-z][a-z0-9-]*");
 
     /**
      * ISO-8601, time- or date-based: {@code PT1H}, {@code P30D}, {@code P10Y}.

@@ -53,19 +53,61 @@ public final class PgBlobStore implements BlobStore {
                   written_at  timestamptz NOT NULL DEFAULT now())""")) {
             ps.execute();
         }
+        // The kind says how long it is kept, so the sweep asks by kind and age.
+        try (PreparedStatement ps = c.prepareStatement(
+                "ALTER TABLE state.blob ADD COLUMN IF NOT EXISTS kind text")) {
+            ps.execute();
+        }
+        try (PreparedStatement ps = c.prepareStatement(
+                "ALTER TABLE state.blob ADD COLUMN IF NOT EXISTS sealed_window date")) {
+            ps.execute();
+        }
+        // The run it was put under, so a place hands it home with that run.
+        try (PreparedStatement ps = c.prepareStatement(
+                "ALTER TABLE state.blob ADD COLUMN IF NOT EXISTS run text")) {
+            ps.execute();
+        }
+        try (PreparedStatement ps = c.prepareStatement("CREATE INDEX IF NOT EXISTS blob_run"
+                + " ON state.blob (run) WHERE run IS NOT NULL")) {
+            ps.execute();
+        }
+        try (PreparedStatement ps = c.prepareStatement("CREATE INDEX IF NOT EXISTS blob_person"
+                + " ON state.blob (person) WHERE person IS NOT NULL")) {
+            ps.execute();
+        }
+        try (PreparedStatement ps = c.prepareStatement("CREATE INDEX IF NOT EXISTS blob_kind_age"
+                + " ON state.blob (kind, written_at) WHERE kind IS NOT NULL")) {
+            ps.execute();
+        }
+    }
+
+    @Override
+    public String put(byte[] content, String media, String person, String kind) {
+        return kept(content, media, person, kind, null);
+    }
+
+    @Override
+    public String putSealed(byte[] sealed, String media, String kind,
+            java.time.LocalDate window) {
+        if (kind == null || window == null) {
+            throw new IllegalArgumentException("content sealed to a window names its kind "
+                    + "and its day, or nothing could find the key to open it");
+        }
+        return kept(sealed, media, null, kind, window);
     }
 
     @Override
     public String put(byte[] content, String media, String person) {
-        return kept(content, media, person);
+        return kept(content, media, person, null, null);
     }
 
     @Override
     public String put(byte[] content, String media) {
-        return kept(content, media, null);
+        return kept(content, media, null, null, null);
     }
 
-    private String kept(byte[] content, String media, String person) {
+    private String kept(byte[] content, String media, String person, String kind,
+            java.time.LocalDate window) {
         if (content == null) {
             throw new IllegalArgumentException("a blob is bytes; there are none here");
         }
@@ -74,8 +116,8 @@ public final class PgBlobStore implements BlobStore {
         String key = UuidV7.newId();
         try (Connection c = ds.getConnection();
              PreparedStatement ps = c.prepareStatement(
-                     "INSERT INTO state.blob (key, media, content, person)"
-                             + " VALUES (?::uuid, ?, ?, ?::uuid)")) {
+                     "INSERT INTO state.blob (key, media, content, person, kind, sealed_window,"
+                             + " run) VALUES (?::uuid, ?, ?, ?::uuid, ?, ?, ?)")) {
             ps.setString(1, key);
             ps.setString(2, media == null || media.isBlank()
                     ? "application/octet-stream" : media);
@@ -85,6 +127,10 @@ public final class PgBlobStore implements BlobStore {
             // they are about so whoever CAN unseal them knows which key to
             // ask for.
             ps.setString(4, person);
+            ps.setString(5, kind);
+            ps.setObject(6, window);
+            // Under the run in progress, as a record a step writes is.
+            ps.setString(7, cloud.jengu.dbo.core.api.Caller.run());
             ps.executeUpdate();
             return key;
         } catch (SQLException e) {
@@ -93,15 +139,100 @@ public final class PgBlobStore implements BlobStore {
     }
 
     @Override
+    public java.util.List<String> keysPutBy(String run) {
+        java.util.List<String> keys = new java.util.ArrayList<>();
+        try (Connection c = ds.getConnection();
+             PreparedStatement ps = c.prepareStatement(
+                     "SELECT key::text FROM state.blob WHERE run = ? ORDER BY key")) {
+            ps.setString(1, run);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    keys.add(rs.getString(1));
+                }
+            }
+        } catch (SQLException e) {
+            throw failed("finding a run's blobs", e);
+        }
+        return keys;
+    }
+
+    @Override
+    public java.util.List<String> keysSealedTo(String person) {
+        java.util.List<String> keys = new java.util.ArrayList<>();
+        try (Connection c = ds.getConnection();
+             PreparedStatement ps = c.prepareStatement(
+                     "SELECT key::text FROM state.blob WHERE person = ?::uuid ORDER BY key")) {
+            ps.setString(1, person);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    keys.add(rs.getString(1));
+                }
+            }
+        } catch (SQLException e) {
+            throw failed("finding a person's blobs", e);
+        }
+        return keys;
+    }
+
+    @Override
+    public boolean arrive(String key, byte[] content, String media, String kind,
+            java.time.Instant written) {
+        Optional<Blob> here = get(key);
+        if (here.isPresent()) {
+            if (!java.util.Arrays.equals(here.get().content(), content)) {
+                throw new IllegalStateException("a different blob is held under " + key);
+            }
+            return false;
+        }
+        return arrived(key, content, media, kind, null, written);
+    }
+
+    @Override
+    public boolean arriveSealed(String key, byte[] sealed, String media, String kind,
+            java.time.LocalDate window, java.time.Instant written) {
+        return arrived(key, sealed, media, kind, window, written);
+    }
+
+    private boolean arrived(String key, byte[] content, String media, String kind,
+            java.time.LocalDate window, java.time.Instant written) {
+        if (!isKey(key)) {
+            throw new IllegalArgumentException("not a key a place could have issued: " + key);
+        }
+        try (Connection c = ds.getConnection();
+             PreparedStatement ps = c.prepareStatement(
+                     "INSERT INTO state.blob (key, media, content, kind, sealed_window, run,"
+                             + " written_at) VALUES (?::uuid, ?, ?, ?, ?, ?, ?)"
+                             + " ON CONFLICT (key) DO NOTHING")) {
+            ps.setString(1, key);
+            ps.setString(2, media == null || media.isBlank()
+                    ? "application/octet-stream" : media);
+            ps.setBytes(3, content);
+            ps.setString(4, kind);
+            ps.setObject(5, window);
+            ps.setString(6, cloud.jengu.dbo.core.api.Caller.run());
+            ps.setTimestamp(7, java.sql.Timestamp.from(written == null
+                    ? java.time.Instant.now() : written));
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            throw failed("keeping a blob handed from a place", e);
+        }
+    }
+
+    @Override
     public void restore(String key, byte[] content, String media) {
+        restore(key, content, media, null);
+    }
+
+    @Override
+    public void restore(String key, byte[] content, String media, String kind) {
         if (!isKey(key)) {
             throw new IllegalArgumentException("not a key this store could have issued: " + key);
         }
         try (Connection c = ds.getConnection();
              PreparedStatement ps = c.prepareStatement(
-                     "INSERT INTO state.blob (key, media, content) VALUES (?::uuid, ?, ?)"
+                     "INSERT INTO state.blob (key, media, content, kind) VALUES (?::uuid, ?, ?, ?)"
                              + " ON CONFLICT (key) DO UPDATE SET media = EXCLUDED.media,"
-                             + " content = EXCLUDED.content")) {
+                             + " content = EXCLUDED.content, kind = EXCLUDED.kind")) {
             // Idempotent, because a restore is retried: an import that failed
             // half way is run again, and the second pass must land on the same
             // content rather than refuse what it already put there.
@@ -109,6 +240,7 @@ public final class PgBlobStore implements BlobStore {
             ps.setString(2, media == null || media.isBlank()
                     ? "application/octet-stream" : media);
             ps.setBytes(3, content);
+            ps.setString(4, kind);
             ps.executeUpdate();
         } catch (SQLException e) {
             throw failed("putting a blob back", e);
@@ -125,13 +257,15 @@ public final class PgBlobStore implements BlobStore {
         }
         try (Connection c = ds.getConnection();
              PreparedStatement ps = c.prepareStatement(
-                     "SELECT media, content, person::text FROM state.blob"
+                     "SELECT media, content, person::text, kind, sealed_window, written_at FROM state.blob"
                              + " WHERE key = ?::uuid")) {
             ps.setString(1, key);
             try (ResultSet rs = ps.executeQuery()) {
                 return rs.next()
                         ? Optional.of(new Blob(key, rs.getString(1), rs.getBytes(2),
-                                rs.getString(3)))
+                                rs.getString(3), rs.getString(4),
+                                rs.getObject(5, java.time.LocalDate.class),
+                                rs.getTimestamp(6).toInstant()))
                         : Optional.empty();
             }
         } catch (SQLException e) {
