@@ -2262,6 +2262,15 @@ public enum DboPromises implements Promise {
             "A durable scheduled sweep executes removal as the one sanctioned mutation "
             + "of history, and every removal is audited without retaining the removed "
             + "data."),
+    POL_RETENTION_MAY_NAME_A_PROFILE(
+            "A tenant's retention may name a profile within a type, by its canonical URL, "
+            + "with bounds of its own: a record claiming that profile, in any version, is "
+            + "held to them instead of the type's, and every other record of the type to "
+            + "the type's. A rule naming one version of a profile is refused."),
+    POL_A_REMOVAL_NAMES_ITS_PROFILE(
+            "What retention removed under a profile's bounds is on the trail by type and "
+            + "profile, as a removal under the type's own is by type — never with what the "
+            + "record held."),
     POL_CONTENT_IS_OF_A_DECLARED_KIND(
             "A tenant declares the kinds of content it holds whole, each with how long a "
             + "place of the tenant keeps it and how long the tenant does, and content is put "

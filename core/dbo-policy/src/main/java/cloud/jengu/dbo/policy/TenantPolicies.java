@@ -140,13 +140,30 @@ public record TenantPolicies(
 
     public enum Discipline { STANDARD, APPEND_ONLY }
 
-    /** Floor and ceiling (§15.3): keepAtLeast ≤ removeAfter, both optional. */
-    public record Retention(Duration keepAtLeast, Duration removeAfter) {
+    /**
+     * Floor and ceiling (§15.3): keepAtLeast ≤ removeAfter, both optional.
+     *
+     * <p><b>A type's records are not all kept alike.</b> A conversation and a
+     * device's message may both be a {@code Communication}, one kept as long as
+     * its case and the other for days, so a profile within the type may carry
+     * bounds of its own. A record claiming that profile is held to them instead
+     * of the type's — not to both, since the type's would hold it to the longer
+     * of the two and the profile's would never be met.
+     *
+     * @param profiles bounds of profiles within the type, by canonical URL
+     */
+    public record Retention(Duration keepAtLeast, Duration removeAfter,
+            Map<String, Retention> profiles) {
         public Retention {
             if (keepAtLeast != null && removeAfter != null && keepAtLeast.compareTo(removeAfter) > 0) {
                 throw new IllegalArgumentException(
                         "keepAtLeast exceeds removeAfter — the floor cannot outlast the ceiling");
             }
+            profiles = profiles == null ? Map.of() : Map.copyOf(profiles);
+        }
+
+        public Retention(Duration keepAtLeast, Duration removeAfter) {
+            this(keepAtLeast, removeAfter, Map.of());
         }
     }
 
@@ -237,7 +254,8 @@ public record TenantPolicies(
      * Parses the spec's policy blocks:
      * {@code "audit":{"level":"writes"}, "writeDiscipline":{"default":"append-only",
      * "perType":{"Task":"standard"}}, "retention":{"perType":{"Encounter":
-     * {"keepAtLeast":"P10Y","removeAfter":"P30Y"}}}, "content":{"analyser-message":
+     * {"keepAtLeast":"P10Y","removeAfter":"P30Y","profiles":{"https://example.org/x":
+     * {"removeAfter":"P7D"}}}}}, "content":{"analyser-message":
      * {"keepAtPlace":"P7D","keepAtTenant":"P90D","sealed":"window","purpose":"required"}}}
      * — all optional.
      */
@@ -270,11 +288,30 @@ public record TenantPolicies(
                 && rt.get("perType") instanceof Map<?, ?> perTypeRetention) {
             perTypeRetention.forEach((type, value) -> {
                 Map<String, Object> rule = (Map<String, Object>) value;
-                retention.put(String.valueOf(type), new Retention(
-                        rule.get("keepAtLeast") != null
-                                ? period(String.valueOf(rule.get("keepAtLeast"))) : null,
-                        rule.get("removeAfter") != null
-                                ? period(String.valueOf(rule.get("removeAfter"))) : null));
+                Map<String, Retention> profiles = new LinkedHashMap<>();
+                if (rule.get("profiles") instanceof Map<?, ?> perProfile) {
+                    perProfile.forEach((url, bounds) -> {
+                        String profile = String.valueOf(url);
+                        if (profile.isBlank() || profile.contains("|")) {
+                            // A record claiming any version of the profile is held
+                            // to its bounds, so a rule naming one version would
+                            // read as if the others were not.
+                            throw new IllegalArgumentException("retention of " + type
+                                    + " names a profile by its canonical URL without a "
+                                    + "version: '" + profile + "' is not one");
+                        }
+                        Map<String, Object> own = (Map<String, Object>) bounds;
+                        try {
+                            profiles.put(profile, bounds(own));
+                        } catch (IllegalArgumentException wrong) {
+                            throw new IllegalArgumentException("retention of " + type + " in "
+                                    + profile + ": " + wrong.getMessage(), wrong);
+                        }
+                    });
+                }
+                Retention own = bounds(rule);
+                retention.put(String.valueOf(type),
+                        new Retention(own.keepAtLeast(), own.removeAfter(), profiles));
             });
         }
         Map<String, String> organisationPaths = new LinkedHashMap<>();
@@ -332,6 +369,14 @@ public record TenantPolicies(
         }
         return new TenantPolicies(audit, discipline, perType, retention, organisationPaths,
                 audiences, content);
+    }
+
+    private static Retention bounds(Map<String, Object> rule) {
+        return new Retention(
+                rule.get("keepAtLeast") != null
+                        ? period(String.valueOf(rule.get("keepAtLeast"))) : null,
+                rule.get("removeAfter") != null
+                        ? period(String.valueOf(rule.get("removeAfter"))) : null);
     }
 
     private static final java.util.regex.Pattern KIND =

@@ -108,14 +108,27 @@ public final class RetentionSweep {
         cloud.jengu.dbo.core.api.Caller.setRun(sweep.key());
         try {
             for (Map.Entry<String, TenantPolicies.Retention> rule : policies.retention().entrySet()) {
-                if (rule.getValue().removeAfter() == null) {
-                    continue;
+                String type = rule.getKey();
+                java.util.Set<String> ruled = rule.getValue().profiles().keySet();
+                if (rule.getValue().removeAfter() != null) {
+                    try {
+                        removed += sweepType(type, null, ruled, rule.getValue().removeAfter());
+                    } catch (RuntimeException e) {
+                        pass.item(type, Failure.of(e), String.valueOf(e.getMessage()));
+                    }
                 }
-                Instant ceiling = Instant.now().minus(rule.getValue().removeAfter());
-                try {
-                    removed += sweepType(rule.getKey(), ceiling, rule.getValue());
-                } catch (RuntimeException e) {
-                    pass.item(rule.getKey(), Failure.of(e), String.valueOf(e.getMessage()));
+                for (Map.Entry<String, TenantPolicies.Retention> profile
+                        : rule.getValue().profiles().entrySet()) {
+                    if (profile.getValue().removeAfter() == null) {
+                        continue;
+                    }
+                    try {
+                        removed += sweepType(type, profile.getKey(), ruled,
+                                profile.getValue().removeAfter());
+                    } catch (RuntimeException e) {
+                        pass.item(type + " " + profile.getKey(), Failure.of(e),
+                                String.valueOf(e.getMessage()));
+                    }
                 }
             }
             for (Map.Entry<String, TenantPolicies.ContentKind> kind
@@ -184,14 +197,37 @@ public final class RetentionSweep {
         }
     }
 
-    private int sweepType(String typeName, Instant ceiling, TenantPolicies.Retention rule) {
+    /**
+     * Records of a type older than a ceiling, removed and audited.
+     *
+     * <p>Which records a rule reaches is read from the profiles they claim, as
+     * the envelope indexed them, whatever version each claims: the type's own
+     * rule reaches those claiming no profile with bounds of its own, and a
+     * profile's rule those claiming it and no other such profile. A record
+     * claiming two is reached by neither, and kept rather than removed under
+     * one rule while the other holds it.
+     *
+     * @param profile the profile whose rule this is, or null for the type's own
+     * @param ruled   the profiles within the type with bounds of their own
+     */
+    private int sweepType(String typeName, String profile, java.util.Set<String> ruled,
+            java.time.Duration removeAfter) {
+        Instant ceiling = Instant.now().minus(removeAfter);
         List<String> expired = new ArrayList<>();
         try (Connection c = ds.getConnection()) {
             try (PreparedStatement ps = c.prepareStatement("""
-                    SELECT id FROM %s_data
-                    WHERE type = ? AND last_updated < ? LIMIT 500""".formatted(Domains.tables(domain)))) {
+                    SELECT id FROM %s_data d
+                    WHERE type = ? AND last_updated < ?
+                      AND ARRAY(SELECT DISTINCT split_part(p ->> 'v', '|', 1)
+                                FROM jsonb_array_elements(
+                                    coalesce(d.envelope -> '_profile', '[]'::jsonb)) p
+                                WHERE split_part(p ->> 'v', '|', 1) = ANY (?)) = ?::text[]
+                    LIMIT 500""".formatted(Domains.tables(domain)))) {
                 ps.setString(1, typeName);
                 ps.setTimestamp(2, java.sql.Timestamp.from(ceiling));
+                ps.setArray(3, c.createArrayOf("text", ruled.toArray()));
+                ps.setArray(4, c.createArrayOf("text",
+                        profile == null ? new Object[0] : new Object[] {profile}));
                 try (ResultSet rs = ps.executeQuery()) {
                     while (rs.next()) {
                         expired.add(rs.getString(1));
@@ -219,7 +255,8 @@ public final class RetentionSweep {
                     c.setAutoCommit(true);
                 }
                 auditSink.record("retention-remove", typeName, id,
-                        "removeAfter=" + rule.removeAfter());
+                        "removeAfter=" + removeAfter
+                                + (profile == null ? "" : " profile=" + profile));
             }
         } catch (SQLException e) {
             throw new IllegalStateException("retention sweep failed for " + typeName, e);

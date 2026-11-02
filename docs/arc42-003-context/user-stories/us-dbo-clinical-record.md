@@ -148,6 +148,8 @@ citations say it is.
 | `REQ-DBO-POL-FHIR-AUDIT-PROJECTION` | On a FHIR tenant the audit stream is served as AuditEvent — native records as the truth form, rendered per personality on read, contribution via mapped POST; write access is scope-gated. | PROVEN |
 | `REQ-DBO-POL-DECLARATIVE-RETENTION` | Retention is declared per tenant and type as a floor and a ceiling — keepAtLeast (append-only holds even against policy) and removeAfter (the engine must remove) — composing with write discipline without conflict. | PROVEN |
 | `REQ-DBO-POL-RETENTION-SWEEP` | A durable scheduled sweep executes removal as the one sanctioned mutation of history, and every removal is audited without retaining the removed data. | PROVEN |
+| `REQ-DBO-POL-RETENTION-MAY-NAME-A-PROFILE` | A tenant's retention may name a profile within a type, by its canonical URL, with bounds of its own: a record claiming that profile, in any version, is held to them instead of the type's, and every other record of the type to the type's. A rule naming one version of a profile is refused. | PROVEN |
+| `REQ-DBO-POL-A-REMOVAL-NAMES-ITS-PROFILE` | What retention removed under a profile's bounds is on the trail by type and profile, as a removal under the type's own is by type — never with what the record held. | PROVEN |
 | `REQ-DBO-FEED-ONE-PRIMITIVE` | Pagination, subscription delivery, content streams and replica sync are all the same primitive: an ordered, replayable sequence with an opaque durable cursor. | PROVEN |
 | `REQ-DBO-FEED-KEYSET-CURSORS` | Cursors are keyset positions, never offsets; a page is stable under concurrent writes. | PROVEN |
 | `REQ-DBO-FEED-NAMED-CONSUMERS` | Every durable consumer holds a named cursor in the store; progress, lag and replay are uniformly observable. | PROVEN |
@@ -165,7 +167,7 @@ citations say it is.
 | `REQ-DBO-OPS-TENANT-BLOB-STORAGE` | Planned — Binary content lives in per-tenant blob storage provisioned credential-blind; erasure-by-drop extends to it; small deployments fall back to Postgres behind the same interface. | PLANNED |
 | `REQ-DBO-EVT-A-TENANT-DELIVERS` | A tenant serving a face that composes notifications mounts its own dispatcher: a subscription it holds is matched against what changes and the subscriber is posted to, with the name of what changed rather than the record itself where the channel asked for no payload. | PROVEN |
 
-Coverage: {PROVEN=57, PLANNED=3} — a leg marked PLANNED cites a promise that exists and is not yet cited by any test.
+Coverage: {PROVEN=59, PLANNED=3} — a leg marked PLANNED cites a promise that exists and is not yet cited by any test.
 <!-- story:end -->
 
 ## What the store cannot do yet

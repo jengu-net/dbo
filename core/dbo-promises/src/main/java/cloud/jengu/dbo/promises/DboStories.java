@@ -465,6 +465,8 @@ public enum DboStories implements Story {
                     DboPromises.POL_FHIR_AUDIT_PROJECTION,
                     DboPromises.POL_DECLARATIVE_RETENTION,
                     DboPromises.POL_RETENTION_SWEEP,
+                    DboPromises.POL_RETENTION_MAY_NAME_A_PROFILE,
+                    DboPromises.POL_A_REMOVAL_NAMES_ITS_PROFILE,
                     // One change feed under everything that watches.
                     DboPromises.FEED_ONE_PRIMITIVE,
                     DboPromises.FEED_KEYSET_CURSORS,

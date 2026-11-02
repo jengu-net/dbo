@@ -152,6 +152,17 @@ spec:
                             type: string
                           removeAfter:
                             type: string
+                          # Bounds of profiles within the type, by canonical
+                          # URL; a record claiming one is held to them instead.
+                          profiles:
+                            type: object
+                            additionalProperties:
+                              type: object
+                              properties:
+                                keepAtLeast:
+                                  type: string
+                                removeAfter:
+                                  type: string
                 # The kinds of content the tenant holds whole, each with how
                 # long a place of it keeps it and how long the tenant does.
                 content:
