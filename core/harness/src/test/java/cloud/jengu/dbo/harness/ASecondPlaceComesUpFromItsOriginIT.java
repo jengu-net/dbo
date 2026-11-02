@@ -1181,9 +1181,30 @@ class ASecondPlaceComesUpFromItsOriginIT {
 
     @Test
     @Order(29)
-    @DisplayName("a place whose first bring-up failed, and whose declaration gained a step after "
-            + "it came up, hands its tenant the runs of that step and of every other")
+    @DisplayName("a run the site performed behind more of its own housekeeping than one push "
+            + "carries reaches its tenant in the next round")
     @Proving(DboPromises.SYNC_A_PLACE_HANDS_ITS_WORK_TO_ITS_TENANT)
+    void aRunBehindHousekeepingReachesItsTenantInARound() throws Exception {
+        site.syncRound();
+        Runs here = new Runs(site.runtime(CLINIC).orElseThrow().engine());
+        for (int i = 0; i < 450; i++) {
+            here.sweep("site.housekeeping", "tidy", "behind-" + i);
+        }
+        performedOnTheSite("behind-housekeeping");
+        site.syncRound();
+        assertTrue(new Runs(cloud.runtime(CLINIC).orElseThrow().engine())
+                        .byKey("site" + Lanes.MIRROR_SEPARATOR + RECORD
+                                + "/behind-housekeeping").isPresent(),
+                "a run behind the site's own housekeeping did not reach its tenant in a round");
+    }
+
+    @Test
+    @Order(30)
+    @DisplayName("a place whose first bring-up failed, and whose declaration gained a step after "
+            + "it came up, hands its tenant the runs of that step and of every other, the one "
+            + "it held from before the step was declared included")
+    @Proving({DboPromises.SYNC_A_PLACE_HANDS_ITS_WORK_TO_ITS_TENANT,
+            DboPromises.SYNC_A_PLACE_HANDS_THE_WORK_OF_A_STEP_DECLARED_AFTER_IT_CAME_UP})
     void aPlaceThatFailedItsFirstBringUpHandsItsWork() throws Exception {
         // The origin gains a step of a process it had none of. Last in the
         // class, because the clinic is rebuilt where it stands.
@@ -1219,6 +1240,16 @@ class ASecondPlaceComesUpFromItsOriginIT {
                     toTheCloud.origin().work(), toTheCloud.origin().authorisation()));
             UntilServed.scan(outpost, CLINIC);
 
+            // A run of the process before the outpost declares it, which its
+            // position home passes over.
+            filledAt(outpost, IMAGING, "image", "filled-before-it-was-declared");
+            outpost.syncRound();
+            Runs home = new Runs(cloud.runtime(CLINIC).orElseThrow().engine());
+            String before = "outpost" + Lanes.MIRROR_SEPARATOR + IMAGING
+                    + "/filled-before-it-was-declared";
+            assertTrue(home.byKey(before).isEmpty(),
+                    "the outpost handed a run of a process it did not declare");
+
             // And the declaration it serves catches up with its origin's.
             Files.writeString(outpostDir.resolve(CLINIC + ".json"),
                     withImaging(HANDING_DECLARATION));
@@ -1228,7 +1259,8 @@ class ASecondPlaceComesUpFromItsOriginIT {
             performedAt(outpost, RECORD, "specimen", "recorded-at-the-outpost");
             outpost.syncRound();
 
-            Runs home = new Runs(cloud.runtime(CLINIC).orElseThrow().engine());
+            assertTrue(home.byKey(before).isPresent(), "the run the outpost held from before "
+                    + "it declared the step was passed over for good");
             String atTheTenant = read(cloud, CLINIC, "Observation");
             assertTrue(home.byKey("outpost" + Lanes.MIRROR_SEPARATOR + IMAGING
                             + "/read-at-the-outpost").isPresent()
@@ -1265,15 +1297,21 @@ class ASecondPlaceComesUpFromItsOriginIT {
         }
     }
 
-    /** A run of the step, filled and performed on the node, writing what it found. */
-    private static void performedAt(TenantRuntimeManager node, String step, String slot,
+    /** A run of the step, filled on the node and not yet taken. */
+    private static Run filledAt(TenantRuntimeManager node, String step, String slot,
             String found) {
-        Run run = new Runs(node.runtime(CLINIC).orElseThrow().engine()).filling(
+        return new Runs(node.runtime(CLINIC).orElseThrow().engine()).filling(
                 StepDeclaration.of(step, "1", "r4").taking(slot, "Observation"),
                 RunKind.PIPELINE, found,
                 java.util.Map.of(slot, RunSlot.given(
                         "{\"resourceType\":\"Observation\",\"status\":\"registered\","
                                 + "\"code\":{\"text\":\"" + slot + "\"}}")));
+    }
+
+    /** A run of the step, filled and performed on the node, writing what it found. */
+    private static void performedAt(TenantRuntimeManager node, String step, String slot,
+            String found) {
+        Run run = filledAt(node, step, slot, found);
         Executor analyser = new Executor("analyser", "1", "example.site", Scope.BASELINE);
         Lane performing = node.fleetLane(CLINIC, step, analyser).orElseThrow();
         int last = step.lastIndexOf('.');

@@ -5820,8 +5820,13 @@ public final class TenantRuntimeManager implements AutoCloseable {
             trailPushers.remove(spec.code());
         }
         if (feeds.work() != null) {
+            // Asked of the declaration it serves each round, not of this one:
+            // a pusher holding the processes it was wired with goes on
+            // handing those whatever the tenant declares after.
             runsPushers.put(spec.code(), new RunsPusher(runtime.replication(), feeds.work(),
-                    RunsPusher.processesOf(spec)));
+                    () -> java.util.Optional.ofNullable(runtimes.get(origin))
+                            .map(serving -> RunsPusher.processesOf(serving.spec()))
+                            .orElse(java.util.Set.of())));
         } else {
             runsPushers.remove(spec.code());
         }

@@ -3169,7 +3169,16 @@ public enum DboPromises implements Promise {
             + "under a name the batch carries. The runs are mirrored beside the tenant's own "
             + "and what they produced is read at the tenant with the place as its source. "
             + "What the place wrote outside any run stays on the place. While the link is "
-            + "down the work waits on the place; once it is back all of it goes, each once."),
+            + "down the work waits on the place; once it is back all of it goes, each once. "
+            + "However much of its own housekeeping stands before a run in its work feed, the "
+            + "run goes in the next round."),
+    SYNC_A_PLACE_HANDS_THE_WORK_OF_A_STEP_DECLARED_AFTER_IT_CAME_UP(
+            "A place hands home the runs of the processes its tenant declares steps of as its "
+            + "declaration stands each round, not as it stood when the place came up: a step "
+            + "declared since is handed like any other. The runs of its process the place "
+            + "already held, which its position home had passed over and its work feed may "
+            + "have let go of, are handed from its store in the round after it is declared, "
+            + "each once, and not again after a restart."),
     SYNC_LOCAL_SHADOWING(
             "A tenant's own object with the same base identity overrides the streamed "
             + "copy — version-neutrally, across FHIR versions and business versions; "

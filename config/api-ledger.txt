@@ -3468,6 +3468,7 @@ cloud.jengu.dbo.promises.DboPromises                                   SYNC_A_PL
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_A_PLACE_COMES_UP_FROM_ITS_ORIGIN:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_A_PLACE_HANDS_ITS_TRAIL_TO_ITS_TENANT:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_A_PLACE_HANDS_ITS_WORK_TO_ITS_TENANT:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   SYNC_A_PLACE_HANDS_THE_WORK_OF_A_STEP_DECLARED_AFTER_IT_CAME_UP:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_A_PLACE_HOLDS_WHAT_ITS_TENANT_AUTHORISED:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_A_PLACE_IS_DECLARED_AS_ITS_ORIGIN_IS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_A_PLACE_LEAVES_HANDING_WORK_OVER_TO_ITS_ORIGIN:cloud.jengu.dbo.promises.DboPromises
@@ -4547,6 +4548,8 @@ cloud.jengu.dbo.sync.Lanes                                             applyFrom
 cloud.jengu.dbo.sync.Lanes                                             carryingContent(cloud.jengu.dbo.core.api.BlobStore):cloud.jengu.dbo.sync.Lanes
 cloud.jengu.dbo.sync.Lanes                                             class
 cloud.jengu.dbo.sync.Lanes                                             copiedFrom(String,String):Optional
+cloud.jengu.dbo.sync.Lanes                                             covering(String,Set):cloud.jengu.dbo.sync.Lanes.Lane
+cloud.jengu.dbo.sync.Lanes                                             everyRunOf(String,String,int,ToIntFunction):int
 cloud.jengu.dbo.sync.Lanes                                             lane(String):Optional
 cloud.jengu.dbo.sync.Lanes                                             mark(String,String):cloud.jengu.dbo.sync.Lanes.Lane
 cloud.jengu.dbo.sync.Lanes                                             namingAcrossStores(cloud.jengu.dbo.core.face.ReferenceResolution):cloud.jengu.dbo.sync.Lanes
@@ -4601,12 +4604,14 @@ cloud.jengu.dbo.sync.Lanes.Item                                        version()
 cloud.jengu.dbo.sync.Lanes.Item                                        work():boolean
 cloud.jengu.dbo.sync.Lanes.Item                                        work(String,long,Instant,byte[]):cloud.jengu.dbo.sync.Lanes.Item
 cloud.jengu.dbo.sync.Lanes.Lane                                        contentCursor():String
+cloud.jengu.dbo.sync.Lanes.Lane                                        covers():List
 cloud.jengu.dbo.sync.Lanes.Lane                                        epoch():String
 cloud.jengu.dbo.sync.Lanes.Lane                                        equals(Object):boolean
 cloud.jengu.dbo.sync.Lanes.Lane                                        hashCode():int
 cloud.jengu.dbo.sync.Lanes.Lane                                        key():String
 cloud.jengu.dbo.sync.Lanes.Lane                                        new(String,String,String,String,String)
 cloud.jengu.dbo.sync.Lanes.Lane                                        new(String,String,String,String,String,String)
+cloud.jengu.dbo.sync.Lanes.Lane                                        new(String,String,String,String,String,String,List)
 cloud.jengu.dbo.sync.Lanes.Lane                                        ourCursor():String
 cloud.jengu.dbo.sync.Lanes.Lane                                        peer():String
 cloud.jengu.dbo.sync.Lanes.Lane                                        record
