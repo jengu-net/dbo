@@ -34,8 +34,8 @@ import java.util.function.Supplier;
  *
  * <p><b>What stays here is said.</b> A place handing its trail and none of
  * its work looked healthy, because nothing that stays is a failure. So the
- * pusher keeps why: processes it read past that are not the store's own, a
- * tenant declaring nothing, a feed longer than a round reads.
+ * pusher keeps why: processes it read past that are not the store's own, or
+ * a tenant declaring nothing.
  */
 final class RunsPusher {
 
@@ -48,7 +48,8 @@ final class RunsPusher {
      * without holding the round. Counted whether or not a stretch held
      * anything to hand: a place writes more of its own housekeeping than of
      * its tenant's work, and a round that ended at the first stretch of it
-     * fell further behind every round.
+     * fell further behind every round. Past this many the declared work is
+     * found in the store instead.
      */
     private static final int MOST_PER_ROUND = 50;
     /**
@@ -56,6 +57,12 @@ final class RunsPusher {
      * stay here without a word, being nobody's work but this node's.
      */
     private static final String STORES = "dbo.";
+    /**
+     * How long before its event a run caught up from the store may be
+     * stamped: the run when it was written, the event when its transaction
+     * committed. Generous, as a run handed twice is held once.
+     */
+    private static final java.time.Duration SKEW = java.time.Duration.ofMinutes(5);
 
     private final Lanes lanes;
     private final Handover home;
@@ -63,7 +70,6 @@ final class RunsPusher {
     /** The processes of runs read past and not handed, until the tenant declares them. */
     private final Set<String> passedOver = new java.util.concurrent.ConcurrentSkipListSet<>();
     private volatile boolean nothingDeclared;
-    private volatile boolean behind;
 
     /** @param processes the processes the tenant declares steps of, asked each round */
     RunsPusher(Lanes lanes, Handover home, Supplier<Set<String>> processes) {
@@ -125,7 +131,16 @@ final class RunsPusher {
             lanes.sent(HOME, batch);
             refusedSaid(refused);
         }
-        behind = !ended[0];
+        if (!ended[0]) {
+            // Further behind than a round reads: the declared work is found in
+            // the store instead, and the position goes to the head. Read on,
+            // weeks of housekeeping would stand before the newest run for as
+            // many rounds as it took, and every stream waits on the round.
+            List<String> refused = new ArrayList<>();
+            handed += lanes.caughtUpToTheHead(HOME, declared, SKEW, AT_ONCE,
+                    batch -> handed(batch, refused));
+            refusedSaid(refused);
+        }
         return handed;
     }
 
@@ -141,10 +156,6 @@ final class RunsPusher {
         if (!passedOver.isEmpty()) {
             why.add("runs of " + passedOver + " stay here, as its tenant declares no step of "
                     + (passedOver.size() == 1 ? "it" : "them"));
-        }
-        if (behind) {
-            why.add("more of its work feed stands before its position home than a round "
-                    + "reads, so its work goes home rounds late");
         }
         return String.join("; ", why);
     }

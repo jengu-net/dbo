@@ -4547,6 +4547,7 @@ cloud.jengu.dbo.sync.Lanes                                             MIRROR_SE
 cloud.jengu.dbo.sync.Lanes                                             apply(String,cloud.jengu.dbo.sync.Lanes.Batch):cloud.jengu.dbo.sync.Lanes.Applied
 cloud.jengu.dbo.sync.Lanes                                             applyFromAPlace(String,cloud.jengu.dbo.sync.Lanes.Batch):cloud.jengu.dbo.sync.Lanes.Applied
 cloud.jengu.dbo.sync.Lanes                                             carryingContent(cloud.jengu.dbo.core.api.BlobStore):cloud.jengu.dbo.sync.Lanes
+cloud.jengu.dbo.sync.Lanes                                             caughtUpToTheHead(String,Set,Duration,int,ToIntFunction):int
 cloud.jengu.dbo.sync.Lanes                                             class
 cloud.jengu.dbo.sync.Lanes                                             copiedFrom(String,String):Optional
 cloud.jengu.dbo.sync.Lanes                                             covering(String,Set):cloud.jengu.dbo.sync.Lanes.Lane

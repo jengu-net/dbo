@@ -1182,13 +1182,14 @@ class ASecondPlaceComesUpFromItsOriginIT {
 
     @Test
     @Order(29)
-    @DisplayName("a run the site performed behind more of its own housekeeping than one push "
-            + "carries reaches its tenant in the next round")
+    @DisplayName("a run the site performed behind more of its own housekeeping than a round "
+            + "reads reaches its tenant in the next round, with what it wrote")
     @Proving(DboPromises.SYNC_A_PLACE_HANDS_ITS_WORK_TO_ITS_TENANT)
     void aRunBehindHousekeepingReachesItsTenantInARound() throws Exception {
         site.syncRound();
         Runs here = new Runs(site.runtime(CLINIC).orElseThrow().engine());
-        for (int i = 0; i < 450; i++) {
+        // More than a round reads of the feed: fifty stretches of two hundred.
+        for (int i = 0; i < 10_050; i++) {
             here.sweep("site.housekeeping", "tidy", "behind-" + i);
         }
         performedOnTheSite("behind-housekeeping");
@@ -1197,6 +1198,8 @@ class ASecondPlaceComesUpFromItsOriginIT {
                         .byKey("site" + Lanes.MIRROR_SEPARATOR + RECORD
                                 + "/behind-housekeeping").isPresent(),
                 "a run behind the site's own housekeeping did not reach its tenant in a round");
+        assertTrue(read(cloud, CLINIC, "Observation").contains("behind-housekeeping"),
+                "what a run behind the site's own housekeeping wrote did not reach its tenant");
     }
 
     @Test
