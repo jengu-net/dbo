@@ -305,10 +305,33 @@ refuses **caller** deletions, while retention removal is **policy execution**. A
 record can be undeletable for ten years and un-keepable after thirty, both
 declared, both enforced, with no contradiction.
 
+**A type's records are not all kept alike.** A conversation and a device's
+message may both be a `Communication`, one kept as long as its case and the
+other for days. So a type's rule may name profiles within it, by canonical URL,
+each with bounds of its own:
+
+```json
+"Communication": { "removeAfter": "P10Y",
+  "profiles": { "https://example.org/fhir/StructureDefinition/device-message":
+                { "removeAfter": "P7D" } } }
+```
+
+A record claiming that profile in `meta.profile`, in any version, is held to the
+profile's bounds instead of the type's; every other record of the type is held
+to the type's. A rule naming one version of a profile is refused, since it would
+read as if the others were not covered.
+
+A record claiming two such profiles is kept while either floor holds it, and
+goes by the shortest ceiling that still respects the longer floor. Two profiles
+that would leave a record with a floor no ceiling of theirs reaches — one keeping
+it at least thirty days with no ceiling, the other removing it after seven — are
+refused at registration, naming both, because no record claiming both could be
+kept by one without breaking the other.
+
 Removal is **the one sanctioned mutation of history**. A scheduled, checkpointed
 sweep removes expired versions from state and history, and the removal is itself
-audited — what went, when, under which declared rule — without retaining what it
-removed.
+audited — what went, when, under which declared rule and, for a profile's,
+which profile — without retaining what it removed.
 
 **A restore replays policy before it serves.** Both the record of what was
 shredded and the retention sweep are re-applied first, so an old archive cannot

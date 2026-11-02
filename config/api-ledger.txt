@@ -2938,8 +2938,11 @@ cloud.jengu.dbo.policy.TenantPolicies.Discipline                       valueOf(S
 cloud.jengu.dbo.policy.TenantPolicies.Discipline                       values():cloud.jengu.dbo.policy.TenantPolicies.Discipline[]
 cloud.jengu.dbo.policy.TenantPolicies.Retention                        equals(Object):boolean
 cloud.jengu.dbo.policy.TenantPolicies.Retention                        hashCode():int
+cloud.jengu.dbo.policy.TenantPolicies.Retention                        heldBy(Collection):cloud.jengu.dbo.policy.TenantPolicies.Retention
 cloud.jengu.dbo.policy.TenantPolicies.Retention                        keepAtLeast():Duration
 cloud.jengu.dbo.policy.TenantPolicies.Retention                        new(Duration,Duration)
+cloud.jengu.dbo.policy.TenantPolicies.Retention                        new(Duration,Duration,Map)
+cloud.jengu.dbo.policy.TenantPolicies.Retention                        profiles():Map
 cloud.jengu.dbo.policy.TenantPolicies.Retention                        record
 cloud.jengu.dbo.policy.TenantPolicies.Retention                        removeAfter():Duration
 cloud.jengu.dbo.policy.TenantPolicies.Retention                        toString():String
@@ -3227,6 +3230,7 @@ cloud.jengu.dbo.promises.DboPromises                                   POL_ACTOR
 cloud.jengu.dbo.promises.DboPromises                                   POL_APPEND_ONLY_DISCIPLINE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   POL_AUDIT_AS_RECORDS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   POL_AUDIT_UNCONDITIONALLY_APPEND_ONLY:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   POL_A_REMOVAL_NAMES_ITS_PROFILE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   POL_A_RUNS_TRAIL_IS_CHAINED_FROM_THE_TASK:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   POL_COLLECTING_IS_A_READING:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   POL_CONTENT_IS_OF_A_DECLARED_KIND:cloud.jengu.dbo.promises.DboPromises
@@ -3238,8 +3242,10 @@ cloud.jengu.dbo.promises.DboPromises                                   POL_DECLA
 cloud.jengu.dbo.promises.DboPromises                                   POL_ERASURE_COMPATIBLE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   POL_FHIR_AUDIT_PROJECTION:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   POL_POLICY_REPLAY_ON_RESTORE:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   POL_RETENTION_MAY_NAME_A_PROFILE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   POL_RETENTION_SWEEP:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   POL_TRAVEL_AND_ACCESS_ARE_DIFFERENT_ENTRIES:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   POL_TWO_PROFILES_HOLD_A_RECORD_TO_THE_LONGER_FLOOR:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PRM_A_STORY_IS_CITED_NOT_CLAIMED:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PRM_COVERAGE_ON_THE_RESULTS_PAGE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PRM_PROJECTION_IS_GENERATED:cloud.jengu.dbo.promises.DboPromises

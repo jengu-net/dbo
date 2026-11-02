@@ -108,14 +108,27 @@ public final class RetentionSweep {
         cloud.jengu.dbo.core.api.Caller.setRun(sweep.key());
         try {
             for (Map.Entry<String, TenantPolicies.Retention> rule : policies.retention().entrySet()) {
-                if (rule.getValue().removeAfter() == null) {
+                String type = rule.getKey();
+                TenantPolicies.Retention bounds = rule.getValue();
+                List<List<String>> claims;
+                try {
+                    claims = claimsOf(type, bounds);
+                } catch (RuntimeException e) {
+                    pass.item(type, Failure.of(e), String.valueOf(e.getMessage()));
                     continue;
                 }
-                Instant ceiling = Instant.now().minus(rule.getValue().removeAfter());
-                try {
-                    removed += sweepType(rule.getKey(), ceiling, rule.getValue());
-                } catch (RuntimeException e) {
-                    pass.item(rule.getKey(), Failure.of(e), String.valueOf(e.getMessage()));
+                for (List<String> claimed : claims) {
+                    java.time.Duration removeAfter = bounds.heldBy(claimed).removeAfter();
+                    if (removeAfter == null) {
+                        continue;
+                    }
+                    try {
+                        removed += sweepType(type, claimed, bounds.profiles().keySet(),
+                                removeAfter);
+                    } catch (RuntimeException e) {
+                        pass.item(claimed.isEmpty() ? type : type + " " + claimed,
+                                Failure.of(e), String.valueOf(e.getMessage()));
+                    }
                 }
             }
             for (Map.Entry<String, TenantPolicies.ContentKind> kind
@@ -184,14 +197,75 @@ public final class RetentionSweep {
         }
     }
 
-    private int sweepType(String typeName, Instant ceiling, TenantPolicies.Retention rule) {
+    /**
+     * Which of the type's profiles with bounds of their own its records claim
+     * together, among records old enough for the shortest ceiling the rule
+     * declares to reach: each set once, the empty one for records claiming none.
+     *
+     * <p>Read from the profiles as the envelope indexed them, whatever version
+     * each record claims, so a payload sealed behind the membrane is never
+     * opened to ask.
+     */
+    private List<List<String>> claimsOf(String typeName, TenantPolicies.Retention bounds) {
+        java.time.Duration shortest = bounds.removeAfter();
+        for (TenantPolicies.Retention profile : bounds.profiles().values()) {
+            if (profile.removeAfter() != null
+                    && (shortest == null || profile.removeAfter().compareTo(shortest) < 0)) {
+                shortest = profile.removeAfter();
+            }
+        }
+        List<List<String>> claims = new ArrayList<>();
+        if (shortest == null) {
+            return claims;
+        }
+        try (Connection c = ds.getConnection();
+             PreparedStatement ps = c.prepareStatement("""
+                     SELECT DISTINCT %s
+                     FROM %s_data d
+                     WHERE type = ? AND last_updated < ?""".formatted(CLAIMED,
+                     Domains.tables(domain)))) {
+            ps.setArray(1, c.createArrayOf("text", bounds.profiles().keySet().toArray()));
+            ps.setString(2, typeName);
+            ps.setTimestamp(3, java.sql.Timestamp.from(Instant.now().minus(shortest)));
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    claims.add(List.of((String[]) rs.getArray(1).getArray()));
+                }
+            }
+        } catch (SQLException e) {
+            throw new IllegalStateException("retention sweep could not read which profiles "
+                    + typeName + " claims", e);
+        }
+        return claims;
+    }
+
+    /** The type's profiles with bounds of their own a record claims, in order. */
+    private static final String CLAIMED = """
+            ARRAY(SELECT DISTINCT split_part(p ->> 'v', '|', 1)
+                  FROM jsonb_array_elements(coalesce(d.envelope -> '_profile', '[]'::jsonb)) p
+                  WHERE split_part(p ->> 'v', '|', 1) = ANY (?)
+                  ORDER BY 1)""";
+
+    /**
+     * Records of a type claiming exactly these of its profiles with bounds of
+     * their own, older than the ceiling they are held to, removed and audited.
+     *
+     * @param claimed the profiles, in order; none for the type's own rule
+     * @param ruled   the profiles within the type with bounds of their own
+     */
+    private int sweepType(String typeName, List<String> claimed, java.util.Set<String> ruled,
+            java.time.Duration removeAfter) {
+        Instant ceiling = Instant.now().minus(removeAfter);
         List<String> expired = new ArrayList<>();
         try (Connection c = ds.getConnection()) {
             try (PreparedStatement ps = c.prepareStatement("""
-                    SELECT id FROM %s_data
-                    WHERE type = ? AND last_updated < ? LIMIT 500""".formatted(Domains.tables(domain)))) {
+                    SELECT id FROM %s_data d
+                    WHERE type = ? AND last_updated < ? AND %s = ?::text[]
+                    LIMIT 500""".formatted(Domains.tables(domain), CLAIMED))) {
                 ps.setString(1, typeName);
                 ps.setTimestamp(2, java.sql.Timestamp.from(ceiling));
+                ps.setArray(3, c.createArrayOf("text", ruled.toArray()));
+                ps.setArray(4, c.createArrayOf("text", claimed.toArray()));
                 try (ResultSet rs = ps.executeQuery()) {
                     while (rs.next()) {
                         expired.add(rs.getString(1));
@@ -219,7 +293,9 @@ public final class RetentionSweep {
                     c.setAutoCommit(true);
                 }
                 auditSink.record("retention-remove", typeName, id,
-                        "removeAfter=" + rule.removeAfter());
+                        "removeAfter=" + removeAfter + claimed.stream()
+                                .map(profile -> " profile=" + profile)
+                                .collect(java.util.stream.Collectors.joining()));
             }
         } catch (SQLException e) {
             throw new IllegalStateException("retention sweep failed for " + typeName, e);
