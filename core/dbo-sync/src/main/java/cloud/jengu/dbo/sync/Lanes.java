@@ -458,10 +458,10 @@ public final class Lanes {
                 continue;
             }
             Optional<Run> run = runs.byId(event.objectId());
-            if (run.isPresent() && !processes.contains(run.get().process())) {
+            if (run.isPresent() && !travels(run.get(), processes)) {
                 passedOver.accept(run.get().process());
             }
-            if (run.isEmpty() || !processes.contains(run.get().process())) {
+            if (run.isEmpty() || !travels(run.get(), processes)) {
                 // The lane declares which processes travel. A site's own
                 // housekeeping is not the other side's business, and mirroring
                 // it would put one site's account of its own bring-up into the
@@ -498,6 +498,23 @@ public final class Lanes {
         // the position back at the start of the feed, to be read again.
         String cursor = chunk.nextCursor() != null ? chunk.nextCursor() : lane.ourCursor();
         return assembled(lane, cursor, work, travelling, forRuns, types, withInputs, limit);
+    }
+
+    /**
+     * Whether a run goes where the processes asked for go: a run of one of
+     * them, or an act said of such a run. An act is written as a run of its
+     * own under the run it was said of, so the trail of who moved the work,
+     * when and why goes with the work rather than staying where it was said.
+     */
+    private boolean travels(Run run, Set<String> processes) {
+        if (processes.contains(run.process())) {
+            return true;
+        }
+        if (!Runs.ACTS.equals(run.process()) || run.parent() == null) {
+            return false;
+        }
+        return runs.byKey(run.parent()).map(said -> processes.contains(said.process()))
+                .orElse(false);
     }
 
     /**
@@ -572,6 +589,18 @@ public final class Lanes {
                 work.add(Item.work(stored.id(), stored.versionId(), stored.lastUpdated(),
                         stored.payload()));
                 travelling.add(run.key());
+                // What was said of it goes with it, found under it here: an
+                // act is written as its own run, and is read past by process.
+                for (Run act : runs.items(run)) {
+                    if (Runs.ACTS.equals(act.process())) {
+                        Optional<StoredObject> said = store.get(WorkModel.TYPE, act.id());
+                        if (said.isPresent()) {
+                            work.add(Item.work(said.get().id(), said.get().versionId(),
+                                    said.get().lastUpdated(), said.get().payload()));
+                            travelling.add(act.key());
+                        }
+                    }
+                }
                 if (travelling.size() >= limit) {
                     handed += hand.applyAsInt(assembled(lane, lane.ourCursor(), work, travelling,
                             Map.of(), Set.of(), false, limit));

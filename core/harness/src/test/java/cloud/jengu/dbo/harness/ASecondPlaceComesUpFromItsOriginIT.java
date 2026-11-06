@@ -772,6 +772,49 @@ class ASecondPlaceComesUpFromItsOriginIT {
     }
 
     @Test
+    @Order(15)
+    @DisplayName("what was said of work that lasts on the site — taken, a stage reached, ended "
+            + "— is listed at its tenant under that work, by whom, when and why, as the site "
+            + "recorded it")
+    @Proving(DboPromises.SYNC_WHAT_WAS_SAID_OF_A_PLACES_WORK_GOES_HOME_WITH_IT)
+    void whatWasSaidOfTheSitesWorkComesHomeWithIt() throws Exception {
+        StepDeclaration ordering = StepDeclaration.of("jaam.lab.order", "1", "r4")
+                .taking("order", "Observation");
+        Runs onTheSite = new Runs(site.runtime(CLINIC).orElseThrow().engine());
+        Run opened = onTheSite.opening(ordering, "order", "Observation/the-traced-order", null,
+                null);
+        Run taken = onTheSite.accepted(opened, "the-analyser", "taken by the analyser");
+        Run staged = onTheSite.reached(taken, "loaded", "the-analyser", "rack 3");
+        onTheSite.ended(staged, Status.COMPLETED, "the-analyser", "its result came");
+        List<Run> saidThere = acts(onTheSite, onTheSite.byKey(opened.key()).orElseThrow());
+        site.syncRound();
+
+        Runs home = new Runs(cloud.runtime(CLINIC).orElseThrow().engine());
+        Run atHome = home.byKey("site" + Lanes.MIRROR_SEPARATOR + opened.key())
+                .orElseThrow(() -> new AssertionError("the site's work did not reach its tenant"));
+        List<Run> saidHome = acts(home, atHome);
+        assertEquals(said(saidThere), said(saidHome),
+                "what was said of the site's work is not at its tenant as the site recorded it");
+        assertTrue(said(saidHome).stream().anyMatch(act -> act.contains("the-analyser")
+                        && act.contains("rack 3")),
+                "the stage, who reached it and why are not at the tenant: " + said(saidHome));
+        assertTrue(saidHome.stream().allMatch(act -> "site".equals(act.place())),
+                "an act at the tenant does not say the site it was said at: " + saidHome);
+    }
+
+    /** The acts said of a run, in the order they were said. */
+    private static List<Run> acts(Runs runs, Run of) {
+        return runs.items(of).stream().filter(act -> Runs.ACTS.equals(act.process()))
+                .sorted(java.util.Comparator.comparing(Run::authored)).toList();
+    }
+
+    /** Each act as what it was, who said it, when and why. */
+    private static List<String> said(List<Run> acts) {
+        return acts.stream().map(act -> act.step() + " by " + act.assignment().claimant() + " at "
+                + act.authored() + ": " + act.assignment().note()).toList();
+    }
+
+    @Test
     @Order(16)
     @DisplayName("a record the tenant holds, kept by a site's run by what it says, leaves the "
             + "tenant's record as it was, in content and version, and the tenant's trail says "
