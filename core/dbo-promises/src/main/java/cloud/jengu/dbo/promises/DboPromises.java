@@ -3163,6 +3163,12 @@ public enum DboPromises implements Promise {
             + "did not take is on the tenant's trail as the site's, about the record it was "
             + "for."),
 
+    SYNC_WHAT_WAS_SAID_OF_A_PLACES_WORK_GOES_HOME_WITH_IT(
+            "Who moved a place's work, when and why reaches its tenant with that work: each "
+            + "act said of a run the place hands home — taken, refused, a stage reached, ended "
+            + "— is listed at home under that run as the place recorded it, by whom, at the "
+            + "time it was said there and with what was said."),
+
     SYNC_CONTENT_TRAVELS_HOME_WITH_ITS_RUN(
             "Content a place's run put — named by its writer at the content door or "
             + "in-process — and content a record that run produced points at, reach the tenant "
