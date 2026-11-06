@@ -3331,6 +3331,7 @@ cloud.jengu.dbo.promises.DboPromises                                   PROC_A_ST
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_STREAM_DOOR_OPENS_FOR_WHOEVER_CAN_ASK:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_STREAM_RIDES_ANY_CARRIER:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_SWEEP_HOLDS_EACH_REFERENCE_ONCE:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   PROC_A_SWEEP_LETS_GO_OF_WHAT_IT_CLOSED:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_TASK_SEARCH_LISTS_ROOTS_AND_PARTS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_TENANT_ADMITS_OR_DECLINES_WHAT_IS_DONE_TO_IT:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_A_TENANT_AUTHORISES_A_REGISTER_AND_SEES_IT_CHANGE:cloud.jengu.dbo.promises.DboPromises
@@ -3353,6 +3354,7 @@ cloud.jengu.dbo.promises.DboPromises                                   PROC_CORR
 cloud.jengu.dbo.promises.DboPromises                                   PROC_DECLARING_A_STEP_PREPARES_ITS_SUBSTRATE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_DOMAIN_CODE_FILTER:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_DONE_MEANS_DONE:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   PROC_EACH_STREAM_KEEPS_A_SWEEP_OF_ITS_OWN:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_ENTITLEMENT_IS_DECLARED_NOT_DEFAULTED:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_ESCALATION_BY_FAILURE_CLASS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_EXECUTOR_DECLARES_ITSELF:cloud.jengu.dbo.promises.DboPromises
@@ -4484,6 +4486,7 @@ cloud.jengu.dbo.sync.ContentDependency                                 new(Strin
 cloud.jengu.dbo.sync.ContentDependency                                 record
 cloud.jengu.dbo.sync.ContentDependency                                 toString():String
 cloud.jengu.dbo.sync.ContentDependency                                 wanted():cloud.jengu.dbo.core.api.feed.FeedSelection
+cloud.jengu.dbo.sync.ContentSyncEngine                                 KEPT_CLOSED:Duration
 cloud.jengu.dbo.sync.ContentSyncEngine                                 PROCESS:String
 cloud.jengu.dbo.sync.ContentSyncEngine                                 STEP:String
 cloud.jengu.dbo.sync.ContentSyncEngine                                 class
@@ -4492,6 +4495,7 @@ cloud.jengu.dbo.sync.ContentSyncEngine                                 degraded(
 cloud.jengu.dbo.sync.ContentSyncEngine                                 dependency():String
 cloud.jengu.dbo.sync.ContentSyncEngine                                 holdsAnything():boolean
 cloud.jengu.dbo.sync.ContentSyncEngine                                 isStreamedOrigin(String):boolean
+cloud.jengu.dbo.sync.ContentSyncEngine                                 letGo(cloud.jengu.dbo.work.Run,Instant):int
 cloud.jengu.dbo.sync.ContentSyncEngine                                 name():String
 cloud.jengu.dbo.sync.ContentSyncEngine                                 new(cloud.jengu.dbo.sync.ContentDependency,cloud.jengu.dbo.core.api.feed.ChangeFeed,cloud.jengu.dbo.core.api.ObjectStore,DataSource,String,String,List)
 cloud.jengu.dbo.sync.ContentSyncEngine                                 new(cloud.jengu.dbo.sync.ContentDependency,cloud.jengu.dbo.core.api.feed.ChangeFeed,cloud.jengu.dbo.core.api.ObjectStore,DataSource,String,String,List,String)

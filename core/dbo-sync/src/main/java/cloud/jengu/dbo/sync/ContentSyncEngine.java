@@ -177,7 +177,7 @@ public final class ContentSyncEngine {
     }
 
     private cloud.jengu.dbo.work.Run passHoldingTheStream(int chunkSize) {
-        cloud.jengu.dbo.work.Run sweep = runs.sweep(PROCESS, STEP, dependency.name(),
+        cloud.jengu.dbo.work.Run sweep = runs.sweep(PROCESS, STEP, scope(),
                 List.of(targetDomain));
         cloud.jengu.dbo.work.Runs.Pass pass = runs.pass(sweep);
         long seen = 0;
@@ -203,11 +203,83 @@ public final class ContentSyncEngine {
             pass.item(dead.typeName() + "/" + dead.objectId(),
                     cloud.jengu.dbo.work.Failure.RECORD, dead.reason());
         }
-        return pass.counted("seen", seen)
+        cloud.jengu.dbo.work.Run done = pass.counted("seen", seen)
                 .counted("applied", applied)
                 .counted("parked", parked.size())
                 .counted("undelivered", undelivered.size())
                 .done();
+        letGo(done, java.time.Instant.now().minus(KEPT_CLOSED));
+        return done;
+    }
+
+    /**
+     * What this stream's sweep is known by: the dependency it reads, and for a
+     * stream into the definitions or the work domain that domain beside it.
+     *
+     * <p>One sweep per stream, because a pass closes every item it does not
+     * find again. A tenant reads one upstream as a stream of records and a
+     * stream of definitions; sharing a sweep, the records' pass closed each
+     * override the definitions' pass had just raised, and the next round raised
+     * it again — a closed item every round for every override, millions within
+     * weeks on a place whose configuration overrides its upstream's
+     * definitions. The records stream keeps the name the sweep always had, so
+     * its trail and the items it already holds stay its own.
+     */
+    private String scope() {
+        return Domains.DEFINITIONS.equals(targetDomain)
+                || cloud.jengu.dbo.work.WorkModel.DOMAIN.equals(targetDomain)
+                ? dependency.name() + "/" + targetDomain : dependency.name();
+    }
+
+    /** How long a sweep keeps an item it closed: long enough to read why it was raised. */
+    public static final java.time.Duration KEPT_CLOSED = java.time.Duration.ofDays(1);
+
+    /**
+     * How many closed items one pass lets go of at most, so a sweep holding
+     * millions drains over many rounds and every round stays short.
+     */
+    static final int LET_GO_PER_PASS = 5000;
+
+    /**
+     * The items this sweep closed before {@code before}, removed, history and
+     * all, a bounded number at a time, as the runs a step started itself are
+     * removed past what the step keeps. An item kept forever is one row per
+     * time something was wrong for a while: a sweep that runs for years would
+     * hold every one of them.
+     *
+     * @return how many went
+     */
+    public int letGo(cloud.jengu.dbo.work.Run sweep, java.time.Instant before) {
+        List<String> over = runs.over(sweep, PROCESS, STEP, before, LET_GO_PER_PASS);
+        if (over.isEmpty()) {
+            return 0;
+        }
+        String tables = Domains.tables(cloud.jengu.dbo.work.WorkModel.DOMAIN);
+        String history = Domains.historyTables(
+                cloud.jengu.dbo.work.WorkModel.DOMAIN);
+        try (Connection c = targetDs.getConnection()) {
+            c.setAutoCommit(false);
+            try {
+                for (String sql : List.of(
+                        "DELETE FROM %s_history WHERE id = ANY(?::uuid[])".formatted(history),
+                        "DELETE FROM %s_identifier WHERE object_id = ANY(?::uuid[])".formatted(tables),
+                        "DELETE FROM %s_reference WHERE owner_id = ANY(?::uuid[])".formatted(tables),
+                        "DELETE FROM %s_data WHERE id = ANY(?::uuid[])".formatted(tables))) {
+                    try (PreparedStatement ps = c.prepareStatement(sql)) {
+                        ps.setArray(1, c.createArrayOf("text", over.toArray()));
+                        ps.executeUpdate();
+                    }
+                }
+                c.commit();
+            } catch (SQLException e) {
+                c.rollback();
+                throw e;
+            }
+        } catch (SQLException e) {
+            throw new IllegalStateException(consumer() + ": the items its sweep closed could not "
+                    + "be let go", e);
+        }
+        return over.size();
     }
 
     private String consumer() {
@@ -252,8 +324,7 @@ public final class ContentSyncEngine {
      */
     private cloud.jengu.dbo.core.api.Caller.InRun underItsRun() {
         return runs == null ? () -> { }
-                : cloud.jengu.dbo.core.api.Caller.writingFor(PROCESS + "/" + STEP + "/"
-                        + dependency.name());
+                : cloud.jengu.dbo.core.api.Caller.writingFor(PROCESS + "/" + STEP + "/" + scope());
     }
 
     private int syncOnceHoldingTheStream(int chunkSize) {

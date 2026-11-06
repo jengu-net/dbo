@@ -16,6 +16,7 @@ import cloud.jengu.dbo.promises.Proving;
 import cloud.jengu.dbo.sync.ContentDependency;
 import cloud.jengu.dbo.sync.ContentSyncEngine;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
@@ -326,6 +327,73 @@ class SyncStreamsIT {
                         .filter(item -> item.item().message().contains("local override"))
                         .noneMatch(cloud.jengu.dbo.work.Run::open),
                 "the pass that stops finding it is what closes it");
+    }
+
+    @Test
+    @Order(9)
+    @DisplayName("an override the definitions' stream holds open stays open through a pass of "
+            + "the records' stream from the same upstream")
+    @Proving(DboPromises.PROC_EACH_STREAM_KEEPS_A_SWEEP_OF_ITS_OWN)
+    void anotherStreamsPassClosesNothingOfThisOnes() {
+        String url = "https://zone.test/vs/held-apart";
+        PutResult local = leaf.putCanonical(valueSet(url, "LocalOverride"));
+        String upstream = zone.putCanonical(valueSet(url, "UpstreamContent")).id();
+        syncAll();
+        cloud.jengu.dbo.work.Runs runs = new cloud.jengu.dbo.work.Runs(leafEngine);
+
+        cloud.jengu.dbo.work.Run definitions = midToLeafDefinitions.pass(100);
+        List<cloud.jengu.dbo.work.Run> raised = held(runs, definitions, upstream);
+        assertEquals(1, raised.size(), "the definitions' stream holds no card for the override");
+
+        cloud.jengu.dbo.work.Run records = midToLeaf.pass(100);
+        midToLeafDefinitions.pass(100);
+
+        assertNotEquals(definitions.key(), records.key(),
+                "the two streams from one upstream share a sweep");
+        assertEquals(raised.stream().map(cloud.jengu.dbo.work.Run::key).toList(),
+                held(runs, definitions, upstream).stream().map(cloud.jengu.dbo.work.Run::key).toList(),
+                "the records' pass closed the override's card, and the next pass raised it again");
+
+        leaf.delete("ValueSet", local.id(), null);
+        midToLeafDefinitions.pass(100);
+    }
+
+    @Test
+    @Order(10)
+    @DisplayName("a sweep removes the items it closed once they are older than it keeps them, "
+            + "and keeps what is open")
+    @Proving(DboPromises.PROC_A_SWEEP_LETS_GO_OF_WHAT_IT_CLOSED)
+    void aSweepLetsGoOfWhatItClosed() {
+        String closing = "https://zone.test/vs/let-go";
+        String staying = "https://zone.test/vs/still-held";
+        PutResult gone = leaf.putCanonical(valueSet(closing, "LocalOverride"));
+        leaf.putCanonical(valueSet(staying, "LocalOverride"));
+        String closingId = zone.putCanonical(valueSet(closing, "UpstreamContent")).id();
+        String stayingId = zone.putCanonical(valueSet(staying, "UpstreamContent")).id();
+        syncAll();
+        cloud.jengu.dbo.work.Runs runs = new cloud.jengu.dbo.work.Runs(leafEngine);
+        cloud.jengu.dbo.work.Run sweep = midToLeafDefinitions.pass(100);
+        List<cloud.jengu.dbo.work.Run> closed = held(runs, sweep, closingId);
+        leaf.delete("ValueSet", gone.id(), null);
+        sweep = midToLeafDefinitions.pass(100);
+        assertTrue(closed.stream().allMatch(item -> runs.byKey(item.key()).isPresent()),
+                "an item closed just now was removed before the sweep kept it a day");
+
+        int removed = midToLeafDefinitions.letGo(sweep, java.time.Instant.now().plusSeconds(1));
+
+        assertTrue(removed >= closed.size(), "the sweep let go of " + removed + " items");
+        assertTrue(closed.stream().noneMatch(item -> runs.byKey(item.key()).isPresent()),
+                "a closed item older than the sweep keeps it is still held");
+        assertEquals(1, held(runs, sweep, stayingId).size(), "the open item went with them");
+    }
+
+    /** What a sweep holds open for an override of the upstream's value set by this id. */
+    private static List<cloud.jengu.dbo.work.Run> held(cloud.jengu.dbo.work.Runs runs,
+            cloud.jengu.dbo.work.Run sweep, String upstreamId) {
+        return runs.items(sweep).stream().filter(cloud.jengu.dbo.work.Run::open)
+                .filter(item -> item.item() != null
+                        && item.item().reference().equals("ValueSet/" + upstreamId))
+                .toList();
     }
 
     /**

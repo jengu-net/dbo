@@ -765,6 +765,17 @@ public enum DboPromises implements Promise {
             + "each pass stays short; a pass that stopped at its bound raises nothing new and "
             + "closes nothing for not being found again."),
 
+    PROC_EACH_STREAM_KEEPS_A_SWEEP_OF_ITS_OWN("Each stream a tenant reads keeps a sweep "
+            + "of its own, the stream of an upstream's definitions apart from the stream of its "
+            + "records: what one stream holds open for a person is closed only by that stream's "
+            + "own pass not finding it again, never by another stream's pass over the same "
+            + "upstream."),
+
+    PROC_A_SWEEP_LETS_GO_OF_WHAT_IT_CLOSED("A stream's sweep keeps an item it closed for a "
+            + "day and then removes it, history and all, a bounded number each pass, so a "
+            + "sweep that has run for years holds what is open and what closed lately, not "
+            + "every item it ever raised. An open item is never removed."),
+
     PROC_CONFIG_WITHDRAWAL_IS_DECLARED("Only a read a source says is complete may "
             + "withdraw what it no longer names, so a partial read and an unreadable one "
             + "take nothing away. What is held is the applier's to answer and undoing is "
