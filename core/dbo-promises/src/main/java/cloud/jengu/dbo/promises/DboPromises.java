@@ -442,6 +442,13 @@ public enum DboPromises implements Promise {
             + "completed, failed or cancelled with the reason, its business status is the stage "
             + "it has reached, it names no performer, and its parts are Tasks part of it."),
 
+    PROC_WORK_FOR_A_PERSON_IN_A_ROLE_IS_THEIRS_ONLY_WHERE_THE_ROLE_PERFORMS_IT("Work an "
+            + "application in the store's process starts, or an act it says of work that lasts, "
+            + "for a person acting in one of their roles is refused, saying why, unless they hold "
+            + "that role now and what the role grants where they hold it covers the step — by the "
+            + "step's code, or every step of its process. A role held that does not cover the step "
+            + "does not make it theirs."),
+
     PROC_WORK_IN_PROCESS_NAMES_THE_PERSON_IT_IS_FOR("An application in the store's process "
             + "starts work, and says acts of work that lasts, for a person it names by "
             + "reference: the run and the Task it reads as name that person as having asked, "

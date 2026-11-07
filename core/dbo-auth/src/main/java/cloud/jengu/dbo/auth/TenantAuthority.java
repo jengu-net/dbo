@@ -1440,6 +1440,46 @@ public final class TenantAuthority {
         return List.copyOf(active);
     }
 
+    /**
+     * Why a practitioner acting in one of their roles may not do a step, or
+     * empty where they may: they hold the role now, and what it grants where
+     * they hold it — the organisation's grant, else the tenant-wide one —
+     * covers the step ({@link Scopes#coversStep}). Read when they act, as
+     * {@link #activeRoles} is, so a role taken away, or one whose period has
+     * ended, does nothing even for a person signed in before.
+     */
+    public Optional<String> refusesStep(String practitionerId, String roleCode, String step) {
+        boolean held = false;
+        for (StoredObject role : rolesHeldBy(practitionerId)) {
+            Object payload = Json.parse(new String(role.payload(), StandardCharsets.UTF_8));
+            if (!periodActive(payload)) {
+                continue;
+            }
+            boolean thisRole = false;
+            for (Object code : Json.array(payload, "code")) {
+                for (Object coding : Json.array(code, "coding")) {
+                    thisRole |= roleCode.equals(Json.strOpt(coding, "code"));
+                }
+            }
+            if (!thisRole) {
+                continue;
+            }
+            held = true;
+            String organisationId = organisationOf(payload);
+            Optional<StoredObject> grant = organisationId == null ? Optional.empty()
+                    : activeGrant(roleCode, organisationId);
+            if (grant.isEmpty()) {
+                grant = activeGrant(roleCode, null);
+            }
+            if (grant.isPresent() && Scopes.coversStep(Json.strings(Json.parse(
+                    new String(grant.get().payload(), StandardCharsets.UTF_8)), "scopes"), step)) {
+                return Optional.empty();
+            }
+        }
+        return Optional.of(held ? "the role '" + roleCode + "' does not perform '" + step + "'"
+                : "Practitioner/" + practitionerId + " does not hold the role '" + roleCode + "'");
+    }
+
     private void grantsFromPractitioner(String practitionerId,
             java.util.Set<String> scopes, java.util.Set<String> roles,
             java.util.Set<String> organisations, boolean[] tenantWide) {

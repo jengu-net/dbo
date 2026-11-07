@@ -255,6 +255,25 @@ public interface RunInitiator {
                 + " cannot act for a person");
     }
 
+    /**
+     * The same initiator, acting for a person in one of their roles: what it
+     * starts, and what it says of lasting work, is refused — 403, saying why —
+     * unless the person holds that role now and what the role grants where
+     * they hold it covers the step. The role is a way of working the person
+     * chose, and what is done is done in it; a role held but not granting the
+     * step does not make the step theirs.
+     *
+     * @param person a reference, {@code Practitioner/<id>}
+     * @param role   the role's code, as the tenant grants it
+     */
+    default RunInitiator actingFor(String person, String role) {
+        if (role == null) {
+            return actingFor(person);
+        }
+        throw new UnsupportedOperationException(getClass().getName()
+                + " cannot act for a person in a role");
+    }
+
     /** Asks a run how it stands. */
     Answer answer(String tenant, String run);
 

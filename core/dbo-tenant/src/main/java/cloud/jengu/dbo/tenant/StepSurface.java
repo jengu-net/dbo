@@ -977,6 +977,11 @@ final class StepSurface implements HttpHandler {
      * @param body {@code because}, and {@code stage} or {@code status} where
      *             the act names one
      */
+    /** The step a run is of, by its code, or empty for no such run. */
+    Optional<String> stepOf(String runId) {
+        return runs.byId(runId).map(run -> run.process() + "." + run.step());
+    }
+
     Started saying(String runId, String act, Object body, String by) {
         Optional<Run> found = runs.byId(runId);
         if (found.isEmpty()) {

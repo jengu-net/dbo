@@ -178,6 +178,25 @@ public final class Scopes {
                 .map(scope -> scope.substring(WORK_STEP.length())).toList();
     }
 
+    /**
+     * Whether these grants cover one step: the bare scope covers every step,
+     * {@code work/<step>} that step, and {@code work/<process>.*} every step
+     * of that process — a role that performs a whole process is granted it
+     * once, not step by step as the process grows.
+     */
+    public static boolean coversStep(List<String> granted, String step) {
+        if (granted.contains(WORK)) {
+            return true;
+        }
+        for (String covered : workSteps(granted)) {
+            if (covered.equals(step) || covered.endsWith(".*")
+                    && step.startsWith(covered.substring(0, covered.length() - 1))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private static boolean isWorkStep(String scope) {
         return scope.startsWith(WORK_STEP) && scope.length() > WORK_STEP.length();
     }
