@@ -688,20 +688,26 @@ public final class TenantRuntimeManager implements AutoCloseable {
      * answers 404 as the door would.
      */
     public cloud.jengu.dbo.work.RunInitiator runInitiator() {
-        return runInitiator(null);
+        return runInitiator(null, null);
     }
 
     /**
      * The same, for the person named, or for the application itself where
      * nobody is: what it starts names that person as having asked, and what
-     * it says of lasting work is theirs on the trail.
+     * it says of lasting work is theirs on the trail. Where the person acts
+     * in a role, a step that role does not perform is refused.
      */
-    private cloud.jengu.dbo.work.RunInitiator runInitiator(String person) {
+    private cloud.jengu.dbo.work.RunInitiator runInitiator(String person, String role) {
         return new cloud.jengu.dbo.work.RunInitiator() {
             @Override
             public cloud.jengu.dbo.work.RunInitiator actingFor(String someone) {
+                return actingFor(someone, null);
+            }
+
+            @Override
+            public cloud.jengu.dbo.work.RunInitiator actingFor(String someone, String inRole) {
                 if (someone == null) {
-                    return runInitiator(null);
+                    return runInitiator(null, null);
                 }
                 if (someone.indexOf('/') <= 0) {
                     // A bare name is how a client is recorded, so a person
@@ -709,7 +715,24 @@ public final class TenantRuntimeManager implements AutoCloseable {
                     throw new IllegalArgumentException("a person is named by reference, "
                             + "such as Practitioner/<id>, and '" + someone + "' is not one");
                 }
-                return runInitiator(someone);
+                if (inRole != null && !someone.startsWith("Practitioner/")) {
+                    throw new IllegalArgumentException("a role is held by a practitioner, "
+                            + "and '" + someone + "' is not one");
+                }
+                return runInitiator(someone, inRole);
+            }
+
+            /** Why the person may not do the step in their role, or null where they may. */
+            private String refused(String tenant, String step) {
+                if (role == null) {
+                    return null;
+                }
+                cloud.jengu.dbo.auth.TenantAuthority authority = authority(tenant);
+                if (authority == null) {
+                    return "the tenant '" + tenant + "' has no authority to say what '" + role + "' performs";
+                }
+                return authority.refusesStep(person.substring("Practitioner/".length()), role, step)
+                        .orElse(null);
             }
 
             @Override
@@ -742,6 +765,11 @@ public final class TenantRuntimeManager implements AutoCloseable {
                     return new Started(404, null, null, "{\"error\":\"not_found\","
                             + "\"detail\":\"this node starts no work on '" + tenant + "'\"}");
                 }
+                String refusal = refused(tenant, step);
+                if (refusal != null) {
+                    return new Started(403, null, null, "{\"error\":\"forbidden\",\"detail\":"
+                            + cloud.jengu.dbo.work.RunInitiator.quoted(refusal) + "}");
+                }
                 StringBuilder named = new StringBuilder();
                 inputs.forEach((slot, filled) -> named.append(named.length() == 0 ? "" : ",")
                         .append(cloud.jengu.dbo.work.RunInitiator.quoted(slot)).append(':').append(filled.rendered()));
@@ -764,6 +792,11 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 StepSurface starter = starters.get(tenant);
                 if (starter == null) {
                     return new Started(404, null, null, "{\"error\":\"not_found\"}");
+                }
+                String refusal = starter.stepOf(run).map(step -> refused(tenant, step)).orElse(null);
+                if (refusal != null) {
+                    return new Started(403, null, null, "{\"error\":\"forbidden\",\"detail\":"
+                            + cloud.jengu.dbo.work.RunInitiator.quoted(refusal) + "}");
                 }
                 StringBuilder body = new StringBuilder();
                 said.forEach((name, value) -> body.append(body.isEmpty() ? "" : ",")

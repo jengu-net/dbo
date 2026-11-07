@@ -73,7 +73,9 @@ class ATickStartsOneRunOnEveryNodeIT {
             {"code":"%s","face":"r5","types":[
               {"name":"Basic","identity":"internal","handling":"operational"},
               {"name":"Communication","identity":"internal","handling":"operational"},
-              {"name":"CommunicationRequest","identity":"internal","handling":"operational"}],
+              {"name":"CommunicationRequest","identity":"internal","handling":"operational"},
+              {"name":"Practitioner","identity":"internal","handling":"operational"},
+              {"name":"PractitionerRole","identity":"internal","handling":"operational"}],
              "steps":[
               {"code":"ward.rounds.walk",
                "starts":{"every":"0 * * * * *","missed":"once","keep":"P1D","where":"origin"}},
@@ -614,6 +616,48 @@ class ATickStartsOneRunOnEveryNodeIT {
         assertThrows(IllegalArgumentException.class,
                 () -> north.runInitiator().actingFor("p1"),
                 "a person named as a client would read on the Task as an application");
+    }
+
+    @Test
+    @Order(15)
+    @DisplayName("work an application raises for a person acting in a role is theirs only where "
+            + "the role performs the step: a porter whose role grants the ward's orders raises "
+            + "and takes one; acting as a visitor, or in a role they do not hold, they are "
+            + "refused, saying why")
+    @Proving(DboPromises.PROC_WORK_FOR_A_PERSON_IN_A_ROLE_IS_THEIRS_ONLY_WHERE_THE_ROLE_PERFORMS_IT)
+    void aRoleMakesTheStepTheirsOnlyWhereItPerformsIt() throws Exception {
+        north.authority(WARD).ensureRoleGrant("porter", List.of("work/ward.orders.*"));
+        north.authority(WARD).ensureRoleGrant("visitor", List.of("user/*.read"));
+        String porter = writeAs("Practitioner", "{\"resourceType\":\"Practitioner\"}");
+        for (String role : List.of("porter", "visitor")) {
+            writeAs("PractitionerRole", "{\"resourceType\":\"PractitionerRole\",\"active\":true,"
+                    + "\"practitioner\":{\"reference\":\"Practitioner/" + porter + "\"},"
+                    + "\"code\":[{\"coding\":[{\"code\":\"" + role + "\"}]}]}");
+        }
+        var asPorter = north.runInitiator().actingFor("Practitioner/" + porter, "porter");
+        var asVisitor = north.runInitiator().actingFor("Practitioner/" + porter, "visitor");
+        var asSurgeon = north.runInitiator().actingFor("Practitioner/" + porter, "surgeon");
+
+        var raised = asPorter.starting(WARD, RAISE, Map.of("order",
+                cloud.jengu.dbo.work.RunInitiator.Slot.reference(order())), null);
+        assertEquals(201, raised.status(), raised.body());
+        assertEquals(200, asPorter.saying(WARD, raised.run(), "accept",
+                Map.of("because", "taken on")).status());
+
+        var visiting = asVisitor.starting(WARD, RAISE, Map.of("order",
+                cloud.jengu.dbo.work.RunInitiator.Slot.reference(order())), null);
+        assertEquals(403, visiting.status(), visiting.body());
+        assertTrue(visiting.body().contains("does not perform"), visiting.body());
+        var operating = asSurgeon.starting(WARD, RAISE, Map.of("order",
+                cloud.jengu.dbo.work.RunInitiator.Slot.reference(order())), null);
+        assertEquals(403, operating.status(), operating.body());
+        assertTrue(operating.body().contains("does not hold"), operating.body());
+        assertEquals(403, asVisitor.saying(WARD, raised.run(), "end",
+                Map.of("status", "completed", "because", "not mine to end")).status(),
+                "an act on work the role does not perform was said");
+        assertThrows(IllegalArgumentException.class,
+                () -> north.runInitiator().actingFor("Patient/x", "porter"),
+                "a role is a practitioner's");
     }
 
     /** A new order, for work raised over it. */

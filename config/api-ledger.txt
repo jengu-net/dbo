@@ -265,6 +265,7 @@ cloud.jengu.dbo.auth.Scopes                                            admitsSup
 cloud.jengu.dbo.auth.Scopes                                            admitsWork(List):boolean
 cloud.jengu.dbo.auth.Scopes                                            allows(List,String,boolean):boolean
 cloud.jengu.dbo.auth.Scopes                                            class
+cloud.jengu.dbo.auth.Scopes                                            coversStep(List,String):boolean
 cloud.jengu.dbo.auth.Scopes                                            holdsAPlace(List):boolean
 cloud.jengu.dbo.auth.Scopes                                            isValid(String):boolean
 cloud.jengu.dbo.auth.Scopes                                            supervisedSteps(List):List
@@ -380,6 +381,7 @@ cloud.jengu.dbo.auth.TenantAuthority                                   pruneReti
 cloud.jengu.dbo.auth.TenantAuthority                                   redeemSecretGrant(String,String):boolean
 cloud.jengu.dbo.auth.TenantAuthority                                   redeemSecretGrantFor(String,String):Optional
 cloud.jengu.dbo.auth.TenantAuthority                                   refresh(String):cloud.jengu.dbo.auth.TenantAuthority.TokenResult
+cloud.jengu.dbo.auth.TenantAuthority                                   refusesStep(String,String,String):Optional
 cloud.jengu.dbo.auth.TenantAuthority                                   resolveByNationalId(String,String):Optional
 cloud.jengu.dbo.auth.TenantAuthority                                   retireCredential(String):void
 cloud.jengu.dbo.auth.TenantAuthority                                   rewrapKeys():int
@@ -3416,6 +3418,7 @@ cloud.jengu.dbo.promises.DboPromises                                   PROC_TRAC
 cloud.jengu.dbo.promises.DboPromises                                   PROC_TRACE_RIDES_THE_LANE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_WHO_OWES_THE_NEXT_ACT_IS_DERIVED:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_WORK_DRIVEN_ARRIVAL_AND_EXPIRY:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   PROC_WORK_FOR_A_PERSON_IN_A_ROLE_IS_THEIRS_ONLY_WHERE_THE_ROLE_PERFORMS_IT:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_WORK_HANDED_TO_THE_PROVIDER_IS_ON_THE_TENANTS_REGISTER:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_WORK_IN_PROCESS_NAMES_THE_PERSON_IT_IS_FOR:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   PROC_WORK_IS_AUTHORED_ON_THE_SURFACE:cloud.jengu.dbo.promises.DboPromises
@@ -5955,6 +5958,7 @@ cloud.jengu.dbo.work.RunChain.Verdict                                  record
 cloud.jengu.dbo.work.RunChain.Verdict                                  toString():String
 cloud.jengu.dbo.work.RunChain.Verdict                                  unchained():boolean
 cloud.jengu.dbo.work.RunInitiator                                      actingFor(String):cloud.jengu.dbo.work.RunInitiator
+cloud.jengu.dbo.work.RunInitiator                                      actingFor(String,String):cloud.jengu.dbo.work.RunInitiator
 cloud.jengu.dbo.work.RunInitiator                                      addressed(cloud.jengu.dbo.work.Run.Addressee):String
 cloud.jengu.dbo.work.RunInitiator                                      answer(String,String):cloud.jengu.dbo.work.RunInitiator.Answer
 cloud.jengu.dbo.work.RunInitiator                                      awaiting(String,String,Duration):cloud.jengu.dbo.work.RunInitiator.Answer
