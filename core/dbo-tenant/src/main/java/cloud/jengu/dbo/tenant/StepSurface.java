@@ -651,9 +651,10 @@ final class StepSurface implements HttpHandler {
             return refused(400, "invalid_request", "'owner' names who holds lasting work, and "
                     + stepCode + " is not declared to last: its work is held by whoever takes it");
         }
-        if (owner != null && owner.indexOf('/') <= 0) {
+        if (owner != null && !cloud.jengu.dbo.work.Run.namesAHolder(owner)) {
             return refused(400, "invalid_request", "'owner' names who holds the work by "
-                    + "reference, such as Device/<id>, and '" + owner + "' is not one");
+                    + "reference, such as Device/<id> or Device?identifier=<system>|<value>, and '"
+                    + owner + "' is neither");
         }
         String scope = Optional.ofNullable(Json.strOpt(body, "scope"))
                 .orElseGet(cloud.jengu.dbo.core.UuidV7::newId);

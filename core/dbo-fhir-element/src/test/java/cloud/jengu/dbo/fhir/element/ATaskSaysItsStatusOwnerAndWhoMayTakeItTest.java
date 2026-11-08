@@ -97,7 +97,8 @@ class ATaskSaysItsStatusOwnerAndWhoMayTakeItTest {
     }
 
     @Test
-    @DisplayName("work opened as held by a device is owned by the device")
+    @DisplayName("work opened as held by a device is owned by the device, by its record or by "
+            + "its identifier")
     @Proving(DboPromises.PROC_LASTING_WORK_IS_FOUND_BY_WHO_HOLDS_IT)
     void workHeldByADeviceIsOwnedByIt() {
         String held = """
@@ -107,6 +108,13 @@ class ATaskSaysItsStatusOwnerAndWhoMayTakeItTest {
         for (String code : List.of("r4", "r5")) {
             assertEquals(Map.of("reference", "Device/analyser-1"), rendered(code, held).get("owner"),
                     code);
+        }
+        String byIdentifier = held.replace("Device/analyser-1",
+                "Device?identifier=urn:example:analyser|analyser-7");
+        for (String code : List.of("r4", "r5")) {
+            assertEquals(Map.of("type", "Device", "identifier",
+                            Map.of("system", "urn:example:analyser", "value", "analyser-7")),
+                    rendered(code, byIdentifier).get("owner"), "named by its identifier, " + code);
         }
     }
 

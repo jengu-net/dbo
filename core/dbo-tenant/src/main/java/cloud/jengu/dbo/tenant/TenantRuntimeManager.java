@@ -701,9 +701,10 @@ public final class TenantRuntimeManager implements AutoCloseable {
         return new cloud.jengu.dbo.work.RunInitiator() {
             @Override
             public cloud.jengu.dbo.work.RunInitiator ownedBy(String holder) {
-                if (holder != null && holder.indexOf('/') <= 0) {
+                if (holder != null && !cloud.jengu.dbo.work.Run.namesAHolder(holder)) {
                     throw new IllegalArgumentException("who holds work is named by reference, "
-                            + "such as Device/<id>, and '" + holder + "' is not one");
+                            + "such as Device/<id> or Device?identifier=<system>|<value>, and '"
+                            + holder + "' is neither");
                 }
                 return runInitiator(person, role, holder);
             }

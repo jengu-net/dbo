@@ -185,9 +185,17 @@ class AskingWhatNeedsSomebodyIT {
         assertEquals(analyser, moved.owner(), "an act said of the work lost who holds it");
         assertEquals(analyser, runs.opening(measure, "test", first.inputs().get("test").values().get(0),
                 "edge", null, null, other).owner(), "work found again took another holder");
-        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class,
-                () -> runs.opening(measure, "test", "ServiceRequest/x", "edge", null, null, "analyser"),
-                "a holder named by no reference was taken");
+        for (String named : List.of("analyser", "Device/", "Device?identifier=analyser",
+                "Device?identifier=urn:x|")) {
+            org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class,
+                    () -> runs.opening(measure, "test", "ServiceRequest/x", "edge", null, null, named),
+                    "a holder named by neither a reference nor an identifier was taken: " + named);
+        }
+        String byIdentifier = "Device?identifier=urn:dbo-test:analyser|" + java.util.UUID.randomUUID();
+        Run named = runs.opening(measure, "test", "ServiceRequest/" + java.util.UUID.randomUUID(),
+                "edge", null, null, byIdentifier);
+        assertEquals(List.of(named.id()), asking.work().ownedBy(byIdentifier).page(10, null).runs()
+                .stream().map(Ongoing::id).toList(), "a device named by its identifier holds nothing");
     }
 
     @Test
