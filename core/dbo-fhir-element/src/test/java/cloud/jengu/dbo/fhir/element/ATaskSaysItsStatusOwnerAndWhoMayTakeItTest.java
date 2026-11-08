@@ -110,10 +110,10 @@ class ATaskSaysItsStatusOwnerAndWhoMayTakeItTest {
                     code);
         }
         String byIdentifier = held.replace("Device/analyser-1",
-                "Device?identifier=urn:jengu:device|vidas-kube-1");
+                "Device?identifier=urn:example:analyser|analyser-7");
         for (String code : List.of("r4", "r5")) {
             assertEquals(Map.of("type", "Device", "identifier",
-                            Map.of("system", "urn:jengu:device", "value", "vidas-kube-1")),
+                            Map.of("system", "urn:example:analyser", "value", "analyser-7")),
                     rendered(code, byIdentifier).get("owner"), "named by its identifier, " + code);
         }
     }
