@@ -130,6 +130,11 @@ final class WorkProjection implements WorkSurface {
         if (query.get("code") != null) {
             criteria.eq("step", cloud.jengu.dbo.core.api.EnvelopeValue.of(query.get("code")));
         }
+        if (query.get("owner") != null) {
+            // Who holds the work, as whoever opened it named them: a device by
+            // its reference asks for the work done at it.
+            criteria.eq("owner", cloud.jengu.dbo.core.api.EnvelopeValue.of(query.get("owner")));
+        }
         if (query.get("identifier") != null) {
             // A run is identified twice: by its own key, and by the case it is
             // filed under. Named with the run's system it is the key; bare, or

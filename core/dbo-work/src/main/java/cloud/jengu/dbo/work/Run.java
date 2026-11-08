@@ -23,6 +23,10 @@ import java.util.Optional;
  * {@code attempts} counts the failures automation has had that its step's
  * {@code retry} said would pass. Who owes the next act is derived from these
  * ({@link #awaits}), never kept beside them.
+ *
+ * <p>Its {@code owner} is who holds the work now, as a FHIR Task's {@code owner} names
+ * them — a device, a person, a team, by reference — where whoever started it said so: state
+ * of the work rather than its subject, so it is queried as its status is.
  */
 public record Run(String id, long versionId, String key, String process, String step,
         RunKind kind, String parent, String correlation, String trace,
@@ -32,7 +36,23 @@ public record Run(String id, long versionId, String key, String process, String 
         String refused, Status status, boolean automation, java.time.Instant notBefore,
         String statusReason, int attempts, cloud.jengu.dbo.core.process.RetryPolicy retry,
         Window window, Addressee addressee, java.time.Instant authored,
-        java.time.Instant moved, Crossing crossing) {
+        java.time.Instant moved, Crossing crossing, String owner) {
+
+    /** A run nobody is named as holding: the shape before a run named its owner. */
+    public Run(String id, long versionId, String key, String process, String step,
+            RunKind kind, String parent, String correlation, String trace,
+            Map<String, Long> tally, Item item, java.util.List<String> domains,
+            Assignment assignment, Produced produced, String stepVersion,
+            Map<String, RunSlot> inputs, Milestone milestone, String requester,
+            String refused, Status status, boolean automation, java.time.Instant notBefore,
+            String statusReason, int attempts, cloud.jengu.dbo.core.process.RetryPolicy retry,
+            Window window, Addressee addressee, java.time.Instant authored,
+            java.time.Instant moved, Crossing crossing) {
+        this(id, versionId, key, process, step, kind, parent, correlation, trace, tally, item,
+                domains, assignment, produced, stepVersion, inputs, milestone, requester,
+                refused, status, automation, notBefore, statusReason, attempts, retry, window,
+                addressee, authored, moved, crossing, null);
+    }
 
     /**
      * A run as it was described before it said when — authored and last
@@ -696,7 +716,7 @@ public record Run(String id, long versionId, String key, String process, String 
                 optional(json, "statusReason"),
                 attempts instanceof Number count ? count.intValue() : 0, retry(json),
                 window(json), addressee(json), instant(json, "authored"),
-                instant(json, "at"), crossing(json));
+                instant(json, "at"), crossing(json), optional(json, "owner"));
     }
 
     private static java.time.Instant instant(Object json, String field) {

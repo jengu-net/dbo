@@ -1383,6 +1383,13 @@ public enum DboPromises implements Promise {
             + "already handed is not handed again, work nobody was handed is not taken back, "
             + "work that is over is neither, and a run that does not last is never handed."),
 
+    PROC_LASTING_WORK_IS_FOUND_BY_WHO_HOLDS_IT(
+            "Work that lasts names who holds it where whoever opens it says so — a device it "
+            + "is done at, a person, a team — and the work one holder has been given is asked "
+            + "for by who holds it, the work that moved last first, without reading what any "
+            + "of it is about. Work found again keeps the holder it was opened with, and its "
+            + "Task names that holder as its owner."),
+
     PROC_A_PERSON_OF_THE_PROVIDER_TAKES_WORK_HANDED_TO_IT(
             "A person signed in at the service provider takes work a tenant handed the "
             + "provider with that token, holding no credential of the tenant's: the token is "

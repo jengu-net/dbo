@@ -97,6 +97,20 @@ class ATaskSaysItsStatusOwnerAndWhoMayTakeItTest {
     }
 
     @Test
+    @DisplayName("work opened as held by a device is owned by the device")
+    @Proving(DboPromises.PROC_LASTING_WORK_IS_FOUND_BY_WHO_HOLDS_IT)
+    void workHeldByADeviceIsOwnedByIt() {
+        String held = """
+                {"key":"lab.test.measure/ServiceRequest/1","process":"lab.test",
+                 "step":"measure","kind":"lasting","status":"accepted","performerType":["person"],
+                 "owner":"Device/analyser-1"}""";
+        for (String code : List.of("r4", "r5")) {
+            assertEquals(Map.of("reference", "Device/analyser-1"), rendered(code, held).get("owner"),
+                    code);
+        }
+    }
+
+    @Test
     @DisplayName("a run a person holds is in progress and owned by the role they took it as")
     @Proving(DboPromises.PROC_A_PERSON_CLAIMS_AS_A_PRACTITIONER_ROLE)
     void aPersonsRunIsOwnedByTheirRole() {

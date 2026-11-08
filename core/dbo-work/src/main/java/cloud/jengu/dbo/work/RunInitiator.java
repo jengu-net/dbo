@@ -274,6 +274,27 @@ public interface RunInitiator {
                 + " cannot act for a person in a role");
     }
 
+    /**
+     * The same initiator, naming who holds the lasting work it opens from the
+     * start — a device the work is done at, a person, a team — as a Task's
+     * {@code owner} names them, so the work one holds is asked for by who
+     * holds it ({@code Questions.Work.ownedBy}). Work found again keeps the
+     * owner it was opened with; a step that does not last is refused it.
+     *
+     * <p>Refused, not ignored, where an initiator cannot carry it: opened
+     * without it, the work would never be found by who holds it.
+     *
+     * @param owner a reference, such as {@code Device/<id>}; null for nobody
+     *              named
+     */
+    default RunInitiator ownedBy(String owner) {
+        if (owner == null) {
+            return this;
+        }
+        throw new UnsupportedOperationException(getClass().getName()
+                + " cannot name who holds the work it opens");
+    }
+
     /** Asks a run how it stands. */
     Answer answer(String tenant, String run);
 
@@ -324,6 +345,14 @@ public interface RunInitiator {
      */
     static String partOf(String key) {
         return key == null ? "" : ",\"partOf\":" + quoted(key);
+    }
+
+    /**
+     * The step door's {@code owner}, as a member to append to a request body
+     * after another: empty for work naming nobody as holding it.
+     */
+    static String owner(String owner) {
+        return owner == null ? "" : ",\"owner\":" + quoted(owner);
     }
 
     /**

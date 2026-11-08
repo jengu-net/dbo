@@ -773,6 +773,38 @@ class ASecondPlaceComesUpFromItsOriginIT {
 
     @Test
     @Order(15)
+    @DisplayName("work that lasts opened on the site as held by a device is found by that device "
+            + "on the site and at its tenant")
+    @Proving(DboPromises.PROC_LASTING_WORK_IS_FOUND_BY_WHO_HOLDS_IT)
+    void workADeviceHoldsOnTheSiteIsFoundByTheDeviceAtItsTenant() throws Exception {
+        String device = "Device/analyser-" + java.util.UUID.randomUUID();
+        String order = site.runtime(CLINIC).orElseThrow().engine().put(PutRequest.create(
+                "Observation", OBSERVATION.getBytes(java.nio.charset.StandardCharsets.UTF_8))).id();
+        RunInitiator.Started opened = site.runInitiator().ownedBy(device).starting(CLINIC,
+                "jaam.lab.order", java.util.Map.of("order",
+                        RunInitiator.Slot.reference("Observation/" + order)), null);
+        assertEquals(201, opened.status(), opened.body());
+        try (var onTheSite = Asking.at(site.runtime(CLINIC).orElseThrow().engine()).work()
+                .ownedBy(device).stream()) {
+            assertEquals(List.of(opened.key()), onTheSite.map(Ongoing::key).toList(),
+                    "the device's work is not found by the device on the site");
+        }
+        site.syncRound();
+
+        List<String> atHome;
+        try (var asked = Asking.at(cloud.runtime(CLINIC).orElseThrow().engine()).work()
+                .ownedBy(device).newestMovedFirst().stream()) {
+            atHome = asked.map(Ongoing::key).toList();
+        }
+        assertEquals(List.of("site" + Lanes.MIRROR_SEPARATOR + opened.key()), atHome,
+                "the device's work on the site is not found by the device at its tenant");
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class,
+                () -> site.runInitiator().ownedBy("analyser"),
+                "a holder named by no reference was taken");
+    }
+
+    @Test
+    @Order(15)
     @DisplayName("what was said of work that lasts on the site — taken, a stage reached, ended "
             + "— is listed at its tenant under that work, by whom, when and why, as the site "
             + "recorded it")

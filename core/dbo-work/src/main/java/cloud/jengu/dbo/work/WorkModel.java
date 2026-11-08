@@ -139,6 +139,11 @@ public final class WorkModel {
             }
             field(run, "correlation").ifPresent(correlation ->
                     envelope.value("correlation", EnvelopeValue.of(correlation)));
+            // Who holds the work now — a device, a person, a team — is its
+            // state, as its status is: what a device has been given is a
+            // question of the work, never of what the work was about.
+            field(run, "owner").ifPresent(owner ->
+                    envelope.value("owner", EnvelopeValue.of(owner)));
             // Which end of a crossing this run is, and nothing of where it
             // goes: so what waits to be carried is a query, not a position in
             // the work that a pass may have read past.

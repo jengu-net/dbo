@@ -688,7 +688,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
      * answers 404 as the door would.
      */
     public cloud.jengu.dbo.work.RunInitiator runInitiator() {
-        return runInitiator(null, null);
+        return runInitiator(null, null, null);
     }
 
     /**
@@ -697,8 +697,17 @@ public final class TenantRuntimeManager implements AutoCloseable {
      * it says of lasting work is theirs on the trail. Where the person acts
      * in a role, a step that role does not perform is refused.
      */
-    private cloud.jengu.dbo.work.RunInitiator runInitiator(String person, String role) {
+    private cloud.jengu.dbo.work.RunInitiator runInitiator(String person, String role, String owner) {
         return new cloud.jengu.dbo.work.RunInitiator() {
+            @Override
+            public cloud.jengu.dbo.work.RunInitiator ownedBy(String holder) {
+                if (holder != null && holder.indexOf('/') <= 0) {
+                    throw new IllegalArgumentException("who holds work is named by reference, "
+                            + "such as Device/<id>, and '" + holder + "' is not one");
+                }
+                return runInitiator(person, role, holder);
+            }
+
             @Override
             public cloud.jengu.dbo.work.RunInitiator actingFor(String someone) {
                 return actingFor(someone, null);
@@ -707,7 +716,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
             @Override
             public cloud.jengu.dbo.work.RunInitiator actingFor(String someone, String inRole) {
                 if (someone == null) {
-                    return runInitiator(null, null);
+                    return runInitiator(null, null, owner);
                 }
                 if (someone.indexOf('/') <= 0) {
                     // A bare name is how a client is recorded, so a person
@@ -719,7 +728,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
                     throw new IllegalArgumentException("a role is held by a practitioner, "
                             + "and '" + someone + "' is not one");
                 }
-                return runInitiator(someone, inRole);
+                return runInitiator(someone, inRole, owner);
             }
 
             /** Why the person may not do the step in their role, or null where they may. */
@@ -778,7 +787,8 @@ public final class TenantRuntimeManager implements AutoCloseable {
                         + cloud.jengu.dbo.work.RunInitiator.quoted(key))
                         + cloud.jengu.dbo.work.RunInitiator.addressed(addressee)
                         + cloud.jengu.dbo.work.RunInitiator.partOf(partOf)
-                        + cloud.jengu.dbo.work.RunInitiator.crossing(crossingTo) + "}");
+                        + cloud.jengu.dbo.work.RunInitiator.crossing(crossingTo)
+                        + cloud.jengu.dbo.work.RunInitiator.owner(owner) + "}");
                 StepSurface.Started started = starter.starting(step, body, person);
                 return new Started(started.status(),
                         cloud.jengu.dbo.work.RunInitiator.field(started.body(), "run"),
