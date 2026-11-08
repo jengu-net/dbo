@@ -336,7 +336,10 @@ who said it and why.
 
 Whoever opens work that lasts may name who holds it — a device it is done at, a
 person, a team — by reference, as `"owner": "Device/<id>"` in the step door's body
-or `RunInitiator.ownedBy("Device/<id>")` in process. The work keeps that holder
+or `RunInitiator.ownedBy("Device/<id>")` in process, or by the identifier it is
+known by, `Device?identifier=<system>|<value>`, where its record has another id
+on each place: FHIR's logical reference, rendered as `Task.owner` with `type` and
+`identifier`. The work keeps that holder
 as it moves and goes home with it from a place, its `Task.owner` names it, and
 what one holder has been given is a question of the work, the work that moved
 last first, without reading what any of it is about:

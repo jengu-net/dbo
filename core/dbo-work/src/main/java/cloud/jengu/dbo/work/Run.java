@@ -105,6 +105,29 @@ public record Run(String id, long versionId, String key, String process, String 
     }
 
     /**
+     * Whether this names who holds work: a record by reference, {@code Device/<id>}, or by
+     * the identifier it is known by wherever it is held, {@code Device?identifier=<system>|<value>}
+     * — FHIR's logical reference, for a holder whose record has another id on each place.
+     */
+    public static boolean namesAHolder(String owner) {
+        if (owner == null) {
+            return false;
+        }
+        int slash = owner.indexOf('/');
+        if (slash > 0 && slash < owner.length() - 1 && owner.indexOf('?') < 0) {
+            return true;
+        }
+        String marker = "?identifier=";
+        int asked = owner.indexOf(marker);
+        if (asked <= 0 || owner.indexOf('/') >= 0) {
+            return false;
+        }
+        String identifier = owner.substring(asked + marker.length());
+        int bar = identifier.indexOf('|');
+        return bar > 0 && bar < identifier.length() - 1;
+    }
+
+    /**
      * The place a run was performed at, for one a place handed home, or null
      * for one performed here: the name its key is filed under at home.
      */

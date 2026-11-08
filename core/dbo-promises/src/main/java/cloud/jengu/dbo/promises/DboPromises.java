@@ -1385,7 +1385,8 @@ public enum DboPromises implements Promise {
 
     PROC_LASTING_WORK_IS_FOUND_BY_WHO_HOLDS_IT(
             "Work that lasts names who holds it where whoever opens it says so — a device it "
-            + "is done at, a person, a team — and the work one holder has been given is asked "
+            + "is done at, a person, a team, by its record or by the identifier it is known by "
+            + "on every place — and the work one holder has been given is asked "
             + "for by who holds it, the work that moved last first, without reading what any "
             + "of it is about. Work found again keeps the holder it was opened with, and its "
             + "Task names that holder as its owner."),

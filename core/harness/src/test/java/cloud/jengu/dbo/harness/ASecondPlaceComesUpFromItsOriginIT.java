@@ -773,11 +773,12 @@ class ASecondPlaceComesUpFromItsOriginIT {
 
     @Test
     @Order(15)
-    @DisplayName("work that lasts opened on the site as held by a device is found by that device "
-            + "on the site and at its tenant")
+    @DisplayName("work that lasts opened on the site as held by a device, named by its "
+            + "identifier, is found by that device on the site and at its tenant")
     @Proving(DboPromises.PROC_LASTING_WORK_IS_FOUND_BY_WHO_HOLDS_IT)
     void workADeviceHoldsOnTheSiteIsFoundByTheDeviceAtItsTenant() throws Exception {
-        String device = "Device/analyser-" + java.util.UUID.randomUUID();
+        // By its identifier: the device's record has another id on the site than at home.
+        String device = "Device?identifier=urn:dbo-test:analyser|" + java.util.UUID.randomUUID();
         String order = site.runtime(CLINIC).orElseThrow().engine().put(PutRequest.create(
                 "Observation", OBSERVATION.getBytes(java.nio.charset.StandardCharsets.UTF_8))).id();
         RunInitiator.Started opened = site.runInitiator().ownedBy(device).starting(CLINIC,

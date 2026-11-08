@@ -710,9 +710,22 @@ final class ElementRecordProjection implements RecordProjection {
         if (run.get("owner") != null) {
             // Named by whoever opened the work, as who holds it: a device it
             // is done at, a person, a team — before what took it, since
-            // lasting work is taken by nobody.
-            json.append(",\"owner\":{\"reference\":")
-                    .append(Json.quoted(String.valueOf(run.get("owner")))).append('}');
+            // lasting work is taken by nobody. Named by its identifier, it is
+            // FHIR's logical reference: the same holder on every place,
+            // whatever id its record has on each.
+            String owner = String.valueOf(run.get("owner"));
+            int asked = owner.indexOf("?identifier=");
+            if (asked > 0) {
+                String identifier = owner.substring(asked + "?identifier=".length());
+                int bar = identifier.indexOf('|');
+                json.append(",\"owner\":{\"type\":").append(Json.quoted(owner.substring(0, asked)))
+                        .append(",\"identifier\":{\"system\":")
+                        .append(Json.quoted(identifier.substring(0, bar)))
+                        .append(",\"value\":").append(Json.quoted(identifier.substring(bar + 1)))
+                        .append("}}");
+            } else {
+                json.append(",\"owner\":{\"reference\":").append(Json.quoted(owner)).append('}');
+            }
             return;
         }
         if (run.get("role") != null) {

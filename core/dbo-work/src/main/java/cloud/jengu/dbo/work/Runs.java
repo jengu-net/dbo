@@ -528,14 +528,16 @@ public final class Runs {
      * work a holder has been given is a question of the work. Work found
      * again is returned as it stands, its owner the one it was opened with.
      *
-     * @param owner who holds it, by reference, such as {@code Device/<id>};
+     * @param owner who holds it, by reference, such as {@code Device/<id>}, or
+     *              by identifier, {@code Device?identifier=<system>|<value>};
      *              null for nobody named
      */
     public Run opening(cloud.jengu.dbo.core.process.StepDeclaration step, String slot,
             String request, String requester, Run parent, String provider, String owner) {
-        if (owner != null && owner.indexOf('/') <= 0) {
+        if (owner != null && !Run.namesAHolder(owner)) {
             throw new IllegalArgumentException("who holds work is named by reference, such as "
-                    + "Device/<id>, and '" + owner + "' is not one");
+                    + "Device/<id> or Device?identifier=<system>|<value>, and '" + owner
+                    + "' is neither");
         }
         if (!step.slots().keySet().equals(java.util.Set.of(slot))) {
             throw new IllegalArgumentException(step.id() + " lasts, and is opened for the one "

@@ -284,7 +284,9 @@ public interface RunInitiator {
      * <p>Refused, not ignored, where an initiator cannot carry it: opened
      * without it, the work would never be found by who holds it.
      *
-     * @param owner a reference, such as {@code Device/<id>}; null for nobody
+     * @param owner a reference, such as {@code Device/<id>}, or an identifier,
+     *              {@code Device?identifier=<system>|<value>}, for a holder
+     *              whose record has another id on each place; null for nobody
      *              named
      */
     default RunInitiator ownedBy(String owner) {
