@@ -643,6 +643,18 @@ final class StepSurface implements HttpHandler {
                         + "', and this tenant holds no run by that key");
             }
         }
+        // Who holds the work from the start, as a Task's owner names them: of
+        // lasting work alone, which nobody claims — work a performer takes is
+        // held by whoever took it, and naming another would say so wrongly.
+        String owner = Json.strOpt(body, "owner");
+        if (owner != null && (step == null || !step.lasts())) {
+            return refused(400, "invalid_request", "'owner' names who holds lasting work, and "
+                    + stepCode + " is not declared to last: its work is held by whoever takes it");
+        }
+        if (owner != null && owner.indexOf('/') <= 0) {
+            return refused(400, "invalid_request", "'owner' names who holds the work by "
+                    + "reference, such as Device/<id>, and '" + owner + "' is not one");
+        }
         String scope = Optional.ofNullable(Json.strOpt(body, "scope"))
                 .orElseGet(cloud.jengu.dbo.core.UuidV7::newId);
         if (dry) {
@@ -655,7 +667,7 @@ final class StepSurface implements HttpHandler {
             declaration = declaration.retrying(step.retry());
         }
         if (step != null && step.lasts()) {
-            Run opened = opened(step, declaration, inputs, requester, parent, provider);
+            Run opened = opened(step, declaration, inputs, requester, parent, provider, owner);
             return new Started(201, "{\"run\":" + quote(opened.id()) + ",\"key\":"
                     + quote(opened.key()) + ",\"step\":" + quote(stepCode) + "}");
         }
@@ -899,7 +911,7 @@ final class StepSurface implements HttpHandler {
             Map<String, cloud.jengu.dbo.work.RunSlot> inputs, Run parent, String by) {
         StepDeclaration declaration = declaration(step.code(), step.slots());
         if (step.lasts()) {
-            return opened(step, declaration, inputs, by, parent, null);
+            return opened(step, declaration, inputs, by, parent, null, null);
         }
         if (step.retry() != null) {
             declaration = declaration.retrying(step.retry());
@@ -939,7 +951,7 @@ final class StepSurface implements HttpHandler {
      */
     private Run opened(TenantSpec.Step step, StepDeclaration declaration,
             Map<String, cloud.jengu.dbo.work.RunSlot> inputs, String requester, Run parent,
-            String provider) {
+            String provider, String owner) {
         String slot = step.slots().keySet().iterator().next();
         cloud.jengu.dbo.work.RunSlot filled = inputs.get(slot);
         if (filled == null || filled.values().size() != 1) {
@@ -947,7 +959,7 @@ final class StepSurface implements HttpHandler {
                     + "request its slot '" + slot + "' names");
         }
         return runs.opening(declaration, slot, filled.values().get(0), requester, parent,
-                provider);
+                provider, owner);
     }
 
     /** Why this tenant's work of a step may not be handed to the provider now. */

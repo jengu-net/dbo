@@ -256,6 +256,11 @@ public final class Across implements Questions {
         }
 
         @Override
+        public Questions.Work ownedBy(String owner) {
+            return new WorkAcross(asked.also("ownedBy", "owner=" + Asked.encoded(owner)));
+        }
+
+        @Override
         public Questions.Work roots() {
             return new WorkAcross(asked.also("roots", "part-of:missing=true"));
         }

@@ -64,6 +64,13 @@ public interface Questions {
         /** Everything filed under one correlation. */
         Work correlated(String correlation);
 
+        /**
+         * What one holder has been given: the work whoever opened it named as
+         * held by them — a device it is done at, a person, a team — by
+         * reference, such as {@code Device/<id>}.
+         */
+        Work ownedBy(String owner);
+
         /** Runs started under no other: the top of each piece of work. */
         Work roots();
 

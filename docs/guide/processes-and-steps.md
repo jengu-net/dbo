@@ -176,7 +176,7 @@ where a `Task` keeps them:
 | Fact | `Task` element | |
 |---|---|---|
 | where it stands | `status` | `ready`, `in-progress`, `on-hold`, `completed`, `failed`, `cancelled` |
-| who holds it | `owner` | an executor as a `Device`, a person as the `PractitionerRole` they took it as |
+| who holds it | `owner` | for work that lasts, the holder it was opened for, by reference; otherwise an executor as a `Device`, a person as the `PractitionerRole` they took it as |
 | who may take it | `performerType` (R4), `requestedPerformer` (R5) | `automation` and `person`, or `person` alone |
 | not before | `restriction.period.start` (R4), `requestedPeriod.start` (R5) | for a run held back after a failure that may pass |
 | why | `statusReason` | the failure, or why automation may not take it |
@@ -333,6 +333,21 @@ work's `Task.owner` is the provider, as an `Organization` identified under
 `urn:dbo:tenant`, and no participant is offered it. Taken back, it is the
 tenant's own again and held by nobody. Both are acts under the work, each naming
 who said it and why.
+
+Whoever opens work that lasts may name who holds it — a device it is done at, a
+person, a team — by reference, as `"owner": "Device/<id>"` in the step door's body
+or `RunInitiator.ownedBy("Device/<id>")` in process. The work keeps that holder
+as it moves and goes home with it from a place, its `Task.owner` names it, and
+what one holder has been given is a question of the work, the work that moved
+last first, without reading what any of it is about:
+
+```java
+Questions.Page atTheAnalyser = work.ownedBy("Device/analyser-1").newestMovedFirst().page(20, null);
+```
+
+or `Task?owner=Device/analyser-1&_sort=-_lastUpdated` across the wire. Work found
+again keeps the holder it was opened with; a step that does not last is refused
+an owner, its work held by whoever takes it.
 
 The work reads as FHIR's fulfilment `Task`. `focus` is the request,
 `instantiatesCanonical` the step as `urn:dbo:step:<code>`, `businessStatus` the

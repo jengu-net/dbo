@@ -161,6 +161,36 @@ class AskingWhatNeedsSomebodyIT {
     }
 
     @Test
+    @DisplayName("the work a device has been given is asked for by the device, the work that "
+            + "moved last first, and work found again keeps the holder it was opened with")
+    @Proving(DboPromises.PROC_LASTING_WORK_IS_FOUND_BY_WHO_HOLDS_IT)
+    void theWorkADeviceHoldsIsAskedForByTheDevice() {
+        StepDeclaration measure = StepDeclaration.of("asking.example.measure", "1", WorkModel.DOMAIN)
+                .taking("test", "ServiceRequest");
+        String analyser = "Device/" + java.util.UUID.randomUUID();
+        String other = "Device/" + java.util.UUID.randomUUID();
+        Run first = runs.opening(measure, "test", "ServiceRequest/" + java.util.UUID.randomUUID(),
+                "edge", null, null, analyser);
+        Run second = runs.opening(measure, "test", "ServiceRequest/" + java.util.UUID.randomUUID(),
+                "edge", null, null, analyser);
+        runs.opening(measure, "test", "ServiceRequest/" + java.util.UUID.randomUUID(), "edge", null,
+                null, other);
+        // The first moves again after the second was opened: it is asked for first.
+        Run moved = runs.reached(first, "sent", analyser, "to the analyser");
+
+        List<String> held = asking.work().ownedBy(analyser).newestMovedFirst().page(10, null).runs()
+                .stream().map(Ongoing::id).toList();
+        assertEquals(List.of(moved.id(), second.id()), held,
+                "the device's work was not its own two, the one that moved last first");
+        assertEquals(analyser, moved.owner(), "an act said of the work lost who holds it");
+        assertEquals(analyser, runs.opening(measure, "test", first.inputs().get("test").values().get(0),
+                "edge", null, null, other).owner(), "work found again took another holder");
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class,
+                () -> runs.opening(measure, "test", "ServiceRequest/x", "edge", null, null, "analyser"),
+                "a holder named by no reference was taken");
+    }
+
+    @Test
     @DisplayName("and a stranger's work is not in the answer")
     void aStrangersWorkIsNotInTheAnswer() {
         Run elsewhere = runs.correlated(

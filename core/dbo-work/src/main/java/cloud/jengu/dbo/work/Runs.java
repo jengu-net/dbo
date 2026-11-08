@@ -519,6 +519,24 @@ public final class Runs {
      */
     public Run opening(cloud.jengu.dbo.core.process.StepDeclaration step, String slot,
             String request, String requester, Run parent, String provider) {
+        return opening(step, slot, request, requester, parent, provider, null);
+    }
+
+    /**
+     * The same, naming who holds the work from the start — a device it is
+     * done at, a person, a team — as a Task's {@code owner} names them, so the
+     * work a holder has been given is a question of the work. Work found
+     * again is returned as it stands, its owner the one it was opened with.
+     *
+     * @param owner who holds it, by reference, such as {@code Device/<id>};
+     *              null for nobody named
+     */
+    public Run opening(cloud.jengu.dbo.core.process.StepDeclaration step, String slot,
+            String request, String requester, Run parent, String provider, String owner) {
+        if (owner != null && owner.indexOf('/') <= 0) {
+            throw new IllegalArgumentException("who holds work is named by reference, such as "
+                    + "Device/<id>, and '" + owner + "' is not one");
+        }
         if (!step.slots().keySet().equals(java.util.Set.of(slot))) {
             throw new IllegalArgumentException(step.id() + " lasts, and is opened for the one "
                     + "request in its one slot; it takes " + step.slots().keySet());
@@ -543,7 +561,8 @@ public final class Runs {
                 Map.of(), null, List.copyOf(step.writes()),
                 requester == null ? null : new Run.Assignment(null, null, null, null, requester),
                 Run.Produced.NOTHING, step.version(),
-                Map.of(slot, RunSlot.referring(request)), null, requester, null, null));
+                Map.of(slot, RunSlot.referring(request)), null, requester, null, null, null,
+                owner));
         if (provider != null) {
             act(opened, ACTS, "handed", opened.id() + "/" + UuidV7.newId(), requester,
                     "handed to the provider '" + provider + "' as it was opened");
@@ -2206,7 +2225,8 @@ public final class Runs {
                 run.parent(), run.correlation(), run.trace(), run.tally(), run.item(),
                 run.domains(),
                 run.assignment(), run.produced(), run.stepVersion(), run.inputs(),
-                run.milestone(), run.requester(), run.refused(), run.window(), run.crossing());
+                run.milestone(), run.requester(), run.refused(), run.window(), run.crossing(),
+                run.owner());
     }
 
     /**
@@ -2559,7 +2579,20 @@ public final class Runs {
             String parent, String correlation, String trace, Map<String, Long> tally, Run.Item item,
             List<String> domains, Run.Assignment assignment, Run.Produced produced,
             String stepVersion, Map<String, RunSlot> inputs, Run.Milestone milestone,
-            String requester, String refused, Run.Window window, Run.Crossing crossing) {
+            String requester, String refused, Run.Window window, Run.Crossing crossing,
+            String owner) {
+
+        /** A run nobody is named as holding. */
+        State(String key, String process, String step, RunKind kind, Standing standing,
+                String parent, String correlation, String trace, Map<String, Long> tally,
+                Run.Item item, List<String> domains, Run.Assignment assignment,
+                Run.Produced produced, String stepVersion, Map<String, RunSlot> inputs,
+                Run.Milestone milestone, String requester, String refused, Run.Window window,
+                Run.Crossing crossing) {
+            this(key, process, step, kind, standing, parent, correlation, trace, tally, item,
+                    domains, assignment, produced, stepVersion, inputs, milestone, requester,
+                    refused, window, crossing, null);
+        }
 
         /** A run that stays in the tenant it was asked for in. */
         State(String key, String process, String step, RunKind kind, Standing standing,
@@ -2608,55 +2641,55 @@ public final class Runs {
 
         State withStanding(Standing standing) {
             return new State(key, process, step, kind, standing, parent, correlation, trace, tally, item,
-                    domains, assignment, produced, stepVersion, inputs, milestone, requester, refused, window, crossing);
+                    domains, assignment, produced, stepVersion, inputs, milestone, requester, refused, window, crossing, owner);
         }
 
         State withTally(Map<String, Long> tally) {
             return new State(key, process, step, kind, standing, parent, correlation, trace,
                     Map.copyOf(tally), item, domains, assignment, produced, stepVersion,
-                    inputs, milestone, requester, refused, window, crossing);
+                    inputs, milestone, requester, refused, window, crossing, owner);
         }
 
         State withAssignment(Run.Assignment assignment) {
             return new State(key, process, step, kind, standing, parent, correlation, trace, tally, item,
-                    domains, assignment, produced, stepVersion, inputs, milestone, requester, refused, window, crossing);
+                    domains, assignment, produced, stepVersion, inputs, milestone, requester, refused, window, crossing, owner);
         }
 
         State withProduced(Run.Produced produced) {
             return new State(key, process, step, kind, standing, parent, correlation, trace, tally, item,
-                    domains, assignment, produced, stepVersion, inputs, milestone, requester, refused, window, crossing);
+                    domains, assignment, produced, stepVersion, inputs, milestone, requester, refused, window, crossing, owner);
         }
 
         State withTrace(String trace) {
             return new State(key, process, step, kind, standing, parent, correlation, trace,
-                    tally, item, domains, assignment, produced, stepVersion, inputs, milestone, requester, refused, window, crossing);
+                    tally, item, domains, assignment, produced, stepVersion, inputs, milestone, requester, refused, window, crossing, owner);
         }
 
         State withCorrelation(String correlation) {
             return new State(key, process, step, kind, standing, parent, correlation, trace, tally, item,
-                    domains, assignment, produced, stepVersion, inputs, milestone, requester, refused, window, crossing);
+                    domains, assignment, produced, stepVersion, inputs, milestone, requester, refused, window, crossing, owner);
         }
 
         State withMilestone(Run.Milestone milestone) {
             return new State(key, process, step, kind, standing, parent, correlation, trace, tally, item,
-                    domains, assignment, produced, stepVersion, inputs, milestone, requester, refused, window, crossing);
+                    domains, assignment, produced, stepVersion, inputs, milestone, requester, refused, window, crossing, owner);
         }
 
         State withWindow(Run.Window window) {
             return new State(key, process, step, kind, standing, parent, correlation, trace, tally, item,
                     domains, assignment, produced, stepVersion, inputs, milestone, requester, refused,
-                    window, crossing);
+                    window, crossing, owner);
         }
 
         State withCrossing(Run.Crossing crossing) {
             return new State(key, process, step, kind, standing, parent, correlation, trace, tally, item,
                     domains, assignment, produced, stepVersion, inputs, milestone, requester, refused,
-                    window, crossing);
+                    window, crossing, owner);
         }
 
         State withRefused(String refused) {
             return new State(key, process, step, kind, standing, parent, correlation, trace, tally, item,
-                    domains, assignment, produced, stepVersion, inputs, milestone, requester, refused, window, crossing);
+                    domains, assignment, produced, stepVersion, inputs, milestone, requester, refused, window, crossing, owner);
         }
 
         byte[] payload() {
@@ -2766,6 +2799,9 @@ public final class Runs {
             }
             if (requester != null) {
                 json.append(",\"requester\":").append(Json.quoted(requester));
+            }
+            if (owner != null) {
+                json.append(",\"owner\":").append(Json.quoted(owner));
             }
             if (crossing != null) {
                 json.append(",\"crossing\":{\"id\":").append(Json.quoted(crossing.id()))

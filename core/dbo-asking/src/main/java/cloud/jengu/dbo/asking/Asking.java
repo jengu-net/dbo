@@ -191,6 +191,11 @@ public final class Asking implements Questions {
             return also("correlated", criteria -> criteria.eq("correlation", EnvelopeValue.of(correlation)));
         }
 
+        /** What one holder has been given, as whoever opened the work named them. */
+        public Work ownedBy(String owner) {
+            return also("ownedBy", criteria -> criteria.eq("owner", EnvelopeValue.of(owner)));
+        }
+
         /** Runs started under no other. */
         public Work roots() {
             return also("roots", criteria -> criteria.missing("parent", true));

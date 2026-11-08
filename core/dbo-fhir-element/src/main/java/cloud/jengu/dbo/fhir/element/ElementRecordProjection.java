@@ -707,6 +707,14 @@ final class ElementRecordProjection implements RecordProjection {
     }
 
     private static void owner(Map<?, ?> run, StringBuilder json) {
+        if (run.get("owner") != null) {
+            // Named by whoever opened the work, as who holds it: a device it
+            // is done at, a person, a team — before what took it, since
+            // lasting work is taken by nobody.
+            json.append(",\"owner\":{\"reference\":")
+                    .append(Json.quoted(String.valueOf(run.get("owner")))).append('}');
+            return;
+        }
         if (run.get("role") != null) {
             json.append(",\"owner\":{\"reference\":")
                     .append(Json.quoted(String.valueOf(run.get("role")))).append('}');
