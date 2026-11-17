@@ -2146,6 +2146,27 @@ public enum DboPromises implements Promise {
             + "own claims as the person and for self-access, and the trail records it as "
             + "theirs: once, at sign-in. A refresh or a UserInfo call reuses what sign-in "
             + "read and reads nobody's identity again."),
+    AUTH_SIGNING_IN_IS_A_RUN_OF_ITS_OWN(
+            "Signing in is a run of its own, opened for the session it starts, over the "
+            + "person who signed in and asked for by the client they signed in through. What "
+            + "the authority reads of the person to sign them in is on the trail under that "
+            + "run, and so is anything it reads for them at a refresh or a UserInfo answer "
+            + "within the session: nothing signing in reads is on the trail without a "
+            + "reason. A refresh keeps the run sign-in opened rather than opening another, "
+            + "and the run says who was signed in, through which client, and from when."),
+    AUTH_A_SESSIONS_END_IS_ON_THE_TRAIL(
+            "A session's end is on its run however it ended: signed out by the person at "
+            + "the authority's end-session endpoint, revoked by the client it was issued "
+            + "to, or timed out when nobody refreshed it before its refresh token expired. "
+            + "A session that has ended is not brought back by a refresh, and UserInfo "
+            + "answers nothing for it; an access token already issued is honoured until it "
+            + "expires. Both endpoints are listed in discovery."),
+    AUTH_A_REFUSED_SIGN_IN_IS_ON_THE_TRAIL(
+            "A refused sign-in is on the trail as a run turned away, with why: no such "
+            + "login, a wrong secret, a broker's assertion not accepted, nobody here with "
+            + "that identity, or nothing granted. It names the client that asked and never "
+            + "the secret or the login offered, and the sign-in page still answers an "
+            + "unknown login and a wrong secret alike."),
     AUTH_AN_APPLICATION_ADDS_TO_WHAT_A_PERSON_CARRIES(
             "An application adds its own claims to a person's ID token and UserInfo from "
             + "what the authority already loaded, told which tenant and which client it is "

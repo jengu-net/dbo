@@ -56,6 +56,8 @@ public final class AuthorityHandler implements HttpHandler {
                 case "authorize/login" -> authorizeLogin(exchange);
                 case "authorize/broker" -> authorizeBroker(exchange);
                 case "userinfo" -> userInfo(exchange);
+                case "revoke" -> revoke(exchange);
+                case "logout" -> logout(exchange);
                 case "delegation" -> delegation(exchange);
                 case "federated" -> federated(exchange);
                 case "admin/role-grants" -> adminRoleGrants(exchange);
@@ -148,6 +150,63 @@ public final class AuthorityHandler implements HttpHandler {
      * presented, as JSON, or as a JWT signed by this tenant's key when the
      * caller asks for {@code application/jwt}.
      */
+    /** RFC 7009, authenticated as the token endpoint authenticates a client. */
+    private void revoke(HttpExchange exchange) throws IOException {
+        if (!"POST".equals(exchange.getRequestMethod())) {
+            respond(exchange, 405, "{\"error\":\"invalid_request\"}");
+            return;
+        }
+        Map<String, String> form = parseForm(new String(
+                exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
+        String clientId = form.get("client_id");
+        String clientSecret = form.get("client_secret");
+        String basic = exchange.getRequestHeaders().getFirst("Authorization");
+        if (basic != null && basic.startsWith("Basic ")) {
+            String[] creds = new String(Base64.getDecoder().decode(basic.substring(6)),
+                    StandardCharsets.UTF_8).split(":", 2);
+            if (creds.length == 2) {
+                clientId = URLDecoder.decode(creds[0], StandardCharsets.UTF_8);
+                clientSecret = URLDecoder.decode(creds[1], StandardCharsets.UTF_8);
+            }
+        }
+        switch (authority.revoke(form.get("token"), clientId, clientSecret)) {
+            case TenantAuthority.RevokeResult.Done ignored -> respond(exchange, 200, "{}");
+            case TenantAuthority.RevokeResult.Rejected rejected -> respond(exchange, 401,
+                    "{\"error\":\"" + rejected.error() + "\"}");
+        }
+    }
+
+    /** OIDC RP-initiated logout, from the browser: a query or a form. */
+    private void logout(HttpExchange exchange) throws IOException {
+        String method = exchange.getRequestMethod();
+        if (!"GET".equals(method) && !"POST".equals(method)) {
+            respond(exchange, 405, "{\"error\":\"invalid_request\"}");
+            return;
+        }
+        Map<String, String> asked = parseForm("POST".equals(method)
+                ? new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8)
+                : exchange.getRequestURI().getRawQuery() == null ? ""
+                        : exchange.getRequestURI().getRawQuery());
+        switch (authority.signOut(asked.get("id_token_hint"),
+                asked.get("post_logout_redirect_uri"), asked.get("state"))) {
+            case TenantAuthority.SignOutResult.SignedOut out when out.location() != null -> {
+                exchange.getResponseHeaders().set("Location", out.location());
+                exchange.getResponseHeaders().set("Cache-Control", "no-store");
+                exchange.sendResponseHeaders(302, -1);
+            }
+            case TenantAuthority.SignOutResult.SignedOut ignored -> {
+                byte[] body = "<!doctype html><title>Signed out</title><p>You are signed out."
+                        .getBytes(StandardCharsets.UTF_8);
+                exchange.getResponseHeaders().set("Content-Type", "text/html; charset=utf-8");
+                exchange.getResponseHeaders().set("Cache-Control", "no-store");
+                exchange.sendResponseHeaders(200, body.length);
+                exchange.getResponseBody().write(body);
+            }
+            case TenantAuthority.SignOutResult.Rejected rejected -> respond(exchange, 400,
+                    "{\"error\":\"" + rejected.error() + "\"}");
+        }
+    }
+
     private void userInfo(HttpExchange exchange) throws IOException {
         if (!"GET".equals(exchange.getRequestMethod())
                 && !"POST".equals(exchange.getRequestMethod())) {

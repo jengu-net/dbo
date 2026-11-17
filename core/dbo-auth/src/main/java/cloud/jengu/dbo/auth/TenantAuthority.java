@@ -255,23 +255,23 @@ public final class TenantAuthority {
         try {
             Jws.Parts parts = Jws.parse(assertionJwt);
             if (!Jws.verify(parts, federation.hubKey().get())) {
-                return new FederatedOutcome.Denied(parked.redirectUri(), parked.rpState(), "access_denied");
+                return refusedFederated(parked, Sessions.Refusal.ASSERTION_NOT_ACCEPTED);
             }
             claims = Json.parse(parts.claimsJson());
         } catch (RuntimeException invalid) {
-            return new FederatedOutcome.Denied(parked.redirectUri(), parked.rpState(), "access_denied");
+            return refusedFederated(parked, Sessions.Refusal.ASSERTION_NOT_ACCEPTED);
         }
         if (!"identity-assertion".equals(Json.strOpt(claims, "typ"))
                 || !federation.hubIssuer().equals(Json.str(claims, "iss"))
                 || !issuer.equals(Json.str(claims, "aud"))
                 || Json.num(claims, "exp") < System.currentTimeMillis() / 1000) {
-            return new FederatedOutcome.Denied(parked.redirectUri(), parked.rpState(), "access_denied");
+            return refusedFederated(parked, Sessions.Refusal.ASSERTION_NOT_ACCEPTED);
         }
         // §17.3 defence in depth: the hub enforced acceptance; re-verify here
         if (!federation.acceptedBrokers().isEmpty()
                 && Json.strings(claims, "amr").stream()
                         .noneMatch(federation.acceptedBrokers()::contains)) {
-            return new FederatedOutcome.Denied(parked.redirectUri(), parked.rpState(), "access_denied");
+            return refusedFederated(parked, Sessions.Refusal.ASSERTION_NOT_ACCEPTED);
         }
         Optional<String> person = resolveByNationalId(
                 Json.str(claims, "sys"), Json.str(claims, "val"));
@@ -281,7 +281,8 @@ public final class TenantAuthority {
         if (scopes.isEmpty()) {
             // valid national identity, but THIS tenant grants nothing — the
             // §16.2 promise: authentication shared, authorization never
-            return new FederatedOutcome.Denied(parked.redirectUri(), parked.rpState(), "access_denied");
+            return refusedFederated(parked, person.isEmpty()
+                    ? Sessions.Refusal.NO_SUCH_PERSON : Sessions.Refusal.NOTHING_GRANTED);
         }
         // The identification, recorded. Until now federation resolved a person
         // and left no trace that it had: the binding model described exactly
@@ -302,6 +303,12 @@ public final class TenantAuthority {
                 parked.nonce(), System.currentTimeMillis() + 60_000, null,
                 Json.strings(claims, "amr"), System.currentTimeMillis() / 1000));
         return new FederatedOutcome.Success(parked.redirectUri(), parked.rpState(), code);
+    }
+
+    private FederatedOutcome refusedFederated(PendingFrontChannel parked,
+            Sessions.Refusal why) {
+        sessionRuns.refused(parked.clientId(), why);
+        return new FederatedOutcome.Denied(parked.redirectUri(), parked.rpState(), "access_denied");
     }
 
     // ------------------------------------------------------------ secrets
@@ -523,6 +530,13 @@ public final class TenantAuthority {
     public boolean anybodyHoldsAPassword() {
         return store.select(Criteria.of("LocalCredential")).stream()
                 .anyMatch(credential -> passwordHashOf(credential) != null);
+    }
+
+    private Optional<StoredObject> activeCredential(String login) {
+        return login == null ? Optional.empty()
+                : store.getByIdentifier("LocalCredential",
+                                List.of(new Identifier(IdentityModel.LOGIN_SYSTEM, login)))
+                        .stream().filter(c -> "active".equals(field(c, "status"))).findFirst();
     }
 
     public boolean holdsPassword(String login) {
@@ -1751,6 +1765,10 @@ public final class TenantAuthority {
         }
         Optional<String> person = humanAuthenticator.authenticate(login, secret);
         if (person.isEmpty()) {
+            // Told apart on the trail and nowhere else: the page answers both
+            // alike, so it says nothing about which logins exist.
+            sessionRuns.refused(clientId, activeCredential(login).isPresent()
+                    ? Sessions.Refusal.WRONG_SECRET : Sessions.Refusal.NO_SUCH_LOGIN);
             return new LoginResult.NotRecognised();
         }
         return issued(clientId, redirectUri, codeChallenge, nonce, login, person.get(), "pwd");
@@ -1786,6 +1804,8 @@ public final class TenantAuthority {
         boolean verified = SecretHash.verify(secret == null ? "" : secret,
                 hash == null ? DECOY_HASH : hash) && hash != null;
         if (!verified) {
+            sessionRuns.refused(clientId, credential.isPresent()
+                    ? Sessions.Refusal.WRONG_SECRET : Sessions.Refusal.NO_SUCH_LOGIN);
             return new LoginResult.NotRecognised();
         }
         return issued(clientId, redirectUri, codeChallenge, nonce, login,
@@ -1818,6 +1838,7 @@ public final class TenantAuthority {
             String nonce, String login, String person, String amr) {
         Grants grants = evaluateGrants(person);
         if (grants.scopes().isEmpty()) {
+            sessionRuns.refused(clientId, Sessions.Refusal.NOTHING_GRANTED);
             return new LoginResult.Denied("access_denied");
         }
         String code = UuidV7.newId() + UuidV7.newId().substring(0, 8);
@@ -1869,18 +1890,44 @@ public final class TenantAuthority {
         if (!pkceMatches(pending.codeChallenge(), codeVerifier)) {
             return new TokenResult.Rejected("invalid_grant", "PKCE verification failed");
         }
+        // The session named before anything is read for it, so every read
+        // that signs the person in is done for its run.
+        String sid = UuidV7.newId();
+        String run;
         Map<String, Object> identity;
         try {
-            identity = personClaims.identity(pending.personId(),
-                    Optional.ofNullable(pending.login()));
+            run = sessionRuns.signedIn(sid, pending.personId(), clientId, refreshUntil());
+            identity = underRun(run, () -> personClaims.identity(pending.personId(),
+                    Optional.ofNullable(pending.login())));
         } catch (RuntimeException unreadable) {
             return new TokenResult.Rejected("temporarily_unavailable",
                     "who this person is could not be read");
         }
-        Session session = remembered(new Session(UuidV7.newId(), pending.authTime(),
+        Session session = remembered(new Session(sid, pending.authTime(),
                 pending.amr(), identity));
-        return humanTokens(pending.personId(), clientId, pending.scope(), pending.roles(),
-                pending.nonce(), session, Subject.Occasion.SIGN_IN);
+        return underRun(run, () -> humanTokens(pending.personId(), clientId, pending.scope(),
+                pending.roles(), pending.nonce(), session, Subject.Occasion.SIGN_IN));
+    }
+
+    /** When a refresh token minted now stops bringing its session back. */
+    private static java.time.Instant refreshUntil() {
+        return java.time.Instant.now().plusSeconds(REFRESH_TTL_SECONDS);
+    }
+
+    /**
+     * Work done for a session's run, where there is one: as the authority's
+     * own, so what it reads to mint a token is not recorded as reading, and
+     * the person's identity, read for them and recorded as theirs, carries
+     * the run.
+     */
+    private static <T> T underRun(String run, java.util.function.Supplier<T> work) {
+        if (run == null) {
+            return work.get();
+        }
+        try (cloud.jengu.dbo.core.api.Caller.InRun ignored =
+                cloud.jengu.dbo.core.api.Caller.writingFor(run)) {
+            return work.get();
+        }
     }
 
     /** Refresh RE-EVALUATES grants — yesterday's revocation is today's denial. */
@@ -1906,6 +1953,23 @@ public final class TenantAuthority {
             return new TokenResult.Rejected("invalid_grant", "refresh token invalid");
         }
         String personId = Json.str(claims, "sub");
+        String clientId = Json.str(claims, "client_id");
+        String sid = Optional.ofNullable(Json.strOpt(claims, "sid")).orElseGet(UuidV7::newId);
+        Optional<Sessions.Held> held;
+        try {
+            held = sessionRuns.kept(sid, personId, clientId, refreshUntil());
+        } catch (RuntimeException unrecorded) {
+            return new TokenResult.Rejected("temporarily_unavailable",
+                    "the session could not be kept");
+        }
+        if (held.isEmpty()) {
+            sessions.remove(sid);
+            return new TokenResult.Rejected("invalid_grant", "the session has ended");
+        }
+        return underRun(held.get().run(), () -> refreshed(claims, personId, clientId, sid));
+    }
+
+    private TokenResult refreshed(Object claims, String personId, String clientId, String sid) {
         Grants grants = evaluateGrants(personId);
         if (grants.scopes().isEmpty()) {
             return new TokenResult.Rejected("access_denied", "no active grants");
@@ -1917,12 +1981,11 @@ public final class TenantAuthority {
         @SuppressWarnings("unchecked")
         Map<String, Object> identity = carried instanceof Map<?, ?> map
                 ? new LinkedHashMap<>((Map<String, Object>) map) : new LinkedHashMap<>();
-        Session session = remembered(new Session(
-                Optional.ofNullable(Json.strOpt(claims, "sid")).orElseGet(UuidV7::newId),
+        Session session = remembered(new Session(sid,
                 ((Map<?, ?>) claims).get("auth_time") instanceof Number at
                         ? at.longValue() : Json.num(claims, "iat"),
                 Json.strings(claims, "amr"), identity));
-        return humanTokens(personId, Json.str(claims, "client_id"),
+        return humanTokens(personId, clientId,
                 String.join(" ", grants.scopes()), String.join(",", grants.roles()), null,
                 session, Subject.Occasion.REFRESH);
     }
@@ -2167,6 +2230,146 @@ public final class TenantAuthority {
         return subjectStore;
     }
 
+    private volatile Sessions sessionRuns = Sessions.NONE;
+
+    /**
+     * Where this authority's sessions are recorded, each a run from signing
+     * in to its end.
+     */
+    public void sessions(Sessions recorded) {
+        this.sessionRuns = recorded == null ? Sessions.NONE : recorded;
+    }
+
+    /**
+     * Every session nobody refreshed before its refresh token expired, ended
+     * as timed out.
+     *
+     * @return how many were ended
+     */
+    public int lapseSessions() {
+        return sessionRuns.lapse(java.time.Instant.now());
+    }
+
+    /** What a client asking for a token to be revoked was answered. */
+    public sealed interface RevokeResult {
+        /** Revoked, or nothing to revoke: RFC 7009 answers both alike. */
+        record Done() implements RevokeResult {}
+        record Rejected(String error) implements RevokeResult {}
+    }
+
+    /**
+     * RFC 7009: the session a refresh or access token belongs to, ended as
+     * revoked, so no refresh brings it back. An access token already issued
+     * is honoured until it expires, as every bearer token is, because
+     * nothing a surface accepts is looked up per request.
+     *
+     * <p>Only by the client the token was issued to. A token this authority
+     * did not sign, or that names no session, is answered as revoked.
+     */
+    public RevokeResult revoke(String token, String clientId, String clientSecret) {
+        Optional<String> refused = clientRefused(clientId, clientSecret);
+        if (refused.isPresent()) {
+            return new RevokeResult.Rejected(refused.get());
+        }
+        Optional<Object> claims = signedHere(token);
+        if (claims.isEmpty() || !clientId.equals(Json.strOpt(claims.get(), "client_id"))) {
+            return new RevokeResult.Done();
+        }
+        String sid = Json.strOpt(claims.get(), "sid");
+        if (sid != null) {
+            sessions.remove(sid);
+            sessionRuns.ended(sid, Sessions.Ending.REVOKED, clientId);
+        }
+        return new RevokeResult.Done();
+    }
+
+    /** What the browser is sent on to after signing out. */
+    public sealed interface SignOutResult {
+        /** @param location where to, or null for the authority's own page */
+        record SignedOut(String location) implements SignOutResult {}
+        record Rejected(String error) implements SignOutResult {}
+    }
+
+    /**
+     * OIDC RP-initiated logout: the session the ID token names, ended as
+     * signed out by the person it was minted for.
+     *
+     * <p>An ID token past its expiry still names its session, and signing
+     * out is what somebody does long after the token they were given has
+     * lapsed. The browser is sent back only to an address the client
+     * registered, so this cannot be made to redirect anywhere else.
+     */
+    public SignOutResult signOut(String idTokenHint, String postLogoutRedirectUri,
+            String state) {
+        Optional<Object> claims = signedHere(idTokenHint);
+        if (claims.isEmpty() || Json.strOpt(claims.get(), "aud") == null
+                || Json.strOpt(claims.get(), "client_id") != null) {
+            return new SignOutResult.Rejected("invalid_request");
+        }
+        String clientId = Json.str(claims.get(), "aud");
+        String location = null;
+        if (postLogoutRedirectUri != null) {
+            Optional<StoredObject> client = findClient(clientId);
+            if (client.isEmpty() || !Json.strings(Json.parse(new String(client.get().payload(),
+                    StandardCharsets.UTF_8)), "redirectUris").contains(postLogoutRedirectUri)) {
+                return new SignOutResult.Rejected("invalid_request");
+            }
+            location = postLogoutRedirectUri + (state == null || state.isEmpty() ? ""
+                    : (postLogoutRedirectUri.contains("?") ? "&" : "?") + "state="
+                            + java.net.URLEncoder.encode(state, StandardCharsets.UTF_8));
+        }
+        String sid = Json.strOpt(claims.get(), "sid");
+        if (sid != null) {
+            sessions.remove(sid);
+            sessionRuns.ended(sid, Sessions.Ending.SIGNED_OUT,
+                    "Person/" + Json.str(claims.get(), "sub"));
+        }
+        return new SignOutResult.SignedOut(location);
+    }
+
+    /**
+     * A token this authority signed and issued, its claims whether or not it
+     * has expired: who it was for is still what it says.
+     */
+    private Optional<Object> signedHere(String token) {
+        if (token == null || token.isBlank()) {
+            return Optional.empty();
+        }
+        try {
+            Jws.Parts parts = Jws.parse(token);
+            RSAPublicKey key = keyCache.get(parts.kid());
+            if (key == null) {
+                refreshKeyCache();
+                key = keyCache.get(parts.kid());
+            }
+            if (key == null || !Jws.verify(parts, key)) {
+                return Optional.empty();
+            }
+            Object claims = Json.parse(parts.claimsJson());
+            return issuer.equals(Json.strOpt(claims, "iss")) ? Optional.of(claims)
+                    : Optional.empty();
+        } catch (RuntimeException invalid) {
+            return Optional.empty();
+        }
+    }
+
+    /** Why this client is not who it says, or empty when it is. */
+    private Optional<String> clientRefused(String clientId, String clientSecret) {
+        Optional<StoredObject> client = clientId == null ? Optional.empty()
+                : findClient(clientId);
+        if (client.isEmpty() || !"active".equals(field(client.get(), "status"))) {
+            return Optional.of("invalid_client");
+        }
+        Object payload = Json.parse(new String(client.get().payload(), StandardCharsets.UTF_8));
+        if (!"public-pkce".equals(Json.strOpt(payload, "clientType"))) {
+            String hash = Json.strOpt(payload, "secretHash");
+            if (hash == null || clientSecret == null || !SecretHash.verify(clientSecret, hash)) {
+                return Optional.of("invalid_client");
+            }
+        }
+        return Optional.empty();
+    }
+
     /** Whether some grant gives this role anything, at this organisation or tenant-wide. */
     boolean grants(String roleCode, String organisationId) {
         return (organisationId != null && activeGrant(roleCode, organisationId).isPresent())
@@ -2275,6 +2478,16 @@ public final class TenantAuthority {
         }
         String personId = Json.str(claims, "sub");
         String sid = Json.strOpt(claims, "sid");
+        Optional<Sessions.Held> held = sid == null ? Optional.of(new Sessions.Held(null))
+                : sessionRuns.found(sid);
+        if (held.isEmpty()) {
+            sessions.remove(sid);
+            return Optional.empty();
+        }
+        return underRun(held.get().run(), () -> userInfo(claims, personId, sid));
+    }
+
+    private Optional<Map<String, Object>> userInfo(Object claims, String personId, String sid) {
         long authTime = ((Map<?, ?>) claims).get("auth_time") instanceof Number at
                 ? at.longValue() : Json.num(claims, "iat");
         Session session = sid == null ? null : sessions.get(sid);
@@ -2637,6 +2850,8 @@ public final class TenantAuthority {
                 + ",\"subject_types_supported\":[\"public\"]"
                 + ",\"scopes_supported\":[\"openid\"]"
                 + ",\"userinfo_endpoint\":\"" + issuer + "/userinfo\""
+                + ",\"end_session_endpoint\":\"" + issuer + "/logout\""
+                + ",\"revocation_endpoint\":\"" + issuer + "/revoke\""
                 + ",\"userinfo_signing_alg_values_supported\":[\"RS256\"]"
                 + ",\"claims_supported\":[\"sub\",\"fhirUser\",\"name\",\"given_name\""
                 + ",\"family_name\",\"preferred_username\",\"locale\",\"auth_time\",\"amr\""

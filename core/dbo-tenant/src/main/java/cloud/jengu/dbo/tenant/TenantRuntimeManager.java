@@ -4945,6 +4945,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
                         "confidential", db.rpRedirectUris());
             }
             authority.claims(spec.code(), () -> userClaims.get(), claimsMaxBytes);
+            authority.sessions(new SignIns(spec.code(), () -> runStores.get(spec.code())));
             sharedServer.createContext(oidcPath, new cloud.jengu.dbo.auth.AuthorityHandler(
                     authority, oidcPath, spec.code(), () -> loginPage.get()));
             authorityContexts.put(spec.code(), oidcPath);
@@ -6518,6 +6519,27 @@ public final class TenantRuntimeManager implements AutoCloseable {
         return removed;
     }
 
+    /**
+     * Every tenant's sessions that nobody refreshed while they could be,
+     * ended as timed out, so the trail says when each one ended. On the
+     * hourly beat: a session's end is read from its run, and an hour late is
+     * still the hour its refresh token expired.
+     *
+     * @return how many sessions were ended across all tenants
+     */
+    public int lapseSessions() {
+        int ended = 0;
+        for (Map.Entry<String, cloud.jengu.dbo.auth.TenantAuthority> tenant
+                : authorities.entrySet()) {
+            try {
+                ended += tenant.getValue().lapseSessions();
+            } catch (RuntimeException e) {
+                LOG.warn("could not end the lapsed sessions of tenant {}", tenant.getKey(), e);
+            }
+        }
+        return ended;
+    }
+
     /** The process a configuration repository's housekeeping is recorded under. */
     static final String HOUSEKEEPING = "dbo.config.housekeeping";
 
@@ -7830,6 +7852,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
                         // than any token it signed can still be live is gone.
                         // Rotation without this is not rotation.
                         pruneSigningKeys();
+                        lapseSessions();
                         pruneWorkFeeds();
                         collectConfigurationGarbage();
                     }
