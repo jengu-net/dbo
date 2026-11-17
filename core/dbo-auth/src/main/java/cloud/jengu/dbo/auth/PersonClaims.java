@@ -237,13 +237,12 @@ final class PersonClaims {
 
     /**
      * A read made as the person, for the person: their own identity, under
-     * the purpose that says so, with whatever this thread carried before put
-     * back afterwards.
+     * the purpose that says so and for the sign-in's run, with whatever this
+     * thread carried before put back afterwards.
      */
     private static <T> T asThemselves(String personId, Supplier<T> read) {
         String actor = Caller.authenticated();
         String onBehalfOf = Caller.onBehalfOf();
-        String run = Caller.run();
         Disclosure.Mode mode = Disclosure.mode();
         String purpose = Disclosure.purpose();
         Caller.set("Person/" + personId);
@@ -256,13 +255,9 @@ final class PersonClaims {
             } else {
                 Disclosure.set(mode, purpose);
             }
-            Caller.clear();
-            if (actor != null) {
-                Caller.setChain(actor, onBehalfOf);
-            }
-            if (run != null) {
-                Caller.setRun(run);
-            }
+            // The actor alone put back: the run this is done for, and how it
+            // is marked, are the caller's and never left this thread.
+            Caller.setChain(actor, onBehalfOf);
         }
     }
 

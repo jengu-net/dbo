@@ -572,6 +572,79 @@ public final class Runs {
         return opened;
     }
 
+    /**
+     * Work that lasts until it is ended or nobody keeps it, taken on as it is
+     * opened: a session somebody signed in to, kept by each refresh and ended
+     * by signing out, by being revoked, or by lapsing.
+     *
+     * <p>Found again by its scope, so a second opening of the same work is
+     * the run already open. Never claimed: the deadline is how long it lasts
+     * unkept, which {@link #overdue} reads, and not a claim that
+     * {@link #lapsed} hands back.
+     *
+     * @param scope     what makes this work one, such as a session's id
+     * @param slot      the one input it is over
+     * @param reference what is in it, such as {@code Person/<id>}
+     * @param requester the client that asked
+     * @param until     when it lapses unless it is kept
+     */
+    public Run held(String process, String step, String scope, String slot, String reference,
+            String requester, java.time.Instant until) {
+        String key = process + "/" + step + "/" + scope;
+        return byKey(key).orElseGet(() -> write(new State(key, process, step, RunKind.LASTING,
+                Standing.OPEN.as(Status.ACCEPTED).openTo(false), null, null, null, Map.of(),
+                null, List.of(), new Run.Assignment(null, null, null, until, requester),
+                Run.Produced.NOTHING, null, Map.of(slot, RunSlot.referring(reference)), null,
+                requester, null)));
+    }
+
+    /**
+     * Held work kept for longer: its deadline moved to {@code until}.
+     *
+     * @return the run kept, or empty when it is over and nothing keeps it
+     */
+    public Optional<Run> kept(Run held, java.time.Instant until) {
+        return advanceIf(held, "kept", current -> !current.status().over(),
+                snapshot -> snapshot.withAssignment(new Run.Assignment(null, null, null, until,
+                        snapshot.requester())));
+    }
+
+    /**
+     * Held work of a step that nobody kept past its deadline, so it can be
+     * ended as having lapsed. Judged where the run lives, as a claim is.
+     */
+    public List<Run> overdue(String process, String step, java.time.Instant now) {
+        return cloud.jengu.dbo.core.api.Answered.pagedBy(store::page,
+                        Criteria.of(WorkModel.TYPE)
+                                .eq("process", EnvelopeValue.of(process))
+                                .eq("step", EnvelopeValue.of(step))
+                                .eq("status", EnvelopeValue.of(Status.ACCEPTED.wire())))
+                .map(Run::of)
+                .filter(run -> run.lasting() && run.assignment() != null
+                        && run.assignment().until() != null
+                        && !run.assignment().until().isAfter(now))
+                .filter(run -> !WorkModel.authoredElsewhere(run.key()))
+                .toList();
+    }
+
+    /**
+     * Work that lasts, turned away as it was asked for: over before it
+     * began, with why. One run per asking, because each was an attempt.
+     *
+     * @param requester the client that asked
+     * @param because   why it was turned away
+     */
+    public Run turnedAway(String process, String step, String requester, String because) {
+        requireBecause("turned away", because);
+        return write(new State(process + "/" + step + "/" + UuidV7.newId(), process, step,
+                RunKind.LASTING, Standing.OPEN.as(Status.REJECTED).openTo(false)
+                        .because(because),
+                null, null, null, Map.of(), null, List.of(),
+                requester == null ? null
+                        : new Run.Assignment(null, null, null, null, requester),
+                Run.Produced.NOTHING, null, Map.of(), null, requester, null));
+    }
+
     /** The process an act said of lasting work is recorded under. */
     public static final String ACTS = "dbo.run.act";
 

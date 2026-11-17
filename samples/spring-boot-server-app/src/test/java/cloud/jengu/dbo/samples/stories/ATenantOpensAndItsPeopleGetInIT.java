@@ -1527,6 +1527,158 @@ class ATenantOpensAndItsPeopleGetInIT {
                         + selfAccessesOf(pomona));
     }
 
+    @Test
+    @Order(44)
+    @DisplayName("signing in is a run of its own: what it read of the person is on the trail "
+            + "under it, a refresh keeps it, and it says who signed in through which client")
+    @Proving(DboPromises.AUTH_SIGNING_IN_IS_A_RUN_OF_ITS_OWN)
+    void signingInIsARunOfItsOwn() {
+        int before = selfAccessesOf(pomona);
+        HttpResponse<String> tokens = asPomona(null);
+        assertEquals(200, tokens.statusCode(), tokens.body());
+        String run = sessionRunOf(tokens);
+        int read = selfAccessesOf(pomona) - before;
+        int underIt = selfAccessesOf(pomona, run);
+        Proves.that(DboPromises.AUTH_SIGNING_IN_IS_A_RUN_OF_ITS_OWN,
+                read > 0 && underIt == read,
+                "signing in read the person " + read + " times and " + underIt
+                        + " of them are on the trail under its run " + run);
+
+        String session = sessionTask(run);
+        Proves.that(DboPromises.AUTH_SIGNING_IN_IS_A_RUN_OF_ITS_OWN,
+                session.contains("\"status\":\"accepted\"")
+                        && session.contains("\"reference\":\"Person/" + pomona + "\"")
+                        && session.contains(portal()) && session.contains("\"authoredOn\""),
+                "the sign-in's run does not say who signed in, through which client, from "
+                        + "when: " + session);
+
+        HttpResponse<String> refreshed = formPost(oidc(second) + "/token",
+                "grant_type=refresh_token&refresh_token=" + encoded(
+                        dbo.says(tokens).one("refresh_token").orElseThrow()));
+        assertEquals(200, refreshed.statusCode(), refreshed.body());
+        Proves.that(DboPromises.AUTH_SIGNING_IN_IS_A_RUN_OF_ITS_OWN,
+                sessionRunOf(refreshed).equals(run)
+                        && sessionTask(run).contains("\"status\":\"accepted\""),
+                "a refresh did not keep the run its sign-in opened: " + sessionTask(run));
+    }
+
+    @Test
+    @Order(45)
+    @DisplayName("a session's end is on its run, signed out by the person or revoked by its "
+            + "client, and nothing brings an ended session back")
+    @Proving(DboPromises.AUTH_A_SESSIONS_END_IS_ON_THE_TRAIL)
+    void aSessionsEndIsOnTheTrail() {
+        String discovery = dbo.get(oidc(second) + "/.well-known/openid-configuration", null)
+                .body();
+        Proves.that(DboPromises.AUTH_A_SESSIONS_END_IS_ON_THE_TRAIL,
+                discovery.contains("\"end_session_endpoint\":\"")
+                        && discovery.contains("\"revocation_endpoint\":\""),
+                "discovery lists no way to end a session: " + discovery);
+
+        HttpResponse<String> signedIn = asPomona(null);
+        assertEquals(200, signedIn.statusCode(), signedIn.body());
+        String run = sessionRunOf(signedIn);
+        HttpResponse<String> elsewhere = dbo.send(HttpRequest.newBuilder(URI.create(
+                oidc(second) + "/logout?id_token_hint=" + idTokenOf(signedIn)
+                        + "&post_logout_redirect_uri=" + encoded("https://elsewhere.example/")))
+                .GET(), null);
+        assertEquals(400, elsewhere.statusCode(),
+                "signing out sent the browser somewhere its client never registered");
+        HttpResponse<String> out = dbo.send(HttpRequest.newBuilder(URI.create(
+                oidc(second) + "/logout?id_token_hint=" + idTokenOf(signedIn)
+                        + "&post_logout_redirect_uri=" + encoded(REDIRECT) + "&state=bye"))
+                .GET(), null);
+        String back = out.headers().firstValue("Location").orElse("");
+        String ended = sessionTask(run);
+        Proves.that(DboPromises.AUTH_A_SESSIONS_END_IS_ON_THE_TRAIL,
+                out.statusCode() == 302 && back.equals(REDIRECT + "?state=bye")
+                        && ended.contains("\"status\":\"completed\"")
+                        && ended.contains("signed out")
+                        && ended.contains("Person/" + pomona),
+                "signing out did not end the session on its run: " + out.statusCode() + " "
+                        + back + " " + ended);
+        Proves.that(DboPromises.AUTH_A_SESSIONS_END_IS_ON_THE_TRAIL,
+                formPost(oidc(second) + "/token", "grant_type=refresh_token&refresh_token="
+                        + encoded(dbo.says(signedIn).one("refresh_token").orElseThrow()))
+                        .statusCode() == 400
+                        && dbo.get(oidc(second) + "/userinfo", dbo.says(signedIn)
+                                .one("access_token").orElseThrow()).statusCode() == 401,
+                "a session signed out of was brought back by a refresh, or UserInfo still "
+                        + "answered for it");
+
+        HttpResponse<String> again = asPomona(null);
+        assertEquals(200, again.statusCode(), again.body());
+        String revokedRun = sessionRunOf(again);
+        HttpResponse<String> revoked = formPost(oidc(second) + "/revoke", "token="
+                + encoded(dbo.says(again).one("refresh_token").orElseThrow())
+                + "&client_id=" + portal() + "&client_secret=" + encoded(PORTAL_SECRET));
+        String revokedSession = sessionTask(revokedRun);
+        Proves.that(DboPromises.AUTH_A_SESSIONS_END_IS_ON_THE_TRAIL,
+                revoked.statusCode() == 200
+                        && revokedSession.contains("\"status\":\"cancelled\"")
+                        && revokedSession.contains("revoked")
+                        && formPost(oidc(second) + "/token",
+                                "grant_type=refresh_token&refresh_token=" + encoded(
+                                        dbo.says(again).one("refresh_token").orElseThrow()))
+                                .statusCode() == 400,
+                "revoking did not end the session on its run, or a refresh brought it back: "
+                        + revoked.statusCode() + " " + revokedSession);
+    }
+
+    @Test
+    @Order(46)
+    @DisplayName("a refused sign-in is on the trail with why, naming the client and neither "
+            + "the secret nor the login")
+    @Proving(DboPromises.AUTH_A_REFUSED_SIGN_IN_IS_ON_THE_TRAIL)
+    void aRefusedSignInIsOnTheTrail() {
+        String secret = names.value("not-the-secret");
+        HttpResponse<String> wrong = frontChannelLogin("pomona", secret, null);
+        assertEquals(401, wrong.statusCode(), wrong.body());
+        String refusal = lastRefusal();
+        Proves.that(DboPromises.AUTH_A_REFUSED_SIGN_IN_IS_ON_THE_TRAIL,
+                refusal.contains("\"status\":\"rejected\"") && refusal.contains("wrong secret")
+                        && refusal.contains(portal()) && !refusal.contains(secret)
+                        && !refusal.contains("pomona"),
+                "a wrong secret is not on the trail as a refusal with why, or the refusal "
+                        + "names the secret or the login: " + refusal);
+
+        String nobody = names.value("nobody");
+        HttpResponse<String> unknown = frontChannelLogin(nobody, secret, null);
+        String unknownRefusal = lastRefusal();
+        Proves.that(DboPromises.AUTH_A_REFUSED_SIGN_IN_IS_ON_THE_TRAIL,
+                unknown.statusCode() == 401 && unknownRefusal.contains("no such login")
+                        && !unknownRefusal.contains(nobody),
+                "an unknown login is not on the trail as a refusal with why: "
+                        + unknown.statusCode() + " " + unknownRefusal);
+    }
+
+    /** The run of the session a token belongs to, by its key. */
+    private static String sessionRunOf(HttpResponse<String> tokens) {
+        String access = tokens.body().replaceAll(
+                "(?s).*\"access_token\"\\s*:\\s*\"([^\"]+)\".*", "$1");
+        return "dbo.auth/sign-in/"
+                + claimsOf(access).replaceAll("(?s).*\"sid\":\"([^\"]+)\".*", "$1");
+    }
+
+    /** The session's run as the clinic's trail reader reads it: a Task. */
+    private String sessionTask(String run) {
+        return dbo.get(fhir(second) + "/Task?identifier=" + encoded("urn:dbo:run|" + run),
+                dbo.token(second)).body();
+    }
+
+    /** The sign-in this clinic turned away last. */
+    private String lastRefusal() {
+        return dbo.get(fhir(second) + "/Task?code=sign-in&status=rejected"
+                + "&_sort=-_lastUpdated&_count=1", dbo.token(second)).body();
+    }
+
+    private int selfAccessesOf(String person, String run) {
+        String trail = dbo.get(fhir(second) + "/AuditEvent?agent="
+                + encoded("Person/" + person) + "&run=" + encoded(run), dbo.token(second))
+                .body();
+        return trail.split("PATRQT", -1).length - 1;
+    }
+
     private static boolean mentions(java.nio.file.Path file, String code) {
         try {
             return java.nio.file.Files.readString(file).contains(code);
