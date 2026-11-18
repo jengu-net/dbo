@@ -1851,7 +1851,12 @@ final class StepSurface implements HttpHandler {
         }
         String role = run.assignment() == null ? null : run.assignment().role();
         if (role != null) {
-            return java.util.Set.copyOf(actsAtAs.apply(role.substring(role.indexOf('/') + 1)));
+            // A role of another tenant's, named by its absolute address, is a
+            // provider's person: they act at none of this tenant's organisations.
+            return role.startsWith("PractitionerRole/")
+                    ? java.util.Set.copyOf(actsAtAs.apply(
+                            role.substring("PractitionerRole/".length())))
+                    : java.util.Set.of();
         }
         if (asking.fhirUser() != null) {
             return java.util.Set.copyOf(asking.actsAt());
