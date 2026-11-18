@@ -339,6 +339,7 @@ public final class PdiObjectStore implements ObjectStore {
             for (String person : vault.findAllByIdentifier(TELECOM_SYSTEM, value)) {
                 for (String record : vault.recordsOf(person, criteria.typeName())) {
                     inner.get(criteria.typeName(), record)
+                            .filter(o -> restrictedTo(criteria, o.id()))
                             .map(o -> reassembled(criteria.typeName(), o))
                             .ifPresent(found::add);
                 }
@@ -365,6 +366,7 @@ public final class PdiObjectStore implements ObjectStore {
             for (String person : peopleHolding(token.system(), token.code())) {
                 for (String record : vault.recordsOf(person, criteria.typeName())) {
                     inner.get(criteria.typeName(), record)
+                            .filter(o -> restrictedTo(criteria, o.id()))
                             .map(o -> reassembled(criteria.typeName(), o))
                             .ifPresent(found::add);
                 }
@@ -372,6 +374,21 @@ public final class PdiObjectStore implements ObjectStore {
             return Optional.of(List.copyOf(found));
         }
         return Optional.empty();
+    }
+
+    /**
+     * Whether a record the vault found is inside the restrictions a decorator
+     * put on the query. The lookup answers one predicate from the vault and
+     * reads the records it names one by one, so a restriction carried beside
+     * that predicate would otherwise never reach the engine at all.
+     */
+    private boolean restrictedTo(Criteria criteria, String id) {
+        if (criteria.onlyAmongPredicates().isEmpty()) {
+            return true;
+        }
+        Criteria one = Criteria.of(criteria.typeName()).idEquals(id).limit(1);
+        criteria.onlyAmongPredicates().forEach(only -> one.onlyAmong(only.path(), only.values()));
+        return inner.count(one) > 0;
     }
 
     @Override

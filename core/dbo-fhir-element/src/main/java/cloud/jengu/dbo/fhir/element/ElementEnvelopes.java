@@ -70,6 +70,14 @@ final class ElementEnvelopes {
                 tokenForms(envelope, "_tag",
                         tag.getNamedChildValue("system"), tag.getNamedChildValue("code"));
             }
+            // Who a record is held to, lifted so a query can leave it out.
+            for (Element label : meta.getChildren("security")) {
+                String code = label.getNamedChildValue("code");
+                if (cloud.jengu.dbo.core.api.HeldTo.SYSTEM.equals(
+                        label.getNamedChildValue("system")) && code != null) {
+                    envelope.value(cloud.jengu.dbo.core.api.HeldTo.PATH, EnvelopeValue.of(code));
+                }
+            }
         }
         if (canonical) {
             // The canonical identity: a type whose identity IS its url is found

@@ -675,6 +675,16 @@ public interface Lane {
 
         /** The key a participant signs its links with. */
         Optional<cloud.jengu.dbo.core.api.seal.SigningKey> signing(String participant);
+
+        /**
+         * The organisations, by identifier, whose held records a run of this
+         * step is sealed: what the step declares it reads, and none where it
+         * declares nothing. A participant acts at no organisation of the
+         * tenant's, so this is the only way one of those records reaches it.
+         */
+        default java.util.Set<String> readsHeldTo(String step) {
+            return java.util.Set.of();
+        }
     }
 
     /**
@@ -1366,6 +1376,9 @@ public interface Lane {
                     // recorded as none. The opening is recorded where the key
                     // is used, through opened().
                     cloud.jengu.dbo.core.api.Disclosure.toSeal();
+                    java.util.Set<String> before = cloud.jengu.dbo.core.api.Reach.actsAt();
+                    cloud.jengu.dbo.core.api.Reach.actingAt(keys == null ? java.util.Set.of()
+                            : keys.readsHeldTo(current.process() + "." + current.step()));
                     try {
                         current.inputs().forEach((slot, filled) -> {
                             for (int at = 0; at < filled.values().size(); at++) {
@@ -1395,6 +1408,7 @@ public interface Lane {
                         });
                     } finally {
                         cloud.jengu.dbo.core.api.Disclosure.clear();
+                        cloud.jengu.dbo.core.api.Reach.actingAt(before);
                     }
                 }
                 return new cloud.jengu.dbo.work.SealedWork(

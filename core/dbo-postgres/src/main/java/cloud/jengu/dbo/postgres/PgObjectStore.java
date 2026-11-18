@@ -1118,6 +1118,22 @@ public final class PgObjectStore implements ObjectStore {
             params.add(JsonbCodec.containmentJson(
                     List.of(new Criteria.Eq(ne.path(), ne.value()))));
         }
+        for (Criteria.OnlyAmong only : criteria.onlyAmongPredicates()) {
+            // A record with nothing at the path has no elements to object to,
+            // so it passes: COALESCE because the arrow answers null for a
+            // path the envelope does not carry.
+            sql.append(" AND NOT EXISTS (SELECT 1 FROM jsonb_array_elements(")
+               .append("COALESCE(d.envelope -> ?, '[]'::jsonb)) e WHERE ");
+            params.add(only.path());
+            if (only.values().isEmpty()) {
+                sql.append("TRUE)");
+            } else {
+                sql.append("(e->>'v') NOT IN (")
+                   .append(String.join(",", java.util.Collections.nCopies(only.values().size(), "?")))
+                   .append("))");
+                params.addAll(only.values());
+            }
+        }
         for (Criteria.StartsWith sw : criteria.startsWithPredicates()) {
             sql.append(" AND EXISTS (SELECT 1 FROM jsonb_array_elements(d.envelope -> ?) e")
                .append(" WHERE e->>'v' LIKE ? ESCAPE '\\')");

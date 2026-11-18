@@ -211,6 +211,14 @@ public final class R4Personality {
             for (Coding tag : r4res.getMeta().getTag()) {
                 tokenPair(e, "_tag", tag.getSystem(), tag.getCode());
             }
+            // Who a record is held to, lifted so a query can leave it out.
+            for (Coding label : r4res.getMeta().getSecurity()) {
+                if (cloud.jengu.dbo.core.api.HeldTo.SYSTEM.equals(label.getSystem())
+                        && label.hasCode()) {
+                    e.value(cloud.jengu.dbo.core.api.HeldTo.PATH,
+                            EnvelopeValue.of(label.getCode()));
+                }
+            }
             for (IPrimitiveType<String> profile : r4res.getMeta().getProfile()) {
                 e.value("_profile", EnvelopeValue.of(profile.getValueAsString()));
             }

@@ -21,8 +21,33 @@ import java.util.Set;
 public final class Reach {
 
     private static final ThreadLocal<Set<String>> ORGANISATIONS = new ThreadLocal<>();
+    private static final ThreadLocal<Set<String>> ACTS_AT = new ThreadLocal<>();
 
     private Reach() {
+    }
+
+    /**
+     * Where this request's caller acts, for the records held to one
+     * organisation ({@link HeldTo}): the organisations' identifiers,
+     * {@code <system>|<value>}, exactly where the caller holds a role and
+     * not expanded through the tree.
+     *
+     * <p>A serving surface binds it for every caller it admits, empty for one
+     * that acts nowhere. Unbound is the store's own machinery, which reads
+     * what it holds; null unbinds it, for a read made on somebody's behalf
+     * that ends before the request does.
+     */
+    public static void actingAt(Set<String> organisationIdentifiers) {
+        if (organisationIdentifiers == null) {
+            ACTS_AT.remove();
+        } else {
+            ACTS_AT.set(Set.copyOf(organisationIdentifiers));
+        }
+    }
+
+    /** Where this request's caller acts, or null for the store's own machinery. */
+    public static Set<String> actsAt() {
+        return ACTS_AT.get();
     }
 
     /** Bound this request to the given organisations' records. */
@@ -37,5 +62,6 @@ public final class Reach {
 
     public static void clear() {
         ORGANISATIONS.remove();
+        ACTS_AT.remove();
     }
 }

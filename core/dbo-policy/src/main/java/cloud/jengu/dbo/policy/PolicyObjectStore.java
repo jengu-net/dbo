@@ -57,8 +57,10 @@ public final class PolicyObjectStore implements ObjectStore,
     @Override
     public PutResult put(PutRequest request, Handling.Authority caller) {
         refuseDirectAuditWrites(request.typeName());
+        Holding holding = holding(request.typeName(), request.id(), request.payload());
         PutResult result = inner.put(request, caller);
         auditWrite(result.created() ? "create" : "update", request.typeName(), result.id());
+        holding.recorded(result.id());
         return result;
     }
 
@@ -74,10 +76,13 @@ public final class PolicyObjectStore implements ObjectStore,
         // unit begins; the audit entries land after it commits, one per
         // write, exactly as they do for single puts.
         requests.forEach(r -> refuseDirectAuditWrites(r.typeName()));
+        List<Holding> holdings = requests.stream()
+                .map(r -> holding(r.typeName(), r.id(), r.payload())).toList();
         java.util.List<PutResult> results = inner.transact(requests, caller);
         for (int i = 0; i < results.size(); i++) {
             auditWrite(results.get(i).created() ? "create" : "update",
                     requests.get(i).typeName(), results.get(i).id());
+            holdings.get(i).recorded(results.get(i).id());
         }
         return results;
     }
@@ -85,9 +90,11 @@ public final class PolicyObjectStore implements ObjectStore,
     @Override
     public PutResult putIfAbsent(IdentityRef identity, PutRequest request) {
         refuseDirectAuditWrites(request.typeName());
+        Holding holding = holding(request.typeName(), identity, request.payload());
         PutResult result = inner.putIfAbsent(identity, request);
         if (result.created()) {
             auditWrite("create", request.typeName(), result.id());
+            holding.recorded(result.id());
         }
         return result;
     }
@@ -95,8 +102,10 @@ public final class PolicyObjectStore implements ObjectStore,
     @Override
     public PutResult putConditional(IdentityRef identity, PutRequest request) {
         refuseDirectAuditWrites(request.typeName());
+        Holding holding = holding(request.typeName(), identity, request.payload());
         PutResult result = inner.putConditional(identity, request);
         auditWrite(result.created() ? "create" : "update", request.typeName(), result.id());
+        holding.recorded(result.id());
         return result;
     }
 
@@ -104,8 +113,10 @@ public final class PolicyObjectStore implements ObjectStore,
     public PutResult putConditional(IdentityRef identity, PutRequest request,
             cloud.jengu.dbo.core.api.Handling.Authority caller) {
         refuseDirectAuditWrites(request.typeName());
+        Holding holding = holding(request.typeName(), identity, request.payload());
         PutResult result = inner.putConditional(identity, request, caller);
         auditWrite(result.created() ? "create" : "update", request.typeName(), result.id());
+        holding.recorded(result.id());
         return result;
     }
 
@@ -127,8 +138,142 @@ public final class PolicyObjectStore implements ObjectStore,
                     "append-only write discipline forbids deleting " + typeName
                             + " — correct by supersession or entered-in-error (§15.2)");
         }
+        Holding holding = holding(typeName, id, null);
         inner.delete(typeName, id, expectedVersion, caller);
         auditWrite("delete", typeName, id);
+        holding.recorded(id);
+    }
+
+    // ------------------------------------------------------------- held records
+
+    /**
+     * What a write does to who a record is held to, decided before it is made.
+     *
+     * <p>A record held to an organisation is changed only by somebody acting
+     * there: anybody else is answered as for a record that is not there,
+     * because to them it is not. A label is put on by whoever may write the
+     * record, and moved or taken off by those it holds the record for — the
+     * people a note was written for are the ones who may say it is no longer
+     * only theirs.
+     *
+     * <p>A change of who holds it is recorded whatever the tenant's audit
+     * level, as a disclosure is: who opened a department's note to the rest of
+     * the tenant is a question somebody will ask, and a level chosen for volume
+     * is not the answer to it.
+     */
+    private Holding holding(String typeName, String id, byte[] payload) {
+        if (unheld(typeName)) {
+            return Holding.NONE;
+        }
+        return holding(typeName,
+                id == null ? Optional.empty() : inner.get(typeName, id), id, payload);
+    }
+
+    private Holding holding(String typeName, IdentityRef identity, byte[] payload) {
+        if (unheld(typeName)) {
+            return Holding.NONE;
+        }
+        cloud.jengu.dbo.core.api.Identifier named = switch (identity) {
+            case IdentityRef.ByIdentifier by -> by.identifier();
+            case IdentityRef.Canonical canonical -> new cloud.jengu.dbo.core.api.Identifier(
+                    cloud.jengu.dbo.core.api.Identifier.CANONICAL_SYSTEM, canonical.url());
+        };
+        Optional<StoredObject> prior = inner.getByIdentifier(typeName, List.of(named))
+                .stream().findFirst();
+        return holding(typeName, prior, prior.map(StoredObject::id).orElse("_"), payload);
+    }
+
+    private Holding holding(String typeName, Optional<StoredObject> prior, String id,
+            byte[] payload) {
+        String before = prior.filter(o -> !o.deleted())
+                .map(o -> heldTo(typeName, o.payload())).orElse(null);
+        java.util.Set<String> actsAt = cloud.jengu.dbo.core.api.Reach.actsAt();
+        if (before != null && !actsAt.contains(before)) {
+            throw new cloud.jengu.dbo.core.api.AnsweredAsAbsentException(typeName, id);
+        }
+        String after = payload == null ? null : heldTo(typeName, payload);
+        if (java.util.Objects.equals(before, after)) {
+            return Holding.NONE;
+        }
+        if (after != null) {
+            requireAnOrganisation(after);
+        }
+        return new Holding(this, typeName, before, after);
+    }
+
+    /**
+     * Whether this write is outside what holding a record governs: the trail,
+     * which nobody labels, or the store's own machinery — a stream replaying
+     * a change made at another place, a run being kept. A change of who holds
+     * a record is recorded where somebody made it, and a replay is not that.
+     */
+    private static boolean unheld(String typeName) {
+        return "AuditEntry".equals(typeName) || cloud.jengu.dbo.core.api.Reach.actsAt() == null;
+    }
+
+    /** The organisation a record is held to, as its label names it, or null. */
+    private String heldTo(String typeName, byte[] payload) {
+        if (payload == null || payload.length == 0) {
+            return null;
+        }
+        // Read only where the label could be: the system spelled out, or any
+        // escape, which is the one way to spell it without those bytes. Every
+        // other write is spared a second extraction of its envelope.
+        String text = new String(payload, java.nio.charset.StandardCharsets.UTF_8);
+        if (!text.contains(cloud.jengu.dbo.core.api.HeldTo.SYSTEM) && !text.contains("\\u")) {
+            return null;
+        }
+        List<cloud.jengu.dbo.core.api.EnvelopeValue> labels = inner.registrationOf(typeName)
+                .extractor().extract(typeName, payload).paths()
+                .getOrDefault(cloud.jengu.dbo.core.api.HeldTo.PATH, List.of());
+        if (labels.isEmpty()) {
+            return null;
+        }
+        if (labels.size() > 1) {
+            throw new IllegalArgumentException("a " + typeName + " is held to one organisation, "
+                    + "and this one is labelled with " + labels.size() + " — "
+                    + cloud.jengu.dbo.core.api.HeldTo.SYSTEM + " appears once in meta.security "
+                    + "or not at all");
+        }
+        return labels.get(0) instanceof cloud.jengu.dbo.core.api.EnvelopeValue.Str str
+                ? str.value() : String.valueOf(labels.get(0));
+    }
+
+    /**
+     * Refuses a label naming no organisation of this tenant. A record held to
+     * a place nobody acts at is a record nobody reads, which is not what
+     * anybody labelling it meant.
+     */
+    private void requireAnOrganisation(String label) {
+        int bar = label.indexOf('|');
+        boolean shaped = bar > 0 && bar < label.length() - 1
+                && label.indexOf('"') < 0 && label.indexOf('\\') < 0;
+        boolean found = shaped && !inner.getByIdentifier("Organization",
+                List.of(new cloud.jengu.dbo.core.api.Identifier(
+                        label.substring(0, bar), label.substring(bar + 1)))).isEmpty();
+        if (!found) {
+            throw new IllegalArgumentException("a record is held to an organisation of this "
+                    + "tenant, named by an identifier it carries as <system>|<value>, and '"
+                    + label + "' names none");
+        }
+    }
+
+    /** A change of who a record is held to, recorded once the write has been made. */
+    private record Holding(PolicyObjectStore store, String typeName, String from, String to) {
+
+        static final Holding NONE = new Holding(null, null, null, null);
+
+        void recorded(String id) {
+            if (store == null) {
+                return;
+            }
+            java.util.Map<String, String> detail = new java.util.LinkedHashMap<>();
+            detail.put("from", from == null ? "" : from);
+            detail.put("to", to == null ? "" : to);
+            store.inner.put(PutRequest.create("AuditEntry", AuditModel.entry(Caller.current(),
+                    "custom", typeName, id, "ok", null, cloud.jengu.dbo.core.api.HeldTo.CODE,
+                    detail)));
+        }
     }
 
     // ------------------------------------------------------------- reads
@@ -175,7 +320,7 @@ public final class PolicyObjectStore implements ObjectStore,
             return Optional.empty();
         }
         Optional<StoredObject> result = inner.get(typeName, id);
-        if (result.isPresent() && !withinReach(typeName, id)) {
+        if (result.isPresent() && (!withinReach(typeName, id) || !heldWithin(typeName, id))) {
             // Absent, not forbidden: a 403 for an id in another organisation
             // confirms the id exists, which is exactly what a compartment is
             // supposed to keep from leaking.
@@ -214,6 +359,47 @@ public final class PolicyObjectStore implements ObjectStore,
     }
 
     /**
+     * Whether a record held to an organisation is held to one the caller acts
+     * at — or is held to none, which is nearly every record. Asked of the
+     * engine rather than of the payload in hand, so the answer is the one a
+     * search gives for the same record.
+     */
+    private boolean heldWithin(String typeName, String id) {
+        java.util.Set<String> actsAt = cloud.jengu.dbo.core.api.Reach.actsAt();
+        if (actsAt == null || "AuditEntry".equals(typeName)) {
+            return true;
+        }
+        return inner.count(Criteria.of(typeName).idEquals(id)
+                .onlyAmong(cloud.jengu.dbo.core.api.HeldTo.PATH, actsAt).limit(1)) > 0;
+    }
+
+    /** A version, read from history, that is held to an organisation the caller does not act at. */
+    private boolean heldElsewhere(StoredObject version) {
+        java.util.Set<String> actsAt = cloud.jengu.dbo.core.api.Reach.actsAt();
+        if (actsAt == null || version.deleted()) {
+            return false;
+        }
+        String held;
+        try {
+            held = heldTo(version.typeName(), version.payload());
+        } catch (RuntimeException unreadable) {
+            // A stored version this registration cannot read is held for all
+            // anybody can tell, and history is not where to guess.
+            return true;
+        }
+        return held != null && !actsAt.contains(held);
+    }
+
+    /** The criteria with held records outside where the caller acts left out. */
+    private Criteria held(Criteria criteria) {
+        java.util.Set<String> actsAt = cloud.jengu.dbo.core.api.Reach.actsAt();
+        if (actsAt != null && !"AuditEntry".equals(criteria.typeName())) {
+            criteria.onlyAmong(cloud.jengu.dbo.core.api.HeldTo.PATH, actsAt);
+        }
+        return criteria;
+    }
+
+    /**
      * The same reach, applied to a whole query rather than one record: the
      * criteria gain the compartment predicate, so what comes back is already
      * only the caller's — a filtered page rather than a page and a filter,
@@ -221,6 +407,7 @@ public final class PolicyObjectStore implements ObjectStore,
      * the gaps in its numbering.
      */
     private Criteria reached(Criteria criteria) {
+        held(criteria);
         java.util.Set<String> reach = cloud.jengu.dbo.core.api.Reach.organisations();
         if (reach == null) {
             return criteria;
@@ -238,7 +425,7 @@ public final class PolicyObjectStore implements ObjectStore,
             return List.of();
         }
         List<StoredObject> result = inner.getByIdentifier(typeName, identifiers).stream()
-                .filter(o -> withinReach(typeName, o.id()))
+                .filter(o -> withinReach(typeName, o.id()) && heldWithin(typeName, o.id()))
                 .toList();
         auditRead("search", typeName, null);
         return result;
@@ -253,7 +440,7 @@ public final class PolicyObjectStore implements ObjectStore,
     private List<StoredObject> selectReached(Criteria criteria) {
         java.util.Set<String> reach = cloud.jengu.dbo.core.api.Reach.organisations();
         if (reach != null && "Organization".equals(criteria.typeName())) {
-            return inner.select(criteria).stream()
+            return inner.select(held(criteria)).stream()
                     .filter(o -> reach.contains(o.id()))
                     .toList();
         }
@@ -277,11 +464,13 @@ public final class PolicyObjectStore implements ObjectStore,
         if (!answerableToTheAudience(typeName)) {
             return List.of();
         }
-        if (!withinReach(typeName, id)) {
+        if (!withinReach(typeName, id) || !heldWithin(typeName, id)) {
             auditRead("history", typeName, id);
             return List.of();
         }
-        List<StoredObject> result = inner.history(typeName, id);
+        List<StoredObject> result = inner.history(typeName, id).stream()
+                .filter(version -> !heldElsewhere(version))
+                .toList();
         auditRead("history", typeName, id);
         return result;
     }

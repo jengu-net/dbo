@@ -225,6 +225,12 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
      *                 tenant's register
      * @param purposes what the rows its work puts on the tenant's register
      *                 are done for
+     * @param readsHeldTo the organisations, each by an identifier it carries
+     *                 as {@code <system>|<value>}, whose held records a
+     *                 credential performing a run of it reads — the
+     *                 declaration a worker needs, because it acts at no
+     *                 organisation itself. A person holding the run reads as
+     *                 the role they hold it as, and this does not widen that
      */
     /**
      * What a row of a tenant's register is done for, in the words a person
@@ -310,7 +316,18 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
             java.util.Set<String> writes, cloud.jengu.dbo.core.process.RetryPolicy retry,
             cloud.jengu.dbo.core.process.AutomationCriterion automate, Answer answer,
             Starts starts, boolean lasts, Awaits awaits, java.util.Set<String> secrets,
-            boolean handsToProvider, List<String> holdersStart, Purposes purposes) {
+            boolean handsToProvider, List<String> holdersStart, Purposes purposes,
+            List<String> readsHeldTo) {
+
+        /** Work whose automation reads no record held to an organisation. */
+        public Step(String code, java.util.Map<String, String> slots,
+                java.util.Set<String> writes, cloud.jengu.dbo.core.process.RetryPolicy retry,
+                cloud.jengu.dbo.core.process.AutomationCriterion automate, Answer answer,
+                Starts starts, boolean lasts, Awaits awaits, java.util.Set<String> secrets,
+                boolean handsToProvider, List<String> holdersStart, Purposes purposes) {
+            this(code, slots, writes, retry, automate, answer, starts, lasts, awaits, secrets,
+                    handsToProvider, holdersStart, purposes, List.of());
+        }
 
         /** Work whose rows name no purpose. */
         public Step(String code, java.util.Map<String, String> slots,
@@ -406,6 +423,15 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
             holdersStart = holdersStart == null ? List.of() : List.copyOf(holdersStart);
             purposes = purposes == null ? Purposes.NONE : purposes;
             purposes.within(code, slots);
+            readsHeldTo = readsHeldTo == null ? List.of() : List.copyOf(readsHeldTo);
+            for (String organisation : readsHeldTo) {
+                int bar = organisation.indexOf('|');
+                if (bar <= 0 || bar == organisation.length() - 1) {
+                    throw new IllegalArgumentException(code + ": reads records held to '"
+                            + organisation + "', and an organisation is named by an identifier "
+                            + "it carries, as <system>|<value>");
+                }
+            }
             if (!holdersStart.isEmpty() && !handsToProvider) {
                 // Its own people start whatever their credential reaches; the
                 // list is what a person of the provider may, and nobody else.
@@ -1552,7 +1578,8 @@ public record TenantSpec(String code, String face, List<FhirTypeConfig> types,
                         answer(code, stepCode, step, policies), starts, Json.bool(step, "lasts"),
                         awaits, Set.copyOf(Json.strings(step, "secrets")), handsTo != null,
                         Json.strings(step, "holdersStart"),
-                        purposesOf(code, stepCode, step, declaredPurposes)));
+                        purposesOf(code, stepCode, step, declaredPurposes),
+                        Json.strings(step, "readsHeldTo")));
             }
         }
         // What a holder of handed work may start is one of this tenant's

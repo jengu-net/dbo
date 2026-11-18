@@ -77,6 +77,19 @@ A step that says nothing is open to automation.
 because an executor that died said nothing about why. What happens to the
 others is [below](#when-a-run-fails).
 
+## `readsHeldTo`: records a department holds to itself
+
+```json
+"readsHeldTo": ["urn:example:org|lab"]
+```
+
+A record labelled as held to one organisation is read only by people acting
+there ([data isolation](../arc42-008-crosscutting/data-isolation/README.md#a-departments-record-is-its-own)).
+A worker acts at no organisation, so inside a run it reads such a record only
+where its step names the organisation here, by an identifier the organisation
+carries. A person holding the run reads as the role they hold it as, and this
+list does not widen that.
+
 ## `answers`, `collect` and `purpose`: what the asker reads back
 
 ```json

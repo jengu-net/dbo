@@ -1130,7 +1130,30 @@ final class ElementRecordProjection implements RecordProjection {
         StringBuilder entities = new StringBuilder();
         if (entry.get("targetId") != null) {
             entities.append("{\"what\":{\"reference\":\"").append(entry.get("targetType"))
-                    .append('/').append(entry.get("targetId")).append("\"}}");
+                    .append('/').append(entry.get("targetId")).append('"').append('}');
+            if (cloud.jengu.dbo.core.api.HeldTo.CODE.equals(code)
+                    && entry.get("detail") instanceof Map<?, ?> detail) {
+                // What it was held to before and after IS the event, so it is
+                // said on the record it happened to. Other entries keep their
+                // detail to the machinery that wrote it.
+                entities.append(",\"detail\":[");
+                boolean first = true;
+                for (Map.Entry<?, ?> said : detail.entrySet()) {
+                    if (String.valueOf(said.getValue()).isEmpty()) {
+                        continue; // held to nothing, which FHIR has no empty string for
+                    }
+                    entities.append(first ? "" : ",").append("{\"type\":")
+                            .append(auditIsCategorised
+                                    ? "{\"text\":" + Json.quoted(String.valueOf(said.getKey()))
+                                            + "}"
+                                    : Json.quoted(String.valueOf(said.getKey())))
+                            .append(",\"valueString\":")
+                            .append(Json.quoted(String.valueOf(said.getValue()))).append('}');
+                    first = false;
+                }
+                entities.append(']');
+            }
+            entities.append('}');
         }
         if (entry.get("run") != null) {
             // the run this interaction was part of, by the run's own key: what

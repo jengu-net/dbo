@@ -2167,6 +2167,29 @@ public enum DboPromises implements Promise {
             + "that identity, or nothing granted. It names the client that asked and never "
             + "the secret or the login offered, and the sign-in page still answers an "
             + "unknown login and a wrong secret alike."),
+    AUTH_A_HELD_RECORD_IS_READ_ONLY_AT_ITS_ORGANISATION(
+            "A record may be held to one organisation of the tenant, by a security label "
+            + "naming the Organization by an identifier it carries, put on by whoever may "
+            + "write the record. A held record is read only by a person acting in a role at "
+            + "exactly that organisation, not at the one above it and not at one below, on "
+            + "the records surface or through a run they hold. A record no label holds is "
+            + "read as before."),
+    AUTH_A_HELD_RECORD_OUT_OF_REACH_ANSWERS_AS_ABSENT(
+            "To anybody who may not read it, a held record answers as a record that does not "
+            + "exist: a read is not-found in the words an id nothing minted gets, never "
+            + "forbidden, and a search leaves it out of its matches and its count, so the "
+            + "label confirms nothing about what is there. A write to it is answered the "
+            + "same way."),
+    AUTH_WHAT_HOLDS_A_RECORD_IS_CHANGED_ONLY_THERE_AND_ON_THE_TRAIL(
+            "Who a record is held to is changed only by somebody acting at the organisation "
+            + "holding it, whether the label moves or comes off, and every change is on the "
+            + "trail, on the record, naming who made it and what it was held to before and "
+            + "after, whatever the tenant's audit level."),
+    AUTH_A_WORKER_READS_A_HELD_RECORD_ONLY_WHERE_ITS_STEP_SAYS(
+            "A credential that acts at no organisation, such as a worker performing a "
+            + "step, reads a held record inside a run only where the step declares it "
+            + "reads the records held to that organisation, naming it. A step that "
+            + "declares none, or names another, answers for the record as absent."),
     AUTH_AN_APPLICATION_ADDS_TO_WHAT_A_PERSON_CARRIES(
             "An application adds its own claims to a person's ID token and UserInfo from "
             + "what the authority already loaded, told which tenant and which client it is "

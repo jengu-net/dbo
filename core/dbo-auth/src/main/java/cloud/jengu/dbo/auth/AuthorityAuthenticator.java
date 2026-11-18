@@ -57,6 +57,11 @@ public final class AuthorityAuthenticator implements RequestAuthenticator {
             cloud.jengu.dbo.core.api.Reach.bind(
                     java.util.Set.copyOf(context.get().organisations()));
         }
+        // Where the caller acts, bound for every caller and empty for one that
+        // acts nowhere: a record held to an organisation is read by those who
+        // act there, and unbound would be the store's own machinery.
+        cloud.jengu.dbo.core.api.Reach.actingAt(
+                java.util.Set.copyOf(context.get().actsAt()));
         if (context.get().actClient() != null) {
             // §16.4: a process acting in the name of a human — record both
             cloud.jengu.dbo.core.api.Caller.setChain(
