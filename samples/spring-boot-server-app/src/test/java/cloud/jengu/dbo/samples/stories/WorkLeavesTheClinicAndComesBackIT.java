@@ -142,6 +142,11 @@ class WorkLeavesTheClinicAndComesBackIT {
     private static final String WARD = NAMES.tenant("ward");
     private static final String FETCH = PROCESS + ".fetch";
 
+    /** Where the ward names its organisations: the hospital, and its laboratory. */
+    private static final String ORGS = "urn:" + NAMES.value("orgs");
+    /** A fetch whose performer reads what the laboratory holds to itself. */
+    private static final String FETCH_HELD = PROCESS + ".fetch-held";
+
     @Autowired
     DboTestContext dbo;
 
@@ -251,10 +256,14 @@ class WorkLeavesTheClinicAndComesBackIT {
                    "handling":"operational"},
                   {"name":"Practitioner","identity":"identifier","systems":["urn:rl:nid"],
                    "handling":"operational"},
-                  {"name":"PractitionerRole","identity":"internal","handling":"operational"}],
+                  {"name":"PractitionerRole","identity":"internal","handling":"operational"},
+                  {"name":"Organization","identity":"identifier","systems":["%s"],
+                   "handling":"operational"}],
                  "steps":[{"code":"%s","slots":{"patient":"Reference(Patient)"},
-                           "writes":["Observation"]}]}"""
-                .formatted(WARD, FETCH));
+                           "writes":["Observation"]},
+                          {"code":"%s","slots":{"patient":"Reference(Patient)"},
+                           "readsHeldTo":["%s|lab"]}]}"""
+                .formatted(WARD, ORGS, FETCH, FETCH_HELD, ORGS));
     }
 
     @AfterAll
@@ -3405,6 +3414,274 @@ class WorkLeavesTheClinicAndComesBackIT {
                         + "_data WHERE type = 'ClientApplication' AND NOT deleted").stream()
                 .filter(row -> row.contains("\"clientId\":\"" + clientId + "\""))
                 .toList();
+    }
+
+    // ── a record written for one department reaches only the people there ──
+
+    /** Where the ward's office sends somebody back to after they sign in. */
+    private static final String WARD_OFFICE = "http://127.0.0.1/ward-office";
+
+    private String wardHospital;
+    private String wardLab;
+    /** The keepers: Luna at the laboratory, Minerva at the hospital above it, Filch at neither. */
+    private String luna;
+    private String atLab;
+    private String atHospital;
+    private String atNeither;
+
+    @Test
+    @Order(60)
+    @DisplayName("a patient the ward's laboratory holds to itself is read by the people acting "
+            + "there and by nobody else on the ward: the hospital above it, a keeper of no "
+            + "department and the ward's own integration are answered as for a patient who is "
+            + "not there, in a read, a search and its count, and a record held to the hospital "
+            + "is not the laboratory's either")
+    @Proving({DboPromises.AUTH_A_HELD_RECORD_IS_READ_ONLY_AT_ITS_ORGANISATION,
+            DboPromises.AUTH_A_HELD_RECORD_OUT_OF_REACH_ANSWERS_AS_ABSENT})
+    void whatTheLaboratoryHoldsToItselfIsReadOnlyThere() throws Exception {
+        assertTrue(dbo.until(WARD, true, Duration.ofMinutes(10)),
+                "the ward never came up: " + dbo.serving());
+        wardHospital = organisation("hospital", null);
+        wardLab = organisation("lab", wardHospital);
+        luna = keeperAt("luna", wardLab);
+        keeperAt("minerva", wardHospital);
+        keeperAt("filch", null);
+        atLab = signedIn(WARD, wardOffice(), WARD_OFFICE, "luna");
+        atHospital = signedIn(WARD, wardOffice(), WARD_OFFICE, "minerva");
+        atNeither = signedIn(WARD, wardOffice(), WARD_OFFICE, "filch");
+
+        String tag = NAMES.value("held");
+        String held = patient(atLab, tag, "lab", "Lovegood");
+        String open = patient(atLab, tag, null, "Longbottom");
+        String fhir = dbo.at(WARD) + "/fhir";
+
+        HttpResponse<String> there = dbo.get(fhir + "/Patient/" + held, atLab);
+        Proves.that(DboPromises.AUTH_A_HELD_RECORD_IS_READ_ONLY_AT_ITS_ORGANISATION,
+                there.statusCode() == 200 && there.body().contains("Lovegood"),
+                "the laboratory did not read what it holds to itself: " + there.statusCode()
+                        + " " + there.body());
+        Proves.that(DboPromises.AUTH_A_HELD_RECORD_IS_READ_ONLY_AT_ITS_ORGANISATION,
+                dbo.get(fhir + "/Patient/" + open, atHospital).statusCode() == 200,
+                "a patient no label holds was not read by the hospital as before");
+        List<String> both = ids(dbo.get(fhir + "/Patient?_tag=" + encoded(ORGS + "|" + tag),
+                atLab));
+        Proves.that(DboPromises.AUTH_A_HELD_RECORD_IS_READ_ONLY_AT_ITS_ORGANISATION,
+                both.size() == 2 && both.containsAll(List.of(held, open)),
+                "the laboratory's search did not find both its patients: " + both);
+
+        // Out of reach answers as absent, and BYTE FOR BYTE as an id nothing
+        // ever minted: a difference between the two would say the record is
+        // there, which is what holding it to the laboratory keeps from anybody
+        // else.
+        String invented = "01a00000-0000-7000-8000-00000000cafe";
+        Map<String, String> outside = new java.util.LinkedHashMap<>();
+        outside.put("the hospital above it", atHospital);
+        outside.put("a keeper of no department", atNeither);
+        outside.put("the ward's integration", dbo.token(WARD));
+        outside.forEach((who, token) -> {
+            HttpResponse<String> withheld = dbo.get(fhir + "/Patient/" + held, token);
+            HttpResponse<String> absent = dbo.get(fhir + "/Patient/" + invented, token);
+            Proves.that(DboPromises.AUTH_A_HELD_RECORD_OUT_OF_REACH_ANSWERS_AS_ABSENT,
+                    withheld.statusCode() == 404 && absent.statusCode() == 404
+                            && withheld.body().equals(absent.body().replace(invented, held)),
+                    who + " was answered differently for the held patient than for one "
+                            + "that does not exist: " + withheld.statusCode() + " "
+                            + withheld.body() + " / " + absent.body());
+            HttpResponse<String> history = dbo.get(fhir + "/Patient/" + held + "/_history",
+                    token);
+            Proves.that(DboPromises.AUTH_A_HELD_RECORD_OUT_OF_REACH_ANSWERS_AS_ABSENT,
+                    !history.body().contains("Lovegood"),
+                    who + " read the held patient's history: " + history.body());
+            List<String> found = ids(dbo.get(fhir + "/Patient?_tag="
+                    + encoded(ORGS + "|" + tag), token));
+            HttpResponse<String> counted = dbo.get(fhir + "/Patient?_summary=count&_tag="
+                    + encoded(ORGS + "|" + tag), token);
+            Proves.that(DboPromises.AUTH_A_HELD_RECORD_OUT_OF_REACH_ANSWERS_AS_ABSENT,
+                    found.equals(List.of(open))
+                            && dbo.says(counted).one("total").equals(java.util.Optional.of("1")),
+                    who + "'s search counted or found the held patient: " + found + " / "
+                            + counted.body());
+        });
+
+        // Exactly the organisation, not the tree under it either.
+        String hospitals = patient(atHospital, tag, "hospital", "Dumbledore");
+        Proves.that(DboPromises.AUTH_A_HELD_RECORD_IS_READ_ONLY_AT_ITS_ORGANISATION,
+                dbo.get(fhir + "/Patient/" + hospitals, atHospital).statusCode() == 200
+                        && dbo.get(fhir + "/Patient/" + hospitals, atLab).statusCode() == 404,
+                "a patient held to the hospital was not the hospital's alone");
+    }
+
+    @Test
+    @Order(61)
+    @DisplayName("who a patient is held to is changed only by somebody acting where it is "
+            + "held: the hospital is answered as for a patient who is not there, the "
+            + "laboratory takes its label off, and the trail says who put it on and who took "
+            + "it off")
+    @Proving({DboPromises.AUTH_WHAT_HOLDS_A_RECORD_IS_CHANGED_ONLY_THERE_AND_ON_THE_TRAIL,
+            DboPromises.AUTH_A_HELD_RECORD_OUT_OF_REACH_ANSWERS_AS_ABSENT})
+    void onlyTheLaboratoryChangesWhatHoldsItsPatient() {
+        assertTrue(atLab != null, "the laboratory's keeper never signed in");
+        String tag = NAMES.value("relabelled");
+        String held = patient(atLab, tag, "lab", "Scamander");
+        String fhir = dbo.at(WARD) + "/fhir";
+
+        HttpResponse<String> taken = put(fhir + "/Patient/" + held,
+                patientJson(held, tag, "hospital", "Scamander"), atHospital);
+        Proves.that(DboPromises.AUTH_A_HELD_RECORD_OUT_OF_REACH_ANSWERS_AS_ABSENT,
+                taken.statusCode() == 404 && taken.body().contains("not-found"),
+                "the hospital's write to the laboratory's patient was not answered as for "
+                        + "one that is not there: " + taken.statusCode() + " " + taken.body());
+        Proves.that(DboPromises.AUTH_WHAT_HOLDS_A_RECORD_IS_CHANGED_ONLY_THERE_AND_ON_THE_TRAIL,
+                dbo.get(fhir + "/Patient/" + held, atLab).body().contains(ORGS + "|lab"),
+                "somebody at the hospital moved what the laboratory holds to itself");
+
+        HttpResponse<String> released = put(fhir + "/Patient/" + held,
+                patientJson(held, tag, null, "Scamander"), atLab);
+        assertEquals(200, released.statusCode(), released.body());
+        Proves.that(DboPromises.AUTH_WHAT_HOLDS_A_RECORD_IS_CHANGED_ONLY_THERE_AND_ON_THE_TRAIL,
+                dbo.get(fhir + "/Patient/" + held, atHospital).statusCode() == 200,
+                "the laboratory took its label off and the hospital still cannot read it");
+
+        HttpResponse<String> onTheTrail = new ATenantsDoor(dbo, WARD).get(
+                "/AuditEvent?entity=Patient/" + held + "&type="
+                        + cloud.jengu.dbo.core.api.HeldTo.CODE);
+        String trail = onTheTrail.body();
+        List<String> entries = dbo.says(onTheTrail).at("entry.resource.id");
+        Proves.that(DboPromises.AUTH_WHAT_HOLDS_A_RECORD_IS_CHANGED_ONLY_THERE_AND_ON_THE_TRAIL,
+                entries.size() == 2 && trail.contains("Practitioner/" + luna)
+                        && trail.contains(ORGS + "|lab"),
+                "putting the label on and taking it off are not both on the trail, naming the "
+                        + "laboratory's keeper and what it was held to: " + trail);
+    }
+
+    @Test
+    @Order(62)
+    @DisplayName("inside a run, a patient held to the laboratory is read by the laboratory's "
+            + "keeper who holds it, and by a worker only where the step it performs names the "
+            + "laboratory: a fetch that names nobody, a keeper at the hospital, and a patient "
+            + "held elsewhere are answered as for a patient the run was never given")
+    @Proving({DboPromises.AUTH_A_WORKER_READS_A_HELD_RECORD_ONLY_WHERE_ITS_STEP_SAYS,
+            DboPromises.AUTH_A_HELD_RECORD_IS_READ_ONLY_AT_ITS_ORGANISATION})
+    void insideARunAHeldPatientIsReadWhereItIsHeld() {
+        assertTrue(atLab != null, "the laboratory's keeper never signed in");
+        String tag = NAMES.value("in-a-run");
+        String held = patient(atLab, tag, "lab", "Weasley");
+        String elsewhere = patient(atHospital, tag, "hospital", "Granger");
+        String worker = dbo.workToken(WARD);
+
+        HttpResponse<String> named = inContext(FETCH_HELD, held, worker);
+        Proves.that(DboPromises.AUTH_A_WORKER_READS_A_HELD_RECORD_ONLY_WHERE_ITS_STEP_SAYS,
+                named.statusCode() == 200 && named.body().contains("Weasley"),
+                "a worker performing a step that names the laboratory did not read the patient "
+                        + "it holds: " + named.statusCode() + " " + named.body());
+        HttpResponse<String> unnamed = inContext(FETCH, held, worker);
+        Proves.that(DboPromises.AUTH_A_WORKER_READS_A_HELD_RECORD_ONLY_WHERE_ITS_STEP_SAYS,
+                unnamed.statusCode() == 404 && !unnamed.body().contains("Weasley"),
+                "a worker read a held patient through a step that names no organisation: "
+                        + unnamed.statusCode() + " " + unnamed.body());
+        Proves.that(DboPromises.AUTH_A_WORKER_READS_A_HELD_RECORD_ONLY_WHERE_ITS_STEP_SAYS,
+                inContext(FETCH_HELD, elsewhere, worker).statusCode() == 404,
+                "a step naming the laboratory reached a patient held to the hospital");
+
+        Proves.that(DboPromises.AUTH_A_HELD_RECORD_IS_READ_ONLY_AT_ITS_ORGANISATION,
+                inContext(FETCH, held, atLab).statusCode() == 200
+                        && inContext(FETCH, held, atHospital).statusCode() == 404,
+                "through a run they hold, the laboratory's patient was not read by its keeper "
+                        + "alone");
+    }
+
+    /** An organisation of the ward, named by an identifier of the ward's; returns its id. */
+    private String organisation(String value, String partOf) {
+        var written = dbo.write(WARD, "Organization", """
+                {"resourceType":"Organization","identifier":[{"system":"%s","value":"%s"}],
+                 "name":"%s"%s}""".formatted(ORGS, value, NAMES.value(value),
+                partOf == null ? "" : ",\"partOf\":{\"reference\":\"Organization/" + partOf
+                        + "\"}"));
+        assertTrue(written.accepted(), written.body());
+        return written.idOrFail();
+    }
+
+    /**
+     * A keeper of the ward's records: a practitioner, the person who is one,
+     * a keeper's role at the organisation named or at none, and a password.
+     * Returns the practitioner's id.
+     */
+    private String keeperAt(String login, String organisation) {
+        TenantAuthority authority = tenants.authority(WARD).orElseThrow();
+        List<String> scopes = List.of("user/Patient.read", "user/Patient.write", "work/" + FETCH);
+        authority.ensureRoleGrant("keeper", scopes);
+        authority.ensureClient(wardOffice(), null, scopes, "public-pkce", List.of(WARD_OFFICE));
+        var practitioner = dbo.write(WARD, "Practitioner", """
+                {"resourceType":"Practitioner",
+                 "identifier":[{"system":"urn:rl:nid","value":"%s"}]}"""
+                .formatted(NAMES.value(login)));
+        assertTrue(practitioner.accepted(), practitioner.body());
+        var person = dbo.write(WARD, "Person", """
+                {"resourceType":"Person",
+                 "identifier":[{"system":"urn:rl:nid","value":"%s"}],
+                 "link":[{"target":{"reference":"Practitioner/%s"},"assurance":"level3"}]}"""
+                .formatted(NAMES.value(login), practitioner.idOrFail()));
+        assertTrue(person.accepted(), person.body());
+        var role = dbo.write(WARD, "PractitionerRole", """
+                {"resourceType":"PractitionerRole",
+                 "practitioner":{"reference":"Practitioner/%s"},%s
+                 "code":[{"coding":[{"system":"urn:rl:role","code":"keeper"}]}]}"""
+                .formatted(practitioner.idOrFail(), organisation == null ? ""
+                        : "\"organization\":{\"reference\":\"Organization/" + organisation
+                                + "\"},"));
+        assertTrue(role.accepted(), role.body());
+        authority.ensureLocalCredential(NAMES.value(login), "a-secret-for-" + login,
+                person.idOrFail());
+        return practitioner.idOrFail();
+    }
+
+    private static String wardOffice() {
+        return NAMES.value("ward-office");
+    }
+
+    /** A patient written on the records surface by the bearer, held to the organisation named or to none. */
+    private String patient(String token, String tag, String heldTo, String family) {
+        HttpResponse<String> written = dbo.send(HttpRequest.newBuilder(
+                        URI.create(dbo.at(WARD) + "/fhir/Patient"))
+                .header("Content-Type", "application/fhir+json")
+                .POST(HttpRequest.BodyPublishers.ofString(
+                        patientJson(null, tag, heldTo, family))), token);
+        assertEquals(201, written.statusCode(), written.body());
+        String location = written.headers().firstValue("Location").orElseThrow();
+        return location.substring(location.lastIndexOf('/') + 1);
+    }
+
+    private static String patientJson(String id, String tag, String heldTo, String family) {
+        String security = heldTo == null ? "" : ",\"security\":[{\"system\":\""
+                + cloud.jengu.dbo.core.api.HeldTo.SYSTEM + "\",\"code\":\"" + ORGS + "|" + heldTo
+                + "\"}]";
+        return "{\"resourceType\":\"Patient\"" + (id == null ? "" : ",\"id\":\"" + id + "\"")
+                + ",\"meta\":{\"tag\":[{\"system\":\"" + ORGS + "\",\"code\":\"" + tag + "\"}]"
+                + security + "},\"name\":[{\"family\":\"" + family + "\"}]}";
+    }
+
+    private HttpResponse<String> put(String url, String document, String token) {
+        return dbo.send(HttpRequest.newBuilder(URI.create(url))
+                .header("Content-Type", "application/fhir+json")
+                .PUT(HttpRequest.BodyPublishers.ofString(document)), token);
+    }
+
+    /** The ids a search answered with. */
+    private List<String> ids(HttpResponse<String> searched) {
+        assertEquals(200, searched.statusCode(), searched.body());
+        return dbo.says(searched).at("entry.resource.id");
+    }
+
+    /** The patient, read in the context of a run of the step the bearer started over it. */
+    private HttpResponse<String> inContext(String step, String patient, String token) {
+        HttpResponse<String> started = dbo.send(HttpRequest.newBuilder(
+                        URI.create(dbo.at(WARD) + "/step/" + step))
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(
+                        "{\"inputs\":{\"patient\":\"Patient/" + patient + "\"}}")), token);
+        assertEquals(201, started.statusCode(), started.body());
+        String context = root() + dbo.says(started).one("context").orElseThrow();
+        return dbo.get(context + "/Patient/" + patient, token);
     }
 
     /** A lane a participant holds as itself, at the hospital's work surface. */

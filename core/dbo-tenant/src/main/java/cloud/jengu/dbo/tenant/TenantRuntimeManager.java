@@ -5476,6 +5476,18 @@ public final class TenantRuntimeManager implements AutoCloseable {
                                         private String holder(String named) {
                                             return named.equals(identity.name()) ? asker : named;
                                         }
+
+                                        // A participant reads the records held
+                                        // to an organisation its step names.
+                                        @Override
+                                        public java.util.Set<String> readsHeldTo(String step) {
+                                            return spec.steps().stream()
+                                                    .filter(one -> one.code().equals(step))
+                                                    .findFirst()
+                                                    .map(one -> java.util.Set.copyOf(
+                                                            one.readsHeldTo()))
+                                                    .orElse(java.util.Set.of());
+                                        }
                                     },
                                     // Nothing here says when work appears: a
                                     // participant over this door polls.

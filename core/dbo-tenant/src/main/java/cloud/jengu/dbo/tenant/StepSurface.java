@@ -130,6 +130,13 @@ final class StepSurface implements HttpHandler {
     private final java.util.function.Function<String, List<String>> roles;
 
     /**
+     * Where somebody acting in a role acts, by the role's id: the identifiers
+     * of the organisation it names, which a person holding a run as that role
+     * reads the records held to.
+     */
+    private final java.util.function.Function<String, List<String>> actsAtAs;
+
+    /**
      * Where a result a person gives becomes the tenant's records, by the
      * rules a participant's result is held to. The parts it names start at
      * this tenant's own door, which this is.
@@ -231,8 +238,8 @@ final class StepSurface implements HttpHandler {
             List<TenantSpec.Step> steps, String runPath, boolean starting,
             String tenant, Fleet fleet,
             java.util.function.Function<String, Optional<String>> rendered) {
-        this(authority::validate, authority::activeRoles, runs, store, engine, steps, runPath,
-                starting, tenant, fleet, rendered);
+        this(authority::validate, authority::activeRoles, authority::actsAtAs, runs, store,
+                engine, steps, runPath, starting, tenant, fleet, rendered);
     }
 
     /** The same, with nobody able to take a run as a person here. */
@@ -258,7 +265,21 @@ final class StepSurface implements HttpHandler {
             List<TenantSpec.Step> steps, String runPath, boolean starting,
             String tenant, Fleet fleet,
             java.util.function.Function<String, Optional<String>> rendered) {
+        this(validated, roles, role -> List.of(), runs, store, engine, steps, runPath, starting,
+                tenant, fleet, rendered);
+    }
+
+    /** The same, with where somebody acting in a role acts. */
+    StepSurface(java.util.function.Function<String, Optional<TenantAuthority.AuthContext>> validated,
+            java.util.function.Function<String, List<String>> roles,
+            java.util.function.Function<String, List<String>> actsAtAs,
+            Runs runs, FhirStoreFacade store,
+            cloud.jengu.dbo.core.api.ObjectStore engine,
+            List<TenantSpec.Step> steps, String runPath, boolean starting,
+            String tenant, Fleet fleet,
+            java.util.function.Function<String, Optional<String>> rendered) {
         this.roles = roles;
+        this.actsAtAs = actsAtAs;
         this.rendered = rendered;
         this.validated = validated;
         this.runs = runs;
@@ -278,6 +299,10 @@ final class StepSurface implements HttpHandler {
     @Override
     public void handle(HttpExchange exchange) throws IOException {
         try {
+            // Nowhere, until a run says otherwise: a credential at this door
+            // acts at no organisation of its own, and unbound would read as
+            // the store's machinery, which reads every held record.
+            cloud.jengu.dbo.core.api.Reach.actingAt(java.util.Set.of());
             String relative = exchange.getRequestURI().getPath()
                     .substring(exchange.getHttpContext().getPath().length());
             while (relative.startsWith("/")) {
@@ -333,6 +358,7 @@ final class StepSurface implements HttpHandler {
             // As above: the thread is reused, and a purpose left behind would
             // be stated over somebody else's request.
             cloud.jengu.dbo.core.api.Disclosure.clear();
+            cloud.jengu.dbo.core.api.Reach.clear();
             exchange.close();
         }
     }
@@ -1188,6 +1214,7 @@ final class StepSurface implements HttpHandler {
         // level, and a disclosure made through a run would be the one reading
         // nobody could account for.
         FhirStoreFacade.ReadResult result;
+        cloud.jengu.dbo.core.api.Reach.actingAt(actingAt(run, held(found, asking), admitted));
         cloud.jengu.dbo.core.api.Caller.setRun(run.key());
         try {
             result = store.readForServing(segments[2], segments[3]);
@@ -1410,6 +1437,8 @@ final class StepSurface implements HttpHandler {
             fail(exchange, 404, "not_found", "no such run");
             return;
         }
+        cloud.jengu.dbo.core.api.Reach.actingAt(
+                actingAt(found.get(), held(found, asking.clientId()), asking));
         Object bundle = Json.parse(new String(exchange.getRequestBody().readAllBytes(),
                 StandardCharsets.UTF_8));
         if (!"Bundle".equals(Json.strOpt(bundle, "resourceType"))
@@ -1806,6 +1835,31 @@ final class StepSurface implements HttpHandler {
     }
 
     /** Whether the client asking holds this run now, which opens it to its performer. */
+    /**
+     * Where whoever performs this run acts, for the records held to one
+     * organisation: a person holding it as a role, at that role's
+     * organisation; a person holding the run they started, where their token
+     * says they act; anybody else performing it, at the organisations its
+     * step declares it reads the held records of, and nowhere where it
+     * declares none. A colleague joined to handed work is of another tenant
+     * and acts at none of this one's organisations.
+     */
+    private java.util.Set<String> actingAt(Run run, boolean holder,
+            TenantAuthority.AuthContext asking) {
+        if (!holder) {
+            return java.util.Set.of();
+        }
+        String role = run.assignment() == null ? null : run.assignment().role();
+        if (role != null) {
+            return java.util.Set.copyOf(actsAtAs.apply(role.substring(role.indexOf('/') + 1)));
+        }
+        if (asking.fhirUser() != null) {
+            return java.util.Set.copyOf(asking.actsAt());
+        }
+        TenantSpec.Step step = declared.get(run.process() + "." + run.step());
+        return step == null ? java.util.Set.of() : java.util.Set.copyOf(step.readsHeldTo());
+    }
+
     private boolean held(Optional<Run> run, String asking) {
         return run.isPresent() && run.get().heldBy(asking, clock.instant());
     }

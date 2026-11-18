@@ -122,6 +122,12 @@ public enum DboStories implements Story {
                     // Fitted here rather than left in no story: what the run reaches, what
                     // wakes a runner, and what a fault leaves behind.
                     DboPromises.PROC_A_RUN_ANSWERS_ONLY_FOR_ITS_INPUTS,
+                    // And a record written for one department reaches only the
+                    // people there, on the records surface or through a run.
+                    DboPromises.AUTH_A_HELD_RECORD_IS_READ_ONLY_AT_ITS_ORGANISATION,
+                    DboPromises.AUTH_A_HELD_RECORD_OUT_OF_REACH_ANSWERS_AS_ABSENT,
+                    DboPromises.AUTH_WHAT_HOLDS_A_RECORD_IS_CHANGED_ONLY_THERE_AND_ON_THE_TRAIL,
+                    DboPromises.AUTH_A_WORKER_READS_A_HELD_RECORD_ONLY_WHERE_ITS_STEP_SAYS,
                     DboPromises.PROC_A_RUN_CONTEXT_ENDS_WITH_ITS_RUN,
                     DboPromises.PROC_A_RUN_CONTEXT_IS_ITS_PERFORMERS,
                     DboPromises.PROC_A_WAKE_UP_IS_NOT_HOW_WORK_ARRIVES,

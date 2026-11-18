@@ -439,6 +439,10 @@ final class Crossings {
             cloud.jengu.dbo.core.api.seal.ParticipantKey key) {
         List<cloud.jengu.dbo.work.SealedPayload> sealed = new ArrayList<>();
         cloud.jengu.dbo.core.api.Disclosure.toSeal();
+        // Acting nowhere: a record held to one of the owner's organisations
+        // is for the people there, and an answer to another tenant is not.
+        java.util.Set<String> before = cloud.jengu.dbo.core.api.Reach.actsAt();
+        cloud.jengu.dbo.core.api.Reach.actingAt(java.util.Set.of());
         try {
             for (String version : answered.produced().versions()) {
                 java.util.regex.Matcher list = LIST.matcher(version);
@@ -462,6 +466,7 @@ final class Crossings {
             }
         } finally {
             cloud.jengu.dbo.core.api.Disclosure.clear();
+            cloud.jengu.dbo.core.api.Reach.actingAt(before);
         }
         return sealed;
     }

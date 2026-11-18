@@ -58,6 +58,21 @@ public final class Criteria {
 
     public record NotEq(String path, EnvelopeValue value) {}
 
+    /**
+     * Every value at this path is one of these — and so is none at all.
+     *
+     * <p>The shape a restriction takes rather than a question a caller asks:
+     * a record labelled with something outside the set is left out, and a
+     * record with no label at the path is in. Empty is a real answer here,
+     * unlike {@link AnyOf}: it keeps only the records with nothing at the path.
+     */
+    public record OnlyAmong(String path, java.util.List<String> values) {
+
+        public OnlyAmong {
+            values = java.util.List.copyOf(values);
+        }
+    }
+
     public record StartsWith(String path, String prefix) {}
 
     public record Missing(String path, boolean missing) {}
@@ -105,6 +120,7 @@ public final class Criteria {
     private final List<AnyOf> anyOf = new ArrayList<>();
     private final List<StartsWithAny> startsWithAny = new ArrayList<>();
     private final List<NotEq> notEquals = new ArrayList<>();
+    private final List<OnlyAmong> onlyAmong = new ArrayList<>();
     private final List<StartsWith> startsWith = new ArrayList<>();
     private final List<Missing> missing = new ArrayList<>();
     private final List<Range> ranges = new ArrayList<>();
@@ -190,6 +206,13 @@ public final class Criteria {
     public Criteria notEq(String path, EnvelopeValue value) {
         Paths.requireValid(path);
         notEquals.add(new NotEq(path, value));
+        return this;
+    }
+
+    /** Objects whose every string value at {@code path} is among {@code values}, or that have none. */
+    public Criteria onlyAmong(String path, java.util.Collection<String> values) {
+        Paths.requireValid(path);
+        onlyAmong.add(new OnlyAmong(path, java.util.List.copyOf(values)));
         return this;
     }
 
@@ -299,6 +322,12 @@ public final class Criteria {
     }
 
     public List<NotEq> notEqualsPredicates() { return notEquals; }
+
+    /**
+     * Restrictions a decorator added, which are not in {@link #matchedPaths}:
+     * they say what the caller may be answered, not what the caller asked.
+     */
+    public List<OnlyAmong> onlyAmongPredicates() { return onlyAmong; }
 
     public List<StartsWith> startsWithPredicates() { return startsWith; }
 

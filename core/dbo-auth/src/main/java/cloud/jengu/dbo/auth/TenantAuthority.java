@@ -1444,6 +1444,54 @@ public final class TenantAuthority {
      * whose period has ended takes nothing even on a token issued before it
      * did.
      */
+    /**
+     * Where a person acts, for the records held to one organisation
+     * ({@link cloud.jengu.dbo.core.api.HeldTo}): every identifier of each
+     * organisation an active role of theirs names, as {@code <system>|<value>}.
+     *
+     * <p>Exactly those organisations, unlike reach. A role at a hospital acts
+     * at the hospital, and a note its laboratory wrote for itself is not the
+     * hospital's to read.
+     */
+    public List<String> actsAt(String personId) {
+        java.util.Set<String> at = new java.util.LinkedHashSet<>();
+        for (String practitionerId : linkedOfType(personId, "Practitioner")) {
+            for (StoredObject role : rolesHeldBy(practitionerId)) {
+                actsAtIn(role, at);
+            }
+        }
+        return List.copyOf(at);
+    }
+
+    /**
+     * Where somebody acting in one role acts: the organisation that role
+     * names, or nowhere for a role that has ended or names none.
+     */
+    public List<String> actsAtAs(String practitionerRoleId) {
+        java.util.Set<String> at = new java.util.LinkedHashSet<>();
+        subjectStore.get("PractitionerRole", practitionerRoleId)
+                .ifPresent(role -> actsAtIn(role, at));
+        return List.copyOf(at);
+    }
+
+    private void actsAtIn(StoredObject role, java.util.Set<String> at) {
+        Object payload = Json.parse(new String(role.payload(), StandardCharsets.UTF_8));
+        String organisationId = periodActive(payload) ? organisationOf(payload) : null;
+        if (organisationId == null) {
+            return;
+        }
+        subjectStore.get("Organization", organisationId).ifPresent(organisation -> {
+            Object named = Json.parse(new String(organisation.payload(), StandardCharsets.UTF_8));
+            for (Object identifier : Json.array(named, "identifier")) {
+                String system = Json.strOpt(identifier, "system");
+                String value = Json.strOpt(identifier, "value");
+                if (system != null && value != null) {
+                    at.add(system + "|" + value);
+                }
+            }
+        });
+    }
+
     public List<String> activeRoles(String practitionerId) {
         List<String> active = new java.util.ArrayList<>();
         for (StoredObject role : rolesHeldBy(practitionerId)) {
@@ -2427,13 +2475,18 @@ public final class TenantAuthority {
                 ? activeRoles(fhirUser.substring("Practitioner/".length())) : List.of();
         String heldClaim = held.isEmpty() ? ""
                 : ",\"practitionerRoles\":[\"" + String.join("\",\"", held) + "\"]";
+        // Where they act, exactly, for the records held to one organisation:
+        // re-derived at every mint as reach is, so a role that ends stops
+        // opening its organisation's records at the next refresh.
+        List<String> actsAt = actsAt(personId);
+        String atClaim = actsAt.isEmpty() ? "" : ",\"at\":" + Json.render(actsAt);
         String signedIn = ",\"sid\":\"" + session.sid() + "\""
                 + ",\"auth_time\":" + session.authTime()
                 + ",\"amr\":" + Json.render(session.amr());
         String base = "\"iss\":\"" + issuer + "\",\"sub\":\"" + personId + "\""
                 + ",\"aud\":\"" + issuer + "\",\"client_id\":\"" + clientId + "\""
                 + ",\"fhirUser\":\"" + fhirUser + "\""
-                + ",\"roles\":" + rolesJson + orgClaim + heldClaim
+                + ",\"roles\":" + rolesJson + orgClaim + heldClaim + atClaim
                 + ",\"scope\":\"" + scope + "\",\"iat\":" + now + signedIn;
         String access = "{" + base + ",\"jti\":\"" + UuidV7.newId() + "\""
                 + ",\"exp\":" + (now + TOKEN_TTL_SECONDS) + "}";
@@ -2660,10 +2713,19 @@ public final class TenantAuthority {
      */
     public record AuthContext(String clientId, String fhirUser, String actClient,
             List<String> scopes, String purposeOfUse, List<String> organisations,
-            String audience, List<String> roles, Vouched vouched) {
+            String audience, List<String> roles, Vouched vouched, List<String> actsAt) {
 
         public AuthContext {
             roles = roles == null ? List.of() : List.copyOf(roles);
+            actsAt = actsAt == null ? List.of() : List.copyOf(actsAt);
+        }
+
+        /** Somebody who acts at no organisation of this tenant. */
+        public AuthContext(String clientId, String fhirUser, String actClient,
+                List<String> scopes, String purposeOfUse, List<String> organisations,
+                String audience, List<String> roles, Vouched vouched) {
+            this(clientId, fhirUser, actClient, scopes, purposeOfUse, organisations, audience,
+                    roles, vouched, List.of());
         }
 
         /** Anybody but a person of the provider. */
@@ -2723,7 +2785,7 @@ public final class TenantAuthority {
                     Json.strOpt(claims, "fhirUser"), actClient,
                     List.of(Json.str(claims, "scope").split(" ")),
                     purposeOf(claims), reach.isEmpty() ? null : reach, null,
-                    Json.strings(claims, "roles")));
+                    Json.strings(claims, "roles"), null, Json.strings(claims, "at")));
         } catch (RuntimeException invalid) {
             return Optional.empty();
         }

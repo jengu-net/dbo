@@ -158,6 +158,14 @@ final class DefinitionEnvelopes {
                         field(coding, "system"), field(coding, "code"));
             }
         }
+        for (Object label : items(meta, "security")) {
+            if (label instanceof Map<?, ?> coding
+                    && cloud.jengu.dbo.core.api.HeldTo.SYSTEM.equals(field(coding, "system"))
+                    && field(coding, "code") != null) {
+                envelope.value(cloud.jengu.dbo.core.api.HeldTo.PATH,
+                        EnvelopeValue.of(field(coding, "code")));
+            }
+        }
     }
 
     /** What a canonical resource is identified BY, beside what it is found by. */

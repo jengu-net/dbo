@@ -44,6 +44,35 @@ position, so what it records about its work inherits the same authority, audit,
 retention and erasure as everything else — instead of living in a privileged
 plane with rules written specially for it.
 
+## A department's record is its own
+
+**A record may be held to one organisation of the tenant.** The label is a
+security label in `urn:dbo:held-to` whose code names the `Organization` by an
+identifier it carries, `<system>|<value>`. It names an identifier rather than an
+id because a record travels between places and an organisation's id differs on
+each. Whoever may write the record may put the label on.
+
+**It is read only by those acting at exactly that organisation.** A person
+acts where an active role of theirs names an organisation, and their token says
+so, re-derived at every refresh. A role at the hospital does not open what its
+laboratory holds to itself, and a role at the laboratory does not open what the
+hospital holds. Reach widens a grant through the tree because a grant is about
+what somebody may do. A held record is about who it was written for.
+
+**To anybody else it is absent.** A read answers not-found in the words an id
+nothing minted gets. A search leaves it out in the query, not in the page, so a
+count does not include it. A write to it is answered the same way. Who a record
+is held to is changed only by somebody acting there, and every change is on the
+trail whatever the audit level.
+
+**A credential that acts at no organisation reads none of them**, such as an
+integration, a worker or a partner. Inside a run, a worker reads the records
+held to an organisation only where its step declares `readsHeldTo` naming it.
+What a lane seals for a participant follows the same declaration. An answer
+sealed to another tenant carries no held record. The store's own machinery,
+which binds no caller, reads everything it holds, which keeps replication,
+projections and indexing whole.
+
 ## A person's data is not the operator's
 
 Protection here is structural rather than procedural, so the rights of access,
