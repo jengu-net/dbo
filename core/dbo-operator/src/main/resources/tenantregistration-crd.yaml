@@ -287,6 +287,12 @@ spec:
                         type: array
                         items:
                           type: string
+                      # The organisations, as <system>|<value>, whose held
+                      # records a worker performing it reads.
+                      readsHeldTo:
+                        type: array
+                        items:
+                          type: string
                       # What the rows it puts on a tenant's register are done
                       # for: a code this declaration puts into words under
                       # purposes, and per slot one in place of it.
