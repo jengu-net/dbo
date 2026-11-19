@@ -592,6 +592,7 @@ public enum DboStories implements Story {
                     DboPromises.PROC_A_PARTICIPANT_BEHIND_ITS_FEED_STILL_FINDS_ITS_WORK,
                     // And the second place: the other bound, deliberately different.
                     DboPromises.PROC_THE_LANE_HAS_TWO_BOUNDS,
+                    DboPromises.PROC_A_RECORD_A_PLACE_SENDS_HOME_IS_ANNOUNCED_AT_HOME,
                     DboPromises.PROC_WORK_DRIVEN_ARRIVAL_AND_EXPIRY,
                     DboPromises.PROC_MIRRORED_RUNS_ARE_FILED_BY_SOURCE,
                     DboPromises.PROC_AUDIT_REPLICATES_AS_RECORDED,

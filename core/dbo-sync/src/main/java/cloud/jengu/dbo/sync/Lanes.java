@@ -1054,9 +1054,12 @@ public final class Lanes {
             }
             payload = answeredHere(payload, home);
         }
-        store.put(new PutRequest(item.typeName(), item.id(),
+        // A change where it lands, not a restore: whoever watches this site
+        // is told of it as of any other change, at the version and moment
+        // the far side recorded.
+        store.put(PutRequest.copied(item.typeName(), item.id(),
                 here.map(StoredObject::versionId).orElse(null), payload,
-                item.version(), item.recordedAt(), true),
+                item.version(), item.recordedAt()),
                 cloud.jengu.dbo.core.api.Handling.Authority.SOURCE_TENANT);
         java.util.function.BiConsumer<Item, String> noting = whence;
         if (noting != null) {

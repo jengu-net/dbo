@@ -498,10 +498,17 @@ public final class PgObjectStore implements ObjectStore {
      * these rules protect the data by losing it. The restore path is not open:
      * it needs the owner master key and an archive both parties signed
      * (§11), so the gate is cryptographic rather than absent.
+     *
+     * <p><b>So does a copy its source recorded.</b> A version written by the
+     * lane at the version and moment another site gave it was admitted by
+     * that site's rules when it was written there; refusing it here would
+     * hold a declaration the configuration projects, and only that lane
+     * writes, away from every place the tenant sends it to.
      */
     private static void guardWrite(TypeRegistration type, PutRequest request,
             boolean created, Handling.Authority caller) {
-        if (request.isRestore()) {
+        if (request.isRestore() || request.carriesRecordedHistory()
+                && caller == Handling.Authority.SOURCE_TENANT) {
             return;
         }
         Handling handling = type.handling();

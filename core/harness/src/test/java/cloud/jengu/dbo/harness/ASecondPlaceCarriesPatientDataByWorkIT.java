@@ -66,6 +66,7 @@ class ASecondPlaceCarriesPatientDataByWorkIT {
 
     static PGSimpleDataSource cloudDs;
     static PGSimpleDataSource siteDs;
+    static String recordDomain;
     static PgObjectStore cloudStore;
     static PgObjectStore siteStore;
     static Runs cloudRuns;
@@ -89,10 +90,14 @@ class ASecondPlaceCarriesPatientDataByWorkIT {
         cloudDs = ds(base + "kevad_cloud");
         siteDs = ds(base + "kevad_site");
         List<TypeRegistration> declarations = new ArrayList<>(new R4Personality(
-                List.of(FhirTypeConfig.internal("Observation"))).registrations());
+                List.of(FhirTypeConfig.internal("Observation"),
+                        FhirTypeConfig.internal("ActivityDefinition"))).registrations());
         declarations.addAll(WorkModel.registrations());
         declarations.addAll(LaneModel.registrations());
         declarations.addAll(PlacementModel.registrations());
+        recordDomain = declarations.stream()
+                .filter(registration -> registration.typeName().equals("Observation"))
+                .findFirst().orElseThrow().domain();
         cloudStore = new PgObjectStore(cloudDs, declarations);
         siteStore = new PgObjectStore(siteDs, declarations);
         cloudRuns = new Runs(cloudStore);
@@ -181,6 +186,62 @@ class ASecondPlaceCarriesPatientDataByWorkIT {
         assertTrue(refused.getMessage().contains("by type"),
                 "and says what the bound is, so the caller learns the rule rather than that "
                         + "something went wrong: " + refused.getMessage());
+    }
+
+    @Test
+    @Order(8)
+    @DisplayName("a record the second site produced is announced on the cloud as a change, at "
+            + "the version and moment the site recorded, and goes out to no place by type")
+    @Proving(DboPromises.PROC_A_RECORD_A_PLACE_SENDS_HOME_IS_ANNOUNCED_AT_HOME)
+    void whatTheSecondPlaceProducedIsAnnouncedOnTheCloud() {
+        // Watching the cloud's changes from where they stand now, as an
+        // observer or a subscription does.
+        PgChangeFeed watched = new PgChangeFeed(cloudDs, recordDomain);
+        String from = watched.headCursor();
+
+        Run run = siteRuns.pipeline(PROCESS, "measure", PROCESS + "/announced-on-the-cloud",
+                List.of(WorkModel.DOMAIN));
+        Run held = siteRuns.claim(run, new Executor("assayer", "1.0", "example.meristem",
+                Scope.BASELINE), Instant.now().plusSeconds(60)).orElseThrow();
+        String id = siteStore.put(PutRequest.create("Observation",
+                "{\"resourceType\":\"Observation\",\"status\":\"preliminary\"}"
+                        .getBytes(StandardCharsets.UTF_8))).id();
+        long version = siteStore.put(PutRequest.update("Observation", id, 1,
+                "{\"resourceType\":\"Observation\",\"status\":\"final\"}"
+                        .getBytes(StandardCharsets.UTF_8))).versionId();
+        siteRuns.closed(siteRuns.produced(held, "Observation", id, version));
+        Instant recorded = siteStore.get("Observation", id).orElseThrow().lastUpdated();
+
+        Lanes.Applied applied = cloud.applyFromAPlace("site",
+                site.outbound("cloud", 500, TRAVELS));
+        assertEquals(List.of(), applied.refused(), "the batch applied whole: " + applied);
+
+        List<cloud.jengu.dbo.core.api.feed.FeedItem> told = watched.read(from, 500).items()
+                .stream().filter(item -> item.objectId().equals(id)).toList();
+        assertEquals(1, told.size(), "whoever watches the cloud was not told of what the site "
+                + "produced, so a live view of the tenant is blind to the place's work: " + told);
+        assertEquals(version, told.get(0).versionId(),
+                "announced at the version the site recorded, not one the cloud assigned");
+        assertEquals(recorded, cloudStore.get("Observation", id).orElseThrow().lastUpdated(),
+                "and held at the moment the site recorded it");
+
+        // The cloud's lane sends declarations by type from the same feed the
+        // record was announced on; the record is not one of them.
+        String declaration = cloudStore.put(PutRequest.create("ActivityDefinition",
+                "{\"resourceType\":\"ActivityDefinition\",\"status\":\"active\"}"
+                        .getBytes(StandardCharsets.UTF_8))).id();
+        Lanes byType = new Lanes(cloudStore, new PgChangeFeed(cloudDs, WorkModel.DOMAIN),
+                cloudRuns, "cloud", null, watched, Set.of("ActivityDefinition"));
+        for (String place : List.of("site", "another-place")) {
+            List<String> sent = byType.outbound(place, 500, TRAVELS,
+                    Set.of("ActivityDefinition")).items().stream()
+                    .map(item -> item.typeName() + "/" + item.id()).toList();
+            assertTrue(sent.contains("ActivityDefinition/" + declaration),
+                    "the lane sends " + place + " the declarations it sends by type: " + sent);
+            assertFalse(sent.contains("Observation/" + id),
+                    "and not what a place sent home, which would go back out to " + place
+                            + " for being announced: " + sent);
+        }
     }
 
     private static PGSimpleDataSource ds(String url) {
