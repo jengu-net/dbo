@@ -18,7 +18,8 @@ import java.util.Objects;
  * rather than making a change. It is set on every write an import performs,
  * whether or not the history's own versions travel with it — the two are
  * orthogonal, and treating "carries a version" as "is a restore" would leave
- * the plainest restore announcing itself as news.
+ * the plainest restore announcing itself as news — or, the other way round,
+ * a copy another site sent announcing nothing ({@link #copied}).
  *
  * <p>They exist because a version's timestamp is the evidence. A record's
  * history says what somebody knew and acted on at a moment; replaying it with
@@ -96,6 +97,20 @@ public record PutRequest(String typeName, String id, Long expectedVersion, byte[
             long recordedVersion, Instant recordedAt) {
         return new PutRequest(typeName, id, null, payload,
                 recordedVersion, Objects.requireNonNull(recordedAt, "recordedAt"), true);
+    }
+
+    /**
+     * One version of a record as another site recorded it, written here as a
+     * change: the same version and moment, announced as any change is.
+     *
+     * <p>Not a restore. A record a place produced is news where it lands,
+     * and a copy written as a restore leaves everybody watching that store
+     * blind to it; only state re-established after a loss is not news.
+     */
+    public static PutRequest copied(String typeName, String id, Long expectedVersion,
+            byte[] payload, long recordedVersion, Instant recordedAt) {
+        return new PutRequest(typeName, id, expectedVersion, payload,
+                recordedVersion, Objects.requireNonNull(recordedAt, "recordedAt"), false);
     }
 
     /**

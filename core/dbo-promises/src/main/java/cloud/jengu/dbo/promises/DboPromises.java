@@ -1487,6 +1487,13 @@ public enum DboPromises implements Promise {
             + "arrives with a task and leaves with it. What a run produced travels with the "
             + "run as a copy that outlives it. A type the lane does not admit is refused by "
             + "name, never quietly left out."),
+    PROC_A_RECORD_A_PLACE_SENDS_HOME_IS_ANNOUNCED_AT_HOME(
+            "A record a place produced and sent home is a change at home, announced as any "
+            + "change is: whoever watches the tenant's changes — an observer, a "
+            + "subscription, a change feed — is told of it, at the version and the moment "
+            + "the place recorded. Only a restore is not announced. What is announced at "
+            + "home does not travel back out on the lane: not to the place it came from, "
+            + "nor to another, unless its type is one the lane sends anyway."),
     PROC_WORK_DRIVEN_ARRIVAL_AND_EXPIRY("A record travels to a replica because a "
             + "piece of work names it, and is removed when no open run there still "
             + "names it. Work-driven arrival without work-driven expiry is a replica "
