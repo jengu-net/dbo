@@ -29,6 +29,16 @@ import java.util.Map;
  * finding it — so a person fixes the world and the next round closes the card
  * (REQ-DBO-PROC-CLOSE-BY-RE-EVALUATION), rather than a count being returned to
  * a caller who has already gone.
+ *
+ * <p><b>A place removes nothing its tenant does not hold.</b> A place keeps
+ * working with its origin away, and a type declared to go after two weeks
+ * would otherwise go, on a place cut off for three, before it ever reached the
+ * tenant. So on a place a record goes only once its latest version is held
+ * elsewhere — marked so, or a copy that came from elsewhere — and a record
+ * changed since it was marked waits for the new version: its history goes home
+ * whole before any of it is let go. {@code removeAfterHeldElsewhere} lets a
+ * node go further and remove what is held elsewhere that long after the mark,
+ * which is how a place holding its tenant's ten-year floor keeps a small disk.
  */
 public final class RetentionSweep {
 
@@ -118,13 +128,16 @@ public final class RetentionSweep {
                     continue;
                 }
                 for (List<String> claimed : claims) {
-                    java.time.Duration removeAfter = bounds.heldBy(claimed).removeAfter();
-                    if (removeAfter == null) {
-                        continue;
-                    }
+                    TenantPolicies.Retention held = bounds.heldBy(claimed);
                     try {
-                        removed += sweepType(type, claimed, bounds.profiles().keySet(),
-                                removeAfter);
+                        if (held.removeAfter() != null) {
+                            removed += sweepType(type, claimed, bounds.profiles().keySet(),
+                                    held.removeAfter());
+                        }
+                        if (held.removeAfterHeldElsewhere() != null) {
+                            removed += sweepHeldElsewhere(type, claimed,
+                                    bounds.profiles().keySet(), held);
+                        }
                     } catch (RuntimeException e) {
                         pass.item(claimed.isEmpty() ? type : type + " " + claimed,
                                 Failure.of(e), String.valueOf(e.getMessage()));
@@ -207,11 +220,17 @@ public final class RetentionSweep {
      * opened to ask.
      */
     private List<List<String>> claimsOf(String typeName, TenantPolicies.Retention bounds) {
-        java.time.Duration shortest = bounds.removeAfter();
-        for (TenantPolicies.Retention profile : bounds.profiles().values()) {
-            if (profile.removeAfter() != null
-                    && (shortest == null || profile.removeAfter().compareTo(shortest) < 0)) {
-                shortest = profile.removeAfter();
+        // A mark comes after the version it marks, so a record a mark lets go
+        // of is older than that bound too.
+        java.time.Duration shortest = null;
+        List<TenantPolicies.Retention> rules = new ArrayList<>(bounds.profiles().values());
+        rules.add(bounds);
+        for (TenantPolicies.Retention rule : rules) {
+            for (java.time.Duration ceiling : java.util.Arrays.asList(rule.removeAfter(),
+                    rule.removeAfterHeldElsewhere())) {
+                if (ceiling != null && (shortest == null || ceiling.compareTo(shortest) < 0)) {
+                    shortest = ceiling;
+                }
             }
         }
         List<List<String>> claims = new ArrayList<>();
@@ -260,8 +279,10 @@ public final class RetentionSweep {
         try (Connection c = ds.getConnection()) {
             try (PreparedStatement ps = c.prepareStatement("""
                     SELECT id FROM %s_data d
-                    WHERE type = ? AND last_updated < ? AND %s = ?::text[]
-                    LIMIT 500""".formatted(Domains.tables(domain), CLAIMED))) {
+                    WHERE type = ? AND last_updated < ? AND %s = ?::text[]%s
+                    LIMIT 500""".formatted(Domains.tables(domain), CLAIMED,
+                    atAPlace ? HELD_ELSEWHERE.formatted(Domains.tables(domain),
+                            Domains.tables(domain)) : ""))) {
                 ps.setString(1, typeName);
                 ps.setTimestamp(2, java.sql.Timestamp.from(ceiling));
                 ps.setArray(3, c.createArrayOf("text", ruled.toArray()));
@@ -272,34 +293,93 @@ public final class RetentionSweep {
                     }
                 }
             }
-            for (String id : expired) {
-                c.setAutoCommit(false);
-                try {
-                    for (String sql : List.of(
-                            "DELETE FROM %s_history WHERE id = ?::uuid".formatted(Domains.historyTables(domain)),
-                            "DELETE FROM %s_identifier WHERE object_id = ?::uuid".formatted(Domains.tables(domain)),
-                            "DELETE FROM %s_reference WHERE owner_id = ?::uuid".formatted(Domains.tables(domain)),
-                            "DELETE FROM %s_data WHERE id = ?::uuid".formatted(Domains.tables(domain)))) {
-                        try (PreparedStatement ps = c.prepareStatement(sql)) {
-                            ps.setString(1, id);
-                            ps.executeUpdate();
-                        }
-                    }
-                    c.commit();
-                } catch (SQLException e) {
-                    c.rollback();
-                    throw e;
-                } finally {
-                    c.setAutoCommit(true);
-                }
-                auditSink.record("retention-remove", typeName, id,
-                        "removeAfter=" + removeAfter + claimed.stream()
-                                .map(profile -> " profile=" + profile)
-                                .collect(java.util.stream.Collectors.joining()));
-            }
+            remove(c, typeName, expired, "removeAfter=" + removeAfter + claimed.stream()
+                    .map(profile -> " profile=" + profile)
+                    .collect(java.util.stream.Collectors.joining()));
         } catch (SQLException e) {
             throw new IllegalStateException("retention sweep failed for " + typeName, e);
         }
         return expired.size();
+    }
+
+    /**
+     * On a place, where a record's latest version is held elsewhere: marked
+     * at that version or a later one, or a copy that came from elsewhere.
+     */
+    private static final String HELD_ELSEWHERE = """
+
+              AND (EXISTS (SELECT 1 FROM %s_held_elsewhere m
+                           WHERE m.object_id = d.id AND m.version_id >= d.version_id)
+                   OR EXISTS (SELECT 1 FROM %s_sync_origin o WHERE o.object_id = d.id))""";
+
+    /**
+     * Records of a type claiming exactly these of its profiles whose latest
+     * version was marked held elsewhere longer ago than the bound, and that
+     * are past their floor, removed and audited.
+     */
+    private int sweepHeldElsewhere(String typeName, List<String> claimed,
+            java.util.Set<String> ruled, TenantPolicies.Retention held) {
+        java.time.Duration bound = held.removeAfterHeldElsewhere();
+        Instant now = Instant.now();
+        List<String> released = new ArrayList<>();
+        try (Connection c = ds.getConnection()) {
+            try (PreparedStatement ps = c.prepareStatement("""
+                    SELECT d.id FROM %1$s_data d
+                    JOIN %1$s_held_elsewhere m
+                      ON m.object_id = d.id AND m.version_id = d.version_id
+                    WHERE d.type = ? AND m.marked_at < ? AND d.last_updated < ?
+                      AND %2$s = ?::text[]
+                    LIMIT 500""".formatted(Domains.tables(domain), CLAIMED))) {
+                ps.setString(1, typeName);
+                ps.setTimestamp(2, java.sql.Timestamp.from(now.minus(bound)));
+                // keepAtLeast holds against this as against everything.
+                ps.setTimestamp(3, java.sql.Timestamp.from(held.keepAtLeast() == null
+                        ? now : now.minus(held.keepAtLeast())));
+                ps.setArray(4, c.createArrayOf("text", ruled.toArray()));
+                ps.setArray(5, c.createArrayOf("text", claimed.toArray()));
+                try (ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) {
+                        released.add(rs.getString(1));
+                    }
+                }
+            }
+            remove(c, typeName, released, "removeAfterHeldElsewhere=" + bound
+                    + (held.keepAtLeast() == null ? "" : " keepAtLeast=" + held.keepAtLeast())
+                    + claimed.stream().map(profile -> " profile=" + profile)
+                    .collect(java.util.stream.Collectors.joining()));
+        } catch (SQLException e) {
+            throw new IllegalStateException("retention sweep failed for " + typeName
+                    + " held elsewhere", e);
+        }
+        return released.size();
+    }
+
+    /** Each record from state and history, with its marks, audited by id and rule. */
+    private void remove(Connection c, String typeName, List<String> ids, String rule)
+            throws SQLException {
+        for (String id : ids) {
+            c.setAutoCommit(false);
+            try {
+                for (String sql : List.of(
+                        "DELETE FROM %s_held_elsewhere WHERE object_id = ?::uuid".formatted(Domains.tables(domain)),
+                        "DELETE FROM %s_history WHERE id = ?::uuid".formatted(Domains.historyTables(domain)),
+                        "DELETE FROM %s_identifier WHERE object_id = ?::uuid".formatted(Domains.tables(domain)),
+                        "DELETE FROM %s_reference WHERE owner_id = ?::uuid".formatted(Domains.tables(domain)),
+                        "DELETE FROM %s_data WHERE id = ?::uuid".formatted(Domains.tables(domain)))) {
+                    try (PreparedStatement ps = c.prepareStatement(sql)) {
+                        ps.setString(1, id);
+                        ps.executeUpdate();
+                    }
+                }
+                c.commit();
+            } catch (SQLException e) {
+                c.rollback();
+                throw e;
+            } finally {
+                c.setAutoCommit(true);
+            }
+            auditSink.record("retention-remove", typeName, id,
+                    rule + (atAPlace ? " at a place" : ""));
+        }
     }
 }

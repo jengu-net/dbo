@@ -1494,6 +1494,21 @@ public enum DboPromises implements Promise {
             + "the place recorded. Only a restore is not announced. What is announced at "
             + "home does not travel back out on the lane: not to the place it came from, "
             + "nor to another, unless its type is one the lane sends anyway."),
+    SYNC_A_PLACE_NEVER_LOSES_THROUGH_RETENTION_WHAT_ITS_TENANT_DOES_NOT_HOLD(
+            "A place's retention never removes a record its tenant does not hold. A version "
+            + "the tenant took from the place is marked as held elsewhere on the place, "
+            + "beside the record and never on it, before the place moves past it; on a place "
+            + "a removal bound removes only a record whose latest version is so marked, or "
+            + "that came from elsewhere. A record changed since it was marked waits until its "
+            + "new version is: its history goes home whole before any of it is let go. What "
+            + "the place holds alone — how many versions, and since when — is read on the "
+            + "node and by the operator."),
+    SYNC_A_PLACE_LETS_GO_OF_WHAT_IS_HELD_ELSEWHERE_AS_ITS_DECLARATION_SAYS(
+            "A type, or a profile within it, may declare removeAfterHeldElsewhere: a node "
+            + "removes the record that long after its latest version was marked as held "
+            + "elsewhere, with its marks, and audits the removal as retention's are. Without "
+            + "a mark it removes nothing, and keepAtLeast holds against it. An application "
+            + "may mark versions it knows are held elsewhere through the store's interface."),
     PROC_WORK_DRIVEN_ARRIVAL_AND_EXPIRY("A record travels to a replica because a "
             + "piece of work names it, and is removed when no open run there still "
             + "names it. Work-driven arrival without work-driven expiry is a replica "

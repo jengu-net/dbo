@@ -310,6 +310,7 @@ public final class LaneVerbService {
             answer.put(LaneVerbs.APPLIED, taken.applied());
             answer.put(LaneVerbs.SKIPPED, taken.skipped());
             answer.put(LaneVerbs.REFUSED, taken.refused());
+            answer.put(LaneVerbs.HELD, taken.held());
             return new Answer.Ok(answer);
         } catch (IllegalStateException refused) {
             return new Answer.Refused(String.valueOf(refused.getMessage()));

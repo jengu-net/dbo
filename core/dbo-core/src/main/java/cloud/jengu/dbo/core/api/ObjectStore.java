@@ -138,6 +138,22 @@ public interface ObjectStore {
     List<Held> inventory(String typeName, List<String> paths);
 
     /**
+     * Marks versions this store holds as held somewhere else too, so that
+     * retention on a node that keeps them only until then may let them go.
+     *
+     * <p>A version this store does not hold is passed over rather than
+     * refused: a mark says something about a version that is here, and a
+     * lane marking what its tenant took must not stall on a record removed
+     * meanwhile. Marking a version twice keeps the first mark.
+     *
+     * @return how many of the versions this store now holds marked
+     */
+    default int markHeldElsewhere(List<HeldElsewhere> marks) {
+        throw new UnsupportedOperationException(
+                "this store keeps no account of what is held elsewhere");
+    }
+
+    /**
      * Recompute envelopes, identifiers and references for a type from stored
      * payloads and (re)apply declared indexes. Payloads are never touched
      * (REQ-DBO-CORE-REINDEX-IS-AN-OPERATION).

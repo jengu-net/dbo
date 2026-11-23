@@ -1532,6 +1532,57 @@ public final class PgObjectStore implements ObjectStore {
         }
     }
 
+    @Override
+    public int markHeldElsewhere(List<cloud.jengu.dbo.core.api.HeldElsewhere> marks) {
+        return inTx(c -> {
+            int held = 0;
+            for (cloud.jengu.dbo.core.api.HeldElsewhere mark : marks) {
+                TypeRegistration type = registry.require(mark.typeName());
+                UUID id;
+                try {
+                    id = UUID.fromString(mark.id());
+                } catch (IllegalArgumentException notAnId) {
+                    continue;
+                }
+                // Only a version this store holds: a mark of anything else
+                // would say that a version nobody here has is safe to let go.
+                try (PreparedStatement ps = c.prepareStatement("""
+                        INSERT INTO %s_held_elsewhere (object_id, type, version_id, marked_at, marked_by)
+                        SELECT ?, ?, ?, now(), ? WHERE EXISTS (
+                          SELECT 1 FROM %s_history WHERE id = ? AND version_id = ? AND type = ?)
+                        ON CONFLICT (object_id, version_id) DO NOTHING
+                        RETURNING 1""".formatted(Domains.tables(type.domain()),
+                        Domains.historyTables(type.domain())))) {
+                    ps.setObject(1, id);
+                    ps.setString(2, mark.typeName());
+                    ps.setLong(3, mark.version());
+                    ps.setString(4, mark.by());
+                    ps.setObject(5, id);
+                    ps.setLong(6, mark.version());
+                    ps.setString(7, mark.typeName());
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (rs.next()) {
+                            held++;
+                            continue;
+                        }
+                    }
+                }
+                try (PreparedStatement ps = c.prepareStatement(
+                        "SELECT 1 FROM %s_held_elsewhere WHERE object_id = ? AND version_id = ?"
+                                .formatted(Domains.tables(type.domain())))) {
+                    ps.setObject(1, id);
+                    ps.setLong(2, mark.version());
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (rs.next()) {
+                            held++;
+                        }
+                    }
+                }
+            }
+            return held;
+        });
+    }
+
     // -------------------------------------------------------------- rebuild
 
     @Override

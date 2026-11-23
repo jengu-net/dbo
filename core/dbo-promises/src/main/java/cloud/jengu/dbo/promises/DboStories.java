@@ -583,6 +583,8 @@ public enum DboStories implements Story {
                     DboPromises.POL_CONTENT_IS_READ_FOR_A_PURPOSE,
                     DboPromises.POL_AN_APPLICATION_KEEPS_ITS_TENANTS_CONTENT_IN_PROCESS,
                     DboPromises.SYNC_CONTENT_TRAVELS_HOME_WITH_ITS_RUN,
+                    DboPromises.SYNC_A_PLACE_NEVER_LOSES_THROUGH_RETENTION_WHAT_ITS_TENANT_DOES_NOT_HOLD,
+                    DboPromises.SYNC_A_PLACE_LETS_GO_OF_WHAT_IS_HELD_ELSEWHERE_AS_ITS_DECLARATION_SAYS,
                     DboPromises.SYNC_WHAT_WAS_SAID_OF_A_PLACES_WORK_GOES_HOME_WITH_IT,
                     DboPromises.SYNC_A_PLACE_HANDS_THE_WORK_OF_A_STEP_DECLARED_AFTER_IT_CAME_UP,
                     DboPromises.SYNC_A_PLACE_SAYS_WHAT_OF_ITS_WORK_STAYS_WITH_IT,

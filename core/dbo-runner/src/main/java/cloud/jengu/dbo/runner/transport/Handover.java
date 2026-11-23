@@ -19,11 +19,20 @@ public interface Handover {
      * @param applied how many items it wrote
      * @param skipped how many it held already, at that version or newer
      * @param refused the items it would not write, each with why
+     * @param held    the versions of the place's records it holds now, each
+     *                {@code type/id/version}; empty from a tenant that does
+     *                not say, so nothing is taken to be held that was not said
      */
-    record Taken(long applied, long skipped, List<String> refused) {
+    record Taken(long applied, long skipped, List<String> refused, List<String> held) {
 
         public Taken {
             refused = refused == null ? List.of() : List.copyOf(refused);
+            held = held == null ? List.of() : List.copyOf(held);
+        }
+
+        /** Compatibility with callers that predate {@code held}. */
+        public Taken(long applied, long skipped, List<String> refused) {
+            this(applied, skipped, refused, List.of());
         }
     }
 

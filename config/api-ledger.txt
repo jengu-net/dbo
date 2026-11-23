@@ -1093,6 +1093,15 @@ cloud.jengu.dbo.core.api.Held                                          new(Strin
 cloud.jengu.dbo.core.api.Held                                          record
 cloud.jengu.dbo.core.api.Held                                          toString():String
 cloud.jengu.dbo.core.api.Held                                          versionId():long
+cloud.jengu.dbo.core.api.HeldElsewhere                                 by():String
+cloud.jengu.dbo.core.api.HeldElsewhere                                 equals(Object):boolean
+cloud.jengu.dbo.core.api.HeldElsewhere                                 hashCode():int
+cloud.jengu.dbo.core.api.HeldElsewhere                                 id():String
+cloud.jengu.dbo.core.api.HeldElsewhere                                 new(String,String,long,String)
+cloud.jengu.dbo.core.api.HeldElsewhere                                 record
+cloud.jengu.dbo.core.api.HeldElsewhere                                 toString():String
+cloud.jengu.dbo.core.api.HeldElsewhere                                 typeName():String
+cloud.jengu.dbo.core.api.HeldElsewhere                                 version():long
 cloud.jengu.dbo.core.api.HeldTo                                        CODE:String
 cloud.jengu.dbo.core.api.HeldTo                                        PATH:String
 cloud.jengu.dbo.core.api.HeldTo                                        SYSTEM:String
@@ -1155,6 +1164,7 @@ cloud.jengu.dbo.core.api.ObjectStore                                   getByIden
 cloud.jengu.dbo.core.api.ObjectStore                                   history(String,String):List
 cloud.jengu.dbo.core.api.ObjectStore                                   interface
 cloud.jengu.dbo.core.api.ObjectStore                                   inventory(String,List):List
+cloud.jengu.dbo.core.api.ObjectStore                                   markHeldElsewhere(List):int
 cloud.jengu.dbo.core.api.ObjectStore                                   page(cloud.jengu.dbo.core.api.Criteria,String):cloud.jengu.dbo.core.api.feed.FeedChunk
 cloud.jengu.dbo.core.api.ObjectStore                                   put(cloud.jengu.dbo.core.api.PutRequest):cloud.jengu.dbo.core.api.PutResult
 cloud.jengu.dbo.core.api.ObjectStore                                   put(cloud.jengu.dbo.core.api.PutRequest,cloud.jengu.dbo.core.api.Handling.Authority):cloud.jengu.dbo.core.api.PutResult
@@ -2809,6 +2819,7 @@ cloud.jengu.dbo.pdi.PdiObjectStore                                     get(Strin
 cloud.jengu.dbo.pdi.PdiObjectStore                                     getByIdentifier(String,List):List
 cloud.jengu.dbo.pdi.PdiObjectStore                                     history(String,String):List
 cloud.jengu.dbo.pdi.PdiObjectStore                                     inventory(String,List):List
+cloud.jengu.dbo.pdi.PdiObjectStore                                     markHeldElsewhere(List):int
 cloud.jengu.dbo.pdi.PdiObjectStore                                     new(cloud.jengu.dbo.core.api.ObjectStore,cloud.jengu.dbo.pdi.PersonVault,cloud.jengu.dbo.pdi.PdiSpec)
 cloud.jengu.dbo.pdi.PdiObjectStore                                     new(cloud.jengu.dbo.core.api.ObjectStore,cloud.jengu.dbo.pdi.PersonVault,cloud.jengu.dbo.pdi.PdiSpec,cloud.jengu.dbo.core.face.Coarsening)
 cloud.jengu.dbo.pdi.PdiObjectStore                                     new(cloud.jengu.dbo.core.api.ObjectStore,cloud.jengu.dbo.pdi.PersonVault,cloud.jengu.dbo.pdi.PdiSpec,cloud.jengu.dbo.core.face.Coarsening,Map)
@@ -2940,6 +2951,7 @@ cloud.jengu.dbo.policy.PolicyObjectStore                               get(Strin
 cloud.jengu.dbo.policy.PolicyObjectStore                               getByIdentifier(String,List):List
 cloud.jengu.dbo.policy.PolicyObjectStore                               history(String,String):List
 cloud.jengu.dbo.policy.PolicyObjectStore                               inventory(String,List):List
+cloud.jengu.dbo.policy.PolicyObjectStore                               markHeldElsewhere(List):int
 cloud.jengu.dbo.policy.PolicyObjectStore                               new(cloud.jengu.dbo.core.api.ObjectStore,cloud.jengu.dbo.policy.TenantPolicies)
 cloud.jengu.dbo.policy.PolicyObjectStore                               page(cloud.jengu.dbo.core.api.Criteria,String):cloud.jengu.dbo.core.api.feed.FeedChunk
 cloud.jengu.dbo.policy.PolicyObjectStore                               policies():cloud.jengu.dbo.policy.TenantPolicies
@@ -3029,10 +3041,20 @@ cloud.jengu.dbo.policy.TenantPolicies.Retention                        heldBy(Co
 cloud.jengu.dbo.policy.TenantPolicies.Retention                        keepAtLeast():Duration
 cloud.jengu.dbo.policy.TenantPolicies.Retention                        new(Duration,Duration)
 cloud.jengu.dbo.policy.TenantPolicies.Retention                        new(Duration,Duration,Map)
+cloud.jengu.dbo.policy.TenantPolicies.Retention                        new(Duration,Duration,Map,Duration)
 cloud.jengu.dbo.policy.TenantPolicies.Retention                        profiles():Map
 cloud.jengu.dbo.policy.TenantPolicies.Retention                        record
 cloud.jengu.dbo.policy.TenantPolicies.Retention                        removeAfter():Duration
+cloud.jengu.dbo.policy.TenantPolicies.Retention                        removeAfterHeldElsewhere():Duration
 cloud.jengu.dbo.policy.TenantPolicies.Retention                        toString():String
+cloud.jengu.dbo.postgres.HeldHereAlone                                 equals(Object):boolean
+cloud.jengu.dbo.postgres.HeldHereAlone                                 hashCode():int
+cloud.jengu.dbo.postgres.HeldHereAlone                                 in(DataSource,String):cloud.jengu.dbo.postgres.HeldHereAlone
+cloud.jengu.dbo.postgres.HeldHereAlone                                 new(long,Instant)
+cloud.jengu.dbo.postgres.HeldHereAlone                                 oldest():Instant
+cloud.jengu.dbo.postgres.HeldHereAlone                                 record
+cloud.jengu.dbo.postgres.HeldHereAlone                                 toString():String
+cloud.jengu.dbo.postgres.HeldHereAlone                                 versions():long
 cloud.jengu.dbo.postgres.PgBlobStore                                   arrive(String,byte[],String,String,Instant):boolean
 cloud.jengu.dbo.postgres.PgBlobStore                                   arriveSealed(String,byte[],String,String,LocalDate,Instant):boolean
 cloud.jengu.dbo.postgres.PgBlobStore                                   class
@@ -3085,6 +3107,7 @@ cloud.jengu.dbo.postgres.PgObjectStore                                 get(Strin
 cloud.jengu.dbo.postgres.PgObjectStore                                 getByIdentifier(String,List):List
 cloud.jengu.dbo.postgres.PgObjectStore                                 history(String,String):List
 cloud.jengu.dbo.postgres.PgObjectStore                                 inventory(String,List):List
+cloud.jengu.dbo.postgres.PgObjectStore                                 markHeldElsewhere(List):int
 cloud.jengu.dbo.postgres.PgObjectStore                                 new(DataSource,List)
 cloud.jengu.dbo.postgres.PgObjectStore                                 new(DataSource,List,List)
 cloud.jengu.dbo.postgres.PgObjectStore                                 page(cloud.jengu.dbo.core.api.Criteria,String):cloud.jengu.dbo.core.api.feed.FeedChunk
@@ -3572,7 +3595,9 @@ cloud.jengu.dbo.promises.DboPromises                                   SYNC_A_PL
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_A_PLACE_IS_DECLARED_AS_ITS_ORIGIN_IS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_A_PLACE_LEAVES_HANDING_WORK_OVER_TO_ITS_ORIGIN:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_A_PLACE_LEAVES_ITS_OWNERS_CONFIGURATION_TO_ITS_ORIGIN:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   SYNC_A_PLACE_LETS_GO_OF_WHAT_IS_HELD_ELSEWHERE_AS_ITS_DECLARATION_SAYS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_A_PLACE_LETS_GO_OF_WHAT_ITS_OLD_CONFIGURATION_APPLIED:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   SYNC_A_PLACE_NEVER_LOSES_THROUGH_RETENTION_WHAT_ITS_TENANT_DOES_NOT_HOLD:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_A_PLACE_READS_ONLY_WHAT_THE_TENANT_DID_NOT_AUTHOR:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_A_PLACE_READS_ON_FROM_WHERE_IT_ACKNOWLEDGED:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_A_PLACE_SAYS_WHAT_OF_ITS_WORK_STAYS_WITH_IT:cloud.jengu.dbo.promises.DboPromises
@@ -4171,7 +4196,9 @@ cloud.jengu.dbo.runner.transport.Handover                              interface
 cloud.jengu.dbo.runner.transport.Handover.Taken                        applied():long
 cloud.jengu.dbo.runner.transport.Handover.Taken                        equals(Object):boolean
 cloud.jengu.dbo.runner.transport.Handover.Taken                        hashCode():int
+cloud.jengu.dbo.runner.transport.Handover.Taken                        held():List
 cloud.jengu.dbo.runner.transport.Handover.Taken                        new(long,long,List)
+cloud.jengu.dbo.runner.transport.Handover.Taken                        new(long,long,List,List)
 cloud.jengu.dbo.runner.transport.Handover.Taken                        record
 cloud.jengu.dbo.runner.transport.Handover.Taken                        refused():List
 cloud.jengu.dbo.runner.transport.Handover.Taken                        skipped():long
@@ -4230,6 +4257,7 @@ cloud.jengu.dbo.runner.transport.LaneVerbs                             FEED_ACK:
 cloud.jengu.dbo.runner.transport.LaneVerbs                             FEED_READ:cloud.jengu.dbo.runner.transport.LaneVerbs
 cloud.jengu.dbo.runner.transport.LaneVerbs                             HEAD:String
 cloud.jengu.dbo.runner.transport.LaneVerbs                             HEARTBEAT:cloud.jengu.dbo.runner.transport.LaneVerbs
+cloud.jengu.dbo.runner.transport.LaneVerbs                             HELD:String
 cloud.jengu.dbo.runner.transport.LaneVerbs                             HOLD_FOR_MILLIS:String
 cloud.jengu.dbo.runner.transport.LaneVerbs                             IDENTIFIED:cloud.jengu.dbo.runner.transport.LaneVerbs
 cloud.jengu.dbo.runner.transport.LaneVerbs                             IDENTITY:String
@@ -4655,6 +4683,7 @@ cloud.jengu.dbo.sync.Lanes                                             class
 cloud.jengu.dbo.sync.Lanes                                             copiedFrom(String,String):Optional
 cloud.jengu.dbo.sync.Lanes                                             covering(String,Set):cloud.jengu.dbo.sync.Lanes.Lane
 cloud.jengu.dbo.sync.Lanes                                             everyRunOf(String,String,int,ToIntFunction):int
+cloud.jengu.dbo.sync.Lanes                                             heldAt(String,List):int
 cloud.jengu.dbo.sync.Lanes                                             lane(String):Optional
 cloud.jengu.dbo.sync.Lanes                                             mark(String,String):cloud.jengu.dbo.sync.Lanes.Lane
 cloud.jengu.dbo.sync.Lanes                                             namingAcrossStores(cloud.jengu.dbo.core.face.ReferenceResolution):cloud.jengu.dbo.sync.Lanes
@@ -4675,7 +4704,9 @@ cloud.jengu.dbo.sync.Lanes                                             sent(Stri
 cloud.jengu.dbo.sync.Lanes.Applied                                     applied():long
 cloud.jengu.dbo.sync.Lanes.Applied                                     equals(Object):boolean
 cloud.jengu.dbo.sync.Lanes.Applied                                     hashCode():int
+cloud.jengu.dbo.sync.Lanes.Applied                                     held():List
 cloud.jengu.dbo.sync.Lanes.Applied                                     new(long,long,List)
+cloud.jengu.dbo.sync.Lanes.Applied                                     new(long,long,List,List)
 cloud.jengu.dbo.sync.Lanes.Applied                                     record
 cloud.jengu.dbo.sync.Lanes.Applied                                     refused():List
 cloud.jengu.dbo.sync.Lanes.Applied                                     skipped():long

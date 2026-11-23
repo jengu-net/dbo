@@ -328,8 +328,38 @@ it at least thirty days with no ceiling, the other removing it after seven — a
 refused at registration, naming both, because no record claiming both could be
 kept by one without breaking the other.
 
+**A place removes nothing its tenant does not hold.** A place keeps working
+while its origin is away, and a type that goes after two weeks would otherwise
+go, on a place cut off for three, before it ever reached the tenant. So on a
+place a bound removes a record only once its latest version is held elsewhere:
+a copy that came from elsewhere, or a version marked so. The place marks what
+its tenant took from it, version by version, in a table beside the records and
+never on them, before its lane moves past it. Writing the mark onto the record
+would make a new version, history that would itself travel and be kept.
+
+A record changed on the place since it was marked waits for its new version to
+be marked, so its history goes home whole before any of it is let go. What a
+place holds alone is on the node's `/runtime/tenants` row, and in the operator's
+fleet reading, as `heldHereAlone`: how many versions, and when the oldest was
+written.
+
+**A node may let go of what is held elsewhere.** A place holding its tenant's
+ten-year floor would otherwise keep everything for ten years on a small disk,
+though its tenant already holds it all:
+
+```json
+"Observation": { "removeAfterHeldElsewhere": "P30D" }
+```
+
+This removes a record from the node thirty days after its latest version was
+marked. Profiles may declare it too, and a record claiming several is held to
+the shortest. Without a mark it removes nothing, and `keepAtLeast` holds
+against it as against everything. An application that knows a record is held
+elsewhere, in an archive of its own say, may mark the version through the
+store's interface.
+
 Removal is **the one sanctioned mutation of history**. A scheduled, checkpointed
-sweep removes expired versions from state and history, and the removal is itself
+sweep removes expired versions from state and history, with their marks, and the removal is itself
 audited — what went, when, under which declared rule and, for a profile's,
 which profile — without retaining what it removed.
 
