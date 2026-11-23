@@ -166,6 +166,8 @@ public enum LaneVerbs {
     /** What the tenant applied of a batch, held already, and refused. */
     public static final String APPLIED = "applied";
     public static final String SKIPPED = "skipped";
+    /** The versions of a place's records the tenant holds now, each {@code type/id/version}. */
+    public static final String HELD = "held";
 
     private final String path;
 

@@ -209,8 +209,17 @@ public final class FleetReader {
         Answer catalogue = get(node.base().resolve("/runtime/catalogue"), node.opsToken());
         List<Reading.TenantReading> perTenant = new ArrayList<>();
         for (Map<String, Object> state : rows(tenants.body(), "tenants")) {
-            perTenant.add(readTenant(node, String.valueOf(state.get("code")),
-                    String.valueOf(state.get("state")), filter));
+            Reading.TenantReading read = readTenant(node, String.valueOf(state.get("code")),
+                    String.valueOf(state.get("state")), filter);
+            // The node's own word, whatever came of asking the tenant: what a
+            // place holds alone is the node's to say, and a place whose door
+            // refused the reader still has it.
+            Map<String, Object> held = new java.util.LinkedHashMap<>();
+            if (state.get("heldHereAlone") instanceof Map<?, ?> said) {
+                said.forEach((key, value) -> held.put(String.valueOf(key), value));
+            }
+            perTenant.add(new Reading.TenantReading(read.tenant(), read.state(), read.outcome(),
+                    read.detail(), read.runs(), held));
         }
         return new Reading.NodeReading(node.name(), Reading.Outcome.ANSWERED, null, perTenant,
                 catalogue.outcome() == Reading.Outcome.ANSWERED

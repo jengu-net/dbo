@@ -158,10 +158,19 @@ public record TenantPolicies(
      * them. Any two profiles of a type may be claimed together, so each pair is
      * asked, and a declaration no pair breaks is one no larger set breaks.
      *
+     * <p><b>A node may let go of what is held elsewhere.</b> A place's disk is
+     * small and its tenant holds what it handed home already, so
+     * {@code removeAfterHeldElsewhere} removes a record from the node that
+     * long after its latest version was marked as held elsewhere — and only
+     * then: without a mark it removes nothing, and {@code keepAtLeast} holds
+     * against it as against everything. A record claiming profiles with one
+     * of their own is held to the shortest, as either profile letting it go
+     * is reason enough once the floor is met.
+     *
      * @param profiles bounds of profiles within the type, by canonical URL
      */
     public record Retention(Duration keepAtLeast, Duration removeAfter,
-            Map<String, Retention> profiles) {
+            Map<String, Retention> profiles, Duration removeAfterHeldElsewhere) {
         public Retention {
             if (keepAtLeast != null && removeAfter != null && keepAtLeast.compareTo(removeAfter) > 0) {
                 throw new IllegalArgumentException(
@@ -191,16 +200,30 @@ public record TenantPolicies(
             this(keepAtLeast, removeAfter, Map.of());
         }
 
+        /** Compatibility with callers that predate {@code removeAfterHeldElsewhere}. */
+        public Retention(Duration keepAtLeast, Duration removeAfter,
+                Map<String, Retention> profiles) {
+            this(keepAtLeast, removeAfter, profiles, null);
+        }
+
         /**
          * The bounds a record claiming these of the profiles is held to: the
          * type's own where it claims none of them.
          */
         public Retention heldBy(java.util.Collection<String> claimed) {
             if (claimed.isEmpty()) {
-                return new Retention(keepAtLeast, removeAfter);
+                return new Retention(keepAtLeast, removeAfter, Map.of(), removeAfterHeldElsewhere);
             }
             Duration floor = floorOf(profiles, claimed);
-            return new Retention(floor, ceilingOf(profiles, claimed, floor));
+            Duration heldElsewhere = null;
+            for (String profile : claimed) {
+                Duration own = profiles.get(profile).removeAfterHeldElsewhere();
+                if (own != null && (heldElsewhere == null || own.compareTo(heldElsewhere) < 0)) {
+                    heldElsewhere = own;
+                }
+            }
+            return new Retention(floor, ceilingOf(profiles, claimed, floor), Map.of(),
+                    heldElsewhere);
         }
 
         private static Duration floorOf(Map<String, Retention> profiles,
@@ -317,7 +340,7 @@ public record TenantPolicies(
      * {@code "audit":{"level":"writes"}, "writeDiscipline":{"default":"append-only",
      * "perType":{"Task":"standard"}}, "retention":{"perType":{"Encounter":
      * {"keepAtLeast":"P10Y","removeAfter":"P30Y","profiles":{"https://example.org/x":
-     * {"removeAfter":"P7D"}}}}}, "content":{"analyser-message":
+     * {"removeAfter":"P7D"}},"removeAfterHeldElsewhere":"P30D"}}}, "content":{"analyser-message":
      * {"keepAtPlace":"P7D","keepAtTenant":"P90D","sealed":"window","purpose":"required"}}}
      * — all optional.
      */
@@ -374,7 +397,8 @@ public record TenantPolicies(
                 Retention own = bounds(rule);
                 try {
                     retention.put(String.valueOf(type),
-                            new Retention(own.keepAtLeast(), own.removeAfter(), profiles));
+                            new Retention(own.keepAtLeast(), own.removeAfter(), profiles,
+                                    own.removeAfterHeldElsewhere()));
                 } catch (IllegalArgumentException wrong) {
                     throw new IllegalArgumentException("retention of " + type + ": "
                             + wrong.getMessage(), wrong);
@@ -443,7 +467,10 @@ public record TenantPolicies(
                 rule.get("keepAtLeast") != null
                         ? period(String.valueOf(rule.get("keepAtLeast"))) : null,
                 rule.get("removeAfter") != null
-                        ? period(String.valueOf(rule.get("removeAfter"))) : null);
+                        ? period(String.valueOf(rule.get("removeAfter"))) : null,
+                Map.of(),
+                rule.get("removeAfterHeldElsewhere") != null
+                        ? period(String.valueOf(rule.get("removeAfterHeldElsewhere"))) : null);
     }
 
     private static final java.util.regex.Pattern KIND =

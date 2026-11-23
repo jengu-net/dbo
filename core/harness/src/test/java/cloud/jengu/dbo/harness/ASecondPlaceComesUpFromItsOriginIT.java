@@ -15,6 +15,10 @@ import cloud.jengu.dbo.promises.Proving;
 import cloud.jengu.dbo.runner.http.HttpLane;
 import cloud.jengu.dbo.runner.transport.Place;
 import cloud.jengu.dbo.tenant.FleetRegister;
+import cloud.jengu.dbo.fleet.Credentials;
+import cloud.jengu.dbo.fleet.FleetReader;
+import cloud.jengu.dbo.fleet.Node;
+import cloud.jengu.dbo.fleet.Reading;
 import cloud.jengu.dbo.tenant.LocalDatabasePerTenantProvisioner;
 import cloud.jengu.dbo.tenant.TenantRuntimeManager;
 import cloud.jengu.dbo.tenant.TenantSpec;
@@ -95,7 +99,7 @@ class ASecondPlaceComesUpFromItsOriginIT {
                               "types":["StructureDefinition","SearchParameter","ValueSet","CodeSystem"]},
                              {"name":"%s","types":["Organization","CodeSystem"]}],
              "steps":[{"code":"%s","slots":{"specimen":"Observation"},
-                       "writes":["Observation","Device","Basic"]},
+                       "writes":["Observation","Device","Basic","Specimen","Media"]},
                       {"code":"jaam.lab.order","slots":{"order":"Reference(Observation)"},
                        "lasts":true},
                       {"code":"jaam.lab.calibrate",
@@ -112,7 +116,11 @@ class ASecondPlaceComesUpFromItsOriginIT {
               {"name":"Location","identity":"identifier","systems":["%s"],
                "handling":"operational"},
               {"name":"Device","identity":"internal","handling":"operational"},
-              {"name":"Basic","identity":"internal","handling":"projected-config"}]}"""
+              {"name":"Basic","identity":"internal","handling":"projected-config"},
+              {"name":"Specimen","identity":"internal","handling":"operational"},
+              {"name":"Media","identity":"internal","handling":"operational"}],
+             "retention":{"perType":{"Specimen":{"removeAfter":"PT2S"},
+                                     "Media":{"removeAfterHeldElsewhere":"PT1S"}}}}"""
             .formatted(CLINIC, ROOT, COUNTY, "jaam.lab.record", BENCHES);
 
     /**
@@ -618,9 +626,11 @@ class ASecondPlaceComesUpFromItsOriginIT {
             new java.security.SecureRandom().nextBytes(fresh);
             return fresh;
         });
-        return new TenantRuntimeManager(dir, databases, "127.0.0.1", 0, null,
-                new TenantRuntimeManager.AuthorityConfig(kek, null))
+        TenantRuntimeManager node = new TenantRuntimeManager(dir, databases, "127.0.0.1", 0,
+                null, new TenantRuntimeManager.AuthorityConfig(kek, null))
                 .stepScheduler(CLOCKS.computeIfAbsent(dir, ignored -> new HandCrankedScheduler()));
+        node.serveRuntimeState(OPS);
+        return node;
     }
 
     /** Each node's clock, turned by hand, kept across its restarts. */
@@ -1279,7 +1289,7 @@ class ASecondPlaceComesUpFromItsOriginIT {
     }
 
     @Test
-    @Order(30)
+    @Order(33)
     @DisplayName("a place whose first bring-up failed, and whose declaration gained a step after "
             + "it came up, hands its tenant the runs of that step and of every other, the one "
             + "it held from before the step was declared included, saying until then that "
@@ -1365,6 +1375,159 @@ class ASecondPlaceComesUpFromItsOriginIT {
             outpost.close();
             outpostServer.stop();
         }
+    }
+
+    @Test
+    @Order(30)
+    @DisplayName("with its tenant away a place's retention keeps what its tenant does not hold, "
+            + "however old, and says how much and since when; once its tenant holds it, it goes")
+    @Proving(DboPromises.SYNC_A_PLACE_NEVER_LOSES_THROUGH_RETENTION_WHAT_ITS_TENANT_DOES_NOT_HOLD)
+    void aPlaceKeepsWhatItsTenantDoesNotHold() throws Exception {
+        long before = heldHereAlone(site);
+        site.readsItsOriginThrough(CLINIC, null);
+        performedOnTheSite("specimen-cut-off", held("Specimen", "specimen-cut-off"));
+        Thread.sleep(2_100);
+        site.retentionRound(CLINIC);
+
+        String cutOff = only(site, "Specimen?identifier=" + SPECIMENS + "|specimen-cut-off")
+                .path("id").asText();
+        long alone = heldHereAlone(site);
+        assertTrue(alone > before, "the node does not say the place holds more alone now: "
+                + before + " then " + alone);
+        Reading.TenantReading operator = new FleetReader(
+                List.of(new Node("site-node", URI.create("http://127.0.0.1:" + site.port()), OPS)),
+                Credentials.none(), java.time.Duration.ofSeconds(5)).read(FleetReader.RunFilter.ANY)
+                .nodes().get(0).tenants().stream()
+                .filter(tenant -> tenant.tenant().equals(CLINIC)).findFirst().orElseThrow();
+        assertTrue(((Number) operator.heldHereAlone().get("versions")).longValue() >= alone
+                        && !String.valueOf(operator.heldHereAlone().get("oldestAge")).isEmpty(),
+                "the operator does not read what the place holds alone, or since when: "
+                        + operator.heldHereAlone());
+
+        site.readsItsOriginThrough(CLINIC, connected());
+        site.syncRound();
+        assertEquals(1, found(cloud, "Specimen?identifier=" + SPECIMENS + "|specimen-cut-off"),
+                "the specimen did not reach the tenant once the place was back");
+        site.retentionRound(CLINIC);
+
+        assertEquals(0, found(site, "Specimen?identifier=" + SPECIMENS + "|specimen-cut-off"),
+                "the place kept past its bound what its tenant holds now");
+        assertTrue(heldHereAlone(site) < alone,
+                "the node still counts as held alone what its tenant took");
+        site.syncRound();
+        boolean audited = false;
+        for (com.fasterxml.jackson.databind.JsonNode entry : new com.fasterxml.jackson.databind
+                .ObjectMapper().readTree(read(cloud, CLINIC, "AuditEvent?_count=1000&site=site"))
+                .path("entry")) {
+            com.fasterxml.jackson.databind.JsonNode event = entry.path("resource");
+            audited |= "D".equals(event.path("action").asText())
+                    && event.path("entity").toString().contains("Specimen/" + cutOff);
+        }
+        assertTrue(audited, "the place's removal is not in its trail as retention's are");
+    }
+
+    @Test
+    @Order(31)
+    @DisplayName("a record changed on a place since its tenant took it stays, past its bound, "
+            + "until the change is held too")
+    @Proving(DboPromises.SYNC_A_PLACE_NEVER_LOSES_THROUGH_RETENTION_WHAT_ITS_TENANT_DOES_NOT_HOLD)
+    void aChangeSinceTheMarkWaitsForItsOwn() throws Exception {
+        site.readsItsOriginThrough(CLINIC, connected());
+        performedOnTheSite("specimen-changed", held("Specimen", "specimen-changed"));
+        site.syncRound();
+        com.fasterxml.jackson.databind.JsonNode taken = only(site,
+                "Specimen?identifier=" + SPECIMENS + "|specimen-changed");
+        // Changed on the place outside any run: a version its tenant never sees.
+        HttpResponse<String> changed = http.send(HttpRequest.newBuilder(URI.create(
+                        base(site, CLINIC) + "/fhir/Specimen/" + taken.path("id").asText()))
+                        .header("Authorization", "Bearer " + writer(site, CLINIC))
+                        .header("Content-Type", "application/fhir+json")
+                        .PUT(HttpRequest.BodyPublishers.ofString(
+                                ((com.fasterxml.jackson.databind.node.ObjectNode) taken)
+                                        .put("status", "unsatisfactory").toString())).build(),
+                HttpResponse.BodyHandlers.ofString());
+        assertEquals(200, changed.statusCode(), changed.body());
+        Thread.sleep(2_100);
+        site.retentionRound(CLINIC);
+
+        assertEquals(1, found(site, "Specimen?identifier=" + SPECIMENS + "|specimen-changed"),
+                "the place let go of a record whose latest version its tenant does not hold");
+    }
+
+    @Test
+    @Order(32)
+    @DisplayName("a place lets go of what its tenant holds as long after it was marked as its "
+            + "declaration says, the tenant keeping it, and of what an application marks")
+    @Proving(DboPromises.SYNC_A_PLACE_LETS_GO_OF_WHAT_IS_HELD_ELSEWHERE_AS_ITS_DECLARATION_SAYS)
+    void aPlaceLetsGoOfWhatIsHeldElsewhere() throws Exception {
+        site.readsItsOriginThrough(CLINIC, connected());
+        performedOnTheSite("media-handed-home", held("Media", "media-handed-home"));
+        assertEquals(201, post(site, CLINIC, "Media", media("media-marked")));
+        assertEquals(201, post(site, CLINIC, "Media", media("media-on-the-place")));
+        site.syncRound();
+        site.retentionRound(CLINIC);
+        assertEquals(1, found(site, "Media?identifier=" + SPECIMENS + "|media-handed-home"),
+                "the place let go of it before the declared time after its tenant took it");
+
+        // An application that knows the record is held elsewhere says so.
+        com.fasterxml.jackson.databind.JsonNode marked = only(site,
+                "Media?identifier=" + SPECIMENS + "|media-marked");
+        assertEquals(1, site.runtime(CLINIC).orElseThrow().engine().markHeldElsewhere(List.of(
+                new cloud.jengu.dbo.core.api.HeldElsewhere("Media", marked.path("id").asText(),
+                        marked.path("meta").path("versionId").asLong(), "the-archive"))),
+                "the store did not take the application's mark");
+        Thread.sleep(1_100);
+        site.retentionRound(CLINIC);
+
+        assertEquals(0, found(site, "Media?identifier=" + SPECIMENS + "|media-handed-home"),
+                "the place kept what its tenant holds past the declared time");
+        assertEquals(1, found(cloud, "Media?identifier=" + SPECIMENS + "|media-handed-home"),
+                "and its tenant does not hold it any more");
+        assertEquals(0, found(site, "Media?identifier=" + SPECIMENS + "|media-marked"),
+                "the place kept what an application marked as held elsewhere");
+        assertEquals(1, found(site, "Media?identifier=" + SPECIMENS + "|media-on-the-place"),
+                "the place let go of what nobody marked");
+    }
+
+    /** What the clinic names the specimens and media its tests write by. */
+    private static final String SPECIMENS = "urn:dbo-test:specimen";
+    /** The deployment's token for each node's own state. */
+    private static final String OPS = "place-ops-token";
+
+    private static Outcome.Write held(String type, String found) {
+        return Outcome.Write.create(type.equals("Media") ? media(found) : """
+                {"resourceType":"Specimen","status":"available",
+                 "identifier":[{"system":"%s","value":"%s"}]}""".formatted(SPECIMENS, found));
+    }
+
+    private static String media(String found) {
+        return """
+                {"resourceType":"Media","status":"completed",
+                 "identifier":[{"system":"%s","value":"%s"}],
+                 "content":{"contentType":"text/plain"}}""".formatted(SPECIMENS, found);
+    }
+
+    private static int found(TenantRuntimeManager node, String query) throws Exception {
+        return new com.fasterxml.jackson.databind.ObjectMapper().readTree(
+                read(node, CLINIC, query.replace("|", "%7C"))).path("entry").size();
+    }
+
+    /** How many versions the node says the place holds that its tenant does not. */
+    private static long heldHereAlone(TenantRuntimeManager node) throws Exception {
+        HttpResponse<String> answer = http.send(HttpRequest.newBuilder(
+                        URI.create("http://127.0.0.1:" + node.port() + "/runtime/tenants"))
+                        .header("Authorization", "Bearer " + OPS).GET().build(),
+                HttpResponse.BodyHandlers.ofString());
+        assertEquals(200, answer.statusCode(), answer.body());
+        for (com.fasterxml.jackson.databind.JsonNode row : new com.fasterxml.jackson.databind
+                .ObjectMapper().readTree(answer.body()).path("tenants")) {
+            if (row.path("code").asText().equals(CLINIC)) {
+                assertTrue(row.path("heldHereAlone").has("versions"),
+                        "the node does not say what the place holds alone: " + row);
+                return row.path("heldHereAlone").path("versions").asLong();
+            }
+        }
+        throw new AssertionError("the node does not list " + CLINIC + ": " + answer.body());
     }
 
     /** A step of a process the clinic had none of until it was declared. */

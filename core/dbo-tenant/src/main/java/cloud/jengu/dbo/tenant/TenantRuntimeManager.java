@@ -3482,6 +3482,27 @@ public final class TenantRuntimeManager implements AutoCloseable {
                     row.put("answeredBesideTheToolchain",
                             serving.store().answeredBesideTheToolchain());
                 }
+                // On a place, what it holds that its tenant does not: what its
+                // retention waits on, and how long it has waited. A place cut
+                // off for weeks reads as healthy by every other field here.
+                javax.sql.DataSource placeDb = tenantDataSources.get(state.code());
+                if (serving != null && places.contains(state.code()) && placeDb != null) {
+                    try {
+                        cloud.jengu.dbo.postgres.HeldHereAlone alone =
+                                cloud.jengu.dbo.postgres.HeldHereAlone.in(placeDb,
+                                        versions.require(serving.spec().face()).domain());
+                        Map<String, Object> held = new java.util.LinkedHashMap<>();
+                        held.put("versions", alone.versions());
+                        held.put("oldest", alone.oldest() == null ? "" : alone.oldest().toString());
+                        held.put("oldestAge", alone.oldest() == null ? ""
+                                : java.time.Duration.between(alone.oldest(),
+                                        java.time.Instant.now()).toString());
+                        row.put("heldHereAlone", held);
+                    } catch (RuntimeException unread) {
+                        row.put("heldHereAlone", Map.of("unread",
+                                String.valueOf(unread.getMessage())));
+                    }
+                }
                 rows.add(row);
             }
             return cloud.jengu.dbo.core.wire.RecordWire.write(Map.of("tenants", rows));
@@ -5782,7 +5803,8 @@ public final class TenantRuntimeManager implements AutoCloseable {
                                     participant, handed.cursor(), handed.items(),
                                     handed.contentCursor()));
                     return new cloud.jengu.dbo.runner.transport.Handover.Taken(
-                            applied.applied(), applied.skipped(), applied.refused());
+                            applied.applied(), applied.skipped(), applied.refused(),
+                            applied.held());
                 },
                 // The one record of all it authors a place acts on.
                 new AuthorisationFeed(() -> authorisationsOf(serving).current(),

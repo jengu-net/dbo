@@ -444,6 +444,12 @@ public final class PdiObjectStore implements ObjectStore {
     }
 
     @Override
+    public int markHeldElsewhere(List<cloud.jengu.dbo.core.api.HeldElsewhere> marks) {
+        // A type, an id and a version: nothing of the person is in a mark.
+        return inner.markHeldElsewhere(marks);
+    }
+
+    @Override
     public List<cloud.jengu.dbo.core.api.Held> inventory(String typeName, List<String> paths) {
         // Ids, identifiers and envelope values are what the main store holds
         // of a person record anyway — nothing here is inside the membrane.

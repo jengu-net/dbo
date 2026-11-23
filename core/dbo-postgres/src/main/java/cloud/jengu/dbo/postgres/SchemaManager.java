@@ -156,6 +156,18 @@ public final class SchemaManager {
                   applied_payload_version text,
                   synced_at timestamptz NOT NULL
                 )""".formatted(d));
+        // Beside the record, never on it: what somewhere else holds too, by
+        // version, so retention on a place can wait for its tenant to hold a
+        // record and let go of it once it does.
+        execute(c, """
+                CREATE TABLE IF NOT EXISTS %s_held_elsewhere (
+                  object_id uuid NOT NULL,
+                  type text NOT NULL,
+                  version_id bigint NOT NULL,
+                  marked_at timestamptz NOT NULL,
+                  marked_by text NOT NULL,
+                  PRIMARY KEY (object_id, version_id)
+                )""".formatted(d));
         execute(c, """
                 CREATE TABLE IF NOT EXISTS %s_reference (
                   owner_id uuid NOT NULL,

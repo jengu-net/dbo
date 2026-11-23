@@ -56,7 +56,22 @@ public record Reading(List<NodeReading> nodes, Map<String, Map<String, List<Stri
      * @param outcome how asking the tenant ended
      * @param detail  why, when it was not an answer
      * @param runs    the run envelopes the tenant's fleet door answered with
+     * @param heldHereAlone on a place, what it holds that its tenant does not —
+     *                {@code versions}, {@code oldest}, {@code oldestAge} — as the
+     *                node said it; empty for a tenant that is no place, or a node
+     *                too old to say
      */
     public record TenantReading(String tenant, String state, Outcome outcome, String detail,
-            List<Map<String, Object>> runs) {}
+            List<Map<String, Object>> runs, Map<String, Object> heldHereAlone) {
+
+        public TenantReading {
+            heldHereAlone = heldHereAlone == null ? Map.of() : Map.copyOf(heldHereAlone);
+        }
+
+        /** Compatibility with callers that predate {@code heldHereAlone}. */
+        public TenantReading(String tenant, String state, Outcome outcome, String detail,
+                List<Map<String, Object>> runs) {
+            this(tenant, state, outcome, detail, runs, Map.of());
+        }
+    }
 }

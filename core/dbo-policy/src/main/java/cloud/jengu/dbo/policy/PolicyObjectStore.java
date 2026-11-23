@@ -508,6 +508,11 @@ public final class PolicyObjectStore implements ObjectStore,
     }
 
     @Override
+    public int markHeldElsewhere(java.util.List<cloud.jengu.dbo.core.api.HeldElsewhere> marks) {
+        return inner.markHeldElsewhere(marks);
+    }
+
+    @Override
     public java.util.List<cloud.jengu.dbo.core.api.Held> inventory(String typeName,
             java.util.List<String> paths) {
         if (!answerableToTheAudience(typeName)) {

@@ -152,6 +152,10 @@ spec:
                             type: string
                           removeAfter:
                             type: string
+                          # How long after its latest version is marked as
+                          # held elsewhere a node may let a record go.
+                          removeAfterHeldElsewhere:
+                            type: string
                           # Bounds of profiles within the type, by canonical
                           # URL; a record claiming one is held to them instead.
                           profiles:
@@ -162,6 +166,8 @@ spec:
                                 keepAtLeast:
                                   type: string
                                 removeAfter:
+                                  type: string
+                                removeAfterHeldElsewhere:
                                   type: string
                 # The kinds of content the tenant holds whole, each with how
                 # long a place of it keeps it and how long the tenant does.

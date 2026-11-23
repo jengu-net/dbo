@@ -243,7 +243,24 @@ public final class Lanes {
     }
 
     /** What an apply did, for the connector that has to report it. */
-    public record Applied(long applied, long skipped, List<String> refused) {}
+    /**
+     * @param held the copies of the far side's records this side now holds,
+     *             each {@code type/id/version}: written now or held already at
+     *             that version or newer, and never one kept on the far side
+     *             because this side holds a record of its own in its place
+     */
+    public record Applied(long applied, long skipped, List<String> refused, List<String> held) {
+
+        public Applied {
+            refused = refused == null ? List.of() : List.copyOf(refused);
+            held = held == null ? List.of() : List.copyOf(held);
+        }
+
+        /** Compatibility with callers that predate {@code held}. */
+        public Applied(long applied, long skipped, List<String> refused) {
+            this(applied, skipped, refused, List.of());
+        }
+    }
 
     /** What a revocation pass removed, and what it kept because work still needs it. */
     public record Revoked(long removed, long kept) {}
@@ -747,6 +764,35 @@ public final class Lanes {
      * be sent again, and a sender that advanced on hand-off would have no way
      * to know which.
      */
+    /**
+     * Marks what the peer answered it now holds as held there, before the
+     * position moves past it.
+     *
+     * <p>Marked first: a lane that moved and then failed to mark would leave
+     * what its peer holds unmarked for ever, as nothing is handed again. One
+     * that marked and then failed to move hands the batch again, the peer
+     * holds it already and says so, and the marks are written again.
+     *
+     * @param held each {@code type/id/version}, as the peer answered
+     * @return how many of them this store holds marked
+     */
+    public int heldAt(String peer, List<String> held) {
+        List<cloud.jengu.dbo.core.api.HeldElsewhere> marks = new ArrayList<>();
+        for (String version : held) {
+            String[] parts = version.split("/");
+            if (parts.length != 3) {
+                continue;
+            }
+            try {
+                marks.add(new cloud.jengu.dbo.core.api.HeldElsewhere(parts[0], parts[1],
+                        Long.parseLong(parts[2]), peer));
+            } catch (IllegalArgumentException unreadable) {
+                // Not a version this side wrote: nothing here to mark.
+            }
+        }
+        return marks.isEmpty() ? 0 : store.markHeldElsewhere(marks);
+    }
+
     public Lane sent(String peer, Batch batch) {
         Lane lane = open(peer);
         return write(new Lane(lane.key(), lane.peer(), lane.epoch(), batch.cursor(),
@@ -955,6 +1001,7 @@ public final class Lanes {
         long applied = 0;
         long skipped = 0;
         List<String> refused = new ArrayList<>();
+        List<String> held = new ArrayList<>();
         for (Item item : batch.items()) {
             try {
                 boolean written;
@@ -968,7 +1015,7 @@ public final class Lanes {
                     // a working copy.
                     written = admit(batch.from(), item);
                 } else {
-                    written = item.copy() ? copy(batch.from(), item, home)
+                    written = item.copy() ? copy(batch.from(), item, home, held)
                             : item.work() ? mirror(batch.from(), item) : replicate(item);
                 }
                 if (!item.work() && !item.copy() && !AUDIT.equals(item.typeName())
@@ -1000,7 +1047,7 @@ public final class Lanes {
                 }
             }
         }
-        return new Applied(applied, skipped, List.copyOf(refused));
+        return new Applied(applied, skipped, List.copyOf(refused), List.copyOf(held));
     }
 
     /**
@@ -1027,7 +1074,7 @@ public final class Lanes {
      * site authored itself stands in front of it — the local override
      * wins, as it does for a streamed copy — and the copy is skipped.
      */
-    private boolean copy(String from, Item item, Home home) {
+    private boolean copy(String from, Item item, Home home, List<String> held) {
         String reference = item.typeName() + "/" + item.id();
         String key = reference + " " + COPY + from;
         Optional<StoredObject> here = store.get(item.typeName(), item.id());
@@ -1039,7 +1086,9 @@ public final class Lanes {
             }
             return false;
         }
+        String version = reference + "/" + item.version();
         if (here.isPresent() && here.get().versionId() >= item.version()) {
+            held.add(version);
             return false;
         }
         byte[] payload = item.payload();
@@ -1061,6 +1110,7 @@ public final class Lanes {
                 here.map(StoredObject::versionId).orElse(null), payload,
                 item.version(), item.recordedAt()),
                 cloud.jengu.dbo.core.api.Handling.Authority.SOURCE_TENANT);
+        held.add(version);
         java.util.function.BiConsumer<Item, String> noting = whence;
         if (noting != null) {
             noting.accept(item, from);

@@ -197,6 +197,10 @@ final class RunsPusher {
     private int handed(Lanes.Batch batch, List<String> refused) {
         Handover.Taken taken = home.handed(RecordWire.encode(batch));
         refused.addAll(taken.refused());
+        // Before the position moves: what the tenant holds is marked here as
+        // held there, so retention on this place may let it go and never
+        // lets go of anything else.
+        lanes.heldAt(HOME, taken.held());
         return batch.items().size();
     }
 

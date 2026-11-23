@@ -504,10 +504,14 @@ public class WireLane implements Lane {
             if (said.get(LaneVerbs.REFUSED) instanceof List<?> named) {
                 named.forEach(one -> refused.add(String.valueOf(one)));
             }
+            List<String> held = new java.util.ArrayList<>();
+            if (said.get(LaneVerbs.HELD) instanceof List<?> named) {
+                named.forEach(one -> held.add(String.valueOf(one)));
+            }
             return new cloud.jengu.dbo.runner.transport.Handover.Taken(
                     said.get(LaneVerbs.APPLIED) instanceof Number n ? n.longValue() : 0,
                     said.get(LaneVerbs.SKIPPED) instanceof Number n ? n.longValue() : 0,
-                    refused);
+                    refused, held);
         };
         return new cloud.jengu.dbo.runner.transport.Origin() {
             @Override
