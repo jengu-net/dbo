@@ -1507,8 +1507,16 @@ public enum DboPromises implements Promise {
             "A type, or a profile within it, may declare removeAfterHeldElsewhere: a node "
             + "removes the record that long after its latest version was marked as held "
             + "elsewhere, with its marks, and audits the removal as retention's are. Without "
-            + "a mark it removes nothing, and keepAtLeast holds against it. An application "
-            + "may mark versions it knows are held elsewhere through the store's interface."),
+            + "a mark it removes nothing, and off a place keepAtLeast holds against it. An "
+            + "application may mark versions it knows are held elsewhere through the store's "
+            + "interface."),
+    SYNC_ON_A_PLACE_A_FLOOR_IS_MET_BY_THE_RECORD_HELD_ELSEWHERE(
+            "A place lets go of what is held elsewhere as its declaration says, its floor "
+            + "kept by the tenant holding it: on a place removeAfterHeldElsewhere removes a "
+            + "record whose latest version is marked held elsewhere that long after the "
+            + "mark, whatever its keepAtLeast, and the removal is audited as retention's "
+            + "are, saying the floor was met elsewhere. On the tenant keepAtLeast holds "
+            + "against it, and a record not marked keeps its floor on the place."),
     PROC_WORK_DRIVEN_ARRIVAL_AND_EXPIRY("A record travels to a replica because a "
             + "piece of work names it, and is removed when no open run there still "
             + "names it. Work-driven arrival without work-driven expiry is a replica "
