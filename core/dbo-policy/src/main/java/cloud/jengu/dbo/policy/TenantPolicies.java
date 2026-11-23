@@ -162,8 +162,9 @@ public record TenantPolicies(
      * small and its tenant holds what it handed home already, so
      * {@code removeAfterHeldElsewhere} removes a record from the node that
      * long after its latest version was marked as held elsewhere — and only
-     * then: without a mark it removes nothing, and {@code keepAtLeast} holds
-     * against it as against everything. A record claiming profiles with one
+     * then: without a mark it removes nothing. On a place {@code keepAtLeast}
+     * is met by the tenant holding the record; anywhere else it holds against
+     * this as against everything. A record claiming profiles with one
      * of their own is held to the shortest, as either profile letting it go
      * is reason enough once the floor is met.
      *

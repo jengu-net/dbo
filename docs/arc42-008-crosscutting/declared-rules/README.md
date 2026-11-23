@@ -353,10 +353,19 @@ though its tenant already holds it all:
 
 This removes a record from the node thirty days after its latest version was
 marked. Profiles may declare it too, and a record claiming several is held to
-the shortest. Without a mark it removes nothing, and `keepAtLeast` holds
-against it as against everything. An application that knows a record is held
-elsewhere, in an archive of its own say, may mark the version through the
-store's interface.
+the shortest. Without a mark it removes nothing. An application that knows a
+record is held elsewhere, in an archive of its own say, may mark the version
+through the store's interface.
+
+**On a place, the floor is met by the record held elsewhere.** A place's
+declaration is its tenant's, so the floor a place reads is the tenant's floor,
+and the tenant holding the record keeps it. On a place,
+`removeAfterHeldElsewhere` lets go of a marked record however long its
+`keepAtLeast`, and the removal's audit says the floor was met elsewhere. That is
+what makes the bound usable for the types with the longest floors. On the
+tenant itself, and on any node that is not a place, `keepAtLeast` holds against
+it as against everything. A record not marked keeps its floor on the place, and
+no bound removes it.
 
 Removal is **the one sanctioned mutation of history**. A scheduled, checkpointed
 sweep removes expired versions from state and history, with their marks, and the removal is itself

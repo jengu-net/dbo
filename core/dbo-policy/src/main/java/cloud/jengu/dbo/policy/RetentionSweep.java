@@ -37,8 +37,10 @@ import java.util.Map;
  * elsewhere — marked so, or a copy that came from elsewhere — and a record
  * changed since it was marked waits for the new version: its history goes home
  * whole before any of it is let go. {@code removeAfterHeldElsewhere} lets a
- * node go further and remove what is held elsewhere that long after the mark,
- * which is how a place holding its tenant's ten-year floor keeps a small disk.
+ * node go further and remove what is held elsewhere that long after the mark.
+ * On a place that is whatever the record's floor: the tenant holding it keeps
+ * {@code keepAtLeast}, under the same declaration, which is how a place holding
+ * its tenant's ten-year floor keeps a small disk.
  */
 public final class RetentionSweep {
 
@@ -332,9 +334,11 @@ public final class RetentionSweep {
                     LIMIT 500""".formatted(Domains.tables(domain), CLAIMED))) {
                 ps.setString(1, typeName);
                 ps.setTimestamp(2, java.sql.Timestamp.from(now.minus(bound)));
-                // keepAtLeast holds against this as against everything.
+                // On a place the floor is kept by the tenant holding the
+                // record, which is bound by the same declaration; anywhere
+                // else keepAtLeast holds against this as against everything.
                 ps.setTimestamp(3, java.sql.Timestamp.from(held.keepAtLeast() == null
-                        ? now : now.minus(held.keepAtLeast())));
+                        || atAPlace ? now : now.minus(held.keepAtLeast())));
                 ps.setArray(4, c.createArrayOf("text", ruled.toArray()));
                 ps.setArray(5, c.createArrayOf("text", claimed.toArray()));
                 try (ResultSet rs = ps.executeQuery()) {
@@ -344,7 +348,8 @@ public final class RetentionSweep {
                 }
             }
             remove(c, typeName, released, "removeAfterHeldElsewhere=" + bound
-                    + (held.keepAtLeast() == null ? "" : " keepAtLeast=" + held.keepAtLeast())
+                    + (held.keepAtLeast() == null ? "" : " keepAtLeast=" + held.keepAtLeast()
+                            + (atAPlace ? " met elsewhere" : ""))
                     + claimed.stream().map(profile -> " profile=" + profile)
                     .collect(java.util.stream.Collectors.joining()));
         } catch (SQLException e) {

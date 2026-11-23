@@ -14,6 +14,8 @@ import cloud.jengu.dbo.promises.DboPromises;
 import cloud.jengu.dbo.promises.Proving;
 import cloud.jengu.dbo.runner.http.HttpLane;
 import cloud.jengu.dbo.runner.transport.Place;
+import cloud.jengu.dbo.core.api.Criteria;
+import cloud.jengu.dbo.core.api.EnvelopeValue;
 import cloud.jengu.dbo.tenant.FleetRegister;
 import cloud.jengu.dbo.fleet.Credentials;
 import cloud.jengu.dbo.fleet.FleetReader;
@@ -120,7 +122,8 @@ class ASecondPlaceComesUpFromItsOriginIT {
               {"name":"Specimen","identity":"internal","handling":"operational"},
               {"name":"Media","identity":"internal","handling":"operational"}],
              "retention":{"perType":{"Specimen":{"removeAfter":"PT2S"},
-                                     "Media":{"removeAfterHeldElsewhere":"PT1S"}}}}"""
+                                     "Media":{"keepAtLeast":"P10Y",
+                                              "removeAfterHeldElsewhere":"PT5S"}}}}"""
             .formatted(CLINIC, ROOT, COUNTY, "jaam.lab.record", BENCHES);
 
     /**
@@ -1457,10 +1460,15 @@ class ASecondPlaceComesUpFromItsOriginIT {
     @Test
     @Order(32)
     @DisplayName("a place lets go of what its tenant holds as long after it was marked as its "
-            + "declaration says, the tenant keeping it, and of what an application marks")
-    @Proving(DboPromises.SYNC_A_PLACE_LETS_GO_OF_WHAT_IS_HELD_ELSEWHERE_AS_ITS_DECLARATION_SAYS)
+            + "declaration says, its ten-year floor kept by the tenant holding it, and of what "
+            + "an application marks; the tenant keeps its floor")
+    @Proving({DboPromises.SYNC_A_PLACE_LETS_GO_OF_WHAT_IS_HELD_ELSEWHERE_AS_ITS_DECLARATION_SAYS,
+            DboPromises.SYNC_ON_A_PLACE_A_FLOOR_IS_MET_BY_THE_RECORD_HELD_ELSEWHERE})
     void aPlaceLetsGoOfWhatIsHeldElsewhere() throws Exception {
         site.readsItsOriginThrough(CLINIC, connected());
+        // Whatever the place has yet to hand goes first, so the round that
+        // marks what follows ends well inside the bound it is measured by.
+        site.syncRound();
         performedOnTheSite("media-handed-home", held("Media", "media-handed-home"));
         assertEquals(201, post(site, CLINIC, "Media", media("media-marked")));
         assertEquals(201, post(site, CLINIC, "Media", media("media-on-the-place")));
@@ -1476,7 +1484,7 @@ class ASecondPlaceComesUpFromItsOriginIT {
                 new cloud.jengu.dbo.core.api.HeldElsewhere("Media", marked.path("id").asText(),
                         marked.path("meta").path("versionId").asLong(), "the-archive"))),
                 "the store did not take the application's mark");
-        Thread.sleep(1_100);
+        Thread.sleep(5_100);
         site.retentionRound(CLINIC);
 
         assertEquals(0, found(site, "Media?identifier=" + SPECIMENS + "|media-handed-home"),
@@ -1487,6 +1495,27 @@ class ASecondPlaceComesUpFromItsOriginIT {
                 "the place kept what an application marked as held elsewhere");
         assertEquals(1, found(site, "Media?identifier=" + SPECIMENS + "|media-on-the-place"),
                 "the place let go of what nobody marked");
+        String trail = site.runtime(CLINIC).orElseThrow().engine()
+                .select(Criteria.of("AuditEntry").eq("targetId",
+                        EnvelopeValue.of(marked.path("id").asText())))
+                .stream()
+                .map(entry -> new String(entry.payload(), java.nio.charset.StandardCharsets.UTF_8))
+                .filter(entry -> entry.contains("retention-remove")
+                        && entry.contains(marked.path("id").asText()))
+                .reduce("", String::concat);
+        assertTrue(trail.contains("keepAtLeast=PT87600H met elsewhere"),
+                "the removal does not say the floor was met elsewhere: " + trail);
+
+        // The tenant holding it keeps the floor, marked or not.
+        com.fasterxml.jackson.databind.JsonNode home = only(cloud,
+                "Media?identifier=" + SPECIMENS + "|media-handed-home");
+        assertEquals(1, cloud.runtime(CLINIC).orElseThrow().engine().markHeldElsewhere(List.of(
+                new cloud.jengu.dbo.core.api.HeldElsewhere("Media", home.path("id").asText(),
+                        home.path("meta").path("versionId").asLong(), "the-archive"))));
+        Thread.sleep(5_100);
+        cloud.retentionRound(CLINIC);
+        assertEquals(1, found(cloud, "Media?identifier=" + SPECIMENS + "|media-handed-home"),
+                "the tenant let go of a record within its floor for being held elsewhere");
     }
 
     /** What the clinic names the specimens and media its tests write by. */
