@@ -22,12 +22,22 @@ public interface Handover {
      * @param held    the versions of the place's records it holds now, each
      *                {@code type/id/version}; empty from a tenant that does
      *                not say, so nothing is taken to be held that was not said
+     * @param kept    the versions it did not take because it holds a record of
+     *                its own in their place, each {@code type/id/version Type/id}
+     *                with the record it holds; empty from a tenant that does not say
      */
-    record Taken(long applied, long skipped, List<String> refused, List<String> held) {
+    record Taken(long applied, long skipped, List<String> refused, List<String> held,
+            List<String> kept) {
 
         public Taken {
             refused = refused == null ? List.of() : List.copyOf(refused);
             held = held == null ? List.of() : List.copyOf(held);
+            kept = kept == null ? List.of() : List.copyOf(kept);
+        }
+
+        /** Compatibility with callers that predate {@code kept}. */
+        public Taken(long applied, long skipped, List<String> refused, List<String> held) {
+            this(applied, skipped, refused, held, List.of());
         }
 
         /** Compatibility with callers that predate {@code held}. */
@@ -55,5 +65,18 @@ public interface Handover {
      */
     default List<String> holds(List<String> versions) {
         throw new IllegalStateException("this link does not ask what the tenant holds");
+    }
+
+    /**
+     * The place's records the tenant's trail says it kept on the place, as it
+     * held a record of its own in their place: what a place hands again once
+     * the tenant knows an internal record by its id alone. In id order.
+     *
+     * @param after the id of the last record handed again, or null from the first
+     * @return each {@code type/id}
+     * @throws IllegalStateException from a link that cannot ask
+     */
+    default List<String> declined(String after, int limit) {
+        throw new IllegalStateException("this link does not ask what the tenant declined");
     }
 }

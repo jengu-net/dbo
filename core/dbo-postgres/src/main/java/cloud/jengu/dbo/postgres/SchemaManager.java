@@ -168,6 +168,17 @@ public final class SchemaManager {
                   marked_by text NOT NULL,
                   PRIMARY KEY (object_id, version_id)
                 )""".formatted(d));
+        // What the tenant declined of what a place handed, as it holds a
+        // record of its own in its place: kept beside the record, so the place
+        // can say how much stays with it for good, and since when.
+        execute(c, """
+                CREATE TABLE IF NOT EXISTS %s_kept_on_the_place (
+                  object_id uuid PRIMARY KEY,
+                  type text NOT NULL,
+                  version_id bigint NOT NULL,
+                  holds text NOT NULL,
+                  declined_at timestamptz NOT NULL
+                )""".formatted(d));
         execute(c, """
                 CREATE TABLE IF NOT EXISTS %s_reference (
                   owner_id uuid NOT NULL,

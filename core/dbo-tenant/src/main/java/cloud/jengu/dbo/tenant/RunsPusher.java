@@ -40,6 +40,13 @@ import java.util.function.Supplier;
  * unmarked. The lane keeps how far it asked, so a restart neither asks again
  * nor starts over.
  *
+ * <p><b>What the tenant declined is said here.</b> A tenant does not take a
+ * record it holds one of its own in the place of, and says so in its answer.
+ * The place notes each, as nothing will mark it held elsewhere and it stays
+ * here for good. What the tenant declined before it knew a record whose
+ * identity is internal by its id alone is handed again once, from what its
+ * trail says it declined, and the tenant takes what it now would.
+ *
  * <p><b>What stays here is said.</b> A place handing its trail and none of
  * its work looked healthy, because nothing that stays is a failure. So the
  * pusher keeps why: processes it read past that are not the store's own, or
@@ -76,23 +83,32 @@ final class RunsPusher {
     /** Pages asked about per round, so a place with years behind it does not hold the round. */
     private static final int ASKED_PER_ROUND = 10;
 
-    /** This place's records no mark covers, a page at a time. */
-    @FunctionalInterface
-    interface Unmarked {
+    /** What this place says of its own records beside them. */
+    interface Marks {
 
         /**
+         * This place's records no mark covers, a page at a time.
+         *
          * @param after the id of the last record asked of, or null from the first
          * @return each {@code type/id/version}, in id order
          */
-        List<String> after(String after, int limit);
+        List<String> unmarkedAfter(String after, int limit);
+
+        /** Notes what the tenant kept on the place, each {@code type/id/version Type/id}. */
+        void declined(List<String> kept);
+
+        /** The types of the records the tenant kept on the place, as they stand. */
+        Set<String> declinedTypes();
     }
 
     private final Lanes lanes;
     private final Handover home;
     private final Supplier<Set<String>> processes;
-    private final Unmarked unmarked;
+    private final Marks marks;
     /** Why what was handed before marking is not asked about yet, or null. */
     private volatile String unasked;
+    /** Why what the tenant declined before is not handed again yet, or null. */
+    private volatile String unhanded;
     /** The processes of runs read past and not handed, until the tenant declares them. */
     private final Set<String> passedOver = new java.util.concurrent.ConcurrentSkipListSet<>();
     private volatile boolean nothingDeclared;
@@ -106,15 +122,15 @@ final class RunsPusher {
      * @param before the pusher this one replaces, whose account of what stays
      *        here carries over: the runs it read past are behind the position
      *        now, and would not be read past again to be said
-     * @param unmarked this place's records no mark covers, or null for a pusher
-     *        that asks nothing about them
+     * @param marks what this place says of its own records, or null for a pusher
+     *        that asks nothing about them and notes nothing
      */
     RunsPusher(Lanes lanes, Handover home, Supplier<Set<String>> processes, RunsPusher before,
-            Unmarked unmarked) {
+            Marks marks) {
         this.lanes = lanes;
         this.home = home;
         this.processes = processes;
-        this.unmarked = unmarked;
+        this.marks = marks;
         if (before != null) {
             passedOver.addAll(before.passedOver);
         }
@@ -137,6 +153,7 @@ final class RunsPusher {
      */
     int round() {
         askedOnce();
+        handedAgainOnce();
         Set<String> declared = Set.copyOf(processes.get());
         nothingDeclared = declared.isEmpty();
         if (nothingDeclared) {
@@ -188,6 +205,15 @@ final class RunsPusher {
             why.add("what it handed home before it marked stays unmarked, as its tenant did not"
                     + " say what it holds of it: " + unasked);
         }
+        if (unhanded != null) {
+            why.add("what its tenant declined before it knew an internal record by its id alone"
+                    + " is not handed again yet: " + unhanded);
+        }
+        Set<String> declined = marks == null ? Set.of() : marks.declinedTypes();
+        if (!declined.isEmpty()) {
+            why.add("records of " + declined + " stay here, as its tenant holds others of its own"
+                    + " in their place");
+        }
         if (!passedOver.isEmpty()) {
             why.add("runs of " + passedOver + " stay here, as its tenant declares no step of "
                     + (passedOver.size() == 1 ? "it" : "them"));
@@ -204,7 +230,7 @@ final class RunsPusher {
      * home as ever: what the tenant took since marking began is marked anyway.
      */
     private void askedOnce() {
-        if (unmarked == null) {
+        if (marks == null) {
             return;
         }
         String through = lanes.open(HOME).askedHeld();
@@ -213,7 +239,7 @@ final class RunsPusher {
         }
         try {
             for (int page = 0; page < ASKED_PER_ROUND; page++) {
-                List<String> asked = unmarked.after(through, ASKED_AT_ONCE);
+                List<String> asked = marks.unmarkedAfter(through, ASKED_AT_ONCE);
                 if (asked.isEmpty()) {
                     lanes.askedHeld(HOME, Lanes.Lane.ASKED_OF_ALL);
                     break;
@@ -228,6 +254,47 @@ final class RunsPusher {
             throw away;
         } catch (RuntimeException unanswered) {
             unasked = String.valueOf(unanswered.getMessage());
+        }
+    }
+
+    /**
+     * Hands the tenant again, once, what its trail says it kept on this place,
+     * from where the lane says the handing got to: the tenant takes what it
+     * now would, and what it still declines is noted as any decline is.
+     *
+     * <p>Refused records are said rather than thrown: the round's own work
+     * still goes, and they are not handed a third time.
+     */
+    private void handedAgainOnce() {
+        if (marks == null) {
+            return;
+        }
+        String through = lanes.open(HOME).handedAgain();
+        if (Lanes.Lane.ASKED_OF_ALL.equals(through)) {
+            return;
+        }
+        List<String> refused = new ArrayList<>();
+        try {
+            for (int page = 0; page < ASKED_PER_ROUND; page++) {
+                List<String> declined = home.declined(through, AT_ONCE);
+                if (declined.isEmpty()) {
+                    lanes.handedAgain(HOME, Lanes.Lane.ASKED_OF_ALL);
+                    break;
+                }
+                Lanes.Batch again = lanes.again(HOME, declined);
+                if (!again.isEmpty()) {
+                    handed(again, refused);
+                }
+                String last = declined.get(declined.size() - 1);
+                through = last.substring(last.indexOf('/') + 1);
+                lanes.handedAgain(HOME, through);
+            }
+            unhanded = refused.isEmpty() ? null
+                    : "the tenant refused " + refused.size() + " of them: " + refused;
+        } catch (cloud.jengu.dbo.core.api.StoreUnreachableException away) {
+            throw away;
+        } catch (RuntimeException unanswered) {
+            unhanded = String.valueOf(unanswered.getMessage());
         }
     }
 
@@ -272,6 +339,9 @@ final class RunsPusher {
         // held there, so retention on this place may let it go and never
         // lets go of anything else.
         lanes.heldAt(HOME, taken.held());
+        if (marks != null) {
+            marks.declined(taken.kept());
+        }
         return batch.items().size();
     }
 

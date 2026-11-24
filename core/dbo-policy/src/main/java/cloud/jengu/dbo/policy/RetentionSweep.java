@@ -359,7 +359,7 @@ public final class RetentionSweep {
         return released.size();
     }
 
-    /** Each record from state and history, with its marks, audited by id and rule. */
+    /** Each record from state and history, with what is said of it, audited by id and rule. */
     private void remove(Connection c, String typeName, List<String> ids, String rule)
             throws SQLException {
         for (String id : ids) {
@@ -367,6 +367,7 @@ public final class RetentionSweep {
             try {
                 for (String sql : List.of(
                         "DELETE FROM %s_held_elsewhere WHERE object_id = ?::uuid".formatted(Domains.tables(domain)),
+                        "DELETE FROM %s_kept_on_the_place WHERE object_id = ?::uuid".formatted(Domains.tables(domain)),
                         "DELETE FROM %s_history WHERE id = ?::uuid".formatted(Domains.historyTables(domain)),
                         "DELETE FROM %s_identifier WHERE object_id = ?::uuid".formatted(Domains.tables(domain)),
                         "DELETE FROM %s_reference WHERE owner_id = ?::uuid".formatted(Domains.tables(domain)),
