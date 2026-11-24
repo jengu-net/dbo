@@ -41,6 +41,11 @@ is deliberately not being done, and the commands that prove it.
 | [038 A tenant's configuration is its own](038-a-tenants-configuration-is-its-own/README.md) | Open, and down to what was left out: the git source, its secrets through Vault, and a per-tenant working key wrapped where the declaration says are built. Left: proving a working key in a Vault the owner runs, and secrets given as references into Vault. |
 ## Risks
 
+- **A place's own housekeeping grows without bound.** Retention bounds only
+  the declared types, so every lane move, run checkpoint and executor
+  declaration on a place stays in history for good, mirrored runs included:
+  a place serving since October held 694,098 versions of it, against 24,353 of
+  its tenant's records. Nothing lets any of it go.
 - `./verify` stops the Gradle daemon between its phases, and the daemon is
   shared across every worktree of this repository, so a verify in one
   checkout kills a suite running in another. The migration runs its phases

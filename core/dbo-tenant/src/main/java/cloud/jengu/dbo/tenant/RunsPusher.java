@@ -32,6 +32,14 @@ import java.util.function.Supplier;
  * passed over, and the feed behind the position may have been let go of.
  * Those runs are still in the store, and are handed from there once.
  *
+ * <p><b>What was handed before marking is asked about once.</b> A place marks
+ * what its tenant takes from it, and one that was serving before it marked
+ * handed its work home in rounds that marked nothing. So it asks its tenant
+ * which of its unmarked records it holds, a page at a time from where the lane
+ * says it got to, and marks those; what the tenant does not hold stays
+ * unmarked. The lane keeps how far it asked, so a restart neither asks again
+ * nor starts over.
+ *
  * <p><b>What stays here is said.</b> A place handing its trail and none of
  * its work looked healthy, because nothing that stays is a failure. So the
  * pusher keeps why: processes it read past that are not the store's own, or
@@ -63,28 +71,50 @@ final class RunsPusher {
      * committed. Generous, as a run handed twice is held once.
      */
     private static final java.time.Duration SKEW = java.time.Duration.ofMinutes(5);
+    /** Records asked about at once: only their versions travel. */
+    private static final int ASKED_AT_ONCE = 500;
+    /** Pages asked about per round, so a place with years behind it does not hold the round. */
+    private static final int ASKED_PER_ROUND = 10;
+
+    /** This place's records no mark covers, a page at a time. */
+    @FunctionalInterface
+    interface Unmarked {
+
+        /**
+         * @param after the id of the last record asked of, or null from the first
+         * @return each {@code type/id/version}, in id order
+         */
+        List<String> after(String after, int limit);
+    }
 
     private final Lanes lanes;
     private final Handover home;
     private final Supplier<Set<String>> processes;
+    private final Unmarked unmarked;
+    /** Why what was handed before marking is not asked about yet, or null. */
+    private volatile String unasked;
     /** The processes of runs read past and not handed, until the tenant declares them. */
     private final Set<String> passedOver = new java.util.concurrent.ConcurrentSkipListSet<>();
     private volatile boolean nothingDeclared;
 
     /** @param processes the processes the tenant declares steps of, asked each round */
     RunsPusher(Lanes lanes, Handover home, Supplier<Set<String>> processes) {
-        this(lanes, home, processes, null);
+        this(lanes, home, processes, null, null);
     }
 
     /**
      * @param before the pusher this one replaces, whose account of what stays
      *        here carries over: the runs it read past are behind the position
      *        now, and would not be read past again to be said
+     * @param unmarked this place's records no mark covers, or null for a pusher
+     *        that asks nothing about them
      */
-    RunsPusher(Lanes lanes, Handover home, Supplier<Set<String>> processes, RunsPusher before) {
+    RunsPusher(Lanes lanes, Handover home, Supplier<Set<String>> processes, RunsPusher before,
+            Unmarked unmarked) {
         this.lanes = lanes;
         this.home = home;
         this.processes = processes;
+        this.unmarked = unmarked;
         if (before != null) {
             passedOver.addAll(before.passedOver);
         }
@@ -106,6 +136,7 @@ final class RunsPusher {
      *         tenant cannot be reached; what was not taken waits here
      */
     int round() {
+        askedOnce();
         Set<String> declared = Set.copyOf(processes.get());
         nothingDeclared = declared.isEmpty();
         if (nothingDeclared) {
@@ -153,11 +184,51 @@ final class RunsPusher {
         if (nothingDeclared) {
             why.add("its tenant declares no step, so none of its work goes home");
         }
+        if (unasked != null) {
+            why.add("what it handed home before it marked stays unmarked, as its tenant did not"
+                    + " say what it holds of it: " + unasked);
+        }
         if (!passedOver.isEmpty()) {
             why.add("runs of " + passedOver + " stay here, as its tenant declares no step of "
                     + (passedOver.size() == 1 ? "it" : "them"));
         }
         return String.join("; ", why);
+    }
+
+    /**
+     * Asks the tenant which of this place's unmarked records it holds, from
+     * where the lane says the asking got to, and marks what it answers.
+     *
+     * <p>Marked before the lane moves, as a batch's answer is. A tenant that
+     * cannot answer leaves the asking where it was, said, and the work goes
+     * home as ever: what the tenant took since marking began is marked anyway.
+     */
+    private void askedOnce() {
+        if (unmarked == null) {
+            return;
+        }
+        String through = lanes.open(HOME).askedHeld();
+        if (Lanes.Lane.ASKED_OF_ALL.equals(through)) {
+            return;
+        }
+        try {
+            for (int page = 0; page < ASKED_PER_ROUND; page++) {
+                List<String> asked = unmarked.after(through, ASKED_AT_ONCE);
+                if (asked.isEmpty()) {
+                    lanes.askedHeld(HOME, Lanes.Lane.ASKED_OF_ALL);
+                    break;
+                }
+                lanes.heldAt(HOME, home.holds(asked));
+                String last = asked.get(asked.size() - 1);
+                through = last.substring(last.indexOf('/') + 1, last.lastIndexOf('/'));
+                lanes.askedHeld(HOME, through);
+            }
+            unasked = null;
+        } catch (cloud.jengu.dbo.core.api.StoreUnreachableException away) {
+            throw away;
+        } catch (RuntimeException unanswered) {
+            unasked = String.valueOf(unanswered.getMessage());
+        }
     }
 
     /**

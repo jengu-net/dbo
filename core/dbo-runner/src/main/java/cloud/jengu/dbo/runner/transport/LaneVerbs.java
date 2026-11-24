@@ -73,7 +73,12 @@ public enum LaneVerbs {
      * Runs the place performed and what they produced, handed to the tenant
      * as one replication batch, filed by the credential that hands them.
      */
-    RUNS_PUSH("runs-push");
+    RUNS_PUSH("runs-push"),
+    /**
+     * Which of the place's versions the tenant holds as the place's: asked once
+     * of what was handed home before the place marked what its tenant took.
+     */
+    RUNS_HELD("runs-held");
 
     /** Who is asking, as a feed consumer: this participant's own cursor. */
     public static final String PARTICIPANT = "participant";
@@ -168,6 +173,8 @@ public enum LaneVerbs {
     public static final String SKIPPED = "skipped";
     /** The versions of a place's records the tenant holds now, each {@code type/id/version}. */
     public static final String HELD = "held";
+    /** The versions a place asks whether its tenant holds, each {@code type/id/version}. */
+    public static final String VERSIONS = "versions";
 
     private final String path;
 

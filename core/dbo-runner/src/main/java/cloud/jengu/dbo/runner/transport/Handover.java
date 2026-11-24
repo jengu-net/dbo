@@ -42,4 +42,18 @@ public interface Handover {
      * @param batch the batch in its wire form
      */
     Taken handed(Object batch);
+
+    /**
+     * Which of the place's versions the tenant holds as the place's, at that
+     * version or newer. Asked once, by a place that began marking after it had
+     * handed work home: nothing is written, and what the tenant does not hold
+     * is not answered.
+     *
+     * @param versions each {@code type/id/version}
+     * @return those of them the tenant holds
+     * @throws IllegalStateException from a link that cannot ask
+     */
+    default List<String> holds(List<String> versions) {
+        throw new IllegalStateException("this link does not ask what the tenant holds");
+    }
 }

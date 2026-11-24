@@ -1517,6 +1517,19 @@ public enum DboPromises implements Promise {
             + "mark, whatever its keepAtLeast, and the removal is audited as retention's "
             + "are, saying the floor was met elsewhere. On the tenant keepAtLeast holds "
             + "against it, and a record not marked keeps its floor on the place."),
+    SYNC_A_PLACE_THAT_MARKED_LATE_MARKS_WHAT_ITS_TENANT_ALREADY_HOLDS(
+            "A place that handed work home before it marked what its tenant took asks its "
+            + "tenant, once, which of its unmarked records it holds as the place's, and marks "
+            + "those; nothing is handed again for it, and what the tenant does not hold stays "
+            + "unmarked. The place keeps how far it has asked, so a restart neither asks again "
+            + "nor starts over, and a tenant that cannot answer is said beside what stays on "
+            + "the place."),
+    SYNC_WHAT_A_PLACE_HOLDS_ALONE_IS_THE_WORK_ITS_TENANT_DOES_NOT_HOLD(
+            "What a place holds alone counts the versions retention waits on: those of the "
+            + "types its declaration bounds that no mark covers and that came from nowhere "
+            + "else. What no declaration bounds — the store's own housekeeping, lanes, runs "
+            + "and declarations among it, and types declared to be kept — is said apart, as "
+            + "retention never lets go of it."),
     PROC_WORK_DRIVEN_ARRIVAL_AND_EXPIRY("A record travels to a replica because a "
             + "piece of work names it, and is removed when no open run there still "
             + "names it. Work-driven arrival without work-driven expiry is a replica "

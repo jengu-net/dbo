@@ -1518,6 +1518,75 @@ class ASecondPlaceComesUpFromItsOriginIT {
                 "the tenant let go of a record within its floor for being held elsewhere");
     }
 
+    @Test
+    @Order(34)
+    @DisplayName("a place that began marking after it had handed work home asks its tenant once "
+            + "what it holds of it and marks that, and counts as held alone only what its "
+            + "declaration bounds")
+    @Proving({DboPromises.SYNC_A_PLACE_THAT_MARKED_LATE_MARKS_WHAT_ITS_TENANT_ALREADY_HOLDS,
+            DboPromises.SYNC_WHAT_A_PLACE_HOLDS_ALONE_IS_THE_WORK_ITS_TENANT_DOES_NOT_HOLD})
+    void aPlaceThatMarkedLateAsksOnce() throws Exception {
+        site.readsItsOriginThrough(CLINIC, connected());
+        performedOnTheSite("specimen-before-marking",
+                held("Specimen", "specimen-before-marking"));
+        assertEquals(201, post(site, CLINIC, "Specimen", """
+                {"resourceType":"Specimen","status":"available",
+                 "identifier":[{"system":"%s","value":"specimen-only-on-the-place"}]}"""
+                .formatted(SPECIMENS)));
+        site.syncRound();
+        assertEquals(1, found(cloud, "Specimen?identifier=" + SPECIMENS
+                + "|specimen-before-marking"), "the specimen did not reach the tenant");
+        // The place as a release before marking left it: what its tenant took
+        // unmarked, and a lane that never asked.
+        javax.sql.DataSource place = siteDatabases.provision(TenantSpec.parse(HANDING_DECLARATION))
+                .dataSource();
+        unmarked(place, null);
+        site.runtime(CLINIC).orElseThrow().replication().askedHeld("home", null);
+        long before = heldHereAlone(site);
+
+        site.syncRound();
+        long after = heldHereAlone(site);
+        assertTrue(after < before, "the place still counts as held alone what its tenant holds: "
+                + before + " then " + after);
+        assertTrue(heldHereAloneRow(site).path("unbounded").asLong() > 0,
+                "the node does not say apart what no declaration bounds");
+        Thread.sleep(2_100);
+        site.retentionRound(CLINIC);
+        assertEquals(0, found(site, "Specimen?identifier=" + SPECIMENS
+                + "|specimen-before-marking"), "the place kept past its bound what its tenant "
+                + "held from before it marked");
+        assertEquals(1, found(cloud, "Specimen?identifier=" + SPECIMENS
+                + "|specimen-before-marking"), "and its tenant does not hold it any more");
+        assertEquals(1, found(site, "Specimen?identifier=" + SPECIMENS
+                + "|specimen-only-on-the-place"), "the place let go of what its tenant never held");
+
+        // Asked once: rewired, the place does not ask again, so a mark lost
+        // since stays lost.
+        performedOnTheSite("specimen-after-asking", held("Specimen", "specimen-after-asking"));
+        site.syncRound();
+        unmarked(place, only(site, "Specimen?identifier=" + SPECIMENS + "|specimen-after-asking")
+                .path("id").asText());
+        site.readsItsOriginThrough(CLINIC, connected());
+        site.syncRound();
+        Thread.sleep(2_100);
+        site.retentionRound(CLINIC);
+        assertEquals(1, found(site, "Specimen?identifier=" + SPECIMENS
+                + "|specimen-after-asking"), "the place asked its tenant again after it had asked "
+                + "of everything from before");
+    }
+
+    /** Takes away the place's marks: of one record, or of all with null. */
+    private static void unmarked(javax.sql.DataSource place, String id) throws Exception {
+        try (java.sql.Connection c = place.getConnection();
+             java.sql.PreparedStatement ps = c.prepareStatement(
+                     "DELETE FROM state.r4_held_elsewhere WHERE ?::uuid IS NULL "
+                             + "OR object_id = ?::uuid")) {
+            ps.setString(1, id);
+            ps.setString(2, id);
+            assertTrue(ps.executeUpdate() > 0, "no mark to take away");
+        }
+    }
+
     /** What the clinic names the specimens and media its tests write by. */
     private static final String SPECIMENS = "urn:dbo-test:specimen";
     /** The deployment's token for each node's own state. */
@@ -1543,6 +1612,12 @@ class ASecondPlaceComesUpFromItsOriginIT {
 
     /** How many versions the node says the place holds that its tenant does not. */
     private static long heldHereAlone(TenantRuntimeManager node) throws Exception {
+        return heldHereAloneRow(node).path("versions").asLong();
+    }
+
+    /** What the node says the place holds that its tenant does not. */
+    private static com.fasterxml.jackson.databind.JsonNode heldHereAloneRow(
+            TenantRuntimeManager node) throws Exception {
         HttpResponse<String> answer = http.send(HttpRequest.newBuilder(
                         URI.create("http://127.0.0.1:" + node.port() + "/runtime/tenants"))
                         .header("Authorization", "Bearer " + OPS).GET().build(),
@@ -1553,7 +1628,7 @@ class ASecondPlaceComesUpFromItsOriginIT {
             if (row.path("code").asText().equals(CLINIC)) {
                 assertTrue(row.path("heldHereAlone").has("versions"),
                         "the node does not say what the place holds alone: " + row);
-                return row.path("heldHereAlone").path("versions").asLong();
+                return row.path("heldHereAlone");
             }
         }
         throw new AssertionError("the node does not list " + CLINIC + ": " + answer.body());

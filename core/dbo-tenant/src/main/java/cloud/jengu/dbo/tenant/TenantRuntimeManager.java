@@ -3488,15 +3488,20 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 javax.sql.DataSource placeDb = tenantDataSources.get(state.code());
                 if (serving != null && places.contains(state.code()) && placeDb != null) {
                     try {
+                        // What retention waits on is what the declaration
+                        // bounds; the store's own housekeeping is said apart.
                         cloud.jengu.dbo.postgres.HeldHereAlone alone =
                                 cloud.jengu.dbo.postgres.HeldHereAlone.in(placeDb,
-                                        versions.require(serving.spec().face()).domain());
+                                        versions.require(serving.spec().face()).domain(),
+                                        serving.spec().policies().bounded(),
+                                        java.util.List.of(cloud.jengu.dbo.work.WorkModel.DOMAIN));
                         Map<String, Object> held = new java.util.LinkedHashMap<>();
                         held.put("versions", alone.versions());
                         held.put("oldest", alone.oldest() == null ? "" : alone.oldest().toString());
                         held.put("oldestAge", alone.oldest() == null ? ""
                                 : java.time.Duration.between(alone.oldest(),
                                         java.time.Instant.now()).toString());
+                        held.put("unbounded", alone.unbounded());
                         row.put("heldHereAlone", held);
                     } catch (RuntimeException unread) {
                         row.put("heldHereAlone", Map.of("unread",
@@ -5791,20 +5796,27 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 // The runs a place performed and what they produced, applied as
                 // the place's: filed under the credential that hands them, the
                 // runs mirrored beside this tenant's own.
-                participant -> batch -> {
-                    cloud.jengu.dbo.sync.Lanes.Batch handed = cloud.jengu.dbo.core.wire.RecordWire
-                            .decode(batch, cloud.jengu.dbo.sync.Lanes.Batch.class);
-                    // FILED BY THE CREDENTIAL, never by the name the batch
-                    // carries: a place hands its work as itself and as nobody
-                    // else, exactly as it hands its trail.
-                    cloud.jengu.dbo.sync.Lanes.Applied applied = serving.replication()
-                            .applyFromAPlace(
-                            participant, new cloud.jengu.dbo.sync.Lanes.Batch(handed.epoch(),
-                                    participant, handed.cursor(), handed.items(),
-                                    handed.contentCursor()));
-                    return new cloud.jengu.dbo.runner.transport.Handover.Taken(
-                            applied.applied(), applied.skipped(), applied.refused(),
-                            applied.held());
+                participant -> new cloud.jengu.dbo.runner.transport.Handover() {
+                    @Override
+                    public Taken handed(Object batch) {
+                        cloud.jengu.dbo.sync.Lanes.Batch handed = cloud.jengu.dbo.core.wire
+                                .RecordWire.decode(batch, cloud.jengu.dbo.sync.Lanes.Batch.class);
+                        // FILED BY THE CREDENTIAL, never by the name the batch
+                        // carries: a place hands its work as itself and as nobody
+                        // else, exactly as it hands its trail.
+                        cloud.jengu.dbo.sync.Lanes.Applied applied = serving.replication()
+                                .applyFromAPlace(participant, new cloud.jengu.dbo.sync.Lanes.Batch(
+                                        handed.epoch(), participant, handed.cursor(),
+                                        handed.items(), handed.contentCursor()));
+                        return new Taken(applied.applied(), applied.skipped(), applied.refused(),
+                                applied.held());
+                    }
+
+                    // Answered for the credential, as its work is filed.
+                    @Override
+                    public java.util.List<String> holds(java.util.List<String> versions) {
+                        return serving.replication().heldFromAPlace(participant, versions);
+                    }
                 },
                 // The one record of all it authors a place acts on.
                 new AuthorisationFeed(() -> authorisationsOf(serving).current(),
@@ -5918,7 +5930,9 @@ public final class TenantRuntimeManager implements AutoCloseable {
                     () -> java.util.Optional.ofNullable(runtimes.get(origin))
                             .map(serving -> RunsPusher.processesOf(serving.spec()))
                             .orElse(java.util.Set.of()),
-                    runsPushers.get(spec.code())));
+                    runsPushers.get(spec.code()),
+                    (after, limit) -> cloud.jengu.dbo.postgres.HeldHereAlone.unmarkedAfter(on,
+                            versions.require(spec.face()).domain(), after, limit)));
         } else {
             runsPushers.remove(spec.code());
             keptAtPlaces.remove(spec.code());
