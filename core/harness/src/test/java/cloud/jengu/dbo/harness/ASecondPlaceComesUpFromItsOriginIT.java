@@ -104,6 +104,7 @@ class ASecondPlaceComesUpFromItsOriginIT {
                        "writes":["Observation","Device","Basic","Specimen","Media"]},
                       {"code":"jaam.lab.order","slots":{"order":"Reference(Observation)"},
                        "lasts":true},
+                      {"code":"jaam.lab.decide","slots":{"result":"Reference(Media)"}},
                       {"code":"jaam.lab.calibrate",
                        "starts":{"every":"0 * * * * *","missed":"skip","keep":"P1D",
                                  "where":"places"}}],
@@ -1645,6 +1646,114 @@ class ASecondPlaceComesUpFromItsOriginIT {
         assertTrue(site.workKeptAtPlaces().getOrDefault(CLINIC, "").contains("Device"),
                 "the node's account does not say the tenant declined the place's records: "
                         + site.workKeptAtPlaces());
+    }
+
+    /** The step a person at the tenant starts over what the site recorded, and the site performs. */
+    private static final String DECIDE = "jaam.lab.decide";
+
+    @Test
+    @Order(36)
+    @DisplayName("work a person at the tenant starts over what the site recorded and let go of "
+            + "is performed on the site, bringing the record, which the site keeps while the "
+            + "work is open and lets go of once it ends; a run naming what neither holds fails "
+            + "saying which, on the site and at the tenant")
+    @Proving({DboPromises.SYNC_WORK_A_TENANT_HANDS_A_PLACE_BRINGS_WHAT_IT_NAMES,
+            DboPromises.SYNC_A_PLACE_DOES_NOT_LET_GO_OF_WHAT_ITS_OPEN_WORK_NAMES,
+            DboPromises.SYNC_A_RUN_HANDED_TO_A_PLACE_NEVER_WAITS_SILENTLY_FOR_AN_INPUT})
+    void workATenantHandsAPlaceBringsWhatItNames() throws Exception {
+        site.readsItsOriginThrough(CLINIC, connected());
+        site.syncRound();
+        String query = "Media?identifier=" + SPECIMENS + "|media-decided-later";
+        performedOnTheSite("media-decided-later", held("Media", "media-decided-later"));
+        site.syncRound();
+        Thread.sleep(5_100);
+        site.retentionRound(CLINIC);
+        assertEquals(0, found(site, query),
+                "the site kept what its tenant holds past the declared time");
+        String media = only(cloud, query).path("id").asText();
+
+        cloud.authority(CLINIC).ensureClient("decider", "decider-secret", List.of("work"));
+        String decider = clientToken(cloud, CLINIC, "decider", "decider-secret");
+        HttpResponse<String> started = decide("Media/" + media, "", decider);
+        assertEquals(201, started.statusCode(), started.body());
+        String key = keyOf(started.body());
+        Runs atTheTenant = new Runs(cloud.runtime(CLINIC).orElseThrow().engine());
+        assertEquals("site", atTheTenant.byKey(key).orElseThrow().addressee().place(),
+                "the tenant did not address work over the site's record to the site");
+
+        site.syncRound();
+        assertEquals(1, found(site, query),
+                "the work did not bring the record the site had let go of");
+        Runs onTheSite = new Runs(site.runtime(CLINIC).orElseThrow().engine());
+        Run arrived = onTheSite.byKey(key).orElseThrow(() -> new AssertionError(
+                "the site did not take the work its tenant addressed to it"));
+        assertEquals(Status.READY, arrived.status(), arrived.toString());
+
+        // Held elsewhere and past the bound, and still kept: the work is open.
+        com.fasterxml.jackson.databind.JsonNode brought = only(site, query);
+        site.runtime(CLINIC).orElseThrow().engine().markHeldElsewhere(List.of(
+                new cloud.jengu.dbo.core.api.HeldElsewhere("Media", media,
+                        brought.path("meta").path("versionId").asLong(), "home")));
+        Thread.sleep(5_100);
+        site.retentionRound(CLINIC);
+        assertEquals(1, found(site, query),
+                "the site let go of a record its open work names");
+
+        Executor deciding = new Executor("decider", "1", "example.site", Scope.BASELINE);
+        Lane lane = site.fleetLane(CLINIC, DECIDE, deciding).orElseThrow();
+        lane.declare(new Declarations.Declared("jaam.lab", "decide", deciding.name(),
+                deciding.version(), deciding.provider(), deciding.scope(), deciding.name()));
+        Run claimed = lane.claim(arrived, java.time.Duration.ofMinutes(5)).orElseThrow(() ->
+                new AssertionError("the site's runner could not take the work handed to it"));
+        assertEquals(1, lane.inputs(claimed).getOrDefault("result", List.of()).size(),
+                "the work handed to the site does not reach the record it names there");
+        lane.committed(claimed, null, List.of());
+
+        site.syncRound();
+        Run ended = atTheTenant.byKey(key).orElseThrow();
+        assertEquals(Status.COMPLETED, ended.status(),
+                "the site's ending did not end the tenant's run: " + ended);
+        assertEquals("site", ended.addressee().place(),
+                "the tenant's run no longer says which place performed it");
+        assertEquals(0, found(site, query),
+                "the site kept what the work brought after the work ended");
+        assertEquals(1, found(cloud, query), "and its tenant still holds it");
+
+        // Named and never held anywhere: said, not waited on.
+        HttpResponse<String> nowhere = decide("Media/" + java.util.UUID.randomUUID(),
+                ",\"for\":{\"place\":\"site\"}", decider);
+        assertEquals(201, nowhere.statusCode(), nowhere.body());
+        String unheld = keyOf(nowhere.body());
+        site.syncRound();
+        Run failed = onTheSite.byKey(unheld).orElseThrow(() -> new AssertionError(
+                "the site did not take the work its tenant addressed to it by name"));
+        assertEquals(Status.FAILED, failed.status(), failed.toString());
+        assertTrue(String.valueOf(failed.statusReason()).contains("result: Media/"),
+                "the failure does not say which input: " + failed.statusReason());
+        site.syncRound();
+        Run told = atTheTenant.byKey(unheld).orElseThrow();
+        assertEquals(Status.FAILED, told.status(),
+                "the tenant's run does not say the site could not perform it: " + told);
+        assertEquals(failed.statusReason(), told.statusReason());
+    }
+
+    /** A decision on what the site recorded, asked for at the tenant. */
+    private static HttpResponse<String> decide(String result, String more, String token)
+            throws Exception {
+        return http.send(HttpRequest.newBuilder(
+                        URI.create(base(cloud, CLINIC) + "/step/" + DECIDE))
+                        .header("Authorization", "Bearer " + token)
+                        .header("Content-Type", "application/json")
+                        .POST(HttpRequest.BodyPublishers.ofString("{\"inputs\":{\"result\":\""
+                                + result + "\"}" + more + "}")).build(),
+                HttpResponse.BodyHandlers.ofString());
+    }
+
+    private static String keyOf(String started) {
+        java.util.regex.Matcher key = java.util.regex.Pattern.compile("\"key\":\"([^\"]+)\"")
+                .matcher(started);
+        assertTrue(key.find(), started);
+        return key.group(1);
     }
 
     /** What the clinic's runs label records by, a label several may share. */

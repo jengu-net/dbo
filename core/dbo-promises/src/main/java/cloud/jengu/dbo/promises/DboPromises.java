@@ -1542,6 +1542,22 @@ public enum DboPromises implements Promise {
             + "which types and since when, on the node's row and in the operator's fleet "
             + "reading; the node's account of what of a place's work stays with it names "
             + "their types. A record the tenant later takes is no longer counted."),
+    SYNC_WORK_A_TENANT_HANDS_A_PLACE_BRINGS_WHAT_IT_NAMES(
+            "Work a person at a tenant starts over a record one of its places made is "
+            + "performed at that place, or at the place the request names. The place takes it "
+            + "on its next round with every record its slots and item name that it does not "
+            + "hold, keeps those for as long as the work is open, and lets them go when it "
+            + "ends; the run's ending goes home as the tenant's own run, which says which "
+            + "place performs it. Nobody at the tenant takes it in the meantime."),
+    SYNC_A_RUN_HANDED_TO_A_PLACE_NEVER_WAITS_SILENTLY_FOR_AN_INPUT(
+            "A run a tenant hands to a place whose slot refers to a record neither the place "
+            + "holds nor the tenant handed ends failed on the place, naming the slot and the "
+            + "record, and the tenant's run ends failed with the same words. It is never left "
+            + "ready for an input nothing will bring."),
+    SYNC_A_PLACE_DOES_NOT_LET_GO_OF_WHAT_ITS_OPEN_WORK_NAMES(
+            "Retention keeps any record a run still open on the node names, by its item or a "
+            + "slot, whatever the bound and whatever marks it held elsewhere, until that run "
+            + "ends. A place never loses what its work still needs."),
     SYNC_WHAT_A_PLACE_HOLDS_ALONE_IS_THE_WORK_ITS_TENANT_DOES_NOT_HOLD(
             "What a place holds alone counts the versions retention waits on: those of the "
             + "types its declaration bounds that no mark covers and that came from nowhere "

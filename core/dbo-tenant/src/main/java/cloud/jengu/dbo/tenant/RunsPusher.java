@@ -107,6 +107,8 @@ final class RunsPusher {
     private final Marks marks;
     /** Why what was handed before marking is not asked about yet, or null. */
     private volatile String unasked;
+    /** Why what the tenant addresses to this place is not taken, or null. */
+    private volatile String untaken;
     /** Why what the tenant declined before is not handed again yet, or null. */
     private volatile String unhanded;
     /** The processes of runs read past and not handed, until the tenant declares them. */
@@ -152,6 +154,7 @@ final class RunsPusher {
      *         tenant cannot be reached; what was not taken waits here
      */
     int round() {
+        taken();
         askedOnce();
         handedAgainOnce();
         Set<String> declared = Set.copyOf(processes.get());
@@ -193,6 +196,44 @@ final class RunsPusher {
     }
 
     /**
+     * Takes the work the tenant addressed to this place, stretch by stretch,
+     * and lets go of what came with work that is over. Each batch is applied
+     * before the next ask tells the tenant it was, so a link that drops
+     * between the two hands the same batch again, and it applies once.
+     *
+     * <p>A tenant that hands no work leaves the round as it was, said: what
+     * this place performs of its own still goes home.
+     */
+    private void taken() {
+        String through = null;
+        List<String> refused = new ArrayList<>();
+        try {
+            for (int read = 0; read < MOST_PER_ROUND; read++) {
+                Lanes.Batch batch = RecordWire.decode(home.toPerform(through), Lanes.Batch.class);
+                if (batch == null) {
+                    break;
+                }
+                if (!batch.isEmpty()) {
+                    refused.addAll(lanes.performing(HOME, batch).refused());
+                }
+                // Read to the end: the tenant answered from where it stands,
+                // and that is where this ask said it stands.
+                if (batch.cursor() == null || batch.cursor().equals(through)) {
+                    break;
+                }
+                through = batch.cursor();
+            }
+            untaken = refused.isEmpty() ? null
+                    : "this place could not apply " + refused.size() + " of it: " + refused;
+        } catch (cloud.jengu.dbo.core.api.StoreUnreachableException away) {
+            throw away;
+        } catch (RuntimeException unanswered) {
+            untaken = String.valueOf(unanswered.getMessage());
+        }
+        lanes.revoke();
+    }
+
+    /**
      * What of this place's work stays here, and why, or empty when all of it
      * goes. Said as one sentence, so that what changed is a different one.
      */
@@ -204,6 +245,9 @@ final class RunsPusher {
         if (unasked != null) {
             why.add("what it handed home before it marked stays unmarked, as its tenant did not"
                     + " say what it holds of it: " + unasked);
+        }
+        if (untaken != null) {
+            why.add("the work its tenant addresses to it is not taken: " + untaken);
         }
         if (unhanded != null) {
             why.add("what its tenant declined before it knew an internal record by its id alone"

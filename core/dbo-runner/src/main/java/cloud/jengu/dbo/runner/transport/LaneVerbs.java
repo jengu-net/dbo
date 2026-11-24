@@ -83,7 +83,12 @@ public enum LaneVerbs {
      * The place's records the tenant kept on the place, as its trail says:
      * asked once, to hand them again.
      */
-    RUNS_DECLINED("runs-declined");
+    RUNS_DECLINED("runs-declined"),
+    /**
+     * The work the tenant addressed to the place to perform, with what it
+     * names, from where the place says it took the last of it.
+     */
+    RUNS_HANDED("runs-handed");
 
     /** Who is asking, as a feed consumer: this participant's own cursor. */
     public static final String PARTICIPANT = "participant";

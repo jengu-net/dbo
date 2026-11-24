@@ -79,4 +79,18 @@ public interface Handover {
     default List<String> declined(String after, int limit) {
         throw new IllegalStateException("this link does not ask what the tenant declined");
     }
+
+    /**
+     * The work the tenant addressed to this place to perform, from where the
+     * place last took it, with what it names first: one replication batch in
+     * its wire form, whose cursor the place hands back once it has applied it.
+     *
+     * @param through the cursor of the batch the place applied last, which
+     *                moves the tenant's account of how far it took; null to be
+     *                handed again from where the tenant last heard
+     * @throws IllegalStateException from a link that cannot ask
+     */
+    default Object toPerform(String through) {
+        throw new IllegalStateException("this link does not ask for work to perform");
+    }
 }

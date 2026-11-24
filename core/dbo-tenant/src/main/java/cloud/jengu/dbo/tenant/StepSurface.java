@@ -222,6 +222,16 @@ final class StepSurface implements HttpHandler {
             return false;
         }
 
+        /** Whether the tenant knows a place of itself by this name, which work may be addressed to. */
+        default boolean servesAPlace(String tenant, String place) {
+            return false;
+        }
+
+        /** The place of the tenant that made the record referred to, when a place made it. */
+        default Optional<String> placeThatMade(String tenant, String reference) {
+            return Optional.empty();
+        }
+
         /** The step's slots, and why it is not startable here if it is not. */
         record Offer(Map<String, String> slots, String refusedBecause,
                 TenantSpec.Step.Awaits awaits) {
@@ -626,7 +636,22 @@ final class StepSurface implements HttpHandler {
         }
         cloud.jengu.dbo.work.Run.Addressee addressee = null;
         String provider = null;
-        if (Json.objOpt(body, "for") instanceof Map<?, ?> named && named.containsKey("provider")) {
+        if (Json.objOpt(body, "for") instanceof Map<?, ?> named && named.containsKey("place")) {
+            if (!(named.get("place") instanceof String place) || named.size() != 1) {
+                return refused(400, "invalid_request", "'for' addresses work to the place "
+                        + "that performs it as {\"place\":\"<the place>\"}, naming nobody else");
+            }
+            String refusedBecause = performedAtAPlaceRefused(stepCode, step, crossing);
+            if (refusedBecause != null) {
+                return refused(409, "refused", refusedBecause);
+            }
+            if (!fleet.servesAPlace(tenant, place)) {
+                return refused(422, "invalid_request", "this tenant knows no place '" + place
+                        + "': a place is known once it has handed its work home");
+            }
+            addressee = cloud.jengu.dbo.work.Run.Addressee.place(place);
+        } else if (Json.objOpt(body, "for") instanceof Map<?, ?> named
+                && named.containsKey("provider")) {
             if (!Boolean.TRUE.equals(named.get("provider")) || named.size() != 1) {
                 return refused(400, "invalid_request", "'for' hands work to the provider as "
                         + "{\"provider\":true}, naming nobody else: the provider is the "
@@ -655,6 +680,14 @@ final class StepSurface implements HttpHandler {
                         + crossingTo + ", and a run asking across is for what carries it "
                         + "alone: leave 'for' out");
             }
+        }
+        // Work over what a place made goes to that place, unless the asker
+        // said who it is for: the place holds what the work needs, and is
+        // where the work about it is done.
+        if (Json.objOpt(body, "for") == null
+                && performedAtAPlaceRefused(stepCode, step, crossing) == null) {
+            addressee = madeAt(inputs).map(cloud.jengu.dbo.work.Run.Addressee::place)
+                    .orElse(null);
         }
         // The run this one is started for, by its key: a part of it, read
         // as one of the things it set going. One this tenant does not hold
@@ -714,6 +747,39 @@ final class StepSurface implements HttpHandler {
         return new Started(201, "{\"run\":" + quote(run.id()) + ",\"key\":" + quote(run.key())
                 + ",\"step\":" + quote(stepCode)
                 + ",\"context\":" + quote(runPath + "/" + run.id() + "/fhir") + "}");
+    }
+
+    /**
+     * Why a run of this step is not work a place performs, or null where it
+     * is: a place performs this tenant's own steps, started at its origin.
+     */
+    private String performedAtAPlaceRefused(String stepCode,
+            TenantSpec.Step step, cloud.jengu.dbo.work.Run.Crossing crossing) {
+        if (fleet.aPlace(tenant)) {
+            return "this is a place of the tenant, and work is addressed to a place at the "
+                    + "tenant's origin";
+        }
+        if (step == null || step.lasts() || step.handsToProvider() || crossing != null) {
+            return stepCode + " is not work a place performs: a place performs the tenant's "
+                    + "own steps, and not work that lasts, is handed to the provider or crosses";
+        }
+        return null;
+    }
+
+    /** The place that made the first record a referring slot names, when a place made one. */
+    private Optional<String> madeAt(Map<String, cloud.jengu.dbo.work.RunSlot> inputs) {
+        for (cloud.jengu.dbo.work.RunSlot filled : inputs.values()) {
+            if (!filled.referred()) {
+                continue;
+            }
+            for (String reference : filled.values()) {
+                Optional<String> place = fleet.placeThatMade(tenant, reference);
+                if (place.isPresent()) {
+                    return place;
+                }
+            }
+        }
+        return Optional.empty();
     }
 
     private static Started refused(int status, String error, String detail) {
