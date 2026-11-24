@@ -353,13 +353,20 @@ class ASecondPlaceComesUpFromItsOriginIT {
             + "it and named as the site's")
     @Proving(DboPromises.SYNC_A_PLACE_HANDS_ITS_TRAIL_TO_ITS_TENANT)
     void whatTheSiteDoesReachesTheTenantsTrail() throws Exception {
-        assertEquals(201, post(site, CLINIC, "Observation", OBSERVATION));
+        assertEquals(201, post(site, CLINIC, "Observation", """
+                {"resourceType":"Observation","status":"final","code":{"text":"on-the-trail"},
+                 "identifier":[{"system":"%s","value":"on-the-trail"}]}""".formatted(LABELS)));
+        String written = only(site, "Observation?identifier=" + LABELS + "|on-the-trail")
+                .path("id").asText();
 
         site.syncRound();
 
-        List<com.fasterxml.jackson.databind.JsonNode> here = writesOfObservations(site, "");
+        // Its own write, asked by the record: the trail is read newest first,
+        // and a round writes more of its own than one page holds.
+        List<com.fasterxml.jackson.databind.JsonNode> here = writesOfObservations(site,
+                "entity=Observation/" + written);
         List<com.fasterxml.jackson.databind.JsonNode> there =
-                writesOfObservations(cloud, "site=site");
+                writesOfObservations(cloud, "site=site&entity=Observation/" + written);
         assertTrue(!here.isEmpty(),
                 "the site recorded nothing of its own writes, so there was nothing to hand");
         assertEquals(asRecorded(here), asRecorded(there),
