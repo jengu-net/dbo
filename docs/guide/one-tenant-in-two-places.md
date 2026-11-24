@@ -117,10 +117,14 @@ that use it.
   same thing. A reference the cloud cannot answer refuses that record, naming
   the reference, rather than storing it pointing at nothing. A record the
   cloud holds as its own, the configuration's or anybody's, is never replaced
-  from a site, found by its id or by what it says: the site's write stays on
-  the site. Each write-back not taken is on the cloud's trail as
+  from a site, found by its id or, for a type identified by its identifiers,
+  by what it says: the site's write stays on the site. A record whose identity
+  is internal is known by its id alone, so two of a site's records sharing a
+  label both go home. Each write-back not taken is on the cloud's trail as
   `write-back.kept-on-the-place` or `write-back.refused`, under the run that
-  produced it, about the record a reader there can follow. Which types a site
+  produced it, about the record a reader there can follow, and the site
+  hears of each it kept: how many, of which types and since when, beside
+  what it holds alone. Which types a site
   may write at all is the type's handling: `projected-config` is the
   configuration's alone, there and here.
 - **A place lets go of what stands in front of its origin.** A local record

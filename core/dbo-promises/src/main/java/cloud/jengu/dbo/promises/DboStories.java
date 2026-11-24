@@ -588,6 +588,8 @@ public enum DboStories implements Story {
                     DboPromises.SYNC_ON_A_PLACE_A_FLOOR_IS_MET_BY_THE_RECORD_HELD_ELSEWHERE,
                     DboPromises.SYNC_A_PLACE_THAT_MARKED_LATE_MARKS_WHAT_ITS_TENANT_ALREADY_HOLDS,
                     DboPromises.SYNC_WHAT_A_PLACE_HOLDS_ALONE_IS_THE_WORK_ITS_TENANT_DOES_NOT_HOLD,
+                    DboPromises.SYNC_A_RECORD_WHOSE_IDENTITY_IS_INTERNAL_IS_KNOWN_BY_ITS_ID_ALONE,
+                    DboPromises.SYNC_A_PLACE_HEARS_WHAT_ITS_TENANT_DID_NOT_TAKE,
                     DboPromises.SYNC_WHAT_WAS_SAID_OF_A_PLACES_WORK_GOES_HOME_WITH_IT,
                     DboPromises.SYNC_A_PLACE_HANDS_THE_WORK_OF_A_STEP_DECLARED_AFTER_IT_CAME_UP,
                     DboPromises.SYNC_A_PLACE_SAYS_WHAT_OF_ITS_WORK_STAYS_WITH_IT,

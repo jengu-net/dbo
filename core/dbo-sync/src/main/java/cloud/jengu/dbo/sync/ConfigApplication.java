@@ -738,9 +738,9 @@ public final class ConfigApplication {
         }
     }
 
-    /** What a declaration is claimed under: see {@link cloud.jengu.dbo.core.api.IdentityClaims#of}. */
+    /** What a declaration is keyed by: see {@link cloud.jengu.dbo.core.api.IdentityClaims#keyOf}. */
     private cloud.jengu.dbo.core.api.Identifier identityClaimOf(Declared declared) {
-        return cloud.jengu.dbo.core.api.IdentityClaims.of(store, declared.typeName(),
+        return cloud.jengu.dbo.core.api.IdentityClaims.keyOf(store, declared.typeName(),
                 declared.payload());
     }
 

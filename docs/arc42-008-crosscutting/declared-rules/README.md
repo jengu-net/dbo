@@ -351,6 +351,9 @@ What a place holds alone is on the node's `/runtime/tenants` row, and in the
 operator's fleet reading, as `heldHereAlone`: how many versions of the types its
 declaration bounds, and when the oldest was written. Those are what retention
 waits on. Everything else the node holds is counted apart as `unbounded`.
+Beside them, `declined` says what the tenant did not take because it holds a
+record of its own in its place: how many, of which types and since when. Those
+stay on the place for good, as nothing marks them held elsewhere.
 
 **Retention bounds the declared types and nothing else.** A place's runs, its
 lanes and the declarations of its executors are its own record of the work, and

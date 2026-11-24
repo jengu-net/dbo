@@ -160,14 +160,25 @@ public final class Lanes {
      * @param askedHeld how far this side has asked the peer which of its records
      *               from before it marked the peer holds: null before it began,
      *               the id of the last record asked of, or {@link #ASKED_OF_ALL}
+     * @param handedAgain how far this side has handed the peer again what the
+     *               peer declined before it knew an internal record by its id
+     *               alone, in the same terms
      */
     public record Lane(String key, String peer, String epoch, String ourCursor,
-            String theirMarker, String contentCursor, List<String> covers, String askedHeld) {
+            String theirMarker, String contentCursor, List<String> covers, String askedHeld,
+            String handedAgain) {
+
+        /** A lane that has not handed again what its peer declined. */
+        public Lane(String key, String peer, String epoch, String ourCursor, String theirMarker,
+                String contentCursor, List<String> covers, String askedHeld) {
+            this(key, peer, epoch, ourCursor, theirMarker, contentCursor, covers, askedHeld,
+                    null);
+        }
 
         /** A lane that has not asked what its peer holds from before it marked. */
         public Lane(String key, String peer, String epoch, String ourCursor, String theirMarker,
                 String contentCursor, List<String> covers) {
-            this(key, peer, epoch, ourCursor, theirMarker, contentCursor, covers, null);
+            this(key, peer, epoch, ourCursor, theirMarker, contentCursor, covers, null, null);
         }
 
         /** What {@code askedHeld} says once every record from before has been asked of. */
@@ -261,17 +272,27 @@ public final class Lanes {
      *             each {@code type/id/version}: written now or held already at
      *             that version or newer, and never one kept on the far side
      *             because this side holds a record of its own in its place
+     * @param kept the copies this side did not take because it holds a record
+     *             of its own in their place, each {@code type/id/version} and
+     *             the record held instead, as {@code type/id/version Type/id}
      */
-    public record Applied(long applied, long skipped, List<String> refused, List<String> held) {
+    public record Applied(long applied, long skipped, List<String> refused, List<String> held,
+            List<String> kept) {
 
         public Applied {
             refused = refused == null ? List.of() : List.copyOf(refused);
             held = held == null ? List.of() : List.copyOf(held);
+            kept = kept == null ? List.of() : List.copyOf(kept);
         }
 
         /** Compatibility with callers that predate {@code held}. */
         public Applied(long applied, long skipped, List<String> refused) {
             this(applied, skipped, refused, List.of());
+        }
+
+        /** Compatibility with callers that predate {@code kept}. */
+        public Applied(long applied, long skipped, List<String> refused, List<String> held) {
+            this(applied, skipped, refused, held, List.of());
         }
     }
 
@@ -335,7 +356,8 @@ public final class Lanes {
     public Lane mark(String peer, String theirMarker) {
         Lane lane = open(peer);
         return write(new Lane(lane.key(), lane.peer(), lane.epoch(), lane.ourCursor(),
-                theirMarker, lane.contentCursor(), lane.covers(), lane.askedHeld()));
+                theirMarker, lane.contentCursor(), lane.covers(), lane.askedHeld(),
+                lane.handedAgain()));
     }
 
     /**
@@ -349,7 +371,8 @@ public final class Lanes {
         Lane lane = open(peer);
         return write(new Lane(lane.key(), lane.peer(), lane.epoch(), lane.ourCursor(),
                 lane.theirMarker(), lane.contentCursor(),
-                List.copyOf(new java.util.TreeSet<>(processes)), lane.askedHeld()));
+                List.copyOf(new java.util.TreeSet<>(processes)), lane.askedHeld(),
+                lane.handedAgain()));
     }
 
     /**
@@ -362,10 +385,49 @@ public final class Lanes {
     public Lane askedHeld(String peer, String through) {
         Lane lane = open(peer);
         return write(new Lane(lane.key(), lane.peer(), lane.epoch(), lane.ourCursor(),
-                lane.theirMarker(), lane.contentCursor(), lane.covers(), through));
+                lane.theirMarker(), lane.contentCursor(), lane.covers(), through,
+                lane.handedAgain()));
+    }
+
+    /**
+     * Records how far this side has handed the peer again what the peer
+     * declined as its own, kept with the lane as {@link #askedHeld} is.
+     *
+     * @param through the id of the last record handed again, or {@link Lane#ASKED_OF_ALL}
+     */
+    public Lane handedAgain(String peer, String through) {
+        Lane lane = open(peer);
+        return write(new Lane(lane.key(), lane.peer(), lane.epoch(), lane.ourCursor(),
+                lane.theirMarker(), lane.contentCursor(), lane.covers(), lane.askedHeld(),
+                through));
     }
 
     // -------------------------------------------------------------- outbound
+
+    /**
+     * The records named, as they stand here, as copies for the peer: what a
+     * place hands its tenant again. The lane's positions do not move, so
+     * nothing else is handed with them and nothing is skipped for them.
+     *
+     * @param references each {@code type/id}; one this side no longer holds is left out
+     */
+    public Batch again(String peer, List<String> references) {
+        Lane lane = open(peer);
+        List<Item> items = new ArrayList<>();
+        for (String reference : references) {
+            heldHere(reference).filter(stored -> !stored.deleted()).ifPresent(stored ->
+                    items.add(Item.copy(stored.typeName(), stored.id(), stored.versionId(),
+                            stored.lastUpdated(), stored.payload())));
+        }
+        if (this.references != null) {
+            Set<String> handed = new java.util.HashSet<>();
+            items.forEach(item -> handed.add(item.typeName() + "/" + item.id()));
+            items.replaceAll(item -> Item.copy(item.typeName(), item.id(), item.version(),
+                    item.recordedAt(), askedAsWhatTheyAre(item.payload(), handed)));
+        }
+        return new Batch(lane.epoch(), site, lane.ourCursor(), List.copyOf(items),
+                lane.contentCursor());
+    }
 
     /**
      * What this peer does not have yet: the runs since its cursor, and the data
@@ -607,7 +669,8 @@ public final class Lanes {
             handed += runsOf(lane, process, since, limit, hand);
         }
         write(new Lane(lane.key(), lane.peer(), lane.epoch(), head, lane.theirMarker(),
-                lane.contentCursor(), lane.covers(), lane.askedHeld()));
+                lane.contentCursor(), lane.covers(), lane.askedHeld(),
+                lane.handedAgain()));
         return handed;
     }
 
@@ -824,7 +887,8 @@ public final class Lanes {
         return write(new Lane(lane.key(), lane.peer(), lane.epoch(), batch.cursor(),
                 lane.theirMarker(),
                 batch.contentCursor() != null ? batch.contentCursor() : lane.contentCursor(),
-                lane.covers(), lane.askedHeld()));
+                lane.covers(), lane.askedHeld(),
+                lane.handedAgain()));
     }
 
     /**
@@ -1068,6 +1132,7 @@ public final class Lanes {
         long skipped = 0;
         List<String> refused = new ArrayList<>();
         List<String> held = new ArrayList<>();
+        List<String> kept = new ArrayList<>();
         for (Item item : batch.items()) {
             try {
                 boolean written;
@@ -1081,7 +1146,7 @@ public final class Lanes {
                     // a working copy.
                     written = admit(batch.from(), item);
                 } else {
-                    written = item.copy() ? copy(batch.from(), item, home, held)
+                    written = item.copy() ? copy(batch.from(), item, home, held, kept)
                             : item.work() ? mirror(batch.from(), item) : replicate(item);
                 }
                 if (!item.work() && !item.copy() && !AUDIT.equals(item.typeName())
@@ -1113,7 +1178,8 @@ public final class Lanes {
                 }
             }
         }
-        return new Applied(applied, skipped, List.copyOf(refused), List.copyOf(held));
+        return new Applied(applied, skipped, List.copyOf(refused), List.copyOf(held),
+                List.copyOf(kept));
     }
 
     /**
@@ -1140,7 +1206,8 @@ public final class Lanes {
      * site authored itself stands in front of it — the local override
      * wins, as it does for a streamed copy — and the copy is skipped.
      */
-    private boolean copy(String from, Item item, Home home, List<String> held) {
+    private boolean copy(String from, Item item, Home home, List<String> held,
+            List<String> kept) {
         String reference = item.typeName() + "/" + item.id();
         String key = reference + " " + COPY + from;
         Optional<StoredObject> here = store.get(item.typeName(), item.id());
@@ -1149,6 +1216,7 @@ public final class Lanes {
         if (here.isPresent() && !noted) {
             if (home != null) {
                 tell(from, item, home, Untaken.KEPT_ON_THE_PLACE, reference);
+                kept.add(reference + "/" + item.version() + " " + reference);
             }
             return false;
         }
@@ -1165,6 +1233,7 @@ public final class Lanes {
             Optional<String> own = ownRecordSaying(item.typeName(), item.id(), payload);
             if (own.isPresent()) {
                 tell(from, item, home, Untaken.KEPT_ON_THE_PLACE, own.get());
+                kept.add(reference + "/" + item.version() + " " + own.get());
                 return false;
             }
             payload = answeredHere(payload, home);
@@ -1387,7 +1456,7 @@ public final class Lanes {
                             optional(json, "theirMarker"), optional(json, "contentCursor"),
                             covers instanceof List<?> named
                                     ? named.stream().map(String::valueOf).toList() : null,
-                            optional(json, "askedHeld"));
+                            optional(json, "askedHeld"), optional(json, "handedAgain"));
                 });
     }
 
@@ -1433,6 +1502,9 @@ public final class Lanes {
         }
         if (lane.askedHeld() != null) {
             json.append(",\"askedHeld\":").append(Json.quoted(lane.askedHeld()));
+        }
+        if (lane.handedAgain() != null) {
+            json.append(",\"handedAgain\":").append(Json.quoted(lane.handedAgain()));
         }
         return json.append('}').toString().getBytes(StandardCharsets.UTF_8);
     }

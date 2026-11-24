@@ -505,7 +505,8 @@ public class WireLane implements Lane {
                 return new Taken(
                         said.get(LaneVerbs.APPLIED) instanceof Number n ? n.longValue() : 0,
                         said.get(LaneVerbs.SKIPPED) instanceof Number n ? n.longValue() : 0,
-                        named(said.get(LaneVerbs.REFUSED)), named(said.get(LaneVerbs.HELD)));
+                        named(said.get(LaneVerbs.REFUSED)), named(said.get(LaneVerbs.HELD)),
+                        named(said.get(LaneVerbs.KEPT)));
             }
 
             @Override
@@ -515,6 +516,18 @@ public class WireLane implements Lane {
                 Map<?, ?> said = post(LaneVerbs.RUNS_HELD, body) instanceof Map<?, ?> map
                         ? map : Map.of();
                 return named(said.get(LaneVerbs.HELD));
+            }
+
+            @Override
+            public List<String> declined(String after, int limit) {
+                Map<String, Object> body = verb();
+                if (after != null) {
+                    body.put(LaneVerbs.CURSOR, after);
+                }
+                body.put(LaneVerbs.LIMIT, limit);
+                Map<?, ?> said = post(LaneVerbs.RUNS_DECLINED, body) instanceof Map<?, ?> map
+                        ? map : Map.of();
+                return named(said.get(LaneVerbs.DECLINED));
             }
 
             private static List<String> named(Object said) {

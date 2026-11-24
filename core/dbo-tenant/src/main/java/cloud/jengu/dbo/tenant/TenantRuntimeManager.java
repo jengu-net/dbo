@@ -3502,6 +3502,16 @@ public final class TenantRuntimeManager implements AutoCloseable {
                                 : java.time.Duration.between(alone.oldest(),
                                         java.time.Instant.now()).toString());
                         held.put("unbounded", alone.unbounded());
+                        // What the tenant declined stays here for good, and the
+                        // tenant's trail is the only other place it is said.
+                        cloud.jengu.dbo.postgres.KeptOnThePlace kept =
+                                cloud.jengu.dbo.postgres.KeptOnThePlace.in(placeDb,
+                                        versions.require(serving.spec().face()).domain());
+                        Map<String, Object> declined = new java.util.LinkedHashMap<>();
+                        declined.put("records", kept.records());
+                        declined.put("types", kept.types());
+                        declined.put("since", kept.since() == null ? "" : kept.since().toString());
+                        held.put("declined", declined);
                         row.put("heldHereAlone", held);
                     } catch (RuntimeException unread) {
                         row.put("heldHereAlone", Map.of("unread",
@@ -5809,13 +5819,44 @@ public final class TenantRuntimeManager implements AutoCloseable {
                                         handed.epoch(), participant, handed.cursor(),
                                         handed.items(), handed.contentCursor()));
                         return new Taken(applied.applied(), applied.skipped(), applied.refused(),
-                                applied.held());
+                                applied.held(), applied.kept());
                     }
 
                     // Answered for the credential, as its work is filed.
                     @Override
                     public java.util.List<String> holds(java.util.List<String> versions) {
                         return serving.replication().heldFromAPlace(participant, versions);
+                    }
+
+                    // Read from the trail, the one place the tenant said it:
+                    // each write-back it kept on this place, by the place's
+                    // record, whichever version it was.
+                    @Override
+                    public java.util.List<String> declined(String after, int limit) {
+                        java.util.TreeMap<String, String> byId = new java.util.TreeMap<>();
+                        String prefix = "write-back " + participant + " ";
+                        try (java.util.stream.Stream<cloud.jengu.dbo.core.api.StoredObject> said =
+                                cloud.jengu.dbo.core.api.Answered.pagedBy(serving.engine()::page,
+                                        cloud.jengu.dbo.core.api.Criteria.of("AuditEntry").eq(
+                                                "code", cloud.jengu.dbo.core.api.EnvelopeValue.of(
+                                                        "write-back." + cloud.jengu.dbo.sync.Lanes
+                                                                .Untaken.KEPT_ON_THE_PLACE)))) {
+                            said.forEach(entry -> {
+                                Object forwarded = ((java.util.Map<?, ?>) Json
+                                        .parse(new String(entry.payload(),
+                                                java.nio.charset.StandardCharsets.UTF_8)))
+                                        .get("forwarded");
+                                if (!(forwarded instanceof String key) || !key.startsWith(prefix)) {
+                                    return;
+                                }
+                                String[] version = key.substring(prefix.length()).split("/");
+                                if (version.length == 3 && (after == null
+                                        || version[1].compareTo(after) > 0)) {
+                                    byId.put(version[1], version[0] + "/" + version[1]);
+                                }
+                            });
+                        }
+                        return byId.values().stream().limit(limit).toList();
                     }
                 },
                 // The one record of all it authors a place acts on.
@@ -5931,8 +5972,26 @@ public final class TenantRuntimeManager implements AutoCloseable {
                             .map(serving -> RunsPusher.processesOf(serving.spec()))
                             .orElse(java.util.Set.of()),
                     runsPushers.get(spec.code()),
-                    (after, limit) -> cloud.jengu.dbo.postgres.HeldHereAlone.unmarkedAfter(on,
-                            versions.require(spec.face()).domain(), after, limit)));
+                    new RunsPusher.Marks() {
+                        private final String domain = versions.require(spec.face()).domain();
+
+                        @Override
+                        public java.util.List<String> unmarkedAfter(String after, int limit) {
+                            return cloud.jengu.dbo.postgres.HeldHereAlone.unmarkedAfter(on,
+                                    domain, after, limit);
+                        }
+
+                        @Override
+                        public void declined(java.util.List<String> kept) {
+                            cloud.jengu.dbo.postgres.KeptOnThePlace.declined(on, domain, kept);
+                        }
+
+                        @Override
+                        public java.util.Set<String> declinedTypes() {
+                            return cloud.jengu.dbo.postgres.KeptOnThePlace.in(on, domain).types()
+                                    .keySet();
+                        }
+                    }));
         } else {
             runsPushers.remove(spec.code());
             keptAtPlaces.remove(spec.code());

@@ -11,6 +11,12 @@ import java.util.List;
  * comes home naming others by it. Two readings of "what is this record"
  * would let the configuration and a site each call a different token the
  * identity of the same record.
+ *
+ * <p><b>A record whose identity is internal is known by its id alone.</b>
+ * Its identifiers are labels, which several records may share, so nothing
+ * claims it by one wherever it travels. Only the configuration keys its own
+ * declarations of such a type by the first, as a declaration has no id; see
+ * {@link #keyOf}.
  */
 public final class IdentityClaims {
 
@@ -33,13 +39,13 @@ public final class IdentityClaims {
      * {@code IDENTIFIER} the declared systems say which tokens are identity,
      * and the first of those the extractor listed wins — the extractor's order
      * IS the trust order, which is the one thing a set of systems cannot
-     * carry. For {@code INTERNAL} the store's own id is the identity, and the
-     * first token the record bears is what the configuration has always keyed
-     * it by: keyed on nothing, every pass would make another record.
+     * carry. For {@code INTERNAL} the store's own id is the identity, and no
+     * token is a claim.
      *
      * @return the claim, or null when the record carries nothing its type is
-     *         claimed under, or its type is not registered here, or it cannot
-     *         be read — none of which is this method's to report
+     *         claimed under, its type's identity is internal, its type is not
+     *         registered here, or it cannot be read — none of which is this
+     *         method's to report
      */
     public static Identifier of(ObjectStore store, String typeName, byte[] payload) {
         TypeRegistration registration = registered(store, typeName);
@@ -57,8 +63,28 @@ public final class IdentityClaims {
             case IDENTIFIER -> named.stream()
                     .filter(one -> registration.identitySystems().contains(one.system()))
                     .findFirst().orElse(null);
-            case INTERNAL -> named.get(0);
+            case INTERNAL -> null;
         };
+    }
+
+    /**
+     * What the configuration keys a declaration by: its claim, or for a type
+     * whose identity is internal the first token it bears. Keyed on nothing,
+     * every pass would make another record; keyed so, it finds only the
+     * configuration's own record again, as nothing else is claimed by it.
+     *
+     * @return the key, or null as for {@link #of}
+     */
+    public static Identifier keyOf(ObjectStore store, String typeName, byte[] payload) {
+        TypeRegistration registration = registered(store, typeName);
+        if (registration == null) {
+            return null;
+        }
+        if (registration.identityClass() == IdentityClass.INTERNAL) {
+            List<Identifier> named = named(registration, typeName, payload);
+            return named.isEmpty() ? null : named.get(0);
+        }
+        return of(store, typeName, payload);
     }
 
     /**

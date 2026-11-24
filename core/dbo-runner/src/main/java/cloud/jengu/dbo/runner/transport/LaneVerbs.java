@@ -78,7 +78,12 @@ public enum LaneVerbs {
      * Which of the place's versions the tenant holds as the place's: asked once
      * of what was handed home before the place marked what its tenant took.
      */
-    RUNS_HELD("runs-held");
+    RUNS_HELD("runs-held"),
+    /**
+     * The place's records the tenant kept on the place, as its trail says:
+     * asked once, to hand them again.
+     */
+    RUNS_DECLINED("runs-declined");
 
     /** Who is asking, as a feed consumer: this participant's own cursor. */
     public static final String PARTICIPANT = "participant";
@@ -175,6 +180,10 @@ public enum LaneVerbs {
     public static final String HELD = "held";
     /** The versions a place asks whether its tenant holds, each {@code type/id/version}. */
     public static final String VERSIONS = "versions";
+    /** What the tenant kept on the place of a batch, each {@code type/id/version Type/id}. */
+    public static final String KEPT = "kept";
+    /** The records a tenant declined, each {@code type/id}. */
+    public static final String DECLINED = "declined";
 
     private final String path;
 

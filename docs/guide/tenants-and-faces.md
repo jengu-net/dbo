@@ -31,7 +31,8 @@ A tenant holds the types it declares, and for each says two things.
 **What identifies one.** `canonical` — by its `url`, so writing it twice
 replaces it; `identifier` — by an identifier in one of the named `systems`, so a
 second record claiming the same value is refused; `internal` — by the id the
-store gives it.
+store gives it, and by nothing else: its identifiers are labels, which several
+records may share, and no store claims it by one.
 
 ### Handling
 

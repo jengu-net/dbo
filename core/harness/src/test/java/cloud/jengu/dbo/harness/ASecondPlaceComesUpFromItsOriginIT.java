@@ -117,14 +117,15 @@ class ASecondPlaceComesUpFromItsOriginIT {
               {"name":"Patient","identity":"internal","handling":"operational"},
               {"name":"Location","identity":"identifier","systems":["%s"],
                "handling":"operational"},
-              {"name":"Device","identity":"internal","handling":"operational"},
+              {"name":"Device","identity":"identifier","systems":["%s"],
+               "handling":"operational"},
               {"name":"Basic","identity":"internal","handling":"projected-config"},
               {"name":"Specimen","identity":"internal","handling":"operational"},
               {"name":"Media","identity":"internal","handling":"operational"}],
              "retention":{"perType":{"Specimen":{"removeAfter":"PT2S"},
                                      "Media":{"keepAtLeast":"P10Y",
                                               "removeAfterHeldElsewhere":"PT5S"}}}}"""
-            .formatted(CLINIC, ROOT, COUNTY, "jaam.lab.record", BENCHES);
+            .formatted(CLINIC, ROOT, COUNTY, "jaam.lab.record", BENCHES, ANALYSERS);
 
     /**
      * The clinic as its origin declares it on a deployment with a provider:
@@ -1585,6 +1586,87 @@ class ASecondPlaceComesUpFromItsOriginIT {
             ps.setString(2, id);
             assertTrue(ps.executeUpdate() > 0, "no mark to take away");
         }
+    }
+
+    @Test
+    @Order(35)
+    @DisplayName("records whose identity is internal go home by their id alone, labels shared "
+            + "or not; what the tenant declined of them before goes home once; and the place "
+            + "says what its tenant still declines, how many, of which types and since when")
+    @Proving({DboPromises.SYNC_A_RECORD_WHOSE_IDENTITY_IS_INTERNAL_IS_KNOWN_BY_ITS_ID_ALONE,
+            DboPromises.SYNC_A_PLACE_HEARS_WHAT_ITS_TENANT_DID_NOT_TAKE})
+    void anInternalRecordIsKnownByItsIdAlone() throws Exception {
+        site.readsItsOriginThrough(CLINIC, connected());
+        // Two records of one run sharing a label, as an analyser's pair does.
+        performedOnTheSite("a-labelled-pair", labelled("pair", "first of the pair"),
+                labelled("pair", "second of the pair"));
+        site.syncRound();
+        assertEquals(2, found(cloud, "Observation?identifier=" + LABELS + "|pair"),
+                "the tenant took one of two records sharing a label as the other");
+
+        // What a release before this one declined by its label: on the place
+        // alone, and on the tenant's trail as kept on the place.
+        String before = declinedBefore("declined-before");
+        site.runtime(CLINIC).orElseThrow().replication().handedAgain("home", null);
+        site.syncRound();
+        assertEquals(before, only(cloud, "Observation?identifier=" + LABELS + "|declined-before")
+                .path("id").asText(), "what the tenant declined before did not go home once");
+        // Handed again once: rewired, the place does not hand again what its
+        // tenant's trail says since.
+        declinedBefore("declined-after");
+        site.readsItsOriginThrough(CLINIC, connected());
+        site.syncRound();
+        assertEquals(0, found(cloud, "Observation?identifier=" + LABELS + "|declined-after"),
+                "the place handed again what its tenant declined after it had handed all of it");
+
+        // A record the tenant holds one of its own of, by what it says, it
+        // still declines, and the place says so.
+        assertEquals(201, post(cloud, CLINIC, "Device", """
+                {"resourceType":"Device","identifier":[{"system":"%s","value":"analyser-2"}],
+                 "manufacturer":"as the clinic set it up"}""".formatted(ANALYSERS)));
+        long declined = heldHereAloneRow(site).path("declined").path("records").asLong();
+        performedOnTheSite("keeps-another-analyser", Outcome.Write.upsert(
+                "Device?identifier=" + ANALYSERS + "|analyser-2", """
+                {"resourceType":"Device","identifier":[{"system":"%s","value":"analyser-2"}],
+                 "manufacturer":"as the site keeps it"}""".formatted(ANALYSERS)));
+        site.syncRound();
+        com.fasterxml.jackson.databind.JsonNode said = heldHereAloneRow(site).path("declined");
+        assertEquals(declined + 1, said.path("records").asLong(),
+                "the place does not say its tenant declined its record: " + said);
+        assertTrue(said.path("types").has("Device") && !said.path("since").asText().isEmpty(),
+                "the place does not say of which types, or since when: " + said);
+        assertTrue(site.workKeptAtPlaces().getOrDefault(CLINIC, "").contains("Device"),
+                "the node's account does not say the tenant declined the place's records: "
+                        + site.workKeptAtPlaces());
+    }
+
+    /** What the clinic's runs label records by, a label several may share. */
+    private static final String LABELS = "urn:dbo-test:label";
+
+    private static Outcome.Write labelled(String label, String text) {
+        return Outcome.Write.create("""
+                {"resourceType":"Observation","status":"final","code":{"text":"%s"},
+                 "identifier":[{"system":"%s","value":"%s"}]}""".formatted(text, LABELS, label));
+    }
+
+    /**
+     * A record on the place alone, written outside any run, and the entry the
+     * tenant's trail would hold had it declined it as kept on the place.
+     *
+     * @return its id on the place
+     */
+    private static String declinedBefore(String label) {
+        String id = site.runtime(CLINIC).orElseThrow().engine().put(PutRequest.create(
+                "Observation", """
+                {"resourceType":"Observation","status":"final","code":{"text":"%s"},
+                 "identifier":[{"system":"%s","value":"%s"}]}""".formatted(label, LABELS, label)
+                        .getBytes(java.nio.charset.StandardCharsets.UTF_8))).id();
+        ((cloud.jengu.dbo.policy.PolicyObjectStore) cloud.runtime(CLINIC).orElseThrow().engine())
+                .recordCustom("write-back." + Lanes.Untaken.KEPT_ON_THE_PLACE, "Observation", id,
+                        java.util.Map.of("place", "site",
+                                "outcome", Lanes.Untaken.KEPT_ON_THE_PLACE),
+                        null, "write-back site Observation/" + id + "/1");
+        return id;
     }
 
     /** What the clinic names the specimens and media its tests write by. */

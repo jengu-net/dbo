@@ -1524,6 +1524,24 @@ public enum DboPromises implements Promise {
             + "unmarked. The place keeps how far it has asked, so a restart neither asks again "
             + "nor starts over, and a tenant that cannot answer is said beside what stays on "
             + "the place."),
+    SYNC_A_RECORD_WHOSE_IDENTITY_IS_INTERNAL_IS_KNOWN_BY_ITS_ID_ALONE(
+            "A record whose type's identity is internal is known by its id alone, wherever it "
+            + "travels: its identifiers are labels, which several records may share, and no "
+            + "store claims it by one — not the tenant taking a place's record home, nor a "
+            + "reference a place's record makes to it. Only the configuration keys its own "
+            + "declarations of such a type by their first identifier, as a declaration has no "
+            + "id. A type identified by its identifiers is claimed by its declared systems as "
+            + "before. What a tenant declined of a place's records as its own before it knew "
+            + "them so goes home once: the place hands again what its tenant's trail says it "
+            + "kept on the place, and the tenant takes those it now would. The place keeps how "
+            + "far it has handed them, so a restart neither hands them again nor starts over."),
+    SYNC_A_PLACE_HEARS_WHAT_ITS_TENANT_DID_NOT_TAKE(
+            "A tenant's answer to what a place handed says each record it kept on the place, "
+            + "and the record of its own it holds instead. The place notes them beside its "
+            + "records, and says beside what it holds alone how many stay with it so, of "
+            + "which types and since when, on the node's row and in the operator's fleet "
+            + "reading; the node's account of what of a place's work stays with it names "
+            + "their types. A record the tenant later takes is no longer counted."),
     SYNC_WHAT_A_PLACE_HOLDS_ALONE_IS_THE_WORK_ITS_TENANT_DOES_NOT_HOLD(
             "What a place holds alone counts the versions retention waits on: those of the "
             + "types its declaration bounds that no mark covers and that came from nowhere "
@@ -3259,8 +3277,9 @@ public enum DboPromises implements Promise {
             + "by an id only the site's store minted: a reference to a record the tenant holds "
             + "arrives as the tenant's own id, and one the tenant cannot answer refuses that "
             + "record, naming the reference, rather than storing it pointing at nothing. A "
-            + "record the tenant holds as its own, found by its id or by what it says, is "
-            + "never replaced by a site's write-back: it stays as it was, in content and "
+            + "record the tenant holds as its own, found by its id or, for a type whose "
+            + "identity is not internal, by what it says, is never replaced by a site's "
+            + "write-back: it stays as it was, in content and "
             + "version, and the site's write stays on the site. Each write-back the tenant "
             + "did not take is on the tenant's trail as the site's, about the record it was "
             + "for."),
