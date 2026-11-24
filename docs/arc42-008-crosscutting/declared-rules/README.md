@@ -338,10 +338,24 @@ never on them, before its lane moves past it. Writing the mark onto the record
 would make a new version, history that would itself travel and be kept.
 
 A record changed on the place since it was marked waits for its new version to
-be marked, so its history goes home whole before any of it is let go. What a
-place holds alone is on the node's `/runtime/tenants` row, and in the operator's
-fleet reading, as `heldHereAlone`: how many versions, and when the oldest was
-written.
+be marked, so its history goes home whole before any of it is let go.
+
+A place that handed work home before it began marking asks its tenant once
+which of its unmarked records it holds as the place's, and marks those. Nothing
+is handed again for it, and what the tenant does not hold stays unmarked. The
+place's lane home keeps how far it has asked, so a restart goes on from there
+and a lane that has asked of everything never asks again. A tenant that cannot
+answer is said among what of the place's work stays with it.
+
+What a place holds alone is on the node's `/runtime/tenants` row, and in the
+operator's fleet reading, as `heldHereAlone`: how many versions of the types its
+declaration bounds, and when the oldest was written. Those are what retention
+waits on. Everything else the node holds is counted apart as `unbounded`.
+
+**Retention bounds the declared types and nothing else.** A place's runs, its
+lanes and the declarations of its executors are its own record of the work, and
+no bound reaches them. A run handed home is mirrored at the tenant and stays on
+the place.
 
 **A node may let go of what is held elsewhere.** A place holding its tenant's
 ten-year floor would otherwise keep everything for ten years on a small disk,

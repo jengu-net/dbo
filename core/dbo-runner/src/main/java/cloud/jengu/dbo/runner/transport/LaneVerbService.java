@@ -118,7 +118,8 @@ public final class LaneVerbService {
         // verb and cleared after it, because a door's thread is reused.
         if (verb == LaneVerbs.FEED_READ || verb == LaneVerbs.FEED_ACK
                 || verb == LaneVerbs.DECLARATION || verb == LaneVerbs.TRAIL_POSITION
-                || verb == LaneVerbs.TRAIL_PUSH || verb == LaneVerbs.RUNS_PUSH) {
+                || verb == LaneVerbs.TRAIL_PUSH || verb == LaneVerbs.RUNS_PUSH
+                || verb == LaneVerbs.RUNS_HELD) {
             return placed(grant, participant, verb, body);
         }
         cloud.jengu.dbo.core.api.Caller.set(grant.clientId());
@@ -172,6 +173,9 @@ public final class LaneVerbService {
         }
         if (verb == LaneVerbs.RUNS_PUSH) {
             return work(served.get(), grant, body);
+        }
+        if (verb == LaneVerbs.RUNS_HELD) {
+            return held(served.get(), grant, body);
         }
         String domain = string(body, LaneVerbs.DOMAIN);
         if (!Place.RECORDS.equals(domain) && !Place.DEFINITIONS.equals(domain)
@@ -316,6 +320,25 @@ public final class LaneVerbService {
             return new Answer.Refused(String.valueOf(refused.getMessage()));
         } catch (IllegalArgumentException malformed) {
             return new Answer.Denied(400, null, String.valueOf(malformed.getMessage()));
+        }
+    }
+
+    /**
+     * Which of a place's versions the tenant holds as the place's, answered
+     * for the credential that asks and for nobody else, as its work is filed.
+     */
+    private Answer held(Place place, Access.Grant grant, Object body) {
+        if (place.workOf() == null) {
+            return new Answer.Refused("this tenant takes no work from its places");
+        }
+        if (!(field(body, LaneVerbs.VERSIONS) instanceof List<?> asked)) {
+            return new Answer.Denied(400, null, "what is asked is a list of versions");
+        }
+        try {
+            return new Answer.Ok(Map.of(LaneVerbs.HELD, place.workOf().apply(grant.clientId())
+                    .holds(asked.stream().map(String::valueOf).toList())));
+        } catch (IllegalStateException refused) {
+            return new Answer.Refused(String.valueOf(refused.getMessage()));
         }
     }
 
@@ -484,7 +507,8 @@ public final class LaneVerbService {
             }
             // Served beside the lane, never through it: a place is not a
             // participant act, and serve() takes them before a lane is built.
-            case FEED_READ, FEED_ACK, DECLARATION, TRAIL_POSITION, TRAIL_PUSH, RUNS_PUSH ->
+            case FEED_READ, FEED_ACK, DECLARATION, TRAIL_POSITION, TRAIL_PUSH, RUNS_PUSH,
+                    RUNS_HELD ->
                     throw new IllegalStateException("'" + verb.path()
                             + "' is a place's verb and is not dispatched to a lane");
         };

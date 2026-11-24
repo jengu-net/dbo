@@ -157,9 +157,22 @@ public final class Lanes {
      *
      * @param covers the processes its position on the work feed has been read
      *               for, or null for a lane that has never said
+     * @param askedHeld how far this side has asked the peer which of its records
+     *               from before it marked the peer holds: null before it began,
+     *               the id of the last record asked of, or {@link #ASKED_OF_ALL}
      */
     public record Lane(String key, String peer, String epoch, String ourCursor,
-            String theirMarker, String contentCursor, List<String> covers) {
+            String theirMarker, String contentCursor, List<String> covers, String askedHeld) {
+
+        /** A lane that has not asked what its peer holds from before it marked. */
+        public Lane(String key, String peer, String epoch, String ourCursor, String theirMarker,
+                String contentCursor, List<String> covers) {
+            this(key, peer, epoch, ourCursor, theirMarker, contentCursor, covers, null);
+        }
+
+        /** What {@code askedHeld} says once every record from before has been asked of. */
+        public static final String ASKED_OF_ALL = "all";
+
         /** A lane before the second bound: no position on the content feed. */
         public Lane(String key, String peer, String epoch, String ourCursor, String theirMarker) {
             this(key, peer, epoch, ourCursor, theirMarker, null);
@@ -322,7 +335,7 @@ public final class Lanes {
     public Lane mark(String peer, String theirMarker) {
         Lane lane = open(peer);
         return write(new Lane(lane.key(), lane.peer(), lane.epoch(), lane.ourCursor(),
-                theirMarker, lane.contentCursor(), lane.covers()));
+                theirMarker, lane.contentCursor(), lane.covers(), lane.askedHeld()));
     }
 
     /**
@@ -336,7 +349,20 @@ public final class Lanes {
         Lane lane = open(peer);
         return write(new Lane(lane.key(), lane.peer(), lane.epoch(), lane.ourCursor(),
                 lane.theirMarker(), lane.contentCursor(),
-                List.copyOf(new java.util.TreeSet<>(processes))));
+                List.copyOf(new java.util.TreeSet<>(processes)), lane.askedHeld()));
+    }
+
+    /**
+     * Records how far this side has asked the peer what it holds of the
+     * records from before it marked: kept with the lane, so a restart goes on
+     * from there and a lane that has asked of all of them never asks again.
+     *
+     * @param through the id of the last record asked of, or {@link Lane#ASKED_OF_ALL}
+     */
+    public Lane askedHeld(String peer, String through) {
+        Lane lane = open(peer);
+        return write(new Lane(lane.key(), lane.peer(), lane.epoch(), lane.ourCursor(),
+                lane.theirMarker(), lane.contentCursor(), lane.covers(), through));
     }
 
     // -------------------------------------------------------------- outbound
@@ -581,7 +607,7 @@ public final class Lanes {
             handed += runsOf(lane, process, since, limit, hand);
         }
         write(new Lane(lane.key(), lane.peer(), lane.epoch(), head, lane.theirMarker(),
-                lane.contentCursor(), lane.covers()));
+                lane.contentCursor(), lane.covers(), lane.askedHeld()));
         return handed;
     }
 
@@ -798,7 +824,7 @@ public final class Lanes {
         return write(new Lane(lane.key(), lane.peer(), lane.epoch(), batch.cursor(),
                 lane.theirMarker(),
                 batch.contentCursor() != null ? batch.contentCursor() : lane.contentCursor(),
-                lane.covers()));
+                lane.covers(), lane.askedHeld()));
     }
 
     /**
@@ -897,6 +923,46 @@ public final class Lanes {
      */
     public Applied applyFromAPlace(String peer, Batch batch) {
         return apply(peer, batch, new Home(batch));
+    }
+
+    /**
+     * Which of a place's versions this side holds as the place's, at that
+     * version or newer: what a place that marked late asks of what it handed
+     * before. Nothing is written. A record held here as this side's own, or
+     * not held at all, is not answered, so it stays unmarked on the place.
+     *
+     * @param from     the place, by the credential that asks
+     * @param versions each {@code type/id/version}
+     * @return those of them held here, as asked
+     */
+    public List<String> heldFromAPlace(String from, List<String> versions) {
+        List<String> held = new ArrayList<>();
+        for (String version : versions) {
+            String[] parts = version.split("/");
+            if (parts.length != 3) {
+                continue;
+            }
+            long asked;
+            try {
+                asked = Long.parseLong(parts[2]);
+            } catch (NumberFormatException unreadable) {
+                continue;
+            }
+            String reference = parts[0] + "/" + parts[1];
+            Optional<StoredObject> here;
+            try {
+                here = store.get(parts[0], parts[1]);
+            } catch (RuntimeException notAnId) {
+                // Not a record this side could hold: nothing to answer.
+                continue;
+            }
+            if (here.isPresent() && here.get().versionId() >= asked
+                    && !store.getByIdentifier(PlacementModel.TYPE, List.of(PlacementModel.key(
+                            reference + " " + COPY + from))).isEmpty()) {
+                held.add(version);
+            }
+        }
+        return List.copyOf(held);
     }
 
     /** What applying a place's batch needs to know about the whole of it. */
@@ -1320,7 +1386,8 @@ public final class Lanes {
                             Json.str(json, "epoch"), optional(json, "ourCursor"),
                             optional(json, "theirMarker"), optional(json, "contentCursor"),
                             covers instanceof List<?> named
-                                    ? named.stream().map(String::valueOf).toList() : null);
+                                    ? named.stream().map(String::valueOf).toList() : null,
+                            optional(json, "askedHeld"));
                 });
     }
 
@@ -1363,6 +1430,9 @@ public final class Lanes {
                 json.append(i == 0 ? "" : ",").append(Json.quoted(lane.covers().get(i)));
             }
             json.append(']');
+        }
+        if (lane.askedHeld() != null) {
+            json.append(",\"askedHeld\":").append(Json.quoted(lane.askedHeld()));
         }
         return json.append('}').toString().getBytes(StandardCharsets.UTF_8);
     }

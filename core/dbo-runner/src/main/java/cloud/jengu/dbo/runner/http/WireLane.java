@@ -495,23 +495,35 @@ public class WireLane implements Lane {
                 return positionIn(post(LaneVerbs.TRAIL_PUSH, body));
             }
         };
-        cloud.jengu.dbo.runner.transport.Handover work = batch -> {
-            Map<String, Object> body = verb();
-            body.put(LaneVerbs.BATCH, batch);
-            Object answer = post(LaneVerbs.RUNS_PUSH, body);
-            Map<?, ?> said = answer instanceof Map<?, ?> map ? map : Map.of();
-            List<String> refused = new java.util.ArrayList<>();
-            if (said.get(LaneVerbs.REFUSED) instanceof List<?> named) {
-                named.forEach(one -> refused.add(String.valueOf(one)));
+        cloud.jengu.dbo.runner.transport.Handover work = new cloud.jengu.dbo.runner.transport.Handover() {
+            @Override
+            public Taken handed(Object batch) {
+                Map<String, Object> body = verb();
+                body.put(LaneVerbs.BATCH, batch);
+                Map<?, ?> said = post(LaneVerbs.RUNS_PUSH, body) instanceof Map<?, ?> map
+                        ? map : Map.of();
+                return new Taken(
+                        said.get(LaneVerbs.APPLIED) instanceof Number n ? n.longValue() : 0,
+                        said.get(LaneVerbs.SKIPPED) instanceof Number n ? n.longValue() : 0,
+                        named(said.get(LaneVerbs.REFUSED)), named(said.get(LaneVerbs.HELD)));
             }
-            List<String> held = new java.util.ArrayList<>();
-            if (said.get(LaneVerbs.HELD) instanceof List<?> named) {
-                named.forEach(one -> held.add(String.valueOf(one)));
+
+            @Override
+            public List<String> holds(List<String> versions) {
+                Map<String, Object> body = verb();
+                body.put(LaneVerbs.VERSIONS, List.copyOf(versions));
+                Map<?, ?> said = post(LaneVerbs.RUNS_HELD, body) instanceof Map<?, ?> map
+                        ? map : Map.of();
+                return named(said.get(LaneVerbs.HELD));
             }
-            return new cloud.jengu.dbo.runner.transport.Handover.Taken(
-                    said.get(LaneVerbs.APPLIED) instanceof Number n ? n.longValue() : 0,
-                    said.get(LaneVerbs.SKIPPED) instanceof Number n ? n.longValue() : 0,
-                    refused, held);
+
+            private static List<String> named(Object said) {
+                List<String> named = new java.util.ArrayList<>();
+                if (said instanceof List<?> listed) {
+                    listed.forEach(one -> named.add(String.valueOf(one)));
+                }
+                return named;
+            }
         };
         return new cloud.jengu.dbo.runner.transport.Origin() {
             @Override

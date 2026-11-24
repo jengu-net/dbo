@@ -170,6 +170,20 @@ public record TenantPolicies(
      *
      * @param profiles bounds of profiles within the type, by canonical URL
      */
+    /**
+     * The types retention lets go of, under some rule: what a place waits on
+     * its tenant to hold before it can.
+     */
+    public java.util.Set<String> bounded() {
+        java.util.Set<String> bounded = new java.util.TreeSet<>();
+        retention.forEach((type, rule) -> {
+            if (rule.bounds()) {
+                bounded.add(type);
+            }
+        });
+        return bounded;
+    }
+
     public record Retention(Duration keepAtLeast, Duration removeAfter,
             Map<String, Retention> profiles, Duration removeAfterHeldElsewhere) {
         public Retention {
@@ -205,6 +219,12 @@ public record TenantPolicies(
         public Retention(Duration keepAtLeast, Duration removeAfter,
                 Map<String, Retention> profiles) {
             this(keepAtLeast, removeAfter, profiles, null);
+        }
+
+        /** Whether anything of the type is ever let go: it, or a profile of it, has a ceiling. */
+        public boolean bounds() {
+            return removeAfter != null || removeAfterHeldElsewhere != null
+                    || profiles.values().stream().anyMatch(Retention::bounds);
         }
 
         /**
