@@ -2097,27 +2097,43 @@ public final class Runs {
      */
     public Set<String> namedByOpenWork() {
         Set<String> named = new java.util.HashSet<>();
+        try (java.util.stream.Stream<Run> open = openWork()) {
+            open.forEach(run -> named.addAll(over(run).values()));
+        }
+        return named;
+    }
+
+    /**
+     * The work still open here, as {@link #namedByOpenWork} reads it, a page
+     * at a time. The caller closes it.
+     */
+    public java.util.stream.Stream<Run> openWork() {
         List<EnvelopeValue> open = java.util.Arrays.stream(Status.values())
                 .filter(status -> !status.over())
                 .map(status -> EnvelopeValue.of(status.wire())).toList();
-        try (java.util.stream.Stream<StoredObject> found = cloud.jengu.dbo.core.api.Answered
+        return cloud.jengu.dbo.core.api.Answered
                 .pagedBy(store::page, Criteria.of(WorkModel.TYPE).anyOf("status", open)
-                        .eq("kind", EnvelopeValue.of(RunKind.PIPELINE.wire())))) {
-            found.map(Run::of)
-                    .filter(run -> !run.process().startsWith("dbo.")
-                            && !WorkModel.authoredElsewhere(run.key()))
-                    .forEach(run -> {
-                        if (run.item() != null && run.item().reference() != null) {
-                            named.add(run.item().reference());
-                        }
-                        run.inputs().values().forEach(filled -> {
-                            if (filled.referred()) {
-                                named.addAll(filled.values());
-                            }
-                        });
-                    });
+                        .eq("kind", EnvelopeValue.of(RunKind.PIPELINE.wire())))
+                .map(Run::of)
+                .filter(run -> !run.process().startsWith("dbo.")
+                        && !WorkModel.authoredElsewhere(run.key()));
+    }
+
+    /**
+     * What a run is over: its item and every record its slots refer to, each
+     * {@code type/id} under what names it — {@code item}, or the slot.
+     */
+    public static java.util.Map<String, String> over(Run run) {
+        java.util.Map<String, String> over = new java.util.LinkedHashMap<>();
+        if (run.item() != null && run.item().reference() != null) {
+            over.put("item: " + run.item().reference(), run.item().reference());
         }
-        return named;
+        run.inputs().forEach((slot, filled) -> {
+            if (filled.referred()) {
+                filled.values().forEach(reference -> over.put(slot + ": " + reference, reference));
+            }
+        });
+        return over;
     }
 
     /**

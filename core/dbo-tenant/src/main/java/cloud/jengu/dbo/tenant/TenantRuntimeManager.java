@@ -5879,6 +5879,13 @@ public final class TenantRuntimeManager implements AutoCloseable {
                         return cloud.jengu.dbo.core.wire.RecordWire.encode(serving.replication()
                                 .toBePerformedAt(participant, through, PERFORMED_AT_ONCE));
                     }
+
+                    // Only what the credential handed, as its work is filed.
+                    @Override
+                    public Object brought(java.util.List<String> references) {
+                        return cloud.jengu.dbo.core.wire.RecordWire.encode(serving.replication()
+                                .broughtFor(participant, references));
+                    }
                 },
                 // The one record of all it authors a place acts on.
                 new AuthorisationFeed(() -> authorisationsOf(serving).current(),

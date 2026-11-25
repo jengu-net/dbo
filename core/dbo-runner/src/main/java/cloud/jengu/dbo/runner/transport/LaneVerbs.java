@@ -88,7 +88,12 @@ public enum LaneVerbs {
      * The work the tenant addressed to the place to perform, with what it
      * names, from where the place says it took the last of it.
      */
-    RUNS_HANDED("runs-handed");
+    RUNS_HANDED("runs-handed"),
+    /**
+     * The place's records the tenant holds as the place's, which work the
+     * place started itself names and the place let go of.
+     */
+    RUNS_BROUGHT("runs-brought");
 
     /** Who is asking, as a feed consumer: this participant's own cursor. */
     public static final String PARTICIPANT = "participant";
@@ -187,6 +192,8 @@ public enum LaneVerbs {
     public static final String VERSIONS = "versions";
     /** What the tenant kept on the place of a batch, each {@code type/id/version Type/id}. */
     public static final String KEPT = "kept";
+    /** The records a place asks its tenant for, each {@code type/id}. */
+    public static final String REFERENCES = "references";
     /** The records a tenant declined, each {@code type/id}. */
     public static final String DECLINED = "declined";
 

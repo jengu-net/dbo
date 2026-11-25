@@ -1818,6 +1818,63 @@ class ASecondPlaceComesUpFromItsOriginIT {
         assertEquals(refused.statusReason(), told.statusReason());
     }
 
+    @Test
+    @Order(38)
+    @DisplayName("work the site starts itself over what it recorded and let go of brings the "
+            + "record back from its tenant, keeps it while the work is open, lets it go when "
+            + "the work ends and brings it again for later work; a run naming what neither "
+            + "holds fails saying which")
+    @Proving({DboPromises.SYNC_WORK_ON_A_PLACE_BRINGS_BACK_WHAT_IT_LET_GO_OF,
+            DboPromises.SYNC_A_RUN_ON_A_PLACE_NEVER_WAITS_SILENTLY_FOR_WHAT_IT_LET_GO_OF})
+    void workTheSiteStartsItselfBringsBackWhatItLetGoOf() throws Exception {
+        site.readsItsOriginThrough(CLINIC, connected());
+        site.syncRound();
+        String query = "Media?identifier=" + SPECIMENS + "|media-corrected-later";
+        performedOnTheSite("media-corrected-later", held("Media", "media-corrected-later"));
+        site.syncRound();
+        Thread.sleep(5_100);
+        site.retentionRound(CLINIC);
+        assertEquals(0, found(site, query),
+                "the site kept what its tenant holds past the declared time");
+        String media = only(cloud, query).path("id").asText();
+        Executor deciding = new Executor("decider", "1", "example.site", Scope.BASELINE);
+        Lane lane = site.fleetLane(CLINIC, DECIDE, deciding).orElseThrow();
+        lane.declare(new Declarations.Declared("jaam.lab", "decide", deciding.name(),
+                deciding.version(), deciding.provider(), deciding.scope(), deciding.name()));
+
+        for (String round : List.of("first", "again")) {
+            Run started = decidedOnTheSite("Media/" + media, round);
+            site.syncRound();
+            assertEquals(1, found(site, query), "the site's own work did not bring back, "
+                    + round + ", the record it let go of");
+            Run waiting = onTheSite(started.key());
+            assertEquals(Status.READY, waiting.status(), waiting.toString());
+            Run claimed = lane.claim(waiting, java.time.Duration.ofMinutes(5)).orElseThrow();
+            assertEquals(1, lane.inputs(claimed).getOrDefault("result", List.of()).size(),
+                    "the site's own work does not reach the record it brought back");
+            lane.committed(claimed, null, List.of());
+            site.syncRound();
+            assertEquals(0, found(site, query),
+                    "the site kept what its work brought back after the work ended");
+            assertEquals(1, found(cloud, query), "and its tenant still holds it");
+        }
+
+        Run nowhere = decidedOnTheSite("Media/" + java.util.UUID.randomUUID(), "nowhere");
+        site.syncRound();
+        Run failed = onTheSite(nowhere.key());
+        assertEquals(Status.FAILED, failed.status(), failed.toString());
+        assertTrue(String.valueOf(failed.statusReason()).contains("result: Media/"),
+                "the failure does not say which input: " + failed.statusReason());
+    }
+
+    /** A decision the site started itself, over a record by reference, and not yet taken. */
+    private static Run decidedOnTheSite(String result, String found) {
+        return new Runs(site.runtime(CLINIC).orElseThrow().engine()).filling(
+                StepDeclaration.of(DECIDE, "1", "r4").taking("result", "Media"),
+                RunKind.PIPELINE, "decided-on-the-site-" + found,
+                java.util.Map.of("result", RunSlot.referring(result)));
+    }
+
     private static Run onTheSite(String key) {
         return new Runs(site.runtime(CLINIC).orElseThrow().engine()).byKey(key).orElseThrow(() ->
                 new AssertionError("the site did not take the work its tenant handed it"));

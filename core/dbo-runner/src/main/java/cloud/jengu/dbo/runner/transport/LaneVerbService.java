@@ -120,7 +120,7 @@ public final class LaneVerbService {
                 || verb == LaneVerbs.DECLARATION || verb == LaneVerbs.TRAIL_POSITION
                 || verb == LaneVerbs.TRAIL_PUSH || verb == LaneVerbs.RUNS_PUSH
                 || verb == LaneVerbs.RUNS_HELD || verb == LaneVerbs.RUNS_DECLINED
-                || verb == LaneVerbs.RUNS_HANDED) {
+                || verb == LaneVerbs.RUNS_HANDED || verb == LaneVerbs.RUNS_BROUGHT) {
             return placed(grant, participant, verb, body);
         }
         cloud.jengu.dbo.core.api.Caller.set(grant.clientId());
@@ -183,6 +183,9 @@ public final class LaneVerbService {
         }
         if (verb == LaneVerbs.RUNS_HANDED) {
             return toPerform(served.get(), grant, body);
+        }
+        if (verb == LaneVerbs.RUNS_BROUGHT) {
+            return brought(served.get(), grant, body);
         }
         String domain = string(body, LaneVerbs.DOMAIN);
         if (!Place.RECORDS.equals(domain) && !Place.DEFINITIONS.equals(domain)
@@ -384,6 +387,26 @@ public final class LaneVerbService {
         }
     }
 
+    /**
+     * The place's records the tenant holds as the place's, for the credential
+     * that asks and for nobody else: a place is handed back what it handed,
+     * and never another's records or the tenant's own.
+     */
+    private Answer brought(Place place, Access.Grant grant, Object body) {
+        if (place.workOf() == null) {
+            return new Answer.Refused("this tenant takes no work from its places");
+        }
+        if (!(field(body, LaneVerbs.REFERENCES) instanceof List<?> asked)) {
+            return new Answer.Denied(400, null, "what is asked is a list of references");
+        }
+        try {
+            return new Answer.Ok(Map.of(LaneVerbs.BATCH, place.workOf().apply(grant.clientId())
+                    .brought(asked.stream().map(String::valueOf).toList())));
+        } catch (IllegalStateException refused) {
+            return new Answer.Refused(String.valueOf(refused.getMessage()));
+        }
+    }
+
     private static Map<String, Object> position(Trail.Position held) {
         Map<String, Object> answer = new java.util.LinkedHashMap<>();
         if (held != null) {
@@ -550,7 +573,7 @@ public final class LaneVerbService {
             // Served beside the lane, never through it: a place is not a
             // participant act, and serve() takes them before a lane is built.
             case FEED_READ, FEED_ACK, DECLARATION, TRAIL_POSITION, TRAIL_PUSH, RUNS_PUSH,
-                    RUNS_HELD, RUNS_DECLINED, RUNS_HANDED ->
+                    RUNS_HELD, RUNS_DECLINED, RUNS_HANDED, RUNS_BROUGHT ->
                     throw new IllegalStateException("'" + verb.path()
                             + "' is a place's verb and is not dispatched to a lane");
         };

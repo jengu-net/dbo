@@ -111,6 +111,8 @@ final class RunsPusher {
     private volatile String untaken;
     /** Why what the tenant declined before is not handed again yet, or null. */
     private volatile String unhanded;
+    /** Why what this place's own work names and it let go of is not brought back, or null. */
+    private volatile String unbrought;
     /** The processes of runs read past and not handed, until the tenant declares them. */
     private final Set<String> passedOver = new java.util.concurrent.ConcurrentSkipListSet<>();
     private volatile boolean nothingDeclared;
@@ -155,6 +157,7 @@ final class RunsPusher {
      */
     int round() {
         taken();
+        broughtBack();
         askedOnce();
         handedAgainOnce();
         Set<String> declared = Set.copyOf(processes.get());
@@ -249,6 +252,10 @@ final class RunsPusher {
         if (untaken != null) {
             why.add("the work its tenant addresses to it is not taken: " + untaken);
         }
+        if (unbrought != null) {
+            why.add("what its own work names and it let go of is not brought back from its "
+                    + "tenant: " + unbrought);
+        }
         if (unhanded != null) {
             why.add("what its tenant declined before it knew an internal record by its id alone"
                     + " is not handed again yet: " + unhanded);
@@ -263,6 +270,38 @@ final class RunsPusher {
                     + (passedOver.size() == 1 ? "it" : "them"));
         }
         return String.join("; ", why);
+    }
+
+    /**
+     * Brings back from the tenant what the work open here names and this
+     * place let go of, as the tenant holds it as this place's: kept here while
+     * the work is open, and let go of when it ends. A run naming a record the
+     * tenant does not hold either ends failed, saying which.
+     *
+     * <p>A tenant that cannot answer fails nothing: the work waits, said, and
+     * is brought once the tenant answers.
+     */
+    private void broughtBack() {
+        java.util.Map<String, List<String>> wanted = lanes.unheldByOpenWork(AT_ONCE);
+        if (wanted.isEmpty()) {
+            unbrought = null;
+            return;
+        }
+        try {
+            Lanes.Batch brought = RecordWire.decode(
+                    home.brought(List.copyOf(wanted.keySet())), Lanes.Batch.class);
+            if (brought == null) {
+                unbrought = "its tenant did not answer what it holds of it";
+                return;
+            }
+            List<String> refused = lanes.broughtBack(HOME, brought, wanted).refused();
+            unbrought = refused.isEmpty() ? null
+                    : "this place could not apply " + refused.size() + " of it: " + refused;
+        } catch (cloud.jengu.dbo.core.api.StoreUnreachableException away) {
+            throw away;
+        } catch (RuntimeException unanswered) {
+            unbrought = String.valueOf(unanswered.getMessage());
+        }
     }
 
     /**

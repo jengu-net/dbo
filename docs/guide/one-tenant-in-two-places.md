@@ -92,6 +92,15 @@ that use it.
   and at the cloud alike, and so does one somebody at the cloud holds as it
   arrives, naming who. Work that lasts, work handed to the provider and work
   that crosses stay where they were started.
+- **Work the site starts itself brings back what it let go of.** A run the
+  site starts over a record it let go of, such as a result's change starting
+  its report's release, is not left waiting for it. In its next sync round
+  the site asks the cloud for every record its open work names and it no
+  longer holds, keeps what comes back while the work is open, and lets it go
+  once the work ends; later work brings it again. The cloud hands back only
+  records the site handed it. A run nobody holds that names a record the
+  cloud does not hold as the site's either ends failed on the site, naming
+  the slot and the record.
 - **A place knows what its tenant authorised.** What the clinic authorised of
   its register in the cloud reaches the site with every later authorisation and
   withdrawal, and is read-only there. The site's register at
