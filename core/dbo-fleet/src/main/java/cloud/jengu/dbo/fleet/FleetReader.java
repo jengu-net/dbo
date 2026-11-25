@@ -214,16 +214,22 @@ public final class FleetReader {
             // The node's own word, whatever came of asking the tenant: what a
             // place holds alone is the node's to say, and a place whose door
             // refused the reader still has it.
-            Map<String, Object> held = new java.util.LinkedHashMap<>();
-            if (state.get("heldHereAlone") instanceof Map<?, ?> said) {
-                said.forEach((key, value) -> held.put(String.valueOf(key), value));
-            }
             perTenant.add(new Reading.TenantReading(read.tenant(), read.state(), read.outcome(),
-                    read.detail(), read.runs(), held));
+                    read.detail(), read.runs(), said(state, "heldHereAlone"),
+                    said(state, "heldElsewhereNotYetLetGo"), said(state, "retention")));
         }
         return new Reading.NodeReading(node.name(), Reading.Outcome.ANSWERED, null, perTenant,
                 catalogue.outcome() == Reading.Outcome.ANSWERED
                         ? rows(catalogue.body(), "steps") : List.of());
+    }
+
+    /** A part of the node's row, as the node said it, or empty where it said none. */
+    private static Map<String, Object> said(Map<String, Object> row, String part) {
+        Map<String, Object> said = new java.util.LinkedHashMap<>();
+        if (row.get(part) instanceof Map<?, ?> answered) {
+            answered.forEach((key, value) -> said.put(String.valueOf(key), value));
+        }
+        return said;
     }
 
     private Reading.TenantReading readTenant(Node node, String code, String state,

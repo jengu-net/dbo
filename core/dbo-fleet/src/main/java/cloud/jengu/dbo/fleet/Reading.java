@@ -57,15 +57,30 @@ public record Reading(List<NodeReading> nodes, Map<String, Map<String, List<Stri
      * @param detail  why, when it was not an answer
      * @param runs    the run envelopes the tenant's fleet door answered with
      * @param heldHereAlone on a place, what it holds that its tenant does not —
-     *                {@code versions}, {@code oldest}, {@code oldestAge} — as the
-     *                node said it; empty for a tenant that is no place, or a node
-     *                too old to say
+     *                {@code versions}, {@code bytes}, {@code oldest}, {@code oldestAge}
+     *                and {@code byType} — as the node said it; empty for a tenant that
+     *                is no place, or a node too old to say
+     * @param heldElsewhereNotYetLetGo on a place, what it holds that is held
+     *                elsewhere and not yet let go — {@code versions}, {@code bytes},
+     *                {@code goesFrom} and {@code byType} — as the node said it
+     * @param retention on a place, when the node's retention last swept the tenant
+     *                and next sweeps it, as {@code lastSwept} and {@code nextSweep}
      */
     public record TenantReading(String tenant, String state, Outcome outcome, String detail,
-            List<Map<String, Object>> runs, Map<String, Object> heldHereAlone) {
+            List<Map<String, Object>> runs, Map<String, Object> heldHereAlone,
+            Map<String, Object> heldElsewhereNotYetLetGo, Map<String, Object> retention) {
 
         public TenantReading {
             heldHereAlone = heldHereAlone == null ? Map.of() : Map.copyOf(heldHereAlone);
+            heldElsewhereNotYetLetGo = heldElsewhereNotYetLetGo == null ? Map.of()
+                    : Map.copyOf(heldElsewhereNotYetLetGo);
+            retention = retention == null ? Map.of() : Map.copyOf(retention);
+        }
+
+        /** Compatibility with callers that predate {@code heldElsewhereNotYetLetGo}. */
+        public TenantReading(String tenant, String state, Outcome outcome, String detail,
+                List<Map<String, Object>> runs, Map<String, Object> heldHereAlone) {
+            this(tenant, state, outcome, detail, runs, heldHereAlone, Map.of(), Map.of());
         }
 
         /** Compatibility with callers that predate {@code heldHereAlone}. */
