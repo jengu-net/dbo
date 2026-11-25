@@ -595,6 +595,8 @@ public enum DboStories implements Story {
                     DboPromises.SYNC_A_PLACE_DOES_NOT_LET_GO_OF_WHAT_ITS_OPEN_WORK_NAMES,
                     DboPromises.SYNC_WORK_A_PERSON_STARTS_THAT_A_PLACE_PERFORMS_IS_PERFORMED_THERE,
                     DboPromises.SYNC_A_RUN_HANDED_TO_A_PLACE_HELD_AT_ITS_TENANT_ENDS_SAYING_SO,
+                    DboPromises.SYNC_WORK_ON_A_PLACE_BRINGS_BACK_WHAT_IT_LET_GO_OF,
+                    DboPromises.SYNC_A_RUN_ON_A_PLACE_NEVER_WAITS_SILENTLY_FOR_WHAT_IT_LET_GO_OF,
                     DboPromises.SYNC_WHAT_WAS_SAID_OF_A_PLACES_WORK_GOES_HOME_WITH_IT,
                     DboPromises.SYNC_A_PLACE_HANDS_THE_WORK_OF_A_STEP_DECLARED_AFTER_IT_CAME_UP,
                     DboPromises.SYNC_A_PLACE_SAYS_WHAT_OF_ITS_WORK_STAYS_WITH_IT,

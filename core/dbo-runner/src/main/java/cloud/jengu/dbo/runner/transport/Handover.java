@@ -93,4 +93,17 @@ public interface Handover {
     default Object toPerform(String through) {
         throw new IllegalStateException("this link does not ask for work to perform");
     }
+
+    /**
+     * The place's records the tenant holds as the place's, as they stand
+     * there: what work the place started itself names and the place let go
+     * of. One replication batch in its wire form, of copies; a record the
+     * tenant does not hold as this place's is left out.
+     *
+     * @param references each {@code type/id}
+     * @throws IllegalStateException from a link that cannot ask
+     */
+    default Object brought(List<String> references) {
+        throw new IllegalStateException("this link does not ask for what the tenant holds");
+    }
 }

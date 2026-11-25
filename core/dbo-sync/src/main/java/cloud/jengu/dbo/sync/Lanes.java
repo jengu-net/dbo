@@ -1546,6 +1546,136 @@ public final class Lanes {
         return new Applied(applied, skipped, List.copyOf(refused));
     }
 
+    // ------------------------------------------------------------ brought back
+
+    /**
+     * What the work open here names and this side no longer holds, each
+     * {@code type/id} with the keys of the runs that name it: what a place
+     * that let go of a record asks its tenant for, as the tenant holds it.
+     * At most {@code limit} records, so a place asks for years of them over
+     * rounds.
+     */
+    public Map<String, List<String>> unheldByOpenWork(int limit) {
+        Map<String, List<String>> unheld = new LinkedHashMap<>();
+        Map<String, Boolean> held = new java.util.HashMap<>();
+        try (java.util.stream.Stream<Run> open = runs.openWork()) {
+            open.forEach(run -> Runs.over(run).values().forEach(reference -> {
+                if (!reference.contains("/")) {
+                    return;
+                }
+                if (!unheld.containsKey(reference) && unheld.size() >= limit) {
+                    return;
+                }
+                if (held.computeIfAbsent(reference, this::holds)) {
+                    return;
+                }
+                List<String> named = unheld.computeIfAbsent(reference, key -> new ArrayList<>());
+                if (!named.contains(run.key())) {
+                    named.add(run.key());
+                }
+            }));
+        }
+        return unheld;
+    }
+
+    /** Whether a reference names a record this side holds, undeleted. */
+    private boolean holds(String reference) {
+        return heldHere(reference).filter(stored -> !stored.deleted()).isPresent();
+    }
+
+    /**
+     * The records a place handed this side, as they stand here: what work the
+     * place started itself names and the place let go of. A record this side
+     * holds as its own, or does not hold, is left out, so a place is handed
+     * back what it handed and nothing else.
+     *
+     * @param place      the place, by the credential that asks
+     * @param references each {@code type/id}
+     */
+    public Batch broughtFor(String place, List<String> references) {
+        List<Item> items = new ArrayList<>();
+        for (String reference : references) {
+            heldHere(reference).filter(stored -> !stored.deleted())
+                    .filter(stored -> !store.getByIdentifier(PlacementModel.TYPE, List.of(
+                            PlacementModel.key(reference + " " + COPY + place))).isEmpty())
+                    .ifPresent(stored -> items.add(new Item(stored.typeName(), stored.id(),
+                            stored.versionId(), stored.lastUpdated(), stored.payload(), false,
+                            List.of())));
+        }
+        return new Batch(null, site, null, List.copyOf(items));
+    }
+
+    /**
+     * Applies what a place's tenant handed back of what its open work names,
+     * each record kept here while a run naming it is open and let go of when
+     * the last ends, as handed work's are. Then a run naming a record neither
+     * side holds ends failed, saying which, rather than waiting for an input
+     * nothing will bring.
+     *
+     * @param wanted what was asked for, as {@link #unheldByOpenWork} said it;
+     *               what the batch carries beyond it is not taken
+     */
+    public Applied broughtBack(String from, Batch batch, Map<String, List<String>> wanted) {
+        long applied = 0;
+        long skipped = 0;
+        List<String> refused = new ArrayList<>();
+        Set<String> answered = new java.util.HashSet<>();
+        for (Item item : batch.items()) {
+            String reference = item.typeName() + "/" + item.id();
+            List<String> named = wanted.get(reference);
+            if (named == null) {
+                continue;
+            }
+            answered.add(reference);
+            try {
+                Optional<StoredObject> here = store.get(item.typeName(), item.id());
+                if (here.isPresent() && here.get().versionId() >= item.version()) {
+                    skipped++;
+                } else {
+                    // Over what an earlier run's ending let go of, the version
+                    // goes above it: a version only climbs.
+                    Optional<StoredObject> last = here.isPresent() ? here
+                            : store.history(item.typeName(), item.id()).stream()
+                                    .reduce((older, newer) -> newer);
+                    store.put(new PutRequest(item.typeName(), item.id(),
+                            last.map(StoredObject::versionId).orElse(null), item.payload(),
+                            last.map(stored -> Math.max(stored.versionId() + 1, item.version()))
+                                    .orElse(item.version()),
+                            item.recordedAt(), true));
+                    applied++;
+                }
+                placeFor(item, named);
+            } catch (RuntimeException e) {
+                refused.add(reference + ": " + e.getMessage());
+            }
+        }
+        Set<String> said = new java.util.HashSet<>();
+        wanted.forEach((reference, named) -> {
+            if (answered.contains(reference)) {
+                return;
+            }
+            for (String key : named) {
+                if (!said.add(key)) {
+                    continue;
+                }
+                // A run somebody holds is theirs to end.
+                runs.byKey(key).filter(Run::open)
+                        .filter(run -> !run.claimed(Instant.now())).ifPresent(run -> {
+                    List<String> missing = Runs.over(run).entrySet().stream()
+                            .filter(over -> over.getValue().contains("/")
+                                    && !answered.contains(over.getValue())
+                                    && !holds(over.getValue()))
+                            .map(Map.Entry::getKey).toList();
+                    if (!missing.isEmpty()) {
+                        runs.refused(run, "its input " + String.join(", ", missing)
+                                + " is held neither here nor, as this place's, by " + from);
+                    }
+                });
+            }
+        });
+        return new Applied(applied, skipped, List.copyOf(refused));
+    }
+
     /** A run from the other site, filed under it. */
     private boolean mirror(String from, Item item) {
         Object json = Json.parse(new String(item.payload(), StandardCharsets.UTF_8));

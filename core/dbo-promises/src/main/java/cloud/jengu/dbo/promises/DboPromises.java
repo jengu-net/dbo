@@ -1570,6 +1570,17 @@ public enum DboPromises implements Promise {
             + "ends failed on the place, naming who holds it, and the tenant's run ends failed "
             + "with the same words. Nobody at the place may take it, and it is never left "
             + "ready for them."),
+    SYNC_WORK_ON_A_PLACE_BRINGS_BACK_WHAT_IT_LET_GO_OF(
+            "Work open on a place that names, by its item or a slot, a record the place let go "
+            + "of, as its tenant holds it, brings the record back from the tenant on the "
+            + "place's next round, however the work was started. The place keeps it while the "
+            + "work is open, lets it go when the work ends, and brings it again for any later "
+            + "work. The tenant hands a place back only records that place handed it."),
+    SYNC_A_RUN_ON_A_PLACE_NEVER_WAITS_SILENTLY_FOR_WHAT_IT_LET_GO_OF(
+            "A run open on a place and held by nobody, naming a record the place does not hold "
+            + "and its tenant does not hold as the place's, ends failed on the place, naming "
+            + "the slot and the record. It is never left ready for an input nothing will "
+            + "bring."),
     SYNC_WHAT_A_PLACE_HOLDS_ALONE_IS_THE_WORK_ITS_TENANT_DOES_NOT_HOLD(
             "What a place holds alone counts the versions retention waits on: those of the "
             + "types its declaration bounds that no mark covers and that came from nowhere "
