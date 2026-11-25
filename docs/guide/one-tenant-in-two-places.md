@@ -79,15 +79,19 @@ that use it.
   on a result it recorded months ago, starts work the site performs:
   `POST /t/clinic/step/<code>` with `"for": {"place": "site"}` names the place,
   and without `for` the work goes to the place that made the record in its
-  first referring slot. The cloud's run says which place performs it, and
-  nobody at the cloud takes it meanwhile. In its next sync round the site
-  takes the run with every record its slots and item name that it does not
-  hold, the one it let go of among them, keeps those while the run is open and
-  lets them go once it ends. Its runners perform it as any of the site's own,
-  and the run's ending goes home as the cloud's own run. A run naming a
-  record neither side holds ends failed, naming the slot and the record, on
-  the site and at the cloud alike. Work that lasts, work handed to the
-  provider and work that crosses stay where they were started.
+  first referring slot. An application starting it in-process names the place
+  as `Run.Addressee.place("site")`. The cloud's run says which place performs
+  it, and nobody at the cloud holds it meanwhile, not even the person who asked
+  for it in their role, who is recorded as asking and is answered how it ended.
+  In its next sync round the site takes the run with every record its slots
+  and item name that it does not hold, the one it let go of among them, keeps
+  those while the run is open and lets them go once it ends. Its runners are
+  offered it on the site's work feed and perform it as any of the site's own,
+  and the run's ending goes home as the cloud's own run. A run naming a record
+  neither side holds ends failed, naming the slot and the record, on the site
+  and at the cloud alike, and so does one somebody at the cloud holds as it
+  arrives, naming who. Work that lasts, work handed to the provider and work
+  that crosses stay where they were started.
 - **A place knows what its tenant authorised.** What the clinic authorised of
   its register in the cloud reaches the site with every later authorisation and
   withdrawal, and is read-only there. The site's register at

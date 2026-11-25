@@ -3625,6 +3625,7 @@ cloud.jengu.dbo.promises.DboPromises                                   SYNC_A_PL
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_A_PLACE_TAKES_ITS_FACE_FROM_A_ROOT_BESIDE_IT:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_A_PLACE_THAT_MARKED_LATE_MARKS_WHAT_ITS_TENANT_ALREADY_HOLDS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_A_RECORD_WHOSE_IDENTITY_IS_INTERNAL_IS_KNOWN_BY_ITS_ID_ALONE:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   SYNC_A_RUN_HANDED_TO_A_PLACE_HELD_AT_ITS_TENANT_ENDS_SAYING_SO:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_A_RUN_HANDED_TO_A_PLACE_NEVER_WAITS_SILENTLY_FOR_AN_INPUT:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_A_SITE_HANDS_HOME_ONLY_WHAT_IS_ITS_OWN:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_A_STREAM_APPLIES_EACH_CHANGE_ONCE:cloud.jengu.dbo.promises.DboPromises
@@ -3642,6 +3643,7 @@ cloud.jengu.dbo.promises.DboPromises                                   SYNC_SPEC
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_TERMINOLOGY_GRAIN_SURVIVES:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_WHAT_A_PLACE_HOLDS_ALONE_IS_THE_WORK_ITS_TENANT_DOES_NOT_HOLD:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_WHAT_WAS_SAID_OF_A_PLACES_WORK_GOES_HOME_WITH_IT:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   SYNC_WORK_A_PERSON_STARTS_THAT_A_PLACE_PERFORMS_IS_PERFORMED_THERE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_WORK_A_TENANT_HANDS_A_PLACE_BRINGS_WHAT_IT_NAMES:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_AN_ACTIVITY_DECLARES_WHERE_IT_APPLIES:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_AN_OWNERS_CONFIGURATION_IS_APPLIED_FROM_ITS_REPOSITORY:cloud.jengu.dbo.promises.DboPromises

@@ -377,6 +377,9 @@ public interface RunInitiator {
             // The door hands work to the deployment's provider only.
             return ",\"for\":{\"provider\":true}";
         }
+        if (addressee.place() != null) {
+            return ",\"for\":{\"place\":" + quoted(addressee.place()) + "}";
+        }
         return ",\"for\":{" + (addressee.client() == null ? ""
                 : "\"client\":" + quoted(addressee.client())
                         + (addressee.executor() == null ? "" : ","))

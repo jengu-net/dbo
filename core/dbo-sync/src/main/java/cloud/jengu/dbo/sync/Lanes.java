@@ -1425,13 +1425,28 @@ public final class Lanes {
 
     /** True when it was written, false when this side already had it or better. */
     private boolean replicate(Item item) {
+        return replicate(item, false);
+    }
+
+    /**
+     * The same, written as a change where {@code announced}: a run handed
+     * between the two places is work for whoever reads this side's work
+     * feed, and a run written as a restore would never be offered to them.
+     */
+    private boolean replicate(Item item, boolean announced) {
         Optional<StoredObject> here = store.get(item.typeName(), item.id());
         if (here.isPresent() && here.get().versionId() >= item.version()) {
             return false;
         }
-        store.put(new PutRequest(item.typeName(), item.id(),
-                here.map(StoredObject::versionId).orElse(null), item.payload(),
-                item.version(), item.recordedAt(), true));
+        Long seen = here.map(StoredObject::versionId).orElse(null);
+        if (announced) {
+            store.put(PutRequest.copied(item.typeName(), item.id(), seen, item.payload(),
+                    item.version(), item.recordedAt()),
+                    cloud.jengu.dbo.core.api.Handling.Authority.SOURCE_TENANT);
+        } else {
+            store.put(new PutRequest(item.typeName(), item.id(), seen, item.payload(),
+                    item.version(), item.recordedAt(), true));
+        }
         return true;
     }
 
@@ -1455,7 +1470,7 @@ public final class Lanes {
                     + text.substring(end);
         }
         return replicate(new Item(item.typeName(), item.id(), item.version(), item.recordedAt(),
-                text.getBytes(StandardCharsets.UTF_8), true, item.forRuns()));
+                text.getBytes(StandardCharsets.UTF_8), true, item.forRuns()), true);
     }
 
     // -------------------------------------------------------------- performed
@@ -1484,7 +1499,7 @@ public final class Lanes {
             try {
                 boolean absent = !item.work() && store.get(item.typeName(), item.id())
                         .filter(stored -> !stored.deleted()).isEmpty();
-                if (replicate(item)) {
+                if (replicate(item, item.work())) {
                     applied++;
                 } else {
                     skipped++;
@@ -1500,6 +1515,14 @@ public final class Lanes {
         }
         for (String id : arrived) {
             store.get(WorkModel.TYPE, id).map(Run::of).filter(Run::open).ifPresent(run -> {
+                // Held where it was started, nobody here may take it, and
+                // whoever holds it there cannot reach it here.
+                if (run.claimed(java.time.Instant.now())) {
+                    runs.refused(run, "it is held by " + run.assignment().claimant() + " at "
+                            + from + ", which handed the work, and nobody here may take work "
+                            + "somebody holds");
+                    return;
+                }
                 List<String> missing = new ArrayList<>();
                 run.inputs().forEach((slot, filled) -> {
                     if (!filled.referred()) {

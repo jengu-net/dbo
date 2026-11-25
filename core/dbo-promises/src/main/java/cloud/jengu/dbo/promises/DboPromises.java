@@ -1558,6 +1558,18 @@ public enum DboPromises implements Promise {
             "Retention keeps any record a run still open on the node names, by its item or a "
             + "slot, whatever the bound and whatever marks it held elsewhere, until that run "
             + "ends. A place never loses what its work still needs."),
+    SYNC_WORK_A_PERSON_STARTS_THAT_A_PLACE_PERFORMS_IS_PERFORMED_THERE(
+            "Work a person starts at a tenant, in a role or not, that one of its places "
+            + "performs is offered to that place's runners, on the place's work feed, as its "
+            + "own work is. Nobody at the tenant holds it meanwhile, the person who asked "
+            + "among them; it is recorded as asked for by that person and answers them how it "
+            + "ended. An application starting work names the place that performs it as the "
+            + "step door takes it."),
+    SYNC_A_RUN_HANDED_TO_A_PLACE_HELD_AT_ITS_TENANT_ENDS_SAYING_SO(
+            "A run a tenant hands to a place that somebody at the tenant holds as it arrives "
+            + "ends failed on the place, naming who holds it, and the tenant's run ends failed "
+            + "with the same words. Nobody at the place may take it, and it is never left "
+            + "ready for them."),
     SYNC_WHAT_A_PLACE_HOLDS_ALONE_IS_THE_WORK_ITS_TENANT_DOES_NOT_HOLD(
             "What a place holds alone counts the versions retention waits on: those of the "
             + "types its declaration bounds that no mark covers and that came from nowhere "
