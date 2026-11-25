@@ -122,7 +122,9 @@ class ASecondPlaceComesUpFromItsOriginIT {
                "handling":"operational"},
               {"name":"Basic","identity":"internal","handling":"projected-config"},
               {"name":"Specimen","identity":"internal","handling":"operational"},
-              {"name":"Media","identity":"internal","handling":"operational"}],
+              {"name":"Media","identity":"internal","handling":"operational"},
+              {"name":"Practitioner","identity":"internal","handling":"operational"},
+              {"name":"PractitionerRole","identity":"internal","handling":"operational"}],
              "retention":{"perType":{"Specimen":{"removeAfter":"PT2S"},
                                      "Media":{"keepAtLeast":"P10Y",
                                               "removeAfterHeldElsewhere":"PT5S"}}}}"""
@@ -1735,6 +1737,90 @@ class ASecondPlaceComesUpFromItsOriginIT {
         assertEquals(Status.FAILED, told.status(),
                 "the tenant's run does not say the site could not perform it: " + told);
         assertEquals(failed.statusReason(), told.statusReason());
+    }
+
+    @Test
+    @Order(37)
+    @DisplayName("work a person at the tenant starts in a role over what the site recorded is "
+            + "offered to the site's runners, held by nobody at the tenant meanwhile, and ends "
+            + "at the tenant as asked for by that person; an application names the place, and "
+            + "work somebody at the tenant holds as it arrives fails on the site saying who")
+    @Proving({DboPromises.SYNC_WORK_A_PERSON_STARTS_THAT_A_PLACE_PERFORMS_IS_PERFORMED_THERE,
+            DboPromises.SYNC_A_RUN_HANDED_TO_A_PLACE_HELD_AT_ITS_TENANT_ENDS_SAYING_SO})
+    void workAPersonStartsInARoleIsThePlacesRunnersToPerform() throws Exception {
+        site.readsItsOriginThrough(CLINIC, connected());
+        site.syncRound();
+        String query = "Media?identifier=" + SPECIMENS + "|media-decided-by-a-person";
+        performedOnTheSite("media-decided-by-a-person", held("Media", "media-decided-by-a-person"));
+        site.syncRound();
+        String media = only(cloud, query).path("id").asText();
+        // The site's runner, polling from before the work exists, as one does.
+        Executor deciding = new Executor("decider", "1", "example.site", Scope.BASELINE);
+        Lane lane = site.fleetLane(CLINIC, DECIDE, deciding).orElseThrow();
+        lane.declare(new Declarations.Declared("jaam.lab", "decide", deciding.name(),
+                deciding.version(), deciding.provider(), deciding.scope(), deciding.name()));
+        lane.poll(java.util.Set.of("decide"), 50);
+
+        cloud.authority(CLINIC).ensureRoleGrant("chemist", List.of("work/jaam.lab.*"));
+        var engine = cloud.runtime(CLINIC).orElseThrow().engine();
+        String chemist = "Practitioner/" + engine.put(PutRequest.create("Practitioner",
+                "{\"resourceType\":\"Practitioner\"}".getBytes(
+                        java.nio.charset.StandardCharsets.UTF_8))).id();
+        engine.put(PutRequest.create("PractitionerRole", ("{\"resourceType\":"
+                + "\"PractitionerRole\",\"active\":true,\"practitioner\":{\"reference\":\""
+                + chemist + "\"},\"code\":[{\"coding\":[{\"code\":\"chemist\"}]}]}")
+                .getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+        RunInitiator asChemist = cloud.runInitiator().actingFor(chemist, "chemist");
+        RunInitiator.Started started = asChemist.starting(CLINIC, DECIDE, java.util.Map.of(
+                "result", RunInitiator.Slot.reference("Media/" + media)), null);
+        assertEquals(201, started.status(), started.body());
+        Runs atTheTenant = new Runs(engine);
+        Run asked = atTheTenant.byKey(started.key()).orElseThrow();
+        assertEquals("site", asked.addressee().place(), asked.toString());
+        assertEquals(null, asked.assignment(),
+                "the person who asked holds work the site performs: " + asked);
+
+        site.syncRound();
+        List<Run> offered = lane.poll(java.util.Set.of("decide"), 50);
+        Run arrived = offered.stream().filter(run -> run.key().equals(started.key()))
+                .findFirst().orElseThrow(() -> new AssertionError(
+                        "the site's runners were not offered the work its tenant handed it"));
+        Run claimed = lane.claim(arrived, java.time.Duration.ofMinutes(5)).orElseThrow(() ->
+                new AssertionError("the site's runner could not take the work: " + arrived));
+        lane.committed(claimed, null, List.of());
+        site.syncRound();
+        Run ended = atTheTenant.byKey(started.key()).orElseThrow();
+        assertEquals(Status.COMPLETED, ended.status(), ended.toString());
+        assertEquals(chemist, ended.requester(), "the work no longer says who asked for it");
+        assertEquals("completed", asChemist.answer(CLINIC, started.run()).state(),
+                "the person is not answered how the work they asked for ended");
+
+        RunInitiator.Started named = asChemist.starting(CLINIC, DECIDE, java.util.Map.of(
+                "result", RunInitiator.Slot.reference("Media/" + media)), null,
+                Run.Addressee.place("site"));
+        assertEquals(201, named.status(), named.body());
+        Run toBeHeld = atTheTenant.byKey(named.key()).orElseThrow();
+        assertEquals("site", toBeHeld.addressee().place(),
+                "an application could not name the place that performs the work");
+
+        // Taken at the tenant before the site's round: said, not left ready.
+        atTheTenant.claimAsPerson(toBeHeld, "PractitionerRole/chemist",
+                java.time.Duration.ofMinutes(5), chemist).orElseThrow();
+        site.syncRound();
+        Run refused = onTheSite(named.key());
+        assertEquals(Status.FAILED, refused.status(), refused.toString());
+        assertTrue(String.valueOf(refused.statusReason()).contains("held by " + chemist),
+                "the site does not say who holds the work: " + refused.statusReason());
+        site.syncRound();
+        Run told = atTheTenant.byKey(named.key()).orElseThrow();
+        assertEquals(Status.FAILED, told.status(),
+                "the tenant's run does not say the site could not take it: " + told);
+        assertEquals(refused.statusReason(), told.statusReason());
+    }
+
+    private static Run onTheSite(String key) {
+        return new Runs(site.runtime(CLINIC).orElseThrow().engine()).byKey(key).orElseThrow(() ->
+                new AssertionError("the site did not take the work its tenant handed it"));
     }
 
     /** A decision on what the site recorded, asked for at the tenant. */

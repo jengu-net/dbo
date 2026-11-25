@@ -487,7 +487,10 @@ public final class Runs {
                 parent == null ? null : parent.trace(),
                 Map.of(), null,
                 List.copyOf(step.writes()),
-                requester == null ? null : new Run.Assignment(null, null, null, null, requester),
+                // Work a place performs is its runners' to take: who asked
+                // for it here is owed the answer and holds nothing.
+                requester == null || addressee != null && addressee.place() != null ? null
+                        : new Run.Assignment(null, null, null, null, requester),
                 Run.Produced.NOTHING, step.version(),
                 java.util.Collections.unmodifiableMap(ordered), null, requester, null,
                 collect == null ? null : new Run.Window(collect, null), crossing)));
