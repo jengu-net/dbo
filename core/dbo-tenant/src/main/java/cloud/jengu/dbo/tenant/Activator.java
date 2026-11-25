@@ -780,6 +780,13 @@ public final class Activator implements BundleActivator {
                         regs.add(ctx.registerService(
                                 cloud.jengu.dbo.tenant.api.RegisterStanding.class,
                                 manager.registerStanding(runtime.spec().code()), props));
+                        // What a place holds, for an application on it: a
+                        // place's node holds no deployment token to read it
+                        // from the node's row.
+                        manager.placeHoldings(runtime.spec().code()).ifPresent(holdings ->
+                                regs.add(ctx.registerService(
+                                        cloud.jengu.dbo.tenant.api.PlaceHoldings.class,
+                                        holdings, props)));
                         // The tenant's content, as the instance its door holds:
                         // held to the same kinds, asked the same purpose and
                         // on the same trail, because it is the same object

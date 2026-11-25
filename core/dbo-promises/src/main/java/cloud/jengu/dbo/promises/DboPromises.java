@@ -1581,6 +1581,14 @@ public enum DboPromises implements Promise {
             + "and its tenant does not hold as the place's, ends failed on the place, naming "
             + "the slot and the record. It is never left ready for an input nothing will "
             + "bring."),
+    SYNC_A_PLACE_SAYS_WHAT_IT_HOLDS_AS_A_COUNT_AND_A_SIZE_WITH_WHEN_IT_GOES(
+            "What a place holds is read as what it holds alone and what it holds that is held "
+            + "elsewhere and not yet let go, each by type and in total as versions and the "
+            + "bytes their payloads take as stored. Beside what is held elsewhere is the "
+            + "soonest any of it may go, and beside both when retention last swept the tenant "
+            + "on the node and when it next sweeps. The node's row says it to the deployment's "
+            + "token, the fleet reading carries it, and code on the place reads it in-process. "
+            + "It is read in one pass, cheap enough to read every few minutes."),
     SYNC_WHAT_A_PLACE_HOLDS_ALONE_IS_THE_WORK_ITS_TENANT_DOES_NOT_HOLD(
             "What a place holds alone counts the versions retention waits on: those of the "
             + "types its declaration bounds that no mark covers and that came from nowhere "

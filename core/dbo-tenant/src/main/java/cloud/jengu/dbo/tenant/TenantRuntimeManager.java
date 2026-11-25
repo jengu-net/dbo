@@ -1262,6 +1262,10 @@ public final class TenantRuntimeManager implements AutoCloseable {
         return said.toString();
     }
     private volatile long lastSweepMillis;
+    /** How often the reconciler sweeps every tenant's retention. */
+    private static final java.time.Duration RETENTION_EVERY = java.time.Duration.ofHours(1);
+    /** When each tenant's retention last swept here, whoever asked for it. */
+    private final Map<String, java.time.Instant> lastSwept = new ConcurrentHashMap<>();
     private volatile Thread scanner;
     private volatile Thread reconciler;
     /**
@@ -2369,6 +2373,88 @@ public final class TenantRuntimeManager implements AutoCloseable {
     public cloud.jengu.dbo.tenant.api.RegisterStanding registerStanding(String tenant) {
         return standings.computeIfAbsent(tenant,
                 code -> new StandingWatch(code, () -> standingOf(code)));
+    }
+
+    /**
+     * What a place of this tenant holds here, for an application on the place:
+     * read on the spot, as the node's row reads it. Empty where this node
+     * serves no place of the tenant.
+     */
+    public java.util.Optional<cloud.jengu.dbo.tenant.api.PlaceHoldings> placeHoldings(
+            String tenant) {
+        if (!places.contains(tenant)) {
+            return java.util.Optional.empty();
+        }
+        return java.util.Optional.of(() -> {
+            TenantRuntime serving = runtimes.get(tenant);
+            javax.sql.DataSource placeDb = tenantDataSources.get(tenant);
+            if (serving == null || placeDb == null) {
+                throw new IllegalStateException("tenant " + tenant + " is not serving here");
+            }
+            return holdingsOf(tenant, serving, placeDb);
+        });
+    }
+
+    private cloud.jengu.dbo.tenant.api.PlaceHoldings.Holdings holdingsOf(String code,
+            TenantRuntime serving, javax.sql.DataSource placeDb) {
+        // What retention waits on is what the declaration bounds; the
+        // store's own housekeeping is said apart.
+        Map<String, java.time.Duration> heldElsewhere = new java.util.HashMap<>();
+        serving.spec().policies().retention().forEach((type, rule) -> {
+            java.time.Duration shortest = rule.removeAfterHeldElsewhere();
+            for (cloud.jengu.dbo.policy.TenantPolicies.Retention profile
+                    : rule.profiles().values()) {
+                if (profile.removeAfterHeldElsewhere() != null && (shortest == null
+                        || profile.removeAfterHeldElsewhere().compareTo(shortest) < 0)) {
+                    shortest = profile.removeAfterHeldElsewhere();
+                }
+            }
+            if (shortest != null) {
+                heldElsewhere.put(type, shortest);
+            }
+        });
+        cloud.jengu.dbo.postgres.HeldAtAPlace held = cloud.jengu.dbo.postgres.HeldAtAPlace.in(
+                placeDb, versions.require(serving.spec().face()).domain(),
+                serving.spec().policies().bounded(),
+                java.util.List.of(cloud.jengu.dbo.work.WorkModel.DOMAIN), heldElsewhere);
+        Map<String, cloud.jengu.dbo.tenant.api.PlaceHoldings.Part> alone =
+                new java.util.TreeMap<>();
+        held.alone().forEach((type, part) -> alone.put(type, part(part)));
+        Map<String, cloud.jengu.dbo.tenant.api.PlaceHoldings.Part> elsewhere =
+                new java.util.TreeMap<>();
+        held.elsewhere().forEach((type, part) -> elsewhere.put(type, part(part)));
+        // A node whose reconciler is not running sweeps only when asked.
+        java.time.Instant next = reconciler == null ? null
+                : lastSweepMillis == 0 ? java.time.Instant.now()
+                : java.time.Instant.ofEpochMilli(lastSweepMillis).plus(RETENTION_EVERY);
+        return new cloud.jengu.dbo.tenant.api.PlaceHoldings.Holdings(part(held.aloneInTotal()),
+                alone, part(held.elsewhereInTotal()), elsewhere, held.unbounded(),
+                lastSwept.get(code), next);
+    }
+
+    private static cloud.jengu.dbo.tenant.api.PlaceHoldings.Part part(
+            cloud.jengu.dbo.postgres.HeldAtAPlace.Part part) {
+        return new cloud.jengu.dbo.tenant.api.PlaceHoldings.Part(part.versions(), part.bytes(),
+                part.oldest(), part.goesFrom());
+    }
+
+    /** A part of what a place holds, in total and by type, as the node's row says it. */
+    private static Map<String, Object> said(cloud.jengu.dbo.tenant.api.PlaceHoldings.Part total,
+            Map<String, cloud.jengu.dbo.tenant.api.PlaceHoldings.Part> byType) {
+        Map<String, Object> said = saidOf(total);
+        Map<String, Object> types = new java.util.TreeMap<>();
+        byType.forEach((type, part) -> types.put(type, saidOf(part)));
+        said.put("byType", types);
+        return said;
+    }
+
+    private static Map<String, Object> saidOf(cloud.jengu.dbo.tenant.api.PlaceHoldings.Part part) {
+        Map<String, Object> said = new java.util.LinkedHashMap<>();
+        said.put("versions", part.versions());
+        said.put("bytes", part.bytes());
+        said.put("oldest", part.oldest() == null ? "" : part.oldest().toString());
+        said.put("goesFrom", part.goesFrom() == null ? "" : part.goesFrom().toString());
+        return said;
     }
 
     private cloud.jengu.dbo.tenant.api.RegisterStanding.Standing standingOf(String code) {
@@ -3502,20 +3588,14 @@ public final class TenantRuntimeManager implements AutoCloseable {
                 javax.sql.DataSource placeDb = tenantDataSources.get(state.code());
                 if (serving != null && places.contains(state.code()) && placeDb != null) {
                     try {
-                        // What retention waits on is what the declaration
-                        // bounds; the store's own housekeeping is said apart.
-                        cloud.jengu.dbo.postgres.HeldHereAlone alone =
-                                cloud.jengu.dbo.postgres.HeldHereAlone.in(placeDb,
-                                        versions.require(serving.spec().face()).domain(),
-                                        serving.spec().policies().bounded(),
-                                        java.util.List.of(cloud.jengu.dbo.work.WorkModel.DOMAIN));
-                        Map<String, Object> held = new java.util.LinkedHashMap<>();
-                        held.put("versions", alone.versions());
-                        held.put("oldest", alone.oldest() == null ? "" : alone.oldest().toString());
-                        held.put("oldestAge", alone.oldest() == null ? ""
-                                : java.time.Duration.between(alone.oldest(),
+                        cloud.jengu.dbo.tenant.api.PlaceHoldings.Holdings holdings =
+                                holdingsOf(state.code(), serving, placeDb);
+                        Map<String, Object> held = said(holdings.alone(),
+                                holdings.aloneByType());
+                        held.put("oldestAge", holdings.alone().oldest() == null ? ""
+                                : java.time.Duration.between(holdings.alone().oldest(),
                                         java.time.Instant.now()).toString());
-                        held.put("unbounded", alone.unbounded());
+                        held.put("unbounded", holdings.unbounded());
                         // What the tenant declined stays here for good, and the
                         // tenant's trail is the only other place it is said.
                         cloud.jengu.dbo.postgres.KeptOnThePlace kept =
@@ -3527,6 +3607,16 @@ public final class TenantRuntimeManager implements AutoCloseable {
                         declined.put("since", kept.since() == null ? "" : kept.since().toString());
                         held.put("declined", declined);
                         row.put("heldHereAlone", held);
+                        // Beside it, what fills a place's disk in steady
+                        // state: what the coming sweeps remove, and when.
+                        row.put("heldElsewhereNotYetLetGo", said(holdings.elsewhere(),
+                                holdings.elsewhereByType()));
+                        Map<String, Object> retention = new java.util.LinkedHashMap<>();
+                        retention.put("lastSwept", holdings.lastSwept() == null ? ""
+                                : holdings.lastSwept().toString());
+                        retention.put("nextSweep", holdings.nextSweep() == null ? ""
+                                : holdings.nextSweep().toString());
+                        row.put("retention", retention);
                     } catch (RuntimeException unread) {
                         row.put("heldHereAlone", Map.of("unread",
                                 String.valueOf(unread.getMessage())));
@@ -6816,7 +6906,9 @@ public final class TenantRuntimeManager implements AutoCloseable {
             return 0;
         }
         try {
-            return sweep.sweepOnce();
+            int removed = sweep.sweepOnce();
+            lastSwept.put(code, java.time.Instant.now());
+            return removed;
         } catch (RuntimeException failed) {
             LOG.warn("tenant {}: its retention sweep failed: {}", code, failed.toString());
             return 0;
@@ -7969,7 +8061,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
                     // that round, and watching before it would leave the
                     // rebuild a full poll interval behind its own cause.
                     shapesRound();
-                    if (System.currentTimeMillis() - lastSweepMillis > 3_600_000) {
+                    if (System.currentTimeMillis() - lastSweepMillis > RETENTION_EVERY.toMillis()) {
                         lastSweepMillis = System.currentTimeMillis();
                         retentionRound();
                         // The runs steps started themselves, under each

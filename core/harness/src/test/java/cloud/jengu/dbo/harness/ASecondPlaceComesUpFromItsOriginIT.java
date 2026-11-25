@@ -1875,6 +1875,77 @@ class ASecondPlaceComesUpFromItsOriginIT {
                 java.util.Map.of("result", RunSlot.referring(result)));
     }
 
+    @Test
+    @Order(39)
+    @DisplayName("a place says what it holds alone and what it holds that is held elsewhere and "
+            + "not yet let go, each as versions and bytes by type and in total, with when the "
+            + "soonest of it goes and when retention last and next sweeps, on the node's row, "
+            + "to the operator and in-process on the place")
+    @Proving(DboPromises.SYNC_A_PLACE_SAYS_WHAT_IT_HOLDS_AS_A_COUNT_AND_A_SIZE_WITH_WHEN_IT_GOES)
+    void aPlaceSaysWhatItHoldsAndWhenItGoes() throws Exception {
+        // One Media its tenant takes and marks, one Specimen it holds alone.
+        site.readsItsOriginThrough(CLINIC, connected());
+        site.syncRound();
+        performedOnTheSite("media-read-beside", held("Media", "media-read-beside"));
+        site.syncRound();
+        java.time.Instant marked = java.time.Instant.now();
+        site.readsItsOriginThrough(CLINIC, null);
+        performedOnTheSite("specimen-read-beside", held("Specimen", "specimen-read-beside"));
+        site.retentionRound(CLINIC);
+
+        com.fasterxml.jackson.databind.JsonNode row = clinicRow(site);
+        com.fasterxml.jackson.databind.JsonNode alone = row.path("heldHereAlone");
+        com.fasterxml.jackson.databind.JsonNode elsewhere = row.path("heldElsewhereNotYetLetGo");
+        assertTrue(alone.path("byType").path("Specimen").path("versions").asLong() >= 1
+                        && alone.path("byType").path("Specimen").path("bytes").asLong() > 0
+                        && alone.path("bytes").asLong()
+                        >= alone.path("byType").path("Specimen").path("bytes").asLong(),
+                "the node does not say what the place holds alone by type as a size: " + alone);
+        com.fasterxml.jackson.databind.JsonNode media = elsewhere.path("byType").path("Media");
+        assertTrue(media.path("versions").asLong() >= 1 && media.path("bytes").asLong() > 0
+                        && elsewhere.path("versions").asLong() >= media.path("versions").asLong(),
+                "the node does not say what the place holds that is held elsewhere: " + row);
+        java.time.Instant goes = java.time.Instant.parse(media.path("goesFrom").asText());
+        // Another leg's Media may be marked earlier, so the soonest is no later.
+        assertTrue(!goes.isAfter(marked.plusSeconds(5)),
+                "the soonest Media goes is later than five seconds after it was marked: " + goes);
+        assertTrue(!row.path("retention").path("lastSwept").asText().isEmpty(),
+                "the node does not say when retention last swept: " + row.path("retention"));
+
+        Reading.TenantReading operator = new FleetReader(
+                List.of(new Node("site-node", URI.create("http://127.0.0.1:" + site.port()), OPS)),
+                Credentials.none(), java.time.Duration.ofSeconds(5)).read(FleetReader.RunFilter.ANY)
+                .nodes().get(0).tenants().stream()
+                .filter(tenant -> tenant.tenant().equals(CLINIC)).findFirst().orElseThrow();
+        assertTrue(operator.heldElsewhereNotYetLetGo().get("byType") instanceof java.util.Map<?, ?>
+                        && operator.heldHereAlone().containsKey("bytes")
+                        && operator.retention().containsKey("lastSwept"),
+                "the operator does not read what the place holds beside what it holds alone: "
+                        + operator);
+
+        cloud.jengu.dbo.tenant.api.PlaceHoldings.Holdings onThePlace =
+                site.placeHoldings(CLINIC).orElseThrow(() -> new AssertionError(
+                        "the place's node offers no reading of what it holds")).now();
+        assertTrue(onThePlace.elsewhereByType().get("Media").goesFrom().equals(goes)
+                        && onThePlace.aloneByType().get("Specimen").bytes() > 0
+                        && onThePlace.lastSwept() != null,
+                "the place does not read in-process what its node's row says: " + onThePlace);
+        assertTrue(cloud.placeHoldings(CLINIC).isEmpty(),
+                "the tenant's own node offers a place's reading");
+
+        // Past the bound the next sweep removes it, and the reading says so.
+        long before = onThePlace.elsewhereByType().get("Media").versions();
+        Thread.sleep(5_100);
+        site.retentionRound(CLINIC);
+        cloud.jengu.dbo.tenant.api.PlaceHoldings.Part after =
+                site.placeHoldings(CLINIC).orElseThrow().now().elsewhereByType().get("Media");
+        assertTrue(after == null || after.versions() < before,
+                "what the sweep let go of is still read as held: " + after);
+
+        site.readsItsOriginThrough(CLINIC, connected());
+        site.syncRound();
+    }
+
     private static Run onTheSite(String key) {
         return new Runs(site.runtime(CLINIC).orElseThrow().engine()).byKey(key).orElseThrow(() ->
                 new AssertionError("the site did not take the work its tenant handed it"));
@@ -1959,6 +2030,15 @@ class ASecondPlaceComesUpFromItsOriginIT {
     /** What the node says the place holds that its tenant does not. */
     private static com.fasterxml.jackson.databind.JsonNode heldHereAloneRow(
             TenantRuntimeManager node) throws Exception {
+        com.fasterxml.jackson.databind.JsonNode row = clinicRow(node);
+        assertTrue(row.path("heldHereAlone").has("versions"),
+                "the node does not say what the place holds alone: " + row);
+        return row.path("heldHereAlone");
+    }
+
+    /** The node's row for the clinic, as the deployment's token reads it. */
+    private static com.fasterxml.jackson.databind.JsonNode clinicRow(TenantRuntimeManager node)
+            throws Exception {
         HttpResponse<String> answer = http.send(HttpRequest.newBuilder(
                         URI.create("http://127.0.0.1:" + node.port() + "/runtime/tenants"))
                         .header("Authorization", "Bearer " + OPS).GET().build(),
@@ -1967,9 +2047,7 @@ class ASecondPlaceComesUpFromItsOriginIT {
         for (com.fasterxml.jackson.databind.JsonNode row : new com.fasterxml.jackson.databind
                 .ObjectMapper().readTree(answer.body()).path("tenants")) {
             if (row.path("code").asText().equals(CLINIC)) {
-                assertTrue(row.path("heldHereAlone").has("versions"),
-                        "the node does not say what the place holds alone: " + row);
-                return row.path("heldHereAlone");
+                return row;
             }
         }
         throw new AssertionError("the node does not list " + CLINIC + ": " + answer.body());
