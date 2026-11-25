@@ -3605,6 +3605,7 @@ cloud.jengu.dbo.promises.DboPromises                                   SYNC_ANY_
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_A_PERSON_LETS_A_LOCAL_OVERRIDE_GO:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_A_PLACE_ACTS_ON_THE_LAST_AUTHORISATION_IT_HOLDS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_A_PLACE_COMES_UP_FROM_ITS_ORIGIN:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   SYNC_A_PLACE_DOES_NOT_LET_GO_OF_WHAT_ITS_OPEN_WORK_NAMES:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_A_PLACE_HANDS_ITS_TRAIL_TO_ITS_TENANT:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_A_PLACE_HANDS_ITS_WORK_TO_ITS_TENANT:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_A_PLACE_HANDS_THE_WORK_OF_A_STEP_DECLARED_AFTER_IT_CAME_UP:cloud.jengu.dbo.promises.DboPromises
@@ -3624,6 +3625,7 @@ cloud.jengu.dbo.promises.DboPromises                                   SYNC_A_PL
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_A_PLACE_TAKES_ITS_FACE_FROM_A_ROOT_BESIDE_IT:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_A_PLACE_THAT_MARKED_LATE_MARKS_WHAT_ITS_TENANT_ALREADY_HOLDS:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_A_RECORD_WHOSE_IDENTITY_IS_INTERNAL_IS_KNOWN_BY_ITS_ID_ALONE:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   SYNC_A_RUN_HANDED_TO_A_PLACE_NEVER_WAITS_SILENTLY_FOR_AN_INPUT:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_A_SITE_HANDS_HOME_ONLY_WHAT_IS_ITS_OWN:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_A_STREAM_APPLIES_EACH_CHANGE_ONCE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_A_TYPE_IS_RECEIVED_AND_AUTHORED_RECORD_BY_RECORD:cloud.jengu.dbo.promises.DboPromises
@@ -3640,6 +3642,7 @@ cloud.jengu.dbo.promises.DboPromises                                   SYNC_SPEC
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_TERMINOLOGY_GRAIN_SURVIVES:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_WHAT_A_PLACE_HOLDS_ALONE_IS_THE_WORK_ITS_TENANT_DOES_NOT_HOLD:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_WHAT_WAS_SAID_OF_A_PLACES_WORK_GOES_HOME_WITH_IT:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   SYNC_WORK_A_TENANT_HANDS_A_PLACE_BRINGS_WHAT_IT_NAMES:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_AN_ACTIVITY_DECLARES_WHERE_IT_APPLIES:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_AN_OWNERS_CONFIGURATION_IS_APPLIED_FROM_ITS_REPOSITORY:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   TEN_AN_OWNERS_SECRETS_ARE_SEALED_IN_ITS_REPOSITORY:cloud.jengu.dbo.promises.DboPromises
@@ -4217,6 +4220,7 @@ cloud.jengu.dbo.runner.transport.Handover                              declined(
 cloud.jengu.dbo.runner.transport.Handover                              handed(Object):cloud.jengu.dbo.runner.transport.Handover.Taken
 cloud.jengu.dbo.runner.transport.Handover                              holds(List):List
 cloud.jengu.dbo.runner.transport.Handover                              interface
+cloud.jengu.dbo.runner.transport.Handover                              toPerform(String):Object
 cloud.jengu.dbo.runner.transport.Handover.Taken                        applied():long
 cloud.jengu.dbo.runner.transport.Handover.Taken                        equals(Object):boolean
 cloud.jengu.dbo.runner.transport.Handover.Taken                        hashCode():int
@@ -4316,6 +4320,7 @@ cloud.jengu.dbo.runner.transport.LaneVerbs                             RESULT:St
 cloud.jengu.dbo.runner.transport.LaneVerbs                             ROUTES:cloud.jengu.dbo.runner.transport.LaneVerbs
 cloud.jengu.dbo.runner.transport.LaneVerbs                             RUN:String
 cloud.jengu.dbo.runner.transport.LaneVerbs                             RUNS_DECLINED:cloud.jengu.dbo.runner.transport.LaneVerbs
+cloud.jengu.dbo.runner.transport.LaneVerbs                             RUNS_HANDED:cloud.jengu.dbo.runner.transport.LaneVerbs
 cloud.jengu.dbo.runner.transport.LaneVerbs                             RUNS_HELD:cloud.jengu.dbo.runner.transport.LaneVerbs
 cloud.jengu.dbo.runner.transport.LaneVerbs                             RUNS_PUSH:cloud.jengu.dbo.runner.transport.LaneVerbs
 cloud.jengu.dbo.runner.transport.LaneVerbs                             SAID:String
@@ -4706,6 +4711,7 @@ cloud.jengu.dbo.sync.LaneModel                                         key(Strin
 cloud.jengu.dbo.sync.LaneModel                                         registrations():List
 cloud.jengu.dbo.sync.Lanes                                             CONTENT:String
 cloud.jengu.dbo.sync.Lanes                                             MIRROR_SEPARATOR:String
+cloud.jengu.dbo.sync.Lanes                                             aPlace(String):boolean
 cloud.jengu.dbo.sync.Lanes                                             again(String,List):cloud.jengu.dbo.sync.Lanes.Batch
 cloud.jengu.dbo.sync.Lanes                                             apply(String,cloud.jengu.dbo.sync.Lanes.Batch):cloud.jengu.dbo.sync.Lanes.Applied
 cloud.jengu.dbo.sync.Lanes                                             applyFromAPlace(String,cloud.jengu.dbo.sync.Lanes.Batch):cloud.jengu.dbo.sync.Lanes.Applied
@@ -4731,11 +4737,14 @@ cloud.jengu.dbo.sync.Lanes                                             outbound(
 cloud.jengu.dbo.sync.Lanes                                             outbound(String,int,Set,Set):cloud.jengu.dbo.sync.Lanes.Batch
 cloud.jengu.dbo.sync.Lanes                                             outboundHome(String,int,Set):cloud.jengu.dbo.sync.Lanes.Batch
 cloud.jengu.dbo.sync.Lanes                                             outboundHome(String,int,Set,Consumer,Runnable):cloud.jengu.dbo.sync.Lanes.Batch
+cloud.jengu.dbo.sync.Lanes                                             performing(String,cloud.jengu.dbo.sync.Lanes.Batch):cloud.jengu.dbo.sync.Lanes.Applied
+cloud.jengu.dbo.sync.Lanes                                             placeThatMade(String):Optional
 cloud.jengu.dbo.sync.Lanes                                             readings():List
 cloud.jengu.dbo.sync.Lanes                                             recordingWhence(BiConsumer):cloud.jengu.dbo.sync.Lanes
 cloud.jengu.dbo.sync.Lanes                                             revoke():cloud.jengu.dbo.sync.Lanes.Revoked
 cloud.jengu.dbo.sync.Lanes                                             sayingWhatItDidNotTake(cloud.jengu.dbo.sync.Lanes.Untaken):cloud.jengu.dbo.sync.Lanes
 cloud.jengu.dbo.sync.Lanes                                             sent(String,cloud.jengu.dbo.sync.Lanes.Batch):cloud.jengu.dbo.sync.Lanes.Lane
+cloud.jengu.dbo.sync.Lanes                                             toBePerformedAt(String,String,int):cloud.jengu.dbo.sync.Lanes.Batch
 cloud.jengu.dbo.sync.Lanes.Applied                                     applied():long
 cloud.jengu.dbo.sync.Lanes.Applied                                     equals(Object):boolean
 cloud.jengu.dbo.sync.Lanes.Applied                                     hashCode():int
@@ -6035,6 +6044,9 @@ cloud.jengu.dbo.work.Run.Addressee                                     names(Str
 cloud.jengu.dbo.work.Run.Addressee                                     new(String,String)
 cloud.jengu.dbo.work.Run.Addressee                                     new(String,String,String)
 cloud.jengu.dbo.work.Run.Addressee                                     new(String,String,String,List)
+cloud.jengu.dbo.work.Run.Addressee                                     new(String,String,String,List,String)
+cloud.jengu.dbo.work.Run.Addressee                                     place():String
+cloud.jengu.dbo.work.Run.Addressee                                     place(String):cloud.jengu.dbo.work.Run.Addressee
 cloud.jengu.dbo.work.Run.Addressee                                     provider():String
 cloud.jengu.dbo.work.Run.Addressee                                     provider(String):cloud.jengu.dbo.work.Run.Addressee
 cloud.jengu.dbo.work.Run.Addressee                                     record
@@ -6304,6 +6316,7 @@ cloud.jengu.dbo.work.Runs                                              letGo(clo
 cloud.jengu.dbo.work.Runs                                              matching(String,String,cloud.jengu.dbo.work.Awaits,int):List
 cloud.jengu.dbo.work.Runs                                              milestone(cloud.jengu.dbo.work.Run,String,Map,Instant):cloud.jengu.dbo.work.Run
 cloud.jengu.dbo.work.Runs                                              milestone(cloud.jengu.dbo.work.Run,cloud.jengu.dbo.work.Executor,String,Map,Duration):cloud.jengu.dbo.work.Run
+cloud.jengu.dbo.work.Runs                                              namedByOpenWork():Set
 cloud.jengu.dbo.work.Runs                                              new(cloud.jengu.dbo.core.api.ObjectStore)
 cloud.jengu.dbo.work.Runs                                              new(cloud.jengu.dbo.core.api.ObjectStore,cloud.jengu.dbo.core.process.Steps)
 cloud.jengu.dbo.work.Runs                                              new(cloud.jengu.dbo.core.api.ObjectStore,cloud.jengu.dbo.core.process.Steps,cloud.jengu.dbo.work.Runs.Claimable)

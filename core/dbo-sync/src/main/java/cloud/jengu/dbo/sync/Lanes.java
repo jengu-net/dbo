@@ -76,6 +76,16 @@ public final class Lanes {
     /** The run a copy is filed under in its placement: none, so revocation never takes it. */
     static final String COPY = "copy:";
 
+    /**
+     * Whose position on this tenant's work feed is how far a place has taken
+     * the work it performs: a lane of its own beside the one the place hands
+     * home on, whose epoch is the place's.
+     */
+    static final String PERFORMED_AT = "performed-at:";
+    /** A run as it travels to the place that performs it: its address left here. */
+    private static final java.util.regex.Pattern ADDRESSED_TO_A_PLACE =
+            java.util.regex.Pattern.compile(",\"for\":\\{\"place\":\"(?:[^\"\\\\]|\\\\.)*\"\\}");
+
     private final ObjectStore store;
     private final ChangeFeed workFeed;
     private final ChangeFeed contentFeed;
@@ -403,6 +413,70 @@ public final class Lanes {
     }
 
     // -------------------------------------------------------------- outbound
+
+    /**
+     * The work addressed to a place, for it to perform: the runs since where
+     * the place last took, each with what its slots and items name first, so
+     * nothing arrives at the place pointing at a record it let go of.
+     *
+     * <p>A run goes without its address, which is this side's account of who
+     * performs it: at the place its runners take it as any of its own. What
+     * a run names goes while the run is open, and the place keeps it for as
+     * long as the run is.
+     *
+     * @param through the position the place took the last batch through, which
+     *                is where it now stands; null to read again from where it last
+     *                said it stood
+     */
+    public Batch toBePerformedAt(String place, String through, int limit) {
+        Lane lane = open(PERFORMED_AT + place);
+        if (through != null && !through.equals(lane.ourCursor())) {
+            lane = write(new Lane(lane.key(), lane.peer(), lane.epoch(), through,
+                    lane.theirMarker(), lane.contentCursor(), lane.covers(), lane.askedHeld(),
+                    lane.handedAgain()));
+        }
+        FeedChunk<FeedItem> chunk = workFeed.read(lane.ourCursor(), limit);
+        Map<String, Item> work = new LinkedHashMap<>();
+        Map<String, List<String>> forRuns = new LinkedHashMap<>();
+        for (FeedItem event : chunk.items()) {
+            if (!WorkModel.TYPE.equals(event.typeName()) || work.containsKey(event.objectId())) {
+                continue;
+            }
+            Optional<StoredObject> stored = store.get(WorkModel.TYPE, event.objectId());
+            if (stored.isEmpty() || stored.get().deleted()) {
+                continue;
+            }
+            Run run = Run.of(stored.get());
+            if (run.addressee() == null || !place.equals(run.addressee().place())) {
+                continue;
+            }
+            work.put(stored.get().id(), Item.work(stored.get().id(), stored.get().versionId(),
+                    stored.get().lastUpdated(), ADDRESSED_TO_A_PLACE.matcher(
+                            new String(stored.get().payload(), StandardCharsets.UTF_8))
+                            .replaceFirst("").getBytes(StandardCharsets.UTF_8)));
+            if (run.open()) {
+                for (String reference : performedOver(run)) {
+                    forRuns.computeIfAbsent(reference, key -> new ArrayList<>()).add(run.key());
+                }
+            }
+        }
+        List<Item> items = new ArrayList<>();
+        forRuns.forEach((reference, named) -> resolve(reference, named).ifPresent(items::add));
+        items.addAll(work.values());
+        String cursor = chunk.nextCursor() != null ? chunk.nextCursor() : lane.ourCursor();
+        return new Batch(lane.epoch(), site, cursor, List.copyOf(items));
+    }
+
+    /** What a run is performed over: its item, its parts' items, and every record its slots refer to. */
+    private List<String> performedOver(Run run) {
+        List<String> over = new ArrayList<>(named(run));
+        run.inputs().values().forEach(filled -> {
+            if (filled.referred()) {
+                filled.values().forEach(over::add);
+            }
+        });
+        return over.stream().distinct().toList();
+    }
 
     /**
      * The records named, as they stand here, as copies for the peer: what a
@@ -1147,6 +1221,8 @@ public final class Lanes {
                     written = admit(batch.from(), item);
                 } else {
                     written = item.copy() ? copy(batch.from(), item, home, held, kept)
+                            : item.work() && home != null && performedAt(batch.from(), item)
+                                    ? performedThere(batch.from(), item)
                             : item.work() ? mirror(batch.from(), item) : replicate(item);
                 }
                 if (!item.work() && !item.copy() && !AUDIT.equals(item.typeName())
@@ -1306,6 +1382,35 @@ public final class Lanes {
         }
     }
 
+    /**
+     * Whether a place of this tenant goes by this name: one that has handed
+     * its work here, which is how this side comes to hold a lane with it.
+     */
+    public boolean aPlace(String place) {
+        return !place.startsWith(PERFORMED_AT) && read(place).isPresent();
+    }
+
+    /**
+     * The place that made the record, when this side holds it as a copy of
+     * one of its places': asked of each place by name, never by reading every
+     * note.
+     *
+     * @param reference {@code type/id}
+     */
+    public Optional<String> placeThatMade(String reference) {
+        for (Reading reading : readings()) {
+            String peer = reading.peer();
+            if (peer == null || peer.startsWith(PERFORMED_AT)) {
+                continue;
+            }
+            if (!store.getByIdentifier(PlacementModel.TYPE,
+                    List.of(PlacementModel.key(reference + " " + COPY + peer))).isEmpty()) {
+                return Optional.of(peer);
+            }
+        }
+        return Optional.empty();
+    }
+
     /** Whether this site holds the record as a copy from another, and from which. */
     public Optional<String> copiedFrom(String typeName, String id) {
         String reference = typeName + "/" + id;
@@ -1328,6 +1433,94 @@ public final class Lanes {
                 here.map(StoredObject::versionId).orElse(null), item.payload(),
                 item.version(), item.recordedAt(), true));
         return true;
+    }
+
+    /** Whether a run a place hands home is this side's own, addressed to that place to perform. */
+    private boolean performedAt(String place, Item item) {
+        return store.get(WorkModel.TYPE, item.id()).filter(stored -> !stored.deleted())
+                .map(Run::of)
+                .map(run -> run.addressee() != null && place.equals(run.addressee().place()))
+                .orElse(false);
+    }
+
+    /**
+     * The place's version of a run this side addressed to it: this side's own
+     * run, moved as the place moved it, and still addressed to the place.
+     */
+    private boolean performedThere(String place, Item item) {
+        String text = new String(item.payload(), StandardCharsets.UTF_8);
+        if (!ADDRESSED_TO_A_PLACE.matcher(text).find()) {
+            int end = text.lastIndexOf('}');
+            text = text.substring(0, end) + ",\"for\":{\"place\":" + Json.quoted(place) + "}"
+                    + text.substring(end);
+        }
+        return replicate(new Item(item.typeName(), item.id(), item.version(), item.recordedAt(),
+                text.getBytes(StandardCharsets.UTF_8), true, item.forRuns()));
+    }
+
+    // -------------------------------------------------------------- performed
+
+    /**
+     * Applies the work a place's tenant addressed to it: what the runs name
+     * first, each kept here while the run that brought it is open, then the
+     * runs under the tenant's own ids and keys, for this place's runners to
+     * take.
+     *
+     * <p>A record this place already holds is not noted: it is the place's,
+     * and stays when the run ends. A run that names a record neither side
+     * handed ends failed, saying which, rather than waiting for an input
+     * nothing will bring.
+     *
+     * <p>No position is kept here. The tenant keeps how far the place took,
+     * moved by the place saying so, so a batch applied and not said is
+     * handed again and applies once.
+     */
+    public Applied performing(String from, Batch batch) {
+        long applied = 0;
+        long skipped = 0;
+        List<String> refused = new ArrayList<>();
+        List<String> arrived = new ArrayList<>();
+        for (Item item : batch.items()) {
+            try {
+                boolean absent = !item.work() && store.get(item.typeName(), item.id())
+                        .filter(stored -> !stored.deleted()).isEmpty();
+                if (replicate(item)) {
+                    applied++;
+                } else {
+                    skipped++;
+                }
+                if (item.work()) {
+                    arrived.add(item.id());
+                } else if (absent) {
+                    placeFor(item, item.forRuns());
+                }
+            } catch (RuntimeException e) {
+                refused.add(item.typeName() + "/" + item.id() + ": " + e.getMessage());
+            }
+        }
+        for (String id : arrived) {
+            store.get(WorkModel.TYPE, id).map(Run::of).filter(Run::open).ifPresent(run -> {
+                List<String> missing = new ArrayList<>();
+                run.inputs().forEach((slot, filled) -> {
+                    if (!filled.referred()) {
+                        return;
+                    }
+                    for (String reference : filled.values()) {
+                        int slash = reference.indexOf('/');
+                        if (slash <= 0 || store.get(reference.substring(0, slash),
+                                reference.substring(slash + 1)).filter(stored -> !stored.deleted())
+                                .isEmpty()) {
+                            missing.add(slot + ": " + reference);
+                        }
+                    }
+                });
+                if (!missing.isEmpty()) {
+                    runs.refused(run, "its input " + String.join(", ", missing) + " is held "
+                            + "neither here nor by " + from + ", which handed the work");
+                }
+            });
+        }
+        return new Applied(applied, skipped, List.copyOf(refused));
     }
 
     /** A run from the other site, filed under it. */
@@ -1410,9 +1603,14 @@ public final class Lanes {
     private record Placed(String id, long version, String reference, String run) {}
 
     private void place(Batch batch, Item item) {
+        placeFor(item, item.forRuns().stream()
+                .map(named -> batch.from() + MIRROR_SEPARATOR + named).toList());
+    }
+
+    /** Notes the record as here for each of these runs, by their keys here. */
+    private void placeFor(Item item, List<String> runKeys) {
         String reference = item.typeName() + "/" + item.id();
-        for (String named : item.forRuns()) {
-            String run = batch.from() + MIRROR_SEPARATOR + named;
+        for (String run : runKeys) {
             String key = reference + " " + run;
             if (!store.getByIdentifier(PlacementModel.TYPE,
                     List.of(PlacementModel.key(key))).isEmpty()) {

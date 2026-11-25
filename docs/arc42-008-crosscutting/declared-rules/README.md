@@ -384,6 +384,11 @@ tenant itself, and on any node that is not a place, `keepAtLeast` holds against
 it as against everything. A record not marked keeps its floor on the place, and
 no bound removes it.
 
+**Open work keeps what it names.** A record a run still open on the node names,
+by its item or a slot, stays whatever the bound and whatever marks it held
+elsewhere, until that run ends. The store's own sweeps and streams name records
+too, and are not work about them, so they keep nothing.
+
 Removal is **the one sanctioned mutation of history**. A scheduled, checkpointed
 sweep removes expired versions from state and history, with their marks, and the removal is itself
 audited — what went, when, under which declared rule and, for a profile's,

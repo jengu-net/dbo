@@ -530,6 +530,17 @@ public class WireLane implements Lane {
                 return named(said.get(LaneVerbs.DECLINED));
             }
 
+            @Override
+            public Object toPerform(String through) {
+                Map<String, Object> body = verb();
+                if (through != null) {
+                    body.put(LaneVerbs.THROUGH, through);
+                }
+                Map<?, ?> said = post(LaneVerbs.RUNS_HANDED, body) instanceof Map<?, ?> map
+                        ? map : Map.of();
+                return said.get(LaneVerbs.BATCH);
+            }
+
             private static List<String> named(Object said) {
                 List<String> named = new java.util.ArrayList<>();
                 if (said instanceof List<?> listed) {

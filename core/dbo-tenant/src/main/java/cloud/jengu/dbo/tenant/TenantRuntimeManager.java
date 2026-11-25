@@ -399,6 +399,8 @@ public final class TenantRuntimeManager implements AutoCloseable {
     private final Map<String, TrailPusher> trailPushers = new ConcurrentHashMap<>();
     /** Each place's work, handed up the link it reads through, as its trail is. */
     private final Map<String, RunsPusher> runsPushers = new ConcurrentHashMap<>();
+    /** Events of the work feed read per answer to a place asking for its work. */
+    private static final int PERFORMED_AT_ONCE = 200;
     /** What of each place's work stays at it and why, as last said: said again when it changes. */
     private final Map<String, String> keptAtPlaces = new ConcurrentHashMap<>();
     /**
@@ -2746,6 +2748,18 @@ public final class TenantRuntimeManager implements AutoCloseable {
         @Override
         public boolean aPlace(String tenant) {
             return places.contains(tenant);
+        }
+
+        @Override
+        public boolean servesAPlace(String tenant, String place) {
+            return java.util.Optional.ofNullable(runtimes.get(tenant))
+                    .map(serving -> serving.replication().aPlace(place)).orElse(false);
+        }
+
+        @Override
+        public java.util.Optional<String> placeThatMade(String tenant, String reference) {
+            return java.util.Optional.ofNullable(runtimes.get(tenant))
+                    .flatMap(serving -> serving.replication().placeThatMade(reference));
         }
 
         @Override
@@ -5857,6 +5871,13 @@ public final class TenantRuntimeManager implements AutoCloseable {
                             });
                         }
                         return byId.values().stream().limit(limit).toList();
+                    }
+
+                    // Addressed to the credential, as its work is filed by it.
+                    @Override
+                    public Object toPerform(String through) {
+                        return cloud.jengu.dbo.core.wire.RecordWire.encode(serving.replication()
+                                .toBePerformedAt(participant, through, PERFORMED_AT_ONCE));
                     }
                 },
                 // The one record of all it authors a place acts on.

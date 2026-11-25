@@ -2084,6 +2084,40 @@ public final class Runs {
     static final int CLOSES_PER_PASS = 1000;
 
     /**
+     * The records the work still open here names: each run's item and every
+     * record its slots refer to, as {@code type/id} — what a run that has yet
+     * to be performed is over, which it needs when it is.
+     *
+     * <p>The tenant's own work and nothing of the store's: a stream's sweep
+     * holds an item for every record it has seen, and is not work about any
+     * of them. Nor a mirror, which is an account of work done elsewhere.
+     */
+    public Set<String> namedByOpenWork() {
+        Set<String> named = new java.util.HashSet<>();
+        List<EnvelopeValue> open = java.util.Arrays.stream(Status.values())
+                .filter(status -> !status.over())
+                .map(status -> EnvelopeValue.of(status.wire())).toList();
+        try (java.util.stream.Stream<StoredObject> found = cloud.jengu.dbo.core.api.Answered
+                .pagedBy(store::page, Criteria.of(WorkModel.TYPE).anyOf("status", open)
+                        .eq("kind", EnvelopeValue.of(RunKind.PIPELINE.wire())))) {
+            found.map(Run::of)
+                    .filter(run -> !run.process().startsWith("dbo.")
+                            && !WorkModel.authoredElsewhere(run.key()))
+                    .forEach(run -> {
+                        if (run.item() != null && run.item().reference() != null) {
+                            named.add(run.item().reference());
+                        }
+                        run.inputs().values().forEach(filled -> {
+                            if (filled.referred()) {
+                                named.addAll(filled.values());
+                            }
+                        });
+                    });
+        }
+        return named;
+    }
+
+    /**
      * The open items of a run, every one of them, held at once.
      *
      * <p>For a reader that wants the list. A pass walks them instead and holds
@@ -2779,6 +2813,9 @@ public final class Runs {
             if (standing.addressee() != null) {
                 json.append(",\"for\":{");
                 String comma = "";
+                if (standing.addressee().place() != null) {
+                    json.append("\"place\":").append(Json.quoted(standing.addressee().place()));
+                }
                 if (standing.addressee().provider() != null) {
                     json.append("\"provider\":")
                             .append(Json.quoted(standing.addressee().provider()));

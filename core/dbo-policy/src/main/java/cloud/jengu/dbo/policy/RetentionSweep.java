@@ -119,6 +119,9 @@ public final class RetentionSweep {
         // reachable from the run rather than only from the ids they name.
         cloud.jengu.dbo.core.api.Caller.setRun(sweep.key());
         try {
+            // Asked once a pass: what work still to be done is over stays,
+            // whatever the bound, until that work ends.
+            needed = runs.namedByOpenWork();
             for (Map.Entry<String, TenantPolicies.Retention> rule : policies.retention().entrySet()) {
                 String type = rule.getKey();
                 TenantPolicies.Retention bounds = rule.getValue();
@@ -282,6 +285,7 @@ public final class RetentionSweep {
             try (PreparedStatement ps = c.prepareStatement("""
                     SELECT id FROM %s_data d
                     WHERE type = ? AND last_updated < ? AND %s = ?::text[]%s
+                      AND d.id::text <> ALL(?::text[])
                     LIMIT 500""".formatted(Domains.tables(domain), CLAIMED,
                     atAPlace ? HELD_ELSEWHERE.formatted(Domains.tables(domain),
                             Domains.tables(domain)) : ""))) {
@@ -289,6 +293,7 @@ public final class RetentionSweep {
                 ps.setTimestamp(2, java.sql.Timestamp.from(ceiling));
                 ps.setArray(3, c.createArrayOf("text", ruled.toArray()));
                 ps.setArray(4, c.createArrayOf("text", claimed.toArray()));
+                ps.setArray(5, c.createArrayOf("text", neededOf(typeName)));
                 try (ResultSet rs = ps.executeQuery()) {
                     while (rs.next()) {
                         expired.add(rs.getString(1));
@@ -331,6 +336,7 @@ public final class RetentionSweep {
                       ON m.object_id = d.id AND m.version_id = d.version_id
                     WHERE d.type = ? AND m.marked_at < ? AND d.last_updated < ?
                       AND %2$s = ?::text[]
+                      AND d.id::text <> ALL(?::text[])
                     LIMIT 500""".formatted(Domains.tables(domain), CLAIMED))) {
                 ps.setString(1, typeName);
                 ps.setTimestamp(2, java.sql.Timestamp.from(now.minus(bound)));
@@ -341,6 +347,7 @@ public final class RetentionSweep {
                         || atAPlace ? now : now.minus(held.keepAtLeast())));
                 ps.setArray(4, c.createArrayOf("text", ruled.toArray()));
                 ps.setArray(5, c.createArrayOf("text", claimed.toArray()));
+                ps.setArray(6, c.createArrayOf("text", neededOf(typeName)));
                 try (ResultSet rs = ps.executeQuery()) {
                     while (rs.next()) {
                         released.add(rs.getString(1));
@@ -357,6 +364,16 @@ public final class RetentionSweep {
                     + " held elsewhere", e);
         }
         return released.size();
+    }
+
+    /** What open work names this pass, as {@code type/id}; empty before the first. */
+    private java.util.Set<String> needed = java.util.Set.of();
+
+    /** The ids of a type's records open work names, kept whatever the bound. */
+    private Object[] neededOf(String typeName) {
+        String prefix = typeName + "/";
+        return needed.stream().filter(reference -> reference.startsWith(prefix))
+                .map(reference -> reference.substring(prefix.length())).toArray();
     }
 
     /** Each record from state and history, with what is said of it, audited by id and rule. */

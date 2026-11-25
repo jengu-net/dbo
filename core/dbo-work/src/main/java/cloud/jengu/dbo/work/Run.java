@@ -235,12 +235,19 @@ public record Run(String id, long versionId, String key, String process, String 
      * @param joined   the provider's people its holder brought in to read and
      *                 write in it besides themselves, each by absolute
      *                 reference to the provider's base
+     * @param place    the place of the tenant that performs it, by the
+     *                 credential it holds its lane with: a place's own runners
+     *                 take it there, and nobody takes it here
      */
     public record Addressee(String client, String executor, String provider,
-            java.util.List<String> joined) {
+            java.util.List<String> joined, String place) {
 
         public Addressee {
             joined = joined == null ? java.util.List.of() : java.util.List.copyOf(joined);
+            if (place != null && (client != null || executor != null || provider != null)) {
+                throw new IllegalArgumentException("work a place performs is its runners' to "
+                        + "take, and names nobody else");
+            }
             if (!joined.isEmpty() && provider == null) {
                 throw new IllegalArgumentException("only the provider's people join work, and "
                         + "only work handed to it");
@@ -249,10 +256,16 @@ public record Run(String id, long versionId, String key, String process, String 
                 throw new IllegalArgumentException("work handed to the provider is its "
                         + "people's to take, and names no participant");
             }
-            if (client == null && executor == null && provider == null) {
+            if (client == null && executor == null && provider == null && place == null) {
                 throw new IllegalArgumentException("a run addressed to nobody in particular "
                         + "is a run addressed to nobody: name a client, an executor, or both");
             }
+        }
+
+        /** Work performed where the tenant is served from its own database. */
+        public Addressee(String client, String executor, String provider,
+                java.util.List<String> joined) {
+            this(client, executor, provider, joined, null);
         }
 
         /** Nobody joined besides whoever holds it. */
@@ -269,13 +282,13 @@ public record Run(String id, long versionId, String key, String process, String 
         public Addressee joining(String person) {
             java.util.List<String> more = new java.util.ArrayList<>(joined);
             more.add(person);
-            return new Addressee(client, executor, provider, more);
+            return new Addressee(client, executor, provider, more, place);
         }
 
         /** The same, with one of them taken off. */
         public Addressee leaving(String person) {
             return new Addressee(client, executor, provider,
-                    joined.stream().filter(one -> !one.equals(person)).toList());
+                    joined.stream().filter(one -> !one.equals(person)).toList(), place);
         }
 
         /** Work that lasts, handed to the service provider. */
@@ -283,20 +296,27 @@ public record Run(String id, long versionId, String key, String process, String 
             return new Addressee(null, null, java.util.Objects.requireNonNull(provider));
         }
 
+        /** Work a place of the tenant performs. */
+        public static Addressee place(String place) {
+            return new Addressee(null, null, null, null, java.util.Objects.requireNonNull(place));
+        }
+
         @Override
         public String toString() {
-            return provider != null ? "the provider '" + provider + "'"
+            return place != null ? "the place '" + place + "'"
+                    : provider != null ? "the provider '" + provider + "'"
                     : client == null ? "the executor '" + executor + "'"
                     : "'" + client + "'" + (executor == null ? "" : " as '" + executor + "'");
         }
 
         /**
          * Whether a participant asking as that client and executor is the one
-         * named. Never for work handed to the provider, whose client and
-         * executor are both unnamed and would otherwise name everybody.
+         * named. Never for work handed to the provider or performed at a
+         * place, whose client and executor are both unnamed and would
+         * otherwise name everybody.
          */
         public boolean names(String askingClient, String askingExecutor) {
-            return provider == null
+            return provider == null && place == null
                     && (client == null || client.equals(askingClient))
                     && (executor == null || executor.equals(askingExecutor));
         }
@@ -759,6 +779,10 @@ public record Run(String id, long versionId, String key, String process, String 
     /** Who the run is for, as it recorded them, or null where it names nobody. */
     private static Addressee addressee(Object json) {
         if (((Map<?, ?>) json).get("for") instanceof Map<?, ?> named) {
+            String place = str(named, "place");
+            if (place != null) {
+                return Addressee.place(place);
+            }
             String provider = str(named, "provider");
             if (provider != null) {
                 return new Addressee(null, null, provider,
