@@ -98,9 +98,14 @@ that use it.
   the site asks the cloud for every record its open work names and it no
   longer holds, keeps what comes back while the work is open, and lets it go
   once the work ends; later work brings it again. The cloud hands back only
-  records the site handed it. A run nobody holds that names a record the
-  cloud does not hold as the site's either ends failed on the site, naming
-  the slot and the record.
+  records the site handed it. A runner that asks for such a run before the
+  record is back is handed nothing: the run is held back until the next
+  round, saying which slot and record it waits for, and is ready again as
+  soon as the record comes. A record other open work names stays when the
+  work that brought it ends, so a decision that changes a result does not
+  take it from the release its change starts. A run that names a record
+  the cloud does not hold as the site's either ends failed on the site and
+  in the cloud, naming the slot and the record.
 - **A place knows what its tenant authorised.** What the clinic authorised of
   its register in the cloud reaches the site with every later authorisation and
   withdrawal, and is read-only there. The site's register at

@@ -1262,6 +1262,8 @@ public final class TenantRuntimeManager implements AutoCloseable {
         return said.toString();
     }
     private volatile long lastSweepMillis;
+    /** How long the reconciler's rounds are apart, once started; a second until then. */
+    private volatile long roundMillis = 1_000;
     /** How often the reconciler sweeps every tenant's retention. */
     private static final java.time.Duration RETENTION_EVERY = java.time.Duration.ofHours(1);
     /** When each tenant's retention last swept here, whoever asked for it. */
@@ -5649,7 +5651,9 @@ public final class TenantRuntimeManager implements AutoCloseable {
                                                             && !one.secrets().isEmpty());
                                         }
                                     }),
-                                contacts, laneRuns, laneDeclarations, heartbeatLimit, asker);
+                                contacts, laneRuns, laneDeclarations, heartbeatLimit, asker,
+                                () -> places.contains(spec.code()),
+                                java.time.Duration.ofMillis(roundMillis));
                     };
             // The same lane on the store's own stream, for a participant that
             // connects to the substrate and to nothing else: a door per tenant
@@ -7999,6 +8003,7 @@ public final class TenantRuntimeManager implements AutoCloseable {
             return;
         }
         running = true;
+        roundMillis = pollMillis;
         // Two loops, because they wait on different things and neither is the
         // other's business. Bringing a tenant up is somebody else's storage,
         // somebody else's secret, a schema; keeping a stream in step is a

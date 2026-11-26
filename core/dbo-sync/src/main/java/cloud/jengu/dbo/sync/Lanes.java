@@ -1578,6 +1578,20 @@ public final class Lanes {
         return unheld;
     }
 
+    /** Each {@code type/id} the work open here names, with the keys of the runs that name it. */
+    private Map<String, List<String>> namedByOpenWork() {
+        Map<String, List<String>> named = new java.util.HashMap<>();
+        try (java.util.stream.Stream<Run> open = runs.openWork()) {
+            open.forEach(run -> Runs.over(run).values().forEach(reference -> {
+                List<String> keys = named.computeIfAbsent(reference, key -> new ArrayList<>());
+                if (!keys.contains(run.key())) {
+                    keys.add(run.key());
+                }
+            }));
+        }
+        return named;
+    }
+
     /** Whether a reference names a record this side holds, undeleted. */
     private boolean holds(String reference) {
         return heldHere(reference).filter(stored -> !stored.deleted()).isPresent();
@@ -1645,6 +1659,8 @@ public final class Lanes {
                     applied++;
                 }
                 placeFor(item, named);
+                // Work asked for before it came waits for it no longer.
+                named.forEach(key -> runs.byKey(key).ifPresent(runs::waited));
             } catch (RuntimeException e) {
                 refused.add(reference + ": " + e.getMessage());
             }
@@ -1724,6 +1740,11 @@ public final class Lanes {
      * site holds the runs and can see for itself which are closed, and a
      * withdrawal that had to arrive would leave a site holding a register
      * every time the link was down.
+     *
+     * <p>A record other work open here names stays too, and is noted as here
+     * for that work, to go when it ends: a record the work that brought it
+     * changed starts further work over it, and letting go of it then hands
+     * that work a slot it cannot fill until a later round brings it back.
      */
     public Revoked revoke() {
         long removed = 0;
@@ -1733,11 +1754,23 @@ public final class Lanes {
             Placed placed = placed(stored);
             byObject.computeIfAbsent(placed.reference(), key -> new ArrayList<>()).add(placed);
         }
+        Map<String, List<String>> named = null;
         for (Map.Entry<String, List<Placed>> entry : byObject.entrySet()) {
             boolean stillNeeded = entry.getValue().stream()
                     .anyMatch(placed -> placed.run().startsWith(COPY)
                             || runs.byKey(placed.run()).map(Run::open).orElse(false));
             if (stillNeeded) {
+                kept++;
+                continue;
+            }
+            if (named == null) {
+                named = namedByOpenWork();
+            }
+            List<String> namers = named.getOrDefault(entry.getKey(), List.of());
+            if (!namers.isEmpty()) {
+                placeFor(entry.getKey(), namers);
+                entry.getValue().forEach(placed ->
+                        store.delete(PlacementModel.TYPE, placed.id(), placed.version()));
                 kept++;
                 continue;
             }
@@ -1762,7 +1795,11 @@ public final class Lanes {
 
     /** Notes the record as here for each of these runs, by their keys here. */
     private void placeFor(Item item, List<String> runKeys) {
-        String reference = item.typeName() + "/" + item.id();
+        placeFor(item.typeName() + "/" + item.id(), runKeys);
+    }
+
+    private void placeFor(String reference, List<String> runKeys) {
+        String typeName = reference.substring(0, reference.indexOf('/'));
         for (String run : runKeys) {
             String key = reference + " " + run;
             if (!store.getByIdentifier(PlacementModel.TYPE,
@@ -1773,7 +1810,7 @@ public final class Lanes {
                     PutRequest.create(PlacementModel.TYPE, ("{\"key\":" + Json.quoted(key)
                             + ",\"reference\":" + Json.quoted(reference)
                             + ",\"run\":" + Json.quoted(run)
-                            + ",\"type\":" + Json.quoted(item.typeName()) + "}")
+                            + ",\"type\":" + Json.quoted(typeName) + "}")
                             .getBytes(StandardCharsets.UTF_8)));
         }
     }

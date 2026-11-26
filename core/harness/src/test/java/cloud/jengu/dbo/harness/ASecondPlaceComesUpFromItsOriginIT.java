@@ -59,6 +59,7 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -104,7 +105,11 @@ class ASecondPlaceComesUpFromItsOriginIT {
                        "writes":["Observation","Device","Basic","Specimen","Media"]},
                       {"code":"jaam.lab.order","slots":{"order":"Reference(Observation)"},
                        "lasts":true},
-                      {"code":"jaam.lab.decide","slots":{"result":"Reference(Media)"}},
+                      {"code":"jaam.lab.decide","slots":{"result":"Reference(Media)"},
+                       "writes":["Media"]},
+                      {"code":"jaam.lab.release","slots":{"result":"Reference(Media)"},
+                       "starts":{"change":"Media?identifier=urn:dbo-test:specimen|media-released&status=completed",
+                                 "keep":"P1D","where":"places"}},
                       {"code":"jaam.lab.calibrate",
                        "starts":{"every":"0 * * * * *","missed":"skip","keep":"P1D",
                                  "where":"places"}}],
@@ -1944,6 +1949,107 @@ class ASecondPlaceComesUpFromItsOriginIT {
 
         site.readsItsOriginThrough(CLINIC, connected());
         site.syncRound();
+    }
+
+    /** The step a change to a decided result starts on the site, over that result. */
+    private static final String RELEASE = "jaam.lab.release";
+
+    @Test
+    @Order(40)
+    @DisplayName("work the site starts itself over what it let go of runs as if it had kept it: "
+            + "a result a decision changed stays for the work its change starts, work asked for "
+            + "before its record is back waits saying so and fills once it comes, and a slot "
+            + "nothing will fill ends the run failed, on the site and at its tenant")
+    @Proving(DboPromises.SYNC_A_RUN_ON_A_PLACE_OVER_WHAT_IT_LET_GO_OF_RUNS_AS_IF_IT_HAD_KEPT_IT)
+    void workOverWhatTheSiteLetGoOfRunsAsIfItHadKeptIt() throws Exception {
+        site.readsItsOriginThrough(CLINIC, connected());
+        site.syncRound();
+        String query = "Media?identifier=" + SPECIMENS + "|media-released";
+        performedOnTheSite("media-released", Outcome.Write.create(
+                media("media-released").replace("\"completed\"", "\"preparation\"")));
+        String media = only(site, query).path("id").asText();
+        site.syncRound();
+        Thread.sleep(5_100);
+        site.retentionRound(CLINIC);
+        assertEquals(0, found(site, query),
+                "the site kept what its tenant holds past the declared time");
+
+        // A person decides at the tenant; the decision, on the site, completes the result,
+        // and that change starts the release on the site.
+        cloud.authority(CLINIC).ensureClient("decider", "decider-secret", List.of("work"));
+        String decider = clientToken(cloud, CLINIC, "decider", "decider-secret");
+        HttpResponse<String> started = decide("Media/" + media, "", decider);
+        assertEquals(201, started.statusCode(), started.body());
+        site.syncRound();
+        Executor deciding = new Executor("decider", "1", "example.site", Scope.BASELINE);
+        Lane decide = site.fleetLane(CLINIC, DECIDE, deciding).orElseThrow();
+        decide.declare(new Declarations.Declared("jaam.lab", "decide", deciding.name(),
+                deciding.version(), deciding.provider(), deciding.scope(), deciding.name()));
+        Run decided = decide.committed(decide.claim(onTheSite(keyOf(started.body())),
+                        java.time.Duration.ofMinutes(5)).orElseThrow(), null,
+                List.of(Outcome.Write.upsert(query, media("media-released"))));
+        assertEquals(null, decided.refused(), decided.toString());
+        long changed = only(site, query).path("meta").path("versionId").asLong();
+        site.syncRound();
+        assertEquals(1, found(site, query),
+                "the site let go of a result its own open work names when the decision ended");
+
+        Executor releasing = new Executor("releaser", "1", "example.site", Scope.BASELINE);
+        Lane release = site.fleetLane(CLINIC, RELEASE, releasing).orElseThrow();
+        release.declare(new Declarations.Declared("jaam.lab", "release", releasing.name(),
+                releasing.version(), releasing.provider(), releasing.scope(), releasing.name()));
+        Run first = release.claim(onTheSite(RELEASE + "/change/" + media + "/" + changed),
+                java.time.Duration.ofMinutes(5)).orElseThrow();
+        assertEquals(1, release.inputs(first).getOrDefault("result", List.of()).size(),
+                "the release the decided result started does not reach it");
+        release.committed(first, null, List.of());
+        site.syncRound();
+        Thread.sleep(5_100);
+        site.retentionRound(CLINIC);
+        assertEquals(0, found(site, query), "the site kept the result once its work ended");
+
+        // Asked for before the site's next round has brought its record back.
+        Run early = release.claim(releasedOnTheSite("Media/" + media, "early"),
+                java.time.Duration.ofMinutes(5)).orElseThrow();
+        assertThrows(Runs.NotHeld.class, () -> release.inputs(early),
+                "the site handed over work whose record it has not brought back");
+        Run waiting = onTheSite(early.key());
+        assertEquals(Status.ON_HOLD, waiting.status(), waiting.toString());
+        assertTrue(String.valueOf(waiting.statusReason()).contains("result: Media/" + media),
+                "the work held back does not say what it waits for: " + waiting.statusReason());
+        site.syncRound();
+        assertEquals(1, found(site, query), "the site did not bring back what its work names");
+        Run ready = onTheSite(early.key());
+        assertEquals(Status.READY, ready.status(),
+                "the work is not ready again once its record is back: " + ready);
+        Run taken = release.claim(ready, java.time.Duration.ofMinutes(5)).orElseThrow();
+        assertEquals(1, release.inputs(taken).getOrDefault("result", List.of()).size(),
+                "the work does not reach the record brought back for it");
+        release.committed(taken, null, List.of());
+
+        // Asked for, and named nowhere: held back, then failed saying which.
+        Run nowhere = release.claim(releasedOnTheSite("Media/" + java.util.UUID.randomUUID(),
+                "nowhere"), java.time.Duration.ofMinutes(5)).orElseThrow();
+        assertThrows(Runs.NotHeld.class, () -> release.inputs(nowhere));
+        site.syncRound();
+        Run failed = onTheSite(nowhere.key());
+        assertEquals(Status.FAILED, failed.status(), failed.toString());
+        assertTrue(String.valueOf(failed.statusReason()).contains("result: Media/"),
+                "the failure does not say which input: " + failed.statusReason());
+        site.syncRound();
+        Run told = new Runs(cloud.runtime(CLINIC).orElseThrow().engine())
+                .byKey("site" + Lanes.MIRROR_SEPARATOR + nowhere.key()).orElseThrow(() ->
+                        new AssertionError("the site's failed run did not reach its tenant"));
+        assertEquals(Status.FAILED, told.status(), told.toString());
+        assertEquals(failed.statusReason(), told.statusReason());
+    }
+
+    /** The release the site starts itself over a result, and not yet taken. */
+    private static Run releasedOnTheSite(String result, String found) {
+        return new Runs(site.runtime(CLINIC).orElseThrow().engine()).filling(
+                StepDeclaration.of(RELEASE, "1", "r4").taking("result", "Media"),
+                RunKind.PIPELINE, "released-on-the-site-" + found,
+                java.util.Map.of("result", RunSlot.referring(result)));
     }
 
     private static Run onTheSite(String key) {
