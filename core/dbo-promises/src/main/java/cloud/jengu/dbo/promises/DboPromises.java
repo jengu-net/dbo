@@ -1586,9 +1586,10 @@ public enum DboPromises implements Promise {
             + "it: its slot fills from the record as the place holds it again. A runner asking "
             + "for it before the record is back is handed nothing, and the run is held back, "
             + "naming the slot and the record it waits for, until the record comes, when it is "
-            + "ready again at once. A record that other work open on the place names stays when "
-            + "the work that brought it ends. A slot nothing will fill ends the run failed, "
-            + "naming the slot and the record, on the place and at its tenant."),
+            + "ready again at once. When the work that brought a record ends, the record stays "
+            + "if that work changed it on the place, as the place's own under its retention, or "
+            + "if other work open on the place names it. A slot nothing will fill ends the run "
+            + "failed, naming the slot and the record, on the place and at its tenant."),
     SYNC_A_PLACE_SAYS_WHAT_IT_HOLDS_AS_A_COUNT_AND_A_SIZE_WITH_WHEN_IT_GOES(
             "What a place holds is read as what it holds alone and what it holds that is held "
             + "elsewhere and not yet let go, each by type and in total as versions and the "

@@ -1741,10 +1741,13 @@ public final class Lanes {
      * withdrawal that had to arrive would leave a site holding a register
      * every time the link was down.
      *
-     * <p>A record other work open here names stays too, and is noted as here
-     * for that work, to go when it ends: a record the work that brought it
-     * changed starts further work over it, and letting go of it then hands
-     * that work a slot it cannot fill until a later round brings it back.
+     * <p>A record the work changed here since it arrived stays, as this
+     * side's own, and its retention lets go of it as of anything this side
+     * records: its tenant may not hold the change yet, and the change starts
+     * further work over it, which a step's watch starts on its own time. A
+     * record other work open here names stays too, noted as here for that
+     * work to go when it ends: letting go of either hands that work a slot it
+     * cannot fill until a later round brings the record back.
      */
     public Revoked revoke() {
         long removed = 0;
@@ -1763,6 +1766,18 @@ public final class Lanes {
                 kept++;
                 continue;
             }
+            String typeName = entry.getKey().substring(0, entry.getKey().indexOf('/'));
+            String id = entry.getKey().substring(entry.getKey().indexOf('/') + 1);
+            Instant arrived = entry.getValue().stream().map(Placed::at)
+                    .max(java.util.Comparator.naturalOrder()).orElseThrow();
+            Optional<StoredObject> here = store.get(typeName, id);
+            if (here.isPresent() && here.get().lastUpdated() != null
+                    && here.get().lastUpdated().isAfter(arrived)) {
+                entry.getValue().forEach(placed ->
+                        store.delete(PlacementModel.TYPE, placed.id(), placed.version()));
+                kept++;
+                continue;
+            }
             if (named == null) {
                 named = namedByOpenWork();
             }
@@ -1774,10 +1789,7 @@ public final class Lanes {
                 kept++;
                 continue;
             }
-            String typeName = entry.getKey().substring(0, entry.getKey().indexOf('/'));
-            String id = entry.getKey().substring(entry.getKey().indexOf('/') + 1);
-            store.get(typeName, id).ifPresent(here ->
-                    store.delete(typeName, id, here.versionId()));
+            here.ifPresent(held -> store.delete(typeName, id, held.versionId()));
             entry.getValue().forEach(placed ->
                     store.delete(PlacementModel.TYPE, placed.id(), placed.version()));
             removed++;
@@ -1785,8 +1797,8 @@ public final class Lanes {
         return new Revoked(removed, kept);
     }
 
-    /** One note that a record arrived with a piece of work. */
-    private record Placed(String id, long version, String reference, String run) {}
+    /** One note that a record arrived with a piece of work, and when it was made. */
+    private record Placed(String id, long version, String reference, String run, Instant at) {}
 
     private void place(Batch batch, Item item) {
         placeFor(item, item.forRuns().stream()
@@ -1818,7 +1830,7 @@ public final class Lanes {
     private static Placed placed(StoredObject stored) {
         Object json = Json.parse(new String(stored.payload(), StandardCharsets.UTF_8));
         return new Placed(stored.id(), stored.versionId(), Json.str(json, "reference"),
-                Json.str(json, "run"));
+                Json.str(json, "run"), stored.lastUpdated());
     }
 
     // ------------------------------------------------------------- lane state

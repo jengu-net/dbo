@@ -1998,7 +1998,7 @@ class ASecondPlaceComesUpFromItsOriginIT {
         Lane release = site.fleetLane(CLINIC, RELEASE, releasing).orElseThrow();
         release.declare(new Declarations.Declared("jaam.lab", "release", releasing.name(),
                 releasing.version(), releasing.provider(), releasing.scope(), releasing.name()));
-        Run first = release.claim(onTheSite(RELEASE + "/change/" + media + "/" + changed),
+        Run first = release.claim(startedOnTheSite(RELEASE + "/change/" + media + "/" + changed),
                 java.time.Duration.ofMinutes(5)).orElseThrow();
         assertEquals(1, release.inputs(first).getOrDefault("result", List.of()).size(),
                 "the release the decided result started does not reach it");
@@ -2042,6 +2042,18 @@ class ASecondPlaceComesUpFromItsOriginIT {
                         new AssertionError("the site's failed run did not reach its tenant"));
         assertEquals(Status.FAILED, told.status(), told.toString());
         assertEquals(failed.statusReason(), told.statusReason());
+    }
+
+    /** A run the site's watch starts on its own time, once it has. */
+    private static Run startedOnTheSite(String key) throws InterruptedException {
+        Runs runs = new Runs(site.runtime(CLINIC).orElseThrow().engine());
+        long until = System.currentTimeMillis() + 60_000;
+        java.util.Optional<Run> started;
+        while ((started = runs.byKey(key)).isEmpty()) {
+            assertTrue(System.currentTimeMillis() < until, "the site never started " + key);
+            Thread.sleep(200);
+        }
+        return started.get();
     }
 
     /** The release the site starts itself over a result, and not yet taken. */

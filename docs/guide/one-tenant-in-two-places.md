@@ -101,9 +101,11 @@ that use it.
   records the site handed it. A runner that asks for such a run before the
   record is back is handed nothing: the run is held back until the next
   round, saying which slot and record it waits for, and is ready again as
-  soon as the record comes. A record other open work names stays when the
-  work that brought it ends, so a decision that changes a result does not
-  take it from the release its change starts. A run that names a record
+  soon as the record comes. When the work that brought a record ends, the
+  record stays if the work changed it on the site, as the site's own under
+  its retention, or if other open work names it. So a decision that changes
+  a result does not take it from the release its change starts. A run that
+  names a record
   the cloud does not hold as the site's either ends failed on the site and
   in the cloud, naming the slot and the record.
 - **A place knows what its tenant authorised.** What the clinic authorised of
