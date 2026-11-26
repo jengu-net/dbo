@@ -1326,6 +1326,39 @@ public final class Runs {
         return update(run, releasing(run, because, failure));
     }
 
+    /** How the reason of a run held back by {@link #waiting} begins. */
+    private static final String WAITS = "waits for ";
+
+    /**
+     * Handed back to wait for what it needs, held back until a moment and
+     * open to automation again then, saying what it waits for. No attempt is
+     * counted, as nothing was attempted: what it waits for comes or does not,
+     * and whatever brings it ends the wait either way.
+     *
+     * @param waitsFor what it waits for, as its reason says it after "waits for"
+     */
+    public Run waiting(Run run, String waitsFor, java.time.Instant until) {
+        String because = WAITS + waitsFor;
+        return update(run, snapshot -> snapshot.withAssignment(new Run.Assignment(
+                        snapshot.assignment() == null ? null : snapshot.assignment().at(),
+                        null, because, null))
+                .withStanding(snapshot.standing().as(Status.ON_HOLD).openTo(true)
+                        .notBefore(until).because(because)));
+    }
+
+    /**
+     * A run held back by {@link #waiting}, ready again now that what it
+     * waited for has come, if it is still held back: one taken or ended
+     * meanwhile, or held back for another reason, is left as it is.
+     */
+    public Optional<Run> waited(Run run) {
+        return advanceIf(run, "readied", current -> current.status() == Status.ON_HOLD
+                        && current.statusReason() != null
+                        && current.statusReason().startsWith(WAITS),
+                snapshot -> snapshot.withStanding(
+                        snapshot.standing().as(Status.READY).notBefore(null)));
+    }
+
     /** What handing a run back writes, routed by the failure as {@link #released} says. */
     private java.util.function.UnaryOperator<State> releasing(Run run, String because,
             Failure failure) {

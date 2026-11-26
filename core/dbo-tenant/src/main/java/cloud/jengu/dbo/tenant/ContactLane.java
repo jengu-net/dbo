@@ -27,7 +27,15 @@ import java.util.Set;
  *
  * <p>Every verb is the lane's own; what this adds is that the node notices
  * who asked, for which step, and tells whoever listens to that step. Nothing
- * here is written, and a verb is never refused for anything this does.
+ * here is written for that, and a verb is never refused for it.
+ *
+ * <p><b>On a place, a run is not handed over before what it names is here.</b>
+ * A record the place let go of because its tenant holds it is brought back
+ * by the place's next round, or the run ends failed there saying which. Work
+ * asked for in between is held back until that round, saying what it waits
+ * for, rather than handed to a step with a slot it cannot fill: a step that
+ * throws over it gives the run to people, where it waits for good after the
+ * record is back.
  *
  * <p><b>A verb about a run counts for the run's step once it has been
  * answered</b>, read from the run as the store holds it: the body's process
@@ -43,18 +51,32 @@ final class ContactLane implements Lane {
     private final Declarations declarations;
     private final int limit;
     private final ContactListener.Worker worker;
+    private final java.util.function.BooleanSupplier place;
+    private final Duration round;
+
+    /** A lane on a node that serves the tenant as no place of it. */
+    ContactLane(Lane lane, Contacts contacts, Runs runs, Declarations declarations,
+            int limit, String client) {
+        this(lane, contacts, runs, declarations, limit, client, () -> false, Duration.ZERO);
+    }
 
     /**
      * @param limit how large a heartbeat's statistics may be, in bytes of
      *              their JSON
+     * @param place whether this node serves the tenant as a place of it
+     * @param round how long the place's rounds are apart: how long work waits
+     *              for a record it names to be brought back
      */
     ContactLane(Lane lane, Contacts contacts, Runs runs, Declarations declarations,
-            int limit, String client) {
+            int limit, String client, java.util.function.BooleanSupplier place,
+            Duration round) {
         this.lane = lane;
         this.contacts = contacts;
         this.runs = runs;
         this.declarations = declarations;
         this.limit = limit;
+        this.place = place;
+        this.round = round;
         this.worker = new ContactListener.Worker(client, lane.identity().name(),
                 lane.identity().version());
     }
@@ -259,17 +281,66 @@ final class ContactLane implements Lane {
 
     @Override
     public Map<String, List<StoredObject>> inputs(Run run) {
-        return lane.inputs(run);
+        Map<String, List<StoredObject>> inputs = lane.inputs(run);
+        Set<String> here = new java.util.HashSet<>();
+        inputs.values().forEach(held -> held.forEach(object ->
+                here.add(object.typeName() + "/" + object.id())));
+        waitsFor(run, here);
+        return inputs;
     }
 
     @Override
     public SealedWork sealed(Run run) {
-        return lane.sealed(run);
+        return sealedFilled(run, lane.sealed(run));
     }
 
     @Override
     public SealedWork sealed(Run run, List<String> recipients) {
-        return lane.sealed(run, recipients);
+        return sealedFilled(run, lane.sealed(run, recipients));
+    }
+
+    private SealedWork sealedFilled(Run run, SealedWork sealed) {
+        if (run.crossing() == null) {
+            // What came back on a crossing is an answer, not the inputs.
+            Set<String> here = new java.util.HashSet<>();
+            sealed.payload().forEach(payload -> here.add(payload.reference()));
+            waitsFor(run, here);
+        }
+        return sealed;
+    }
+
+    /**
+     * On a place, holds the run back until its next round when a record it
+     * names is not among what was read for it, and says so to the asker as
+     * a run no longer theirs.
+     */
+    private void waitsFor(Run run, Set<String> here) {
+        if (!place.getAsBoolean() || cloud.jengu.dbo.work.WorkModel.authoredElsewhere(run.key())) {
+            // Another side's run is that side's to hold back.
+            return;
+        }
+        List<String> missing = new java.util.ArrayList<>();
+        run.inputs().forEach((slot, filled) -> {
+            if (!filled.referred()) {
+                return;
+            }
+            for (String reference : filled.values()) {
+                int slash = reference.indexOf('/');
+                if (slash > 0 && reference.indexOf('/', slash + 1) < 0
+                        && !here.contains(reference)) {
+                    missing.add(slot + ": " + reference);
+                }
+            }
+        });
+        if (missing.isEmpty()) {
+            return;
+        }
+        String waitsFor = "its input " + String.join(", ", missing)
+                + ", which this place brings back from its tenant";
+        Run current = runs.byKey(run.key()).orElse(run);
+        Run held = runs.waiting(current, waitsFor, java.time.Instant.now().plus(round));
+        heard(held);
+        throw new Runs.NotHeld("run '" + run.key() + "' " + held.statusReason());
     }
 
     @Override

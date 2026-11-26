@@ -1578,6 +1578,20 @@ public final class Lanes {
         return unheld;
     }
 
+    /** Each {@code type/id} the work open here names, with the keys of the runs that name it. */
+    private Map<String, List<String>> namedByOpenWork() {
+        Map<String, List<String>> named = new java.util.HashMap<>();
+        try (java.util.stream.Stream<Run> open = runs.openWork()) {
+            open.forEach(run -> Runs.over(run).values().forEach(reference -> {
+                List<String> keys = named.computeIfAbsent(reference, key -> new ArrayList<>());
+                if (!keys.contains(run.key())) {
+                    keys.add(run.key());
+                }
+            }));
+        }
+        return named;
+    }
+
     /** Whether a reference names a record this side holds, undeleted. */
     private boolean holds(String reference) {
         return heldHere(reference).filter(stored -> !stored.deleted()).isPresent();
@@ -1645,6 +1659,8 @@ public final class Lanes {
                     applied++;
                 }
                 placeFor(item, named);
+                // Work asked for before it came waits for it no longer.
+                named.forEach(key -> runs.byKey(key).ifPresent(runs::waited));
             } catch (RuntimeException e) {
                 refused.add(reference + ": " + e.getMessage());
             }
@@ -1724,6 +1740,14 @@ public final class Lanes {
      * site holds the runs and can see for itself which are closed, and a
      * withdrawal that had to arrive would leave a site holding a register
      * every time the link was down.
+     *
+     * <p>A record the work changed here since it arrived stays, as this
+     * side's own, and its retention lets go of it as of anything this side
+     * records: its tenant may not hold the change yet, and the change starts
+     * further work over it, which a step's watch starts on its own time. A
+     * record other work open here names stays too, noted as here for that
+     * work to go when it ends: letting go of either hands that work a slot it
+     * cannot fill until a later round brings the record back.
      */
     public Revoked revoke() {
         long removed = 0;
@@ -1733,6 +1757,7 @@ public final class Lanes {
             Placed placed = placed(stored);
             byObject.computeIfAbsent(placed.reference(), key -> new ArrayList<>()).add(placed);
         }
+        Map<String, List<String>> named = null;
         for (Map.Entry<String, List<Placed>> entry : byObject.entrySet()) {
             boolean stillNeeded = entry.getValue().stream()
                     .anyMatch(placed -> placed.run().startsWith(COPY)
@@ -1743,8 +1768,28 @@ public final class Lanes {
             }
             String typeName = entry.getKey().substring(0, entry.getKey().indexOf('/'));
             String id = entry.getKey().substring(entry.getKey().indexOf('/') + 1);
-            store.get(typeName, id).ifPresent(here ->
-                    store.delete(typeName, id, here.versionId()));
+            Instant arrived = entry.getValue().stream().map(Placed::at)
+                    .max(java.util.Comparator.naturalOrder()).orElseThrow();
+            Optional<StoredObject> here = store.get(typeName, id);
+            if (here.isPresent() && here.get().lastUpdated() != null
+                    && here.get().lastUpdated().isAfter(arrived)) {
+                entry.getValue().forEach(placed ->
+                        store.delete(PlacementModel.TYPE, placed.id(), placed.version()));
+                kept++;
+                continue;
+            }
+            if (named == null) {
+                named = namedByOpenWork();
+            }
+            List<String> namers = named.getOrDefault(entry.getKey(), List.of());
+            if (!namers.isEmpty()) {
+                placeFor(entry.getKey(), namers);
+                entry.getValue().forEach(placed ->
+                        store.delete(PlacementModel.TYPE, placed.id(), placed.version()));
+                kept++;
+                continue;
+            }
+            here.ifPresent(held -> store.delete(typeName, id, held.versionId()));
             entry.getValue().forEach(placed ->
                     store.delete(PlacementModel.TYPE, placed.id(), placed.version()));
             removed++;
@@ -1752,8 +1797,8 @@ public final class Lanes {
         return new Revoked(removed, kept);
     }
 
-    /** One note that a record arrived with a piece of work. */
-    private record Placed(String id, long version, String reference, String run) {}
+    /** One note that a record arrived with a piece of work, and when it was made. */
+    private record Placed(String id, long version, String reference, String run, Instant at) {}
 
     private void place(Batch batch, Item item) {
         placeFor(item, item.forRuns().stream()
@@ -1762,7 +1807,11 @@ public final class Lanes {
 
     /** Notes the record as here for each of these runs, by their keys here. */
     private void placeFor(Item item, List<String> runKeys) {
-        String reference = item.typeName() + "/" + item.id();
+        placeFor(item.typeName() + "/" + item.id(), runKeys);
+    }
+
+    private void placeFor(String reference, List<String> runKeys) {
+        String typeName = reference.substring(0, reference.indexOf('/'));
         for (String run : runKeys) {
             String key = reference + " " + run;
             if (!store.getByIdentifier(PlacementModel.TYPE,
@@ -1773,7 +1822,7 @@ public final class Lanes {
                     PutRequest.create(PlacementModel.TYPE, ("{\"key\":" + Json.quoted(key)
                             + ",\"reference\":" + Json.quoted(reference)
                             + ",\"run\":" + Json.quoted(run)
-                            + ",\"type\":" + Json.quoted(item.typeName()) + "}")
+                            + ",\"type\":" + Json.quoted(typeName) + "}")
                             .getBytes(StandardCharsets.UTF_8)));
         }
     }
@@ -1781,7 +1830,7 @@ public final class Lanes {
     private static Placed placed(StoredObject stored) {
         Object json = Json.parse(new String(stored.payload(), StandardCharsets.UTF_8));
         return new Placed(stored.id(), stored.versionId(), Json.str(json, "reference"),
-                Json.str(json, "run"));
+                Json.str(json, "run"), stored.lastUpdated());
     }
 
     // ------------------------------------------------------------- lane state

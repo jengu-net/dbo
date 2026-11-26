@@ -3649,6 +3649,7 @@ cloud.jengu.dbo.promises.DboPromises                                   SYNC_A_RE
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_A_RUN_HANDED_TO_A_PLACE_HELD_AT_ITS_TENANT_ENDS_SAYING_SO:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_A_RUN_HANDED_TO_A_PLACE_NEVER_WAITS_SILENTLY_FOR_AN_INPUT:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_A_RUN_ON_A_PLACE_NEVER_WAITS_SILENTLY_FOR_WHAT_IT_LET_GO_OF:cloud.jengu.dbo.promises.DboPromises
+cloud.jengu.dbo.promises.DboPromises                                   SYNC_A_RUN_ON_A_PLACE_OVER_WHAT_IT_LET_GO_OF_RUNS_AS_IF_IT_HAD_KEPT_IT:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_A_SITE_HANDS_HOME_ONLY_WHAT_IS_ITS_OWN:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_A_STREAM_APPLIES_EACH_CHANGE_ONCE:cloud.jengu.dbo.promises.DboPromises
 cloud.jengu.dbo.promises.DboPromises                                   SYNC_A_TYPE_IS_RECEIVED_AND_AUTHORED_RECORD_BY_RECORD:cloud.jengu.dbo.promises.DboPromises
@@ -6413,7 +6414,9 @@ cloud.jengu.dbo.work.Runs                                              takenForT
 cloud.jengu.dbo.work.Runs                                              tally(cloud.jengu.dbo.work.Run,Map):cloud.jengu.dbo.work.Run
 cloud.jengu.dbo.work.Runs                                              traced(cloud.jengu.dbo.work.Run,String):cloud.jengu.dbo.work.Run
 cloud.jengu.dbo.work.Runs                                              turnedAway(String,String,String,String):cloud.jengu.dbo.work.Run
+cloud.jengu.dbo.work.Runs                                              waited(cloud.jengu.dbo.work.Run):Optional
 cloud.jengu.dbo.work.Runs                                              waiting(cloud.jengu.dbo.work.Run,String):Optional
+cloud.jengu.dbo.work.Runs                                              waiting(cloud.jengu.dbo.work.Run,String,Instant):cloud.jengu.dbo.work.Run
 cloud.jengu.dbo.work.Runs                                              written(cloud.jengu.dbo.work.Run,List,String):cloud.jengu.dbo.work.Run
 cloud.jengu.dbo.work.Runs.Claimable                                    NOBODY:cloud.jengu.dbo.work.Runs.Claimable
 cloud.jengu.dbo.work.Runs.Claimable                                    appeared(cloud.jengu.dbo.work.Run):void
